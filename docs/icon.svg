@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect fill="#6366f1" width="512" height="512" rx="100"/>
+
+  <!-- Face (cream/peach) -->
+  <circle cx="256" cy="240" r="140" fill="#fdd9b5"/>
+
+  <!-- White hair (top) -->
+  <ellipse cx="256" cy="130" rx="120" ry="60" fill="#e8e8e8"/>
+  <ellipse cx="180" cy="160" rx="40" ry="50" fill="#e8e8e8"/>
+  <ellipse cx="332" cy="160" rx="40" ry="50" fill="#e8e8e8"/>
+
+  <!-- Eyes (happy squint) -->
+  <path d="M190 220 Q210 200 230 220" stroke="#333" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="M282 220 Q302 200 322 220" stroke="#333" stroke-width="12" fill="none" stroke-linecap="round"/>
+
+  <!-- Rosy cheeks -->
+  <circle cx="175" cy="260" r="25" fill="#f8a5a5" opacity="0.6"/>
+  <circle cx="337" cy="260" r="25" fill="#f8a5a5" opacity="0.6"/>
+
+  <!-- Big happy smile -->
+  <path d="M190 290 Q256 380 322 290" stroke="#333" stroke-width="12" fill="none" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <ellipse cx="256" cy="260" rx="15" ry="20" fill="#e8c49e"/>
+
+  <!-- Glasses -->
+  <circle cx="200" cy="220" r="45" stroke="#333" stroke-width="8" fill="none"/>
+  <circle cx="312" cy="220" r="45" stroke="#333" stroke-width="8" fill="none"/>
+  <line x1="245" y1="220" x2="267" y2="220" stroke="#333" stroke-width="8"/>
+  <line x1="155" y1="210" x2="130" y2="190" stroke="#333" stroke-width="6"/>
+  <line x1="357" y1="210" x2="382" y2="190" stroke="#333" stroke-width="6"/>
+
+  <!-- Pound sign on forehead (small) -->
+  <text x="256" y="145" text-anchor="middle" font-size="50" font-weight="bold" fill="#4f46e5">£</text>
+
+  <!-- Thumbs up hand -->
+  <ellipse cx="420" cy="420" rx="50" ry="60" fill="#fdd9b5"/>
+  <rect x="405" y="350" width="30" height="70" rx="15" fill="#fdd9b5"/>
+</svg>

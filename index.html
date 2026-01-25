@@ -968,6 +968,11 @@
       min-width: 120px;
     }
 
+    .history-actions-header {
+      display: flex;
+      gap: 8px;
+    }
+
     .btn.danger {
       background: var(--danger);
       color: white;
@@ -2109,10 +2114,16 @@
                 <!-- Year options rendered dynamically -->
               </select>
             </div>
-            <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
-              <span class="btn-text">Delete All</span>
-              <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
-            </button>
+            <div class="history-actions-header">
+              <button class="btn danger small" onclick="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
+                <span class="btn-text">Delete Year</span>
+                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+              </button>
+              <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
+                <span class="btn-text">Delete All</span>
+                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+              </button>
+            </div>
           </div>
 
           <!-- Month tabs for selected year -->
@@ -3420,6 +3431,14 @@
         return;
       }
 
+      // Check if this month already has a history entry
+      const existingHistory = await getHistoryAsync({ limit: 1000 });
+      const existingEntry = existingHistory.find(h => h.date === dateStr);
+      if (existingEntry) {
+        showToast(`${formatHistoryTabDate(dateStr)} already has a saved decision. Delete it from the History tab first to recalculate.`, 'error', 5000);
+        return;
+      }
+
       try {
         // Check if tax year wizard is needed for the selected month
         const wizardCheck = await checkWizardNeeded(dateStr);
@@ -4482,6 +4501,7 @@
       const detailContainer = document.getElementById('historyDetail');
       const yearFilter = document.getElementById('historyYearFilter');
       const deleteAllBtn = document.getElementById('deleteAllHistoryBtn');
+      const deleteYearBtn = document.getElementById('deleteYearBtn');
 
       if (!tabsContainer || !detailContainer) return;
 
@@ -4489,9 +4509,12 @@
 
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
 
-      // Hide delete all button if no entries
+      // Hide delete buttons if no entries
       if (deleteAllBtn) {
         deleteAllBtn.style.display = allHistoryData.length > 0 ? '' : 'none';
+      }
+      if (deleteYearBtn) {
+        deleteYearBtn.style.display = 'none'; // Will show when year is selected
       }
 
       if (allHistoryData.length === 0) {
@@ -4515,6 +4538,11 @@
         });
         yearFilter.innerHTML = yearOptionsHtml;
         yearFilter.value = selectedHistoryYear;
+      }
+
+      // Show/hide delete year button based on selection
+      if (deleteYearBtn) {
+        deleteYearBtn.style.display = (selectedHistoryYear !== 'all' && allHistoryData.length > 0) ? '' : 'none';
       }
 
       // Filter by selected year
@@ -4881,36 +4909,145 @@
       }
     };
 
-    // Delete history entry
-    window.deleteHistoryEntry = async function(date, btn) {
-      const dateLabel = formatHistoryTabDate(date);
-      if (!confirm(`Delete entry for ${dateLabel}?`)) return;
+    // Helper: Get tax year from date string
+    function getTaxYearFromDateStr(dateStr) {
+      const [y, m] = dateStr.split('-').map(Number);
+      return m >= 4 ? `${y % 100}/${(y + 1) % 100}` : `${(y - 1) % 100}/${y % 100}`;
+    }
 
+    // Helper: Delete history entries and update ISA used in tax years
+    async function deleteHistoryEntriesWithIsaUpdate(entriesToDelete) {
+      // Group entries by tax year to calculate ISA adjustments
+      const isaByTaxYear = {};
+      for (const entry of entriesToDelete) {
+        const taxYear = entry.taxYear || getTaxYearFromDateStr(entry.date);
+        if (!isaByTaxYear[taxYear]) isaByTaxYear[taxYear] = 0;
+        isaByTaxYear[taxYear] += entry.isaSavingsUsedThisMonth || entry.isa || 0;
+      }
+
+      // Delete each entry
+      for (const entry of entriesToDelete) {
+        await deleteHistoryRecord(entry.date);
+      }
+
+      // Update ISA used in each affected tax year
+      const allTaxYears = await getAllTaxYearsAsync();
+      for (const [taxYear, isaToSubtract] of Object.entries(isaByTaxYear)) {
+        if (allTaxYears[taxYear]) {
+          const currentIsaUsed = allTaxYears[taxYear].isaSavingsUsed || 0;
+          const newIsaUsed = Math.max(0, currentIsaUsed - isaToSubtract);
+          await saveTaxYearConfig(taxYear, { ...allTaxYears[taxYear], isaSavingsUsed: newIsaUsed });
+        }
+      }
+    }
+
+    // Delete history entry - with cascade logic
+    window.deleteHistoryEntry = async function(date) {
       if (!isLoggedIn()) {
         showToast('Please sign in to delete entries', 'error');
         return;
       }
 
-      // Show spinner on delete button if provided
-      if (btn) {
-        btn.classList.add('loading');
-        btn.disabled = true;
+      const allHistory = await getHistoryAsync({ sortDesc: false, limit: 1000 });
+      const taxYear = getTaxYearFromDateStr(date);
+      const taxYearHistory = allHistory.filter(h => (h.taxYear || getTaxYearFromDateStr(h.date)) === taxYear);
+      const sortedTaxYearHistory = taxYearHistory.sort((a, b) => a.date.localeCompare(b.date));
+
+      // Find the entry and check if it's the latest for this tax year
+      const entryIndex = sortedTaxYearHistory.findIndex(h => h.date === date);
+      if (entryIndex === -1) {
+        showToast('Entry not found', 'error');
+        return;
       }
 
+      const isLatestInTaxYear = entryIndex === sortedTaxYearHistory.length - 1;
+      const dateLabel = formatHistoryTabDate(date);
+
+      if (isLatestInTaxYear) {
+        // Simple delete - just this entry
+        if (!confirm(`Delete entry for ${dateLabel}?`)) return;
+
+        showLoading('Deleting entry...');
+        try {
+          await deleteHistoryEntriesWithIsaUpdate([sortedTaxYearHistory[entryIndex]]);
+          showToast(`Deleted ${dateLabel}`, 'success');
+          selectedHistoryDate = null;
+          await renderHistory();
+        } catch (error) {
+          console.error('Delete error:', error);
+          showToast('Error deleting: ' + error.message, 'error');
+        } finally {
+          hideLoading();
+        }
+      } else {
+        // Cascade delete - this entry and all after it in this tax year
+        const entriesToDelete = sortedTaxYearHistory.slice(entryIndex);
+        const lastDate = formatHistoryTabDate(entriesToDelete[entriesToDelete.length - 1].date);
+
+        if (!confirm(`This will delete ${entriesToDelete.length} entries from ${dateLabel} to ${lastDate} in tax year ${taxYear}.\n\nContinue?`)) return;
+
+        showLoading(`Deleting ${entriesToDelete.length} entries...`);
+        try {
+          await deleteHistoryEntriesWithIsaUpdate(entriesToDelete);
+          showToast(`Deleted ${entriesToDelete.length} entries`, 'success');
+          selectedHistoryDate = null;
+          await renderHistory();
+        } catch (error) {
+          console.error('Delete error:', error);
+          showToast('Error deleting: ' + error.message, 'error');
+        } finally {
+          hideLoading();
+        }
+      }
+    };
+
+    // Delete all history for a specific tax year
+    window.deleteHistoryForTaxYear = async function(taxYear) {
+      if (!isLoggedIn()) {
+        showToast('Please sign in to delete entries', 'error');
+        return;
+      }
+
+      const allHistory = await getHistoryAsync({ sortDesc: false, limit: 1000 });
+      const taxYearHistory = allHistory.filter(h => (h.taxYear || getTaxYearFromDateStr(h.date)) === taxYear);
+
+      if (taxYearHistory.length === 0) {
+        showToast(`No history entries for tax year ${taxYear}`, 'info');
+        return;
+      }
+
+      if (!confirm(`Delete all ${taxYearHistory.length} history entries for tax year ${taxYear}?`)) return;
+
+      showLoading(`Deleting tax year ${taxYear}...`);
       try {
-        await deleteHistoryRecord(date);
-        showToast(`Deleted ${dateLabel}`, 'success');
-        // Reset selection and re-render
+        await deleteHistoryEntriesWithIsaUpdate(taxYearHistory);
+
+        // Also reset ISA used to 0 for this tax year
+        const allTaxYears = await getAllTaxYearsAsync();
+        if (allTaxYears[taxYear]) {
+          await saveTaxYearConfig(taxYear, { ...allTaxYears[taxYear], isaSavingsUsed: 0 });
+        }
+
+        showToast(`Deleted all entries for ${taxYear}`, 'success');
         selectedHistoryDate = null;
         await renderHistory();
       } catch (error) {
         console.error('Delete error:', error);
         showToast('Error deleting: ' + error.message, 'error');
-        if (btn) {
-          btn.classList.remove('loading');
-          btn.disabled = false;
-        }
+      } finally {
+        hideLoading();
       }
+    };
+
+    // Delete history for currently selected year filter
+    window.deleteHistoryForSelectedYear = async function() {
+      if (selectedHistoryYear === 'all') {
+        showToast('Select a specific year first', 'error');
+        return;
+      }
+      // Convert calendar year to tax year format
+      const taxYear = `${parseInt(selectedHistoryYear) % 100}/${(parseInt(selectedHistoryYear) + 1) % 100}`;
+      await deleteHistoryForTaxYear(taxYear);
     };
 
     // Delete all history entries
@@ -4926,9 +5063,20 @@
       showLoading('Deleting all history...');
       try {
         const allHistory = await getHistoryAsync({ limit: 1000 });
+
+        // Delete all entries
         for (const h of allHistory) {
           await deleteHistoryRecord(h.date);
         }
+
+        // Reset ISA used to 0 for ALL tax years
+        const allTaxYears = await getAllTaxYearsAsync();
+        for (const [taxYear, config] of Object.entries(allTaxYears)) {
+          if (config.isaSavingsUsed > 0) {
+            await saveTaxYearConfig(taxYear, { ...config, isaSavingsUsed: 0 });
+          }
+        }
+
         showToast(`Deleted ${allHistory.length} entries`, 'success');
         selectedHistoryDate = null;
         await renderHistory();

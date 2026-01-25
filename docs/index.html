@@ -968,6 +968,11 @@
       min-width: 120px;
     }
 
+    .history-actions-header {
+      display: flex;
+      gap: 8px;
+    }
+
     .btn.danger {
       background: var(--danger);
       color: white;
@@ -1596,7 +1601,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-C7C4wHc-.js"></script>
+  <script type="module" crossorigin src="./assets/main-BZWBhnUV.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2110,10 +2115,16 @@
                 <!-- Year options rendered dynamically -->
               </select>
             </div>
-            <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
-              <span class="btn-text">Delete All</span>
-              <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
-            </button>
+            <div class="history-actions-header">
+              <button class="btn danger small" onclick="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
+                <span class="btn-text">Delete Year</span>
+                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+              </button>
+              <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
+                <span class="btn-text">Delete All</span>
+                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+              </button>
+            </div>
           </div>
 
           <!-- Month tabs for selected year -->

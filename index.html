@@ -2846,9 +2846,22 @@
         // TAX-EFFICIENT MODE: Use ISA to keep SIPP at/below BRL
         const monthlyFixedIncome = other / 12;
 
-        // Calculate remaining BRL headroom accounting for income-to-date
-        const remainingBrlHeadroom = Math.max(0, BRL - grossIncomeToDate);
-        const maxMonthlySippAtBrl = Math.max(0, (remainingBrlHeadroom / effectiveRemainingMonths) - monthlyFixedIncome);
+        // Calculate taxable income already drawn this tax year from history
+        // This includes SIPP, Other pension, and State pension (not ISA - that's tax-free)
+        const thisTaxYearHistory = history.filter(h => h.taxYear === taxYear && h.date < dateStr);
+        const taxableIncomeFromHistory = thisTaxYearHistory.reduce((sum, h) => {
+          return sum + (h.sipp || 0) + (h.other || 0) + (h.state || 0);
+        }, 0);
+
+        // Total taxable income so far = wizard's grossIncomeToDate + actual draws from history
+        const totalTaxableToDate = grossIncomeToDate + taxableIncomeFromHistory;
+
+        // Calculate remaining BRL headroom accounting for all income-to-date
+        const remainingBrlHeadroom = Math.max(0, BRL - totalTaxableToDate);
+
+        // Monthly SIPP to stay at BRL = (remaining BRL headroom - remaining fixed income) / remaining months
+        const remainingFixedIncome = monthlyFixedIncome * effectiveRemainingMonths;
+        const maxMonthlySippAtBrl = Math.max(0, (remainingBrlHeadroom - remainingFixedIncome) / effectiveRemainingMonths);
 
         // Monthly target gross
         const monthlyTargetGross = target / 12;

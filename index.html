@@ -1,0 +1,5052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pension Planner v6</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --card: #1a1a2e;
+      --card-alt: #252540;
+      --border: #2a2a4a;
+      --text: #e0e0e0;
+      --text-muted: #8b8b9b;
+      --primary: #7eb8da;
+      --success: #2ea043;
+      --warning: #f0c674;
+      --danger: #f85149;
+      --info: #7eb8da;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Layout */
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .user-email {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: var(--card-alt);
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: var(--bg);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 10px 14px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .input-with-unit {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-with-unit .unit {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .input-with-unit input {
+      flex: 1;
+    }
+
+    /* Number input formatting overlay */
+    .input-with-unit {
+      position: relative;
+    }
+
+    .number-format-overlay {
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    /* Hide spinner buttons on number inputs for cleaner look */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* Buttons */
+    button {
+      padding: 12px 24px;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      color: var(--bg);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    button.secondary:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.secondary {
+      background: var(--card-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.success {
+      background: var(--success);
+    }
+
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4, .grid-5 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Mobile-first responsive styles */
+    @media (max-width: 600px) {
+      .app-container {
+        padding: 12px;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+        padding: 12px 0;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .user-email {
+        max-width: 140px;
+        font-size: 12px;
+      }
+
+      /* Tabs container - scroll hint on mobile */
+      .tabs-wrapper {
+        position: relative;
+      }
+
+      .tabs-wrapper::after {
+        content: '→';
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+        color: var(--primary);
+        font-size: 16px;
+        font-weight: bold;
+        pointer-events: none;
+        opacity: 0.7;
+        animation: pulse-hint 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-hint {
+        0%, 100% { opacity: 0.4; transform: translateY(-50%) translateX(0); }
+        50% { opacity: 1; transform: translateY(-50%) translateX(3px); }
+      }
+
+      .tabs-wrapper.scrolled-end::after {
+        display: none;
+      }
+
+      /* Tabs - horizontal scroll on mobile */
+      .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        gap: 2px;
+        padding: 3px;
+        padding-right: 24px; /* Space for scroll hint */
+        margin-bottom: 16px;
+        scrollbar-width: thin;
+        position: relative;
+      }
+
+      /* Show scrollbar on mobile for discoverability */
+      .tabs::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .tabs::-webkit-scrollbar-track {
+        background: var(--card-alt);
+        border-radius: 2px;
+      }
+
+      .tabs::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 2px;
+      }
+
+      .tab {
+        flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      /* Sub-tabs grid layout on mobile */
+      .sub-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+      }
+
+      .sub-tab {
+        padding: 8px 10px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      /* Cards - reduce padding on mobile */
+      .card {
+        padding: 16px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+      }
+
+      .card h2 {
+        font-size: 16px;
+        margin-bottom: 16px;
+      }
+
+      /* Form inputs - full width */
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .form-group input,
+      .form-group select {
+        padding: 12px;
+        font-size: 16px; /* Prevents iOS zoom */
+      }
+
+      /* Stat boxes - scrollable grid */
+      .stat-box {
+        padding: 12px;
+      }
+
+      .stat-box .stat-value {
+        font-size: 22px;
+      }
+
+      .stat-box .stat-label {
+        font-size: 11px;
+      }
+
+      /* Buttons - full width on mobile */
+      button {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 15px;
+      }
+
+      /* Button groups - stack vertically on mobile */
+      .button-row {
+        flex-direction: column !important;
+      }
+    }
+
+    /* Button row helper class */
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Scrollable table container */
+    .table-scroll-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    .table-scroll-container table {
+      min-width: 600px;
+    }
+
+    @media (max-width: 600px) {
+      .table-scroll-container {
+        margin: 0 -12px;
+        padding: 0 12px;
+      }
+    }
+
+    /* Scrollable chart container */
+    .chart-scroll-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    .chart-scroll-container canvas {
+      min-width: 600px;
+    }
+
+    @media (min-width: 1024px) {
+      .chart-scroll-container canvas {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .chart-scroll-container {
+        margin: 0 -12px;
+        padding: 0 12px;
+      }
+
+      .chart-scroll-container canvas {
+        min-width: 500px;
+      }
+    }
+
+    /* Scrollable tile grid */
+    .tile-scroll-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -16px;
+      padding: 0 16px 8px 16px;
+    }
+
+    .tile-scroll-container .grid-4,
+    .tile-scroll-container .grid-5 {
+      display: flex;
+      gap: 12px;
+      min-width: max-content;
+    }
+
+    .tile-scroll-container .stat-box {
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 769px) {
+      .tile-scroll-container {
+        overflow-x: visible;
+        margin: 0;
+        padding: 0;
+      }
+
+      .tile-scroll-container .grid-4,
+      .tile-scroll-container .grid-5 {
+        display: grid;
+        min-width: unset;
+      }
+
+      .tile-scroll-container .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .tile-scroll-container .grid-5 {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      .tile-scroll-container .stat-box {
+        min-width: unset;
+      }
+    }
+
+    /* Scroll hint indicator */
+    .scroll-hint {
+      display: none;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px;
+      opacity: 0.7;
+    }
+
+    .scroll-hint::before {
+      content: '\u2190 ';
+    }
+
+    .scroll-hint::after {
+      content: ' \u2192';
+    }
+
+    @media (max-width: 768px) {
+      .scroll-hint {
+        display: block;
+      }
+    }
+
+    /* Touch-friendly interactions */
+    @media (hover: none) and (pointer: coarse) {
+      button:hover {
+        transform: none;
+        opacity: 1;
+      }
+
+      .tab:hover {
+        background: transparent;
+        color: var(--text-muted);
+      }
+
+      .tab.active:hover {
+        background: var(--primary);
+        color: var(--bg);
+      }
+
+      /* Larger touch targets */
+      .tab, .sub-tab, button {
+        min-height: 44px;
+      }
+    }
+
+    /* Stat boxes */
+    .stat-box {
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-box .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-box .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stat-box.success { border-color: var(--success); }
+    .stat-box.success .stat-value { color: var(--success); }
+    .stat-box.warning { border-color: var(--warning); }
+    .stat-box.warning .stat-value { color: var(--warning); }
+    .stat-box.danger { border-color: var(--danger); }
+    .stat-box.danger .stat-value { color: var(--danger); }
+
+    .stat-box.mini {
+      padding: 8px;
+    }
+    .stat-box.mini .stat-value {
+      font-size: 14px;
+    }
+    .stat-box.mini .stat-label {
+      font-size: 10px;
+    }
+
+    /* Chart styles */
+    .chart-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .chart-container canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .chart-row {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-row canvas {
+      width: 100% !important;
+      height: auto !important;
+      max-height: 400px;
+    }
+
+    /* Tax years table inputs */
+    .tax-years-table input[type="number"] {
+      padding: 8px 12px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      width: 100%;
+    }
+    .tax-years-table input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .tax-years-table .input-with-unit {
+      width: 110px;
+    }
+    .tax-years-table .input-with-unit input {
+      width: 80px;
+    }
+    .tax-years-table .cpi-input {
+      width: 70px;
+    }
+
+    /* Full-page Tax Year View */
+    .tax-years-full-page {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 120px);
+      max-height: 900px;
+    }
+
+    .tax-year-tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tax-year-scroll-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: var(--card-alt);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tax-year-scroll-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .tax-year-tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      flex: 1;
+      padding: 4px 0;
+      scrollbar-width: none;
+    }
+
+    .tax-year-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tax-year-tab {
+      padding: 8px 16px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .tax-year-tab:hover {
+      border-color: var(--primary);
+      color: var(--text);
+    }
+
+    .tax-year-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      font-weight: 500;
+    }
+
+    .tax-year-tab.not-setup {
+      border-style: dashed;
+      opacity: 0.7;
+    }
+
+    .tax-year-tab.not-setup::after {
+      content: ' ⚠';
+      font-size: 10px;
+    }
+
+    .tax-year-add-btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .tax-year-add-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .tax-year-detail {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    .tax-year-detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .tax-year-detail-card h3 {
+      margin: 0 0 16px 0;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .tax-year-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .tax-year-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tax-year-field label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tax-year-field .value {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .tax-year-field .value.success {
+      color: var(--success);
+    }
+
+    .tax-year-field .value.warning {
+      color: var(--warning);
+    }
+
+    .tax-year-field input {
+      padding: 10px 12px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      width: 100%;
+    }
+
+    .tax-year-field input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .monthly-breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .monthly-breakdown-table th,
+    .monthly-breakdown-table td {
+      padding: 10px 12px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .monthly-breakdown-table th {
+      font-weight: 500;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .monthly-breakdown-table th:first-child,
+    .monthly-breakdown-table td:first-child {
+      text-align: left;
+    }
+
+    .monthly-breakdown-table .source-name {
+      font-weight: 500;
+    }
+
+    .monthly-breakdown-table .tax-col {
+      color: var(--danger);
+    }
+
+    .monthly-breakdown-table .net-col {
+      color: var(--success);
+    }
+
+    .monthly-breakdown-table tfoot td {
+      font-weight: 600;
+      border-top: 2px solid var(--border);
+    }
+
+    .tax-mode-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .tax-mode-badge.efficient {
+      background: rgba(46, 204, 113, 0.2);
+      color: var(--success);
+    }
+
+    .tax-mode-badge.inefficient {
+      background: rgba(243, 156, 18, 0.2);
+      color: var(--warning);
+    }
+
+    .tax-year-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .not-configured-message {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .not-configured-message h3 {
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .not-configured-message button {
+      margin-top: 20px;
+    }
+
+    /* History Full Page View - reuses tax year styles */
+    .history-full-page {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 120px);
+      max-height: 900px;
+    }
+
+    .history-tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .history-scroll-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: var(--card-alt);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .history-scroll-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .history-tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      flex: 1;
+      padding: 4px 0;
+      scrollbar-width: none;
+    }
+
+    .history-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .history-tab {
+      padding: 8px 16px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .history-tab:hover {
+      border-color: var(--primary);
+      color: var(--text);
+    }
+
+    .history-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      font-weight: 500;
+    }
+
+    .history-tab.protection {
+      border-color: var(--warning);
+    }
+
+    .history-tab.protection::after {
+      content: ' ⚠';
+      font-size: 10px;
+    }
+
+    .history-detail {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    .history-detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .history-detail-card h3 {
+      margin: 0 0 16px 0;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .history-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .history-field label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .history-field .value {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .history-field .value.success {
+      color: var(--success);
+    }
+
+    .history-field .value.warning {
+      color: var(--warning);
+    }
+
+    .history-field .value.danger {
+      color: var(--danger);
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .no-history-message {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .no-history-message h3 {
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    /* Mobile dropdown selector for tabs */
+    .mobile-tab-selector {
+      display: none;
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236366f1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+    }
+
+    .mobile-tab-selector:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Mobile responsive for tax years and history */
+    @media (max-width: 768px) {
+      .tax-years-full-page,
+      .history-full-page {
+        height: auto;
+        max-height: none;
+      }
+
+      .tax-year-tabs-container,
+      .history-tabs-container {
+        flex-wrap: wrap;
+        padding: 12px 0;
+      }
+
+      .tax-year-tabs,
+      .history-tabs {
+        display: none;
+      }
+
+      .tax-year-scroll-btn,
+      .history-scroll-btn {
+        display: none;
+      }
+
+      .mobile-tab-selector {
+        display: block;
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .tax-year-add-btn {
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .tax-year-detail,
+      .history-detail {
+        padding: 12px 0;
+      }
+
+      .tax-year-detail-card,
+      .history-detail-card {
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+
+      .tax-year-grid,
+      .history-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .tax-year-field .value,
+      .history-field .value {
+        font-size: 16px;
+      }
+
+      .monthly-breakdown-table th,
+      .monthly-breakdown-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+
+      .tax-year-actions,
+      .history-actions {
+        flex-direction: column;
+      }
+
+      .tax-year-actions button,
+      .history-actions button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tax-year-grid,
+      .history-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .monthly-breakdown-table {
+        font-size: 11px;
+      }
+
+      .monthly-breakdown-table th,
+      .monthly-breakdown-table td {
+        padding: 6px 4px;
+      }
+    }
+
+    /* Data table */
+    .data-table {
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th, .data-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table th {
+      background: var(--card-alt);
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .data-table tr:hover td {
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .alert-info {
+      background: rgba(126, 184, 218, 0.15);
+      border: 1px solid rgba(126, 184, 218, 0.3);
+      color: var(--info);
+    }
+
+    .alert-success {
+      background: rgba(46, 160, 67, 0.15);
+      border: 1px solid rgba(46, 160, 67, 0.3);
+      color: var(--success);
+    }
+
+    .alert-warning {
+      background: rgba(240, 198, 116, 0.15);
+      border: 1px solid rgba(240, 198, 116, 0.3);
+      color: var(--warning);
+    }
+
+    .alert-danger {
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      color: var(--danger);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Charts */
+    .chart-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    /* History */
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--card-alt);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .history-item.protection {
+      border-left: 3px solid var(--warning);
+    }
+
+    .history-date {
+      font-weight: 600;
+    }
+
+    .history-details {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Hidden utility */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Sub-tabs for stress tester */
+    .sub-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .sub-tab {
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .sub-tab:hover {
+      color: var(--text);
+      background: var(--card-alt);
+    }
+
+    .sub-tab.active {
+      background: rgba(126, 184, 218, 0.15);
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    /* Input warning */
+    .input-warning {
+      background: rgba(240, 198, 116, 0.1);
+      border: 1px solid rgba(240, 198, 116, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--warning);
+    }
+
+    .input-warning.hidden {
+      display: none;
+    }
+
+    /* Stress subtab content */
+    .stress-subtab {
+      display: block;
+    }
+
+    .stress-subtab.hidden {
+      display: none;
+    }
+
+    /* Decision subtab content */
+    .decision-subtab {
+      display: block;
+    }
+
+    .decision-subtab.hidden {
+      display: none;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Global loading overlay */
+    #globalLoadingOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #globalLoadingOverlay.active {
+      display: flex;
+    }
+    #globalLoadingOverlay .spinner {
+      width: 40px;
+      height: 40px;
+      margin-right: 0;
+      margin-bottom: 16px;
+    }
+    #globalLoadingOverlay .loading-text {
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    /* Tooltip */
+    #chartTooltip {
+      display: none;
+      position: fixed;
+      background: rgba(30, 30, 30, 0.95);
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fff;
+      pointer-events: none;
+      z-index: 1000;
+      max-width: 280px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    /* Version */
+    .version {
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Global Loading Overlay -->
+  <div id="globalLoadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <!-- Auth Screen Container (shown first) -->
+  <div id="authScreen"></div>
+
+  <!-- Setup Wizard Container (shown for new users) -->
+  <div id="setupWizard" style="display: none;"></div>
+
+  <!-- Tax Year Setup Wizard Container (shown when calculating for unconfigured tax year) -->
+  <div id="taxYearWizard" style="display: none;"></div>
+
+  <!-- Main Application (hidden until authenticated) -->
+  <div id="mainApp" class="hidden">
+    <div class="app-container">
+      <!-- Header -->
+      <header class="header">
+        <h1>Pension Planner</h1>
+        <div class="header-actions">
+          <div class="user-info">
+            <span class="user-email" id="userEmail"></span>
+            <button class="logout-btn" id="resetBtn" title="Delete all data and start fresh">Reset</button>
+            <button class="logout-btn" id="logoutBtn">Sign Out</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <div class="tabs-wrapper">
+        <nav class="tabs">
+          <button class="tab active" data-tab="decision">Decision</button>
+          <button class="tab" data-tab="stress">Stress Test</button>
+          <button class="tab" data-tab="history">History</button>
+          <button class="tab" data-tab="taxyears">Tax Years</button>
+        </nav>
+      </div>
+
+      <!-- Decision Tool Tab -->
+      <div id="decision-content" class="tab-content active">
+        <!-- Decision Tool Sub-tabs -->
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-decisiontab="entry">Monthly Entry</button>
+          <button class="sub-tab" data-decisiontab="decisionsettings">Settings</button>
+        </div>
+
+        <!-- Entry Sub-tab -->
+        <div id="decision-entry" class="decision-subtab">
+          <div class="grid-2">
+            <!-- Input Panel -->
+            <div class="card">
+              <h2>Monthly Entry</h2>
+              <form id="decisionForm" onsubmit="handleDecisionSubmit(event)">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Month</label>
+                    <input type="month" id="entryMonth" required>
+                  </div>
+                </div>
+
+                <h3 style="margin-top: 24px;">Fund Values</h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Equity Fund</label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryEquity" value="250000" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Bond Fund</label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryBond" value="200000" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Cash Fund</label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryCash" value="50000" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="button-row" style="margin-top: 24px;">
+                  <button type="submit">Calculate</button>
+                  <button type="button" class="success" onclick="saveCurrentDecision()" id="saveBtn" disabled>Save to History</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Output Panel -->
+            <div id="decisionOutput">
+              <div class="card">
+                <div class="loading">
+                  <p>Enter your fund values and click Calculate to see your recommendation.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Decision Settings Sub-tab -->
+        <div id="decision-decisionsettings" class="decision-subtab hidden">
+          <div class="card">
+            <h2>Decision Tool Settings</h2>
+
+            <h3 style="margin-top: 16px;">Fund Minimums (Year 0 baseline)</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Equity Minimum (£)</label>
+                <input type="number" id="dsEquityMin" value="250000">
+              </div>
+              <div class="form-group">
+                <label>Bond Minimum (£)</label>
+                <input type="number" id="dsBondMin" value="200000">
+              </div>
+              <div class="form-group">
+                <label>Cash Target (£)</label>
+                <input type="number" id="dsCashTarget" value="50000">
+              </div>
+              <div class="form-group">
+                <label>Depletion Duration (years)</label>
+                <input type="number" id="dsDuration" value="35">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">Income Settings</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Target Gross Salary (£/yr)</label>
+                <input type="number" id="dsBaseSalary" value="30000">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">State Pension (from HMRC Forecast)</h3>
+            <div class="alert alert-info" style="margin-bottom: 16px;">
+              Get your forecast at <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>State Pension Start Date</label>
+                <input type="text" id="dsSpStartDate" placeholder="e.g. 6 May 2040">
+              </div>
+              <div class="form-group">
+                <label>Weekly Amount (£)</label>
+                <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+              </div>
+              <div class="form-group">
+                <label>Annual Amount (calculated)</label>
+                <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">Protection Settings</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Protection Reduction (%)</label>
+                <input type="number" id="dsProtectionFactor" value="20">
+              </div>
+              <div class="form-group">
+                <label>Recovery Buffer (£)</label>
+                <input type="number" id="dsRecoveryBuffer" value="15000">
+              </div>
+              <div class="form-group">
+                <label>Cash Draws Before Protection</label>
+                <input type="number" id="dsConsecutiveLimit" value="3">
+              </div>
+            </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+              <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+            </div>
+
+            <div class="button-row" style="margin-top: 24px;">
+              <button onclick="saveDecisionSettingsUI()">Save Settings</button>
+              <button class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stress Tester Tab -->
+      <div id="stress-content" class="tab-content">
+        <!-- Stress Tester Sub-tabs -->
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-stresstab="montecarlo">Monte Carlo</button>
+          <button class="sub-tab" data-stresstab="historical">Historical</button>
+          <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
+          <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
+          <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
+          <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
+        </div>
+
+        <!-- Monte Carlo Sub-tab -->
+        <div id="stress-montecarlo" class="stress-subtab">
+          <div class="card">
+            <h2>Monte Carlo Simulation</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Starting Equity</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="mcEquity" value="250000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Bond</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="mcBond" value="200000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Cash</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="mcCash" value="50000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Simulation Years</label>
+                <input type="number" id="mcYears" value="35">
+              </div>
+            </div>
+            <div id="mcInputWarning" class="input-warning hidden"></div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
+              <button id="optimiseBtnMC" onclick="runOptimisationUI('MC')" class="secondary">Optimise Allocation</button>
+            </div>
+          </div>
+          <div id="mcResults"></div>
+          <div id="optimiseResultsMC"></div>
+        </div>
+
+        <!-- Historical Sub-tab -->
+        <div id="stress-historical" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Historical Sequence Analysis</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Starting Equity</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="histEquity" value="250000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Bond</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="histBond" value="200000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Cash</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="histCash" value="50000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Simulation Years</label>
+                <input type="number" id="histYears" value="35">
+              </div>
+            </div>
+            <div id="histInputWarning" class="input-warning hidden"></div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button onclick="runHistoricalUI()">Run Historical Analysis</button>
+              <button id="optimiseBtnHist" onclick="runOptimisationUI('Hist')" class="secondary">Optimise Allocation</button>
+            </div>
+          </div>
+          <div id="histResults"></div>
+          <div id="optimiseResultsHist"></div>
+        </div>
+
+        <!-- Scenarios Sub-tab -->
+        <div id="stress-scenarios" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Stress Scenarios</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Starting Equity</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="scenEquity" value="250000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Bond</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="scenBond" value="200000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Starting Cash</label>
+                <div class="input-with-unit">
+                  <span class="unit">£</span>
+                  <input type="number" id="scenCash" value="50000">
+                </div>
+              </div>
+            </div>
+            <div id="scenInputWarning" class="input-warning hidden"></div>
+            <div style="margin-top: 20px;">
+              <button onclick="runScenariosUI()">Run All Scenarios</button>
+            </div>
+          </div>
+          <div id="scenResults"></div>
+        </div>
+
+        <!-- Drawdown Schedule Sub-tab -->
+        <div id="stress-drawdown" class="stress-subtab hidden">
+          <div class="card">
+            <h2>SIPP Drawdown Schedule</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Projected annual SIPP withdrawals based on your settings.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Assumed Inflation (%)</label>
+                <input type="number" id="ddInflation" value="2.5" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>Duration (years)</label>
+                <input type="number" id="ddDuration" value="35">
+              </div>
+            </div>
+            <div style="margin-top: 20px;">
+              <button onclick="showDrawdownScheduleUI()">Show Schedule</button>
+            </div>
+          </div>
+          <div id="drawdownResults"></div>
+        </div>
+
+        <!-- Glidepath Sub-tab -->
+        <div id="stress-glidepath" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Glidepath Visualization</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Shows how fund minimums decline over time with inflation adjustment.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Assumed Inflation (%)</label>
+                <input type="number" id="gpInflation" value="2.5" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>Duration (years)</label>
+                <input type="number" id="gpDuration" value="35">
+              </div>
+            </div>
+            <div style="margin-top: 20px;">
+              <button onclick="showGlidepathUI()">Show Glidepath</button>
+            </div>
+          </div>
+          <div id="glidepathResults"></div>
+        </div>
+
+        <!-- Stress Settings Sub-tab -->
+        <div id="stress-stresssettings" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Stress Tester Settings</h2>
+
+            <h3 style="margin-top: 16px;">Income Target</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Target Gross Salary (£/yr)</label>
+                <input type="number" id="ssBaseSalary" value="30000">
+              </div>
+            </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+              <strong>Target:</strong> The total yearly income you want from all sources. This combines your SIPP withdrawals, other pensions, and state pension.
+            </div>
+
+            <h3 style="margin-top: 24px;">Fund Minimums (Year 0, real terms)</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Equity Minimum (£)</label>
+                <input type="number" id="ssEquityMin" value="250000">
+              </div>
+              <div class="form-group">
+                <label>Bond Minimum (£)</label>
+                <input type="number" id="ssBondMin" value="200000">
+              </div>
+              <div class="form-group">
+                <label>Cash Target (£)</label>
+                <input type="number" id="ssCashTarget" value="50000">
+              </div>
+              <div class="form-group">
+                <label>Duration (years)</label>
+                <input type="number" id="ssDuration" value="35">
+              </div>
+            </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+              <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
+            </div>
+
+            <h3 style="margin-top: 24px;">Tax Thresholds (Year 0)</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Personal Allowance (£)</label>
+                <input type="number" id="ssPA" value="12570">
+              </div>
+              <div class="form-group">
+                <label>Basic Rate Limit (£)</label>
+                <input type="number" id="ssBRL" value="50270">
+              </div>
+              <div class="form-group">
+                <label>Higher Rate Limit (£)</label>
+                <input type="number" id="ssHRL" value="125140">
+              </div>
+              <div class="form-group">
+                <label>Tax Threshold Mode</label>
+                <select id="ssTaxMode">
+                  <option value="inflates">Standard (rise with inflation)</option>
+                  <option value="frozen">Frozen (stay at current levels)</option>
+                </select>
+              </div>
+            </div>
+            <div class="alert alert-warning" style="margin-top: 12px;">
+              <strong>SIPP Calculation:</strong> SIPP Draw = Target Income - Other Pensions - State Pension<br>
+              (But never more than the Basic Rate Limit, to avoid 40% tax)
+            </div>
+
+            <h3 style="margin-top: 24px;">Other Income (Year 0)</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Other Income/Pension (£/yr)</label>
+                <input type="number" id="ssOther" value="0">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">State Pension</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>SP Start Date</label>
+                <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040">
+              </div>
+              <div class="form-group">
+                <label>Weekly Amount (£)</label>
+                <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+              </div>
+              <div class="form-group">
+                <label>Annual Amount (calculated)</label>
+                <input type="text" id="ssSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+              </div>
+            </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+              <strong>Pension Inflation:</strong><br>
+              • Other Income/Pension: Follows CPI, capped at 4% per year<br>
+              • State Pension: Follows CPI (triple-lock proxy)
+            </div>
+
+            <h3 style="margin-top: 24px;">Protection Rules</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Cash Draws Before Protection</label>
+                <input type="number" id="ssConsecutiveLimit" value="3">
+              </div>
+              <div class="form-group">
+                <label>Protection Multiplier</label>
+                <input type="number" id="ssProtectionMult" value="0.8" step="0.05">
+              </div>
+              <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
+                <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                  <input type="checkbox" id="ssDisableProtection" style="width: auto; margin-right: 8px;">
+                  <span style="text-transform: none; font-size: 13px;">Disable Protection Mode</span>
+                </label>
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">Break Glass HODL (Emergency Reserve)</h3>
+            <div class="form-grid">
+              <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
+                <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                  <input type="checkbox" id="ssHodlEnabled" style="width: auto; margin-right: 8px;">
+                  <span style="text-transform: none; font-size: 13px;">Enable HODL Reserve</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label>HODL Value (£)</label>
+                <input type="number" id="ssHodlValue" value="25000">
+              </div>
+            </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+              <strong>Break Glass Reserve:</strong> Emergency fund only accessed when main strategy would otherwise fail.
+            </div>
+
+            <div class="button-row" style="margin-top: 24px;">
+              <button onclick="saveStressSettingsUI()">Save Settings</button>
+              <button class="secondary" onclick="resetStressSettingsUI()">Reset to Defaults</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Tab - Full Page View -->
+      <div id="history-content" class="tab-content">
+        <div class="history-full-page">
+          <!-- Horizontal scrolling month tabs (desktop) + dropdown (mobile) -->
+          <div class="history-tabs-container">
+            <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
+            <div class="history-tabs" id="historyTabs">
+              <!-- Month tabs rendered dynamically -->
+            </div>
+            <button class="history-scroll-btn right" onclick="scrollHistoryTabs('right')">›</button>
+            <!-- Mobile dropdown selector -->
+            <select class="mobile-tab-selector" id="historyMobileSelector" onchange="selectHistoryEntry(this.value)">
+              <!-- Options rendered dynamically -->
+            </select>
+          </div>
+
+          <!-- Selected month detail view -->
+          <div class="history-detail" id="historyDetail">
+            <p class="loading">Select a month to view details</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tax Years Tab - Full Page View -->
+      <div id="taxyears-content" class="tab-content">
+        <div class="tax-years-full-page">
+          <!-- Horizontal scrolling year tabs (desktop) + dropdown (mobile) -->
+          <div class="tax-year-tabs-container">
+            <button class="tax-year-scroll-btn left" onclick="scrollTaxYearTabs('left')">‹</button>
+            <div class="tax-year-tabs" id="taxYearTabs">
+              <!-- Year tabs rendered dynamically -->
+            </div>
+            <button class="tax-year-scroll-btn right" onclick="scrollTaxYearTabs('right')">›</button>
+            <!-- Mobile dropdown selector -->
+            <select class="mobile-tab-selector" id="taxYearMobileSelector" onchange="selectTaxYear(this.value)">
+              <!-- Options rendered dynamically -->
+            </select>
+            <button class="tax-year-add-btn" onclick="addTaxYear()">+ Add Year</button>
+          </div>
+
+          <!-- Selected year detail view -->
+          <div class="tax-year-detail" id="taxYearDetail">
+            <p class="loading">Select a tax year to view details</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip for charts -->
+  <div id="chartTooltip"></div>
+
+  <!-- Version display -->
+  <div class="version" id="versionDisplay">Loading...</div>
+
+  <!-- Application Script -->
+  <script type="module">
+    // Import the application
+    import {
+      VERSION,
+      runDecision,
+      saveDecision,
+      getDecisionSummary,
+      runMonteCarloSimulation,
+      runHistoricalSimulation,
+      runAllScenarios,
+      analyzeResults,
+      getDecisionSettings,
+      getDecisionSettingsAsync,
+      saveDecisionSettings,
+      getTaxYearConfig,
+      getTaxYearConfigAsync,
+      saveTaxYearConfig,
+      getAllTaxYears,
+      getAllTaxYearsAsync,
+      loadDecisionDBAsync,
+      saveDecisionDB,
+      getHistory,
+      getHistoryAsync,
+      invalidateCache,
+      getStressSettings,
+      getStressSettingsAsync,
+      saveStressSettings,
+      formatCurrency,
+      formatPercent,
+      getCurrentMonth,
+      renderDecisionPanel,
+      getDecisionPanelStyles,
+      getDrawdownProjection,
+      getGlidepathProjection
+    } from './src/app.js';
+
+    // Import additional services
+    import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
+    import { generateGlidepathSchedule } from './src/services/GlidepathService.js';
+    import { resetStressSettings } from './src/storage/StressRepository.js';
+
+    // Import simulation engine for direct access in optimization
+    import { runMonteCarlo, runHistorical, simulate } from './src/services/SimulationEngine.js';
+
+    // Import constants for optimization
+    import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
+
+    // Import math utils for optimization
+    import { seededRng } from './src/utils/MathUtils.js';
+
+    // Expose for optimization
+    window._simEngine = { runMonteCarlo, runHistorical, simulate };
+    window._constants = { EQUITY_RETURNS, INFLATION };
+    window._mathUtils = { seededRng };
+
+    // Import auth screen
+    import {
+      initAuthScreen,
+      hideAuthScreen,
+      showAuthScreen,
+      getAuthScreenStyles
+    } from './src/ui/components/AuthScreen.js';
+
+    // Import setup wizard
+    import {
+      initSetupWizard,
+      hideSetupWizard,
+      showSetupWizard,
+      getSetupWizardStyles
+    } from './src/ui/components/SetupWizard.js';
+
+    // Import tax year setup wizard
+    import {
+      initTaxYearWizard,
+      checkWizardNeeded,
+      showWizard as showTaxYearWizard,
+      hideWizard as hideTaxYearWizard,
+      getTaxYearWizardStyles
+    } from './src/ui/components/TaxYearSetupWizard.js';
+
+    // Import storage for delete and checking data
+    import { deleteHistoryRecord, getStatePensionForTaxYear } from './src/storage/DecisionRepository.js';
+
+    // Import auth helpers and data check
+    import { isLoggedIn, logOut, getCurrentUser } from './src/firebase/index.js';
+    import { hasCloudData, wipeAllUserData } from './src/firebase/FirestoreService.js';
+
+    // Import charts module
+    import {
+      drawCone,
+      drawTrajectories,
+      drawHistogram,
+      drawScenarioComparison,
+      getChartStyles
+    } from './src/ui/Charts.js';
+
+    // Store latest simulation results for chart rendering
+    let latestMCResults = null;
+    let latestHistResults = null;
+    let latestScenResults = null;
+
+    // Inject component styles
+    const styleEl = document.createElement('style');
+    styleEl.textContent = getDecisionPanelStyles() + getAuthScreenStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
+    document.head.appendChild(styleEl);
+
+    // ============================================================
+    // Loading Overlay Utilities
+    // ============================================================
+    const loadingOverlay = document.getElementById('globalLoadingOverlay');
+    const loadingText = loadingOverlay.querySelector('.loading-text');
+
+    function showLoading(message = 'Loading...') {
+      loadingText.textContent = message;
+      loadingOverlay.classList.add('active');
+    }
+
+    function hideLoading() {
+      loadingOverlay.classList.remove('active');
+    }
+
+    // Display version
+    document.getElementById('versionDisplay').textContent = `v${VERSION}`;
+
+    // Set default month
+    document.getElementById('entryMonth').value = getCurrentMonth();
+
+    // ============================================================
+    // State Pension Helper Functions
+    // ============================================================
+
+    /**
+     * Update the calculated annual SP amount display
+     * @param {string} prefix - 'ds' for decision settings, 'ss' for stress settings
+     */
+    function updateSpAnnualDisplay(prefix) {
+      const weeklyInput = document.getElementById(prefix + 'SpWeeklyAmount');
+      const annualDisplay = document.getElementById(prefix + 'SpAnnualAmount');
+
+      if (!weeklyInput || !annualDisplay) return;
+
+      const weekly = parseFloat(weeklyInput.value) || 0;
+      const annual = weekly * 52;
+
+      if (weekly > 0) {
+        annualDisplay.value = '£' + annual.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+      } else {
+        annualDisplay.value = '';
+      }
+    }
+
+    // Add event listeners for real-time annual calculation
+    ['ds', 'ss'].forEach(prefix => {
+      const weeklyInput = document.getElementById(prefix + 'SpWeeklyAmount');
+      if (weeklyInput) {
+        weeklyInput.addEventListener('input', () => updateSpAnnualDisplay(prefix));
+      }
+    });
+
+    // ============================================================
+    // Number Input Enhancements: Auto-select and Thousand Separators
+    // ============================================================
+
+    /**
+     * Format a number with thousand separators
+     * @param {number|string} value - The value to format
+     * @returns {string} Formatted string with spaces (SI style)
+     */
+    function formatWithSpaces(value) {
+      const num = parseFloat(value);
+      if (isNaN(num)) return '';
+      // Use narrow non-breaking space (U+202F) for SI-style thousands separator
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F');
+    }
+
+    /**
+     * Initialize number input enhancements
+     * - Auto-select all text on focus
+     * - Show thousand separators when not editing
+     */
+    function initNumberInputs() {
+      const numberInputs = document.querySelectorAll('input[type="number"]');
+
+      numberInputs.forEach(input => {
+        // Store original value for formatting
+        let rawValue = input.value;
+
+        // Auto-select all text on focus
+        input.addEventListener('focus', function(e) {
+          // Use setTimeout to ensure the select happens after the focus
+          setTimeout(() => {
+            this.select();
+          }, 0);
+        });
+
+        // Also select on click (for mouse users who click without tab)
+        input.addEventListener('click', function(e) {
+          // Only select if not already selected and not holding shift/ctrl for partial selection
+          if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+            this.select();
+          }
+        });
+      });
+    }
+
+    // Create a formatted display overlay system for number inputs
+    function initFormattedDisplays() {
+      const numberInputs = document.querySelectorAll('input[type="number"]');
+
+      numberInputs.forEach(input => {
+        // Skip inputs that already have formatting
+        if (input.dataset.formatted) return;
+        input.dataset.formatted = 'true';
+
+        const wrapper = input.closest('.input-with-unit') || input.parentElement;
+        const hasUnit = input.closest('.input-with-unit') !== null;
+
+        // Create overlay span for formatted display
+        const overlay = document.createElement('span');
+        overlay.className = 'number-format-overlay';
+
+        // Position overlay to align with input text
+        // For inputs with £ unit: unit width (~12px) + gap (8px) + input padding (14px) = ~34px
+        // For plain inputs: just the input padding (14px)
+        const leftOffset = hasUnit ? '34px' : '14px';
+
+        overlay.style.cssText = `
+          position: absolute;
+          left: ${leftOffset};
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: inherit;
+          font-size: inherit;
+          font-family: inherit;
+          background: transparent;
+          z-index: 1;
+        `;
+
+        // Make wrapper relative if needed
+        if (getComputedStyle(wrapper).position === 'static') {
+          wrapper.style.position = 'relative';
+        }
+
+        // Function to update overlay
+        function updateOverlay() {
+          const val = parseFloat(input.value);
+          if (!isNaN(val) && val >= 1000 && document.activeElement !== input) {
+            overlay.textContent = formatWithSpaces(val);
+            overlay.style.display = 'block';
+            input.style.color = 'transparent';
+          } else {
+            overlay.style.display = 'none';
+            input.style.color = '';
+          }
+        }
+
+        // Store updateOverlay function on the input for external access
+        input._updateOverlay = updateOverlay;
+
+        // Hide overlay on focus, show on blur
+        input.addEventListener('focus', () => {
+          overlay.style.display = 'none';
+          input.style.color = '';
+        });
+
+        input.addEventListener('blur', updateOverlay);
+        input.addEventListener('input', () => {
+          // Keep overlay hidden while typing
+          if (document.activeElement === input) {
+            overlay.style.display = 'none';
+            input.style.color = '';
+          }
+        });
+
+        // Insert overlay
+        wrapper.appendChild(overlay);
+
+        // Initial format
+        updateOverlay();
+      });
+    }
+
+    // Function to refresh all number input overlays (call after programmatically setting values)
+    function refreshNumberOverlays() {
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        if (input._updateOverlay) {
+          input._updateOverlay();
+        }
+      });
+    }
+
+    // Initialize after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      initNumberInputs();
+      initFormattedDisplays();
+    }, 100);
+
+    // Re-init when new content is added (for dynamically created inputs)
+    const observer = new MutationObserver((mutations) => {
+      let hasNewInputs = false;
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1) {
+            if (node.matches?.('input[type="number"]') || node.querySelector?.('input[type="number"]')) {
+              hasNewInputs = true;
+            }
+          }
+        });
+      });
+      if (hasNewInputs) {
+        setTimeout(() => {
+          initNumberInputs();
+          initFormattedDisplays();
+        }, 50);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Current decision state
+    let currentDecision = null;
+
+    /**
+     * Show the main application
+     * @param {object} user - Firebase user object
+     * @param {string} initialTab - Which tab to show ('decision' or 'stress')
+     */
+    async function showMainApp(user, initialTab = 'decision') {
+      hideAuthScreen();
+      hideSetupWizard();
+      document.getElementById('mainApp').classList.remove('hidden');
+
+      // Update user info in header
+      document.getElementById('userEmail').textContent = user.email;
+
+      // Load initial data
+      await renderHistory();
+      await renderTaxYears();
+
+      // ALWAYS pre-fill ALL input fields from stored settings on app load
+      initializeAllInputsFromSettings();
+
+      // Switch to the requested tab
+      if (initialTab === 'stress') {
+        // Activate stress tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.tab[data-tab="stress"]').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('stress-content').classList.add('active');
+      }
+    }
+
+    /**
+     * Initialize ALL input fields from stored settings
+     * Called once on app load to ensure all forms have correct values
+     */
+    async function initializeAllInputsFromSettings() {
+      try {
+        // Load both settings sets
+        const stressSettings = await getStressSettingsAsync();
+        const decisionSettings = await getDecisionSettingsAsync();
+
+        // Pre-fill Decision Tool entry form
+        document.getElementById('entryEquity').value = decisionSettings.equityMin || 250000;
+        document.getElementById('entryBond').value = decisionSettings.bondMin || 200000;
+        document.getElementById('entryCash').value = decisionSettings.cashTarget || 50000;
+
+        // Pre-fill Decision Tool settings
+        document.getElementById('dsEquityMin').value = decisionSettings.equityMin || 250000;
+        document.getElementById('dsBondMin').value = decisionSettings.bondMin || 200000;
+        document.getElementById('dsCashTarget').value = decisionSettings.cashTarget || 50000;
+        document.getElementById('dsDuration').value = decisionSettings.duration || 35;
+        document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
+        // State Pension (new fields)
+        document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
+        document.getElementById('dsSpWeeklyAmount').value = decisionSettings.spWeeklyAmount || '';
+        updateSpAnnualDisplay('ds');
+        document.getElementById('dsProtectionFactor').value = decisionSettings.protectionFactor || 20;
+        document.getElementById('dsRecoveryBuffer').value = decisionSettings.recoveryBuffer || 10000;
+        document.getElementById('dsConsecutiveLimit').value = decisionSettings.consecutiveLimit || 3;
+
+        // Pre-fill ALL stress test input tabs (Monte Carlo, Historical, Scenarios)
+        ['mc', 'hist', 'scen'].forEach(prefix => {
+          const equityEl = document.getElementById(prefix + 'Equity');
+          const bondEl = document.getElementById(prefix + 'Bond');
+          const cashEl = document.getElementById(prefix + 'Cash');
+          const yearsEl = document.getElementById(prefix + 'Years');
+
+          if (equityEl) equityEl.value = stressSettings.equityMin;
+          if (bondEl) bondEl.value = stressSettings.bondMin;
+          if (cashEl) cashEl.value = stressSettings.cashTarget;
+          if (yearsEl) yearsEl.value = stressSettings.duration;
+        });
+
+        // Pre-fill Stress Settings tab
+        document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
+        document.getElementById('ssEquityMin').value = stressSettings.equityMin;
+        document.getElementById('ssBondMin').value = stressSettings.bondMin;
+        document.getElementById('ssCashTarget').value = stressSettings.cashTarget;
+        document.getElementById('ssDuration').value = stressSettings.duration;
+        document.getElementById('ssPA').value = stressSettings.pa;
+        document.getElementById('ssBRL').value = stressSettings.brl;
+        document.getElementById('ssHRL').value = stressSettings.hrl;
+        document.getElementById('ssTaxMode').value = stressSettings.taxMode || 'inflates';
+        document.getElementById('ssOther').value = stressSettings.other || 0;
+        // State Pension (new fields)
+        document.getElementById('ssSpStartDate').value = stressSettings.spStartDate || '';
+        document.getElementById('ssSpWeeklyAmount').value = stressSettings.spWeeklyAmount || '';
+        updateSpAnnualDisplay('ss');
+        document.getElementById('ssConsecutiveLimit').value = stressSettings.consecutiveLimit || 3;
+        document.getElementById('ssProtectionMult').value = stressSettings.protectionMult || 0.8;
+        document.getElementById('ssDisableProtection').checked = stressSettings.disableProtection || false;
+        document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
+        document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
+
+        // Refresh number overlays after all values are set
+        refreshNumberOverlays();
+
+        console.log('All inputs initialized from stored settings');
+      } catch (error) {
+        console.error('Error initializing inputs from settings:', error);
+      }
+    }
+
+    /**
+     * Handle wizard completion
+     */
+    async function handleWizardComplete(wizardData) {
+      console.log('Wizard completed with data:', wizardData);
+
+      // Save settings from wizard
+      try {
+        // Save decision settings (includes state pension for real-world decisions)
+        await saveDecisionSettings({
+          baseSalary: wizardData.decisionSalary,
+          equityMin: wizardData.decisionEquity,
+          bondMin: wizardData.decisionBond,
+          cashTarget: wizardData.decisionCash,
+          duration: wizardData.decisionDuration,
+          spStartDate: wizardData.spStartDate,
+          spWeeklyAmount: wizardData.spWeeklyAmount
+        });
+
+        // Save stress settings (includes state pension for simulations)
+        await saveStressSettings({
+          baseSalary: wizardData.baseSalary,
+          other: wizardData.otherIncome,
+          spStartDate: wizardData.spStartDate,
+          spWeeklyAmount: wizardData.spWeeklyAmount,
+          equityMin: wizardData.equityMin,
+          bondMin: wizardData.bondMin,
+          cashTarget: wizardData.cashTarget,
+          duration: wizardData.duration,
+          taxMode: wizardData.taxMode
+        });
+
+        // Tax year is NOT created here - the TaxYearSetupWizard will be triggered
+        // when the user first attempts a decision calculation, allowing them to
+        // configure tax thresholds, ISA requirements, and other tax year settings
+        // through the dedicated wizard flow.
+
+        // Pre-fill form with wizard values
+        document.getElementById('entryEquity').value = wizardData.decisionEquity;
+        document.getElementById('entryBond').value = wizardData.decisionBond;
+        document.getElementById('entryCash').value = wizardData.decisionCash;
+
+        // Pre-fill Monte Carlo with wizard values
+        document.getElementById('mcEquity').value = wizardData.equityMin;
+        document.getElementById('mcBond').value = wizardData.bondMin;
+        document.getElementById('mcCash').value = wizardData.cashTarget;
+        document.getElementById('mcYears').value = wizardData.duration;
+
+        // Refresh number overlays after programmatic value changes
+        refreshNumberOverlays();
+
+      } catch (error) {
+        console.error('Error saving wizard settings:', error);
+      }
+
+      // Show main app - go to STRESS TESTER for new users after wizard
+      const user = getCurrentUser();
+      showMainApp(user, 'stress');
+    }
+
+    /**
+     * Initialize auth screen with success callback
+     */
+    initAuthScreen(document.getElementById('authScreen'), async (user) => {
+      console.log('Auth success callback triggered for:', user.email);
+
+      try {
+        // Check if user has existing data
+        console.log('Checking for existing cloud data...');
+        const hasData = await hasCloudData();
+        console.log('Has cloud data:', hasData);
+
+        if (hasData) {
+          // Existing user - go straight to app
+          console.log('Existing user - showing main app');
+          showMainApp(user);
+        } else {
+          // New user - show setup wizard
+          console.log('New user - showing setup wizard');
+          hideAuthScreen();
+          document.getElementById('setupWizard').style.display = 'block';
+          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+        }
+      } catch (error) {
+        console.error('Error in auth callback:', error);
+        // Fallback: show wizard if we can't determine data status
+        hideAuthScreen();
+        document.getElementById('setupWizard').style.display = 'block';
+        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+      }
+    });
+
+    // Logout button handler
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await logOut();
+        document.getElementById('mainApp').classList.add('hidden');
+        showAuthScreen();
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    });
+
+    // ============================================================
+    // Inactivity Timeout - Auto logout after 1 hour of inactivity
+    // ============================================================
+    const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
+    let inactivityTimer = null;
+    let warningShown = false;
+
+    function resetInactivityTimer() {
+      // Clear any existing timer
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+      warningShown = false;
+
+      // Only set timer if user is logged in
+      if (!isLoggedIn()) return;
+
+      // Set new timer
+      inactivityTimer = setTimeout(async () => {
+        // Double-check user is still logged in
+        if (isLoggedIn()) {
+          alert('You have been logged out due to inactivity (1 hour).');
+          try {
+            await logOut();
+            document.getElementById('mainApp').classList.add('hidden');
+            showAuthScreen();
+          } catch (error) {
+            console.error('Auto-logout error:', error);
+          }
+        }
+      }, INACTIVITY_TIMEOUT);
+    }
+
+    // Track user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, () => {
+        resetInactivityTimer();
+      }, { passive: true });
+    });
+
+    // Start the inactivity timer when app loads (if logged in)
+    resetInactivityTimer();
+
+    // Reset button handler - wipes all data and shows wizard
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      const confirmed = confirm(
+        '⚠️ WARNING: This will permanently delete ALL your data including:\n\n' +
+        '• All saved settings\n' +
+        '• All decision history\n' +
+        '• All tax year configurations\n\n' +
+        'This action cannot be undone.\n\n' +
+        'Are you sure you want to reset and start over?'
+      );
+
+      if (!confirmed) return;
+
+      // Double-check
+      const doubleConfirmed = confirm(
+        'Are you ABSOLUTELY sure?\n\n' +
+        'Type OK to confirm deletion of all your data.'
+      );
+
+      if (!doubleConfirmed) return;
+
+      try {
+        console.log('Wiping all user data...');
+        await wipeAllUserData();
+        console.log('Data wiped successfully');
+
+        // Invalidate all caches
+        invalidateCache();
+
+        // Clear local storage too
+        localStorage.clear();
+
+        // Hide main app and show wizard from the beginning
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('setupWizard').style.display = 'block';
+        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+
+        alert('All data has been deleted. Please complete the setup wizard to start fresh.');
+      } catch (error) {
+        console.error('Reset error:', error);
+        alert('Error resetting data: ' + error.message);
+      }
+    });
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        // Update tab buttons
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`${tab.dataset.tab}-content`).classList.add('active');
+
+        // Load content if needed (async)
+        if (tab.dataset.tab === 'history') await renderHistory();
+        if (tab.dataset.tab === 'taxyears') await renderTaxYears();
+        if (tab.dataset.tab === 'stress') await loadStressSettings();
+      });
+    });
+
+    // Mobile tabs scroll hint - hide arrow when scrolled to end
+    const tabsNav = document.querySelector('.tabs');
+    const tabsWrapper = document.querySelector('.tabs-wrapper');
+    if (tabsNav && tabsWrapper) {
+      const updateScrollHint = () => {
+        const isAtEnd = tabsNav.scrollLeft + tabsNav.clientWidth >= tabsNav.scrollWidth - 10;
+        tabsWrapper.classList.toggle('scrolled-end', isAtEnd);
+      };
+      tabsNav.addEventListener('scroll', updateScrollHint);
+      // Initial check
+      updateScrollHint();
+    }
+
+    // Stress tester sub-tab switching
+    document.querySelectorAll('.sub-tab[data-stresstab]').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        // Update sub-tab buttons
+        document.querySelectorAll('.sub-tab[data-stresstab]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update sub-tab content
+        document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`stress-${tab.dataset.stresstab}`).classList.remove('hidden');
+
+        // Only reload settings when explicitly switching to settings tab
+        // Don't overwrite test inputs - user may have entered custom values to test
+        if (tab.dataset.stresstab === 'stresssettings') await loadStressSettings();
+      });
+    });
+
+    // Decision tool sub-tab switching
+    document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        // Update sub-tab buttons
+        document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update sub-tab content
+        document.querySelectorAll('.decision-subtab').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`decision-${tab.dataset.decisiontab}`).classList.remove('hidden');
+
+        // Load settings when switching to settings tab
+        if (tab.dataset.decisiontab === 'decisionsettings') await loadDecisionSettings();
+      });
+    });
+
+    // ============================================================
+    // Decision Tool - PWA-aligned implementation
+    // ============================================================
+
+    // Get tax year from date string (e.g., "2026-05" -> "26/27")
+    function getTaxYearFromDate(dateStr) {
+      const [y, m] = dateStr.split('-').map(Number);
+      return m >= 4 ? (y % 100) + '/' + ((y + 1) % 100) : ((y - 1) % 100) + '/' + (y % 100);
+    }
+
+    // Get year number (0-based from 2026)
+    function getYearNum(dateStr) {
+      const [y, m] = dateStr.split('-').map(Number);
+      return Math.max(0, (m >= 4 ? y : y - 1) - 2026);
+    }
+
+    // Calculate glidepath minimum
+    function calcGlidepathMin(base, year, duration, cumInf, isGrowth) {
+      if (isGrowth) {
+        const depletion = Math.max(0, 1 - year / duration);
+        return base * cumInf * depletion;
+      }
+      return base * cumInf;
+    }
+
+    // Convert gross to net income using tax bands
+    function grossToNetIncome(gross, pa, brl) {
+      if (gross <= pa) return gross;
+      if (gross <= brl) return pa + (gross - pa) * 0.8;
+      return pa + (brl - pa) * 0.8 + (gross - brl) * 0.6;
+    }
+
+    // Calculate decision (PWA logic)
+    async function calcDecisionPWA(dateStr, equity, bond, cash) {
+      const settings = await getDecisionSettingsAsync();
+      const history = await getHistoryAsync();
+      const allTaxYears = await getAllTaxYearsAsync();
+      const taxYear = getTaxYearFromDate(dateStr);
+      const yearNum = getYearNum(dateStr);
+      const [year, month] = dateStr.split('-').map(Number);
+
+      // Validate that the tax year exists
+      if (!allTaxYears[taxYear]) {
+        throw new Error(`Tax year ${taxYear} is not configured. Please add it in the Settings tab before calculating.`);
+      }
+
+      const taxYearConfig = allTaxYears[taxYear];
+
+      // Get tax config from the specific tax year
+      const PA = taxYearConfig.pa || 12570;
+      const BRL = taxYearConfig.brl || 50270;
+      const OTHER = taxYearConfig.other || 0;
+
+      // Year-level tax efficiency settings (from wizard)
+      const isTaxEfficientYear = taxYearConfig.isTaxEfficient !== false; // Default true
+      const yearlyIsaSavingsAllocation = taxYearConfig.isaSavingsAllocation || 0;
+      const isaSavingsUsedSoFar = taxYearConfig.isaSavingsUsed || 0;
+      const grossIncomeToDate = taxYearConfig.grossIncomeToDate || 0;
+      const confirmedSalary = taxYearConfig.confirmedSalary || settings.baseSalary;
+
+      // State pension comes from decision settings using HMRC forecast data
+      // Uses the new spStartDate and spWeeklyAmount fields
+      const spInfo = await getStatePensionForTaxYear(taxYear);
+      const STATE = spInfo.amount || 0;
+
+      // Calculate cumulative inflation using each year's CPI (PWA logic)
+      let cumInf = 1;
+      for (let i = 0; i < yearNum; i++) {
+        const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
+        const yearCPI = (allTaxYears[yStr] || {}).cpi || 0.04;
+        cumInf *= 1 + yearCPI;
+      }
+
+      // Calculate glidepath minimums
+      const adjEquity = Math.round(calcGlidepathMin(settings.equityMin, yearNum, settings.duration, cumInf, true));
+      const adjBond = Math.round(calcGlidepathMin(settings.bondMin, yearNum, settings.duration, cumInf, true));
+      const adjCash = Math.round(calcGlidepathMin(settings.cashTarget, yearNum, settings.duration, cumInf, false));
+
+      const totalGrowth = equity + bond;
+      const minGrowth = adjEquity + adjBond;
+      let inProtection = false;
+      let consec = 0;
+
+      // Get prior history for protection mode calculation
+      const priorHistory = history.filter(h => h.date < dateStr);
+
+      // Count consecutive Cash draws from history
+      for (let i = priorHistory.length - 1; i >= 0; i--) {
+        if (priorHistory[i].source === 'Cash') consec++;
+        else break;
+      }
+
+      // Check if we're continuing protection from last month
+      if (priorHistory.length && priorHistory[priorHistory.length - 1].inProtection) {
+        inProtection = totalGrowth <= minGrowth + (settings.recoveryBuffer || 10000);
+      }
+
+      // Enter NEW protection if below minimum with consecutive cash draws
+      if (!inProtection && totalGrowth < minGrowth && consec + 1 >= (settings.consecutiveLimit || 3)) {
+        inProtection = true;
+      }
+
+      // Calculate remaining months in tax year
+      const remainingMonths = month >= 4 ? (16 - month) : (4 - month);
+      const effectiveRemainingMonths = Math.max(1, remainingMonths);
+
+      // Use confirmed salary from wizard, or base salary with inflation
+      const target = confirmedSalary * cumInf;
+      const other = OTHER + STATE;
+      const targetNet = grossToNetIncome(target, PA, BRL);
+
+      // Calculate ISA/SIPP based on year-level tax efficiency mode
+      let sipp, isa, note;
+      let boostAmount = 0;
+      let protectionInducedTaxEfficiency = false;
+      let isaSavingsUsedThisMonth = 0;
+
+      // Calculate remaining ISA allocation
+      const remainingIsaAllocation = Math.max(0, yearlyIsaSavingsAllocation - isaSavingsUsedSoFar);
+      const monthlyIsaFromAllocation = remainingIsaAllocation / effectiveRemainingMonths;
+
+      if (isTaxEfficientYear) {
+        // TAX-EFFICIENT MODE: Use ISA to keep SIPP at/below BRL
+        const monthlyFixedIncome = other / 12;
+
+        // Calculate remaining BRL headroom accounting for income-to-date
+        const remainingBrlHeadroom = Math.max(0, BRL - grossIncomeToDate);
+        const maxMonthlySippAtBrl = Math.max(0, (remainingBrlHeadroom / effectiveRemainingMonths) - monthlyFixedIncome);
+
+        // Monthly target gross
+        const monthlyTargetGross = target / 12;
+
+        // SIPP capped at BRL-optimal level
+        const stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
+
+        // ISA needed to reach target NET (not gross)
+        // Target gross gives a certain net. At BRL, we get a different net.
+        // ISA (tax-free) makes up the NET difference.
+        const monthlyTargetNet = grossToNetIncome(target, PA, BRL) / 12;
+        const grossAtBrl = Math.min(target, BRL);
+        const monthlyNetAtBrl = grossToNetIncome(grossAtBrl, PA, BRL) / 12;
+        const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
+        const isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
+        isaSavingsUsedThisMonth = isaToUse;
+
+        if (inProtection) {
+          sipp = stdSipp * (1 - (settings.protectionFactor || 20) / 100);
+          isa = isaToUse;
+          note = 'Protection';
+        } else {
+          sipp = stdSipp;
+          isa = isaToUse;
+          note = 'Tax-Efficient';
+
+          // TAX BOOST: Catch up on protection shortfall (existing logic)
+          const taxYearStart = month >= 4 ? year : year - 1;
+          const thisTaxYearHistory = priorHistory.filter(h => {
+            const [hy, hm] = h.date.split('-').map(Number);
+            const hTaxYearStart = hm >= 4 ? hy : hy - 1;
+            return hTaxYearStart === taxYearStart;
+          });
+
+          let protectionShortfall = 0;
+          let annualSippSoFar = 0;
+
+          thisTaxYearHistory.forEach(h => {
+            annualSippSoFar += h.sipp || 0;
+            if (h.inProtection && h.stdSipp) {
+              protectionShortfall += (h.stdSipp - h.sipp);
+            }
+            if (h.boostAmount > 0) {
+              protectionShortfall -= h.boostAmount;
+            }
+          });
+
+          if (protectionShortfall > 0) {
+            const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+            const brlHeadroom = BRL - projectedAnnualTaxable;
+            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
+
+            if (brlHeadroom > 0 && surplus > 0) {
+              const maxBoostFromBRL = brlHeadroom / effectiveRemainingMonths;
+              const catchUpPerMonth = protectionShortfall / effectiveRemainingMonths;
+              const maxBoostFromSurplus = surplus / effectiveRemainingMonths;
+
+              boostAmount = Math.min(catchUpPerMonth, maxBoostFromBRL, maxBoostFromSurplus);
+
+              if (boostAmount > 50) {
+                sipp += boostAmount;
+                note = 'Tax Boost';
+              }
+            }
+          }
+        }
+      } else {
+        // TAX-INEFFICIENT MODE: Full SIPP draw to target, no ISA
+        const monthlyTargetGross = target / 12;
+        const monthlyFixedIncome = other / 12;
+        const stdSipp = Math.max(0, monthlyTargetGross - monthlyFixedIncome);
+
+        isa = 0; // No ISA in tax-inefficient mode
+
+        if (inProtection) {
+          sipp = stdSipp * (1 - (settings.protectionFactor || 20) / 100);
+          note = 'Protection';
+
+          // Check for protection-induced tax efficiency
+          // If protection has reduced projected annual taxable below BRL, we can boost to BRL
+          const taxYearStart = month >= 4 ? year : year - 1;
+          const thisTaxYearHistory = priorHistory.filter(h => {
+            const [hy, hm] = h.date.split('-').map(Number);
+            const hTaxYearStart = hm >= 4 ? hy : hy - 1;
+            return hTaxYearStart === taxYearStart;
+          });
+
+          let annualSippSoFar = 0;
+          thisTaxYearHistory.forEach(h => {
+            annualSippSoFar += h.sipp || 0;
+          });
+
+          const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+
+          if (projectedAnnualTaxable < BRL) {
+            // Protection has brought us below BRL - we can boost back up to BRL
+            const brlHeadroom = BRL - projectedAnnualTaxable;
+            const maxBoostPerMonth = brlHeadroom / effectiveRemainingMonths;
+            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
+
+            if (surplus > 0 && maxBoostPerMonth > 50) {
+              boostAmount = Math.min(maxBoostPerMonth, surplus / effectiveRemainingMonths);
+              if (boostAmount > 50) {
+                sipp += boostAmount;
+                protectionInducedTaxEfficiency = true;
+                note = 'Protection-Induced Efficiency';
+              }
+            }
+          }
+        } else {
+          sipp = stdSipp;
+          note = 'Tax-Inefficient';
+        }
+      }
+
+      // Store stdSipp for future catch-up calculations
+      const stdSippMonthly = (BRL - other) / 12;
+
+      // Determine withdrawal source
+      let source, reason, dEquity = 0, dBond = 0, dCash = 0, warn = '';
+
+      if (!inProtection && totalGrowth >= minGrowth + sipp) {
+        source = 'Growth';
+        const pS = Math.max(0, equity - adjEquity);
+        const cS = Math.max(0, bond - adjBond);
+        const tot = pS + cS;
+        if (tot > 0) {
+          dEquity = sipp * pS / tot;
+          dBond = sipp * cS / tot;
+          reason = 'Healthy';
+        } else {
+          source = 'Cash';
+          dCash = sipp;
+          reason = 'At min';
+        }
+      } else {
+        source = 'Cash';
+        dCash = sipp;
+        reason = inProtection ? 'Protection' : 'Below min';
+        if (cash < sipp) warn = 'Cash low!';
+      }
+
+      // Rebalancing check
+      let rebal = '';
+      const pDev = equity - adjEquity;
+      const cDev = bond - adjBond;
+      if (pDev > 5000 && cDev < -5000) {
+        const mv = Math.floor(Math.min(pDev, -cDev) / 1000) * 1000;
+        if (mv >= 5000) rebal = `Move £${mv.toLocaleString()} Equity→Bond`;
+      } else if (cDev > 5000 && pDev < -5000) {
+        const mv = Math.floor(Math.min(cDev, -pDev) / 1000) * 1000;
+        if (mv >= 5000) rebal = `Move £${mv.toLocaleString()} Bond→Equity`;
+      }
+
+      // Cash replenishment suggestion
+      let cashReplenish = '';
+      const cashShortfall = adjCash - cash;
+      if (cashShortfall > 5000 && source === 'Growth' && !inProtection) {
+        const excess = totalGrowth - minGrowth - sipp;
+        if (excess > 10000) {
+          const repAmount = Math.floor(Math.min(cashShortfall * 0.3, excess * 0.5) / 1000) * 1000;
+          if (repAmount >= 5000) {
+            cashReplenish = `Replenish Cash: Move £${repAmount.toLocaleString()} from growth funds`;
+          }
+        }
+      }
+
+      // Build alerts array
+      const alerts = [];
+      if (warn) {
+        alerts.push({ message: warn, severity: 'danger', type: 'low-cash' });
+      }
+      if (boostAmount > 50) {
+        alerts.push({ message: `Tax Boost: +£${Math.round(boostAmount).toLocaleString()}/mo catch-up from protection shortfall`, severity: 'success', type: 'tax-boost' });
+      }
+      if (rebal) {
+        alerts.push({ message: rebal, severity: 'warning', type: 'rebalance' });
+      }
+      if (cashReplenish) {
+        alerts.push({ message: cashReplenish, severity: 'info', type: 'cash-replenish' });
+      }
+
+      // Calculate annual tax for display
+      // Taxable income = SIPP + Other + State (ISA is tax-free)
+      const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
+      const annualTaxable = monthlyTaxable * 12;
+
+      // Tax calculation: 0% up to PA, 20% from PA to BRL, 40% above BRL
+      let annualTax = 0;
+      if (annualTaxable > PA) {
+        if (annualTaxable <= BRL) {
+          annualTax = (annualTaxable - PA) * 0.2;
+        } else {
+          annualTax = (BRL - PA) * 0.2 + (annualTaxable - BRL) * 0.4;
+        }
+      }
+
+      // Net = gross taxable - tax + ISA (tax-free)
+      const monthlyNet = monthlyTaxable - (annualTax / 12) + isa;
+
+      // Calculate YTD tax from this year's history
+      const taxYearStart = month >= 4 ? year : year - 1;
+      const thisTaxYearHistory = priorHistory.filter(h => {
+        const [hy, hm] = h.date.split('-').map(Number);
+        const hTaxYearStart = hm >= 4 ? hy : hy - 1;
+        return hTaxYearStart === taxYearStart;
+      });
+
+      let taxPaidYTD = thisTaxYearHistory.reduce((sum, h) => sum + (h.taxPaidMonthly || h.monthlyTax || 0), 0);
+      taxPaidYTD += annualTax / 12; // Add this month
+
+      // Calculate projected annual tax
+      const monthsPassed = thisTaxYearHistory.length + 1;
+      const taxProjectedAnnual = (taxPaidYTD / monthsPassed) * 12;
+
+      // Calculate tax saved vs inefficient scenario
+      const inefficientMonthlyTaxable = (target / 12); // Full target draw
+      let inefficientAnnualTax = 0;
+      if (inefficientMonthlyTaxable * 12 > PA) {
+        if (inefficientMonthlyTaxable * 12 <= BRL) {
+          inefficientAnnualTax = (inefficientMonthlyTaxable * 12 - PA) * 0.2;
+        } else {
+          inefficientAnnualTax = (BRL - PA) * 0.2 + (inefficientMonthlyTaxable * 12 - BRL) * 0.4;
+        }
+      }
+      const taxSavedMonthly = Math.max(0, (inefficientAnnualTax / 12) - (annualTax / 12));
+
+      // Calculate cumulative ISA used including this month
+      const cumulativeIsaSavingsUsed = isaSavingsUsedSoFar + isaSavingsUsedThisMonth;
+
+      // Return object matching renderDecisionPanel expectations
+      return {
+        // Context
+        date: dateStr,
+        taxYear,
+        yearNumber: yearNum,
+        remainingMonths: effectiveRemainingMonths,
+
+        // Fund values
+        equity,
+        bond,
+        cash,
+        isa: 0, // Legacy field - ISA balance input not used
+
+        // Glidepath minimums (match expected field names)
+        adjEquityMin: adjEquity,
+        adjBondMin: adjBond,
+        adjCashTarget: adjCash,
+
+        // Tax thresholds
+        pa: PA,
+        brl: BRL,
+
+        // Income sources (monthly)
+        other: OTHER / 12,
+        statePension: STATE / 12,
+
+        // Recommended draws
+        sippDraw: sipp,
+        isaDraw: isa,
+        totalMonthlyNet: monthlyNet,
+
+        // Year-level tax efficiency
+        isTaxEfficientYear,
+        yearlyIsaSavingsAllocation,
+        cumulativeIsaSavingsUsed,
+        isaSavingsUsedThisMonth,
+
+        // Tax tracking
+        taxPaidYTD,
+        taxProjectedAnnual,
+        taxSavedMonthly,
+        taxSavedYTD: taxSavedMonthly * monthsPassed,
+        taxSavedProjectedAnnual: taxSavedMonthly * 12,
+
+        // Status flags
+        taxEfficient: isTaxEfficientYear && !protectionInducedTaxEfficiency,
+        inProtection,
+        protectionReason: inProtection ? reason : null,
+        consecutiveCashDraws: consec,
+        protectionInducedTaxEfficiency,
+
+        // Tax boost
+        boostAmount: boostAmount > 50 ? boostAmount : 0,
+        boostEligible: boostAmount > 50,
+
+        // Withdrawal source
+        source,
+        drawFromEquity: dEquity,
+        drawFromBond: dBond,
+        drawFromCash: dCash,
+
+        // Rebalancing
+        rebalanceNeeded: rebal !== '',
+        rebalanceActions: rebal ? [rebal] : [],
+
+        // Alerts
+        alerts,
+
+        // Calculation details for debug
+        calculationDetails: {
+          mode: note,
+          reason: `${reason} | ${note}`,
+          totalGrowth,
+          minGrowth,
+          consec,
+          stdSipp: sipp, // Current SIPP draw
+          // Input values for debugging
+          inputs: {
+            baseSalary: settings.baseSalary,
+            confirmedSalary,
+            targetGross: target,
+            cumInf,
+            yearNum,
+            taxYear,
+            OTHER,
+            STATE,
+            PA,
+            BRL,
+            isTaxEfficientYear,
+            yearlyIsaSavingsAllocation,
+            grossIncomeToDate
+          },
+          taxInfo: {
+            annualTaxable: annualTaxable,
+            headroomToBRL: BRL - annualTaxable,
+            annualTax,
+            monthlyNet: monthlyNet
+          }
+        }
+      };
+    }
+
+    // Decision form handler
+    window.handleDecisionSubmit = async function(event) {
+      event.preventDefault();
+
+      const dateStr = document.getElementById('entryMonth').value;
+      const equity = parseFloat(document.getElementById('entryEquity').value) || 0;
+      const bond = parseFloat(document.getElementById('entryBond').value) || 0;
+      const cash = parseFloat(document.getElementById('entryCash').value) || 0;
+
+      // Validate
+      const missing = [];
+      if (!dateStr) missing.push('Month');
+      if (!equity && equity !== 0) missing.push('Equity Fund');
+      if (!bond && bond !== 0) missing.push('Bond Balance');
+      if (!cash && cash !== 0) missing.push('Cash Balance');
+
+      if (missing.length > 0) {
+        alert('Please fill in the following fields:\n\n• ' + missing.join('\n• '));
+        return;
+      }
+
+      try {
+        // Check if tax year wizard is needed for the selected month
+        const wizardCheck = await checkWizardNeeded(dateStr);
+
+        if (wizardCheck.showWizard) {
+          // Show the tax year setup wizard
+          const wizardContainer = document.getElementById('taxYearWizard');
+          wizardContainer.style.display = 'block';
+
+          // Store form values to use after wizard completes
+          window._pendingDecisionForm = { dateStr, equity, bond, cash };
+
+          // Initialize and show wizard
+          initTaxYearWizard(wizardContainer, dateStr, async (wizardResult) => {
+            // Wizard completed - hide it and proceed with calculation
+            wizardContainer.style.display = 'none';
+
+            if (wizardResult && wizardResult.completed) {
+              // Re-run the calculation now that tax year is configured
+              try {
+                currentDecision = await calcDecisionPWA(dateStr, equity, bond, cash);
+                const container = document.getElementById('decisionOutput');
+                renderDecisionPanel(currentDecision, container);
+                document.getElementById('saveBtn').disabled = false;
+              } catch (calcError) {
+                console.error('Decision error after wizard:', calcError);
+                alert('Error calculating decision: ' + calcError.message);
+              }
+            }
+            // If cancelled, just return without calculating
+          });
+          return;
+        }
+
+        // No wizard needed - proceed with calculation
+        currentDecision = await calcDecisionPWA(dateStr, equity, bond, cash);
+        const container = document.getElementById('decisionOutput');
+        renderDecisionPanel(currentDecision, container);
+        document.getElementById('saveBtn').disabled = false;
+      } catch (error) {
+        console.error('Decision error:', error);
+        alert('Error calculating decision: ' + error.message);
+      }
+    };
+
+    // Save current decision
+    window.saveCurrentDecision = async function() {
+      if (!currentDecision) {
+        alert('No decision to save');
+        return;
+      }
+
+      if (!isLoggedIn()) {
+        alert('Please sign in to save decisions');
+        return;
+      }
+
+      try {
+        await saveDecision(currentDecision);
+        alert('Decision saved to history');
+        document.getElementById('saveBtn').disabled = true;
+        await renderHistory();  // Refresh history display
+      } catch (error) {
+        console.error('Save error:', error);
+        alert('Error saving: ' + error.message);
+      }
+    };
+
+    // Pre-fill stress test inputs from settings
+    async function prefillStressInputs(prefix) {
+      const s = await getStressSettingsAsync();
+      const prefixMap = { montecarlo: 'mc', historical: 'hist', scenarios: 'scen' };
+      const p = prefixMap[prefix] || prefix;
+
+      const equityEl = document.getElementById(p + 'Equity');
+      const bondEl = document.getElementById(p + 'Bond');
+      const cashEl = document.getElementById(p + 'Cash');
+      const yearsEl = document.getElementById(p + 'Years');
+
+      if (equityEl) equityEl.value = s.equityMin;
+      if (bondEl) bondEl.value = s.bondMin;
+      if (cashEl) cashEl.value = s.cashTarget;
+      if (yearsEl) yearsEl.value = s.duration;
+
+      // Refresh number overlays after programmatic value changes
+      refreshNumberOverlays();
+    }
+
+    // Monte Carlo simulation
+    window.runMonteCarloUI = async function() {
+      const config = {
+        equityStart: parseFloat(document.getElementById('mcEquity').value) || 250000,
+        bondStart: parseFloat(document.getElementById('mcBond').value) || 200000,
+        cashStart: parseFloat(document.getElementById('mcCash').value) || 50000,
+        years: parseInt(document.getElementById('mcYears').value) || 35
+      };
+
+      document.getElementById('mcResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
+
+      // Pre-load settings async to ensure cache is populated
+      await getStressSettingsAsync();
+
+      setTimeout(() => {
+        try {
+          const { results, stats } = runMonteCarloSimulation(config);
+          latestMCResults = results;
+          renderStressResults(stats, results, 'Monte Carlo (1000 runs)', 'mcResults', config.years);
+        } catch (error) {
+          console.error('Simulation error:', error);
+          document.getElementById('mcResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        }
+      }, 50);
+    };
+
+    // Historical simulation
+    window.runHistoricalUI = async function() {
+      const config = {
+        equityStart: parseFloat(document.getElementById('histEquity').value) || 250000,
+        bondStart: parseFloat(document.getElementById('histBond').value) || 200000,
+        cashStart: parseFloat(document.getElementById('histCash').value) || 50000,
+        years: parseInt(document.getElementById('histYears').value) || 35
+      };
+
+      document.getElementById('histResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
+
+      // Pre-load settings async to ensure cache is populated
+      await getStressSettingsAsync();
+
+      setTimeout(() => {
+        try {
+          const { results, stats } = runHistoricalSimulation(config);
+          latestHistResults = results;
+          renderStressResults(stats, results, 'Historical Analysis', 'histResults', config.years);
+        } catch (error) {
+          console.error('Simulation error:', error);
+          document.getElementById('histResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        }
+      }, 50);
+    };
+
+    // Scenarios simulation
+    window.runScenariosUI = async function() {
+      const config = {
+        equityStart: parseFloat(document.getElementById('scenEquity').value) || 250000,
+        bondStart: parseFloat(document.getElementById('scenBond').value) || 200000,
+        cashStart: parseFloat(document.getElementById('scenCash').value) || 50000,
+        years: 35 // Scenarios use settings duration
+      };
+
+      document.getElementById('scenResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running scenarios...</div>';
+
+      // Pre-load settings async to ensure cache is populated
+      await getStressSettingsAsync();
+
+      setTimeout(() => {
+        try {
+          const scenarios = runAllScenarios(config);
+          renderScenarioResults(scenarios, 'scenResults');
+        } catch (error) {
+          console.error('Scenario error:', error);
+          document.getElementById('scenResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        }
+      }, 50);
+    };
+
+    // Calculate State Pension config for simulation from settings
+    // Converts date-based SP settings to simulation year numbers
+    function calculateSpConfigForSimulation(settings) {
+      // If no SP start date, return empty (legacy format not used)
+      if (!settings.spStartDate || !settings.spWeeklyAmount) {
+        return {
+          spStartYear: 999, // Never starts
+          spWeeklyAmount: 0,
+          spFirstYearRatio: 1
+        };
+      }
+
+      // Parse the SP start date
+      const spDate = parseSpDate(settings.spStartDate);
+      if (!spDate) {
+        return {
+          spStartYear: 999,
+          spWeeklyAmount: 0,
+          spFirstYearRatio: 1
+        };
+      }
+
+      // Current date to calculate years until SP
+      const now = new Date();
+      const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+      const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear);
+
+      // The simulation year when SP starts (0-indexed)
+      const spStartYear = Math.floor(yearsUntilSp);
+
+      // Calculate ratio for first partial year
+      // If SP starts mid-year, calculate what fraction of the year they receive
+      const spStartMonth = spDate.getMonth(); // 0-11
+      const spStartDay = spDate.getDate();
+      // Approximate days remaining in year from SP start
+      const daysInYear = 365;
+      const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
+      const daysRemaining = daysInYear - dayOfYear;
+      const firstYearRatio = daysRemaining / daysInYear;
+
+      return {
+        spStartYear: spStartYear,
+        spWeeklyAmount: settings.spWeeklyAmount,
+        spFirstYearRatio: firstYearRatio
+      };
+    }
+
+    // Helper to parse SP date in various formats
+    function parseSpDate(dateStr) {
+      if (!dateStr) return null;
+
+      // Try ISO format (2037-04-21)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+
+      // Try UK format (21/04/2037)
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/').map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      // Try natural format (21 April 2037)
+      const months = {
+        january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+        july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+      };
+      const match = dateStr.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/i);
+      if (match) {
+        const day = parseInt(match[1]);
+        const month = months[match[2].toLowerCase()];
+        const year = parseInt(match[3]);
+        if (month !== undefined) {
+          return new Date(year, month, day);
+        }
+      }
+
+      return null;
+    }
+
+    // Optimisation tracking
+    let optimiseRunning = false;
+
+    // Run allocation optimisation - direct port from PWA
+    window.runOptimisationUI = async function(testType) {
+      if (optimiseRunning) return;
+      optimiseRunning = true;
+
+      const btn = document.getElementById('optimiseBtn' + testType);
+      const resultsDiv = document.getElementById('optimiseResults' + testType);
+      if (btn) btn.disabled = true;
+      if (btn) btn.textContent = 'Optimising...';
+
+      // Get current fund values based on test type
+      let equityEl, bondEl, cashEl, yearsEl;
+      if (testType === 'MC') {
+        equityEl = document.getElementById('mcEquity');
+        bondEl = document.getElementById('mcBond');
+        cashEl = document.getElementById('mcCash');
+        yearsEl = document.getElementById('mcYears');
+      } else {
+        equityEl = document.getElementById('histEquity');
+        bondEl = document.getElementById('histBond');
+        cashEl = document.getElementById('histCash');
+        yearsEl = document.getElementById('histYears');
+      }
+
+      const originalEquity = +equityEl.value;
+      const originalBond = +bondEl.value;
+      const originalCash = +cashEl.value;
+      const years = +yearsEl.value;
+      const totalFunds = originalEquity + originalBond + originalCash;
+
+      resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Testing allocations...</div>';
+
+      // Pre-load settings for the simulation config - make a deep copy to avoid closure issues
+      const settingsRaw = await getStressSettingsAsync();
+      const s = JSON.parse(JSON.stringify(settingsRaw));
+
+      // Use setTimeout to allow UI to update
+      setTimeout(() => {
+        try {
+          let bestResult = null;
+          let originalResult = { equity: originalEquity, bond: originalBond, cash: originalCash, rate: 0, avgProt: 0, withProt: 0, totalRuns: 0 };
+
+          // Generate allocation combinations to test (5% increments, cash 5-30%)
+          const allocations = [];
+          for (let cashPct = 5; cashPct <= 30; cashPct += 5) {
+            for (let equityPct = 20; equityPct <= 95 - cashPct; equityPct += 5) {
+              const bondPct = 100 - cashPct - equityPct;
+              if (bondPct >= 0) {
+                allocations.push({
+                  equity: Math.round(totalFunds * equityPct / 100),
+                  bond: Math.round(totalFunds * bondPct / 100),
+                  cash: Math.round(totalFunds * cashPct / 100)
+                });
+              }
+            }
+          }
+
+          // Get historical years for return sequences
+          const { EQUITY_RETURNS, INFLATION } = window._constants;
+          const { simulate } = window._simEngine;
+          const { seededRng } = window._mathUtils;
+
+          const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+          const maxY = Math.max(...yrs);
+
+          // Helper function to run simulation for an allocation - matches PWA exactly
+          const runSimForAlloc = (alloc) => {
+            // Build config with start values from allocation, rules from settings
+            const cfg = {
+              equityStart: alloc.equity,
+              bondStart: alloc.bond,
+              cashStart: alloc.cash,
+              years: years,
+              // Rules/minimums from settings
+              equityMin: s.equityMin,
+              bondMin: s.bondMin,
+              cashTarget: s.cashTarget,
+              duration: s.duration,
+              baseSalary: s.baseSalary,
+              other: s.other,
+              // State Pension - calculate start year from date
+              ...calculateSpConfigForSimulation(s),
+              pa: s.pa,
+              brl: s.brl,
+              hrl: s.hrl,
+              taxMode: s.taxMode,
+              protectionMult: s.protectionMult,
+              consecutiveLimit: s.consecutiveLimit,
+              disableProtection: s.disableProtection,
+              hodlEnabled: s.hodlEnabled,
+              hodlValue: s.hodlValue
+            };
+
+            const results = [];
+
+            if (testType === 'MC') {
+              // Monte Carlo - run 1000 iterations
+              for (let i = 0; i < 1000; i++) {
+                const rng = seededRng(i * 12345);
+                const ret = { equity: {}, inflation: {} };
+                for (let y = 0; y < years; y++) {
+                  const ry = yrs[Math.floor(rng() * yrs.length)];
+                  ret.equity[y] = EQUITY_RETURNS[ry];
+                  ret.inflation[y] = INFLATION[ry] || 0.025;
+                }
+                results.push(simulate(cfg, ret, i));
+              }
+            } else {
+              // Historical - run all sequences
+              yrs.forEach(sy => {
+                if (sy + years - 1 > maxY) return;
+                const ret = { equity: {}, inflation: {} };
+                for (let y = 0; y < years; y++) {
+                  ret.equity[y] = EQUITY_RETURNS[sy + y] || 0;
+                  ret.inflation[y] = INFLATION[sy + y] || 0.025;
+                }
+                results.push(simulate(cfg, ret, sy));
+              });
+            }
+
+            const fails = results.filter(r => r.failed);
+            const succ = results.filter(r => !r.failed);
+            const rate = (results.length - fails.length) / results.length * 100;
+            const protArr = results.map(r => r.protMonths);
+            const avgProt = protArr.reduce((a, b) => a + b, 0) / results.length;
+            const withProt = results.filter(r => r.protMonths > 0).length;
+
+            // Calculate median final value for upside comparison
+            const finals = succ.map(r => r.final).sort((a, b) => a - b);
+            const medianFinal = finals.length > 0 ? finals[Math.floor(finals.length * 0.5)] : 0;
+            const p90Final = finals.length > 0 ? finals[Math.floor(finals.length * 0.9)] : 0;
+
+            return {
+              equity: alloc.equity,
+              bond: alloc.bond,
+              cash: alloc.cash,
+              rate: rate,
+              avgProt: avgProt,
+              withProt: withProt,
+              totalRuns: results.length,
+              medianFinal: medianFinal,
+              p90Final: p90Final
+            };
+          };
+
+          // First, run the original allocation to get its stats
+          const origAlloc = { equity: originalEquity, bond: originalBond, cash: originalCash };
+          const origSimResult = runSimForAlloc(origAlloc);
+          originalResult.avgProt = origSimResult.avgProt;
+          originalResult.withProt = origSimResult.withProt;
+          originalResult.totalRuns = origSimResult.totalRuns;
+          originalResult.rate = origSimResult.rate;
+          originalResult.medianFinal = origSimResult.medianFinal;
+          originalResult.p90Final = origSimResult.p90Final;
+
+          // Test each allocation - only consider if protection is not worse than original
+          allocations.forEach(alloc => {
+            const result = runSimForAlloc(alloc);
+
+            // Only consider this allocation if it doesn't use MORE protection than original
+            if (result.avgProt <= originalResult.avgProt) {
+              // Pick the one with highest success rate (among those with acceptable protection)
+              if (!bestResult || result.rate > bestResult.rate) {
+                bestResult = result;
+              }
+            }
+          });
+
+          // Display results
+          let h = '';
+          if (bestResult && bestResult.rate > originalResult.rate) {
+            // Calculate upside difference
+            const medianDiff = bestResult.medianFinal - originalResult.medianFinal;
+            const medianDiffPct = originalResult.medianFinal > 0 ? (medianDiff / originalResult.medianFinal * 100) : 0;
+
+            h += '<div class="card" style="margin-top:20px;border-color:var(--success);">';
+            h += '<h3 style="color:var(--success);margin-top:0;">Better Allocation Found</h3>';
+            h += '<p style="color:var(--text-muted);margin-bottom:16px;">A different fund split could improve your success rate without increasing protection usage:</p>';
+
+            h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">';
+
+            // Original
+            h += '<div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;">';
+            h += '<div style="font-weight:500;margin-bottom:12px;color:var(--text-muted);">Your Current Split</div>';
+            h += '<div style="font-size:24px;font-weight:600;color:var(--warning);">' + originalResult.rate.toFixed(1) + '%</div>';
+            h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate</div>';
+            h += '<div style="font-size:13px;">Equity: ' + formatCurrency(originalResult.equity) + ' (' + Math.round(originalResult.equity/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(originalResult.bond) + ' (' + Math.round(originalResult.bond/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:13px;">Cash: ' + formatCurrency(originalResult.cash) + ' (' + Math.round(originalResult.cash/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + originalResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(originalResult.medianFinal) + '</div>';
+            h += '</div>';
+
+            // Optimised
+            h += '<div style="padding:16px;background:rgba(46,160,67,0.1);border-radius:8px;border:1px solid var(--success);">';
+            h += '<div style="font-weight:500;margin-bottom:12px;color:var(--success);">Optimised Split</div>';
+            h += '<div style="font-size:24px;font-weight:600;color:var(--success);">' + bestResult.rate.toFixed(1) + '%</div>';
+            h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (+' + (bestResult.rate - originalResult.rate).toFixed(1) + '%)</div>';
+            h += '<div style="font-size:13px;">Equity: ' + formatCurrency(bestResult.equity) + ' (' + Math.round(bestResult.equity/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(bestResult.bond) + ' (' + Math.round(bestResult.bond/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:13px;">Cash: ' + formatCurrency(bestResult.cash) + ' (' + Math.round(bestResult.cash/totalFunds*100) + '%)</div>';
+            h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + bestResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(bestResult.medianFinal) + '</div>';
+            h += '</div>';
+
+            h += '</div>';
+
+            // Upside comparison
+            if (medianDiff < 0) {
+              h += '<div class="alert alert-warning" style="margin-bottom:16px;">';
+              h += '<strong>Trade-off:</strong> The optimised allocation has a ' + Math.abs(medianDiffPct).toFixed(0) + '% lower median final value. ';
+              h += 'This is because it likely has less equity exposure. You gain safety but may sacrifice some upside.';
+              h += '</div>';
+            } else if (medianDiff > 0) {
+              h += '<div class="alert alert-info" style="margin-bottom:16px;">';
+              h += '<strong>Bonus:</strong> The optimised allocation also has a ' + medianDiffPct.toFixed(0) + '% higher median final value!';
+              h += '</div>';
+            }
+
+            h += '<div class="alert alert-info" style="margin-bottom:16px;">';
+            h += '<strong>To apply this allocation:</strong> Click the button below to update your Settings with these new fund minimums.';
+            h += '</div>';
+
+            h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply Optimised Allocation to Settings</button>';
+            h += '</div>';
+          } else {
+            h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
+            h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already Optimal</h3>';
+            h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' different fund splits. Your current allocation achieves the best success rate (' + originalResult.rate.toFixed(1) + '%) without increasing protection usage.</p>';
+            h += '<p style="font-size:13px;color:var(--text-muted);">Your protection: ' + originalResult.avgProt.toFixed(0) + ' months average</p>';
+            h += '</div>';
+          }
+
+          resultsDiv.innerHTML = h;
+        } catch (error) {
+          console.error('Optimisation error:', error);
+          resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+        } finally {
+          optimiseRunning = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Optimise Allocation';
+          }
+        }
+      }, 50);
+    };
+
+    // Apply optimised allocation to settings
+    window.applyOptimisedAllocationUI = async function(equity, bond, cash) {
+      // Update stress settings
+      document.getElementById('ssEquityMin').value = equity;
+      document.getElementById('ssBondMin').value = bond;
+      document.getElementById('ssCashTarget').value = cash;
+
+      // Update decision settings
+      document.getElementById('dsEquityMin').value = equity;
+      document.getElementById('dsBondMin').value = bond;
+      document.getElementById('dsCashTarget').value = cash;
+
+      // Update test inputs
+      document.getElementById('mcEquity').value = equity;
+      document.getElementById('mcBond').value = bond;
+      document.getElementById('mcCash').value = cash;
+      document.getElementById('histEquity').value = equity;
+      document.getElementById('histBond').value = bond;
+      document.getElementById('histCash').value = cash;
+      document.getElementById('scenEquity').value = equity;
+      document.getElementById('scenBond').value = bond;
+      document.getElementById('scenCash').value = cash;
+
+      // Save to Firebase if logged in
+      if (isLoggedIn()) {
+        try {
+          await saveStressSettings({
+            equityMin: equity,
+            bondMin: bond,
+            cashTarget: cash
+          });
+        } catch (e) {
+          console.error('Error saving optimised settings:', e);
+        }
+      }
+
+      alert('Settings updated! Run the test again to see the full results with your new allocation.');
+    };
+
+    // Historical event mapping
+    const historicalEvents = {
+      1929: 'Wall Street Crash / Great Depression',
+      1930: 'Great Depression',
+      1931: 'Great Depression',
+      1932: 'Great Depression',
+      1937: 'Recession of 1937',
+      1968: 'Late 1960s stagflation',
+      1969: 'Late 1960s recession',
+      1973: 'Oil Crisis / 1973-74 crash',
+      1974: '1973-74 bear market',
+      2000: 'Dot-com bubble burst',
+      2001: 'Dot-com bust / 9/11',
+      2007: 'Global Financial Crisis',
+      2008: 'Global Financial Crisis',
+      2022: 'Post-COVID inflation / rate hikes'
+    };
+
+    // Build worst periods table for historical simulation
+    function buildWorstPeriodsTable(results) {
+      if (!results || results.length === 0) return '';
+
+      // Get worst 5 periods by years survived (or protection if no failures)
+      const failed = results.filter(r => r.failed).sort((a, b) => a.years - b.years);
+      const withProtection = results.filter(r => r.protMonths > 0).sort((a, b) => b.protMonths - a.protMonths);
+
+      // Show failed periods or worst protection periods
+      const worstPeriods = failed.length > 0 ? failed.slice(0, 5) : withProtection.slice(0, 5);
+
+      if (worstPeriods.length === 0) return '';
+
+      let html = `
+        <details style="margin-top: 24px;">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--danger); margin-bottom: 10px;">
+            ${failed.length > 0 ? 'Worst Periods (Failed)' : 'Worst Periods (Most Protection)'}
+          </summary>
+          <div style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%; margin-top: 10px;">
+              <thead>
+                <tr>
+                  <th>Start Year</th>
+                  <th>Event</th>
+                  <th>Years Survived</th>
+                  <th>Protection Months</th>
+                  <th>Final Value</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      worstPeriods.forEach(r => {
+        const startYear = r.startYear || r.seed;
+        const event = historicalEvents[startYear] || '-';
+        const statusClass = r.failed ? 'danger' : 'success';
+
+        html += `
+          <tr>
+            <td>${startYear}</td>
+            <td style="font-size: 12px;">${event}</td>
+            <td>${r.years.toFixed(1)}</td>
+            <td>${r.protMonths}</td>
+            <td>${formatCurrency(r.final)}</td>
+            <td style="color: var(--${statusClass});">${r.failed ? 'FAILED' : 'OK'}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </details>
+      `;
+
+      return html;
+    }
+
+    // Render stress test results with charts
+    function renderStressResults(stats, results, title, containerId, years) {
+      const successClass = stats.successRate >= 90 ? 'success' : stats.successRate >= 80 ? 'warning' : 'danger';
+      const chartId = containerId.replace('Results', '');
+
+      // Build enhanced stats from new structure
+      const survivalStats = stats.survival || {};
+      const finalStats = stats.finalValue || {};
+      const protStats = stats.protection || {};
+
+      let html = `
+        <div class="card">
+          <h2>${title}</h2>
+
+          <!-- Primary Stats -->
+          <div class="grid-4" style="margin-bottom: 24px;">
+            <div class="stat-box ${successClass}">
+              <div class="stat-value">${stats.successRate.toFixed(1)}%</div>
+              <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-box danger">
+              <div class="stat-value">${stats.failCount}</div>
+              <div class="stat-label">Failures</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${(survivalStats.p10 || stats.p10Years || 0).toFixed(1)}</div>
+              <div class="stat-label">10th %ile Years</div>
+            </div>
+            <div class="stat-box success">
+              <div class="stat-value">${formatCurrency(finalStats.p50 || stats.medianFinal || 0)}</div>
+              <div class="stat-label">Median Final</div>
+            </div>
+          </div>
+
+          <!-- 7-Point Percentile Stats -->
+          <details style="margin-bottom: 20px;">
+            <summary style="cursor: pointer; font-weight: 600; color: var(--primary); margin-bottom: 10px;">
+              Detailed Percentile Statistics
+            </summary>
+            <div class="grid-7" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 10px;">
+              ${['p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'].map(p => `
+                <div class="stat-box mini">
+                  <div class="stat-value" style="font-size: 14px;">${formatCurrency(finalStats[p] || 0)}</div>
+                  <div class="stat-label" style="font-size: 10px;">${p.toUpperCase()}</div>
+                </div>
+              `).join('')}
+            </div>
+          </details>
+
+          <!-- Protection Stats -->
+          <div class="grid-5" style="margin-bottom: 24px;">
+            <div class="stat-box">
+              <div class="stat-value">${protStats.runsWithProtection || stats.runsWithProtection || 0}</div>
+              <div class="stat-label">Runs w/ Protection</div>
+            </div>
+            <div class="stat-box warning">
+              <div class="stat-value">${(protStats.avgMonths || stats.avgProtMonths || 0).toFixed(0)}</div>
+              <div class="stat-label">Avg Protection Mo</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${(protStats.avgConsecutive || stats.avgConsecutive || 0).toFixed(1)}</div>
+              <div class="stat-label">Avg Consecutive</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${protStats.maxConsecutive || stats.maxConsecutive || 0}</div>
+              <div class="stat-label">Max Consecutive</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${formatCurrency(finalStats.avg || stats.avgFinal || 0)}</div>
+              <div class="stat-label">Avg Final (success)</div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="chart-row">
+            <div class="chart-container">
+              <canvas id="${chartId}ConeChart" width="800" height="400"></canvas>
+            </div>
+            <div class="chart-container">
+              <canvas id="${chartId}TrajChart" width="800" height="400"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-container" style="max-width: 600px;">
+            <canvas id="${chartId}HistChart" width="600" height="250"></canvas>
+          </div>
+
+          <!-- Worst Periods Table (for historical only) -->
+          ${containerId === 'histResults' ? buildWorstPeriodsTable(results) : ''}
+
+          <!-- Result Summary -->
+          <div class="alert ${successClass === 'success' ? 'alert-success' : successClass === 'warning' ? 'alert-warning' : 'alert-danger'}" style="margin-top: 24px;">
+            ${stats.successRate >= 90 ? 'Excellent! Very high probability of success.' :
+              stats.successRate >= 80 ? 'Good but some downside risk. Consider adjustments.' :
+              'Warning: Significant risk of depletion.'}
+          </div>
+        </div>
+      `;
+
+      document.getElementById(containerId).innerHTML = html;
+
+      // Draw charts after DOM is updated
+      setTimeout(() => {
+        const coneCanvas = document.getElementById(`${chartId}ConeChart`);
+        const trajCanvas = document.getElementById(`${chartId}TrajChart`);
+        const histCanvas = document.getElementById(`${chartId}HistChart`);
+
+        if (coneCanvas && results && results.length > 0) {
+          drawCone(coneCanvas, results, { years, title: 'Cone of Uncertainty (5th-95th Percentile)' });
+        }
+
+        if (trajCanvas && results && results.length > 0) {
+          drawTrajectories(trajCanvas, results, { years, title: 'Sample Trajectories (100 runs)' });
+        }
+
+        if (histCanvas && results && results.length > 0) {
+          drawHistogram(histCanvas, results, { title: 'Protection Months Distribution' });
+        }
+      }, 50);
+    }
+
+    // Render scenario results
+    function renderScenarioResults(scenarios, containerId) {
+      latestScenResults = scenarios;
+
+      let html = '<div class="card"><h2>Scenario Analysis</h2>';
+
+      // Add comparison chart
+      html += `
+        <div class="chart-container" style="margin-bottom: 24px;">
+          <canvas id="scenCompChart" width="900" height="400"></canvas>
+        </div>
+      `;
+
+      // Scenario result cards
+      html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">';
+
+      for (const [key, scenario] of Object.entries(scenarios)) {
+        const result = scenario.result;
+        const statusClass = result.failed ? 'danger' : 'success';
+
+        html += `
+          <div class="history-item" style="border-left: 4px solid ${scenario.color};">
+            <div>
+              <div class="history-date">${scenario.name}</div>
+              <div class="history-details">
+                Protection: ${result.protMonths} mo | Max streak: ${result.maxConsec} mo
+                ${result.hodlUsed > 0 ? ` | HODL used: ${formatCurrency(result.hodlUsed)}` : ''}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 24px; color: var(--${statusClass});">${result.years.toFixed(1)} yrs</div>
+              <div style="font-size: 12px; color: var(--${statusClass});">${result.failed ? 'FAILED' : 'OK'}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Final: ${formatCurrency(result.final)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      html += '</div></div>';
+      document.getElementById(containerId).innerHTML = html;
+
+      // Draw scenario comparison chart
+      setTimeout(() => {
+        const chartCanvas = document.getElementById('scenCompChart');
+        if (chartCanvas && scenarios) {
+          drawScenarioComparison(chartCanvas, scenarios, { years: 35, title: 'Scenario Comparison' });
+        }
+      }, 50);
+    }
+
+    // Load stress settings into UI
+    async function loadStressSettings() {
+      showLoading('Loading settings...');
+      try {
+        const s = await getStressSettingsAsync();
+        document.getElementById('ssBaseSalary').value = s.baseSalary;
+        document.getElementById('ssEquityMin').value = s.equityMin;
+        document.getElementById('ssBondMin').value = s.bondMin;
+        document.getElementById('ssCashTarget').value = s.cashTarget;
+        document.getElementById('ssDuration').value = s.duration;
+        document.getElementById('ssPA').value = s.pa;
+        document.getElementById('ssBRL').value = s.brl;
+        document.getElementById('ssHRL').value = s.hrl;
+        document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
+        document.getElementById('ssOther').value = s.other || 0;
+        // State Pension (new fields)
+        document.getElementById('ssSpStartDate').value = s.spStartDate || '';
+        document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
+        updateSpAnnualDisplay('ss');
+        document.getElementById('ssConsecutiveLimit').value = s.consecutiveLimit || 3;
+        document.getElementById('ssProtectionMult').value = s.protectionMult || 0.8;
+        document.getElementById('ssDisableProtection').checked = s.disableProtection || false;
+        document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
+        document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
+
+        // Refresh number overlays after programmatic value changes
+        refreshNumberOverlays();
+      } catch (error) {
+        console.error('Error loading stress settings:', error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Save stress settings
+    window.saveStressSettingsUI = async function() {
+      if (!isLoggedIn()) {
+        alert('Please sign in to save settings');
+        return;
+      }
+
+      showLoading('Saving settings...');
+      try {
+        await saveStressSettings({
+          baseSalary: +document.getElementById('ssBaseSalary').value,
+          equityMin: +document.getElementById('ssEquityMin').value,
+          bondMin: +document.getElementById('ssBondMin').value,
+          cashTarget: +document.getElementById('ssCashTarget').value,
+          duration: +document.getElementById('ssDuration').value,
+          pa: +document.getElementById('ssPA').value,
+          brl: +document.getElementById('ssBRL').value,
+          hrl: +document.getElementById('ssHRL').value,
+          taxMode: document.getElementById('ssTaxMode').value,
+          other: +document.getElementById('ssOther').value,
+          // State Pension (new fields)
+          spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
+          spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
+          consecutiveLimit: +document.getElementById('ssConsecutiveLimit').value,
+          protectionMult: +document.getElementById('ssProtectionMult').value,
+          disableProtection: document.getElementById('ssDisableProtection').checked,
+          hodlEnabled: document.getElementById('ssHodlEnabled').checked,
+          hodlValue: +document.getElementById('ssHodlValue').value
+        });
+        alert('Settings saved successfully');
+      } catch (error) {
+        console.error('Error saving stress settings:', error);
+        alert('Error saving: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Reset stress settings
+    window.resetStressSettingsUI = async function() {
+      if (!confirm('Reset all stress settings to defaults?')) return;
+
+      showLoading('Resetting settings...');
+      try {
+        await resetStressSettings();
+        await loadStressSettings();
+        alert('Settings reset to defaults');
+      } catch (error) {
+        console.error('Error resetting settings:', error);
+        alert('Error resetting: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Load decision settings into UI
+    async function loadDecisionSettings() {
+      showLoading('Loading settings...');
+      try {
+        const s = await getDecisionSettingsAsync();
+        document.getElementById('dsEquityMin').value = s.equityMin || 250000;
+        document.getElementById('dsBondMin').value = s.bondMin || 200000;
+        document.getElementById('dsCashTarget').value = s.cashTarget || 50000;
+        document.getElementById('dsDuration').value = s.duration || 35;
+        document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
+        document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
+        document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
+        document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
+
+        // Also update entry form with settings
+        document.getElementById('entryEquity').value = s.equityMin || 250000;
+        document.getElementById('entryBond').value = s.bondMin || 200000;
+        document.getElementById('entryCash').value = s.cashTarget || 50000;
+
+        // Refresh number overlays after programmatic value changes
+        refreshNumberOverlays();
+      } catch (error) {
+        console.error('Error loading decision settings:', error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Save decision settings
+    window.saveDecisionSettingsUI = async function() {
+      if (!isLoggedIn()) {
+        alert('Please sign in to save settings');
+        return;
+      }
+
+      showLoading('Saving settings...');
+      try {
+        await saveDecisionSettings({
+          equityMin: +document.getElementById('dsEquityMin').value,
+          bondMin: +document.getElementById('dsBondMin').value,
+          cashTarget: +document.getElementById('dsCashTarget').value,
+          duration: +document.getElementById('dsDuration').value,
+          baseSalary: +document.getElementById('dsBaseSalary').value,
+          // State Pension (new fields)
+          spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
+          spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,
+          protectionFactor: +document.getElementById('dsProtectionFactor').value,
+          recoveryBuffer: +document.getElementById('dsRecoveryBuffer').value,
+          consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value
+        });
+        alert('Settings saved successfully');
+      } catch (error) {
+        console.error('Error saving decision settings:', error);
+        alert('Error saving: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Reset decision settings
+    window.resetDecisionSettingsUI = async function() {
+      if (!confirm('Reset all decision settings to defaults?')) return;
+
+      showLoading('Resetting settings...');
+      try {
+        await saveDecisionSettings({
+          equityMin: 250000,
+          bondMin: 200000,
+          cashTarget: 50000,
+          duration: 35,
+          baseSalary: 30000,
+          protectionFactor: 20,
+          recoveryBuffer: 15000,
+          consecutiveLimit: 3
+        });
+        await loadDecisionSettings();
+        alert('Settings reset to defaults');
+      } catch (error) {
+        console.error('Error resetting settings:', error);
+        alert('Error resetting: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Drawdown schedule
+    window.showDrawdownScheduleUI = async function() {
+      const inflation = parseFloat(document.getElementById('ddInflation').value) / 100 || 0.025;
+      const duration = parseInt(document.getElementById('ddDuration').value) || 35;
+
+      try {
+        const settings = await getStressSettingsAsync();
+        settings.duration = duration;
+        const schedule = generateDrawdownSchedule(settings, duration, inflation);
+
+        let html = '<div class="card"><h2>Projected SIPP Drawdown Schedule</h2>';
+        html += '<div style="overflow-x: auto;"><table>';
+        html += '<thead><tr><th>Year</th><th>BRL</th><th>Other</th><th>State</th><th>SIPP Draw</th><th>Tax</th><th>Net</th></tr></thead>';
+        html += '<tbody>';
+
+        for (const row of schedule) {
+          html += `<tr>
+            <td>${row.year}</td>
+            <td>${formatCurrency(row.brl)}</td>
+            <td>${formatCurrency(row.other)}</td>
+            <td>${formatCurrency(row.statePension)}</td>
+            <td style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
+            <td style="color: var(--danger);">-${formatCurrency(row.tax)}</td>
+            <td style="color: var(--success);">${formatCurrency(row.netIncome)}</td>
+          </tr>`;
+        }
+
+        html += '</tbody></table></div></div>';
+        document.getElementById('drawdownResults').innerHTML = html;
+      } catch (error) {
+        console.error('Drawdown error:', error);
+        document.getElementById('drawdownResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+      }
+    };
+
+    // Glidepath visualization
+    window.showGlidepathUI = async function() {
+      const inflation = parseFloat(document.getElementById('gpInflation').value) / 100 || 0.025;
+      const duration = parseInt(document.getElementById('gpDuration').value) || 35;
+
+      try {
+        const settings = await getStressSettingsAsync();
+        settings.duration = duration;
+        const schedule = generateGlidepathSchedule(settings, inflation);
+
+        let html = '<div class="card"><h2>Fund Glidepath (Inflation-Adjusted Minimums)</h2>';
+        html += '<div class="alert alert-info" style="margin-bottom: 20px;">';
+        html += '<strong>Glidepath Logic:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).';
+        html += '</div>';
+        html += '<div style="overflow-x: auto;"><table>';
+        html += '<thead><tr><th>Year</th><th>Cum Inflation</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th><th>Total Min</th></tr></thead>';
+        html += '<tbody>';
+
+        for (const row of schedule) {
+          html += `<tr>
+            <td>${row.year}</td>
+            <td>${(row.cumulativeInflation * 100 - 100).toFixed(1)}%</td>
+            <td style="color: var(--success);">${formatCurrency(row.equityMin)}</td>
+            <td style="color: var(--info);">${formatCurrency(row.bondMin)}</td>
+            <td style="color: var(--warning);">${formatCurrency(row.cashTarget)}</td>
+            <td style="font-weight: 600;">${formatCurrency(row.totalMin)}</td>
+          </tr>`;
+        }
+
+        html += '</tbody></table></div></div>';
+        document.getElementById('glidepathResults').innerHTML = html;
+      } catch (error) {
+        console.error('Glidepath error:', error);
+        document.getElementById('glidepathResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+      }
+    };
+
+    // Current selected history entry
+    let selectedHistoryDate = null;
+    let allHistoryData = [];
+
+    // Render history with full-page tabbed view
+    async function renderHistory() {
+      const tabsContainer = document.getElementById('historyTabs');
+      const detailContainer = document.getElementById('historyDetail');
+
+      if (!tabsContainer || !detailContainer) return;
+
+      tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
+
+      allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
+
+      if (allHistoryData.length === 0) {
+        tabsContainer.innerHTML = '';
+        detailContainer.innerHTML = `
+          <div class="no-history-message">
+            <h3>No History Entries</h3>
+            <p>Save decisions from the Decision Tool to build your history.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Render month tabs (chronological order)
+      let tabsHtml = '';
+      allHistoryData.forEach(h => {
+        const isActive = h.date === selectedHistoryDate;
+        const classes = ['history-tab'];
+        if (isActive) classes.push('active');
+        if (h.inProtection) classes.push('protection');
+
+        // Format date for display
+        const dateLabel = formatHistoryTabDate(h.date);
+
+        tabsHtml += `<button class="${classes.join(' ')}" onclick="selectHistoryEntry('${h.date}')">${dateLabel}</button>`;
+      });
+
+      tabsContainer.innerHTML = tabsHtml;
+
+      // Populate mobile dropdown selector
+      const mobileSelector = document.getElementById('historyMobileSelector');
+      if (mobileSelector) {
+        let optionsHtml = '';
+        allHistoryData.forEach(h => {
+          const dateLabel = formatHistoryTabDate(h.date);
+          const suffix = h.inProtection ? ' (Protection)' : '';
+          optionsHtml += `<option value="${h.date}">${dateLabel}${suffix}</option>`;
+        });
+        mobileSelector.innerHTML = optionsHtml;
+      }
+
+      // If no entry selected, select the most recent one
+      if (!selectedHistoryDate || !allHistoryData.find(h => h.date === selectedHistoryDate)) {
+        selectedHistoryDate = allHistoryData[allHistoryData.length - 1].date;
+      }
+
+      // Update mobile selector value
+      if (mobileSelector) {
+        mobileSelector.value = selectedHistoryDate;
+      }
+
+      // Render detail view for selected entry
+      renderHistoryDetail(selectedHistoryDate);
+
+      // Scroll to selected tab
+      setTimeout(() => {
+        const activeTab = tabsContainer.querySelector('.history-tab.active');
+        if (activeTab) {
+          activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }, 100);
+    }
+
+    // Format date for tab display
+    function formatHistoryTabDate(dateStr) {
+      // dateStr is YYYY-MM format
+      const [year, month] = dateStr.split('-').map(Number);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${monthNames[month - 1]} ${year}`;
+    }
+
+    // Render detail view for a specific history entry
+    function renderHistoryDetail(dateStr) {
+      const container = document.getElementById('historyDetail');
+      const h = allHistoryData.find(entry => entry.date === dateStr);
+
+      if (!h) {
+        container.innerHTML = '<div class="no-history-message"><h3>Entry not found</h3></div>';
+        return;
+      }
+
+      const fmt = (val) => val !== undefined && val !== null ? '£' + Math.round(val).toLocaleString() : '—';
+      const fmtPct = (val) => val !== undefined && val !== null ? (val * 100).toFixed(1) + '%' : '—';
+
+      // Mode badge
+      const isTaxEfficient = h.isTaxEfficientYear !== false && h.mode === 'Tax-Efficient';
+      const modeClass = h.inProtection ? 'warning' : (isTaxEfficient ? 'efficient' : 'inefficient');
+      const modeLabel = h.inProtection
+        ? `Protection${h.protectionInducedTaxEfficiency ? ' (Tax-Efficient)' : ''}`
+        : (isTaxEfficient ? 'Tax-Efficient' : 'Standard');
+
+      // Format withdrawal source details
+      let sourceDetail = h.source || 'Unknown';
+      if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
+        sourceDetail = `Growth (Equity: ${fmt(h.dEquity || 0)}, Bond: ${fmt(h.dBond || 0)})`;
+      } else if (h.source === 'Cash') {
+        sourceDetail = `Cash (${fmt(h.dCash || h.sipp || 0)})`;
+      }
+
+      let html = `
+        <!-- Header with date and mode -->
+        <div class="history-detail-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div>
+              <h3 style="margin:0;">${formatHistoryTabDate(h.date)}</h3>
+              <div style="color:var(--text-muted);font-size:13px;">Tax Year ${h.taxYear} • Year ${h.yearNum || 0}</div>
+            </div>
+            <span class="tax-mode-badge ${modeClass}">${modeLabel}</span>
+          </div>
+
+          ${h.inProtection && h.reason ? `
+            <div style="padding:12px;background:rgba(243,156,18,0.1);border-radius:8px;margin-bottom:16px;">
+              <strong style="color:var(--warning);">Protection Reason:</strong>
+              <span style="color:var(--text);">${h.reason}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Fund Balances -->
+        <div class="history-detail-card">
+          <h3>Fund Balances</h3>
+          <div class="history-grid">
+            <div class="history-field">
+              <label>Equity</label>
+              <span class="value">${fmt(h.equity)}</span>
+            </div>
+            <div class="history-field">
+              <label>Bond</label>
+              <span class="value">${fmt(h.bond)}</span>
+            </div>
+            <div class="history-field">
+              <label>Cash</label>
+              <span class="value">${fmt(h.cash)}</span>
+            </div>
+            <div class="history-field">
+              <label>Total</label>
+              <span class="value" style="color:var(--primary);">${fmt(h.total)}</span>
+            </div>
+          </div>
+
+          <!-- Glidepath targets -->
+          ${h.adjEquity || h.adjBond || h.adjCash ? `
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">GLIDEPATH TARGETS</div>
+              <div class="history-grid">
+                <div class="history-field">
+                  <label>Equity Min</label>
+                  <span class="value">${fmt(h.adjEquity)}</span>
+                </div>
+                <div class="history-field">
+                  <label>Bond Min</label>
+                  <span class="value">${fmt(h.adjBond)}</span>
+                </div>
+                <div class="history-field">
+                  <label>Cash Target</label>
+                  <span class="value">${fmt(h.adjCash)}</span>
+                </div>
+                <div class="history-field">
+                  <label>Surplus</label>
+                  <span class="value ${((h.total || 0) - (h.adjEquity || 0) - (h.adjBond || 0) - (h.adjCash || 0)) >= 0 ? 'success' : 'danger'}">
+                    ${fmt((h.total || 0) - (h.adjEquity || 0) - (h.adjBond || 0) - (h.adjCash || 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Monthly Recommendation -->
+        <div class="history-detail-card">
+          <h3>Monthly Recommendation</h3>
+          <div class="history-grid">
+            <div class="history-field">
+              <label>SIPP Withdrawal</label>
+              <span class="value" style="color:var(--primary);">${fmt(h.sipp)}</span>
+            </div>
+            <div class="history-field">
+              <label>ISA Top-up</label>
+              <span class="value">${fmt(h.isa)}</span>
+            </div>
+            <div class="history-field">
+              <label>Other Income</label>
+              <span class="value">${fmt(h.other)}</span>
+            </div>
+            <div class="history-field">
+              <label>State Pension</label>
+              <span class="value">${fmt(h.state)}</span>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;padding:16px;background:var(--card-alt);border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:500;">Total Monthly Income</span>
+              <span style="font-size:20px;font-weight:600;color:var(--success);">${fmt(h.monthlyNet)}</span>
+            </div>
+          </div>
+
+          ${h.boostAmount > 0 ? `
+            <div style="margin-top:12px;padding:12px;background:rgba(46,204,113,0.1);border-radius:8px;">
+              <strong style="color:var(--success);">Tax Boost:</strong>
+              <span style="color:var(--success);">+${fmt(h.boostAmount)}</span>
+              <span style="color:var(--text-muted);font-size:12px;">(Catch-up from protection periods)</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- ISA/Savings Allocation -->
+        ${h.yearlyIsaSavingsAllocation > 0 ? `
+          <div class="history-detail-card">
+            <h3>ISA/Savings Allocation</h3>
+            <div class="history-grid">
+              <div class="history-field">
+                <label>Year Allocation</label>
+                <span class="value">${fmt(h.yearlyIsaSavingsAllocation)}</span>
+              </div>
+              <div class="history-field">
+                <label>Used This Month</label>
+                <span class="value">${fmt(h.isaSavingsUsedThisMonth || h.isa)}</span>
+              </div>
+              <div class="history-field">
+                <label>Cumulative Used</label>
+                <span class="value">${fmt(h.cumulativeIsaSavingsUsed)}</span>
+              </div>
+              <div class="history-field">
+                <label>Remaining</label>
+                <span class="value ${((h.yearlyIsaSavingsAllocation || 0) - (h.cumulativeIsaSavingsUsed || 0)) > 0 ? 'success' : 'warning'}">
+                  ${fmt((h.yearlyIsaSavingsAllocation || 0) - (h.cumulativeIsaSavingsUsed || 0))}
+                </span>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Tax Summary -->
+        <div class="history-detail-card">
+          <h3>Tax Summary</h3>
+          <div class="history-grid">
+            <div class="history-field">
+              <label>Personal Allowance</label>
+              <span class="value">${fmt(h.pa)}</span>
+            </div>
+            <div class="history-field">
+              <label>Basic Rate Limit</label>
+              <span class="value">${fmt(h.brl)}</span>
+            </div>
+          </div>
+
+          <table class="monthly-breakdown-table" style="margin-top:16px;">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Monthly</th>
+                <th>YTD</th>
+                <th>Projected</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="source-name">Tax Paid</td>
+                <td>${fmt(h.taxPaidMonthly || h.monthlyTax)}</td>
+                <td>${fmt(h.taxPaidYTD)}</td>
+                <td>${fmt(h.taxProjectedAnnual)}</td>
+              </tr>
+              ${(h.taxSavedMonthly > 0 || h.taxSavedProjectedAnnual > 0) ? `
+                <tr>
+                  <td class="source-name">Tax Saved</td>
+                  <td class="net-col">-${fmt(h.taxSavedMonthly)}</td>
+                  <td class="net-col">-${fmt(h.taxSavedYTD)}</td>
+                  <td class="net-col">-${fmt(h.taxSavedProjectedAnnual)}</td>
+                </tr>
+              ` : ''}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Withdrawal Details -->
+        <div class="history-detail-card">
+          <h3>Withdrawal Details</h3>
+          <div class="history-grid">
+            <div class="history-field">
+              <label>Source</label>
+              <span class="value">${sourceDetail}</span>
+            </div>
+            ${h.consecutiveDraws > 0 ? `
+              <div class="history-field">
+                <label>Consecutive Cash Draws</label>
+                <span class="value warning">${h.consecutiveDraws}</span>
+              </div>
+            ` : ''}
+            <div class="history-field">
+              <label>Remaining Months</label>
+              <span class="value">${h.remainingMonths || 12}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rebalancing -->
+        ${h.rebal ? `
+          <div class="history-detail-card">
+            <h3>Rebalancing Suggestions</h3>
+            <div style="padding:12px;background:rgba(243,156,18,0.1);border-radius:8px;">
+              ${h.rebal}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Actions -->
+        <div class="history-actions">
+          <button class="btn secondary" onclick="deleteHistoryEntry('${h.date}')">Delete Entry</button>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      // Update tab active state
+      document.querySelectorAll('.history-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.textContent === formatHistoryTabDate(dateStr));
+      });
+    }
+
+    // Select a history entry
+    window.selectHistoryEntry = function(dateStr) {
+      selectedHistoryDate = dateStr;
+      renderHistoryDetail(dateStr);
+
+      // Sync mobile dropdown
+      const mobileSelector = document.getElementById('historyMobileSelector');
+      if (mobileSelector) {
+        mobileSelector.value = dateStr;
+      }
+
+      // Scroll tab into view
+      const tabsContainer = document.getElementById('historyTabs');
+      const activeTab = tabsContainer.querySelector(`.history-tab.active`);
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    };
+
+    // Scroll history tabs
+    window.scrollHistoryTabs = function(direction) {
+      const container = document.getElementById('historyTabs');
+      const scrollAmount = 200;
+      if (direction === 'left') {
+        container.scrollLeft -= scrollAmount;
+      } else {
+        container.scrollLeft += scrollAmount;
+      }
+    };
+
+    // Delete history entry
+    window.deleteHistoryEntry = async function(date) {
+      const dateLabel = formatHistoryTabDate(date);
+      if (!confirm(`Delete entry for ${dateLabel}?`)) return;
+
+      if (!isLoggedIn()) {
+        alert('Please sign in to delete entries');
+        return;
+      }
+
+      try {
+        await deleteHistoryRecord(date);
+        // Reset selection and re-render
+        selectedHistoryDate = null;
+        await renderHistory();
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Error deleting: ' + error.message);
+      }
+    };
+
+    // Calculate state pension for a specific tax year (legacy sync wrapper)
+    // Now uses the async getStatePensionForTaxYear internally
+    // Returns the annual value if state pension has started, otherwise null
+    async function calculateStatePensionForYear(taxYears, yearKey, decisionSettings) {
+      const spInfo = await getStatePensionForTaxYear(yearKey);
+      if (!spInfo.isReceiving) {
+        return null;
+      }
+      return spInfo.amount;
+    }
+
+    // Current selected tax year for the detail view
+    let selectedTaxYear = null;
+
+    // Render tax years with full-page tabbed view
+    async function renderTaxYears() {
+      const tabsContainer = document.getElementById('taxYearTabs');
+      const detailContainer = document.getElementById('taxYearDetail');
+
+      if (!tabsContainer || !detailContainer) return;
+
+      tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
+
+      const taxYears = await getAllTaxYearsAsync();
+      const decisionSettings = await getDecisionSettingsAsync();
+      const sortedYears = Object.keys(taxYears).sort();
+
+      // Generate tabs for existing years plus future years (up to 40 total)
+      const currentTaxYear = getCurrentTaxYear();
+      const allYears = generateTaxYearRange(sortedYears, currentTaxYear, 40);
+
+      // Render year tabs
+      let tabsHtml = '';
+      allYears.forEach(ty => {
+        const config = taxYears[ty];
+        const isSetup = config && config.yearSetupComplete;
+        const isActive = ty === selectedTaxYear;
+        const classes = ['tax-year-tab'];
+        if (isActive) classes.push('active');
+        if (!isSetup) classes.push('not-setup');
+
+        tabsHtml += `<button class="${classes.join(' ')}" onclick="selectTaxYear('${ty}')">${ty}</button>`;
+      });
+
+      tabsContainer.innerHTML = tabsHtml;
+
+      // Populate mobile dropdown selector
+      const mobileSelector = document.getElementById('taxYearMobileSelector');
+      if (mobileSelector) {
+        let optionsHtml = '';
+        allYears.forEach(ty => {
+          const config = taxYears[ty];
+          const isSetup = config && config.yearSetupComplete;
+          const label = isSetup ? ty : `${ty} (not set up)`;
+          optionsHtml += `<option value="${ty}">${label}</option>`;
+        });
+        mobileSelector.innerHTML = optionsHtml;
+      }
+
+      // If no year selected, select the first configured one or current year
+      if (!selectedTaxYear) {
+        const configuredYears = sortedYears.filter(ty => taxYears[ty]?.yearSetupComplete);
+        selectedTaxYear = configuredYears.length > 0 ? configuredYears[configuredYears.length - 1] : currentTaxYear;
+      }
+
+      // Update mobile selector value
+      if (mobileSelector) {
+        mobileSelector.value = selectedTaxYear;
+      }
+
+      // Render detail view for selected year
+      await renderTaxYearDetail(selectedTaxYear, taxYears, decisionSettings);
+
+      // Scroll to selected tab
+      const activeTab = tabsContainer.querySelector('.tax-year-tab.active');
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+
+    // Get current tax year string
+    function getCurrentTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      // Tax year starts April 6
+      if (month < 4 || (month === 4 && now.getDate() < 6)) {
+        return `${String(year - 1).slice(-2)}/${String(year).slice(-2)}`;
+      }
+      return `${String(year).slice(-2)}/${String(year + 1).slice(-2)}`;
+    }
+
+    // Generate range of tax years
+    function generateTaxYearRange(existingYears, currentYear, maxYears) {
+      const years = new Set(existingYears);
+
+      // Parse current year
+      const [startShort] = currentYear.split('/').map(Number);
+      const startFull = startShort < 50 ? 2000 + startShort : 1900 + startShort;
+
+      // Add current year and next few years
+      for (let i = 0; i < maxYears && years.size < maxYears; i++) {
+        const y1 = startFull + i;
+        const y2 = y1 + 1;
+        years.add(`${String(y1).slice(-2)}/${String(y2).slice(-2)}`);
+      }
+
+      return Array.from(years).sort();
+    }
+
+    // Render detail view for a specific tax year
+    async function renderTaxYearDetail(taxYear, allTaxYears, decisionSettings) {
+      const container = document.getElementById('taxYearDetail');
+      const config = allTaxYears[taxYear];
+
+      if (!config || !config.yearSetupComplete) {
+        container.innerHTML = `
+          <div class="not-configured-message">
+            <h3>Tax Year ${taxYear} Not Configured</h3>
+            <p>This tax year hasn't been set up yet. Use the Decision Tool to calculate a decision for a month in this tax year to trigger the setup wizard.</p>
+            <button class="btn primary" onclick="triggerWizardForYear('${taxYear}')">Set Up ${taxYear}</button>
+          </div>
+        `;
+        return;
+      }
+
+      // Calculate state pension for this year using new HMRC-based model
+      const spInfo = await getStatePensionForTaxYear(taxYear);
+      const statePensionValue = Math.round(spInfo.amount || 0);
+      const spStartDate = spInfo.startDate || 'Not configured';
+      const spIsReceiving = spInfo.isReceiving;
+      const spYearsUntil = spInfo.yearsUntil;
+
+      const fmt = (val) => val !== undefined && val !== null ? '£' + Math.round(val).toLocaleString() : '—';
+      const fmtPct = (val) => val !== undefined && val !== null ? (val * 100).toFixed(1) + '%' : '—';
+
+      let html = `
+        <!-- Tax Thresholds -->
+        <div class="tax-year-detail-card">
+          <h3>Tax Thresholds</h3>
+          <div class="tax-year-grid">
+            <div class="tax-year-field">
+              <label>Personal Allowance</label>
+              <input type="number" value="${config.pa || 12570}" onchange="updateTaxYear('${taxYear}','pa',this.value)">
+            </div>
+            <div class="tax-year-field">
+              <label>Basic Rate Limit</label>
+              <input type="number" value="${config.brl || 50270}" onchange="updateTaxYear('${taxYear}','brl',this.value)">
+            </div>
+            <div class="tax-year-field">
+              <label>Higher Rate Limit</label>
+              <input type="number" value="${config.hrl || 125140}" onchange="updateTaxYear('${taxYear}','hrl',this.value)">
+            </div>
+            <div class="tax-year-field">
+              <label>CPI (Previous Year)</label>
+              <input type="number" step="0.1" value="${((config.cpi || 0.04) * 100).toFixed(1)}" onchange="updateTaxYear('${taxYear}','cpi',this.value/100)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Income Configuration -->
+        <div class="tax-year-detail-card">
+          <h3>Income Configuration</h3>
+          <div class="tax-year-grid">
+            <div class="tax-year-field">
+              <label>Target Annual Salary</label>
+              <span class="value">${fmt(config.confirmedSalary)}</span>
+            </div>
+            <div class="tax-year-field">
+              <label>Other Taxable Income (Annual)</label>
+              <input type="number" value="${config.other || 0}" onchange="updateTaxYear('${taxYear}','other',this.value)">
+            </div>
+            <div class="tax-year-field">
+              <label>State Pension (Annual)</label>
+              <span class="value">${spIsReceiving ? fmt(statePensionValue) + (spInfo.isFirstYear ? ' (partial year)' : '') : (spStartDate !== 'Not configured' ? `Starts ${spStartDate}` : 'Not configured')}</span>
+            </div>
+            <div class="tax-year-field">
+              <label>Income Before Pension Start</label>
+              <span class="value">${fmt(config.grossIncomeToDate)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tax Efficiency -->
+        <div class="tax-year-detail-card">
+          <h3>Tax Efficiency</h3>
+          <div class="tax-year-grid">
+            <div class="tax-year-field">
+              <label>Mode</label>
+              <span class="tax-mode-badge ${config.isTaxEfficient ? 'efficient' : 'inefficient'}">
+                ${config.isTaxEfficient ? 'Tax-Efficient' : 'Tax-Inefficient'}
+              </span>
+            </div>
+            <div class="tax-year-field">
+              <label>ISA/Savings Allocation</label>
+              <span class="value">${fmt(config.isaSavingsAllocation)}</span>
+            </div>
+            <div class="tax-year-field">
+              <label>ISA/Savings Used</label>
+              <span class="value">${fmt(config.isaSavingsUsed || 0)}</span>
+            </div>
+            <div class="tax-year-field">
+              <label>Start Month</label>
+              <span class="value">${getMonthNameFromNumber(config.startMonth || 4)}</span>
+            </div>
+            <div class="tax-year-field">
+              <label>Remaining Months (at setup)</label>
+              <span class="value">${config.remainingMonths || 12}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Monthly Breakdown (if available from wizard)
+      if (config.expectedMonthly) {
+        const m = config.expectedMonthly;
+        html += `
+          <div class="tax-year-detail-card">
+            <h3>Expected Monthly Breakdown</h3>
+            <table class="monthly-breakdown-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Gross</th>
+                  <th>Tax</th>
+                  <th>Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="source-name">SIPP</td>
+                  <td>${fmt(m.sipp?.gross)}</td>
+                  <td class="tax-col">-${fmt(m.sipp?.tax)}</td>
+                  <td class="net-col">${fmt(m.sipp?.net)}</td>
+                </tr>
+                ${m.other?.gross > 0 ? `
+                <tr>
+                  <td class="source-name">Other Income</td>
+                  <td>${fmt(m.other?.gross)}</td>
+                  <td class="tax-col">-${fmt(m.other?.tax)}</td>
+                  <td class="net-col">${fmt(m.other?.net)}</td>
+                </tr>
+                ` : ''}
+                ${m.statePension?.gross > 0 ? `
+                <tr>
+                  <td class="source-name">State Pension</td>
+                  <td>${fmt(m.statePension?.gross)}</td>
+                  <td class="tax-col">-${fmt(m.statePension?.tax)}</td>
+                  <td class="net-col">${fmt(m.statePension?.net)}</td>
+                </tr>
+                ` : ''}
+                ${m.isa?.net > 0 ? `
+                <tr>
+                  <td class="source-name">ISA <span style="color:var(--success);font-size:11px;">(tax-free)</span></td>
+                  <td>${fmt(m.isa?.gross)}</td>
+                  <td style="color:var(--success);">£0</td>
+                  <td class="net-col">${fmt(m.isa?.net)}</td>
+                </tr>
+                ` : ''}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td><strong>Total</strong></td>
+                  <td><strong>${fmt(m.totalGross)}</strong></td>
+                  <td class="tax-col"><strong>-${fmt(m.totalTax)}</strong></td>
+                  <td class="net-col"><strong>${fmt(m.totalNet)}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+            <p style="margin-top:16px;font-size:14px;color:var(--text);">
+              <strong>Monthly take-home: ${fmt(m.totalNet)}</strong>
+            </p>
+          </div>
+        `;
+      }
+
+      // Actions
+      html += `
+        <div class="tax-year-actions">
+          <button class="btn secondary" onclick="deleteTaxYear('${taxYear}')">Delete Year</button>
+          <button class="btn secondary" onclick="reconfigureTaxYear('${taxYear}')">Reconfigure via Wizard</button>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      // Update tab active state
+      document.querySelectorAll('.tax-year-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.textContent === taxYear);
+      });
+    }
+
+    // Select a tax year
+    window.selectTaxYear = async function(taxYear) {
+      selectedTaxYear = taxYear;
+      const taxYears = await getAllTaxYearsAsync();
+      const decisionSettings = await getDecisionSettingsAsync();
+      await renderTaxYearDetail(taxYear, taxYears, decisionSettings);
+
+      // Update tab active state
+      document.querySelectorAll('.tax-year-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.textContent === taxYear);
+      });
+
+      // Sync mobile dropdown
+      const mobileSelector = document.getElementById('taxYearMobileSelector');
+      if (mobileSelector) {
+        mobileSelector.value = taxYear;
+      }
+
+      // Scroll tab into view
+      const tabsContainer = document.getElementById('taxYearTabs');
+      const activeTab = tabsContainer.querySelector(`.tax-year-tab[onclick="selectTaxYear('${taxYear}')"]`);
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    };
+
+    // Scroll tax year tabs
+    window.scrollTaxYearTabs = function(direction) {
+      const container = document.getElementById('taxYearTabs');
+      const scrollAmount = 200;
+      if (direction === 'left') {
+        container.scrollLeft -= scrollAmount;
+      } else {
+        container.scrollLeft += scrollAmount;
+      }
+    };
+
+    // Get month name from number (1-12)
+    function getMonthNameFromNumber(monthNum) {
+      const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      return months[(monthNum - 1) % 12] || 'April';
+    }
+
+    // Trigger wizard for a specific year
+    window.triggerWizardForYear = async function(taxYear) {
+      // Parse tax year to get April of that year
+      const [startYearShort] = taxYear.split('/').map(Number);
+      const startYear = startYearShort < 50 ? 2000 + startYearShort : 1900 + startYearShort;
+      const month = `${startYear}-04`; // April of that tax year
+
+      // Set month selector and trigger decision
+      const monthSelect = document.getElementById('selectedMonth');
+      if (monthSelect) {
+        monthSelect.value = month;
+      }
+
+      // Switch to decision tab
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.tab[data-tab="decision"]').classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('decision-content').classList.add('active');
+
+      // Show the entry sub-tab
+      document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(t => t.classList.remove('active'));
+      document.querySelector('.sub-tab[data-decisiontab="entry"]').classList.add('active');
+      document.querySelectorAll('.decision-subtab').forEach(c => c.classList.add('hidden'));
+      document.getElementById('decision-entry').classList.remove('hidden');
+
+      alert(`Please click "Calculate" with April ${startYear} selected to set up tax year ${taxYear}`);
+    };
+
+    // Reconfigure a tax year
+    window.reconfigureTaxYear = async function(taxYear) {
+      if (!confirm(`This will allow you to reconfigure tax year ${taxYear}. The setup wizard will be triggered when you next calculate a decision for this year. Continue?`)) {
+        return;
+      }
+
+      try {
+        const config = await getTaxYearConfigAsync(taxYear);
+        config.yearSetupComplete = false;
+        await saveTaxYearConfig(taxYear, config);
+        await renderTaxYears();
+        alert(`Tax year ${taxYear} has been marked for reconfiguration. Calculate a decision for this year to run the wizard again.`);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+      }
+    };
+
+    // Update tax year field (inline edit)
+    window.updateTaxYear = async function(ty, field, value) {
+      try {
+        const config = await getTaxYearConfigAsync(ty);
+        config[field] = parseFloat(value);
+        await saveTaxYearConfig(ty, config);
+        // No need to re-render for inline edits
+      } catch (error) {
+        console.error('Error updating tax year:', error);
+        alert('Error saving: ' + error.message);
+      }
+    };
+
+    // Delete tax year
+    window.deleteTaxYear = async function(ty) {
+      if (!confirm('Delete tax year ' + ty + '? This will remove all configuration for this year.')) return;
+      try {
+        // Get all tax years, remove this one, save
+        const db = await loadDecisionDBAsync();
+        delete db.taxYears[ty];
+        await saveDecisionDB(db);
+
+        // Reset selected year and re-render
+        selectedTaxYear = null;
+        await renderTaxYears();
+      } catch (error) {
+        console.error('Error deleting tax year:', error);
+        alert('Error deleting: ' + error.message);
+      }
+    };
+
+    // Add tax year
+    window.addTaxYear = async function() {
+      if (!isLoggedIn()) {
+        alert('Please sign in to add tax years');
+        return;
+      }
+
+      const year = prompt('Enter tax year (e.g., 25/26):');
+      if (!year || !/^\d{2}\/\d{2}$/.test(year)) {
+        alert('Invalid format. Use YY/YY (e.g., 25/26)');
+        return;
+      }
+
+      try {
+        await saveTaxYearConfig(year, {});
+        await renderTaxYears();
+      } catch (error) {
+        console.error('Save error:', error);
+        alert('Error saving: ' + error.message);
+      }
+    };
+
+    // Initialize
+    console.log('Pension Planner v' + VERSION + ' loaded');
+  </script>
+</body>
+</html>

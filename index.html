@@ -2773,9 +2773,13 @@
       // Year-level tax efficiency settings (from wizard)
       const isTaxEfficientYear = taxYearConfig.isTaxEfficient !== false; // Default true
       const yearlyIsaSavingsAllocation = taxYearConfig.isaSavingsAllocation || 0;
-      const isaSavingsUsedSoFar = taxYearConfig.isaSavingsUsed || 0;
       const grossIncomeToDate = taxYearConfig.grossIncomeToDate || 0;
       const confirmedSalary = taxYearConfig.confirmedSalary || settings.baseSalary;
+
+      // Calculate ISA used so far EXCLUDING the current month (to prevent double-counting when recalculating)
+      const existingMonthRecord = history.find(h => h.date === dateStr);
+      const existingMonthIsa = existingMonthRecord?.isa || 0;
+      const isaSavingsUsedSoFar = Math.max(0, (taxYearConfig.isaSavingsUsed || 0) - existingMonthIsa);
 
       // State pension comes from decision settings using HMRC forecast data
       // Uses the new spStartDate and spWeeklyAmount fields

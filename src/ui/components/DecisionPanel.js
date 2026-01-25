@@ -30,9 +30,18 @@ export function buildDecisionHTML(decision) {
   // Mode indicator - now shows year-level tax efficiency
   const isTaxEfficientYear = d.isTaxEfficientYear ?? d.taxEfficient;
   const isProtectionInduced = d.protectionInducedTaxEfficiency || false;
+  const isTaxBoost = d.boostAmount > 0;
 
   let modeClass, modeLabel, modeIcon;
-  if (isProtectionInduced) {
+  if (d.inProtection) {
+    modeClass = 'warning';
+    modeLabel = 'Protection Mode';
+    modeIcon = '⚡';
+  } else if (isTaxBoost) {
+    modeClass = 'boost';
+    modeLabel = 'Tax Boost (Catch-up)';
+    modeIcon = '↑';
+  } else if (isProtectionInduced) {
     modeClass = 'info';
     modeLabel = 'Protection-Induced Tax Efficiency';
     modeIcon = '↑';
@@ -49,7 +58,6 @@ export function buildDecisionHTML(decision) {
   html += `<div class="decision-mode ${modeClass}">
     <span class="mode-icon">${modeIcon}</span>
     <span class="mode-label">${modeLabel}</span>
-    ${d.inProtection ? '<span class="protection-badge">PROTECTION</span>' : ''}
   </div>`;
 
   // ISA/Savings allocation progress (if tax-efficient year)
@@ -704,6 +712,13 @@ export function getDecisionPanelStyles() {
       background: rgba(126, 184, 218, 0.15);
       border: 1px solid rgba(126, 184, 218, 0.3);
       color: #7eb8da;
+    }
+
+    /* Tax Boost mode (catch-up after protection) */
+    .decision-mode.boost {
+      background: rgba(46, 204, 113, 0.15);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: #2ecc71;
     }
 
     /* ISA Progress Card */

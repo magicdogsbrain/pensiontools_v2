@@ -2882,7 +2882,19 @@
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 
         if (inProtection) {
-          sipp = stdSipp * (1 - (settings.protectionFactor || 20) / 100);
+          // Protection = live on reduced GROSS salary, giving consistent monthly NET
+          // E.g., 20% protection means living on 80% of target gross salary for the year
+          const protectionFactor = (settings.protectionFactor || 20) / 100;
+          const protectedAnnualGross = target * (1 - protectionFactor);
+          const protectedAnnualNet = grossToNetIncome(protectedAnnualGross, PA, BRL);
+          const protectedMonthlyNet = protectedAnnualNet / 12;
+          // Fixed income (Other + State) gives us some of that net already
+          // We need SIPP to make up the difference
+          // Approximate: assume SIPP is taxed at basic rate (20%) for simplicity
+          // sippNet = sipp * 0.8, so sipp = sippNet / 0.8
+          const netFromFixed = grossToNetIncome(other, PA, BRL) / 12;
+          const sippNetNeeded = Math.max(0, protectedMonthlyNet - netFromFixed);
+          sipp = sippNetNeeded / 0.8; // Gross up at basic rate
           isa = isaToUse;
           note = 'Protection';
         } else {
@@ -2940,7 +2952,14 @@
         isa = 0; // No ISA in tax-inefficient mode
 
         if (inProtection) {
-          sipp = stdSipp * (1 - (settings.protectionFactor || 20) / 100);
+          // Protection = live on reduced GROSS salary, giving consistent monthly NET
+          const protectionFactor = (settings.protectionFactor || 20) / 100;
+          const protectedAnnualGross = target * (1 - protectionFactor);
+          const protectedAnnualNet = grossToNetIncome(protectedAnnualGross, PA, BRL);
+          const protectedMonthlyNet = protectedAnnualNet / 12;
+          const netFromFixed = grossToNetIncome(other, PA, BRL) / 12;
+          const sippNetNeeded = Math.max(0, protectedMonthlyNet - netFromFixed);
+          sipp = sippNetNeeded / 0.8; // Gross up at basic rate
           note = 'Protection';
 
           // Check for protection-induced tax efficiency
@@ -2977,6 +2996,48 @@
         } else {
           sipp = stdSipp;
           note = 'Tax-Inefficient';
+
+          // TAX BOOST in tax-inefficient mode: If we had protection periods earlier,
+          // we may be able to catch up while staying under BRL
+          const taxYearStart = month >= 4 ? year : year - 1;
+          const thisTaxYearHistory = priorHistory.filter(h => {
+            const [hy, hm] = h.date.split('-').map(Number);
+            const hTaxYearStart = hm >= 4 ? hy : hy - 1;
+            return hTaxYearStart === taxYearStart;
+          });
+
+          let protectionShortfall = 0;
+          let annualSippSoFar = 0;
+
+          thisTaxYearHistory.forEach(h => {
+            annualSippSoFar += h.sipp || 0;
+            if (h.inProtection && h.stdSipp) {
+              protectionShortfall += (h.stdSipp - h.sipp);
+            }
+            if (h.boostAmount > 0) {
+              protectionShortfall -= h.boostAmount;
+            }
+          });
+
+          if (protectionShortfall > 0) {
+            // Check if we can boost while staying under BRL
+            const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+            const brlHeadroom = BRL - projectedAnnualTaxable;
+            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
+
+            if (brlHeadroom > 0 && surplus > 0) {
+              const maxBoostFromBRL = brlHeadroom / effectiveRemainingMonths;
+              const catchUpPerMonth = protectionShortfall / effectiveRemainingMonths;
+              const maxBoostFromSurplus = surplus / effectiveRemainingMonths;
+
+              boostAmount = Math.min(catchUpPerMonth, maxBoostFromBRL, maxBoostFromSurplus);
+
+              if (boostAmount > 50) {
+                sipp += boostAmount;
+                note = 'Tax Boost';
+              }
+            }
+          }
         }
       }
 

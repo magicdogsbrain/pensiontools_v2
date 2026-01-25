@@ -3012,28 +3012,31 @@
         // TAX-EFFICIENT MODE: Use ISA to keep SIPP at/below BRL
         const monthlyFixedIncome = other / 12;
 
-        // Calculate taxable income already drawn this tax year from history
-        // This includes SIPP, Other pension, and State pension (not ISA - that's tax-free)
+        // Calculate the STANDARD monthly SIPP (what we'd draw without protection)
+        // This must be CONSISTENT regardless of prior protection draws
+        //
+        // For tax year starting fresh: stdSipp = (BRL - annualOther - grossIncomeToDate) / 12
+        // This is calculated ONCE at the start of the tax year and stays constant
+        //
+        // We use the STANDARD sipp from history if available, otherwise calculate fresh
         const thisTaxYearHistory = history.filter(h => h.taxYear === taxYear && h.date < dateStr);
-        const taxableIncomeFromHistory = thisTaxYearHistory.reduce((sum, h) => {
-          return sum + (h.sipp || 0) + (h.other || 0) + (h.state || 0);
-        }, 0);
 
-        // Total taxable income so far = wizard's grossIncomeToDate + actual draws from history
-        const totalTaxableToDate = grossIncomeToDate + taxableIncomeFromHistory;
+        // Check if we have a recorded stdSipp from a previous month in this tax year
+        const priorEntryWithStdSipp = thisTaxYearHistory.find(h => h.stdSipp > 0);
 
-        // Calculate remaining BRL headroom accounting for all income-to-date
-        const remainingBrlHeadroom = Math.max(0, BRL - totalTaxableToDate);
-
-        // Monthly SIPP to stay at BRL = (remaining BRL headroom - remaining fixed income) / remaining months
-        const remainingFixedIncome = monthlyFixedIncome * effectiveRemainingMonths;
-        const maxMonthlySippAtBrl = Math.max(0, (remainingBrlHeadroom - remainingFixedIncome) / effectiveRemainingMonths);
-
-        // Monthly target gross
         const monthlyTargetGross = target / 12;
+        let stdSipp;
 
-        // SIPP capped at BRL-optimal level
-        const stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
+        if (priorEntryWithStdSipp) {
+          // Use the same stdSipp as previous months for consistency
+          stdSipp = priorEntryWithStdSipp.stdSipp;
+        } else {
+          // First entry of tax year - calculate fresh
+          // BRL headroom = BRL - grossIncomeToDate - annual fixed income
+          const brlHeadroom = Math.max(0, BRL - grossIncomeToDate - other);
+          const maxMonthlySippAtBrl = brlHeadroom / 12;
+          stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
+        }
 
         // ISA needed to reach target NET (not gross)
         // Target gross gives a certain net. At BRL, we get a different net.

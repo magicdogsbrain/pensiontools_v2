@@ -141,6 +141,7 @@ export function decisionToHistory(decision) {
 
     // Income amounts (monthly)
     sipp: decision.sippDraw,
+    stdSipp: decision.stdSipp || decision.sippDraw, // Standard SIPP before protection, for tax boost
     isa: decision.isaDraw,
     other: decision.other,
     state: decision.statePension,

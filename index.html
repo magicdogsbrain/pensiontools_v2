@@ -3036,24 +3036,9 @@
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 
         if (inProtection) {
-          // Protection = reduce NET take-home pay by protection factor
-          // E.g., 20% protection means living on 80% of normal net income
+          // Protection = reduce SIPP draw by protection factor
           const protectionFactor = (settings.protectionFactor || 20) / 100;
-
-          // Calculate normal monthly net (what we'd normally take home)
-          const normalMonthlyNet = monthlyTargetNet;
-
-          // Protected monthly net = normal net reduced by protection factor
-          const protectedMonthlyNet = normalMonthlyNet * (1 - protectionFactor);
-
-          // Fixed income (Other) contributes to net (taxed within PA, so 100% net)
-          const netFromFixed = other / 12;
-
-          // SIPP net needed = protected net - fixed income - ISA (tax-free)
-          const sippNetNeeded = Math.max(0, protectedMonthlyNet - netFromFixed - isaToUse);
-
-          // Gross up SIPP at basic rate (20% tax)
-          sipp = sippNetNeeded / 0.8;
+          sipp = stdSipp * (1 - protectionFactor);
           isa = isaToUse;
           note = 'Protection';
         } else {
@@ -3111,24 +3096,9 @@
         isa = 0; // No ISA in tax-inefficient mode
 
         if (inProtection) {
-          // Protection = reduce NET take-home pay by protection factor
+          // Protection = reduce SIPP draw by protection factor
           const protectionFactor = (settings.protectionFactor || 20) / 100;
-
-          // Calculate normal monthly net
-          const normalAnnualNet = grossToNetIncome(target, PA, BRL);
-          const normalMonthlyNet = normalAnnualNet / 12;
-
-          // Protected monthly net = normal net reduced by protection factor
-          const protectedMonthlyNet = normalMonthlyNet * (1 - protectionFactor);
-
-          // Fixed income contributes to net (taxed within PA, so 100% net)
-          const netFromFixed = other / 12;
-
-          // SIPP net needed = protected net - fixed income (no ISA in tax-inefficient mode)
-          const sippNetNeeded = Math.max(0, protectedMonthlyNet - netFromFixed);
-
-          // Gross up SIPP at basic rate (20% tax)
-          sipp = sippNetNeeded / 0.8;
+          sipp = stdSipp * (1 - protectionFactor);
           note = 'Protection';
 
           // Check for protection-induced tax efficiency

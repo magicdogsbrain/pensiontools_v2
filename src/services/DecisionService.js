@@ -17,6 +17,7 @@ import {
   getTaxYearConfig,
   getTaxYearConfigAsync,
   getTaxYearHistory,
+  getHistoryAsync,
   addHistoryRecord,
   getAllTaxYears,
   getAllTaxYearsAsync,
@@ -291,8 +292,8 @@ export async function calculateDecisionAsync(params) {
   const taxYear = getTaxYear(dateObj);
   const taxYearConfig = await getTaxYearConfigAsync(taxYear);
 
-  // Get history for this tax year
-  const priorHistory = getTaxYearHistory(taxYear);
+  // Get history for this tax year - MUST use async to get fresh data from Firebase
+  const priorHistory = await getHistoryAsync({ taxYear });
 
   // Calculate cumulative ISA used EXCLUDING the current month (if it exists in history)
   // This prevents double-counting when recalculating the same month

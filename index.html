@@ -3367,23 +3367,16 @@
     // Calculate State Pension config for simulation from settings
     // Converts date-based SP settings to simulation year numbers
     function calculateSpConfigForSimulation(settings) {
-      // If no SP start date, return empty (legacy format not used)
+      // If no SP start date, return empty object so simulation uses legacy format
+      // (statePensionYear / statePension fields)
       if (!settings.spStartDate || !settings.spWeeklyAmount) {
-        return {
-          spStartYear: 999, // Never starts
-          spWeeklyAmount: 0,
-          spFirstYearRatio: 1
-        };
+        return {};  // Don't set spStartYear - let simulation use legacy format
       }
 
       // Parse the SP start date
       const spDate = parseSpDate(settings.spStartDate);
       if (!spDate) {
-        return {
-          spStartYear: 999,
-          spWeeklyAmount: 0,
-          spFirstYearRatio: 1
-        };
+        return {};  // Don't set spStartYear - let simulation use legacy format
       }
 
       // Current date to calculate years until SP
@@ -3512,7 +3505,7 @@
           const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
           const maxY = Math.max(...yrs);
 
-          // Helper function to run simulation for an allocation - matches PWA exactly
+          // Helper function to run simulation for an allocation
           const runSimForAlloc = (alloc) => {
             // Build config with start values from allocation, rules from settings
             const cfg = {
@@ -3527,7 +3520,11 @@
               duration: s.duration,
               baseSalary: s.baseSalary,
               other: s.other,
-              // State Pension - calculate start year from date
+              // State Pension - include BOTH legacy and new format fields
+              // Legacy format (statePensionYear) used if no date-based config
+              statePension: s.statePension,
+              statePensionYear: s.statePensionYear,
+              // New date-based format (only used if spStartDate is configured)
               ...calculateSpConfigForSimulation(s),
               pa: s.pa,
               brl: s.brl,

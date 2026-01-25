@@ -3367,16 +3367,25 @@
     // Calculate State Pension config for simulation from settings
     // Converts date-based SP settings to simulation year numbers
     function calculateSpConfigForSimulation(settings) {
-      // If no SP start date, return empty object so simulation uses legacy format
-      // (statePensionYear / statePension fields)
+      // If no SP start date configured, return config that means no state pension
       if (!settings.spStartDate || !settings.spWeeklyAmount) {
-        return {};  // Don't set spStartYear - let simulation use legacy format
+        console.warn('State Pension not configured - spStartDate or spWeeklyAmount missing');
+        return {
+          spStartYear: 999,  // Never starts
+          spWeeklyAmount: 0,
+          spFirstYearRatio: 1
+        };
       }
 
       // Parse the SP start date
       const spDate = parseSpDate(settings.spStartDate);
       if (!spDate) {
-        return {};  // Don't set spStartYear - let simulation use legacy format
+        console.warn('Could not parse spStartDate:', settings.spStartDate);
+        return {
+          spStartYear: 999,  // Never starts
+          spWeeklyAmount: 0,
+          spFirstYearRatio: 1
+        };
       }
 
       // Current date to calculate years until SP
@@ -3520,11 +3529,7 @@
               duration: s.duration,
               baseSalary: s.baseSalary,
               other: s.other,
-              // State Pension - include BOTH legacy and new format fields
-              // Legacy format (statePensionYear) used if no date-based config
-              statePension: s.statePension,
-              statePensionYear: s.statePensionYear,
-              // New date-based format (only used if spStartDate is configured)
+              // State Pension - date-based format from user settings
               ...calculateSpConfigForSimulation(s),
               pa: s.pa,
               brl: s.brl,

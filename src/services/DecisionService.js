@@ -547,8 +547,8 @@ function buildAlerts(params) {
 export async function saveDecision(decision) {
   const historyRecord = decisionToHistory(decision);
 
-  // Add standard SIPP for boost calculations
-  historyRecord.stdSipp = decision.sippDraw - (decision.boostAmount || 0);
+  // Add standard SIPP for boost calculations (from decision object, set in calcDecisionPWA)
+  historyRecord.stdSipp = decision.stdSipp || decision.sippDraw;
 
   // Save the history record (this will overwrite if same date exists)
   await addHistoryRecord(historyRecord);

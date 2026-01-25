@@ -3015,23 +3015,18 @@
         // Calculate the STANDARD monthly SIPP (what we'd draw without protection)
         // This must be CONSISTENT regardless of prior protection draws
         //
-        // For tax year starting fresh: stdSipp = (BRL - annualOther - grossIncomeToDate) / 12
-        // This is calculated ONCE at the start of the tax year and stays constant
-        //
-        // We use the STANDARD sipp from history if available, otherwise calculate fresh
+        // Use the expectedMonthly.sipp.gross from tax year config (calculated by wizard)
+        // This ensures stdSipp is always the same value regardless of protection history
         const thisTaxYearHistory = history.filter(h => h.taxYear === taxYear && h.date < dateStr);
-
-        // Check if we have a recorded stdSipp from a previous month in this tax year
-        const priorEntryWithStdSipp = thisTaxYearHistory.find(h => h.stdSipp > 0);
 
         const monthlyTargetGross = target / 12;
         let stdSipp;
 
-        if (priorEntryWithStdSipp) {
-          // Use the same stdSipp as previous months for consistency
-          stdSipp = priorEntryWithStdSipp.stdSipp;
+        // Use expected monthly SIPP from tax year config if available (set by wizard)
+        if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
+          stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
         } else {
-          // First entry of tax year - calculate fresh
+          // Fallback: calculate fresh (for older tax years without expectedMonthly)
           // BRL headroom = BRL - grossIncomeToDate - annual fixed income
           const brlHeadroom = Math.max(0, BRL - grossIncomeToDate - other);
           const maxMonthlySippAtBrl = brlHeadroom / 12;
@@ -3104,7 +3099,15 @@
         // TAX-INEFFICIENT MODE: Full SIPP draw to target, no ISA
         const monthlyTargetGross = target / 12;
         const monthlyFixedIncome = other / 12;
-        const stdSipp = Math.max(0, monthlyTargetGross - monthlyFixedIncome);
+
+        // Use expected monthly SIPP from tax year config if available (set by wizard)
+        let stdSipp;
+        if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
+          stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
+        } else {
+          // Fallback: calculate fresh (for older tax years without expectedMonthly)
+          stdSipp = Math.max(0, monthlyTargetGross - monthlyFixedIncome);
+        }
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 
         isa = 0; // No ISA in tax-inefficient mode

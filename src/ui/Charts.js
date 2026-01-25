@@ -65,13 +65,20 @@ export function drawCone(canvas, results, options = {}) {
   const COLORS = getColors();
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
-  const padding = { top: 20, right: 40, bottom: 50, left: 80 };
+  const padding = { top: 45, right: 40, bottom: 50, left: 80 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
   // Dark background like PWA
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.fillRect(0, 0, width, height);
+
+  // Chart title
+  const title = options.title || 'Fund Value Projections (Percentile Bands)';
+  ctx.font = 'bold 14px system-ui, sans-serif';
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.fillText(title, padding.left + chartWidth / 2, 22);
 
   const years = options.years || 35;
   const yearlyData = {};
@@ -248,13 +255,20 @@ export function drawTrajectories(canvas, results, options = {}) {
   const COLORS = getColors();
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
-  const padding = { top: 20, right: 40, bottom: 50, left: 80 };
+  const padding = { top: 45, right: 40, bottom: 50, left: 80 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
   // Dark background like PWA
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.fillRect(0, 0, width, height);
+
+  // Chart title
+  const title = options.title || 'Sample Trajectories (Green=Success, Red=Failed)';
+  ctx.font = 'bold 14px system-ui, sans-serif';
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.fillText(title, padding.left + chartWidth / 2, 22);
 
   const years = options.years || 35;
   const startValue = options.startValue || 1000000;
@@ -390,13 +404,20 @@ export function drawHistogram(canvas, results, options = {}) {
   const COLORS = getColors();
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
-  const padding = { top: 30, right: 20, bottom: 55, left: 60 };
+  const padding = { top: 50, right: 20, bottom: 55, left: 60 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
   // Dark background like PWA
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.fillRect(0, 0, width, height);
+
+  // Chart title
+  const title = options.title || 'Protection Months Distribution';
+  ctx.font = 'bold 14px system-ui, sans-serif';
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.fillText(title, padding.left + chartWidth / 2, 22);
 
   const protMonths = results.map(r => r.protMonths);
   const totalRuns = protMonths.length;

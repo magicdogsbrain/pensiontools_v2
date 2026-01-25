@@ -3264,10 +3264,30 @@
         alerts.push({ message: cashReplenish, severity: 'info', type: 'cash-replenish' });
       }
 
-      // Calculate annual tax for display
-      // Taxable income = SIPP + Other + State (ISA is tax-free)
-      const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
-      const annualTaxable = monthlyTaxable * 12;
+      // Calculate annual tax based on ACTUAL income for the year
+      // Sum up: history SIPP + this month's SIPP + projected remaining at stdSipp
+      const taxYearStart = month >= 4 ? year : year - 1;
+      const thisTaxYearHistory = priorHistory.filter(h => {
+        const [hy, hm] = h.date.split('-').map(Number);
+        const hTaxYearStart = hm >= 4 ? hy : hy - 1;
+        return hTaxYearStart === taxYearStart;
+      });
+
+      // SIPP drawn so far this tax year (from history)
+      const sippYTD = thisTaxYearHistory.reduce((sum, h) => sum + (h.sipp || 0), 0);
+
+      // Calculate remaining months after this one
+      const monthsPassedIncludingThis = thisTaxYearHistory.length + 1;
+      const monthsRemaining = Math.max(0, 12 - monthsPassedIncludingThis);
+
+      // Use stdSipp for projected remaining months (standard draw without boost/protection)
+      const projectedRemainingSipp = monthsRemaining * stdSippForHistory;
+
+      // Total annual SIPP = YTD + this month + projected remaining at standard rate
+      const totalAnnualSipp = sippYTD + sipp + projectedRemainingSipp;
+
+      // Annual taxable = total SIPP + Other + State Pension
+      const annualTaxable = totalAnnualSipp + OTHER + STATE;
 
       // Tax calculation: 0% up to PA, 20% from PA to BRL, 40% above BRL
       let annualTax = 0;
@@ -3279,23 +3299,18 @@
         }
       }
 
-      // Net = gross taxable - tax + ISA (tax-free)
-      const monthlyNet = monthlyTaxable - (annualTax / 12) + isa;
+      // Monthly tax = annual tax / 12 (even distribution)
+      const monthlyTax = annualTax / 12;
 
-      // Calculate YTD tax from this year's history
-      const taxYearStart = month >= 4 ? year : year - 1;
-      const thisTaxYearHistory = priorHistory.filter(h => {
-        const [hy, hm] = h.date.split('-').map(Number);
-        const hTaxYearStart = hm >= 4 ? hy : hy - 1;
-        return hTaxYearStart === taxYearStart;
-      });
+      // Net = gross taxable this month - monthly tax + ISA (tax-free)
+      const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
+      const monthlyNet = monthlyTaxable - monthlyTax + isa;
 
-      let taxPaidYTD = thisTaxYearHistory.reduce((sum, h) => sum + (h.taxPaidMonthly || h.monthlyTax || 0), 0);
-      taxPaidYTD += annualTax / 12; // Add this month
+      // Calculate YTD tax paid (based on actual annual tax, distributed evenly)
+      const taxPaidYTD = monthlyTax * monthsPassedIncludingThis;
 
-      // Calculate projected annual tax
-      const monthsPassed = thisTaxYearHistory.length + 1;
-      const taxProjectedAnnual = (taxPaidYTD / monthsPassed) * 12;
+      // Projected annual tax is now based on actual income profile
+      const taxProjectedAnnual = annualTax;
 
       // Calculate tax saved vs inefficient scenario
       const inefficientMonthlyTaxable = (target / 12); // Full target draw
@@ -3355,7 +3370,7 @@
         taxPaidYTD,
         taxProjectedAnnual,
         taxSavedMonthly,
-        taxSavedYTD: taxSavedMonthly * monthsPassed,
+        taxSavedYTD: taxSavedMonthly * monthsPassedIncludingThis,
         taxSavedProjectedAnnual: taxSavedMonthly * 12,
 
         // Status flags

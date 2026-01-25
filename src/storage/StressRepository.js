@@ -9,6 +9,7 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constan
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { loadStressData, saveStressData } from '../firebase/FirestoreService.js';
+import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
 
 // In-memory cache
 let cachedStressDB = null;
@@ -253,6 +254,53 @@ export async function resetStressSettings() {
 }
 
 /**
+ * Calculates state pension simulation config from date-based settings
+ * @param {object} settings - Settings containing spStartDate and spWeeklyAmount
+ * @returns {object} State pension config {spStartYear, spWeeklyAmount, spFirstYearRatio}
+ */
+function calculateSpConfigFromSettings(settings) {
+  // If no SP start date configured, return config that means no state pension
+  if (!settings.spStartDate || !settings.spWeeklyAmount) {
+    return {
+      spStartYear: 999,  // Never starts
+      spWeeklyAmount: 0,
+      spFirstYearRatio: 1
+    };
+  }
+
+  // Parse the SP start date
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) {
+    console.warn('Could not parse spStartDate:', settings.spStartDate);
+    return {
+      spStartYear: 999,
+      spWeeklyAmount: 0,
+      spFirstYearRatio: 1
+    };
+  }
+
+  // Calculate years until SP starts from now
+  const now = new Date();
+  const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear);
+
+  // The simulation year when SP starts (0-indexed)
+  const spStartYear = Math.floor(yearsUntilSp);
+
+  // Calculate ratio for first partial year
+  const daysInYear = 365;
+  const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
+  const daysRemaining = daysInYear - dayOfYear;
+  const firstYearRatio = daysRemaining / daysInYear;
+
+  return {
+    spStartYear: spStartYear,
+    spWeeklyAmount: settings.spWeeklyAmount,
+    spFirstYearRatio: firstYearRatio
+  };
+}
+
+/**
  * Creates simulation config from stress settings
  * @param {object} overrides - Optional overrides
  * @param {object} preloadedSettings - Optional pre-loaded settings (to avoid cache issues)
@@ -260,6 +308,10 @@ export async function resetStressSettings() {
  */
 export function createSimulationConfigFromSettings(overrides = {}, preloadedSettings = null) {
   const settings = preloadedSettings || getStressSettings();
+
+  // Calculate state pension config from date-based settings
+  const spConfig = calculateSpConfigFromSettings(settings);
+
   return {
     equityStart: overrides.equityStart ?? settings.equityMin,
     bondStart: overrides.bondStart ?? settings.bondMin,
@@ -271,8 +323,10 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     duration: settings.duration,
     baseSalary: settings.baseSalary,
     other: settings.other,
-    statePension: settings.statePension,
-    statePensionYear: settings.statePensionYear,
+    // State pension - use date-based config
+    spStartYear: spConfig.spStartYear,
+    spWeeklyAmount: spConfig.spWeeklyAmount,
+    spFirstYearRatio: spConfig.spFirstYearRatio,
     pa: settings.pa,
     brl: settings.brl,
     hrl: settings.hrl,

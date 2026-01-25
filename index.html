@@ -948,6 +948,39 @@
       max-height: 900px;
     }
 
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-year-selector select {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-alt);
+      color: var(--text);
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    .btn.danger {
+      background: var(--danger);
+      color: white;
+      border: none;
+    }
+    .btn.danger:hover {
+      background: #c0392b;
+    }
+    .btn.small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
     .history-tabs-container {
       display: flex;
       align-items: center;
@@ -1428,6 +1461,38 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Button loading state */
+    button.loading {
+      pointer-events: none;
+      opacity: 0.8;
+      position: relative;
+    }
+    button.loading .btn-text {
+      visibility: hidden;
+    }
+    button.loading .btn-spinner {
+      display: flex;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      align-items: center;
+      gap: 8px;
+    }
+    button .btn-spinner {
+      display: none;
+    }
+    button .btn-spinner .spinner {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      border-width: 2px;
+    }
+    button .btn-spinner span {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
     /* Global loading overlay */
     #globalLoadingOverlay {
       display: none;
@@ -1452,6 +1517,55 @@
       margin-bottom: 16px;
     }
     #globalLoadingOverlay .loading-text {
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    /* Toast notifications */
+    .toast-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .toast-notification.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .toast-notification .toast-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .toast-notification.success .toast-icon {
+      background: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+    }
+    .toast-notification.error .toast-icon {
+      background: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+    }
+    .toast-notification.info .toast-icon {
+      background: rgba(52, 152, 219, 0.2);
+      color: #3498db;
+    }
+    .toast-notification .toast-message {
       color: var(--text);
       font-size: 14px;
     }
@@ -1573,7 +1687,10 @@
 
                 <div class="button-row" style="margin-top: 24px;">
                   <button type="submit">Calculate</button>
-                  <button type="button" class="success" onclick="saveCurrentDecision()" id="saveBtn" disabled>Save to History</button>
+                  <button type="button" class="success" onclick="saveCurrentDecision()" id="saveBtn" disabled>
+                    <span class="btn-text">Save to History</span>
+                    <span class="btn-spinner"><span class="spinner"></span><span>Saving...</span></span>
+                  </button>
                 </div>
               </form>
             </div>
@@ -1985,7 +2102,20 @@
       <!-- History Tab - Full Page View -->
       <div id="history-content" class="tab-content">
         <div class="history-full-page">
-          <!-- Horizontal scrolling month tabs (desktop) + dropdown (mobile) -->
+          <!-- History header with actions -->
+          <div class="history-header">
+            <div class="history-year-selector">
+              <select id="historyYearFilter" onchange="filterHistoryByYear(this.value)">
+                <!-- Year options rendered dynamically -->
+              </select>
+            </div>
+            <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
+              <span class="btn-text">Delete All</span>
+              <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+            </button>
+          </div>
+
+          <!-- Month tabs for selected year -->
           <div class="history-tabs-container">
             <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
             <div class="history-tabs" id="historyTabs">
@@ -2157,6 +2287,30 @@
 
     function hideLoading() {
       loadingOverlay.classList.remove('active');
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'info', duration = 3000) {
+      // Remove any existing toast
+      const existing = document.querySelector('.toast-notification');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = `toast-notification ${type}`;
+      toast.innerHTML = `
+        <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '!' : 'ℹ'}</span>
+        <span class="toast-message">${message}</span>
+      `;
+      document.body.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => toast.classList.add('show'));
+
+      // Auto-dismiss
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
     }
 
     // Display version
@@ -3277,7 +3431,7 @@
       if (!cash && cash !== 0) missing.push('Cash Balance');
 
       if (missing.length > 0) {
-        alert('Please fill in the following fields:\n\n• ' + missing.join('\n• '));
+        showToast('Missing: ' + missing.join(', '), 'error', 4000);
         return;
       }
 
@@ -3307,7 +3461,7 @@
                 document.getElementById('saveBtn').disabled = false;
               } catch (calcError) {
                 console.error('Decision error after wizard:', calcError);
-                alert('Error calculating decision: ' + calcError.message);
+                showToast('Error: ' + calcError.message, 'error');
               }
             }
             // If cancelled, just return without calculating
@@ -3322,30 +3476,38 @@
         document.getElementById('saveBtn').disabled = false;
       } catch (error) {
         console.error('Decision error:', error);
-        alert('Error calculating decision: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
       }
     };
 
     // Save current decision
     window.saveCurrentDecision = async function() {
+      const btn = document.getElementById('saveBtn');
+
       if (!currentDecision) {
-        alert('No decision to save');
+        showToast('No decision to save', 'error');
         return;
       }
 
       if (!isLoggedIn()) {
-        alert('Please sign in to save decisions');
+        showToast('Please sign in to save decisions', 'error');
         return;
       }
 
+      // Show spinner
+      btn.classList.add('loading');
+      btn.disabled = true;
+
       try {
         await saveDecision(currentDecision);
-        alert('Decision saved to history');
-        document.getElementById('saveBtn').disabled = true;
+        showToast('Decision saved to history', 'success');
         await renderHistory();  // Refresh history display
       } catch (error) {
         console.error('Save error:', error);
-        alert('Error saving: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
+        btn.disabled = false;  // Re-enable on error
+      } finally {
+        btn.classList.remove('loading');
       }
     };
 
@@ -4113,7 +4275,7 @@
     // Save stress settings
     window.saveStressSettingsUI = async function() {
       if (!isLoggedIn()) {
-        alert('Please sign in to save settings');
+        showToast('Please sign in to save settings', 'error');
         return;
       }
 
@@ -4139,10 +4301,10 @@
           hodlEnabled: document.getElementById('ssHodlEnabled').checked,
           hodlValue: +document.getElementById('ssHodlValue').value
         });
-        alert('Settings saved successfully');
+        showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving stress settings:', error);
-        alert('Error saving: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -4156,10 +4318,10 @@
       try {
         await resetStressSettings();
         await loadStressSettings();
-        alert('Settings reset to defaults');
+        showToast('Settings reset to defaults', 'success');
       } catch (error) {
         console.error('Error resetting settings:', error);
-        alert('Error resetting: ' + error.message);
+        showToast('Error resetting: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -4196,7 +4358,7 @@
     // Save decision settings
     window.saveDecisionSettingsUI = async function() {
       if (!isLoggedIn()) {
-        alert('Please sign in to save settings');
+        showToast('Please sign in to save settings', 'error');
         return;
       }
 
@@ -4215,10 +4377,10 @@
           recoveryBuffer: +document.getElementById('dsRecoveryBuffer').value,
           consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value
         });
-        alert('Settings saved successfully');
+        showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving decision settings:', error);
-        alert('Error saving: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -4241,10 +4403,10 @@
           consecutiveLimit: 3
         });
         await loadDecisionSettings();
-        alert('Settings reset to defaults');
+        showToast('Settings reset to defaults', 'success');
       } catch (error) {
         console.error('Error resetting settings:', error);
-        alert('Error resetting: ' + error.message);
+        showToast('Error resetting: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -4326,10 +4488,15 @@
     let selectedHistoryDate = null;
     let allHistoryData = [];
 
+    // Currently selected year filter for history
+    let selectedHistoryYear = 'all';
+
     // Render history with full-page tabbed view
     async function renderHistory() {
       const tabsContainer = document.getElementById('historyTabs');
       const detailContainer = document.getElementById('historyDetail');
+      const yearFilter = document.getElementById('historyYearFilter');
+      const deleteAllBtn = document.getElementById('deleteAllHistoryBtn');
 
       if (!tabsContainer || !detailContainer) return;
 
@@ -4337,8 +4504,14 @@
 
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
 
+      // Hide delete all button if no entries
+      if (deleteAllBtn) {
+        deleteAllBtn.style.display = allHistoryData.length > 0 ? '' : 'none';
+      }
+
       if (allHistoryData.length === 0) {
         tabsContainer.innerHTML = '';
+        if (yearFilter) yearFilter.innerHTML = '<option value="all">No entries</option>';
         detailContainer.innerHTML = `
           <div class="no-history-message">
             <h3>No History Entries</h3>
@@ -4348,16 +4521,47 @@
         return;
       }
 
+      // Extract unique years and populate year filter
+      const years = [...new Set(allHistoryData.map(h => h.date.split('-')[0]))].sort().reverse();
+      if (yearFilter) {
+        let yearOptionsHtml = '<option value="all">All Years</option>';
+        years.forEach(y => {
+          yearOptionsHtml += `<option value="${y}">${y}</option>`;
+        });
+        yearFilter.innerHTML = yearOptionsHtml;
+        yearFilter.value = selectedHistoryYear;
+      }
+
+      // Filter by selected year
+      const filteredHistory = selectedHistoryYear === 'all'
+        ? allHistoryData
+        : allHistoryData.filter(h => h.date.startsWith(selectedHistoryYear));
+
+      if (filteredHistory.length === 0) {
+        tabsContainer.innerHTML = '';
+        detailContainer.innerHTML = `
+          <div class="no-history-message">
+            <h3>No entries for ${selectedHistoryYear}</h3>
+            <p>Select a different year or "All Years".</p>
+          </div>
+        `;
+        return;
+      }
+
       // Render month tabs (chronological order)
       let tabsHtml = '';
-      allHistoryData.forEach(h => {
+      filteredHistory.forEach(h => {
         const isActive = h.date === selectedHistoryDate;
         const classes = ['history-tab'];
         if (isActive) classes.push('active');
         if (h.inProtection) classes.push('protection');
 
-        // Format date for display
-        const dateLabel = formatHistoryTabDate(h.date);
+        // Format date for display - just month if year filter is active
+        const [year, month] = h.date.split('-').map(Number);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const dateLabel = selectedHistoryYear === 'all'
+          ? `${monthNames[month - 1]} ${year}`
+          : monthNames[month - 1];
 
         tabsHtml += `<button class="${classes.join(' ')}" onclick="selectHistoryEntry('${h.date}')">${dateLabel}</button>`;
       });
@@ -4368,7 +4572,7 @@
       const mobileSelector = document.getElementById('historyMobileSelector');
       if (mobileSelector) {
         let optionsHtml = '';
-        allHistoryData.forEach(h => {
+        filteredHistory.forEach(h => {
           const dateLabel = formatHistoryTabDate(h.date);
           const suffix = h.inProtection ? ' (Protection)' : '';
           optionsHtml += `<option value="${h.date}">${dateLabel}${suffix}</option>`;
@@ -4376,9 +4580,9 @@
         mobileSelector.innerHTML = optionsHtml;
       }
 
-      // If no entry selected, select the most recent one
-      if (!selectedHistoryDate || !allHistoryData.find(h => h.date === selectedHistoryDate)) {
-        selectedHistoryDate = allHistoryData[allHistoryData.length - 1].date;
+      // If no entry selected or selected entry not in filtered list, select the most recent one
+      if (!selectedHistoryDate || !filteredHistory.find(h => h.date === selectedHistoryDate)) {
+        selectedHistoryDate = filteredHistory[filteredHistory.length - 1].date;
       }
 
       // Update mobile selector value
@@ -4397,6 +4601,13 @@
         }
       }, 100);
     }
+
+    // Filter history by year
+    window.filterHistoryByYear = function(year) {
+      selectedHistoryYear = year;
+      selectedHistoryDate = null; // Reset selection
+      renderHistory();
+    };
 
     // Format date for tab display
     function formatHistoryTabDate(dateStr) {
@@ -4686,23 +4897,61 @@
     };
 
     // Delete history entry
-    window.deleteHistoryEntry = async function(date) {
+    window.deleteHistoryEntry = async function(date, btn) {
       const dateLabel = formatHistoryTabDate(date);
       if (!confirm(`Delete entry for ${dateLabel}?`)) return;
 
       if (!isLoggedIn()) {
-        alert('Please sign in to delete entries');
+        showToast('Please sign in to delete entries', 'error');
         return;
+      }
+
+      // Show spinner on delete button if provided
+      if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
       }
 
       try {
         await deleteHistoryRecord(date);
+        showToast(`Deleted ${dateLabel}`, 'success');
         // Reset selection and re-render
         selectedHistoryDate = null;
         await renderHistory();
       } catch (error) {
         console.error('Delete error:', error);
-        alert('Error deleting: ' + error.message);
+        showToast('Error deleting: ' + error.message, 'error');
+        if (btn) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
+      }
+    };
+
+    // Delete all history entries
+    window.deleteAllHistory = async function() {
+      if (!confirm('Delete ALL history entries? This cannot be undone.')) return;
+      if (!confirm('Are you ABSOLUTELY sure? All decision history will be permanently deleted.')) return;
+
+      if (!isLoggedIn()) {
+        showToast('Please sign in to delete entries', 'error');
+        return;
+      }
+
+      showLoading('Deleting all history...');
+      try {
+        const allHistory = await getHistoryAsync({ limit: 1000 });
+        for (const h of allHistory) {
+          await deleteHistoryRecord(h.date);
+        }
+        showToast(`Deleted ${allHistory.length} entries`, 'success');
+        selectedHistoryDate = null;
+        await renderHistory();
+      } catch (error) {
+        console.error('Delete all error:', error);
+        showToast('Error deleting: ' + error.message, 'error');
+      } finally {
+        hideLoading();
       }
     };
 

@@ -2834,6 +2834,7 @@
 
       // Calculate ISA/SIPP based on year-level tax efficiency mode
       let sipp, isa, note;
+      let stdSippForHistory = 0; // Standard SIPP before protection reduction, for tax boost tracking
       let boostAmount = 0;
       let protectionInducedTaxEfficiency = false;
       let isaSavingsUsedThisMonth = 0;
@@ -2878,6 +2879,7 @@
         const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
         const isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
         isaSavingsUsedThisMonth = isaToUse;
+        stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 
         if (inProtection) {
           sipp = stdSipp * (1 - (settings.protectionFactor || 20) / 100);
@@ -2933,6 +2935,7 @@
         const monthlyTargetGross = target / 12;
         const monthlyFixedIncome = other / 12;
         const stdSipp = Math.max(0, monthlyTargetGross - monthlyFixedIncome);
+        stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 
         isa = 0; // No ISA in tax-inefficient mode
 
@@ -3121,6 +3124,7 @@
 
         // Recommended draws
         sippDraw: sipp,
+        stdSipp: stdSippForHistory, // Standard SIPP before protection, for tax boost tracking
         isaDraw: isa,
         totalMonthlyNet: monthlyNet,
 

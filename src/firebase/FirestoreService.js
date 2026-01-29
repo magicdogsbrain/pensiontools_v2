@@ -5,9 +5,8 @@
  * Data structure:
  *   users/{userId}/
  *     - profile (document)
- *     - decision (document) - settings, taxYears
- *     - stress (document) - settings
- *     - history (subcollection) - monthly decision records
+ *     - scenarios/{scenarioId} (documents) - named scenario with stress + decision settings
+ *     - history (subcollection) - monthly decision records (global, not per-scenario)
  */
 
 import {
@@ -37,8 +36,6 @@ import { getCurrentUser } from './AuthService.js';
 function getUserDoc(subCollection, docId = 'settings') {
   const user = getCurrentUser();
   if (!user || !db) return null;
-  // Path: users/{userId}/{subCollection}/{docId}
-  // e.g., users/abc123/decision/settings
   return doc(db, 'users', user.uid, subCollection, docId);
 }
 
@@ -54,40 +51,65 @@ function getUserCollection(collectionName) {
 }
 
 // ============================================================================
-// DECISION DATA
+// SCENARIOS
 // ============================================================================
 
 /**
- * Load decision data from Firestore
+ * Load all scenarios for current user
+ * @returns {Promise<object[]>} Array of scenario objects with id
+ */
+export async function loadAllScenarios() {
+  if (!isFirebaseConfigured()) return [];
+
+  const collRef = getUserCollection('scenarios');
+  if (!collRef) return [];
+
+  try {
+    const querySnapshot = await getDocs(collRef);
+    const scenarios = [];
+    querySnapshot.forEach((docSnap) => {
+      scenarios.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return scenarios;
+  } catch (error) {
+    console.error('Error loading scenarios:', error);
+    return [];
+  }
+}
+
+/**
+ * Load a single scenario by ID
+ * @param {string} scenarioId - Scenario document ID
  * @returns {Promise<object|null>}
  */
-export async function loadDecisionData() {
+export async function loadScenario(scenarioId) {
   if (!isFirebaseConfigured()) return null;
 
-  const docRef = getUserDoc('decision');
+  const docRef = getUserDoc('scenarios', scenarioId);
   if (!docRef) return null;
 
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data();
+      return { id: docSnap.id, ...docSnap.data() };
     }
     return null;
   } catch (error) {
-    console.error('Error loading decision data:', error);
+    console.error('Error loading scenario:', error);
     return null;
   }
 }
 
 /**
- * Save decision data to Firestore
- * @param {object} data - Decision data (settings, taxYears)
+ * Save/update a scenario
+ * @param {string} scenarioId - Scenario document ID
+ * @param {object} data - Scenario data
  * @returns {Promise<void>}
  */
-export async function saveDecisionData(data) {
+export async function saveScenario(scenarioId, data) {
   if (!isFirebaseConfigured()) return;
 
-  const docRef = getUserDoc('decision');
+  const docRef = getUserDoc('scenarios', scenarioId);
   if (!docRef) return;
 
   try {
@@ -96,10 +118,89 @@ export async function saveDecisionData(data) {
       lastModified: new Date().toISOString()
     }, { merge: true });
   } catch (error) {
-    console.error('Error saving decision data:', error);
+    console.error('Error saving scenario:', error);
     throw error;
   }
 }
+
+/**
+ * Create a new scenario
+ * @param {object} data - Scenario data (name, description, enabledTools, settings)
+ * @returns {Promise<string>} New scenario document ID
+ */
+export async function createScenario(data) {
+  if (!isFirebaseConfigured()) return null;
+
+  const collRef = getUserCollection('scenarios');
+  if (!collRef) return null;
+
+  try {
+    const docRef = await addDoc(collRef, {
+      ...data,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating scenario:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a scenario
+ * @param {string} scenarioId - Scenario document ID
+ * @returns {Promise<void>}
+ */
+export async function deleteScenarioDoc(scenarioId) {
+  if (!isFirebaseConfigured()) return;
+
+  const docRef = getUserDoc('scenarios', scenarioId);
+  if (!docRef) return;
+
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting scenario:', error);
+    throw error;
+  }
+}
+
+/**
+ * Set a scenario as active (and unset all others)
+ * @param {string} scenarioId - Scenario to make active
+ * @returns {Promise<void>}
+ */
+export async function setActiveScenarioDoc(scenarioId) {
+  if (!isFirebaseConfigured()) return;
+
+  const user = getCurrentUser();
+  if (!user || !db) return;
+
+  try {
+    // Load all scenarios to find which ones need updating
+    const scenarios = await loadAllScenarios();
+    const batch = writeBatch(db);
+
+    for (const scenario of scenarios) {
+      const ref = doc(db, 'users', user.uid, 'scenarios', scenario.id);
+      if (scenario.id === scenarioId) {
+        batch.update(ref, { isActive: true });
+      } else if (scenario.isActive) {
+        batch.update(ref, { isActive: false });
+      }
+    }
+
+    await batch.commit();
+  } catch (error) {
+    console.error('Error setting active scenario:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// DECISION HISTORY (global, not per-scenario)
+// ============================================================================
 
 /**
  * Load decision history from Firestore
@@ -128,8 +229,8 @@ export async function loadDecisionHistory(options = {}) {
 
     const querySnapshot = await getDocs(q);
     const history = [];
-    querySnapshot.forEach((doc) => {
-      history.push({ id: doc.id, ...doc.data() });
+    querySnapshot.forEach((docSnap) => {
+      history.push({ id: docSnap.id, ...docSnap.data() });
     });
 
     return history;
@@ -246,54 +347,6 @@ export async function clearAllHistory() {
 }
 
 // ============================================================================
-// STRESS DATA
-// ============================================================================
-
-/**
- * Load stress data from Firestore
- * @returns {Promise<object|null>}
- */
-export async function loadStressData() {
-  if (!isFirebaseConfigured()) return null;
-
-  const docRef = getUserDoc('stress');
-  if (!docRef) return null;
-
-  try {
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data();
-    }
-    return null;
-  } catch (error) {
-    console.error('Error loading stress data:', error);
-    return null;
-  }
-}
-
-/**
- * Save stress data to Firestore
- * @param {object} data - Stress data
- * @returns {Promise<void>}
- */
-export async function saveStressData(data) {
-  if (!isFirebaseConfigured()) return;
-
-  const docRef = getUserDoc('stress');
-  if (!docRef) return;
-
-  try {
-    await setDoc(docRef, {
-      ...data,
-      lastModified: new Date().toISOString()
-    }, { merge: true });
-  } catch (error) {
-    console.error('Error saving stress data:', error);
-    throw error;
-  }
-}
-
-// ============================================================================
 // USER PROFILE
 // ============================================================================
 
@@ -359,12 +412,19 @@ export async function wipeAllUserData() {
     // Clear history collection
     await clearAllHistory();
 
-    // Delete main documents (path: users/{uid}/{collection}/settings)
-    const batch = writeBatch(db);
-    batch.delete(doc(db, 'users', user.uid, 'decision', 'settings'));
-    batch.delete(doc(db, 'users', user.uid, 'stress', 'settings'));
-    batch.delete(doc(db, 'users', user.uid, 'profile', 'settings'));
-    await batch.commit();
+    // Delete all scenarios
+    const scenarios = await loadAllScenarios();
+    if (scenarios.length > 0) {
+      const batch = writeBatch(db);
+      for (const scenario of scenarios) {
+        batch.delete(doc(db, 'users', user.uid, 'scenarios', scenario.id));
+      }
+      batch.delete(doc(db, 'users', user.uid, 'profile', 'settings'));
+      await batch.commit();
+    } else {
+      // Just delete profile
+      await deleteDoc(doc(db, 'users', user.uid, 'profile', 'settings'));
+    }
 
     console.log('All user data wiped successfully');
   } catch (error) {
@@ -384,19 +444,18 @@ export async function wipeAllUserData() {
 export async function hasCloudData() {
   if (!isFirebaseConfigured()) return false;
 
-  const decisionData = await loadDecisionData();
-  const historyData = await loadDecisionHistory({ limit: 1 });
-
-  return decisionData !== null || historyData.length > 0;
+  const scenarios = await loadAllScenarios();
+  return scenarios.length > 0;
 }
 
 /**
- * Get last sync timestamp
+ * Get last sync timestamp from the active scenario
  * @returns {Promise<string|null>}
  */
 export async function getLastSyncTime() {
   if (!isFirebaseConfigured()) return null;
 
-  const decisionData = await loadDecisionData();
-  return decisionData?.lastModified || null;
+  const scenarios = await loadAllScenarios();
+  const active = scenarios.find(s => s.isActive);
+  return active?.lastModified || null;
 }

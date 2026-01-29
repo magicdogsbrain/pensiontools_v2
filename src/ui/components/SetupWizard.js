@@ -7,6 +7,10 @@
 let wizardElement = null;
 let onCompleteCallback = null;
 let wizardData = {
+  // Scenario info
+  scenarioName: 'My Plan',
+  scenarioDescription: '',
+  enabledTools: ['stress', 'decision'],  // which tools user wants
   // Intro done flag
   introDone: false,
   // Stress tester settings
@@ -29,16 +33,19 @@ let wizardData = {
 };
 
 // Current step tracking
-let currentPhase = 'intro'; // 'intro', 'stress', 'decision'
+let currentPhase = 'scenario'; // 'scenario', 'stress', 'decision'
 let currentStep = 1;
 
 /**
  * Reset wizard state to initial values
  */
 function resetWizardState() {
-  currentPhase = 'intro';
+  currentPhase = 'scenario';
   currentStep = 1;
   wizardData = {
+    scenarioName: 'My Plan',
+    scenarioDescription: '',
+    enabledTools: ['stress', 'decision'],
     introDone: false,
     baseSalary: 30000,
     otherIncome: 0,
@@ -76,8 +83,8 @@ export function initSetupWizard(container, onComplete) {
 function renderWizard() {
   if (!wizardElement) return;
 
-  if (currentPhase === 'intro') {
-    renderIntroWizard();
+  if (currentPhase === 'scenario') {
+    renderScenarioWizard();
   } else if (currentPhase === 'stress') {
     renderStressWizard();
   } else if (currentPhase === 'decision') {
@@ -86,22 +93,22 @@ function renderWizard() {
 }
 
 /**
- * Render intro wizard
+ * Render scenario setup wizard (name, description, tool selection)
  */
-function renderIntroWizard() {
+function renderScenarioWizard() {
   const totalSteps = 2;
 
   wizardElement.innerHTML = `
     <div class="wizard-overlay">
       <div class="wizard-box">
         <div class="wizard-title">Welcome to Pension Planner</div>
-        <div class="wizard-subtitle">A tool to help you plan and manage your SIPP pension drawdown</div>
+        <div class="wizard-subtitle">Let's create your first plan</div>
 
         <div class="wizard-progress">
           ${renderProgressDots(totalSteps, currentStep)}
         </div>
 
-        ${currentStep === 1 ? renderIntroStep1() : renderIntroStep2()}
+        ${currentStep === 1 ? renderScenarioStep1() : renderScenarioStep2()}
       </div>
     </div>
   `;
@@ -110,25 +117,27 @@ function renderIntroWizard() {
 }
 
 /**
- * Render intro step 1 - What is this app?
+ * Render scenario step 1 - Name your plan
  */
-function renderIntroStep1() {
+function renderScenarioStep1() {
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">What does this app do?</div>
+      <div class="wizard-step-title">Name your plan</div>
       <div class="wizard-step-desc">
-        This app helps you answer two important questions about your pension:
+        Give your plan a name. You can create multiple plans later for different scenarios
+        (e.g. "Retire at 57", "Conservative at 60").
       </div>
 
-      <div class="wizard-info-box">
-        <div class="wizard-info-item">
-          <strong>1. Stress Tester</strong>
-          <p>"Can I afford to retire?" This tool runs 1,000 simulations using real historical market data to show you the range of possible outcomes for your pension.</p>
-        </div>
-        <div class="wizard-info-item">
-          <strong>2. Decision Tool</strong>
-          <p>"Where should I take money from this month?" Once you're retired, this tool helps you decide each month which fund to withdraw from to maximise tax efficiency.</p>
-        </div>
+      <div class="wizard-input" style="margin-bottom: 16px;">
+        <input type="text" id="wizScenarioName" value="${wizardData.scenarioName}" placeholder="e.g. My Retirement Plan" style="max-width: 300px;">
+      </div>
+
+      <div class="wizard-step-desc" style="margin-bottom: 8px;">
+        Add an optional description:
+      </div>
+
+      <div class="wizard-input">
+        <input type="text" id="wizScenarioDesc" value="${wizardData.scenarioDescription}" placeholder="e.g. Based on retiring at age 57" style="max-width: 400px;">
       </div>
 
       <div class="wizard-buttons">
@@ -140,33 +149,44 @@ function renderIntroStep1() {
 }
 
 /**
- * Render intro step 2 - Start with Stress Tester
+ * Render scenario step 2 - Choose tools
  */
-function renderIntroStep2() {
+function renderScenarioStep2() {
+  const hasStress = wizardData.enabledTools.includes('stress');
+  const hasDecision = wizardData.enabledTools.includes('decision');
+
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">Start with the Stress Tester</div>
+      <div class="wizard-step-title">What would you like to use?</div>
       <div class="wizard-step-desc">
-        Whether you're already retired or still planning, the Stress Tester is where you should start.
+        Choose the tools you're interested in. You can change this later.
       </div>
 
-      <div class="wizard-info-box">
-        <p>The Stress Tester will help you understand:</p>
-        <ul>
-          <li>How much yearly income your pension could realistically provide</li>
-          <li>How long your money might last under different market conditions</li>
-          <li>What happens if markets crash early in your retirement</li>
-          <li>Whether your current savings are on track</li>
-        </ul>
+      <div class="wizard-tool-choices">
+        <label class="wizard-tool-option">
+          <input type="checkbox" id="wizToolStress" ${hasStress ? 'checked' : ''}>
+          <div class="wizard-tool-info">
+            <strong>Stress Tester</strong>
+            <p>"Can I afford to retire?" Run simulations using real historical market data to see the range of possible outcomes for your pension.</p>
+          </div>
+        </label>
+
+        <label class="wizard-tool-option">
+          <input type="checkbox" id="wizToolDecision" ${hasDecision ? 'checked' : ''}>
+          <div class="wizard-tool-info">
+            <strong>Monthly Decision Tool</strong>
+            <p>"Where should I take money from this month?" Helps you decide each month which fund to withdraw from to maximise tax efficiency.</p>
+          </div>
+        </label>
       </div>
 
       <div class="wizard-example">
-        <strong>Next:</strong> We'll set up your Stress Tester with some basic questions about your pension.
+        <strong>Tip:</strong> If you're still working, start with just the Stress Tester. Add the Decision Tool when you're ready to start drawing your pension.
       </div>
 
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="start-stress">Set Up Stress Tester</button>
+        <button class="wizard-btn primary" data-action="start-tools">Continue</button>
       </div>
     </div>
   `;
@@ -374,7 +394,7 @@ function renderStressStep(step) {
 
           <div class="wizard-buttons">
             <button class="wizard-btn secondary" data-action="back">Back</button>
-            <button class="wizard-btn primary" data-action="finish-stress">Continue to Decision Tool</button>
+            <button class="wizard-btn primary" data-action="finish-stress">${wizardData.enabledTools.includes('decision') ? 'Continue to Decision Tool' : 'Finish Setup'}</button>
           </div>
         </div>
       `;
@@ -571,7 +591,7 @@ function handleAction(action) {
       break;
 
     case 'next':
-      if (currentPhase === 'intro') {
+      if (currentPhase === 'scenario') {
         if (currentStep < 2) {
           currentStep++;
           renderWizard();
@@ -590,40 +610,35 @@ function handleAction(action) {
       break;
 
     case 'back':
-      if (currentStep > 1) {
+      if (currentPhase === 'scenario' && currentStep > 1) {
+        currentStep--;
+        renderWizard();
+      } else if (currentPhase === 'stress' && currentStep > 1) {
+        currentStep--;
+        renderWizard();
+      } else if (currentPhase === 'decision' && currentStep > 1) {
         currentStep--;
         renderWizard();
       }
       break;
 
-    case 'start-stress':
-      currentPhase = 'stress';
-      currentStep = 1;
-      renderWizard();
+    case 'start-tools':
+      // Move from scenario phase to the first enabled tool
+      advanceToNextToolPhase('scenario');
       break;
 
     case 'skip-stress':
-      currentPhase = 'decision';
-      currentStep = 1;
-      // Copy defaults to decision settings
-      wizardData.decisionSalary = wizardData.baseSalary;
-      wizardData.decisionEquity = wizardData.equityMin;
-      wizardData.decisionBond = wizardData.bondMin;
-      wizardData.decisionCash = wizardData.cashTarget;
-      wizardData.decisionDuration = wizardData.duration;
-      renderWizard();
+      advanceToNextToolPhase('stress');
       break;
 
     case 'finish-stress':
-      currentPhase = 'decision';
-      currentStep = 1;
       // Copy stress settings to decision settings
       wizardData.decisionSalary = wizardData.baseSalary;
       wizardData.decisionEquity = wizardData.equityMin;
       wizardData.decisionBond = wizardData.bondMin;
       wizardData.decisionCash = wizardData.cashTarget;
       wizardData.decisionDuration = wizardData.duration;
-      renderWizard();
+      advanceToNextToolPhase('stress');
       break;
 
     case 'skip-decision':
@@ -637,9 +652,60 @@ function handleAction(action) {
 }
 
 /**
+ * Advance to the next tool phase based on enabled tools
+ * @param {string} currentToolPhase - The phase we're leaving ('scenario', 'stress', 'decision')
+ */
+function advanceToNextToolPhase(currentToolPhase) {
+  const hasStress = wizardData.enabledTools.includes('stress');
+  const hasDecision = wizardData.enabledTools.includes('decision');
+
+  if (currentToolPhase === 'scenario') {
+    if (hasStress) {
+      currentPhase = 'stress';
+      currentStep = 1;
+      renderWizard();
+    } else if (hasDecision) {
+      currentPhase = 'decision';
+      currentStep = 1;
+      renderWizard();
+    } else {
+      // No tools selected, just finish
+      finishWizard();
+    }
+  } else if (currentToolPhase === 'stress') {
+    if (hasDecision) {
+      currentPhase = 'decision';
+      currentStep = 1;
+      renderWizard();
+    } else {
+      finishWizard();
+    }
+  } else {
+    finishWizard();
+  }
+}
+
+/**
  * Save current input values
  */
 function saveCurrentInputs() {
+  // Scenario inputs
+  const scenarioName = document.getElementById('wizScenarioName');
+  if (scenarioName) wizardData.scenarioName = scenarioName.value.trim() || 'My Plan';
+
+  const scenarioDesc = document.getElementById('wizScenarioDesc');
+  if (scenarioDesc) wizardData.scenarioDescription = scenarioDesc.value.trim() || '';
+
+  // Tool selection checkboxes
+  const toolStress = document.getElementById('wizToolStress');
+  const toolDecision = document.getElementById('wizToolDecision');
+  if (toolStress !== null || toolDecision !== null) {
+    const tools = [];
+    if (toolStress && toolStress.checked) tools.push('stress');
+    if (toolDecision && toolDecision.checked) tools.push('decision');
+    wizardData.enabledTools = tools;
+  }
+
   // Stress wizard inputs
   const baseSalary = document.getElementById('wizBaseSalary');
   if (baseSalary) wizardData.baseSalary = parseFloat(baseSalary.value) || 30000;
@@ -712,7 +778,7 @@ export function showSetupWizard() {
   if (wizardElement) {
     wizardElement.style.display = 'block';
     // Reset to start
-    currentPhase = 'intro';
+    currentPhase = 'scenario';
     currentStep = 1;
     renderWizard();
   }
@@ -945,6 +1011,53 @@ export function getSetupWizardStyles() {
 
     .wizard-btn.secondary:hover {
       background: var(--border);
+    }
+
+    .wizard-tool-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .wizard-tool-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .wizard-tool-option:hover {
+      border-color: var(--primary);
+    }
+
+    .wizard-tool-option input[type="checkbox"] {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      accent-color: var(--primary);
+    }
+
+    .wizard-tool-info {
+      flex: 1;
+    }
+
+    .wizard-tool-info strong {
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .wizard-tool-info p {
+      margin: 6px 0 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
     }
 
     @media (max-width: 600px) {

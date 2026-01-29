@@ -82,6 +82,152 @@
       white-space: nowrap;
     }
 
+    /* Scenario Selector */
+    .scenario-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .scenario-selector-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scenario-active-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      max-width: 220px;
+      transition: border-color 0.2s;
+    }
+
+    .scenario-active-btn:hover {
+      border-color: var(--primary);
+    }
+
+    .scenario-active-btn .scenario-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .scenario-active-btn .scenario-chevron {
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .scenario-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      min-width: 260px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .scenario-dropdown.open {
+      display: block;
+    }
+
+    .scenario-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .scenario-dropdown-item:hover {
+      background: var(--bg-hover, #f5f5f5);
+    }
+
+    .scenario-dropdown-item.active {
+      background: var(--primary-bg, #e8f0fe);
+      font-weight: 500;
+    }
+
+    .scenario-dropdown-item .scenario-item-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .scenario-dropdown-item .scenario-item-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .scenario-dropdown-item .scenario-item-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .scenario-dropdown-item .scenario-item-actions button {
+      padding: 2px 6px;
+      font-size: 11px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .scenario-dropdown-item .scenario-item-actions button:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .scenario-dropdown-actions {
+      padding: 8px 14px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .scenario-dropdown-actions button {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      background: var(--bg-card);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .scenario-dropdown-actions button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
     .logout-btn {
       padding: 8px 16px;
       background: var(--card-alt);
@@ -319,6 +465,21 @@
       .user-email {
         max-width: 140px;
         font-size: 12px;
+      }
+
+      .scenario-selector {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .scenario-active-btn {
+        max-width: 180px;
+      }
+
+      .scenario-dropdown {
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 240px;
       }
 
       /* Tabs container - scroll hint on mobile */
@@ -1601,7 +1762,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DcCs1PZI.js"></script>
+  <script type="module" crossorigin src="./assets/main-Dnhizotj.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1625,6 +1786,20 @@
       <!-- Header -->
       <header class="header">
         <h1>Pension Planner</h1>
+        <div class="scenario-selector" id="scenarioSelector">
+          <span class="scenario-selector-label">Plan:</span>
+          <button class="scenario-active-btn" id="scenarioActiveBtn">
+            <span class="scenario-name" id="scenarioActiveName">Loading...</span>
+            <span class="scenario-chevron">&#9660;</span>
+          </button>
+          <div class="scenario-dropdown" id="scenarioDropdown">
+            <div id="scenarioList"></div>
+            <div class="scenario-dropdown-actions">
+              <button id="scenarioNewBtn">+ New Plan</button>
+              <button id="scenarioDuplicateBtn">Duplicate</button>
+            </div>
+          </div>
+        </div>
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>

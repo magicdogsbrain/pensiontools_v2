@@ -1807,7 +1807,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CaA4palD.js"></script>
+  <script type="module" crossorigin src="./assets/main-Ccw5VviL.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1863,10 +1863,8 @@
       <!-- Tabs -->
       <div class="tabs-wrapper">
         <nav class="tabs">
-          <button class="tab active" data-tab="decision">Decision</button>
-          <button class="tab" data-tab="stress">Stress Test</button>
-          <button class="tab" data-tab="history">History</button>
-          <button class="tab" data-tab="taxyears">Tax Years</button>
+          <button class="tab active" data-tab="decision">Decision Tool</button>
+          <button class="tab" data-tab="stress">Stress Tester</button>
         </nav>
       </div>
 
@@ -1875,6 +1873,8 @@
         <!-- Decision Tool Sub-tabs -->
         <div class="sub-tabs">
           <button class="sub-tab active" data-decisiontab="entry">Monthly Entry</button>
+          <button class="sub-tab" data-decisiontab="history">History</button>
+          <button class="sub-tab" data-decisiontab="taxyears">Tax Years</button>
           <button class="sub-tab" data-decisiontab="decisionsettings">Settings</button>
         </div>
 
@@ -2012,6 +2012,72 @@
             <div class="button-row" style="margin-top: 24px;">
               <button onclick="saveDecisionSettingsUI()">Save Settings</button>
               <button class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Sub-tab -->
+        <div id="decision-history" class="decision-subtab hidden">
+          <div class="history-full-page">
+            <!-- History header with actions -->
+            <div class="history-header">
+              <div class="history-year-selector">
+                <select id="historyYearFilter" onchange="filterHistoryByYear(this.value)">
+                  <!-- Year options rendered dynamically -->
+                </select>
+              </div>
+              <div class="history-actions-header">
+                <button class="btn danger small" onclick="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
+                  <span class="btn-text">Delete Year</span>
+                  <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+                </button>
+                <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
+                  <span class="btn-text">Delete All</span>
+                  <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Month tabs for selected year -->
+            <div class="history-tabs-container">
+              <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
+              <div class="history-tabs" id="historyTabs">
+                <!-- Month tabs rendered dynamically -->
+              </div>
+              <button class="history-scroll-btn right" onclick="scrollHistoryTabs('right')">›</button>
+              <!-- Mobile dropdown selector -->
+              <select class="mobile-tab-selector" id="historyMobileSelector" onchange="selectHistoryEntry(this.value)">
+                <!-- Options rendered dynamically -->
+              </select>
+            </div>
+
+            <!-- Selected month detail view -->
+            <div class="history-detail" id="historyDetail">
+              <p class="loading">Select a month to view details</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tax Years Sub-tab -->
+        <div id="decision-taxyears" class="decision-subtab hidden">
+          <div class="tax-years-full-page">
+            <!-- Horizontal scrolling year tabs (desktop) + dropdown (mobile) -->
+            <div class="tax-year-tabs-container">
+              <button class="tax-year-scroll-btn left" onclick="scrollTaxYearTabs('left')">‹</button>
+              <div class="tax-year-tabs" id="taxYearTabs">
+                <!-- Year tabs rendered dynamically -->
+              </div>
+              <button class="tax-year-scroll-btn right" onclick="scrollTaxYearTabs('right')">›</button>
+              <!-- Mobile dropdown selector -->
+              <select class="mobile-tab-selector" id="taxYearMobileSelector" onchange="selectTaxYear(this.value)">
+                <!-- Options rendered dynamically -->
+              </select>
+              <button class="tax-year-add-btn" onclick="addTaxYear()">+ Add Year</button>
+            </div>
+
+            <!-- Selected year detail view -->
+            <div class="tax-year-detail" id="taxYearDetail">
+              <p class="loading">Select a tax year to view details</p>
             </div>
           </div>
         </div>
@@ -2331,71 +2397,6 @@
         </div>
       </div>
 
-      <!-- History Tab - Full Page View -->
-      <div id="history-content" class="tab-content">
-        <div class="history-full-page">
-          <!-- History header with actions -->
-          <div class="history-header">
-            <div class="history-year-selector">
-              <select id="historyYearFilter" onchange="filterHistoryByYear(this.value)">
-                <!-- Year options rendered dynamically -->
-              </select>
-            </div>
-            <div class="history-actions-header">
-              <button class="btn danger small" onclick="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
-                <span class="btn-text">Delete Year</span>
-                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
-              </button>
-              <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
-                <span class="btn-text">Delete All</span>
-                <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Month tabs for selected year -->
-          <div class="history-tabs-container">
-            <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
-            <div class="history-tabs" id="historyTabs">
-              <!-- Month tabs rendered dynamically -->
-            </div>
-            <button class="history-scroll-btn right" onclick="scrollHistoryTabs('right')">›</button>
-            <!-- Mobile dropdown selector -->
-            <select class="mobile-tab-selector" id="historyMobileSelector" onchange="selectHistoryEntry(this.value)">
-              <!-- Options rendered dynamically -->
-            </select>
-          </div>
-
-          <!-- Selected month detail view -->
-          <div class="history-detail" id="historyDetail">
-            <p class="loading">Select a month to view details</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tax Years Tab - Full Page View -->
-      <div id="taxyears-content" class="tab-content">
-        <div class="tax-years-full-page">
-          <!-- Horizontal scrolling year tabs (desktop) + dropdown (mobile) -->
-          <div class="tax-year-tabs-container">
-            <button class="tax-year-scroll-btn left" onclick="scrollTaxYearTabs('left')">‹</button>
-            <div class="tax-year-tabs" id="taxYearTabs">
-              <!-- Year tabs rendered dynamically -->
-            </div>
-            <button class="tax-year-scroll-btn right" onclick="scrollTaxYearTabs('right')">›</button>
-            <!-- Mobile dropdown selector -->
-            <select class="mobile-tab-selector" id="taxYearMobileSelector" onchange="selectTaxYear(this.value)">
-              <!-- Options rendered dynamically -->
-            </select>
-            <button class="tax-year-add-btn" onclick="addTaxYear()">+ Add Year</button>
-          </div>
-
-          <!-- Selected year detail view -->
-          <div class="tax-year-detail" id="taxYearDetail">
-            <p class="loading">Select a tax year to view details</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 

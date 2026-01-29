@@ -102,7 +102,7 @@
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      background: var(--bg-card);
+      background: var(--card-alt);
       border: 1px solid var(--border);
       border-radius: 6px;
       cursor: pointer;
@@ -136,10 +136,10 @@
       left: 0;
       margin-top: 4px;
       min-width: 260px;
-      background: var(--bg-card);
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       z-index: 100;
       overflow: hidden;
     }
@@ -161,11 +161,12 @@
     }
 
     .scenario-dropdown-item:hover {
-      background: var(--bg-hover, #f5f5f5);
+      background: var(--card-alt);
     }
 
     .scenario-dropdown-item.active {
-      background: var(--primary-bg, #e8f0fe);
+      background: var(--bg);
+      border-left: 3px solid var(--primary);
       font-weight: 500;
     }
 
@@ -200,7 +201,7 @@
     }
 
     .scenario-dropdown-item .scenario-item-actions button:hover {
-      background: var(--bg-card);
+      background: var(--card-alt);
       color: var(--text);
     }
 
@@ -217,7 +218,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       cursor: pointer;
-      background: var(--bg-card);
+      background: var(--card-alt);
       color: var(--text);
       transition: background 0.15s;
     }
@@ -226,6 +227,50 @@
       background: var(--primary);
       color: white;
       border-color: var(--primary);
+    }
+
+    /* Edit Tools Modal */
+    .edit-tools-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1002;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .edit-tools-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .edit-tools-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .edit-tools-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .edit-tools-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: flex-end;
     }
 
     .logout-btn {
@@ -1770,8 +1815,14 @@
     <div class="loading-text">Loading...</div>
   </div>
 
-  <!-- Auth Screen Container (shown first) -->
-  <div id="authScreen"></div>
+  <!-- Landing Page (shown to unauthenticated visitors) -->
+  <div id="landingPage"></div>
+
+  <!-- Auth Screen Container (sign in / sign up) -->
+  <div id="authScreen" style="display: none;"></div>
+
+  <!-- Onboarding Page (shown after first login, before wizard) -->
+  <div id="onboardingPage" style="display: none;"></div>
 
   <!-- Setup Wizard Container (shown for new users) -->
   <div id="setupWizard" style="display: none;"></div>
@@ -2403,7 +2454,8 @@
       createNewScenario,
       duplicateScenario,
       renameScenario,
-      deleteScenario
+      deleteScenario,
+      updateScenarioTools
     } from './src/storage/ScenarioRepository.js';
 
     // Import simulation engine for direct access in optimization
@@ -2420,13 +2472,27 @@
     window._constants = { EQUITY_RETURNS, INFLATION };
     window._mathUtils = { seededRng };
 
+    // Import landing page
+    import {
+      initLandingPage,
+      hideLandingPage,
+      getLandingPageStyles
+    } from './src/ui/components/LandingPage.js';
+
     // Import auth screen
     import {
       initAuthScreen,
       hideAuthScreen,
-      showAuthScreen,
+      showAuthScreenWithTab,
       getAuthScreenStyles
     } from './src/ui/components/AuthScreen.js';
+
+    // Import onboarding page
+    import {
+      initOnboardingPage,
+      hideOnboardingPage,
+      getOnboardingPageStyles
+    } from './src/ui/components/OnboardingPage.js';
 
     // Import setup wizard
     import {
@@ -2466,9 +2532,22 @@
     let latestHistResults = null;
     let latestScenResults = null;
 
+    /**
+     * Clear stress test results (used when switching scenarios)
+     */
+    function clearStressResults() {
+      latestMCResults = null;
+      latestHistResults = null;
+      latestScenResults = null;
+      const mcEl = document.getElementById('mcResults');
+      const histEl = document.getElementById('histResults');
+      if (mcEl) mcEl.innerHTML = '';
+      if (histEl) histEl.innerHTML = '';
+    }
+
     // Inject component styles
     const styleEl = document.createElement('style');
-    styleEl.textContent = getDecisionPanelStyles() + getAuthScreenStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
+    styleEl.textContent = getDecisionPanelStyles() + getLandingPageStyles() + getAuthScreenStyles() + getOnboardingPageStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
     document.head.appendChild(styleEl);
 
     // ============================================================
@@ -2717,7 +2796,9 @@
      * @param {string} initialTab - Which tab to show ('decision' or 'stress')
      */
     async function showMainApp(user, initialTab = null) {
+      hideLandingPage();
       hideAuthScreen();
+      hideOnboardingPage();
       hideSetupWizard();
       document.getElementById('mainApp').classList.remove('hidden');
 
@@ -2757,7 +2838,7 @@
     function applyTabVisibility(enabledTools) {
       // Map tool keys to tab data-tab values
       const toolTabMap = {
-        'decision': ['decision', 'history', 'taxYears'],
+        'decision': ['decision', 'history', 'taxyears'],
         'stress': ['stress']
       };
 
@@ -2909,6 +2990,26 @@
     }
 
     /**
+     * Show the onboarding page for new users
+     */
+    function showOnboarding(user) {
+      hideLandingPage();
+      hideAuthScreen();
+      const displayName = user.displayName || user.email.split('@')[0];
+      document.getElementById('onboardingPage').style.display = 'block';
+      initOnboardingPage(
+        document.getElementById('onboardingPage'),
+        displayName,
+        () => {
+          // User clicked "Set Up Your First Plan" — launch wizard
+          hideOnboardingPage();
+          document.getElementById('setupWizard').style.display = 'block';
+          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+        }
+      );
+    }
+
+    /**
      * Initialize auth screen with success callback
      */
     initAuthScreen(document.getElementById('authScreen'), async (user) => {
@@ -2923,20 +3024,31 @@
         if (hasData) {
           // Existing user - go straight to app
           console.log('Existing user - showing main app');
+          hideLandingPage();
           showMainApp(user);
         } else {
-          // New user - show setup wizard
-          console.log('New user - showing setup wizard');
-          hideAuthScreen();
-          document.getElementById('setupWizard').style.display = 'block';
-          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+          // New user - show onboarding page
+          console.log('New user - showing onboarding page');
+          showOnboarding(user);
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
-        // Fallback: show wizard if we can't determine data status
-        hideAuthScreen();
-        document.getElementById('setupWizard').style.display = 'block';
-        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+        // Fallback: show onboarding if we can't determine data status
+        showOnboarding(user);
+      }
+    });
+
+    /**
+     * Initialize landing page (shown first to unauthenticated visitors)
+     */
+    initLandingPage(document.getElementById('landingPage'), {
+      onGetStarted: () => {
+        hideLandingPage();
+        showAuthScreenWithTab('signup');
+      },
+      onSignIn: () => {
+        hideLandingPage();
+        showAuthScreenWithTab('signin');
       }
     });
 
@@ -2948,7 +3060,9 @@
         invalidateScenarioCache();
         await logOut();
         document.getElementById('mainApp').classList.add('hidden');
-        showAuthScreen();
+        hideOnboardingPage();
+        hideSetupWizard();
+        showAuthScreenWithTab('signin');
       } catch (error) {
         console.error('Logout error:', error);
       }
@@ -2987,6 +3101,7 @@
             ${s.description ? `<div class="scenario-item-desc">${s.description}</div>` : ''}
           </div>
           <div class="scenario-item-actions">
+            <button class="scenario-tools-btn" data-id="${s.id}" data-tools="${(s.enabledTools || ['stress','decision']).join(',')}" title="Edit Tools">&#9881;</button>
             <button class="scenario-rename-btn" data-id="${s.id}" data-name="${s.name}" title="Rename">&#9998;</button>
             ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${s.name}" title="Delete">&times;</button>` : ''}
           </div>
@@ -3015,6 +3130,9 @@
             invalidateCache();
             invalidateStressCache();
             document.getElementById('scenarioDropdown').classList.remove('open');
+
+            // Clear stale stress test results
+            clearStressResults();
 
             // Reload the app with new scenario data
             const newEnabledTools = await getActiveEnabledTools();
@@ -3061,6 +3179,17 @@
               alert('Failed to rename plan: ' + error.message);
             }
           }
+        });
+      });
+
+      // Edit tools buttons
+      listEl.querySelectorAll('.scenario-tools-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const currentTools = (btn.dataset.tools || 'stress,decision').split(',');
+          document.getElementById('scenarioDropdown').classList.remove('open');
+          showEditToolsModal(id, currentTools);
         });
       });
 
@@ -3135,6 +3264,94 @@
     });
 
     // ============================================================
+    // Edit Tools Modal
+    // ============================================================
+
+    /**
+     * Show the edit tools modal for a scenario
+     */
+    function showEditToolsModal(scenarioId, currentTools) {
+      // Remove any existing modal
+      const existing = document.getElementById('editToolsModal');
+      if (existing) existing.remove();
+
+      const hasStress = currentTools.includes('stress');
+      const hasDecision = currentTools.includes('decision');
+
+      const modal = document.createElement('div');
+      modal.id = 'editToolsModal';
+      modal.className = 'edit-tools-overlay';
+      modal.innerHTML = `
+        <div class="edit-tools-box">
+          <div class="edit-tools-title">Edit Enabled Tools</div>
+          <div class="edit-tools-desc">Choose which tools this plan should include. You can change this any time.</div>
+
+          <div class="wizard-tool-choices">
+            <label class="wizard-tool-option">
+              <input type="checkbox" id="editToolStress" ${hasStress ? 'checked' : ''}>
+              <div class="wizard-tool-info">
+                <strong>Stress Tester</strong>
+                <p>Run simulations to test if your pension can sustain your desired income.</p>
+              </div>
+            </label>
+            <label class="wizard-tool-option">
+              <input type="checkbox" id="editToolDecision" ${hasDecision ? 'checked' : ''}>
+              <div class="wizard-tool-info">
+                <strong>Monthly Decision Tool</strong>
+                <p>Get monthly withdrawal recommendations to maximise tax efficiency.</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="edit-tools-buttons">
+            <button class="wizard-btn secondary" id="editToolsCancel">Cancel</button>
+            <button class="wizard-btn primary" id="editToolsSave">Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      document.getElementById('editToolsCancel').addEventListener('click', () => modal.remove());
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      document.getElementById('editToolsSave').addEventListener('click', async () => {
+        const tools = [];
+        if (document.getElementById('editToolStress').checked) tools.push('stress');
+        if (document.getElementById('editToolDecision').checked) tools.push('decision');
+
+        try {
+          await updateScenarioTools(scenarioId, tools);
+
+          // If this is the active scenario, update tab visibility
+          const active = await getActiveScenarioAsync();
+          if (active && active.id === scenarioId) {
+            applyTabVisibility(tools);
+
+            // If current tab is now hidden, switch to first visible tab
+            const activeTabEl = document.querySelector('.tab.active');
+            if (activeTabEl && activeTabEl.style.display === 'none') {
+              const firstVisibleTab = document.querySelector('.tab:not([style*="display: none"])');
+              if (firstVisibleTab) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                firstVisibleTab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const contentId = firstVisibleTab.dataset.tab + '-content';
+                const contentEl = document.getElementById(contentId);
+                if (contentEl) contentEl.classList.add('active');
+              }
+            }
+          }
+
+          await renderScenarioSelector();
+          modal.remove();
+        } catch (error) {
+          console.error('Error updating scenario tools:', error);
+          alert('Failed to update tools: ' + error.message);
+        }
+      });
+    }
+
+    // ============================================================
     // Inactivity Timeout - Auto logout after 1 hour of inactivity
     // ============================================================
     const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -3159,9 +3376,12 @@
           try {
             invalidateCache();
             invalidateStressCache();
+            invalidateScenarioCache();
             await logOut();
             document.getElementById('mainApp').classList.add('hidden');
-            showAuthScreen();
+            hideOnboardingPage();
+            hideSetupWizard();
+            showAuthScreenWithTab('signin');
           } catch (error) {
             console.error('Auto-logout error:', error);
           }
@@ -3214,12 +3434,12 @@
         // Clear local storage too
         localStorage.clear();
 
-        // Hide main app and show wizard from the beginning
+        // Hide main app and show onboarding
         document.getElementById('mainApp').classList.add('hidden');
-        document.getElementById('setupWizard').style.display = 'block';
-        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+        const user = getCurrentUser();
+        showOnboarding(user);
 
-        alert('All data has been deleted. Please complete the setup wizard to start fresh.');
+        alert('All data has been deleted. Set up a new plan to start fresh.');
       } catch (error) {
         console.error('Reset error:', error);
         alert('Error resetting data: ' + error.message);

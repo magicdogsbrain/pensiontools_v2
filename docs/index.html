@@ -102,7 +102,7 @@
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      background: var(--bg-card);
+      background: var(--card-alt);
       border: 1px solid var(--border);
       border-radius: 6px;
       cursor: pointer;
@@ -136,10 +136,10 @@
       left: 0;
       margin-top: 4px;
       min-width: 260px;
-      background: var(--bg-card);
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       z-index: 100;
       overflow: hidden;
     }
@@ -161,11 +161,12 @@
     }
 
     .scenario-dropdown-item:hover {
-      background: var(--bg-hover, #f5f5f5);
+      background: var(--card-alt);
     }
 
     .scenario-dropdown-item.active {
-      background: var(--primary-bg, #e8f0fe);
+      background: var(--bg);
+      border-left: 3px solid var(--primary);
       font-weight: 500;
     }
 
@@ -200,7 +201,7 @@
     }
 
     .scenario-dropdown-item .scenario-item-actions button:hover {
-      background: var(--bg-card);
+      background: var(--card-alt);
       color: var(--text);
     }
 
@@ -217,7 +218,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       cursor: pointer;
-      background: var(--bg-card);
+      background: var(--card-alt);
       color: var(--text);
       transition: background 0.15s;
     }
@@ -226,6 +227,50 @@
       background: var(--primary);
       color: white;
       border-color: var(--primary);
+    }
+
+    /* Edit Tools Modal */
+    .edit-tools-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1002;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .edit-tools-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .edit-tools-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .edit-tools-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .edit-tools-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: flex-end;
     }
 
     .logout-btn {
@@ -1762,7 +1807,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-Dnhizotj.js"></script>
+  <script type="module" crossorigin src="./assets/main-D2x2asQN.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1771,8 +1816,14 @@
     <div class="loading-text">Loading...</div>
   </div>
 
-  <!-- Auth Screen Container (shown first) -->
-  <div id="authScreen"></div>
+  <!-- Landing Page (shown to unauthenticated visitors) -->
+  <div id="landingPage"></div>
+
+  <!-- Auth Screen Container (sign in / sign up) -->
+  <div id="authScreen" style="display: none;"></div>
+
+  <!-- Onboarding Page (shown after first login, before wizard) -->
+  <div id="onboardingPage" style="display: none;"></div>
 
   <!-- Setup Wizard Container (shown for new users) -->
   <div id="setupWizard" style="display: none;"></div>

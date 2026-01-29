@@ -3112,7 +3112,7 @@
       // Update active scenario name in button
       const nameEl = document.getElementById('scenarioActiveName');
       if (nameEl) {
-        nameEl.textContent = active ? active.name : 'No Plan';
+        nameEl.textContent = active ? (active.planDetails?.name || active.name || 'No Plan') : 'No Plan';
       }
 
       // Render dropdown list
@@ -3124,19 +3124,22 @@
         return;
       }
 
-      listEl.innerHTML = scenarios.map(s => `
+      listEl.innerHTML = scenarios.map(s => {
+        const name = s.planDetails?.name || s.name || 'Unnamed Plan';
+        const desc = s.planDetails?.description || s.description || '';
+        return `
         <div class="scenario-dropdown-item ${s.isActive ? 'active' : ''}" data-scenario-id="${s.id}">
           <div>
-            <div class="scenario-item-name">${s.name}</div>
-            ${s.description ? `<div class="scenario-item-desc">${s.description}</div>` : ''}
+            <div class="scenario-item-name">${name}</div>
+            ${desc ? `<div class="scenario-item-desc">${desc}</div>` : ''}
           </div>
           <div class="scenario-item-actions">
             <button class="scenario-tools-btn" data-id="${s.id}" data-tools="${(s.enabledTools || ['stress','decision']).join(',')}" title="Edit Tools">&#9881;</button>
-            <button class="scenario-rename-btn" data-id="${s.id}" data-name="${s.name}" title="Rename">&#9998;</button>
-            ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${s.name}" title="Delete">&times;</button>` : ''}
+            <button class="scenario-rename-btn" data-id="${s.id}" data-name="${name}" title="Rename">&#9998;</button>
+            ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${name}" title="Delete">&times;</button>` : ''}
           </div>
         </div>
-      `).join('');
+      `}).join('');
 
       // Click to switch scenario
       listEl.querySelectorAll('.scenario-dropdown-item').forEach(item => {
@@ -3283,7 +3286,8 @@
         return;
       }
 
-      const name = prompt('Name for the copy:', active.name + ' (copy)');
+      const activeName = active.planDetails?.name || active.name || 'My Plan';
+      const name = prompt('Name for the copy:', activeName + ' (copy)');
       if (!name || !name.trim()) return;
 
       try {

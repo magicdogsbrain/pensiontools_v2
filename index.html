@@ -2545,6 +2545,30 @@
       if (histEl) histEl.innerHTML = '';
     }
 
+    /**
+     * Reset stress sub-tabs to Monte Carlo (the default starting view)
+     */
+    function resetStressSubTabs() {
+      document.querySelectorAll('.sub-tab[data-stresstab]').forEach(t => t.classList.remove('active'));
+      const mcTab = document.querySelector('.sub-tab[data-stresstab="montecarlo"]');
+      if (mcTab) mcTab.classList.add('active');
+      document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
+      const mcContent = document.getElementById('stress-montecarlo');
+      if (mcContent) mcContent.classList.remove('hidden');
+    }
+
+    /**
+     * Reset decision sub-tabs to Monthly Entry (the default starting view)
+     */
+    function resetDecisionSubTabs() {
+      document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(t => t.classList.remove('active'));
+      const entryTab = document.querySelector('.sub-tab[data-decisiontab="entry"]');
+      if (entryTab) entryTab.classList.add('active');
+      document.querySelectorAll('.decision-subtab').forEach(c => c.classList.add('hidden'));
+      const entryContent = document.getElementById('decision-entry');
+      if (entryContent) entryContent.classList.remove('hidden');
+    }
+
     // Inject component styles
     const styleEl = document.createElement('style');
     styleEl.textContent = getDecisionPanelStyles() + getLandingPageStyles() + getAuthScreenStyles() + getOnboardingPageStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
@@ -2818,6 +2842,11 @@
 
       // ALWAYS pre-fill ALL input fields from stored settings on app load
       initializeAllInputsFromSettings();
+
+      // Reset sub-tabs to their default views
+      resetStressSubTabs();
+      resetDecisionSubTabs();
+      clearStressResults();
 
       // Determine which tab to show
       const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
@@ -3131,8 +3160,10 @@
             invalidateStressCache();
             document.getElementById('scenarioDropdown').classList.remove('open');
 
-            // Clear stale stress test results
+            // Clear stale results and reset sub-tabs
             clearStressResults();
+            resetStressSubTabs();
+            resetDecisionSubTabs();
 
             // Reload the app with new scenario data
             const newEnabledTools = await getActiveEnabledTools();

@@ -5,21 +5,20 @@
  * Data structure:
  *   users/{userId}/
  *     - profile (document)
- *     - scenarios/{scenarioId} (documents) - named scenario with stress + decision settings
- *     - history (subcollection) - monthly decision records (global, not per-scenario)
+ *     - scenarios/{scenarioId} (documents) - named scenarios with all tool data
+ *       Each scenario contains:
+ *         planDetails: { name, description }
+ *         enabledTools: ["stress", "decision"]
+ *         decisionTool: { settings, history, taxYears }
+ *         stressTool: { settings }
  */
 
 import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
   deleteDoc,
   collection,
-  query,
-  where,
-  orderBy,
-  limit,
   getDocs,
   addDoc,
   writeBatch
@@ -102,8 +101,9 @@ export async function loadScenario(scenarioId) {
 
 /**
  * Save/update a scenario
+ * Supports dot-notation keys for nested field updates (e.g. 'decisionTool.history')
  * @param {string} scenarioId - Scenario document ID
- * @param {object} data - Scenario data
+ * @param {object} data - Scenario data (can use dot-notation keys)
  * @returns {Promise<void>}
  */
 export async function saveScenario(scenarioId, data) {
@@ -199,154 +199,6 @@ export async function setActiveScenarioDoc(scenarioId) {
 }
 
 // ============================================================================
-// DECISION HISTORY (global, not per-scenario)
-// ============================================================================
-
-/**
- * Load decision history from Firestore
- * @param {object} options - Query options
- * @returns {Promise<object[]>}
- */
-export async function loadDecisionHistory(options = {}) {
-  if (!isFirebaseConfigured()) return [];
-
-  const collRef = getUserCollection('history');
-  if (!collRef) return [];
-
-  try {
-    let q = query(collRef, orderBy('date', options.sortDesc ? 'desc' : 'asc'));
-
-    if (options.taxYear) {
-      q = query(collRef,
-        where('taxYear', '==', options.taxYear),
-        orderBy('date', options.sortDesc ? 'desc' : 'asc')
-      );
-    }
-
-    if (options.limit) {
-      q = query(q, limit(options.limit));
-    }
-
-    const querySnapshot = await getDocs(q);
-    const history = [];
-    querySnapshot.forEach((docSnap) => {
-      history.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    return history;
-  } catch (error) {
-    console.error('Error loading decision history:', error);
-    return [];
-  }
-}
-
-/**
- * Add a history record
- * @param {object} record - History record
- * @returns {Promise<string>} Document ID
- */
-export async function addDecisionHistoryRecord(record) {
-  if (!isFirebaseConfigured()) return null;
-
-  const collRef = getUserCollection('history');
-  if (!collRef) return null;
-
-  try {
-    // Check for existing record with same date
-    const existingQuery = query(collRef, where('date', '==', record.date));
-    const existing = await getDocs(existingQuery);
-
-    if (!existing.empty) {
-      // Update existing
-      const docId = existing.docs[0].id;
-      await setDoc(doc(db, 'users', getCurrentUser().uid, 'history', docId), {
-        ...record,
-        updatedAt: new Date().toISOString()
-      });
-      return docId;
-    }
-
-    // Add new record
-    const docRef = await addDoc(collRef, {
-      ...record,
-      createdAt: new Date().toISOString()
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Error adding history record:', error);
-    throw error;
-  }
-}
-
-/**
- * Delete a history record
- * @param {string} date - Date of record to delete
- * @returns {Promise<void>}
- */
-export async function deleteDecisionHistoryRecord(date) {
-  if (!isFirebaseConfigured()) return;
-
-  const collRef = getUserCollection('history');
-  if (!collRef) return;
-
-  try {
-    const q = query(collRef, where('date', '==', date));
-    const querySnapshot = await getDocs(q);
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach((docSnap) => {
-      batch.delete(docSnap.ref);
-    });
-    await batch.commit();
-  } catch (error) {
-    console.error('Error deleting history record:', error);
-    throw error;
-  }
-}
-
-/**
- * Clear all history (WIPE)
- * @returns {Promise<void>}
- */
-export async function clearAllHistory() {
-  if (!isFirebaseConfigured()) return;
-
-  const collRef = getUserCollection('history');
-  if (!collRef) return;
-
-  try {
-    const querySnapshot = await getDocs(collRef);
-
-    // Firestore batch delete (max 500 at a time)
-    const batchSize = 500;
-    const batches = [];
-    let currentBatch = writeBatch(db);
-    let operationCount = 0;
-
-    querySnapshot.forEach((docSnap) => {
-      currentBatch.delete(docSnap.ref);
-      operationCount++;
-
-      if (operationCount >= batchSize) {
-        batches.push(currentBatch);
-        currentBatch = writeBatch(db);
-        operationCount = 0;
-      }
-    });
-
-    if (operationCount > 0) {
-      batches.push(currentBatch);
-    }
-
-    // Execute all batches
-    await Promise.all(batches.map(batch => batch.commit()));
-  } catch (error) {
-    console.error('Error clearing history:', error);
-    throw error;
-  }
-}
-
-// ============================================================================
 // USER PROFILE
 // ============================================================================
 
@@ -400,6 +252,7 @@ export async function saveUserProfile(data) {
 
 /**
  * Wipe ALL user data (nuclear option)
+ * History is inside scenario documents, so deleting scenarios removes everything.
  * @returns {Promise<void>}
  */
 export async function wipeAllUserData() {
@@ -409,22 +262,18 @@ export async function wipeAllUserData() {
   if (!user || !db) return;
 
   try {
-    // Clear history collection
-    await clearAllHistory();
-
-    // Delete all scenarios
+    // Delete all scenarios (history lives inside them)
     const scenarios = await loadAllScenarios();
-    if (scenarios.length > 0) {
-      const batch = writeBatch(db);
-      for (const scenario of scenarios) {
-        batch.delete(doc(db, 'users', user.uid, 'scenarios', scenario.id));
-      }
-      batch.delete(doc(db, 'users', user.uid, 'profile', 'settings'));
-      await batch.commit();
-    } else {
-      // Just delete profile
-      await deleteDoc(doc(db, 'users', user.uid, 'profile', 'settings'));
+    const batch = writeBatch(db);
+
+    for (const scenario of scenarios) {
+      batch.delete(doc(db, 'users', user.uid, 'scenarios', scenario.id));
     }
+
+    // Delete profile
+    batch.delete(doc(db, 'users', user.uid, 'profile', 'settings'));
+
+    await batch.commit();
 
     console.log('All user data wiped successfully');
   } catch (error) {

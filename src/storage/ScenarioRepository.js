@@ -3,12 +3,11 @@
  * Manages named scenarios that contain settings for both Decision Tool and Stress Tester.
  *
  * Each scenario has:
- *   - name: User-chosen name (e.g. "Retire at 57")
- *   - description: Optional free text
+ *   - planDetails: { name, description }
  *   - enabledTools: Array of enabled tools (e.g. ["stress", "decision"])
  *   - isActive: Boolean - only one scenario active at a time
- *   - stressSettings: Complete stress tester settings
- *   - decisionSettings: Complete decision tool settings + taxYears
+ *   - decisionTool: { settings, history, taxYears }
+ *   - stressTool: { settings }
  *
  * Requires user to be logged in - no local storage fallback.
  */
@@ -109,13 +108,17 @@ export function getDefaultTaxYears() {
  */
 export function getDefaultScenario(name = 'My Plan', description = '', enabledTools = ['stress', 'decision']) {
   return {
-    name,
-    description,
+    planDetails: { name, description },
     enabledTools,
     isActive: true,
-    stressSettings: getDefaultStressSettings(),
-    decisionSettings: getDefaultDecisionSettings(),
-    taxYears: getDefaultTaxYears()
+    decisionTool: {
+      settings: getDefaultDecisionSettings(),
+      history: [],
+      taxYears: getDefaultTaxYears()
+    },
+    stressTool: {
+      settings: getDefaultStressSettings()
+    }
   };
 }
 
@@ -125,7 +128,7 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
 
 /**
  * List all scenarios (metadata only from cache or Firestore)
- * @returns {Promise<object[]>} Array of scenarios with id, name, description, enabledTools, isActive
+ * @returns {Promise<object[]>} Array of scenarios
  */
 export async function listScenariosAsync() {
   if (cachedScenarios) {
@@ -164,7 +167,6 @@ export async function getActiveScenarioAsync() {
     const active = scenarios.find(s => s.isActive);
 
     if (active) {
-      // If we already have full data from listScenarios, use it
       cachedActiveScenario = active;
       return active;
     }
@@ -201,15 +203,15 @@ export async function createNewScenario(name, description, enabledTools, overrid
 
   const scenario = getDefaultScenario(name, description, enabledTools);
 
-  // Apply overrides
+  // Apply overrides (using new nested structure)
   if (overrides.stressSettings) {
-    scenario.stressSettings = { ...scenario.stressSettings, ...overrides.stressSettings };
+    scenario.stressTool.settings = { ...scenario.stressTool.settings, ...overrides.stressSettings };
   }
   if (overrides.decisionSettings) {
-    scenario.decisionSettings = { ...scenario.decisionSettings, ...overrides.decisionSettings };
+    scenario.decisionTool.settings = { ...scenario.decisionTool.settings, ...overrides.decisionSettings };
   }
   if (overrides.taxYears) {
-    scenario.taxYears = overrides.taxYears;
+    scenario.decisionTool.taxYears = overrides.taxYears;
   }
 
   scenario.isActive = setActive;
@@ -218,8 +220,7 @@ export async function createNewScenario(name, description, enabledTools, overrid
   if (setActive && cachedScenarios) {
     const currentActive = cachedScenarios.find(s => s.isActive);
     if (currentActive) {
-      await setActiveScenarioDoc(null); // Will be overridden by new scenario's isActive
-      // Actually we need to unset the old one
+      await setActiveScenarioDoc(null);
       await saveScenario(currentActive.id, { isActive: false });
     }
   }
@@ -263,7 +264,7 @@ export async function duplicateScenario(scenarioId, newName) {
   }
 
   const { id, createdAt, lastModified, ...data } = source;
-  data.name = newName;
+  data.planDetails = { ...data.planDetails, name: newName };
   data.isActive = false;
 
   const newId = await createScenario(data);
@@ -282,7 +283,7 @@ export async function renameScenario(scenarioId, newName) {
     throw new Error('Must be logged in to rename scenarios');
   }
 
-  await saveScenario(scenarioId, { name: newName });
+  await saveScenario(scenarioId, { 'planDetails.name': newName });
   invalidateScenarioCache();
 }
 
@@ -297,7 +298,7 @@ export async function updateScenarioDescription(scenarioId, description) {
     throw new Error('Must be logged in to update scenarios');
   }
 
-  await saveScenario(scenarioId, { description });
+  await saveScenario(scenarioId, { 'planDetails.description': description });
   invalidateScenarioCache();
 }
 
@@ -355,25 +356,26 @@ export async function deleteScenario(scenarioId) {
  */
 export async function getActiveStressSettings() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.stressSettings || getDefaultStressSettings();
+  return scenario?.stressTool?.settings || getDefaultStressSettings();
 }
 
 /**
  * Save stress settings to the active scenario
- * @param {object} stressSettings - Updated stress settings
+ * @param {object} settings - Updated stress settings
  * @returns {Promise<void>}
  */
-export async function saveActiveStressSettings(stressSettings) {
+export async function saveActiveStressSettings(settings) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) {
     throw new Error('No active scenario');
   }
 
-  await saveScenario(scenario.id, { stressSettings });
+  await saveScenario(scenario.id, { 'stressTool.settings': settings });
 
   // Update cache
   if (cachedActiveScenario) {
-    cachedActiveScenario.stressSettings = stressSettings;
+    if (!cachedActiveScenario.stressTool) cachedActiveScenario.stressTool = {};
+    cachedActiveScenario.stressTool.settings = settings;
   }
 }
 
@@ -383,25 +385,26 @@ export async function saveActiveStressSettings(stressSettings) {
  */
 export async function getActiveDecisionSettings() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.decisionSettings || getDefaultDecisionSettings();
+  return scenario?.decisionTool?.settings || getDefaultDecisionSettings();
 }
 
 /**
  * Save decision settings to the active scenario
- * @param {object} decisionSettings - Updated decision settings
+ * @param {object} settings - Updated decision settings
  * @returns {Promise<void>}
  */
-export async function saveActiveDecisionSettings(decisionSettings) {
+export async function saveActiveDecisionSettings(settings) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) {
     throw new Error('No active scenario');
   }
 
-  await saveScenario(scenario.id, { decisionSettings });
+  await saveScenario(scenario.id, { 'decisionTool.settings': settings });
 
   // Update cache
   if (cachedActiveScenario) {
-    cachedActiveScenario.decisionSettings = decisionSettings;
+    if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
+    cachedActiveScenario.decisionTool.settings = settings;
   }
 }
 
@@ -411,7 +414,7 @@ export async function saveActiveDecisionSettings(decisionSettings) {
  */
 export async function getActiveTaxYears() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.taxYears || getDefaultTaxYears();
+  return scenario?.decisionTool?.taxYears || getDefaultTaxYears();
 }
 
 /**
@@ -425,11 +428,41 @@ export async function saveActiveTaxYears(taxYears) {
     throw new Error('No active scenario');
   }
 
-  await saveScenario(scenario.id, { taxYears });
+  await saveScenario(scenario.id, { 'decisionTool.taxYears': taxYears });
 
   // Update cache
   if (cachedActiveScenario) {
-    cachedActiveScenario.taxYears = taxYears;
+    if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
+    cachedActiveScenario.decisionTool.taxYears = taxYears;
+  }
+}
+
+/**
+ * Get history from the active scenario
+ * @returns {Promise<object[]>} History array
+ */
+export async function getActiveHistory() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.decisionTool?.history || [];
+}
+
+/**
+ * Save history to the active scenario
+ * @param {object[]} history - Updated history array
+ * @returns {Promise<void>}
+ */
+export async function saveActiveHistory(history) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) {
+    throw new Error('No active scenario');
+  }
+
+  await saveScenario(scenario.id, { 'decisionTool.history': history });
+
+  // Update cache
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
+    cachedActiveScenario.decisionTool.history = history;
   }
 }
 

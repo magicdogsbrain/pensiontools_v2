@@ -362,6 +362,27 @@ export function showAuthScreen() {
 }
 
 /**
+ * Show the auth screen with a specific tab active
+ * @param {string} tab - 'signin' or 'signup'
+ */
+export function showAuthScreenWithTab(tab = 'signin') {
+  showAuthScreen();
+
+  // Switch to requested tab
+  const tabs = authScreenElement.querySelectorAll('.auth-screen-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  const targetTab = authScreenElement.querySelector(`.auth-screen-tab[data-tab="${tab}"]`);
+  if (targetTab) targetTab.classList.add('active');
+
+  const signinForm = document.getElementById('signinForm');
+  const signupForm = document.getElementById('signupForm');
+  if (signinForm && signupForm) {
+    signinForm.style.display = tab === 'signin' ? 'block' : 'none';
+    signupForm.style.display = tab === 'signup' ? 'block' : 'none';
+  }
+}
+
+/**
  * Get auth screen styles
  */
 export function getAuthScreenStyles() {

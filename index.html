@@ -82,6 +82,152 @@
       white-space: nowrap;
     }
 
+    /* Scenario Selector */
+    .scenario-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .scenario-selector-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scenario-active-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      max-width: 220px;
+      transition: border-color 0.2s;
+    }
+
+    .scenario-active-btn:hover {
+      border-color: var(--primary);
+    }
+
+    .scenario-active-btn .scenario-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .scenario-active-btn .scenario-chevron {
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .scenario-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      min-width: 260px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .scenario-dropdown.open {
+      display: block;
+    }
+
+    .scenario-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .scenario-dropdown-item:hover {
+      background: var(--bg-hover, #f5f5f5);
+    }
+
+    .scenario-dropdown-item.active {
+      background: var(--primary-bg, #e8f0fe);
+      font-weight: 500;
+    }
+
+    .scenario-dropdown-item .scenario-item-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .scenario-dropdown-item .scenario-item-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .scenario-dropdown-item .scenario-item-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .scenario-dropdown-item .scenario-item-actions button {
+      padding: 2px 6px;
+      font-size: 11px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .scenario-dropdown-item .scenario-item-actions button:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .scenario-dropdown-actions {
+      padding: 8px 14px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .scenario-dropdown-actions button {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      background: var(--bg-card);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .scenario-dropdown-actions button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
     .logout-btn {
       padding: 8px 16px;
       background: var(--card-alt);
@@ -319,6 +465,21 @@
       .user-email {
         max-width: 140px;
         font-size: 12px;
+      }
+
+      .scenario-selector {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .scenario-active-btn {
+        max-width: 180px;
+      }
+
+      .scenario-dropdown {
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 240px;
       }
 
       /* Tabs container - scroll hint on mobile */
@@ -1624,6 +1785,20 @@
       <!-- Header -->
       <header class="header">
         <h1>Pension Planner</h1>
+        <div class="scenario-selector" id="scenarioSelector">
+          <span class="scenario-selector-label">Plan:</span>
+          <button class="scenario-active-btn" id="scenarioActiveBtn">
+            <span class="scenario-name" id="scenarioActiveName">Loading...</span>
+            <span class="scenario-chevron">&#9660;</span>
+          </button>
+          <div class="scenario-dropdown" id="scenarioDropdown">
+            <div id="scenarioList"></div>
+            <div class="scenario-dropdown-actions">
+              <button id="scenarioNewBtn">+ New Plan</button>
+              <button id="scenarioDuplicateBtn">Duplicate</button>
+            </div>
+          </div>
+        </div>
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
@@ -2219,6 +2394,17 @@
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
     import { generateGlidepathSchedule } from './src/services/GlidepathService.js';
     import { resetStressSettings, invalidateStressCache } from './src/storage/StressRepository.js';
+    import {
+      invalidateScenarioCache,
+      listScenariosAsync,
+      getActiveScenarioAsync,
+      getActiveEnabledTools,
+      switchScenario,
+      createNewScenario,
+      duplicateScenario,
+      renameScenario,
+      deleteScenario
+    } from './src/storage/ScenarioRepository.js';
 
     // Import simulation engine for direct access in optimization
     import { runMonteCarlo, runHistorical, simulate } from './src/services/SimulationEngine.js';
@@ -2530,13 +2716,20 @@
      * @param {object} user - Firebase user object
      * @param {string} initialTab - Which tab to show ('decision' or 'stress')
      */
-    async function showMainApp(user, initialTab = 'decision') {
+    async function showMainApp(user, initialTab = null) {
       hideAuthScreen();
       hideSetupWizard();
       document.getElementById('mainApp').classList.remove('hidden');
 
       // Update user info in header
       document.getElementById('userEmail').textContent = user.email;
+
+      // Load scenario selector
+      await renderScenarioSelector();
+
+      // Apply tab visibility based on enabled tools
+      const enabledTools = await getActiveEnabledTools();
+      applyTabVisibility(enabledTools);
 
       // Load initial data
       await renderHistory();
@@ -2545,14 +2738,48 @@
       // ALWAYS pre-fill ALL input fields from stored settings on app load
       initializeAllInputsFromSettings();
 
-      // Switch to the requested tab
-      if (initialTab === 'stress') {
-        // Activate stress tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.tab[data-tab="stress"]').classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('stress-content').classList.add('active');
-      }
+      // Determine which tab to show
+      const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
+
+      // Activate the target tab
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      const targetTabEl = document.querySelector(`.tab[data-tab="${targetTab}"]`);
+      if (targetTabEl) targetTabEl.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const targetContent = document.getElementById(`${targetTab}-content`);
+      if (targetContent) targetContent.classList.add('active');
+    }
+
+    /**
+     * Show/hide tabs based on enabled tools in the active scenario
+     * @param {string[]} enabledTools - Array of enabled tool keys
+     */
+    function applyTabVisibility(enabledTools) {
+      // Map tool keys to tab data-tab values
+      const toolTabMap = {
+        'decision': ['decision', 'history', 'taxYears'],
+        'stress': ['stress']
+      };
+
+      // Get all tabs
+      const allTabs = document.querySelectorAll('.tab');
+
+      allTabs.forEach(tab => {
+        const tabKey = tab.dataset.tab;
+        // Find which tool this tab belongs to
+        let shouldShow = false;
+        for (const [tool, tabs] of Object.entries(toolTabMap)) {
+          if (tabs.includes(tabKey)) {
+            shouldShow = enabledTools.includes(tool);
+            break;
+          }
+        }
+        // If tab doesn't belong to any tool mapping, always show it
+        if (!Object.values(toolTabMap).flat().includes(tabKey)) {
+          shouldShow = true;
+        }
+        tab.style.display = shouldShow ? '' : 'none';
+      });
     }
 
     /**
@@ -2633,21 +2860,9 @@
     async function handleWizardComplete(wizardData) {
       console.log('Wizard completed with data:', wizardData);
 
-      // Save settings from wizard
       try {
-        // Save decision settings (includes state pension for real-world decisions)
-        await saveDecisionSettings({
-          baseSalary: wizardData.decisionSalary,
-          equityMin: wizardData.decisionEquity,
-          bondMin: wizardData.decisionBond,
-          cashTarget: wizardData.decisionCash,
-          duration: wizardData.decisionDuration,
-          spStartDate: wizardData.spStartDate,
-          spWeeklyAmount: wizardData.spWeeklyAmount
-        });
-
-        // Save stress settings (includes state pension for simulations)
-        await saveStressSettings({
+        // Build stress settings from wizard data
+        const stressSettings = {
           baseSalary: wizardData.baseSalary,
           other: wizardData.otherIncome,
           spStartDate: wizardData.spStartDate,
@@ -2657,34 +2872,40 @@
           cashTarget: wizardData.cashTarget,
           duration: wizardData.duration,
           taxMode: wizardData.taxMode
-        });
+        };
 
-        // Tax year is NOT created here - the TaxYearSetupWizard will be triggered
-        // when the user first attempts a decision calculation, allowing them to
-        // configure tax thresholds, ISA requirements, and other tax year settings
-        // through the dedicated wizard flow.
+        // Build decision settings from wizard data
+        const decisionSettings = {
+          baseSalary: wizardData.decisionSalary,
+          equityMin: wizardData.decisionEquity,
+          bondMin: wizardData.decisionBond,
+          cashTarget: wizardData.decisionCash,
+          duration: wizardData.decisionDuration,
+          spStartDate: wizardData.spStartDate,
+          spWeeklyAmount: wizardData.spWeeklyAmount
+        };
 
-        // Pre-fill form with wizard values
-        document.getElementById('entryEquity').value = wizardData.decisionEquity;
-        document.getElementById('entryBond').value = wizardData.decisionBond;
-        document.getElementById('entryCash').value = wizardData.decisionCash;
+        // Create scenario with wizard data
+        await createNewScenario(
+          wizardData.scenarioName || 'My Plan',
+          wizardData.scenarioDescription || '',
+          wizardData.enabledTools || ['stress', 'decision'],
+          { stressSettings, decisionSettings },
+          true  // set as active
+        );
 
-        // Pre-fill Monte Carlo with wizard values
-        document.getElementById('mcEquity').value = wizardData.equityMin;
-        document.getElementById('mcBond').value = wizardData.bondMin;
-        document.getElementById('mcCash').value = wizardData.cashTarget;
-        document.getElementById('mcYears').value = wizardData.duration;
-
-        // Refresh number overlays after programmatic value changes
-        refreshNumberOverlays();
+        // Invalidate caches so app loads fresh from the new scenario
+        invalidateCache();
+        invalidateStressCache();
 
       } catch (error) {
-        console.error('Error saving wizard settings:', error);
+        console.error('Error creating scenario from wizard:', error);
       }
 
-      // Show main app - go to STRESS TESTER for new users after wizard
+      // Show main app - go to first enabled tool tab
       const user = getCurrentUser();
-      showMainApp(user, 'stress');
+      const initialTab = wizardData.enabledTools.includes('stress') ? 'stress' : 'decision';
+      showMainApp(user, initialTab);
     }
 
     /**
@@ -2724,11 +2945,192 @@
       try {
         invalidateCache();
         invalidateStressCache();
+        invalidateScenarioCache();
         await logOut();
         document.getElementById('mainApp').classList.add('hidden');
         showAuthScreen();
       } catch (error) {
         console.error('Logout error:', error);
+      }
+    });
+
+    // ============================================================
+    // Scenario Selector
+    // ============================================================
+
+    /**
+     * Render the scenario dropdown list
+     */
+    async function renderScenarioSelector() {
+      const scenarios = await listScenariosAsync();
+      const active = scenarios.find(s => s.isActive);
+
+      // Update active scenario name in button
+      const nameEl = document.getElementById('scenarioActiveName');
+      if (nameEl) {
+        nameEl.textContent = active ? active.name : 'No Plan';
+      }
+
+      // Render dropdown list
+      const listEl = document.getElementById('scenarioList');
+      if (!listEl) return;
+
+      if (scenarios.length === 0) {
+        listEl.innerHTML = '<div class="scenario-dropdown-item" style="color:var(--text-muted);cursor:default;">No plans yet</div>';
+        return;
+      }
+
+      listEl.innerHTML = scenarios.map(s => `
+        <div class="scenario-dropdown-item ${s.isActive ? 'active' : ''}" data-scenario-id="${s.id}">
+          <div>
+            <div class="scenario-item-name">${s.name}</div>
+            ${s.description ? `<div class="scenario-item-desc">${s.description}</div>` : ''}
+          </div>
+          <div class="scenario-item-actions">
+            <button class="scenario-rename-btn" data-id="${s.id}" data-name="${s.name}" title="Rename">&#9998;</button>
+            ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${s.name}" title="Delete">&times;</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Click to switch scenario
+      listEl.querySelectorAll('.scenario-dropdown-item').forEach(item => {
+        item.addEventListener('click', async (e) => {
+          // Don't switch if clicking action buttons
+          if (e.target.closest('.scenario-item-actions')) return;
+
+          const id = item.dataset.scenarioId;
+          if (!id) return;
+
+          const current = scenarios.find(s => s.isActive);
+          if (current && current.id === id) {
+            // Already active, just close dropdown
+            document.getElementById('scenarioDropdown').classList.remove('open');
+            return;
+          }
+
+          try {
+            // Switch scenario
+            await switchScenario(id);
+            invalidateCache();
+            invalidateStressCache();
+            document.getElementById('scenarioDropdown').classList.remove('open');
+
+            // Reload the app with new scenario data
+            const newEnabledTools = await getActiveEnabledTools();
+            applyTabVisibility(newEnabledTools);
+
+            // If current tab is now hidden, switch to first visible tab
+            const activeTabEl = document.querySelector('.tab.active');
+            if (activeTabEl && activeTabEl.style.display === 'none') {
+              const firstVisibleTab = document.querySelector('.tab:not([style*="display: none"])');
+              if (firstVisibleTab) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                firstVisibleTab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const contentId = firstVisibleTab.dataset.tab + '-content';
+                const contentEl = document.getElementById(contentId);
+                if (contentEl) contentEl.classList.add('active');
+              }
+            }
+
+            await renderHistory();
+            await renderTaxYears();
+            await initializeAllInputsFromSettings();
+            await renderScenarioSelector();
+          } catch (error) {
+            console.error('Error switching scenario:', error);
+            alert('Failed to switch plan: ' + error.message);
+          }
+        });
+      });
+
+      // Rename buttons
+      listEl.querySelectorAll('.scenario-rename-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const currentName = btn.dataset.name;
+          const newName = prompt('Rename plan:', currentName);
+          if (newName && newName.trim() && newName.trim() !== currentName) {
+            try {
+              await renameScenario(id, newName.trim());
+              await renderScenarioSelector();
+            } catch (error) {
+              console.error('Error renaming scenario:', error);
+              alert('Failed to rename plan: ' + error.message);
+            }
+          }
+        });
+      });
+
+      // Delete buttons
+      listEl.querySelectorAll('.scenario-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const name = btn.dataset.name;
+          if (confirm(`Delete plan "${name}"? This cannot be undone.`)) {
+            try {
+              await deleteScenario(id);
+              invalidateCache();
+              invalidateStressCache();
+              await renderHistory();
+              await renderTaxYears();
+              await initializeAllInputsFromSettings();
+              await renderScenarioSelector();
+            } catch (error) {
+              console.error('Error deleting scenario:', error);
+              alert('Failed to delete plan: ' + error.message);
+            }
+          }
+        });
+      });
+    }
+
+    // Toggle scenario dropdown
+    document.getElementById('scenarioActiveBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dropdown = document.getElementById('scenarioDropdown');
+      dropdown.classList.toggle('open');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const selector = document.getElementById('scenarioSelector');
+      if (selector && !selector.contains(e.target)) {
+        document.getElementById('scenarioDropdown').classList.remove('open');
+      }
+    });
+
+    // New Plan button - launches the wizard for a new scenario
+    document.getElementById('scenarioNewBtn').addEventListener('click', async () => {
+      document.getElementById('scenarioDropdown').classList.remove('open');
+
+      // Show the wizard to create a new plan
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('setupWizard').style.display = 'block';
+      initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+    });
+
+    // Duplicate Plan button
+    document.getElementById('scenarioDuplicateBtn').addEventListener('click', async () => {
+      document.getElementById('scenarioDropdown').classList.remove('open');
+      const active = await getActiveScenarioAsync();
+      if (!active) {
+        alert('No active plan to duplicate.');
+        return;
+      }
+
+      const name = prompt('Name for the copy:', active.name + ' (copy)');
+      if (!name || !name.trim()) return;
+
+      try {
+        await duplicateScenario(active.id, name.trim());
+        await renderScenarioSelector();
+      } catch (error) {
+        console.error('Error duplicating scenario:', error);
+        alert('Failed to duplicate plan: ' + error.message);
       }
     });
 
@@ -2807,6 +3209,7 @@
         // Invalidate all caches
         invalidateCache();
         invalidateStressCache();
+        invalidateScenarioCache();
 
         // Clear local storage too
         localStorage.clear();

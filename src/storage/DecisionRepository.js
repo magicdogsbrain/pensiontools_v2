@@ -1,6 +1,9 @@
 /**
  * Decision Repository
- * Manages persistence of Decision Tool data via Firebase Firestore
+ * Manages persistence of Decision Tool data.
+ *
+ * Settings and tax years are stored per-scenario (via ScenarioRepository).
+ * History is global (not per-scenario) via FirestoreService.
  *
  * Requires user to be logged in - no local storage fallback.
  */
@@ -9,16 +12,22 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import {
-  loadDecisionData,
-  saveDecisionData,
   loadDecisionHistory,
   addDecisionHistoryRecord,
   deleteDecisionHistoryRecord,
   clearAllHistory
 } from '../firebase/FirestoreService.js';
+import {
+  getActiveScenarioAsync,
+  getActiveDecisionSettings,
+  saveActiveDecisionSettings,
+  getActiveTaxYears,
+  saveActiveTaxYears,
+  invalidateScenarioCache
+} from './ScenarioRepository.js';
 
-// In-memory cache for Firebase data
-// Cache is valid until explicitly invalidated (login/logout/wipe)
+// In-memory cache for the combined decision DB (settings from scenario + history from global)
+// Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedDecisionDB = null;
 
 /**
@@ -80,7 +89,8 @@ export function loadDecisionDB() {
 }
 
 /**
- * Loads decision database asynchronously from Firebase
+ * Loads decision database asynchronously
+ * Settings/taxYears come from the active scenario, history from global subcollection
  * @returns {Promise<object>} Decision database
  */
 export async function loadDecisionDBAsync() {
@@ -95,32 +105,34 @@ export async function loadDecisionDBAsync() {
   }
 
   try {
-    const [cloudData, cloudHistory] = await Promise.all([
-      loadDecisionData(),
+    // Load settings from active scenario and history from global subcollection in parallel
+    const [decisionSettings, taxYears, cloudHistory] = await Promise.all([
+      getActiveDecisionSettings(),
+      getActiveTaxYears(),
       loadDecisionHistory()
     ]);
 
-    if (cloudData) {
-      const db = {
-        settings: cloudData.settings || getDefaultDecisionDB().settings,
-        taxYears: cloudData.taxYears || {},
-        history: cloudHistory || [],
-        lastModified: cloudData.lastModified,
-        checksum: cloudData.checksum
-      };
-      cachedDecisionDB = db;
-      return db;
-    }
+    const db = {
+      settings: decisionSettings || getDefaultDecisionDB().settings,
+      taxYears: taxYears || {},
+      history: cloudHistory || [],
+      lastModified: new Date().toISOString(),
+      checksum: null
+    };
+    db.checksum = generateDecisionChecksum(db);
+    cachedDecisionDB = db;
+    return db;
   } catch (error) {
-    console.error('Error loading from Firebase:', error);
+    console.error('Error loading decision data:', error);
   }
 
-  // Return defaults if no cloud data
+  // Return defaults if no data
   return getDefaultDecisionDB();
 }
 
 /**
- * Saves the decision database to Firebase
+ * Saves the decision database
+ * Settings/taxYears saved to active scenario, history is managed separately
  * @param {object} db - Decision database
  * @returns {Promise<void>}
  */
@@ -133,17 +145,16 @@ export async function saveDecisionDB(db) {
     db.lastModified = new Date().toISOString();
     db.checksum = generateDecisionChecksum(db);
 
-    await saveDecisionData({
-      settings: db.settings,
-      taxYears: db.taxYears,
-      lastModified: db.lastModified,
-      checksum: db.checksum
-    });
+    // Save settings and taxYears to the active scenario
+    await Promise.all([
+      saveActiveDecisionSettings(db.settings),
+      saveActiveTaxYears(db.taxYears)
+    ]);
 
     // Update cache
     cachedDecisionDB = db;
   } catch (error) {
-    console.error('Error saving to Firebase:', error);
+    console.error('Error saving decision data:', error);
     throw new Error('Failed to save decision data');
   }
 }
@@ -505,7 +516,7 @@ export async function clearHistory() {
 
 /**
  * WIPE ALL DECISION DATA - Complete reset
- * Clears settings, tax years, and history
+ * Resets settings and tax years in the active scenario, clears global history
  * @returns {Promise<void>}
  */
 export async function wipeAllDecisionData() {
@@ -516,11 +527,10 @@ export async function wipeAllDecisionData() {
   const defaultDB = getDefaultDecisionDB();
 
   await clearAllHistory();
-  await saveDecisionData({
-    settings: defaultDB.settings,
-    taxYears: {},
-    lastModified: new Date().toISOString()
-  });
+  await Promise.all([
+    saveActiveDecisionSettings(defaultDB.settings),
+    saveActiveTaxYears({})
+  ]);
 
   invalidateCache();
 }

@@ -1,6 +1,8 @@
 /**
  * Stress Repository
- * Manages persistence of Stress Tester data via Firebase Firestore
+ * Manages persistence of Stress Tester data.
+ *
+ * Settings are stored per-scenario (via ScenarioRepository).
  *
  * Requires user to be logged in - no local storage fallback.
  */
@@ -8,11 +10,15 @@
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
-import { loadStressData, saveStressData } from '../firebase/FirestoreService.js';
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
+import {
+  getActiveStressSettings,
+  saveActiveStressSettings,
+  invalidateScenarioCache
+} from './ScenarioRepository.js';
 
 // In-memory cache
-// Cache is valid until explicitly invalidated (login/logout/wipe)
+// Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedStressDB = null;
 
 /**
@@ -81,7 +87,7 @@ export function loadStressDB() {
 }
 
 /**
- * Loads stress database asynchronously from Firebase
+ * Loads stress database asynchronously from active scenario
  * @returns {Promise<object>} Stress database
  */
 export async function loadStressDBAsync() {
@@ -96,27 +102,27 @@ export async function loadStressDBAsync() {
   }
 
   try {
-    const cloudData = await loadStressData();
+    const stressSettings = await getActiveStressSettings();
 
-    if (cloudData) {
+    if (stressSettings) {
       const db = {
-        settings: cloudData.settings || getDefaultStressDB().settings,
-        lastModified: cloudData.lastModified,
-        checksum: cloudData.checksum
+        settings: stressSettings,
+        lastModified: new Date().toISOString(),
+        checksum: null
       };
       cachedStressDB = migrateStressDB(db);
       return cachedStressDB;
     }
   } catch (error) {
-    console.error('Error loading stress data from Firebase:', error);
+    console.error('Error loading stress data:', error);
   }
 
-  // Return defaults if no cloud data
+  // Return defaults if no data
   return getDefaultStressDB();
 }
 
 /**
- * Saves the stress database to Firebase
+ * Saves the stress database to active scenario
  * @param {object} db - Stress database
  * @returns {Promise<void>}
  */
@@ -129,16 +135,12 @@ export async function saveStressDB(db) {
     db.lastModified = new Date().toISOString();
     db.checksum = generateStressChecksum(db);
 
-    await saveStressData({
-      settings: db.settings,
-      lastModified: db.lastModified,
-      checksum: db.checksum
-    });
+    await saveActiveStressSettings(db.settings);
 
     // Update cache
     cachedStressDB = db;
   } catch (error) {
-    console.error('Error saving stress data to Firebase:', error);
+    console.error('Error saving stress data:', error);
     throw new Error('Failed to save stress data');
   }
 }
@@ -231,7 +233,7 @@ export async function updateStressSetting(key, value) {
 }
 
 /**
- * Resets stress settings to defaults
+ * Resets stress settings to defaults in the active scenario
  * @returns {Promise<void>}
  */
 export async function resetStressSettings() {
@@ -240,12 +242,7 @@ export async function resetStressSettings() {
   }
 
   const defaultDB = getDefaultStressDB();
-
-  await saveStressData({
-    settings: defaultDB.settings,
-    lastModified: new Date().toISOString()
-  });
-
+  await saveActiveStressSettings(defaultDB.settings);
   invalidateStressCache();
 }
 
@@ -334,4 +331,3 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     hodlValue: settings.hodlValue
   };
 }
-

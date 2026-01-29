@@ -12,9 +12,8 @@ import { loadStressData, saveStressData } from '../firebase/FirestoreService.js'
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
 
 // In-memory cache
+// Cache is valid until explicitly invalidated (login/logout/wipe)
 let cachedStressDB = null;
-let cacheTimestamp = null;
-const CACHE_DURATION = 5000; // 5 seconds
 
 /**
  * Default stress database structure
@@ -66,7 +65,6 @@ function isFirebaseAvailable() {
  */
 export function invalidateStressCache() {
   cachedStressDB = null;
-  cacheTimestamp = null;
 }
 
 /**
@@ -75,7 +73,7 @@ export function invalidateStressCache() {
  */
 export function loadStressDB() {
   // Return cached data if available
-  if (cachedStressDB && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
+  if (cachedStressDB) {
     return cachedStressDB;
   }
   // Return defaults - async load should be used for actual data
@@ -88,7 +86,7 @@ export function loadStressDB() {
  */
 export async function loadStressDBAsync() {
   // Check cache
-  if (cachedStressDB && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
+  if (cachedStressDB) {
     return cachedStressDB;
   }
 
@@ -107,7 +105,6 @@ export async function loadStressDBAsync() {
         checksum: cloudData.checksum
       };
       cachedStressDB = migrateStressDB(db);
-      cacheTimestamp = Date.now();
       return cachedStressDB;
     }
   } catch (error) {
@@ -140,7 +137,6 @@ export async function saveStressDB(db) {
 
     // Update cache
     cachedStressDB = db;
-    cacheTimestamp = Date.now();
   } catch (error) {
     console.error('Error saving stress data to Firebase:', error);
     throw new Error('Failed to save stress data');

@@ -18,9 +18,8 @@ import {
 } from '../firebase/FirestoreService.js';
 
 // In-memory cache for Firebase data
+// Cache is valid until explicitly invalidated (login/logout/wipe)
 let cachedDecisionDB = null;
-let cacheTimestamp = null;
-const CACHE_DURATION = 5000; // 5 seconds
 
 /**
  * Default decision database structure
@@ -65,7 +64,6 @@ function isFirebaseAvailable() {
  */
 export function invalidateCache() {
   cachedDecisionDB = null;
-  cacheTimestamp = null;
 }
 
 /**
@@ -74,7 +72,7 @@ export function invalidateCache() {
  */
 export function loadDecisionDB() {
   // Return cached data if available
-  if (cachedDecisionDB && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
+  if (cachedDecisionDB) {
     return cachedDecisionDB;
   }
   // Return defaults - async load should be used for actual data
@@ -87,7 +85,7 @@ export function loadDecisionDB() {
  */
 export async function loadDecisionDBAsync() {
   // Check cache
-  if (cachedDecisionDB && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
+  if (cachedDecisionDB) {
     return cachedDecisionDB;
   }
 
@@ -97,8 +95,10 @@ export async function loadDecisionDBAsync() {
   }
 
   try {
-    const cloudData = await loadDecisionData();
-    const cloudHistory = await loadDecisionHistory();
+    const [cloudData, cloudHistory] = await Promise.all([
+      loadDecisionData(),
+      loadDecisionHistory()
+    ]);
 
     if (cloudData) {
       const db = {
@@ -109,7 +109,6 @@ export async function loadDecisionDBAsync() {
         checksum: cloudData.checksum
       };
       cachedDecisionDB = db;
-      cacheTimestamp = Date.now();
       return db;
     }
   } catch (error) {
@@ -143,7 +142,6 @@ export async function saveDecisionDB(db) {
 
     // Update cache
     cachedDecisionDB = db;
-    cacheTimestamp = Date.now();
   } catch (error) {
     console.error('Error saving to Firebase:', error);
     throw new Error('Failed to save decision data');

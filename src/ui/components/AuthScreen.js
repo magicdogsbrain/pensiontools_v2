@@ -35,6 +35,7 @@ export function initAuthScreen(container, onSuccess) {
     if (user && onAuthSuccessCallback && !authProcessed) {
       console.log('AuthScreen: calling onAuthSuccessCallback');
       authProcessed = true; // Mark as processed to prevent duplicate calls
+      showLoadingState();
       onAuthSuccessCallback(user);
     } else if (!user) {
       // Reset when user signs out
@@ -318,6 +319,24 @@ function getAuthErrorMessage(code) {
   };
 
   return messages[code] || 'An error occurred. Please try again.';
+}
+
+/**
+ * Show loading state while auth callback runs
+ */
+function showLoadingState() {
+  if (authScreenElement) {
+    authScreenElement.innerHTML = `
+      <div class="auth-screen">
+        <div class="auth-screen-box" style="text-align: center;">
+          <div class="auth-screen-header">
+            <h1>Pension Planner</h1>
+            <p>Signing in...</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 /**

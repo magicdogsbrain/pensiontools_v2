@@ -2218,7 +2218,7 @@
     // Import additional services
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
     import { generateGlidepathSchedule } from './src/services/GlidepathService.js';
-    import { resetStressSettings } from './src/storage/StressRepository.js';
+    import { resetStressSettings, invalidateStressCache } from './src/storage/StressRepository.js';
 
     // Import simulation engine for direct access in optimization
     import { runMonteCarlo, runHistorical, simulate } from './src/services/SimulationEngine.js';
@@ -2722,6 +2722,8 @@
     // Logout button handler
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       try {
+        invalidateCache();
+        invalidateStressCache();
         await logOut();
         document.getElementById('mainApp').classList.add('hidden');
         showAuthScreen();
@@ -2753,6 +2755,8 @@
         if (isLoggedIn()) {
           alert('You have been logged out due to inactivity (1 hour).');
           try {
+            invalidateCache();
+            invalidateStressCache();
             await logOut();
             document.getElementById('mainApp').classList.add('hidden');
             showAuthScreen();
@@ -2802,6 +2806,7 @@
 
         // Invalidate all caches
         invalidateCache();
+        invalidateStressCache();
 
         // Clear local storage too
         localStorage.clear();

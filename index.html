@@ -2545,6 +2545,11 @@
       const histEl = document.getElementById('histResults');
       if (mcEl) mcEl.innerHTML = '';
       if (histEl) histEl.innerHTML = '';
+      // Clear optimisation results too — they're tied to the stress test that produced them
+      const optMC = document.getElementById('optimiseResultsMC');
+      const optHist = document.getElementById('optimiseResultsHist');
+      if (optMC) optMC.innerHTML = '';
+      if (optHist) optHist.innerHTML = '';
     }
 
     /**
@@ -3135,7 +3140,7 @@
             ${desc ? `<div class="scenario-item-desc">${desc}</div>` : ''}
           </div>
           <div class="scenario-item-actions">
-            <button class="scenario-tools-btn" data-id="${s.id}" data-tools="${(s.enabledTools || ['stress','decision']).join(',')}" title="Edit Tools">&#9881;</button>
+            ${s.isActive ? `<button class="scenario-tools-btn" data-id="${s.id}" data-tools="${(s.enabledTools || ['stress','decision']).join(',')}" title="Edit Tools">&#9881;</button>` : ''}
             <button class="scenario-rename-btn" data-id="${s.id}" data-name="${name}" title="Rename">&#9998;</button>
             ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${name}" title="Delete">&times;</button>` : ''}
           </div>
@@ -3356,6 +3361,11 @@
         if (document.getElementById('editToolStress').checked) tools.push('stress');
         if (document.getElementById('editToolDecision').checked) tools.push('decision');
 
+        if (tools.length === 0) {
+          showToast('Please select at least one tool', 'error');
+          return;
+        }
+
         // Detect newly added tools
         const newTools = tools.filter(t => !currentTools.includes(t));
 
@@ -3387,11 +3397,25 @@
 
           // If new tools were added, launch the wizard for those tools
           if (newTools.length > 0) {
+            // Load existing settings from the other tool to pre-fill shared fields
+            let existingSettings = null;
+            try {
+              if (newTools.includes('stress') && currentTools.includes('decision')) {
+                const ds = await getDecisionSettingsAsync();
+                if (ds) existingSettings = { source: 'decision', ...ds };
+              } else if (newTools.includes('decision') && currentTools.includes('stress')) {
+                const ss = await getStressSettingsAsync();
+                if (ss) existingSettings = { source: 'stress', ...ss };
+              }
+            } catch (e) {
+              console.warn('Could not load existing settings for pre-fill:', e);
+            }
+
             const wizardEl = document.getElementById('setupWizard');
             wizardEl.style.display = 'block';
             document.getElementById('mainApp').style.display = 'none';
 
-            initToolWizard(wizardEl, newTools, async (wizardData) => {
+            const onWizardComplete = async (wizardData) => {
               hideSetupWizard();
 
               // Save the wizard data for the new tools to the active scenario
@@ -3426,7 +3450,8 @@
 
               await showMainApp();
               showToast('New tool configured successfully', 'success');
-            });
+            };
+            initToolWizard(wizardEl, newTools, onWizardComplete, existingSettings);
           } else {
             showToast('Tools updated', 'success');
           }
@@ -3535,6 +3560,15 @@
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', async () => {
+        // Cancel any running optimisation when leaving the stress tab
+        if (tab.dataset.tab !== 'stress') {
+          cancelOptimisation();
+          const optMC = document.getElementById('optimiseResultsMC');
+          const optHist = document.getElementById('optimiseResultsHist');
+          if (optMC) optMC.innerHTML = '';
+          if (optHist) optHist.innerHTML = '';
+        }
+
         // Update tab buttons
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
@@ -4279,6 +4313,10 @@
         years: parseInt(document.getElementById('mcYears').value) || 35
       };
 
+      // Clear previous optimisation — it's tied to the old stress test results
+      const optMCEl = document.getElementById('optimiseResultsMC');
+      if (optMCEl) optMCEl.innerHTML = '';
+
       document.getElementById('mcResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
 
       // Pre-load settings async to ensure cache is populated
@@ -4304,6 +4342,10 @@
         cashStart: parseFloat(document.getElementById('histCash').value) || 50000,
         years: parseInt(document.getElementById('histYears').value) || 35
       };
+
+      // Clear previous optimisation — it's tied to the old stress test results
+      const optHistEl = document.getElementById('optimiseResultsHist');
+      if (optHistEl) optHistEl.innerHTML = '';
 
       document.getElementById('histResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
 
@@ -4443,11 +4485,18 @@
 
     // Optimisation tracking
     let optimiseRunning = false;
+    let optimiseCancelToken = 0;
 
-    // Run allocation optimisation - direct port from PWA
+    // Cancel any running optimisation (called on tab switch / new stress test)
+    function cancelOptimisation() {
+      optimiseCancelToken++;
+    }
+
+    // Run allocation optimisation — chunked for non-blocking UI
     window.runOptimisationUI = async function(testType) {
       if (optimiseRunning) return;
       optimiseRunning = true;
+      const myToken = ++optimiseCancelToken;
 
       const btn = document.getElementById('optimiseBtn' + testType);
       const resultsDiv = document.getElementById('optimiseResults' + testType);
@@ -4474,219 +4523,243 @@
       const years = +yearsEl.value;
       const totalFunds = originalEquity + originalBond + originalCash;
 
-      resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Testing allocations...</div>';
+      resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Preparing optimisation...</div>';
 
       // Pre-load settings for the simulation config - make a deep copy to avoid closure issues
       const settingsRaw = await getStressSettingsAsync();
       const s = JSON.parse(JSON.stringify(settingsRaw));
 
-      // Use setTimeout to allow UI to update
-      setTimeout(() => {
-        try {
-          let bestResult = null;
-          let originalResult = { equity: originalEquity, bond: originalBond, cash: originalCash, rate: 0, avgProt: 0, withProt: 0, totalRuns: 0 };
+      // Check cancellation after async work
+      if (myToken !== optimiseCancelToken) {
+        optimiseRunning = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
+        return;
+      }
 
-          // Generate allocation combinations to test (5% increments, cash 5-30%)
-          const allocations = [];
-          for (let cashPct = 5; cashPct <= 30; cashPct += 5) {
-            for (let equityPct = 20; equityPct <= 95 - cashPct; equityPct += 5) {
-              const bondPct = 100 - cashPct - equityPct;
-              if (bondPct >= 0) {
-                allocations.push({
-                  equity: Math.round(totalFunds * equityPct / 100),
-                  bond: Math.round(totalFunds * bondPct / 100),
-                  cash: Math.round(totalFunds * cashPct / 100)
-                });
-              }
-            }
+      // Generate allocation combinations to test (5% increments, cash 5-30%)
+      const allocations = [];
+      for (let cashPct = 5; cashPct <= 30; cashPct += 5) {
+        for (let equityPct = 20; equityPct <= 95 - cashPct; equityPct += 5) {
+          const bondPct = 100 - cashPct - equityPct;
+          if (bondPct >= 0) {
+            allocations.push({
+              equity: Math.round(totalFunds * equityPct / 100),
+              bond: Math.round(totalFunds * bondPct / 100),
+              cash: Math.round(totalFunds * cashPct / 100)
+            });
           }
+        }
+      }
 
-          // Get historical years for return sequences
-          const { EQUITY_RETURNS, INFLATION } = window._constants;
-          const { simulate } = window._simEngine;
-          const { seededRng } = window._mathUtils;
+      // Get historical years for return sequences
+      const { EQUITY_RETURNS, INFLATION } = window._constants;
+      const { simulate } = window._simEngine;
+      const { seededRng } = window._mathUtils;
 
-          const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
-          const maxY = Math.max(...yrs);
+      const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+      const maxY = Math.max(...yrs);
 
-          // Helper function to run simulation for an allocation
-          const runSimForAlloc = (alloc) => {
-            // Build config with start values from allocation, rules from settings
-            const cfg = {
-              equityStart: alloc.equity,
-              bondStart: alloc.bond,
-              cashStart: alloc.cash,
-              years: years,
-              // Rules/minimums from settings
-              equityMin: s.equityMin,
-              bondMin: s.bondMin,
-              cashTarget: s.cashTarget,
-              duration: s.duration,
-              baseSalary: s.baseSalary,
-              other: s.other,
-              // State Pension - date-based format from user settings
-              ...calculateSpConfigForSimulation(s),
-              pa: s.pa,
-              brl: s.brl,
-              hrl: s.hrl,
-              taxMode: s.taxMode,
-              protectionMult: s.protectionMult,
-              consecutiveLimit: s.consecutiveLimit,
-              disableProtection: s.disableProtection,
-              hodlEnabled: s.hodlEnabled,
-              hodlValue: s.hodlValue
-            };
+      // Helper function to run simulation for an allocation
+      const runSimForAlloc = (alloc) => {
+        const cfg = {
+          equityStart: alloc.equity,
+          bondStart: alloc.bond,
+          cashStart: alloc.cash,
+          years: years,
+          equityMin: s.equityMin,
+          bondMin: s.bondMin,
+          cashTarget: s.cashTarget,
+          duration: s.duration,
+          baseSalary: s.baseSalary,
+          other: s.other,
+          ...calculateSpConfigForSimulation(s),
+          pa: s.pa,
+          brl: s.brl,
+          hrl: s.hrl,
+          taxMode: s.taxMode,
+          protectionMult: s.protectionMult,
+          consecutiveLimit: s.consecutiveLimit,
+          disableProtection: s.disableProtection,
+          hodlEnabled: s.hodlEnabled,
+          hodlValue: s.hodlValue
+        };
 
-            const results = [];
+        const results = [];
 
-            if (testType === 'MC') {
-              // Monte Carlo - run 1000 iterations
-              for (let i = 0; i < 1000; i++) {
-                const rng = seededRng(i * 12345);
-                const ret = { equity: {}, inflation: {} };
-                for (let y = 0; y < years; y++) {
-                  const ry = yrs[Math.floor(rng() * yrs.length)];
-                  ret.equity[y] = EQUITY_RETURNS[ry];
-                  ret.inflation[y] = INFLATION[ry] || 0.025;
-                }
-                results.push(simulate(cfg, ret, i));
-              }
-            } else {
-              // Historical - run all sequences
-              yrs.forEach(sy => {
-                if (sy + years - 1 > maxY) return;
-                const ret = { equity: {}, inflation: {} };
-                for (let y = 0; y < years; y++) {
-                  ret.equity[y] = EQUITY_RETURNS[sy + y] || 0;
-                  ret.inflation[y] = INFLATION[sy + y] || 0.025;
-                }
-                results.push(simulate(cfg, ret, sy));
-              });
+        if (testType === 'MC') {
+          for (let i = 0; i < 1000; i++) {
+            const rng = seededRng(i * 12345);
+            const ret = { equity: {}, inflation: {} };
+            for (let y = 0; y < years; y++) {
+              const ry = yrs[Math.floor(rng() * yrs.length)];
+              ret.equity[y] = EQUITY_RETURNS[ry];
+              ret.inflation[y] = INFLATION[ry] || 0.025;
             }
+            results.push(simulate(cfg, ret, i));
+          }
+        } else {
+          yrs.forEach(sy => {
+            if (sy + years - 1 > maxY) return;
+            const ret = { equity: {}, inflation: {} };
+            for (let y = 0; y < years; y++) {
+              ret.equity[y] = EQUITY_RETURNS[sy + y] || 0;
+              ret.inflation[y] = INFLATION[sy + y] || 0.025;
+            }
+            results.push(simulate(cfg, ret, sy));
+          });
+        }
 
-            const fails = results.filter(r => r.failed);
-            const succ = results.filter(r => !r.failed);
-            const rate = (results.length - fails.length) / results.length * 100;
-            const protArr = results.map(r => r.protMonths);
-            const avgProt = protArr.reduce((a, b) => a + b, 0) / results.length;
-            const withProt = results.filter(r => r.protMonths > 0).length;
+        const fails = results.filter(r => r.failed);
+        const succ = results.filter(r => !r.failed);
+        const rate = (results.length - fails.length) / results.length * 100;
+        const protArr = results.map(r => r.protMonths);
+        const avgProt = protArr.reduce((a, b) => a + b, 0) / results.length;
+        const withProt = results.filter(r => r.protMonths > 0).length;
 
-            // Calculate median final value for upside comparison
-            const finals = succ.map(r => r.final).sort((a, b) => a - b);
-            const medianFinal = finals.length > 0 ? finals[Math.floor(finals.length * 0.5)] : 0;
-            const p90Final = finals.length > 0 ? finals[Math.floor(finals.length * 0.9)] : 0;
+        const finals = succ.map(r => r.final).sort((a, b) => a - b);
+        const medianFinal = finals.length > 0 ? finals[Math.floor(finals.length * 0.5)] : 0;
+        const p90Final = finals.length > 0 ? finals[Math.floor(finals.length * 0.9)] : 0;
 
-            return {
-              equity: alloc.equity,
-              bond: alloc.bond,
-              cash: alloc.cash,
-              rate: rate,
-              avgProt: avgProt,
-              withProt: withProt,
-              totalRuns: results.length,
-              medianFinal: medianFinal,
-              p90Final: p90Final
-            };
-          };
+        return {
+          equity: alloc.equity, bond: alloc.bond, cash: alloc.cash,
+          rate, avgProt, withProt, totalRuns: results.length, medianFinal, p90Final
+        };
+      };
 
-          // First, run the original allocation to get its stats
-          const origAlloc = { equity: originalEquity, bond: originalBond, cash: originalCash };
-          const origSimResult = runSimForAlloc(origAlloc);
-          originalResult.avgProt = origSimResult.avgProt;
-          originalResult.withProt = origSimResult.withProt;
-          originalResult.totalRuns = origSimResult.totalRuns;
-          originalResult.rate = origSimResult.rate;
-          originalResult.medianFinal = origSimResult.medianFinal;
-          originalResult.p90Final = origSimResult.p90Final;
+      // Run original allocation first (synchronous, quick)
+      let originalResult;
+      try {
+        const origAlloc = { equity: originalEquity, bond: originalBond, cash: originalCash };
+        const origSim = runSimForAlloc(origAlloc);
+        originalResult = { ...origAlloc, ...origSim };
+      } catch (error) {
+        console.error('Optimisation error (original):', error);
+        resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+        optimiseRunning = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
+        return;
+      }
 
-          // Test each allocation - only consider if protection is not worse than original
-          allocations.forEach(alloc => {
-            const result = runSimForAlloc(alloc);
+      // Process allocations in chunks for non-blocking UI
+      const BATCH_SIZE = 10;
+      let idx = 0;
+      let bestResult = null;
 
-            // Only consider this allocation if it doesn't use MORE protection than original
+      function processNextBatch() {
+        // Check cancellation
+        if (myToken !== optimiseCancelToken) {
+          optimiseRunning = false;
+          if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
+          resultsDiv.innerHTML = '';
+          return;
+        }
+
+        try {
+          const end = Math.min(idx + BATCH_SIZE, allocations.length);
+          for (; idx < end; idx++) {
+            const result = runSimForAlloc(allocations[idx]);
             if (result.avgProt <= originalResult.avgProt) {
-              // Pick the one with highest success rate (among those with acceptable protection)
               if (!bestResult || result.rate > bestResult.rate) {
                 bestResult = result;
               }
             }
-          });
-
-          // Display results
-          let h = '';
-          if (bestResult && bestResult.rate > originalResult.rate) {
-            // Calculate upside difference
-            const medianDiff = bestResult.medianFinal - originalResult.medianFinal;
-            const medianDiffPct = originalResult.medianFinal > 0 ? (medianDiff / originalResult.medianFinal * 100) : 0;
-
-            h += '<div class="card" style="margin-top:20px;border-color:var(--success);">';
-            h += '<h3 style="color:var(--success);margin-top:0;">Better Allocation Found</h3>';
-            h += '<p style="color:var(--text-muted);margin-bottom:16px;">A different fund split could improve your success rate without increasing protection usage:</p>';
-
-            h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">';
-
-            // Original
-            h += '<div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;">';
-            h += '<div style="font-weight:500;margin-bottom:12px;color:var(--text-muted);">Your Current Split</div>';
-            h += '<div style="font-size:24px;font-weight:600;color:var(--warning);">' + originalResult.rate.toFixed(1) + '%</div>';
-            h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate</div>';
-            h += '<div style="font-size:13px;">Equity: ' + formatCurrency(originalResult.equity) + ' (' + Math.round(originalResult.equity/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(originalResult.bond) + ' (' + Math.round(originalResult.bond/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:13px;">Cash: ' + formatCurrency(originalResult.cash) + ' (' + Math.round(originalResult.cash/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + originalResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(originalResult.medianFinal) + '</div>';
-            h += '</div>';
-
-            // Optimised
-            h += '<div style="padding:16px;background:rgba(46,160,67,0.1);border-radius:8px;border:1px solid var(--success);">';
-            h += '<div style="font-weight:500;margin-bottom:12px;color:var(--success);">Optimised Split</div>';
-            h += '<div style="font-size:24px;font-weight:600;color:var(--success);">' + bestResult.rate.toFixed(1) + '%</div>';
-            h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (+' + (bestResult.rate - originalResult.rate).toFixed(1) + '%)</div>';
-            h += '<div style="font-size:13px;">Equity: ' + formatCurrency(bestResult.equity) + ' (' + Math.round(bestResult.equity/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(bestResult.bond) + ' (' + Math.round(bestResult.bond/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:13px;">Cash: ' + formatCurrency(bestResult.cash) + ' (' + Math.round(bestResult.cash/totalFunds*100) + '%)</div>';
-            h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + bestResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(bestResult.medianFinal) + '</div>';
-            h += '</div>';
-
-            h += '</div>';
-
-            // Upside comparison
-            if (medianDiff < 0) {
-              h += '<div class="alert alert-warning" style="margin-bottom:16px;">';
-              h += '<strong>Trade-off:</strong> The optimised allocation has a ' + Math.abs(medianDiffPct).toFixed(0) + '% lower median final value. ';
-              h += 'This is because it likely has less equity exposure. You gain safety but may sacrifice some upside.';
-              h += '</div>';
-            } else if (medianDiff > 0) {
-              h += '<div class="alert alert-info" style="margin-bottom:16px;">';
-              h += '<strong>Bonus:</strong> The optimised allocation also has a ' + medianDiffPct.toFixed(0) + '% higher median final value!';
-              h += '</div>';
-            }
-
-            h += '<div class="alert alert-info" style="margin-bottom:16px;">';
-            h += '<strong>To apply this allocation:</strong> Click the button below to update your Settings with these new fund minimums.';
-            h += '</div>';
-
-            h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply Optimised Allocation to Settings</button>';
-            h += '</div>';
-          } else {
-            h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
-            h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already Optimal</h3>';
-            h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' different fund splits. Your current allocation achieves the best success rate (' + originalResult.rate.toFixed(1) + '%) without increasing protection usage.</p>';
-            h += '<p style="font-size:13px;color:var(--text-muted);">Your protection: ' + originalResult.avgProt.toFixed(0) + ' months average</p>';
-            h += '</div>';
           }
 
-          resultsDiv.innerHTML = h;
+          // Update progress
+          resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Testing allocations... ' + idx + '/' + allocations.length + '</div>';
+
+          if (idx < allocations.length) {
+            // Yield to browser, then continue
+            setTimeout(processNextBatch, 0);
+          } else {
+            // Done — render results
+            renderOptimisationResults();
+          }
         } catch (error) {
           console.error('Optimisation error:', error);
           resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
-        } finally {
           optimiseRunning = false;
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Optimise Allocation';
-          }
+          if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
         }
-      }, 50);
+      }
+
+      function renderOptimisationResults() {
+        // Final cancellation check
+        if (myToken !== optimiseCancelToken) {
+          optimiseRunning = false;
+          if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
+          resultsDiv.innerHTML = '';
+          return;
+        }
+
+        let h = '';
+        if (bestResult && bestResult.rate > originalResult.rate) {
+          const medianDiff = bestResult.medianFinal - originalResult.medianFinal;
+          const medianDiffPct = originalResult.medianFinal > 0 ? (medianDiff / originalResult.medianFinal * 100) : 0;
+
+          h += '<div class="card" style="margin-top:20px;border-color:var(--success);">';
+          h += '<h3 style="color:var(--success);margin-top:0;">Better Allocation Found</h3>';
+          h += '<p style="color:var(--text-muted);margin-bottom:16px;">A different fund split could improve your success rate without increasing protection usage:</p>';
+
+          h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">';
+
+          // Original
+          h += '<div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;">';
+          h += '<div style="font-weight:500;margin-bottom:12px;color:var(--text-muted);">Your Current Split</div>';
+          h += '<div style="font-size:24px;font-weight:600;color:var(--warning);">' + originalResult.rate.toFixed(1) + '%</div>';
+          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate</div>';
+          h += '<div style="font-size:13px;">Equity: ' + formatCurrency(originalResult.equity) + ' (' + Math.round(originalResult.equity/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(originalResult.bond) + ' (' + Math.round(originalResult.bond/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:13px;">Cash: ' + formatCurrency(originalResult.cash) + ' (' + Math.round(originalResult.cash/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + originalResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(originalResult.medianFinal) + '</div>';
+          h += '</div>';
+
+          // Optimised
+          h += '<div style="padding:16px;background:rgba(46,160,67,0.1);border-radius:8px;border:1px solid var(--success);">';
+          h += '<div style="font-weight:500;margin-bottom:12px;color:var(--success);">Optimised Split</div>';
+          h += '<div style="font-size:24px;font-weight:600;color:var(--success);">' + bestResult.rate.toFixed(1) + '%</div>';
+          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (+' + (bestResult.rate - originalResult.rate).toFixed(1) + '%)</div>';
+          h += '<div style="font-size:13px;">Equity: ' + formatCurrency(bestResult.equity) + ' (' + Math.round(bestResult.equity/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(bestResult.bond) + ' (' + Math.round(bestResult.bond/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:13px;">Cash: ' + formatCurrency(bestResult.cash) + ' (' + Math.round(bestResult.cash/totalFunds*100) + '%)</div>';
+          h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + bestResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(bestResult.medianFinal) + '</div>';
+          h += '</div>';
+
+          h += '</div>';
+
+          // Upside comparison
+          if (medianDiff < 0) {
+            h += '<div class="alert alert-warning" style="margin-bottom:16px;">';
+            h += '<strong>Trade-off:</strong> The optimised allocation has a ' + Math.abs(medianDiffPct).toFixed(0) + '% lower median final value. ';
+            h += 'This is because it likely has less equity exposure. You gain safety but may sacrifice some upside.';
+            h += '</div>';
+          } else if (medianDiff > 0) {
+            h += '<div class="alert alert-info" style="margin-bottom:16px;">';
+            h += '<strong>Bonus:</strong> The optimised allocation also has a ' + medianDiffPct.toFixed(0) + '% higher median final value!';
+            h += '</div>';
+          }
+
+          h += '<div class="alert alert-info" style="margin-bottom:16px;">';
+          h += '<strong>To apply this allocation:</strong> Click the button below to update your Settings with these new fund minimums.';
+          h += '</div>';
+
+          h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply Optimised Allocation to Settings</button>';
+          h += '</div>';
+        } else {
+          h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
+          h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already Optimal</h3>';
+          h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' different fund splits. Your current allocation achieves the best success rate (' + originalResult.rate.toFixed(1) + '%) without increasing protection usage.</p>';
+          h += '<p style="font-size:13px;color:var(--text-muted);">Your protection: ' + originalResult.avgProt.toFixed(0) + ' months average</p>';
+          h += '</div>';
+        }
+
+        resultsDiv.innerHTML = h;
+        optimiseRunning = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Optimise Allocation'; }
+      }
+
+      // Start chunked processing
+      setTimeout(processNextBatch, 0);
     };
 
     // Apply optimised allocation to settings

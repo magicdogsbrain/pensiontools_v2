@@ -278,7 +278,9 @@ async function handleForgotPassword() {
 
   try {
     await resetPassword(email);
-    alert('Password reset email sent. Check your inbox.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Password reset email sent. Check your inbox.', 'success', 5000);
+    }
   } catch (error) {
     console.error('Reset password error:', error);
     showError(getAuthErrorMessage(error.code));

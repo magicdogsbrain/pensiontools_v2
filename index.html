@@ -2498,6 +2498,7 @@
     // Import setup wizard
     import {
       initSetupWizard,
+      initToolWizard,
       hideSetupWizard,
       showSetupWizard,
       getSetupWizardStyles
@@ -2591,7 +2592,7 @@
     }
 
     // Toast notification system
-    function showToast(message, type = 'info', duration = 3000) {
+    window.showToast = function showToast(message, type = 'info', duration = 3000) {
       // Remove any existing toast
       const existing = document.querySelector('.toast-notification');
       if (existing) existing.remove();
@@ -3193,7 +3194,7 @@
             await renderScenarioSelector();
           } catch (error) {
             console.error('Error switching scenario:', error);
-            alert('Failed to switch plan: ' + error.message);
+            showToast('Failed to switch plan: ' + error.message, 'error');
           }
         });
       });
@@ -3211,7 +3212,7 @@
               await renderScenarioSelector();
             } catch (error) {
               console.error('Error renaming scenario:', error);
-              alert('Failed to rename plan: ' + error.message);
+              showToast('Failed to rename plan: ' + error.message, 'error');
             }
           }
         });
@@ -3245,7 +3246,7 @@
               await renderScenarioSelector();
             } catch (error) {
               console.error('Error deleting scenario:', error);
-              alert('Failed to delete plan: ' + error.message);
+              showToast('Failed to delete plan: ' + error.message, 'error');
             }
           }
         });
@@ -3282,7 +3283,7 @@
       document.getElementById('scenarioDropdown').classList.remove('open');
       const active = await getActiveScenarioAsync();
       if (!active) {
-        alert('No active plan to duplicate.');
+        showToast('No active plan to duplicate.', 'error');
         return;
       }
 
@@ -3295,7 +3296,7 @@
         await renderScenarioSelector();
       } catch (error) {
         console.error('Error duplicating scenario:', error);
-        alert('Failed to duplicate plan: ' + error.message);
+        showToast('Failed to duplicate plan: ' + error.message, 'error');
       }
     });
 
@@ -3355,6 +3356,9 @@
         if (document.getElementById('editToolStress').checked) tools.push('stress');
         if (document.getElementById('editToolDecision').checked) tools.push('decision');
 
+        // Detect newly added tools
+        const newTools = tools.filter(t => !currentTools.includes(t));
+
         try {
           await updateScenarioTools(scenarioId, tools);
 
@@ -3380,9 +3384,55 @@
 
           await renderScenarioSelector();
           modal.remove();
+
+          // If new tools were added, launch the wizard for those tools
+          if (newTools.length > 0) {
+            const wizardEl = document.getElementById('setupWizard');
+            wizardEl.style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+
+            initToolWizard(wizardEl, newTools, async (wizardData) => {
+              hideSetupWizard();
+
+              // Save the wizard data for the new tools to the active scenario
+              try {
+                if (newTools.includes('stress')) {
+                  await saveStressSettings({
+                    equityMin: wizardData.equityMin,
+                    bondMin: wizardData.bondMin,
+                    cashTarget: wizardData.cashTarget,
+                    duration: wizardData.duration,
+                    baseSalary: wizardData.baseSalary,
+                    other: wizardData.otherIncome || 0,
+                    taxMode: wizardData.taxMode || 'inflates'
+                  });
+                  invalidateStressCache();
+                }
+                if (newTools.includes('decision')) {
+                  await saveDecisionSettings({
+                    equityMin: wizardData.decisionEquity,
+                    bondMin: wizardData.decisionBond,
+                    cashTarget: wizardData.decisionCash,
+                    duration: wizardData.decisionDuration,
+                    baseSalary: wizardData.decisionSalary,
+                    spStartDate: wizardData.spStartDate || null,
+                    spWeeklyAmount: wizardData.spWeeklyAmount || 0
+                  });
+                  invalidateCache();
+                }
+              } catch (e) {
+                console.error('Error saving new tool settings:', e);
+              }
+
+              await showMainApp();
+              showToast('New tool configured successfully', 'success');
+            });
+          } else {
+            showToast('Tools updated', 'success');
+          }
         } catch (error) {
           console.error('Error updating scenario tools:', error);
-          alert('Failed to update tools: ' + error.message);
+          showToast('Failed to update tools: ' + error.message, 'error');
         }
       });
     }
@@ -3408,7 +3458,7 @@
       inactivityTimer = setTimeout(async () => {
         // Double-check user is still logged in
         if (isLoggedIn()) {
-          alert('You have been logged out due to inactivity (1 hour).');
+          showToast('You have been logged out due to inactivity (1 hour).', 'info', 5000);
           try {
             invalidateCache();
             invalidateStressCache();
@@ -3475,10 +3525,10 @@
         const user = getCurrentUser();
         showOnboarding(user);
 
-        alert('All data has been deleted. Set up a new plan to start fresh.');
+        showToast('All data has been deleted. Set up a new plan to start fresh.', 'success', 4000);
       } catch (error) {
         console.error('Reset error:', error);
-        alert('Error resetting data: ' + error.message);
+        showToast('Error resetting data: ' + error.message, 'error');
       }
     });
 
@@ -4662,6 +4712,9 @@
       document.getElementById('scenBond').value = bond;
       document.getElementById('scenCash').value = cash;
 
+      // Refresh number overlays so visual formatting updates
+      refreshNumberOverlays();
+
       // Save to Firebase if logged in
       if (isLoggedIn()) {
         try {
@@ -4675,7 +4728,7 @@
         }
       }
 
-      alert('Settings updated! Run the test again to see the full results with your new allocation.');
+      showToast('Optimised allocation applied to settings and starting values. Scroll up to re-run.', 'success', 4000);
     };
 
     // Historical event mapping
@@ -6134,7 +6187,7 @@
       document.querySelectorAll('.decision-subtab').forEach(c => c.classList.add('hidden'));
       document.getElementById('decision-entry').classList.remove('hidden');
 
-      alert(`Please click "Calculate" with April ${startYear} selected to set up tax year ${taxYear}`);
+      showToast(`Please click "Calculate" with April ${startYear} selected to set up tax year ${taxYear}`, 'info', 5000);
     };
 
     // Reconfigure a tax year
@@ -6148,10 +6201,10 @@
         config.yearSetupComplete = false;
         await saveTaxYearConfig(taxYear, config);
         await renderTaxYears();
-        alert(`Tax year ${taxYear} has been marked for reconfiguration. Calculate a decision for this year to run the wizard again.`);
+        showToast(`Tax year ${taxYear} marked for reconfiguration. Calculate a decision for this year to run the wizard again.`, 'success', 5000);
       } catch (error) {
         console.error('Error:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
       }
     };
 
@@ -6164,7 +6217,7 @@
         // No need to re-render for inline edits
       } catch (error) {
         console.error('Error updating tax year:', error);
-        alert('Error saving: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
       }
     };
 
@@ -6182,20 +6235,20 @@
         await renderTaxYears();
       } catch (error) {
         console.error('Error deleting tax year:', error);
-        alert('Error deleting: ' + error.message);
+        showToast('Error deleting: ' + error.message, 'error');
       }
     };
 
     // Add tax year
     window.addTaxYear = async function() {
       if (!isLoggedIn()) {
-        alert('Please sign in to add tax years');
+        showToast('Please sign in to add tax years', 'error');
         return;
       }
 
       const year = prompt('Enter tax year (e.g., 25/26):');
       if (!year || !/^\d{2}\/\d{2}$/.test(year)) {
-        alert('Invalid format. Use YY/YY (e.g., 25/26)');
+        showToast('Invalid format. Use YY/YY (e.g., 25/26)', 'error');
         return;
       }
 
@@ -6204,7 +6257,7 @@
         await renderTaxYears();
       } catch (error) {
         console.error('Save error:', error);
-        alert('Error saving: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
       }
     };
 

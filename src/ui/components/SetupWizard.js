@@ -785,6 +785,34 @@ export function showSetupWizard() {
 }
 
 /**
+ * Initialize wizard for specific tools only (skips scenario phase).
+ * Used when adding new tools to an existing scenario.
+ * @param {HTMLElement} container - Container element
+ * @param {string[]} tools - Tools to configure (e.g. ['stress'], ['decision'], ['stress','decision'])
+ * @param {Function} onComplete - Callback when wizard completes
+ */
+export function initToolWizard(container, tools, onComplete) {
+  wizardElement = container;
+  onCompleteCallback = onComplete;
+  resetWizardState();
+  wizardData.enabledTools = tools;
+
+  // Start at the first tool's phase
+  if (tools.includes('stress')) {
+    currentPhase = 'stress';
+  } else if (tools.includes('decision')) {
+    currentPhase = 'decision';
+  } else {
+    // No tools — shouldn't happen but handle gracefully
+    if (onComplete) onComplete(wizardData);
+    return;
+  }
+
+  currentStep = 1;
+  renderWizard();
+}
+
+/**
  * Get the wizard data
  */
 export function getWizardData() {

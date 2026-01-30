@@ -286,9 +286,10 @@ export async function getGlidepathProjection(years = 35) {
  * @param {string} message - Error message
  */
 function showError(message) {
-  // Could be replaced with a toast notification system
   console.error(message);
-  alert(message);
+  if (typeof window.showToast === 'function') {
+    window.showToast(message, 'error');
+  }
 }
 
 /**

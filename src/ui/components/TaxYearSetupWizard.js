@@ -811,7 +811,9 @@ async function finishWizard() {
     console.log(`Tax Year Wizard: Successfully saved config for ${wizardContext.taxYear}`);
   } catch (error) {
     console.error(`Tax Year Wizard: Failed to save config for ${wizardContext.taxYear}`, error);
-    alert(`Error saving tax year configuration: ${error.message}`);
+    if (typeof window.showToast === 'function') {
+      window.showToast(`Error saving tax year configuration: ${error.message}`, 'error');
+    }
     return;
   }
 

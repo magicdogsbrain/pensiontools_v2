@@ -288,7 +288,9 @@ async function handleGoogleSignIn() {
     // Auth state listener will update UI
   } catch (error) {
     console.error('Google sign-in error:', error);
-    alert(getAuthErrorMessage(error.code));
+    if (typeof window.showToast === 'function') {
+      window.showToast(getAuthErrorMessage(error.code), 'error');
+    }
   }
 }
 
@@ -301,7 +303,9 @@ async function handleLogout() {
     // Auth state listener will update UI
   } catch (error) {
     console.error('Logout error:', error);
-    alert('Failed to sign out. Please try again.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Failed to sign out. Please try again.', 'error');
+    }
   }
 }
 
@@ -312,16 +316,22 @@ async function handleForgotPassword() {
   const email = document.getElementById('login-email')?.value;
 
   if (!email) {
-    alert('Please enter your email address first.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Please enter your email address first.', 'error');
+    }
     return;
   }
 
   try {
     await resetPassword(email);
-    alert('Password reset email sent. Check your inbox.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Password reset email sent. Check your inbox.', 'success', 5000);
+    }
   } catch (error) {
     console.error('Password reset error:', error);
-    alert(getAuthErrorMessage(error.code));
+    if (typeof window.showToast === 'function') {
+      window.showToast(getAuthErrorMessage(error.code), 'error');
+    }
   }
 }
 
@@ -357,13 +367,17 @@ async function handleWipeData() {
       await resetStressSettings();
     }
 
-    alert('All data has been reset to defaults.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('All data has been reset to defaults.', 'success', 4000);
+    }
 
     // Reload the page to reflect changes
-    window.location.reload();
+    setTimeout(() => window.location.reload(), 1500);
   } catch (error) {
     console.error('Wipe data error:', error);
-    alert('Failed to reset data. Please try again.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Failed to reset data. Please try again.', 'error');
+    }
   }
 }
 

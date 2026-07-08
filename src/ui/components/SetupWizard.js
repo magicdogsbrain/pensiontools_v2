@@ -3,6 +3,8 @@
  * Guides users through initial configuration of the pension planner
  */
 
+import { validateStatePensionDate } from '../../utils/StatePensionUtils.js';
+
 // Wizard state
 let wizardElement = null;
 let onCompleteCallback = null;
@@ -590,7 +592,15 @@ function handleAction(action) {
       finishWizard();
       break;
 
-    case 'next':
+    case 'next': {
+      // Guard against entering a date of birth instead of the SP start date.
+      const spCheck = validateStatePensionDate(wizardData.spStartDate);
+      if (!spCheck.valid) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(spCheck.error, 'error');
+        }
+        return;
+      }
       if (currentPhase === 'scenario') {
         if (currentStep < 2) {
           currentStep++;
@@ -608,6 +618,7 @@ function handleAction(action) {
         }
       }
       break;
+    }
 
     case 'back':
       if (currentPhase === 'scenario' && currentStep > 1) {

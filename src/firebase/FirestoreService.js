@@ -17,6 +17,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   collection,
   getDocs,
@@ -25,6 +26,7 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config.js';
 import { getCurrentUser } from './AuthService.js';
+import { normalizeScenario } from './scenarioMigration.js';
 
 /**
  * Get current user's document path
@@ -54,6 +56,32 @@ function getUserCollection(collectionName) {
 // ============================================================================
 
 /**
+ * Normalise a raw scenario doc and, if it contained phantom dot-notation or
+ * legacy fields, rewrite the cleaned document once (full replace) to purge the
+ * junk fields and recover the user's data. Self-healing and idempotent.
+ * @param {object} raw - Raw scenario data including `id`
+ * @returns {Promise<object>} Normalised scenario (with id)
+ */
+async function migrateAndPersistScenario(raw) {
+  const { scenario, migrated } = normalizeScenario(raw);
+  if (migrated) {
+    const user = getCurrentUser();
+    if (user && db) {
+      try {
+        const { id, ...clean } = scenario;
+        // Full replace (no merge) removes the phantom/legacy top-level fields.
+        await setDoc(doc(db, 'users', user.uid, 'scenarios', id), clean);
+      } catch (error) {
+        // Migration write is best-effort; the in-memory normalised data is still
+        // returned so the app works even if the rewrite fails.
+        console.error('Scenario migration write failed:', error);
+      }
+    }
+  }
+  return scenario;
+}
+
+/**
  * Load all scenarios for current user
  * @returns {Promise<object[]>} Array of scenario objects with id
  */
@@ -65,11 +93,12 @@ export async function loadAllScenarios() {
 
   try {
     const querySnapshot = await getDocs(collRef);
-    const scenarios = [];
+    const rawScenarios = [];
     querySnapshot.forEach((docSnap) => {
-      scenarios.push({ id: docSnap.id, ...docSnap.data() });
+      rawScenarios.push({ id: docSnap.id, ...docSnap.data() });
     });
-    return scenarios;
+    // Normalise (and repair in Firestore) any phantom/legacy documents.
+    return Promise.all(rawScenarios.map((raw) => migrateAndPersistScenario(raw)));
   } catch (error) {
     console.error('Error loading scenarios:', error);
     return [];
@@ -90,7 +119,7 @@ export async function loadScenario(scenarioId) {
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      return migrateAndPersistScenario({ id: docSnap.id, ...docSnap.data() });
     }
     return null;
   } catch (error) {
@@ -100,10 +129,16 @@ export async function loadScenario(scenarioId) {
 }
 
 /**
- * Save/update a scenario
- * Supports dot-notation keys for nested field updates (e.g. 'decisionTool.history')
+ * Save/update a scenario.
+ *
+ * Uses updateDoc so that dot-notation keys (e.g. 'decisionTool.settings') are
+ * correctly interpreted as NESTED field paths. Firestore's setDoc(..., {merge})
+ * does NOT split dotted keys — it would create literal top-level fields named
+ * "decisionTool.settings", which is the bug this replaces. The scenario document
+ * always exists before this is called (created via createScenario/addDoc).
+ *
  * @param {string} scenarioId - Scenario document ID
- * @param {object} data - Scenario data (can use dot-notation keys)
+ * @param {object} data - Scenario data (may use dot-notation keys for nested updates)
  * @returns {Promise<void>}
  */
 export async function saveScenario(scenarioId, data) {
@@ -113,10 +148,10 @@ export async function saveScenario(scenarioId, data) {
   if (!docRef) return;
 
   try {
-    await setDoc(docRef, {
+    await updateDoc(docRef, {
       ...data,
       lastModified: new Date().toISOString()
-    }, { merge: true });
+    });
   } catch (error) {
     console.error('Error saving scenario:', error);
     throw error;

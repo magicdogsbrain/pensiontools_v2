@@ -2468,6 +2468,9 @@
     // Import math utils for optimization
     import { seededRng } from './src/utils/MathUtils.js';
 
+    // State Pension date validation (guards against entering a date of birth)
+    import { validateStatePensionDate } from './src/utils/StatePensionUtils.js';
+
     // Expose for optimization
     window._simEngine = { runMonteCarlo, runHistorical, simulate };
     window._constants = { EQUITY_RETURNS, INFLATION };
@@ -5094,6 +5097,16 @@
         return;
       }
 
+      // Guard against entering a date of birth instead of the SP start date.
+      const ssSpCheck = validateStatePensionDate(document.getElementById('ssSpStartDate').value.trim());
+      if (!ssSpCheck.valid) {
+        showToast(ssSpCheck.error, 'error');
+        return;
+      }
+      if (ssSpCheck.warning) {
+        showToast(ssSpCheck.warning, 'warning');
+      }
+
       showLoading('Saving settings...');
       try {
         await saveStressSettings({
@@ -5175,6 +5188,16 @@
       if (!isLoggedIn()) {
         showToast('Please sign in to save settings', 'error');
         return;
+      }
+
+      // Guard against entering a date of birth instead of the SP start date.
+      const dsSpCheck = validateStatePensionDate(document.getElementById('dsSpStartDate').value.trim());
+      if (!dsSpCheck.valid) {
+        showToast(dsSpCheck.error, 'error');
+        return;
+      }
+      if (dsSpCheck.warning) {
+        showToast(dsSpCheck.warning, 'warning');
       }
 
       showLoading('Saving settings...');

@@ -196,9 +196,12 @@ export function calculateStatePensionForTaxYear(params) {
   const taxYearStart = getTaxYearStart(taxYear);
   const taxYearEnd = getTaxYearEnd(taxYear);
 
-  // Compare tax years
+  // Compare tax years CHRONOLOGICALLY, not lexicographically.
+  // Tax years are 'YY/YY' strings; a plain string sort places e.g. '70/71'
+  // after '26/27', which would wrongly treat a 1970 date as the year 2070.
+  // getTaxYearStart resolves the real calendar year, so sort by that.
   const sortedYears = [...new Set([spStartTaxYear, taxYear, ...Object.keys(taxYearConfigs)])]
-    .sort();
+    .sort((a, b) => getTaxYearStart(a).getTime() - getTaxYearStart(b).getTime());
   const spStartIndex = sortedYears.indexOf(spStartTaxYear);
   const currentIndex = sortedYears.indexOf(taxYear);
 
@@ -285,4 +288,62 @@ export function getTimeUntilStatePension(spStartDate, fromDate = new Date()) {
   const months = totalMonths % 12;
 
   return { years, months, totalMonths, isPast };
+}
+
+/**
+ * Earliest plausible State Pension start date.
+ * The current ("new") State Pension began 6 April 2016, so any start date
+ * before this is almost certainly a date of birth or a typo.
+ */
+export const MIN_SP_START_YEAR = 2016;
+
+/**
+ * Validates a State Pension start date entered by the user.
+ *
+ * Guards against the common mistake of entering a date of birth instead of
+ * the State Pension start date (which silently distorts every projection).
+ *
+ * @param {string} dateStr - Raw value from the input field
+ * @param {object} [opts]
+ * @param {Date} [opts.now] - Reference "today" (for testing); defaults to now
+ * @returns {{ valid: boolean, error: string|null, warning: string|null, date: Date|null }}
+ */
+export function validateStatePensionDate(dateStr, { now = new Date() } = {}) {
+  // Empty is allowed — State Pension is optional (weekly amount of 0 = not set).
+  if (!dateStr || !String(dateStr).trim()) {
+    return { valid: true, error: null, warning: null, date: null };
+  }
+
+  const date = parseStatePensionDate(dateStr);
+  if (!date || isNaN(date.getTime())) {
+    return {
+      valid: false,
+      error: 'Could not read that date. Try a format like "6 May 2040".',
+      warning: null,
+      date: null
+    };
+  }
+
+  const year = date.getFullYear();
+  if (year < MIN_SP_START_YEAR) {
+    return {
+      valid: false,
+      error: `That looks like a date of birth (${year}), not a State Pension start date. `
+        + 'Enter the date your State Pension begins — check gov.uk/check-your-state-pension.',
+      warning: null,
+      date
+    };
+  }
+
+  if (date.getTime() < now.getTime()) {
+    return {
+      valid: true,
+      error: null,
+      warning: `This date is in the past — State Pension will be treated as already `
+        + `in payment from ${year}.`,
+      date
+    };
+  }
+
+  return { valid: true, error: null, warning: null, date };
 }

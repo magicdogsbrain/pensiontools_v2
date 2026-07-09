@@ -38,6 +38,19 @@ describe('createSimulationConfigFromSettings — State Pension wiring', () => {
     expect(cfg.statePension).toBeUndefined();     // legacy fields not used
   });
 
+  it('REGRESSION: parses the dash format "21-4-2037" (the optimizer bug) → SP not dropped', () => {
+    // The optimizer used a separate inline parser (parseSpDate) that had no dash-format
+    // branch, so "21-4-2037" → null → spStartYear:999 → State Pension silently dropped,
+    // scoring the current allocation far below the headline Monte Carlo. The shared
+    // builder uses parseStatePensionDate, which handles it.
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base, spStartDate: '21-4-2037', spWeeklyAmount: 230
+    });
+    expect(cfg.spWeeklyAmount).toBe(230);
+    expect(cfg.spStartYear).toBeTypeOf('number');
+    expect(cfg.spStartYear).toBeLessThan(999); // not the "dropped" sentinel
+  });
+
   it('means no SP when neither date-based nor legacy fields are set', () => {
     const cfg = createSimulationConfigFromSettings({}, { ...base });
     // legacy fallback with no legacy fields → statePensionYear sentinel, statePension 0

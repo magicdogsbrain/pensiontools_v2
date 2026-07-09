@@ -1989,6 +1989,14 @@
               </div>
             </div>
 
+            <h3 style="margin-top: 24px;">ISA</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISA Balance (£)</label>
+                <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
+              </div>
+            </div>
+
             <h3 style="margin-top: 24px;">Protection Settings</h3>
             <div class="form-grid">
               <div class="form-group">
@@ -2353,6 +2361,18 @@
               • State Pension: Follows CPI (triple-lock proxy)
             </div>
 
+            <h3 style="margin-top: 24px;">ISA</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISA Balance (£)</label>
+                <input type="number" id="ssIsaBalance" placeholder="e.g. 50000">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
+              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
+            </div>
+
             <h3 style="margin-top: 24px;">Protection Rules</h3>
             <div class="form-grid">
               <div class="form-group">
@@ -2456,7 +2476,8 @@
       duplicateScenario,
       renameScenario,
       deleteScenario,
-      updateScenarioTools
+      updateScenarioTools,
+      seedStressFromDecision
     } from './src/storage/ScenarioRepository.js';
 
     // Import simulation engine for direct access in optimization
@@ -2967,6 +2988,13 @@
         document.getElementById('ssDisableProtection').checked = stressSettings.disableProtection || false;
         document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
+        document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
+        const seedNote = document.getElementById('ssSeedNote');
+        if (seedNote) {
+          seedNote.textContent = stressSettings.seededFrom === 'decision' && stressSettings.seededAt
+            ? 'Seeded from Decision Tool ' + new Date(stressSettings.seededAt).toLocaleDateString()
+            : '';
+        }
 
         // Refresh number overlays after all values are set
         refreshNumberOverlays();
@@ -4490,12 +4518,36 @@
           protectionMult: +document.getElementById('ssProtectionMult').value,
           disableProtection: document.getElementById('ssDisableProtection').checked,
           hodlEnabled: document.getElementById('ssHodlEnabled').checked,
-          hodlValue: +document.getElementById('ssHodlValue').value
+          hodlValue: +document.getElementById('ssHodlValue').value,
+          isaBalance: +document.getElementById('ssIsaBalance').value || 0
         });
         showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving stress settings:', error);
         showToast('Error saving: ' + error.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Copy from Decision Tool: seed the Stress sandbox from the committed Decision plan.
+    window.copyStressFromDecisionUI = async function() {
+      if (!isLoggedIn()) {
+        showToast('Please sign in first', 'error');
+        return;
+      }
+      if (!confirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
+      showLoading('Copying from Decision...');
+      try {
+        const decision = await getDecisionSettingsAsync();
+        const currentStress = await getStressSettingsAsync();
+        const seeded = seedStressFromDecision(decision, currentStress);
+        await saveStressSettings(seeded);
+        await loadStressSettings();
+        showToast('Stress Tester seeded from your Decision plan', 'success');
+      } catch (error) {
+        console.error('Error copying from decision:', error);
+        showToast('Error copying: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -4531,6 +4583,7 @@
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
+        document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
 
         // Also update entry form with settings
         document.getElementById('entryEquity').value = s.equityMin || 250000;
@@ -4576,7 +4629,8 @@
           spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,
           protectionFactor: +document.getElementById('dsProtectionFactor').value,
           recoveryBuffer: +document.getElementById('dsRecoveryBuffer').value,
-          consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value
+          consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value,
+          isaBalance: +document.getElementById('dsIsaBalance').value || 0
         });
         showToast('Settings saved successfully', 'success');
       } catch (error) {

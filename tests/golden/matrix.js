@@ -369,5 +369,8 @@ export const stressConfigs = [
   // Target BELOW the basic-rate limit so the draw binds to target, not the BRL cap
   // (a higher salary is a no-op: calculateMonthlyDraw caps at min(brl,target)).
   { name: 'lower target salary (40k, binds below BRL)', config: { ...baseConfig, baseSalary: 40000 } },
-  { name: 'partial first State-Pension year (ratio 0.5)', config: { ...baseConfig, spFirstYearRatio: 0.5 } }
+  { name: 'partial first State-Pension year (ratio 0.5)', config: { ...baseConfig, spFirstYearRatio: 0.5 } },
+  // ISA pot helping the SIPP: tax-free top-up means less SIPP drawn → higher success than base.
+  { name: 'base + £200k ISA (should beat base)', config: { ...baseConfig, isaBalance: 200000 } },
+  { name: 'base + £200k ISA / maximise longevity', config: { ...baseConfig, isaBalance: 200000, isaDrawdownStrategy: 'maximiseLongevity' } }
 ];

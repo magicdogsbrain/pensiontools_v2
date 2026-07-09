@@ -41,6 +41,14 @@ describe('golden-master: stress engine', () => {
     expect(dropped).toEqual(noSP); // byte-identical: legacy SP contributes nothing
   });
 
+  it('ISA helps the SIPP hold up: a funded ISA raises the success rate over no-ISA', () => {
+    // With a target above BRL, the sim draws the full target: no ISA → taxable SIPP above
+    // BRL (harder); a funded ISA covers the above-BRL gap tax-free so the SIPP stays at BRL.
+    const base = fixtures.cases['base / SP from year 5'].mc.successRate;
+    const withIsa = fixtures.cases['base + £200k ISA (should beat base)'].mc.successRate;
+    expect(withIsa).toBeGreaterThan(base);
+  });
+
   it('FIXED (was NaN-blowup): every run now has a finite final value', () => {
     // Regression test for the bond (1+r)^(1/12), r<-1 → NaN bug. Previously the seed-0
     // run reported failed=false with a NaN final (miscounted as a successful survival);

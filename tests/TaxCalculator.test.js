@@ -6,7 +6,9 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateTax,
   grossToNet,
-  calculateBRLHeadroom
+  calculateBRLHeadroom,
+  marginalTaxOn,
+  bandsForTaxYear
 } from '../src/services/TaxCalculator.js';
 
 describe('TaxCalculator', () => {
@@ -95,6 +97,50 @@ describe('TaxCalculator', () => {
 
     it('should return 0 when already at or above BRL', () => {
       expect(calculateBRLHeadroom(60000, BRL)).toBe(0);
+    });
+  });
+
+  describe('marginalTaxOn', () => {
+    it('taxes a slice at 0% when it stays under the personal allowance', () => {
+      expect(marginalTaxOn(5000, 0, PA, BRL, HRL)).toBe(0);
+    });
+
+    it('taxes a slice at 20% when it sits in the basic-rate band', () => {
+      // £5k slice on top of £20k income → all within basic rate
+      expect(marginalTaxOn(5000, 20000, PA, BRL, HRL)).toBeCloseTo(1000, 6);
+    });
+
+    it('taxes a slice at 40% when it sits in the higher-rate band', () => {
+      // £5k slice on top of income already at BRL → all at 40%
+      expect(marginalTaxOn(5000, BRL, PA, BRL, HRL)).toBeCloseTo(2000, 6);
+    });
+
+    it('equals the difference of total tax (consistency with calculateTax)', () => {
+      const amount = 8000, existing = 48000;
+      const expected = calculateTax(existing + amount, PA, BRL, HRL) - calculateTax(existing, PA, BRL, HRL);
+      expect(marginalTaxOn(amount, existing, PA, BRL, HRL)).toBeCloseTo(expected, 9);
+    });
+
+    it('returns 0 for a non-positive slice', () => {
+      expect(marginalTaxOn(0, 30000, PA, BRL, HRL)).toBe(0);
+    });
+  });
+
+  describe('bandsForTaxYear', () => {
+    it('returns bands unchanged with default cumulativeInflation (explicit per-year config)', () => {
+      expect(bandsForTaxYear({ pa: PA, brl: BRL, hrl: HRL })).toEqual({ pa: PA, brl: BRL, hrl: HRL });
+    });
+
+    it("inflates all three bands when taxMode is 'inflates'", () => {
+      const b = bandsForTaxYear({ pa: PA, brl: BRL, hrl: HRL, cumulativeInflation: 1.1, taxMode: 'inflates' });
+      expect(b.pa).toBeCloseTo(PA * 1.1, 6);
+      expect(b.brl).toBeCloseTo(BRL * 1.1, 6);
+      expect(b.hrl).toBeCloseTo(HRL * 1.1, 6);
+    });
+
+    it("leaves bands fixed when taxMode is 'frozen' regardless of inflation", () => {
+      expect(bandsForTaxYear({ pa: PA, brl: BRL, hrl: HRL, cumulativeInflation: 1.5, taxMode: 'frozen' }))
+        .toEqual({ pa: PA, brl: BRL, hrl: HRL });
     });
   });
 });

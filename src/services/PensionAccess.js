@@ -20,7 +20,7 @@
  */
 
 import { TAX_DEFAULTS } from '../constants.js';
-import { calculateTax } from './TaxCalculator.js';
+import { marginalTaxOn } from './TaxCalculator.js';
 
 /** Proportion of a DC pension accessible tax-free. */
 export const TAX_FREE_RATE = 0.25;
@@ -56,9 +56,7 @@ export function ufplsFromGross({
   }
   const taxFree = amount * TAX_FREE_RATE;
   const taxablePortion = amount - taxFree; // 75%
-  const tax =
-    calculateTax(otherTaxableIncome + taxablePortion, pa, brl, hrl) -
-    calculateTax(otherTaxableIncome, pa, brl, hrl);
+  const tax = marginalTaxOn(taxablePortion, otherTaxableIncome, pa, brl, hrl);
   const net = amount - tax; // taxFree + (taxablePortion - tax)
   return { gross: amount, taxFree, taxablePortion, tax, net };
 }

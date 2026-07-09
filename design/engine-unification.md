@@ -193,6 +193,17 @@ construction, and every roadmap lever (UFPLS/PCLS, net-budget, capex, couples) i
 
 ---
 
+## Required conventions
+- **Tax-year boundary = 6 April** (tax year runs 6 Apr → 5 Apr). The canonical
+  `DateUtils.getTaxYear` honours the 6th; the live decision path (`getTaxYearFromDate`,
+  `getYearNum`, the `m >= 4` YTD filters) and the stress engine (`monthInYear >= 3`)
+  approximate it to 1 April. The unified engine uses `getTaxYear(parseMonth(monthStr))`
+  everywhere and deletes the `m >= 4` / `monthInYear >= 3` copies. This is **behaviour-
+  neutral at month granularity** — proven for every month 2020–2070 in
+  `tests/golden/taxyear-parity.test.js` (`parseMonth` resolves a month to day 15, which
+  is always on the correct side of 6 April). Separately, `getYearNum` hard-codes a 2026
+  epoch (bug #4-ish) and should derive the year index from the resolved tax year.
+
 ## Sequencing to get there (parity-first)
 1. **Golden-master harness** — pin current live outputs (`calcDecisionPWA`) and stress
    success rates (fixed seed) across a scenario matrix, before touching anything.

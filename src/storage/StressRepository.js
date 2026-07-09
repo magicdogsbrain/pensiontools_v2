@@ -254,22 +254,14 @@ export async function resetStressSettings() {
 function calculateSpConfigFromSettings(settings) {
   // If no SP start date configured, return config that means no state pension
   if (!settings.spStartDate || !settings.spWeeklyAmount) {
-    return {
-      spStartYear: 999,  // Never starts
-      spWeeklyAmount: 0,
-      spFirstYearRatio: 1
-    };
+    return null; // no date-based SP → caller falls back to legacy statePension fields
   }
 
   // Parse the SP start date
   const spDate = parseStatePensionDate(settings.spStartDate);
   if (!spDate) {
     console.warn('Could not parse spStartDate:', settings.spStartDate);
-    return {
-      spStartYear: 999,
-      spWeeklyAmount: 0,
-      spFirstYearRatio: 1
-    };
+    return null;
   }
 
   // Calculate years until SP starts from now
@@ -302,8 +294,12 @@ function calculateSpConfigFromSettings(settings) {
 export function createSimulationConfigFromSettings(overrides = {}, preloadedSettings = null) {
   const settings = preloadedSettings || getStressSettings();
 
-  // Calculate state pension config from date-based settings
+  // Prefer date-based SP; fall back to the legacy statePension/statePensionYear fields so
+  // a plan configured only with those (e.g. the defaults) is not silently ignored.
   const spConfig = calculateSpConfigFromSettings(settings);
+  const spFields = spConfig
+    ? { spStartYear: spConfig.spStartYear, spWeeklyAmount: spConfig.spWeeklyAmount, spFirstYearRatio: spConfig.spFirstYearRatio }
+    : { statePension: settings.statePension || 0, statePensionYear: settings.statePensionYear ?? 999 };
 
   return {
     equityStart: overrides.equityStart ?? settings.equityMin,
@@ -316,10 +312,8 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     duration: settings.duration,
     baseSalary: settings.baseSalary,
     other: settings.other,
-    // State pension - use date-based config
-    spStartYear: spConfig.spStartYear,
-    spWeeklyAmount: spConfig.spWeeklyAmount,
-    spFirstYearRatio: spConfig.spFirstYearRatio,
+    // State pension - date-based, or legacy fallback (see spFields above)
+    ...spFields,
     pa: settings.pa,
     brl: settings.brl,
     hrl: settings.hrl,

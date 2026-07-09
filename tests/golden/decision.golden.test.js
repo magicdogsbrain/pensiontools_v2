@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 
 import { decisionCases } from './matrix.js';
 import { canonical } from './canonical.js';
-import { calcDecisionPWA } from './legacyDecisionEngine.js';
+import { calcDecisionPWA } from '../../src/services/legacyDecision.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(here, 'fixtures/decision.json'), 'utf8'));

@@ -1,14 +1,13 @@
 /**
- * GOLDEN-MASTER CHARACTERIZATION — DO NOT EDIT BY HAND.
+ * Legacy Decision Engine (de-inlined from index.html's calcDecisionPWA).
  *
- * Byte-faithful extraction of the LIVE inline decision engine (calcDecisionPWA and its
- * four pure helpers) from index.html, produced by scripts/extract_decision.mjs. The only
- * changes vs the inline source are: (1) the function is exported and takes a `deps`
- * argument; (2) the four storage/SP reads
- *   getDecisionSettingsAsync / getHistoryAsync / getAllTaxYearsAsync / getStatePensionForTaxYear
- * are replaced by deps.settings / deps.history / deps.allTaxYears / deps.spInfo.
- * Everything else is identical, so this pins the CURRENT live behaviour (bugs included).
- * The live app is untouched. Regenerate if index.html's calcDecisionPWA changes.
+ * This is the monthly Decision Tool calculation, now a real module. Storage/SP reads are
+ * injected via `deps` ({ settings, history, allTaxYears, spInfo }); index.html builds them
+ * in calcDecisionWithDeps and delegates here. Behaviour is pinned by the golden master
+ * (tests/golden) — any change here shows up as a reviewed fixture diff.
+ *
+ * This is the seam the unification is progressively refactoring (proper tax, 6-April tax
+ * year, one protection/glidepath/SP source), on the way to the unified DrawdownStrategy.
  */
 
 // Get tax year from date string (e.g., "2026-05" -> "26/27")

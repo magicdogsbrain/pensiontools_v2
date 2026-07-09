@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 
 import { decisionCases, stressConfigs } from './matrix.js';
 import { canonical, pickStress } from './canonical.js';
-import { calcDecisionPWA } from './legacyDecisionEngine.js';
+import { calcDecisionPWA } from '../../src/services/legacyDecision.js';
 import { runMonteCarlo, runHistorical, analyzeResults } from '../../src/services/SimulationEngine.js';
 
 const here = dirname(fileURLToPath(import.meta.url));

@@ -92,6 +92,46 @@ export function netToGross(net, pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
 }
 
 /**
+ * Marginal tax on an incremental slice of income stacked on top of existing income.
+ * (e.g. the taxable 75% of a UFPLS withdrawal, or an extra SIPP draw.)
+ * @param {number} amount - The incremental (marginal) taxable amount
+ * @param {number} existingIncome - Taxable income already received this year
+ * @param {number} pa - Personal Allowance
+ * @param {number} brl - Basic Rate Limit
+ * @param {number} hrl - Higher Rate Limit
+ * @returns {number} Tax attributable to `amount` at the margin
+ */
+export function marginalTaxOn(amount, existingIncome, pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
+  if (amount <= 0) return 0;
+  return calculateTax(existingIncome + amount, pa, brl, hrl) - calculateTax(existingIncome, pa, brl, hrl);
+}
+
+/**
+ * Resolves the tax bands for a given year — unifying the two mechanisms in the codebase:
+ * explicit per-year thresholds (Decision Tool: pass cumulativeInflation=1) and
+ * inflate-from-base (Stress Tester / schedules: taxMode 'inflates' scales all bands by
+ * cumulativeInflation; 'frozen' leaves them fixed). Note: this inflates PA, BRL AND HRL
+ * consistently (the live stress engine currently omits HRL — that gets fixed on wiring).
+ * @param {object} p
+ * @param {number} p.pa
+ * @param {number} p.brl
+ * @param {number} [p.hrl]
+ * @param {number} [p.cumulativeInflation=1]
+ * @param {'inflates'|'frozen'} [p.taxMode='inflates']
+ * @returns {{pa:number, brl:number, hrl:number}}
+ */
+export function bandsForTaxYear({
+  pa,
+  brl,
+  hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT,
+  cumulativeInflation = 1,
+  taxMode = 'inflates'
+}) {
+  const f = taxMode === 'frozen' ? 1 : cumulativeInflation;
+  return { pa: pa * f, brl: brl * f, hrl: hrl * f };
+}
+
+/**
  * Calculates BRL headroom (how much more can be withdrawn at basic rate)
  * @param {number} currentAnnualTaxable - Current year-to-date taxable income
  * @param {number} brl - Basic Rate Limit

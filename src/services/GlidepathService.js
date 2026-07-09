@@ -54,31 +54,9 @@ export function calculateAllGlidepaths(settings, year, cumulativeInflation) {
   };
 }
 
-/**
- * Calculates cumulative inflation from yearly rates
- * @param {number[]} yearlyRates - Array of yearly inflation rates (as decimals)
- * @returns {number} Cumulative inflation factor
- */
-export function calculateCumulativeInflation(yearlyRates) {
-  return yearlyRates.reduce((acc, rate) => acc * (1 + rate), 1);
-}
-
-/**
- * Calculates cumulative inflation with cap on individual years
- * Used for "other pension" income where CPI is capped
- * @param {number} baseAmount - Base amount
- * @param {number[]} yearlyRates - Array of yearly inflation rates
- * @param {number} cap - Maximum annual increase (default 4%)
- * @returns {number} Inflated amount
- */
-export function calculateCappedInflation(baseAmount, yearlyRates, cap = INFLATION_DEFAULTS.OTHER_INCOME_CAP) {
-  let amount = baseAmount;
-  for (const rate of yearlyRates) {
-    const cappedRate = Math.min(rate, cap);
-    amount *= (1 + cappedRate);
-  }
-  return amount;
-}
+// Inflation mechanics now live in InflationModel (single source of truth).
+// Re-exported here to preserve this module's public API for existing importers.
+export { cumulativeInflation as calculateCumulativeInflation, cappedInflation as calculateCappedInflation } from './InflationModel.js';
 
 /**
  * Generates a complete glidepath schedule

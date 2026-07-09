@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { getTaxYear, parseMonth } from '../../src/utils/DateUtils.js';
-import { getTaxYearFromDate } from './legacyDecisionEngine.js';
+import { getTaxYearFromDate } from '../../src/services/legacyDecision.js';
 
 describe('tax-year boundary parity (6 April, day-15 month convention)', () => {
   it('getTaxYear(parseMonth(m)) === live getTaxYearFromDate(m) for every month 2020–2070', () => {

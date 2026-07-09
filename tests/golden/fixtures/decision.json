@@ -1945,11 +1945,11 @@
   },
   "glidepath depletion floor (yearNum == duration → min 0)": {
     "adjBondMin": 0,
-    "adjCashTarget": 473531,
+    "adjCashTarget": 284785,
     "adjEquityMin": 0,
     "alerts": [
       {
-        "message": "Replenish Cash: Move £106,000 from growth funds",
+        "message": "Replenish Cash: Move £49,000 from growth funds",
         "severity": "info",
         "type": "cash-replenish"
       }
@@ -1967,10 +1967,10 @@
         "STATE": 0,
         "baseSalary": 59450,
         "confirmedSalary": 59450,
-        "cumInf": 3.95,
+        "cumInf": 2.37,
         "grossIncomeToDate": 0,
         "isTaxEfficientYear": true,
-        "targetGross": 234594.99,
+        "targetGross": 141087.05,
         "taxYear": "61/62",
         "yearNum": 35,
         "yearlyIsaSavingsAllocation": 0
@@ -2014,9 +2014,9 @@
     "taxEfficient": true,
     "taxPaidYTD": 628.33,
     "taxProjectedAnnual": 7540,
-    "taxSavedMonthly": 6144.17,
-    "taxSavedProjectedAnnual": 73730,
-    "taxSavedYTD": 6144.17,
+    "taxSavedMonthly": 3027.23,
+    "taxSavedProjectedAnnual": 36326.82,
+    "taxSavedYTD": 3027.23,
     "taxYear": "61/62",
     "totalMonthlyNet": 3560.83,
     "yearNumber": 35,

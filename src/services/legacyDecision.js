@@ -10,10 +10,14 @@
  * year, one protection/glidepath/SP source), on the way to the unified DrawdownStrategy.
  */
 
-// Get tax year from date string (e.g., "2026-05" -> "26/27")
+import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
+import { DEFAULT_CPI } from './InflationModel.js';
+
+// Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
+// 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
+// always land on the correct side of 6 April. Parity-proven vs the old `m >= 4` rule.
     export function getTaxYearFromDate(dateStr) {
-      const [y, m] = dateStr.split('-').map(Number);
-      return m >= 4 ? (y % 100) + '/' + ((y + 1) % 100) : ((y - 1) % 100) + '/' + (y % 100);
+      return getTaxYear(parseMonth(dateStr));
     }
 
     // Get year number (0-based from 2026)
@@ -78,7 +82,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       let cumInf = 1;
       for (let i = 0; i < yearNum; i++) {
         const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
-        const yearCPI = (allTaxYears[yStr] || {}).cpi || 0.04;
+        const yearCPI = (allTaxYears[yStr] || {}).cpi || DEFAULT_CPI; // was 0.04; unified to 2.5%
         cumInf *= 1 + yearCPI;
       }
 

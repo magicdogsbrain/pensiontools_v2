@@ -55,15 +55,16 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
 ## Now → Next → Later
 
 ### 🔵 Now
-- **[0] Unify the income/tax/withdrawal engine.** Today there are three tax
-  implementations: the proper `TaxCalculator` (used by the Stress Tester and
-  `DrawdownService`), and a **crude inline copy** (`calcDecisionPWA` /
-  `grossToNetIncome` in `index.html`, flat 20/40% with no additional rate and no PA
-  taper) that the **live Decision Tool "Calculate" actually runs**. The two tools can
-  already disagree above ~£100k income. Point the Decision Tool at `DrawdownService`
-  and delete the inline duplicate. **DoD:** one engine, both tools call it, parity
-  tests pin the numbers, inline `calcDecisionPWA`/`grossToNetIncome` gone. This
-  unblocks every lever below (implement once, not 2–3×).
+- **[0] Unify the whole engine.** Full audit in `design/engine-unification.md` (+
+  tax/drawdown deep-dive in `design/decision-engine-unification.md`). Every functional
+  area — tax, inflation, returns, protection, glidepath, State Pension, sourcing — has
+  **three parallel implementations** (live inline decision, live stress, and a
+  cleanly-factored module layer that is **dead code**). The two live tools disagree,
+  including a central issue: **the Stress Tester models a different withdrawal than the
+  Decision Tool** (gross-to-BRL, no tax/ISA, vs net-target with ISA), so it isn't
+  testing the plan the user runs. See the prioritised **bug register** (7 high-severity)
+  in the audit. **DoD:** one `PlanContext` + one `DrawdownStrategy.decide()` both tools
+  call, parity-pinned, all duplicates deleted. Unblocks every lever below (build once).
 - **[1] Tax-lever engine.** The Decision Tool currently offers one path only: draw
   SIPP fully taxable to the basic-rate limit, top up with ISA. It ignores the 25%
   tax-free entitlement entirely — so the "optimal tax-efficient drawdown" promise is

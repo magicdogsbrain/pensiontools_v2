@@ -28,6 +28,9 @@ these better, it's a distraction.
    "this is not financial advice / tax rules change / consult an adviser."
 5. **Parity-tested refactors.** Any invisible refactor (asset registry, household
    model) must reproduce current numbers under test before extending behaviour.
+6. **One engine, two tools.** The Stress Tester and Decision Tool must compute income,
+   tax, and withdrawals through the *same* code. Any feature added once should be felt
+   in both. No parallel/inline copies of tax logic.
 
 ---
 
@@ -35,7 +38,8 @@ these better, it's a distraction.
 
 | # | Item | Job | Effort | Risk | Depends on | State |
 |---|------|-----|--------|------|-----------|-------|
-| 1 | **Tax-lever engine** (PCLS / UFPLS / ISA choice + net→gross inversion) | B | M | Med (tax correctness) | — | **In progress** |
+| 0 | **Unify the income/tax/withdrawal engine** (one engine both tools call) | A+B | M | Med | — | **Now (prerequisite)** |
+| 1 | **Tax-lever engine** — primitives done ✅; wiring into tools | B | M | Med (tax correctness) | 0 | Primitives done; wiring blocked on 0 |
 | 2 | **Net-budget income mode** (enter net £/month → back-solve draw mix) | B | M | Low | 1 | Next |
 | 3 | **Person-scoped data model** (household = 1–2 people) | A+B | M | Med (touches data model) | — (fold into 1–2) | Next |
 | 4 | **Bucket composition** (asset-class registry; user weights) | A+B | L | Med (assumptions) | — | Later |
@@ -51,6 +55,15 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
 ## Now → Next → Later
 
 ### 🔵 Now
+- **[0] Unify the income/tax/withdrawal engine.** Today there are three tax
+  implementations: the proper `TaxCalculator` (used by the Stress Tester and
+  `DrawdownService`), and a **crude inline copy** (`calcDecisionPWA` /
+  `grossToNetIncome` in `index.html`, flat 20/40% with no additional rate and no PA
+  taper) that the **live Decision Tool "Calculate" actually runs**. The two tools can
+  already disagree above ~£100k income. Point the Decision Tool at `DrawdownService`
+  and delete the inline duplicate. **DoD:** one engine, both tools call it, parity
+  tests pin the numbers, inline `calcDecisionPWA`/`grossToNetIncome` gone. This
+  unblocks every lever below (implement once, not 2–3×).
 - **[1] Tax-lever engine.** The Decision Tool currently offers one path only: draw
   SIPP fully taxable to the basic-rate limit, top up with ISA. It ignores the 25%
   tax-free entitlement entirely — so the "optimal tax-efficient drawdown" promise is

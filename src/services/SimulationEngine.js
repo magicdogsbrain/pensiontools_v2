@@ -5,11 +5,13 @@
  * Matches PWA logic for accurate simulation results
  */
 
-import { EQUITY_RETURNS, INFLATION, BOND_MODEL } from '../constants.js';
+import { EQUITY_RETURNS, INFLATION, BOND_MODEL, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
 import { calculateGlidepath } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
+import { planDrawdown } from './DrawdownStrategy.js';
+import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 
 /**
  * Runs a single simulation with given returns
@@ -29,6 +31,9 @@ export function simulate(config, returns, seed = 0) {
   // HODL (Break Glass) - emergency reserve
   let hodl = config.hodlEnabled ? (config.hodlStart !== undefined ? config.hodlStart : config.hodlValue) : 0;
   let hodlUsed = 0;
+
+  // ISA pot (tax-free top-up; grows at the money-market rate, depletes as drawn)
+  let isa = config.isaBalance || 0;
   let hodlUsedMonth = null;
 
   // State tracking
@@ -103,11 +108,14 @@ export function simulate(config, returns, seed = 0) {
     const bdMin = calculateGlidepath(config.bondMin, year, config.duration, cumInf, true);
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
 
-    // Calculate required draw
-    const draw = calculateMonthlyDraw(config, year, cumInf, yearlyInf);
+    // Calculate required draw (SIPP + ISA to hit the target via band management)
+    const { sippMonthly, isaMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
+    const draw = sippMonthly;
     const standardMonthDraw = draw;
     let effectiveDraw = prot ? draw * config.protectionMult : draw;
     let monthDraw = effectiveDraw;
+    // ISA top-up is scaled the same way as the SIPP draw during protection.
+    const isaDrawThisMonth = prot ? isaMonthly * config.protectionMult : isaMonthly;
 
     // Track protection shortfall for tax boost
     if (prot) {
@@ -124,6 +132,7 @@ export function simulate(config, returns, seed = 0) {
     equity *= monthly(eqReturn);
     bond *= monthly(annualBondReturn);
     cash *= monthly(annualCashReturn);
+    isa = applyIsaGrowthMonthly(isa, config.isaReturn || ISA_DEFAULTS.RETURN);
 
     // HODL fund return (Ruffer-style absolute return)
     if (hodl > 0) {
@@ -241,6 +250,11 @@ export function simulate(config, returns, seed = 0) {
       }
     }
 
+    // Deplete the ISA pot by this month's tax-free top-up (bounded by the balance).
+    // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
+    // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
+    isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa));
+
     // Ensure no negative values
     equity = Math.max(0, equity);
     bond = Math.max(0, bond);
@@ -351,12 +365,25 @@ function calculateBondReturn(inf, eqReturn, prevInf, rng) {
 }
 
 /**
- * Calculates monthly draw amount
+ * Number of whole simulation years until State Pension starts (0 = already in payment).
  */
-function calculateMonthlyDraw(config, year, cumInf, yearlyInf) {
+function yearsUntilStatePension(config, year) {
+  if (config.spStartYear !== undefined) return Math.max(0, config.spStartYear - year);
+  if (config.statePensionYear !== undefined) return Math.max(0, config.statePensionYear - year);
+  return 0;
+}
+
+/**
+ * Monthly SIPP + ISA draw to deliver the target income via band management, given the
+ * current ISA balance (see DrawdownStrategy.planDrawdown). Replaces the old draw-to-BRL
+ * (which under-drew the target and ignored the ISA).
+ * @returns {{sippMonthly:number, isaMonthly:number}}
+ */
+function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
   // Adjust tax thresholds
   const pa = config.taxMode === 'frozen' ? config.pa : config.pa * cumInf;
   const brl = config.taxMode === 'frozen' ? config.brl : config.brl * cumInf;
+  const hrl = config.taxMode === 'frozen' ? config.hrl : (config.hrl || 125140) * cumInf;
 
   // Target income
   const target = config.baseSalary * cumInf;
@@ -386,11 +413,17 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf) {
       : 0;
   }
 
-  // SIPP draw (capped at BRL)
   const fixed = other + statePension;
-  const sippDraw = Math.max(0, Math.min(brl, target) - fixed);
+  const plan = planDrawdown({
+    targetGross: target,
+    fixedIncome: fixed,
+    pa, brl, hrl,
+    isaBalance,
+    strategy: config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY,
+    yearsUntilSp: yearsUntilStatePension(config, year)
+  });
 
-  return sippDraw / 12;
+  return { sippMonthly: plan.sippGross / 12, isaMonthly: plan.isaDraw / 12 };
 }
 
 /**

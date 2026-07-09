@@ -61,7 +61,14 @@ vi.mock('../src/constants.js', () => ({
     VOLATILITY: { LINKER: 0.05, NOMINAL: 0.06, PROPERTY: 0.08, COMMODITY: 0.15, CASH: 0.01 }
   },
   // Needed transitively via InflationModel (SimulationEngine now uses cappedInflation).
-  INFLATION_DEFAULTS: { ASSUMED_CPI: 0.025, OTHER_INCOME_CAP: 0.04, STATE_PENSION_FLOOR: 0.025 }
+  INFLATION_DEFAULTS: { ASSUMED_CPI: 0.025, OTHER_INCOME_CAP: 0.04, STATE_PENSION_FLOOR: 0.025 },
+  // Needed transitively via DrawdownStrategy → TaxCalculator, and IsaDrawdown growth.
+  TAX_DEFAULTS: {
+    PERSONAL_ALLOWANCE: 12570, BASIC_RATE_LIMIT: 50270, HIGHER_RATE_LIMIT: 125140,
+    BASIC_RATE: 0.20, HIGHER_RATE: 0.40, ADDITIONAL_RATE: 0.45,
+    PA_TAPER_THRESHOLD: 100000, PA_TAPER_RATE: 0.5
+  },
+  ISA_DEFAULTS: { RETURN: 0.03, MIN: 0, DRAWDOWN_STRATEGY: 'minimiseEarlyTax', CONTRIBUTION: 0 }
 }));
 
 describe('SimulationEngine', () => {

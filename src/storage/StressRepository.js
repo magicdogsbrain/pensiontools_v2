@@ -322,6 +322,10 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     consecutiveLimit: settings.consecutiveLimit,
     disableProtection: settings.disableProtection,
     hodlEnabled: settings.hodlEnabled,
-    hodlValue: settings.hodlValue
+    hodlValue: settings.hodlValue,
+    // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
+    isaBalance: settings.isaBalance || 0,
+    isaReturn: settings.isaReturn,
+    isaDrawdownStrategy: settings.isaDrawdownStrategy
   };
 }

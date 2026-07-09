@@ -50,7 +50,7 @@ them apart.
 |---|---|---|---|
 | `baseSalary` | £/yr gross | both | target gross total income |
 | `confirmedSalary` | £/yr\|null | decision-only | per-year wizard override of baseSalary |
-| `other` | £/yr | both | **consolidated** other income (was stress-flat + decision per-year) |
+| `other` | £/yr | both | **consolidated** other income (was stress-flat + decision per-year); **CPI-inflated, capped** in both tools |
 | `other_override` | £/yr | decision-only | optional per-year override; defaults to `other` |
 | `pa` / `brl` / `hrl` | £ | both | tax-band **bases**, entered once (was stress-settings + decision per-year) |
 | `bands_override` | {pa,brl,hrl} | decision-only | per-year resolved bands for the committed plan |
@@ -67,14 +67,15 @@ them apart.
 
 Legacy `statePension`/`statePensionYear` kept **read-time fallback only** (never written).
 
-### ISA — a depleting pot *(the key new modelling)*
+### ISA — a depleting pot with a glidepath *(the key new modelling)*
 | Field | Type | appliesTo | Replaces / notes |
 |---|---|---|---|
-| `isaBalance` | £ | both | **the "ISA amount"** — a real pot carried across months/years, seeded into Stress. Supersedes the per-year `isaSavingsAllocation` *budget*. |
-| `isaReturn` | decimal (opt) | both | growth applied to the pot each period (new assumption in `constants.js`) |
-| `isaStrategy` | enum | both | draw order vs SIPP; default `fillNetGapAfterSippToBRL` (today's behaviour); `isaFirst` for what-ifs |
-| `isaDrawCap` | £/yr\|null | decision-only | optional annual spend ceiling (so year-1 doesn't drain the pot); was `isaSavingsAllocation` |
-| `isaUsedToDate` | £ (derived) | decision-only | per-year cumulative ISA drawn (from history); reconciles against the pot |
+| `isaBalance` | £ | both | **opening ISA pot** — a real depleting fund carried across months/years, seeded into Stress. Supersedes the per-year `isaSavingsAllocation` *budget*. |
+| `isaContribution` | £/yr | both (per-year override on Decision) | **money paid INTO the ISA that year** — the tax-year wizard asks for it; grows the pot alongside returns. Settings-level annual base; Decision overrides per tax year. |
+| `isaMin` | £ | both | **ISA glidepath baseline** — a declining target balance over the plan (like equity/bond mins) that guides how fast ISA is drawn. |
+| `isaReturn` | decimal | both | growth = **money-market / cash rate** (modest, deliberately conservative — reuse the cash-return assumption). |
+| `isaDrawdownStrategy` | enum | both | `maximiseLongevity` \| `minimiseEarlyTax` — how to spread a *scarce* ISA over time; **State-Pension-aware** (see mechanics). User-selectable in both tools. |
+| `isaUsedToDate` | £ (derived) | decision-only | per-year cumulative ISA drawn (from history); reconciles against the pot. |
 
 ### Protection, reserve
 | Field | Type | appliesTo | Replaces / notes |
@@ -93,21 +94,49 @@ Legacy `statePension`/`statePensionYear` kept **read-time fallback only** (never
 
 ## ISA as a depleting pot — mechanics
 
-- **Balance:** `isaBalance` sits alongside equity/bond/cash in the pot state, carried
-  across periods and seeded once into Stress.
-- **Growth:** `isaReturn` grows it each period (Stress adds a `monthly(r)` line mirroring
-  the HODL block; Decision applies a deterministic assumption).
-- **Draw order (`fillNetGapAfterSippToBRL`, default = today's behaviour):** each period
-  draw taxable SIPP up to the BRL cap, compute the **net** shortfall to target, then draw
-  `ISA = min(netGap, isaDrawCap-remaining, isaBalance)` to fill it tax-free. Clamp to the
-  balance so the pot can hit exactly zero.
-- **Tax-free:** ISA draws never enter taxable income / PA / BRL / HRL — added straight to
-  net (as Decision does today), distinct from taxable SIPP and the not-yet-modelled
-  UFPLS/PCLS levers.
-- **Run-dry (the point):** when `isaBalance` hits 0 the tax-free top-up stops; the engine
-  then draws more **taxable** SIPP (recomputing higher tax / lower net) or registers
-  shortfall. **A run must not "succeed" on phantom ISA** — Stress folds ISA depletion into
-  its failure semantics; Decision warns (like "Cash low!") and recomputes tax.
+- **Balance over time:** the ISA pot evolves as
+  `balance ← balance + contribution + growth − draw`, carried across periods and seeded
+  once into Stress. It sits alongside equity/bond/cash in the pot state.
+  - **Contributions** (`isaContribution`): money paid *in* each year (per-tax-year on
+    Decision, an annual assumption on Stress) — so the pot can be built up in early/
+    semi-retirement years as well as drawn down.
+  - **Growth** (`isaReturn`): the **money-market / cash rate** (modest; reuse the cash
+    assumption). Stress adds a `monthly(r)` line mirroring the HODL block; Decision applies
+    the same rate deterministically.
+  - **Glidepath** (`isaMin`): a declining target balance over the plan (like the equity/
+    bond minimums) that the drawdown aims to track — the default "how much ISA to still be
+    holding at year N", which the strategy below modulates.
+- **Stress uses ISA — the BRL cap alone is wrong.** Today the Stress Tester draws SIPP to
+  BRL and stops (no ISA, no tax). That understates the real plan. Both engines now: draw
+  taxable SIPP up to the BRL cap, compute the **net** shortfall to target, then draw ISA
+  tax-free to fill it. ISA draws never enter taxable income (added straight to net), as
+  Decision does today.
+- **Run-dry (the point of "does the SIPP hold up?"):** when `isaBalance` hits 0 the
+  tax-free top-up stops; the engine draws more **taxable** SIPP above BRL — recomputing
+  higher tax and a lower net (Stress must compute **real tax** here, wiring the currently-
+  dead `hrl`) — or registers shortfall. **A run must not "succeed" on phantom ISA**: Stress
+  folds ISA depletion into its failure semantics; Decision warns (like "Cash low!") and
+  recomputes tax.
+
+### ISA drawdown strategy (State-Pension-aware)
+
+When the ISA is small relative to the plan, *how* to spend it matters — so it's a
+user-selectable choice in both tools:
+
+- **`maximiseLongevity`** — spread the ISA thinly (track/stay above the `isaMin`
+  glidepath) so it lasts as long as possible, cushioning SIPP draws across more years.
+- **`minimiseEarlyTax`** — spend the ISA aggressively in the **high-tax-pressure early
+  years**, keeping SIPP at/under BRL and avoiding 40% tax, accepting the ISA depletes
+  sooner.
+
+Both are **State-Pension-aware**: the income the SIPP+ISA must cover is largest *before*
+State Pension starts and smaller after (SP fills part of the gap, though it also consumes
+BRL headroom). So the strategy sizes ISA draws against the **per-year net gap**, which
+already reflects when SP kicks in. Example: ISA that only covers ~10 years of the full gap
+in a 35-year plan is concentrated into the pre-SP years, where it offsets the most tax /
+the biggest gap, because SP "takes up the slack" later. (The exact allocation algorithm is
+part of the `DrawdownStrategy` work; both modes reduce to the same per-period draw once the
+target profile is set.)
 
 ## Two instances — seed, drift, re-sync
 
@@ -158,22 +187,31 @@ One `lockOrPlay` table on the schema; the **instance role** decides how it's hon
 - `isaContributions` → accumulation-phase ISA (out of scope; this design is decumulation
   with a fixed opening balance).
 
-## Open questions (need a decision before/while building)
+## Decisions made (user, 2026-07)
 
-1. **Opening ISA balance** has nothing to migrate from — prompt every user, default 0 with
-   a warning, or infer from unused allocations?
-2. **ISA growth** — what `isaReturn` (and stress vol)? Same as equity, a blend, or a user
-   input? Does ISA grow in the deterministic Decision projection or only in Stress?
-3. **other-income inflation** — Decision applies it flat; Stress CPI-inflates capped 4%.
-   Which becomes canonical? (This moves committed-plan numbers.)
-4. **taxMode vs per-year bands** precedence — when Decision has `bands_override` *and*
+- **Opening ISA balance:** one-time prompt on first load of the new model; thereafter the
+  pot is built/reduced by per-year `isaContribution` + growth − draws (no inference).
+- **ISA growth:** the **money-market / cash rate** (modest, conservative); grows in both
+  the deterministic Decision projection and Stress.
+- **Other-income inflation:** **CPI-inflated, capped** (accurate and slightly pessimistic),
+  applied the same way in both tools — replacing today's flat-vs-capped split.
+- **Stress uses ISA:** the BRL-cap-only draw is wrong; Stress models SIPP→BRL then ISA, and
+  computes **real tax** (wiring `hrl`) once ISA is exhausted.
+- **ISA glidepath** (`isaMin`) in both tools; **ISA drawdown strategy** (`maximiseLongevity`
+  vs `minimiseEarlyTax`, SP-aware) is user-selectable in both.
+- **Per-year ISA contribution** captured by the tax-year wizard.
+
+## Still open
+
+1. **`isaContribution` meaning** — confirm it's money paid *into* the ISA that year (builds
+   the pot), *not* a per-year cap on ISA spend. (Assumed the former.)
+2. **`isaMin` glidepath shape** — deplete to £0 at `duration` like equity/bond, or to a
+   floor? And precedence when it conflicts with the drawdown strategy.
+3. **taxMode vs per-year bands** — when Decision has `bands_override` *and*
    `taxMode='inflates'`, which wins?
-5. **Does Stress need `isTaxEfficient` / per-year semantics**, or is "always SIPP-to-BRL
-   then ISA" enough for a fair comparison?
-6. **hrl in the sim** — do we finally compute real tax in the stress loop (so ISA-run-dry
-   is accurate), or keep the BRL-cap approximation?
-7. **Re-sync granularity** — per-field dirty-tracking, or is full-reseed-with-confirm
-   enough for a sandbox?
+4. **Stress per-year semantics** — with "always SIPP→BRL then ISA", Stress likely doesn't
+   need `isTaxEfficient`; confirm it can drop per-year tax rows entirely.
+5. **Re-sync granularity** — per-field dirty-tracking, or full-reseed-with-confirm?
 
 _Last updated 2026-07. Feeds `engine-unification.md` (this schema = one `PlanContext`
 instance per tool)._

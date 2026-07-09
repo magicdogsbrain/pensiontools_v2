@@ -59,7 +59,9 @@ vi.mock('../src/constants.js', () => ({
     HIGH_INFLATION: { LINKER: 0.4, NOMINAL: 0.1, PROPERTY: 0.15, COMMODITY: 0.2, CASH: 0.05, EQUITY: 0.1 },
     DEFLATION: { LINKER: 0.2, NOMINAL: 0.3, PROPERTY: 0.1, COMMODITY: 0.05, CASH: 0.25, EQUITY: 0.1 },
     VOLATILITY: { LINKER: 0.05, NOMINAL: 0.06, PROPERTY: 0.08, COMMODITY: 0.15, CASH: 0.01 }
-  }
+  },
+  // Needed transitively via InflationModel (SimulationEngine now uses cappedInflation).
+  INFLATION_DEFAULTS: { ASSUMED_CPI: 0.025, OTHER_INCOME_CAP: 0.04, STATE_PENSION_FLOOR: 0.025 }
 }));
 
 describe('SimulationEngine', () => {

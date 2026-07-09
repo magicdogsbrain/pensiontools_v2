@@ -11,7 +11,7 @@
 
 import { calculateTax, grossToNet, calculateBRLHeadroom } from './TaxCalculator.js';
 import { getRemainingTaxYearMonths } from '../utils/DateUtils.js';
-import { INFLATION_DEFAULTS } from '../constants.js';
+import { cappedInflation as calculateCappedInflation } from './InflationModel.js';
 
 /**
  * Calculates the recommended SIPP draw based on tax efficiency
@@ -79,17 +79,6 @@ export function calculateSIPPDraw(params) {
     monthlySippDraw: annualSippDraw / 12,
     sippPlusfixedAtBRL: sippToReachBRL + fixedIncome === adjBRL
   };
-}
-
-/**
- * Calculates other pension income with CPI capped at 4%
- */
-function calculateCappedInflation(base, yearlyRates, cap = INFLATION_DEFAULTS.OTHER_INCOME_CAP) {
-  let amount = base;
-  for (const rate of yearlyRates) {
-    amount *= (1 + Math.min(rate, cap));
-  }
-  return amount;
 }
 
 /**

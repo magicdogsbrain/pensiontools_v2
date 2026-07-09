@@ -9,6 +9,7 @@ import { EQUITY_RETURNS, INFLATION, BOND_MODEL } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
 import { calculateGlidepath } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
+import { cappedInflation } from './InflationModel.js';
 
 /**
  * Runs a single simulation with given returns
@@ -357,11 +358,8 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf) {
   // Target income
   const target = config.baseSalary * cumInf;
 
-  // Other income with CPI cap
-  let other = config.other;
-  for (const inf of yearlyInf) {
-    other *= (1 + Math.min(inf, 0.04));
-  }
+  // Other income with CPI cap (4%)
+  const other = cappedInflation(config.other, yearlyInf);
 
   // State pension - supports both legacy (year number) and new (date-based) formats
   let statePension = 0;

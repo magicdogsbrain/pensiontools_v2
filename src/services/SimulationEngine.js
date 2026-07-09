@@ -114,13 +114,16 @@ export function simulate(config, returns, seed = 0) {
       taxYearShortfall += (standardMonthDraw - monthDraw);
     }
 
-    // Apply monthly returns (compounded from annual) - matches PWA exactly
+    // Apply monthly returns (compounded from annual). Clamp the annual return to > -100%
+    // so an extreme synthetic bond return (r < -1) can't make (1+r)^(1/12) = NaN — which
+    // would otherwise propagate to `final` and be miscounted as a successful full-term run.
     const annualBondReturn = calculateBondReturn(inf, eqReturn, prevInf, rng);
     const annualCashReturn = Math.max(0.005, inf + 0.012);
+    const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 
-    equity *= (1 + Math.pow(1 + eqReturn, 1/12) - 1);
-    bond *= (1 + Math.pow(1 + annualBondReturn, 1/12) - 1);
-    cash *= (1 + Math.pow(1 + annualCashReturn, 1/12) - 1);
+    equity *= monthly(eqReturn);
+    bond *= monthly(annualBondReturn);
+    cash *= monthly(annualCashReturn);
 
     // HODL fund return (Ruffer-style absolute return)
     if (hodl > 0) {
@@ -138,7 +141,7 @@ export function simulate(config, returns, seed = 0) {
 
       let hodlR = ricaBase + ricaRandom + defensiveBoost;
       hodlR = Math.max(-0.08, Math.min(0.18, hodlR));
-      hodl *= (1 + Math.pow(1 + hodlR, 1/12) - 1);
+      hodl *= monthly(hodlR);
     }
 
     const totalGrowth = equity + bond;

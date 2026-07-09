@@ -19,13 +19,17 @@ export function canonical(obj) {
 /**
  * Select the meaningful, compact, deterministic stress metrics.
  *
- * `finalValue` is intentionally EXCLUDED: a seed-0 Monte-Carlo run produces a NaN final
- * (bond model computes (1+r)^(1/12) with r < -1; the NaN is then counted as a successful
- * run), which poisons finalValue.avg → NaN and masks finalValue.min → 0 across every
- * config. That engine defect is pinned separately (see stress.golden.test.js "NaN final")
- * and logged in the bug register; once fixed, finalValue can be re-added here.
+ * finalValue PERCENTILES (p5..p95, min) are pinned; `avg` and `max` are excluded because
+ * they are dominated by the return model's fat right tail — with S&P-with-replacement
+ * sampling a lucky run compounds to absurd values (£60bn+), which makes avg/max volatile
+ * and uninformative. (The tail itself is a known model issue — see the S&P-optimism note
+ * in the model review; taming it belongs to the MarketModel work, not the golden master.)
+ * The median (p50) is the meaningful "typical final".
  */
 export function pickStress(analysis) {
-  const { total, successCount, failCount, successRate, survival, protection, hodl } = analysis;
-  return canonical({ total, successCount, failCount, successRate, survival, protection, hodl });
+  const { total, successCount, failCount, successRate, survival, finalValue, protection, hodl } = analysis;
+  const { avg, max, ...finalValuePercentiles } = finalValue;
+  return canonical({
+    total, successCount, failCount, successRate, survival, finalValue: finalValuePercentiles, protection, hodl
+  });
 }

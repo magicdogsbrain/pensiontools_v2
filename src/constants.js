@@ -31,6 +31,15 @@ export const INFLATION_DEFAULTS = {
   STATE_PENSION_FLOOR: 0.025    // Minimum state pension increase
 };
 
+// ISA modelled as a depleting pot (see design/settings-model.md).
+export const ISA_DEFAULTS = {
+  RETURN: 0.03,                        // money-market nominal growth (deliberately modest/conservative);
+                                       //   the stress engine may instead grow ISA at the cash rate.
+  MIN: 0,                              // ISA glidepath baseline (0 = deplete fully by `duration`)
+  DRAWDOWN_STRATEGY: 'minimiseEarlyTax', // 'minimiseEarlyTax' | 'maximiseLongevity'
+  CONTRIBUTION: 0                      // default annual ISA contribution
+};
+
 // ============================================================================
 // DRAWDOWN DEFAULTS
 // ============================================================================

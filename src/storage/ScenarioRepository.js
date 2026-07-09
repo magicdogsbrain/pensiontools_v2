@@ -21,7 +21,8 @@ import {
   deleteScenarioDoc,
   setActiveScenarioDoc
 } from '../firebase/FirestoreService.js';
-import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
+import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } from '../constants.js';
+import { simpleHash } from '../utils/MathUtils.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -68,7 +69,12 @@ export function getDefaultStressSettings() {
     consecutiveLimit: DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
     disableProtection: false,
     hodlEnabled: SIMULATION_DEFAULTS.HODL_ENABLED,
-    hodlValue: SIMULATION_DEFAULTS.HODL_VALUE
+    hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
+    // ISA as a depleting pot (see design/settings-model.md). Not yet read by the engine.
+    isaBalance: 0,
+    isaReturn: ISA_DEFAULTS.RETURN,
+    isaMin: ISA_DEFAULTS.MIN,
+    isaDrawdownStrategy: ISA_DEFAULTS.DRAWDOWN_STRATEGY
   };
 }
 
@@ -88,7 +94,56 @@ export function getDefaultDecisionSettings() {
     spStartDate: null,
     spWeeklyAmount: 0,
     statePension: 0,
-    statePensionYear: 0
+    statePensionYear: 0,
+    // ISA as a depleting pot (see design/settings-model.md). Not yet read by the engine.
+    isaBalance: 0,
+    isaReturn: ISA_DEFAULTS.RETURN,
+    isaMin: ISA_DEFAULTS.MIN,
+    isaDrawdownStrategy: ISA_DEFAULTS.DRAWDOWN_STRATEGY
+  };
+}
+
+/**
+ * Seed a Stress Tester settings object from the committed Decision plan ("Copy from
+ * Decision"). Copies the shared plan basics (pots, duration, target income, State Pension,
+ * ISA) and translates the protection unit (Decision % → Stress multiplier), while
+ * preserving the caller's Stress-specific play fields (taxMode, bands, other, HODL,
+ * disableProtection). Stamps provenance so the UI can warn if the Decision plan later
+ * drifts. Pure — pass `seededAt` for deterministic tests.
+ *
+ * @param {object} decisionSettings - the committed Decision settings
+ * @param {object} [currentStress={}] - existing Stress settings to overlay onto
+ * @param {string} [seededAt] - ISO timestamp (injected for testability)
+ * @returns {object} new Stress settings
+ */
+export function seedStressFromDecision(decisionSettings, currentStress = {}, seededAt = new Date().toISOString()) {
+  const d = decisionSettings || {};
+  return {
+    ...getDefaultStressSettings(),
+    ...currentStress,
+    // shared plan basics from the Decision plan
+    equityMin: d.equityMin,
+    bondMin: d.bondMin,
+    cashTarget: d.cashTarget,
+    duration: d.duration,
+    baseSalary: d.baseSalary,
+    spStartDate: d.spStartDate ?? currentStress.spStartDate ?? null,
+    spWeeklyAmount: d.spWeeklyAmount ?? currentStress.spWeeklyAmount ?? 0,
+    consecutiveLimit: d.consecutiveLimit,
+    recoveryBuffer: d.recoveryBuffer,
+    // protection unit: Decision percent → Stress multiplier (20 → 0.8)
+    protectionMult: d.protectionFactor != null
+      ? 1 - d.protectionFactor / 100
+      : (currentStress.protectionMult ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER),
+    // ISA pot
+    isaBalance: d.isaBalance ?? 0,
+    isaReturn: d.isaReturn ?? ISA_DEFAULTS.RETURN,
+    isaMin: d.isaMin ?? ISA_DEFAULTS.MIN,
+    isaDrawdownStrategy: d.isaDrawdownStrategy ?? ISA_DEFAULTS.DRAWDOWN_STRATEGY,
+    // provenance for the drift banner / re-sync
+    seededFrom: 'decision',
+    seededAt,
+    decisionChecksum: simpleHash(d)
   };
 }
 

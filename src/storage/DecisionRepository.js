@@ -215,6 +215,7 @@ function getDefaultTaxYearConfig() {
     // ISA/Savings allocation for tax efficiency
     isaSavingsAllocation: 0,      // Total ISA/Savings available for this year
     isaSavingsUsed: 0,            // Cumulative used so far this year
+    isaContribution: 0,           // Money paid INTO the ISA this year (grows the pot; captured each April)
 
     // Tax efficiency mode
     isTaxEfficient: true,         // Year-level tax efficiency flag

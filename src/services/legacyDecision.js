@@ -12,6 +12,7 @@
 
 import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
 import { DEFAULT_CPI } from './InflationModel.js';
+import { grossToNet, calculateTax } from './TaxCalculator.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -35,12 +36,6 @@ import { DEFAULT_CPI } from './InflationModel.js';
       return base * cumInf;
     }
 
-    // Convert gross to net income using tax bands
-    export function grossToNetIncome(gross, pa, brl) {
-      if (gross <= pa) return gross;
-      if (gross <= brl) return pa + (gross - pa) * 0.8;
-      return pa + (brl - pa) * 0.8 + (gross - brl) * 0.6;
-    }
 
 export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const settings = deps.settings;
@@ -60,6 +55,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Get tax config from the specific tax year
       const PA = taxYearConfig.pa || 12570;
       const BRL = taxYearConfig.brl || 50270;
+      const HRL = taxYearConfig.hrl || 125140;
       const OTHER = taxYearConfig.other || 0;
 
       // Year-level tax efficiency settings (from wizard)
@@ -122,7 +118,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Use confirmed salary from wizard, or base salary with inflation
       const target = confirmedSalary * cumInf;
       const other = OTHER + STATE;
-      const targetNet = grossToNetIncome(target, PA, BRL);
+      const targetNet = grossToNet(target, PA, BRL, HRL);
 
       // Calculate ISA/SIPP based on year-level tax efficiency mode
       let sipp, isa, note;
@@ -163,9 +159,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         // ISA needed to reach target NET (not gross)
         // Target gross gives a certain net. At BRL, we get a different net.
         // ISA (tax-free) makes up the NET difference.
-        const monthlyTargetNet = grossToNetIncome(target, PA, BRL) / 12;
+        const monthlyTargetNet = grossToNet(target, PA, BRL, HRL) / 12;
         const grossAtBrl = Math.min(target, BRL);
-        const monthlyNetAtBrl = grossToNetIncome(grossAtBrl, PA, BRL) / 12;
+        const monthlyNetAtBrl = grossToNet(grossAtBrl, PA, BRL, HRL) / 12;
         const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
         const isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
         isaSavingsUsedThisMonth = isaToUse;
@@ -416,15 +412,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Annual taxable = total SIPP + Other + State Pension
       const annualTaxable = totalAnnualSipp + OTHER + STATE;
 
-      // Tax calculation: 0% up to PA, 20% from PA to BRL, 40% above BRL
-      let annualTax = 0;
-      if (annualTaxable > PA) {
-        if (annualTaxable <= BRL) {
-          annualTax = (annualTaxable - PA) * 0.2;
-        } else {
-          annualTax = (BRL - PA) * 0.2 + (annualTaxable - BRL) * 0.4;
-        }
-      }
+      // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.
+      const annualTax = calculateTax(annualTaxable, PA, BRL, HRL);
 
       // Monthly tax = annual tax / 12 (even distribution)
       const monthlyTax = annualTax / 12;
@@ -441,14 +430,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
       // Calculate tax saved vs inefficient scenario
       const inefficientMonthlyTaxable = (target / 12); // Full target draw
-      let inefficientAnnualTax = 0;
-      if (inefficientMonthlyTaxable * 12 > PA) {
-        if (inefficientMonthlyTaxable * 12 <= BRL) {
-          inefficientAnnualTax = (inefficientMonthlyTaxable * 12 - PA) * 0.2;
-        } else {
-          inefficientAnnualTax = (BRL - PA) * 0.2 + (inefficientMonthlyTaxable * 12 - BRL) * 0.4;
-        }
-      }
+      const inefficientAnnualTax = calculateTax(inefficientMonthlyTaxable * 12, PA, BRL, HRL);
       const taxSavedMonthly = Math.max(0, (inefficientAnnualTax / 12) - (annualTax / 12));
 
       // Calculate cumulative ISA used including this month

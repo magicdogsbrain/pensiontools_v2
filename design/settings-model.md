@@ -203,6 +203,32 @@ One `lockOrPlay` table on the schema; the **instance role** decides how it's hon
 - **ISA glidepath** (`isaMin`) in both tools; **ISA drawdown strategy** (`maximiseLongevity`
   vs `minimiseEarlyTax`, SP-aware) is user-selectable in both.
 - **Per-year ISA contribution** captured by the tax-year wizard.
+- **Drawdown algorithm = Option A ("tax-efficient / band management") by default**, with
+  Option B ("maximise ISA longevity") as an optional toggle. **IHT-driven ordering is NOT
+  modelled** (the April 2027 change bringing pensions into the estate makes the old
+  "preserve the pension" logic moot — one fewer thing to build). See below.
+
+### Drawdown algorithm (research-informed)
+
+Grounded in a multi-source review of UK best practice and tools (Vanguard VCMM, abrdn,
+CashCalc, Fidelity/RBC bridge worked-examples; see the deep-research report). The
+universal core is **annual tax-band management**, which the Decision Tool *already*
+implements (draw SIPP up to BRL — filling the personal allowance + basic-rate band — then
+top income up with tax-free ISA, never crossing 40%). It is **State-Pension-aware by
+construction**: once SP arrives it fills the band, shrinking the SIPP-to-BRL room, so ISA
+naturally covers more of the gap ("SP takes over").
+
+- **Option A — tax-efficient / band management (default, `minimiseEarlyTax`).** SIPP→BRL,
+  ISA tops up to the net target (tax-free), **depleting the pot as needed**. When the ISA
+  pot is exhausted, hold income at target by drawing SIPP **above BRL** and paying the tax
+  ("use the ISA until we can't"). This matches every surveyed tool/adviser.
+- **Option B — maximise ISA longevity (toggle, `maximiseLongevity`).** Cap the yearly ISA
+  draw so the pot lasts — level it across the pre-SP **bridge years** (biggest gap) or
+  follow the `isaMin` glidepath — accepting some 40% tax earlier.
+
+The one refinement the research adds: the personal allowance is use-it-or-lose-it, so in
+the pre-SP bridge years the tool should ensure the SIPP draw fills it (it does, via
+SIPP→BRL). No IHT ordering.
 
 ## Still open
 

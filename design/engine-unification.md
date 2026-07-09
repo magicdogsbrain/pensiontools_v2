@@ -117,6 +117,23 @@ taper**); stress and the dead module use the proper `TaxCalculator`. → **Canon
 **🟢 Low / cleanup**
 15. `BOND_MODEL` constant dead; `STATE_PENSION_FLOOR` dead; two cash-return formulas; HRL not inflated in stress; glidepath rounding asymmetry; sim emergency spill draws bond before equity; month-index convention split; `Math.max(0,…)` pot clamp can hide a shortfall.
 
+### Update — found during the golden-master audit (2026-07)
+- 🔴 **High — a NaN-blowup run is counted as a successful full-term survival.** When a
+  Monte-Carlo bond return `r < −1`, the engine computes `(1+r)^(1/12)` on a negative base
+  → **NaN**, which propagates to the fund/`final`; `Math.max(0, NaN)` never trips the
+  depletion check, so the run reports `failed=false` for the full term with a NaN final.
+  This **inflates the success rate** and poisons `finalValue.avg` (→ NaN) and
+  `finalValue.min` (→ masked `0`) across every config. (`SimulationEngine.js` return
+  application + `analyzeResults`.) Fix: clamp returns to `> −1` (or treat any non-finite
+  fund/final as a failed run) and filter non-finite finals before averaging. Pinned by
+  `tests/golden/stress.golden.test.js`.
+- 🟡 **Medium — higher income is not modelled in the Stress Tester.** The draw caps at
+  `min(brl, target)` (`calculateMonthlyDraw`), so `baseSalary` above the basic-rate limit
+  has **no effect** on the simulation — a higher-income plan draws exactly as a
+  BRL-capped one. The Decision Tool (which adds ISA/UFPLS to reach a higher net) and the
+  Stress Tester therefore diverge for any above-BRL plan; the unified `DrawdownStrategy`
+  must model the full target, not just the BRL cap.
+
 ---
 
 ## The single implementation

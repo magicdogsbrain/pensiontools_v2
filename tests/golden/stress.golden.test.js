@@ -41,15 +41,13 @@ describe('golden-master: stress engine', () => {
     expect(dropped).toEqual(noSP); // byte-identical: legacy SP contributes nothing
   });
 
-  it('BUG pinned: a NaN-blowup run is counted as a successful full-term survival', () => {
-    // Seed-0 Monte-Carlo run: the bond model computes (1+r)^(1/12) with r < -1 → NaN,
-    // which propagates to `final`; Math.max(0, NaN) never trips the depletion check, so the
-    // run reports failed=false / full years with a NaN final value (and poisons the
-    // finalValue.avg/min metrics — see canonical.pickStress). Pinned so the unification
-    // fix (clamp returns > -1 / treat non-finite as failed) produces a reviewed change.
-    const r0 = runMonteCarlo(baseConfig, 1)[0];
-    expect(Number.isNaN(r0.final)).toBe(true);
-    expect(r0.failed).toBe(false);
-    expect(r0.years).toBe(baseConfig.years);
+  it('FIXED (was NaN-blowup): every run now has a finite final value', () => {
+    // Regression test for the bond (1+r)^(1/12), r<-1 → NaN bug. Previously the seed-0
+    // run reported failed=false with a NaN final (miscounted as a successful survival);
+    // returns are now clamped to > -100% before monthly compounding.
+    const results = runMonteCarlo(baseConfig, 50);
+    for (const r of results) {
+      expect(Number.isFinite(r.final), `seed ${r.seed}`).toBe(true);
+    }
   });
 });

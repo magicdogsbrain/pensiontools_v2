@@ -42,6 +42,7 @@ these better, it's a distraction.
 | 1 | **Tax-lever engine** — primitives done ✅; wiring into tools | B | M | Med (tax correctness) | 0 | Primitives done; wiring blocked on 0 |
 | 2 | **Net-budget income mode** (enter net £/month → back-solve draw mix) | B | M | Low | 1 | Next |
 | 3 | **Person-scoped data model** (household = 1–2 people) | A+B | M | Med (touches data model) | — (fold into 1–2) | Next |
+| 3b | **Unified settings model** (one schema, two instances; ISA as a depleting pot; seed-from-Decision) — design in `design/settings-model.md` | A+B | L | Med | 0, 3 | Next |
 | 4 | **Bucket composition** (asset-class registry; user weights) | A+B | L | Med (assumptions) | — | Later |
 | 5 | **Equity/bond correlation** (Cholesky, per Feb model review) | A | S | Low | 4 | Later |
 | 6 | **Capital expenditure** (lumpy one-off spends, e.g. car every 4 yrs) | A+B | S | Low | 2 | Later |

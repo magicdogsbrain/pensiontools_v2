@@ -50,7 +50,7 @@ them apart.
 |---|---|---|---|
 | `baseSalary` | £/yr gross | both | target gross total income |
 | `confirmedSalary` | £/yr\|null | decision-only | per-year wizard override of baseSalary |
-| `other` | £/yr | both | **consolidated** other income (was stress-flat + decision per-year); **CPI-inflated, capped** in both tools |
+| `other` | £/yr | both | other income. **Decision:** actual figure captured **per tax year** (the April wizard) — not auto-inflated. **Stress:** a base (seeded from Decision) that it **projects forward with CPI-capped inflation**. |
 | `other_override` | £/yr | decision-only | optional per-year override; defaults to `other` |
 | `pa` / `brl` / `hrl` | £ | both | tax-band **bases**, entered once (was stress-settings + decision per-year) |
 | `bands_override` | {pa,brl,hrl} | decision-only | per-year resolved bands for the committed plan |
@@ -193,8 +193,11 @@ One `lockOrPlay` table on the schema; the **instance role** decides how it's hon
   pot is built/reduced by per-year `isaContribution` + growth − draws (no inference).
 - **ISA growth:** the **money-market / cash rate** (modest, conservative); grows in both
   the deterministic Decision projection and Stress.
-- **Other-income inflation:** **CPI-inflated, capped** (accurate and slightly pessimistic),
-  applied the same way in both tools — replacing today's flat-vs-capped split.
+- **Other income:** captured **per tax year** on the Decision Tool (the April wizard, as
+  an actual figure — not auto-inflated); the Stress Tester projects a base forward with a
+  **CPI-capped inflation rate**. (This is the correct pattern, not a divergence to remove —
+  same as tax bands: Decision holds actuals, Stress projects from a base. So this is close
+  to today's behaviour, not a change to committed-plan numbers.)
 - **Stress uses ISA:** the BRL-cap-only draw is wrong; Stress models SIPP→BRL then ISA, and
   computes **real tax** (wiring `hrl`) once ISA is exhausted.
 - **ISA glidepath** (`isaMin`) in both tools; **ISA drawdown strategy** (`maximiseLongevity`

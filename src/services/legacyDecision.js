@@ -13,6 +13,7 @@
 import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
 import { DEFAULT_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
+import { calculateGlidepath } from './GlidepathService.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -27,14 +28,6 @@ import { grossToNet, calculateTax } from './TaxCalculator.js';
       return Math.max(0, (m >= 4 ? y : y - 1) - 2026);
     }
 
-    // Calculate glidepath minimum
-    export function calcGlidepathMin(base, year, duration, cumInf, isGrowth) {
-      if (isGrowth) {
-        const depletion = Math.max(0, 1 - year / duration);
-        return base * cumInf * depletion;
-      }
-      return base * cumInf;
-    }
 
 
 export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
@@ -83,9 +76,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       }
 
       // Calculate glidepath minimums
-      const adjEquity = Math.round(calcGlidepathMin(settings.equityMin, yearNum, settings.duration, cumInf, true));
-      const adjBond = Math.round(calcGlidepathMin(settings.bondMin, yearNum, settings.duration, cumInf, true));
-      const adjCash = Math.round(calcGlidepathMin(settings.cashTarget, yearNum, settings.duration, cumInf, false));
+      const adjEquity = Math.round(calculateGlidepath(settings.equityMin, yearNum, settings.duration, cumInf, true));
+      const adjBond = Math.round(calculateGlidepath(settings.bondMin, yearNum, settings.duration, cumInf, true));
+      const adjCash = Math.round(calculateGlidepath(settings.cashTarget, yearNum, settings.duration, cumInf, false));
 
       const totalGrowth = equity + bond;
       const minGrowth = adjEquity + adjBond;

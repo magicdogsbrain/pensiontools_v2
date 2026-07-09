@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path';
 import { decisionCases } from './matrix.js';
 import { canonical } from './canonical.js';
 import { calcDecisionPWA } from '../../src/services/legacyDecision.js';
+import { calculateTax } from '../../src/services/TaxCalculator.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(here, 'fixtures/decision.json'), 'utf8'));
@@ -30,12 +31,13 @@ describe('golden-master: live decision engine', () => {
 
   // --- explicit bug captures (documented current-but-wrong behaviour) ---
 
-  it('BUG pinned: crude tax has no 45% band / no PA taper (tax-inefficient 150k)', () => {
+  it('FIXED: tax-inefficient 150k uses proper HMRC bands (45% + PA taper), not the crude formula', () => {
     const f = fixtures['tax-inefficient / 150k salary — crude tax on full draw (captures NO 45%/taper)'];
     const taxable = f.calculationDetails.taxInfo.annualTaxable;
-    const crude = (50270 - 12570) * 0.2 + (taxable - 50270) * 0.4; // no 45%, no taper
-    expect(f.calculationDetails.taxInfo.annualTax).toBeCloseTo(crude, 0);
-    // The unified engine (proper bands) will compute MORE tax here → expected diff.
+    const crude = (50270 - 12570) * 0.2 + (taxable - 50270) * 0.4; // old behaviour (no 45%, no taper)
+    const proper = calculateTax(taxable, 12570, 50270, 125140);
+    expect(f.calculationDetails.taxInfo.annualTax).toBeCloseTo(proper, 0);
+    expect(f.calculationDetails.taxInfo.annualTax).toBeGreaterThan(crude); // proper taxes more
   });
 
   it('BUG pinned: stranded bucket — draw forced to Cash despite equity surplus', () => {

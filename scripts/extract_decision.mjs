@@ -42,6 +42,12 @@ export function extractDecisionModule(html) {
   for (const bad of ['getDecisionSettingsAsync', 'getHistoryAsync(', 'getAllTaxYearsAsync', 'getStatePensionForTaxYear']) {
     if (fn.includes(bad)) throw new Error('residual storage call remains: ' + bad);
   }
+  // Future-proofing: the four injected reads were the only awaits. Any residual await
+  // means a new storage/async call was added to calcDecisionPWA — fail loudly so the
+  // golden master isn't silently regenerated with an undefined reference.
+  if (/\bawait\b/.test(fn)) {
+    throw new Error('unexpected residual await in sliced function: ' + (fn.match(/^.*\bawait\b.*$/m) || [''])[0].trim());
+  }
 
   const helperExports = helpers
     .replace('function getTaxYearFromDate', 'export function getTaxYearFromDate')

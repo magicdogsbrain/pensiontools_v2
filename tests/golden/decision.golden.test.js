@@ -48,4 +48,33 @@ describe('golden-master: live decision engine', () => {
     const f = fixtures['State Pension receiving'];
     expect(f.statePension).toBeGreaterThan(0);
   });
+
+  // --- branch pins added after adversarial matrix-completeness review ---
+
+  it('wizard expectedMonthly is the primary stdSipp source (not the fallback)', () => {
+    expect(fixtures['wizard expectedMonthly path / efficient (primary stdSipp source)'].sippDraw).toBe(3200);
+  });
+
+  it('cash-low warning fires when the Cash draw exceeds available cash', () => {
+    const f = fixtures['cash-low warning (source Cash, cash=0)'];
+    expect(f.source).toBe('Cash');
+    expect(f.alerts.some((a) => a.type === 'low-cash' && a.severity === 'danger')).toBe(true);
+  });
+
+  it('Bond→Equity rebalance branch is exercised', () => {
+    expect(fixtures['Bond→Equity rebalance branch'].rebalanceActions).toEqual(['Move £50,000 Bond→Equity']);
+  });
+
+  it('tax-inefficient in-protection: SIPP reduced, no ISA, no protection-induced efficiency', () => {
+    const f = fixtures['tax-inefficient + in-protection (continues)'];
+    expect(f.inProtection).toBe(true);
+    expect(f.isaDraw).toBe(0);
+    expect(f.protectionInducedTaxEfficiency).toBe(false);
+  });
+
+  it('cross-calendar (Jan) history is attributed to the prior tax year (boost catches up)', () => {
+    const f = fixtures['Jan of prev tax year with carried 2026 history (cross-calendar filter + boost)'];
+    expect(f.remainingMonths).toBe(3);
+    expect(f.boostAmount).toBeGreaterThan(0);
+  });
 });

@@ -207,6 +207,115 @@ export const decisionCases = [
       },
       spInfo: noSP
     }
+  },
+  // ---- coverage added after adversarial verification ----
+  {
+    name: 'wizard expectedMonthly path / efficient (primary stdSipp source)',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [],
+      allTaxYears: { '26/27': ty({ expectedMonthly: { sipp: { gross: 3200 } } }) },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'wizard expectedMonthly path / inefficient',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [],
+      allTaxYears: { '26/27': ty({ isTaxEfficient: false, expectedMonthly: { sipp: { gross: 3200 } } }) },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'Jan of prev tax year with carried 2026 history (cross-calendar filter + boost)',
+    input: { dateStr: '2027-01', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [
+        hist('2026-04', 'Growth', { sipp: 3000, stdSipp: 3000 }),
+        hist('2026-05', 'Growth', { sipp: 3000, stdSipp: 3000 }),
+        hist('2026-06', 'Growth', { sipp: 3000, stdSipp: 3000 }),
+        hist('2026-07', 'Cash', { sipp: 2400, stdSipp: 3000, inProtection: true }),
+        hist('2026-08', 'Cash', { sipp: 2400, stdSipp: 3000, inProtection: true }),
+        hist('2026-09', 'Cash', { sipp: 2400, stdSipp: 3000, inProtection: true }),
+        hist('2026-10', 'Growth', { sipp: 3000, stdSipp: 3000 }),
+        hist('2026-11', 'Growth', { sipp: 3000, stdSipp: 3000 }),
+        hist('2026-12', 'Growth', { sipp: 3000, stdSipp: 3000 })
+      ],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'ISA already used + same-month double-count guard',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [hist('2026-07', 'Growth', { isa: 1000 })],
+      allTaxYears: { '26/27': ty({ isaSavingsAllocation: 12000, isaSavingsUsed: 8000 }) },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'tax-inefficient + in-protection (continues)',
+    input: { dateStr: '2026-07', ...belowMin },
+    deps: {
+      settings: baseSettings,
+      history: [
+        hist('2026-04', 'Cash'),
+        hist('2026-05', 'Cash'),
+        hist('2026-06', 'Cash', { inProtection: true, sipp: 2400 })
+      ],
+      allTaxYears: { '26/27': ty({ isTaxEfficient: false }) },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'cash-low warning (source Cash, cash=0)',
+    input: { dateStr: '2026-07', equity: 600000, bond: 480000, cash: 0 },
+    deps: { settings: baseSettings, history: [], allTaxYears: { '26/27': ty() }, spInfo: noSP }
+  },
+  {
+    name: 'grossIncomeToDate>0 caps efficient stdSipp',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [],
+      allTaxYears: { '26/27': ty({ grossIncomeToDate: 20000 }) },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'Bond→Equity rebalance branch',
+    input: { dateStr: '2026-07', equity: 550000, bond: 560000, cash: 120000 },
+    deps: { settings: baseSettings, history: [], allTaxYears: { '26/27': ty() }, spInfo: noSP }
+  },
+  {
+    name: 'cash-replenishment suggestion',
+    input: { dateStr: '2026-07', equity: 700000, bond: 550000, cash: 100000 },
+    deps: { settings: baseSettings, history: [], allTaxYears: { '26/27': ty() }, spInfo: noSP }
+  },
+  {
+    name: 'protection EXIT (last month protected, funds recovered)',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [
+        hist('2026-04', 'Cash'),
+        hist('2026-05', 'Cash'),
+        hist('2026-06', 'Cash', { inProtection: true, sipp: 2400, stdSipp: 3000 })
+      ],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'glidepath depletion floor (yearNum == duration → min 0)',
+    input: { dateStr: '2061-07', ...healthy },
+    deps: { settings: baseSettings, history: [], allTaxYears: { '61/62': ty() }, spInfo: noSP }
   }
 ];
 
@@ -257,5 +366,8 @@ export const stressConfigs = [
     }
   },
   { name: 'shorter horizon (20y)', config: { ...baseConfig, years: 20, duration: 20 } },
-  { name: 'higher target salary (80k)', config: { ...baseConfig, baseSalary: 80000 } }
+  // Target BELOW the basic-rate limit so the draw binds to target, not the BRL cap
+  // (a higher salary is a no-op: calculateMonthlyDraw caps at min(brl,target)).
+  { name: 'lower target salary (40k, binds below BRL)', config: { ...baseConfig, baseSalary: 40000 } },
+  { name: 'partial first State-Pension year (ratio 0.5)', config: { ...baseConfig, spFirstYearRatio: 0.5 } }
 ];

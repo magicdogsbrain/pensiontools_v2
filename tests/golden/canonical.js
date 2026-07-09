@@ -16,8 +16,16 @@ export function canonical(obj) {
   return obj;
 }
 
-/** Select the meaningful, compact stress metrics (drops per-run `failures` noise). */
+/**
+ * Select the meaningful, compact, deterministic stress metrics.
+ *
+ * `finalValue` is intentionally EXCLUDED: a seed-0 Monte-Carlo run produces a NaN final
+ * (bond model computes (1+r)^(1/12) with r < -1; the NaN is then counted as a successful
+ * run), which poisons finalValue.avg → NaN and masks finalValue.min → 0 across every
+ * config. That engine defect is pinned separately (see stress.golden.test.js "NaN final")
+ * and logged in the bug register; once fixed, finalValue can be re-added here.
+ */
 export function pickStress(analysis) {
-  const { total, successCount, failCount, successRate, survival, finalValue, protection, hodl } = analysis;
-  return canonical({ total, successCount, failCount, successRate, survival, finalValue, protection, hodl });
+  const { total, successCount, failCount, successRate, survival, protection, hodl } = analysis;
+  return canonical({ total, successCount, failCount, successRate, survival, protection, hodl });
 }

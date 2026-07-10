@@ -3,21 +3,21 @@
  * PROTECTION ON, building up the Decision history + tax years exactly as the tool would show
  * them. Feeds the sim's own monthly fund values (per the chosen approach).
  *
- * Findings this pins — the two engines agree to the penny on the tax-efficient DRAWDOWN, but
- * their downturn overlays diverge in two ways:
- *   (A) Protection entry/exit uses different rules (sim: N consecutive cash draws, exit at
+ * Findings this pins — the two engines agree to the penny on the tax-efficient DRAWDOWN. On the
+ * downturn overlay:
+ *   (A) OPEN: protection entry/exit uses different rules (sim: N consecutive cash draws, exit at
  *       min+£5k; decision: growth<min AND N cash draws, exit at min+recoveryBuffer), so they
- *       disagree on whether a given month is "protected".
- *   (B) During protection the sim scales the ISA top-up by the protection factor; the decision
- *       engine reduces only the SIPP and keeps the ISA top-up full. So even on months both agree
- *       are protected, the ISA draw differs.
+ *       disagree on whether a given month is "protected" (~2.8% of months), which also drives
+ *       different tax-boost catch-up downstream.
+ *   (B) RESOLVED: protection now reduces only the SIPP (the draw on the stressed growth/cash
+ *       pots) and keeps the ISA top-up — a stable money-market fund — at its full value, in
+ *       BOTH engines. (The sim used to scale the ISA too; fixed to match the Decision engine.)
  * This test:
  *   1. asserts every draw is finite,
  *   2. asserts that on HEALTHY months (neither in protection, neither boosting) both SIPP and
- *      ISA match to the penny (⇒ ALL divergence is the protection/boost overlay, never the
- *      shared drawdown math), and
- *   3. reports the protection-divergence rate, the ISA-scaling divergence, and the worst month
- *      (CROSSVAL_REPORT=1).
+ *      ISA match to the penny (⇒ ALL remaining divergence is the protection-state overlay (A)),
+ *   3. asserts (B) stays resolved: on both-protected months the ISA draw matches to the penny,
+ *   4. reports the residual (A) protection-divergence rate and worst month (CROSSVAL_REPORT=1).
  *
  * Run:  npx vitest run tests/crossval/replay-full.test.js
  * Report: CROSSVAL_REPORT=1 npx vitest run tests/crossval/replay-full.test.js
@@ -61,18 +61,24 @@ describe('cross-validation v2: full replay with protection on', () => {
     expect(healthy).toBeGreaterThan(0);
     expect(healthyMax).toBeLessThan(EPS);
 
-    // (3) report the overlay-divergence characteristics
+    // (3) finding (B) stays resolved: on both-protected months the ISA draw matches to the penny
+    //     (the SIPP is reduced by protection in both engines; the ISA top-up is not).
+    let bothProt = 0, bothProtIsaMax = 0;
+    for (const r of all) {
+      if (r.simProt && r.decProt) { bothProt++; bothProtIsaMax = Math.max(bothProtIsaMax, Math.abs(r.dIsa)); }
+    }
+    expect(bothProt).toBeGreaterThan(0);
+    expect(bothProtIsaMax).toBeLessThan(EPS);
+
+    // (4) report the residual (A) protection-state divergence
     if (process.env.CROSSVAL_REPORT) {
-      let protMismatch = 0, bothProt = 0, isaScaleDiv = 0;
-      for (const r of all) {
-        if (r.simProt !== r.decProt) protMismatch++;
-        if (r.simProt && r.decProt) { bothProt++; if (Math.abs(r.dIsa) > EPS) isaScaleDiv++; }
-      }
+      let protMismatch = 0;
+      for (const r of all) if (r.simProt !== r.decProt) protMismatch++;
       /* eslint-disable no-console */
       console.log(`\n[cross-val v2] ${SEEDS} seeds, ${all.length} months, protection ON`);
       console.log(`  healthy months (both agree, no boost): ${healthy}  max |Δ| there = £${healthyMax.toFixed(4)} (drawdown math)`);
       console.log(`  (A) protection-state mismatches: ${protMismatch} (${(100 * protMismatch / all.length).toFixed(1)}% of months)`);
-      console.log(`  (B) both-protected months: ${bothProt}, of which ISA draw differs (sim scales, decision doesn't): ${isaScaleDiv}`);
+      console.log(`  (B) ISA-on-protection now unified: both-protected months ${bothProt}, ISA max |Δ| = £${bothProtIsaMax.toFixed(4)}`);
       console.log(`  overall max |Δ SIPP| = £${summary.maxAbsSippDivergence.toFixed(0)}  mean |Δ SIPP| = £${summary.meanAbsSippDivergence.toFixed(2)}`);
       if (summary.worst) {
         const w = summary.worst;

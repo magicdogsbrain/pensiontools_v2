@@ -119,8 +119,10 @@ export function simulate(config, returns, seed = 0) {
     const standardMonthDraw = draw;
     let effectiveDraw = prot ? draw * config.protectionMult : draw;
     let monthDraw = effectiveDraw;
-    // ISA top-up is scaled the same way as the SIPP draw during protection.
-    const isaDrawThisMonth = prot ? isaMonthly * config.protectionMult : isaMonthly;
+    // Protection reduces ONLY the SIPP draw — that's what pulls on the growth/cash pots that
+    // are under stress in a downturn. The ISA top-up is a stable money-market fund, so it is
+    // drawn at its full non-protected value (matches the Decision engine). Unifies finding (B).
+    const isaDrawThisMonth = isaMonthly;
 
     // Record start-of-month state + the standard (pre-protection) draws for the replay harness.
     // equity/bond/cash/isa here are still start-of-month values (returns applied below).

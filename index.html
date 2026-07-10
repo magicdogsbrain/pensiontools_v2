@@ -2268,6 +2268,9 @@
             </div>
 
             <h3 style="margin-top: 24px;">Fund Minimums (Year 0, real terms)</h3>
+            <div id="ssGlideMinNote" class="starting-note" style="display:none;">
+              <strong>Rising-equity glidepath is on</strong> — the split between Equity and Bond below is set automatically (30%→70% over retirement). Only their <em>total</em> is used; the Cash target still applies.
+            </div>
             <div class="form-grid">
               <div class="form-group">
                 <label>Equity Minimum (£)</label>
@@ -2406,11 +2409,12 @@
 
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex;align-items:center;">
-                <input type="checkbox" id="ssEquityGlide" style="width:auto;margin-right:8px;">
+                <input type="checkbox" id="ssEquityGlide" style="width:auto;margin-right:8px;" onchange="toggleGlideMinNote()">
                 Rising-equity glidepath (bond tent)
               </label>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Hold more bonds early (30% equity) and rebalance toward equity later (70%) — least equity when the pot is largest and most exposed to an early crash. Targets sequence-of-returns risk (Pfau-Kitces). It typically helps the worst cases but can slightly lower median growth — run it and compare.
+                <strong>When this is on, it sets the equity-vs-bond split automatically</strong> — only the <em>total</em> of your Equity + Bond minimums above is used (cash is unaffected).
               </p>
             </div>
 
@@ -2988,6 +2992,7 @@
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = stressSettings.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
+        toggleGlideMinNote();
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -4578,6 +4583,13 @@
     }
 
     // Load stress settings into UI
+    // Show/hide the "split is automatic" note by the Fund Minimums when the glidepath is toggled.
+    window.toggleGlideMinNote = function() {
+      const on = document.getElementById('ssEquityGlide') && document.getElementById('ssEquityGlide').checked;
+      const note = document.getElementById('ssGlideMinNote');
+      if (note) note.style.display = on ? 'block' : 'none';
+    };
+
     async function loadStressSettings() {
       showLoading('Loading settings...');
       try {
@@ -4603,6 +4615,7 @@
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
+        toggleGlideMinNote();
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {

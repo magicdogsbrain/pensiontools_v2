@@ -679,21 +679,34 @@ export function calculateSuccessRate(results) {
  * failed-vs-survived gaps in early-market returns (sequence risk), overall returns, and inflation.
  */
 function buildFailureDiagnosis(sev) {
-  if (!sev || sev.failCount === 0) return 'No failures: every run funded the full plan.';
+  if (!sev || sev.failCount === 0) return 'No shortfalls: every simulated future funded the whole plan.';
   const pct = (x) => (x * 100).toFixed(1) + '%';
-  const timing = `Most failures are late — median failure at year ${Math.round(sev.medianFailYear)} of ${sev.duration}; ` +
-    `${Math.round(sev.pctNearMiss)}% of failures last past year ${Math.round(sev.duration * 0.85)} (near-misses).`;
 
+  // WHEN — adapt to whether shortfalls cluster late (a near-miss, funds most of retirement) or
+  // early (the dangerous kind). The old text always said "most failures are late", which was wrong
+  // whenever they weren't and just echoed the coverage number.
+  const my = Math.round(sev.medianFailYear), dur = sev.duration, nm = Math.round(sev.pctNearMiss);
+  let timing;
+  if (sev.pctNearMiss >= 60) {
+    timing = `and when they do it's usually late — the typical shortfall is at year ${my} of ${dur}, and ${nm}% happen only in the final years, after funding almost the whole of retirement`;
+  } else if (sev.pctNearMiss <= 30) {
+    timing = `and they tend to come EARLY — the typical shortfall is at year ${my} of ${dur}, with only ${nm}% holding on to the final years. An early shortfall is the serious kind, with little retirement left to adjust`;
+  } else {
+    timing = `spread through retirement — the typical shortfall is at year ${my} of ${dur}`;
+  }
+
+  // WHY — rank the failed-vs-survived gaps in the market environment.
   const candidates = [
-    { mag: sev.succEarlyEq - sev.failEarlyEq, text: `poor early-market returns (sequence-of-returns risk) — failing runs averaged ${pct(sev.failEarlyEq)} equity in the first 5 years vs ${pct(sev.succEarlyEq)} for survivors` },
-    { mag: sev.succAvgEq - sev.failAvgEq, text: `weaker markets over the whole plan — ${pct(sev.failAvgEq)} average equity return vs ${pct(sev.succAvgEq)} for survivors` },
-    { mag: sev.failAvgInf - sev.succAvgInf, text: `higher inflation — ${pct(sev.failAvgInf)} average vs ${pct(sev.succAvgInf)} for survivors` }
+    { mag: sev.succEarlyEq - sev.failEarlyEq, text: `a poor first few years of markets (sequence-of-returns risk): the futures that fell short averaged ${pct(sev.failEarlyEq)} equity in the opening 5 years versus ${pct(sev.succEarlyEq)} for those that lasted` },
+    { mag: sev.succAvgEq - sev.failAvgEq, text: `weak markets across the whole plan: ${pct(sev.failAvgEq)} average equity return versus ${pct(sev.succAvgEq)} for those that lasted` },
+    { mag: sev.failAvgInf - sev.succAvgInf, text: `higher inflation eroding spending power: ${pct(sev.failAvgInf)} a year versus ${pct(sev.succAvgInf)} for those that lasted` }
   ].filter(c => c.mag > 0.005).sort((a, b) => b.mag - a.mag);
 
-  if (!candidates.length) return `${timing} No single market driver stands out — failures look like broad bad luck across returns and inflation.`;
-  let reason = `Failures are driven mainly by ${candidates[0].text}`;
-  if (candidates[1] && candidates[1].mag > candidates[0].mag * 0.5) reason += `; a secondary factor is ${candidates[1].text}`;
-  return `${timing} ${reason}.`;
+  const lead = `About ${Math.round(sev.failRate || 0)}% of futures fall short`;
+  if (!candidates.length) return `${lead}, ${timing}. No single market driver stands out — the shortfalls come down to broadly bad luck across returns and inflation.`;
+  let reason = `The common thread is ${candidates[0].text}`;
+  if (candidates[1] && candidates[1].mag > candidates[0].mag * 0.5) reason += `. A secondary factor is ${candidates[1].text}`;
+  return `${lead}, ${timing}. ${reason}.`;
 }
 
 export function analyzeResults(results) {
@@ -802,6 +815,7 @@ export function analyzeResults(results) {
         duration,
         coverage: results.reduce((a, r) => a + Math.min(1, (r.years || 0) / duration), 0) / results.length * 100,
         failCount: failedRuns.length,
+        failRate: results.length ? failedRuns.length / results.length * 100 : 0,
         medianFailYear: failYears.length ? percentile(failYears, 0.5) : 0,
         pctNearMiss: failedRuns.length ? failedRuns.filter(r => r.years >= nearMissYear).length / failedRuns.length * 100 : 0,
         failEarlyEq: meanBy(failedRuns, 'earlyEquityReturn'), succEarlyEq: meanBy(successRuns, 'earlyEquityReturn'),

@@ -55,7 +55,9 @@ function getDefaultStressDB() {
       hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
 
       // Spending profile ('flat' default; 'declining' = spending drifts down with age)
-      spendingProfile: 'flat'
+      spendingProfile: 'flat',
+      // Rising-equity glidepath / bond tent (opt-in)
+      equityGlideEnabled: false
     },
     lastModified: null,
     checksum: null
@@ -332,6 +334,8 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.
-    spendingProfile: settings.spendingProfile || 'flat'
+    spendingProfile: settings.spendingProfile || 'flat',
+    // Rising-equity glidepath (bond tent): 30% equity early rising to 70% late. Opt-in.
+    equityGlide: settings.equityGlideEnabled ? { start: 0.30, end: 0.70 } : undefined
   };
 }

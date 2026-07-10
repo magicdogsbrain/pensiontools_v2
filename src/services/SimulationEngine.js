@@ -13,6 +13,7 @@ import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
+import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 
 /**
  * Runs a single simulation with given returns
@@ -46,8 +47,9 @@ export function simulate(config, returns, seed = 0) {
   let failed = false;
   let failMonth = null;
 
-  // Tax boost tracking: shortfall within current tax year
+  // Tax boost tracking: shortfall + SIPP drawn within current tax year
   let taxYearShortfall = 0;
+  let annualSippSoFar = 0;
   let lastTaxYearStart = -1;
 
   // History for analysis
@@ -84,12 +86,16 @@ export function simulate(config, returns, seed = 0) {
     const year = Math.floor(month / 12);
     const monthInYear = month % 12;
 
-    // Tax year runs April (month 3 in 0-indexed) to March
-    const taxYearStart = monthInYear >= 3 ? year : year - 1;
+    // Tax year is aligned with the simulation year (annual cycle == tax year), so the shortfall
+    // reset, target-inflation and boost remaining-months all share ONE boundary — matching the
+    // Decision engine (which uses the 6-April tax year for all three). Previously the shortfall
+    // reset used monthInYear>=3, a latent 3-month offset from the year-based target inflation.
+    const taxYearStart = year;
 
-    // Reset shortfall at start of new tax year
+    // Reset shortfall + annual SIPP accumulator at start of new tax year
     if (taxYearStart !== lastTaxYearStart) {
       taxYearShortfall = 0;
+      annualSippSoFar = 0;
       lastTaxYearStart = taxYearStart;
     }
 
@@ -195,26 +201,27 @@ export function simulate(config, returns, seed = 0) {
     const totalGrowth = equity + bond;
     // (protection was assessed at the top of the month via the shared ProtectionStrategy)
 
-    // TAX BOOST: After protection ends, try to catch up on shortfall
+    // TAX BOOST: catch up on protection shortfall via the shared TaxBoostStrategy (same module,
+    // per-month cap and BRL headroom as the Decision engine). Months remaining in the tax year =
+    // 12 - monthInYear (April..March under the year-aligned tax year).
     let boostAmount = 0;
-    if (!prot && taxYearShortfall > 0 && totalGrowth > minGrowth + 15000) {
-      // Calculate months remaining in tax year (April = month index 3)
-      let monthsToApril = monthInYear >= 3 ? (15 - monthInYear) : (3 - monthInYear);
-      if (monthsToApril < 1) monthsToApril = 1;
-
-      // Surplus available for boost
-      const surplus = totalGrowth - minGrowth - 15000;
-
-      // Spread catch-up, capped by surplus
-      const catchUpPerMonth = Math.min(taxYearShortfall / monthsToApril, surplus / monthsToApril);
-      const maxBoost = standardMonthDraw * 0.5; // Cap boost at 50% of standard draw
-      boostAmount = Math.min(catchUpPerMonth, maxBoost);
-
+    if (!prot) {
+      const monthsRemaining = 12 - monthInYear;
+      const projectedAnnualTaxable = annualSippSoFar + standardMonthDraw * monthsRemaining + planInputs.fixed;
+      boostAmount = planTaxBoost({
+        shortfall: taxYearShortfall,
+        standardMonthly: standardMonthDraw,
+        remainingMonths: monthsRemaining,
+        surplus: totalGrowth - minGrowth - BOOST_DEFAULTS.SURPLUS_BUFFER,
+        brlHeadroom: planInputs.brl - projectedAnnualTaxable
+      });
       if (boostAmount > 50) {
         monthDraw += boostAmount;
         taxYearShortfall -= boostAmount;
       }
     }
+    // Accumulate this month's effective SIPP for the tax year (for next month's BRL headroom).
+    annualSippSoFar += monthDraw;
 
     // Finalise the trace row's effective SIPP now that protection scaling + tax-boost are set.
     if (traceRow) {

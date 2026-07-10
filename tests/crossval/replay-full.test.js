@@ -12,12 +12,19 @@
  *   (B) RESOLVED: protection now reduces only the SIPP (the draw on the stressed growth/cash
  *       pots) and keeps the ISA top-up — a stable money-market fund — at its full value, in
  *       BOTH engines. (The sim used to scale the ISA too; fixed to match the Decision engine.)
+ *   (C) RESOLVED: the tax-boost catch-up is one shared planTaxBoost with a per-month cap, and
+ *       the sim's tax year is aligned to its simulation year — so no more end-of-tax-year "draw
+ *       £17k this month" cram. Residual mean |Δ SIPP| fell from ~£50 to ~£6.
+ * Remaining divergence is only (A): the residual 0.3% of months where protection state differs
+ * (pre- vs post-return timing between a forward-simulator and a point-in-time advisor), plus the
+ * boost's dependence on that state — an inherent floor, not a rule mismatch.
  * This test:
  *   1. asserts every draw is finite,
  *   2. asserts that on HEALTHY months (neither in protection, neither boosting) both SIPP and
  *      ISA match to the penny (⇒ ALL remaining divergence is the protection-state overlay (A)),
  *   3. asserts (B) stays resolved: on both-protected months the ISA draw matches to the penny,
- *   4. reports the residual (A) protection-divergence rate and worst month (CROSSVAL_REPORT=1).
+ *   4. asserts the overall mean SIPP divergence stays small (regression guard for (C)),
+ *   5. reports the residual (A) protection-divergence rate and worst month (CROSSVAL_REPORT=1).
  *
  * Run:  npx vitest run tests/crossval/replay-full.test.js
  * Report: CROSSVAL_REPORT=1 npx vitest run tests/crossval/replay-full.test.js
@@ -70,7 +77,11 @@ describe('cross-validation v2: full replay with protection on', () => {
     expect(bothProt).toBeGreaterThan(0);
     expect(bothProtIsaMax).toBeLessThan(EPS);
 
-    // (4) report the residual (A) protection-state divergence
+    // (4) regression guard for (C): with the shared tax-boost + aligned tax year, the overall
+    //     mean SIPP divergence is small (~£6). Was ~£50 before boost unification.
+    expect(summary.meanAbsSippDivergence).toBeLessThan(15);
+
+    // (5) report the residual (A) protection-state divergence
     if (process.env.CROSSVAL_REPORT) {
       let protMismatch = 0;
       for (const r of all) if (r.simProt !== r.decProt) protMismatch++;

@@ -103,6 +103,53 @@ export async function replayStateless(config, seed) {
   return { rows, failed: sim.failed, months: sim.trace.length, final: sim.final };
 }
 
+/**
+ * Stateful replay (v2): the full picture the user asked for. Protection stays ON. Each month
+ * we feed the Decision engine the sim's own start-of-month fund values (per "use the sim's own
+ * monthly path") plus the Decision history accumulated so far, record its recommendation as a
+ * history entry, and build up the tax-year configs — so `history` and `taxYears` come out
+ * exactly as the Decision Tool would show them. We compare the Decision engine's *effective*
+ * draw (after its protection/boost overlay) to the sim's effective draw. Divergences localize
+ * where the two protection/boost implementations differ — nothing to do with the shared
+ * drawdown math (v1 proves that agrees to the penny).
+ * @returns {Promise<{rows, history, taxYears, failed, months, final}>}
+ */
+export async function replayStateful(config, seed) {
+  const returns = monteCarloReturns(config, seed);
+  const sim = simulateTraced(config, seed);
+  const { settings, allTaxYears } = buildDecisionContext(config, sim.trace, returns);
+
+  const history = [];
+  const rows = [];
+  for (const t of sim.trace) {
+    const dateStr = aprilDate(t.month);
+    const dec = await calcDecisionPWA(dateStr, t.equityStart, t.bondStart, t.cashStart, {
+      settings,
+      history,          // stateful: protection/boost/YTD see prior months
+      allTaxYears,
+      spInfo: { amount: t.planInputs.statePension },
+      isaBalance: t.isaStart
+    });
+    // Append a history entry in the shape the Decision engine reads back.
+    history.push({
+      date: dateStr, taxYear: dec.taxYear, source: dec.source,
+      inProtection: dec.inProtection, sipp: dec.sippDraw, stdSipp: dec.stdSipp,
+      isa: dec.isaDraw, boostAmount: dec.boostAmount
+    });
+    rows.push({
+      month: t.month, date: dateStr,
+      simSipp: t.effectiveSipp, decSipp: dec.sippDraw,
+      simIsa: t.effectiveIsa, decIsa: dec.isaDraw,
+      dSipp: dec.sippDraw - t.effectiveSipp,
+      dIsa: dec.isaDraw - t.effectiveIsa,
+      simProt: t.inProtection, decProt: dec.inProtection,
+      simBoost: t.boostAmount || 0, decBoost: dec.boostAmount || 0,
+      isaBalance: t.isaStart
+    });
+  }
+  return { rows, history, taxYears: allTaxYears, failed: sim.failed, months: sim.trace.length, final: sim.final };
+}
+
 /** Aggregate divergence stats across many seeds' rows. */
 export function summarize(allRows) {
   let maxDSipp = 0, maxDIsa = 0, worst = null;

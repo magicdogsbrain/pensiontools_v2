@@ -149,6 +149,10 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             targetGross: target, fixedIncome: other, pa: PA, brl: BRL, hrl: HRL,
             isaBalance,
             strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
+            // yearsUntilSp only affects the maximiseLongevity ration cap. The Decision Tool has
+            // no UI to select that strategy (always Option A / minimiseEarlyTax, which ignores
+            // this), so 0 is safe today. If longevity is ever exposed here, compute real
+            // years-until-SP from the SP start date — see tests/crossval/replay.test.js "KNOWN GAP".
             yearsUntilSp: 0
           });
           stdSipp = plan.sippGross / 12;

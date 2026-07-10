@@ -52,6 +52,11 @@ export function simulate(config, returns, seed = 0) {
   // History for analysis
   const hist = [];
 
+  // Optional per-month trace (opt-in via config.trace) for the cross-validation harness:
+  // records the exact start-of-month state and standard draws so the same trajectory can be
+  // replayed through the Decision engine and compared. Off by default → no behaviour change.
+  const trace = config.trace ? [] : null;
+
   // Inflation tracking
   const yearlyInf = [];
   let cumInf = 1;
@@ -109,13 +114,27 @@ export function simulate(config, returns, seed = 0) {
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
 
     // Calculate required draw (SIPP + ISA to hit the target via band management)
-    const { sippMonthly, isaMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
+    const { sippMonthly, isaMonthly, planInputs } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
     const draw = sippMonthly;
     const standardMonthDraw = draw;
     let effectiveDraw = prot ? draw * config.protectionMult : draw;
     let monthDraw = effectiveDraw;
     // ISA top-up is scaled the same way as the SIPP draw during protection.
     const isaDrawThisMonth = prot ? isaMonthly * config.protectionMult : isaMonthly;
+
+    // Record start-of-month state + the standard (pre-protection) draws for the replay harness.
+    // equity/bond/cash/isa here are still start-of-month values (returns applied below).
+    if (trace) {
+      trace.push({
+        month, year, monthInYear, cumInf,
+        equityStart: equity, bondStart: bond, cashStart: cash, isaStart: isa,
+        sippMonthly, isaMonthly,        // standard draws (before protection scaling)
+        effectiveSipp: effectiveDraw,   // after protection scaling
+        effectiveIsa: isaDrawThisMonth,
+        inProtection: prot,
+        planInputs                      // exact planDrawdown inputs used this month
+      });
+    }
 
     // Track protection shortfall for tax boost
     if (prot) {
@@ -299,6 +318,7 @@ export function simulate(config, returns, seed = 0) {
     hodlUsed,
     hodlUsedMonth,
     hist,
+    trace,
     seed
   };
 }
@@ -414,16 +434,23 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
   }
 
   const fixed = other + statePension;
+  const yearsUntilSp = yearsUntilStatePension(config, year);
   const plan = planDrawdown({
     targetGross: target,
     fixedIncome: fixed,
     pa, brl, hrl,
     isaBalance,
     strategy: config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY,
-    yearsUntilSp: yearsUntilStatePension(config, year)
+    yearsUntilSp
   });
 
-  return { sippMonthly: plan.sippGross / 12, isaMonthly: plan.isaDraw / 12 };
+  return {
+    sippMonthly: plan.sippGross / 12,
+    isaMonthly: plan.isaDraw / 12,
+    // Exact planDrawdown inputs, surfaced so the cross-validation harness can build
+    // Decision-engine tax-year configs that reproduce this call rather than re-deriving them.
+    planInputs: { target, other, statePension, fixed, pa, brl, hrl, yearsUntilSp }
+  };
 }
 
 /**
@@ -433,24 +460,39 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
  * @returns {object[]} Array of simulation results
  */
 export function runMonteCarlo(config, runs = 1000) {
-  const years = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
   const results = [];
-
   for (let i = 0; i < runs; i++) {
-    const rng = seededRng(i * 12345);
-
-    // Build random return sequence by sampling from history
-    const returns = { equity: {}, inflation: {} };
-    for (let y = 0; y < config.years; y++) {
-      const randomYear = years[Math.floor(rng() * years.length)];
-      returns.equity[y] = EQUITY_RETURNS[randomYear];
-      returns.inflation[y] = INFLATION[randomYear] || 0.025;
-    }
-
-    results.push(simulate(config, returns, i));
+    results.push(simulate(config, monteCarloReturns(config, i), i));
   }
-
   return results;
+}
+
+/**
+ * Builds the exact random return sequence Monte-Carlo run `i` uses (seed = i * 12345,
+ * sampling years from history). Exported so the cross-validation harness can reproduce a
+ * single trajectory deterministically and replay it through the Decision engine.
+ * @param {object} config - Simulation configuration (uses config.years)
+ * @param {number} i - Monte-Carlo run index
+ * @returns {{equity: object, inflation: object}} Yearly returns
+ */
+export function monteCarloReturns(config, i) {
+  const years = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+  const rng = seededRng(i * 12345);
+  const returns = { equity: {}, inflation: {} };
+  for (let y = 0; y < config.years; y++) {
+    const randomYear = years[Math.floor(rng() * years.length)];
+    returns.equity[y] = EQUITY_RETURNS[randomYear];
+    returns.inflation[y] = INFLATION[randomYear] || 0.025;
+  }
+  return returns;
+}
+
+/**
+ * Runs Monte-Carlo trajectory `i` with the per-month trace enabled (config.trace).
+ * @returns {object} Simulation result including a `.trace` array (one row per month).
+ */
+export function simulateTraced(config, i) {
+  return simulate({ ...config, trace: true }, monteCarloReturns(config, i), i);
 }
 
 /**

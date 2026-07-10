@@ -52,7 +52,10 @@ function getDefaultStressDB() {
 
       // HODL (emergency reserve)
       hodlEnabled: SIMULATION_DEFAULTS.HODL_ENABLED,
-      hodlValue: SIMULATION_DEFAULTS.HODL_VALUE
+      hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
+
+      // Spending profile ('flat' default; 'declining' = spending drifts down with age)
+      spendingProfile: 'flat'
     },
     lastModified: null,
     checksum: null
@@ -326,6 +329,9 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
     isaBalance: settings.isaBalance || 0,
     isaReturn: settings.isaReturn,
-    isaDrawdownStrategy: settings.isaDrawdownStrategy
+    isaDrawdownStrategy: settings.isaDrawdownStrategy,
+    // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
+    // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.
+    spendingProfile: settings.spendingProfile || 'flat'
   };
 }

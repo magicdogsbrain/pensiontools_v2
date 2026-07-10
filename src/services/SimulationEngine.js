@@ -509,6 +509,19 @@ function equityBondRho(inf, eqReturn) {
   return 0.1;                          // long-run mild positive
 }
 
+// Retirement spending profile. 'flat' (default, pessimistic) holds real spending level for life.
+// 'declining' models the documented drift DOWN in real spending as retirees age (Blanchett's
+// "spending smile/smirk", ~1%/yr), floored so it can't fall unrealistically far. Late-life care
+// costs are deliberately NOT rebounded here — they belong in a separate overlay (per Blanchett's
+// newer "smirk" finding). Opt-in, so the conservative flat profile stays the default.
+const SPENDING_DEFAULTS = { DECLINE_RATE: 0.01, FLOOR: 0.75 };
+function spendingFactor(config, year) {
+  if ((config.spendingProfile || 'flat') !== 'declining') return 1;
+  const rate = config.spendingDeclineRate ?? SPENDING_DEFAULTS.DECLINE_RATE;
+  const floor = config.spendingFloor ?? SPENDING_DEFAULTS.FLOOR;
+  return Math.max(floor, Math.pow(1 - rate, year));
+}
+
 /**
  * Number of whole simulation years until State Pension starts (0 = already in payment).
  */
@@ -531,7 +544,7 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
   const hrl = config.taxMode === 'frozen' ? config.hrl : (config.hrl || 125140) * cumInf;
 
   // Target income
-  const target = config.baseSalary * cumInf;
+  const target = config.baseSalary * cumInf * spendingFactor(config, year);
 
   // Other income with CPI cap (4%)
   const other = cappedInflation(config.other, yearlyInf);

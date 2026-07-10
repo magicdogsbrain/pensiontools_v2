@@ -3893,10 +3893,12 @@
         return;
       }
 
-      // Generate allocation combinations to test (5% increments, cash 5-30%)
+      // Generate allocation combinations to test (5% increments). Cash is swept the full 5-90%
+      // range (not capped at 30%) so the optimiser genuinely explores cash-heavy allocations —
+      // which now correctly score poorly under the realistic cash model, rather than being hidden.
       const allocations = [];
-      for (let cashPct = 5; cashPct <= 30; cashPct += 5) {
-        for (let equityPct = 20; equityPct <= 95 - cashPct; equityPct += 5) {
+      for (let cashPct = 5; cashPct <= 90; cashPct += 5) {
+        for (let equityPct = 5; equityPct <= 95 - cashPct; equityPct += 5) {
           const bondPct = 100 - cashPct - equityPct;
           if (bondPct >= 0) {
             allocations.push({
@@ -4219,6 +4221,69 @@
       return html;
     }
 
+    // Inline SVG line chart of the average ISA balance over the plan (the "ISA drawdown" curve).
+    function isaDrawdownSvg(series, startBalance) {
+      const w = 640, h = 180, padL = 48, padR = 12, padT = 12, padB = 24;
+      const n = series.length;
+      if (n < 2) return '';
+      const maxY = Math.max(startBalance || 0, ...series) || 1;
+      const x = (i) => padL + (i / (n - 1)) * (w - padL - padR);
+      const y = (v) => (h - padB) - (v / maxY) * (h - padT - padB);
+      const line = series.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const area = `${padL},${(h - padB).toFixed(1)} ${line} ${x(n - 1).toFixed(1)},${(h - padB).toFixed(1)}`;
+      const gx0 = 0, gxMid = Math.floor((n - 1) / 2), gxEnd = n - 1;
+      const yTicks = [0, maxY / 2, maxY];
+      return `
+        <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img" aria-label="Average ISA balance over time">
+          ${yTicks.map(t => `
+            <line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border, #8883)" stroke-width="1"/>
+            <text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted, #999)">${formatCurrency(t)}</text>
+          `).join('')}
+          <polygon points="${area}" fill="rgba(96,165,250,0.15)"/>
+          <polyline points="${line}" fill="none" stroke="#60a5fa" stroke-width="2"/>
+          ${[gx0, gxMid, gxEnd].map(i => `<text x="${x(i).toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="var(--text-muted, #999)">Yr ${i}</text>`).join('')}
+        </svg>`;
+    }
+
+    // ISA analytics section for the stress results (only when the plan is funded with an ISA).
+    function renderIsaSection(isa) {
+      if (!isa || !isa.funded) return '';
+      const yrs = (v) => (v || 0).toFixed(v >= 10 ? 0 : 1);
+      const survClass = isa.pctSurviveFullTerm >= 80 ? 'success' : isa.pctSurviveFullTerm >= 50 ? 'warning' : 'danger';
+      const ineffClass = isa.avgHigherRateYears < 1 ? 'success' : isa.avgHigherRateYears < 4 ? 'warning' : 'danger';
+      return `
+        <h3 style="margin:8px 0 4px;">ISA (tax-free bridge)</h3>
+        <p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">
+          Modelled as a steady money-market fund, drawn tax-free to top income up. Starting balance ${formatCurrency(isa.startBalance)}.
+        </p>
+        <div class="grid-5" style="margin-bottom:20px;">
+          <div class="stat-box">
+            <div class="stat-value">${yrs(isa.medianLastedYears)}</div>
+            <div class="stat-label">ISA lasts (median yrs)</div>
+          </div>
+          <div class="stat-box ${survClass}">
+            <div class="stat-value">${isa.pctSurviveFullTerm.toFixed(0)}%</div>
+            <div class="stat-label">Survives full term</div>
+          </div>
+          <div class="stat-box ${ineffClass}">
+            <div class="stat-value">${yrs(isa.avgHigherRateYears)}</div>
+            <div class="stat-label">Inefficient yrs (40% band)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">${formatCurrency(isa.finalBalance.p50)}</div>
+            <div class="stat-label">Median ISA left</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">${formatCurrency(isa.medianTotalTax)}</div>
+            <div class="stat-label">Lifetime tax (median)</div>
+          </div>
+        </div>
+        <div style="margin-bottom:24px;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Average ISA balance over the plan (${isa.pctEverHigherRate.toFixed(0)}% of runs eventually hit the 40% band)</div>
+          ${isaDrawdownSvg(isa.avgBalanceByYear, isa.startBalance)}
+        </div>`;
+    }
+
     // Render stress test results with charts
     function renderStressResults(stats, results, title, containerId, years) {
       const successClass = stats.successRate >= 90 ? 'success' : stats.successRate >= 80 ? 'warning' : 'danger';
@@ -4291,6 +4356,8 @@
               <div class="stat-label">Avg Final (success)</div>
             </div>
           </div>
+
+          ${renderIsaSection(stats.isa)}
 
           <!-- Charts -->
           <div class="chart-row">

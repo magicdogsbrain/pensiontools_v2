@@ -2437,7 +2437,7 @@
     } from './src/storage/ScenarioRepository.js';
 
     // Import simulation engine for direct access in optimization
-    import { runMonteCarlo, runHistorical, simulate } from './src/services/SimulationEngine.js';
+    import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
 
     // Import constants for optimization
     import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
@@ -2452,7 +2452,7 @@
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
 
     // Expose for optimization
-    window._simEngine = { runMonteCarlo, runHistorical, simulate };
+    window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };
     window._constants = { EQUITY_RETURNS, INFLATION };
     window._mathUtils = { seededRng };
 
@@ -3912,8 +3912,7 @@
 
       // Get historical years for return sequences
       const { EQUITY_RETURNS, INFLATION } = window._constants;
-      const { simulate } = window._simEngine;
-      const { seededRng } = window._mathUtils;
+      const { simulate, monteCarloReturns } = window._simEngine;
 
       const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
       const maxY = Math.max(...yrs);
@@ -3934,15 +3933,10 @@
         const results = [];
 
         if (testType === 'MC') {
+          // Use the SAME block-bootstrap sampling as the headline Monte Carlo, so the optimiser's
+          // success rates are directly comparable to the main result (not iid vs block-bootstrap).
           for (let i = 0; i < 1000; i++) {
-            const rng = seededRng(i * 12345);
-            const ret = { equity: {}, inflation: {} };
-            for (let y = 0; y < years; y++) {
-              const ry = yrs[Math.floor(rng() * yrs.length)];
-              ret.equity[y] = EQUITY_RETURNS[ry];
-              ret.inflation[y] = INFLATION[ry] || 0.025;
-            }
-            results.push(simulate(cfg, ret, i));
+            results.push(simulate(cfg, monteCarloReturns(cfg, i), i));
           }
         } else {
           yrs.forEach(sy => {

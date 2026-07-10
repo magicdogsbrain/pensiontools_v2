@@ -481,12 +481,32 @@ function calculateBondReturn(inf, eqReturn, prevInf, rng) {
   const equityReturn = eqReturn * 0.5 + gaussianRandom(0, 0.02, rng);  // Dampened equity exposure
 
   // Weighted return
-  return linkerWeight * linkerReturn +
+  const bondReturn = linkerWeight * linkerReturn +
          nomBondWeight * nomBondReturn +
          propertyWeight * propertyReturn +
          commodityWeight * commodityReturn +
          cashWeight * cashReturn +
          equityWeight * equityReturn;
+
+  // Equity–bond correlation (regime-based). The model review flagged that bonds were sampled
+  // INDEPENDENTLY of equities, overstating diversification. Impose a co-movement between the bond
+  // return and this year's equity shock: bonds usually rally when equities crash (flight to
+  // quality) but in an inflation shock BOTH fall together (2022) — the dangerous case for a
+  // drawdown retiree. Mean-preserving (E[equity shock] = 0); scale ≈ bond vol so the imposed
+  // correlation ≈ rho. See docs/model-review-feb-2026.md.
+  const rho = equityBondRho(inf, eqReturn);
+  const eqZ = (eqReturn - 0.10) / 0.17;                 // standardised equity shock (mean 10%, sd 17%)
+  return bondReturn + rho * eqZ * 0.055;
+}
+
+/**
+ * Regime-dependent equity–bond correlation. High inflation → both fall together (2022-style);
+ * an equity crash in normal inflation → bonds rally (flight to quality); otherwise mild positive.
+ */
+function equityBondRho(inf, eqReturn) {
+  if (inf > 0.045) return 0.4;        // high-inflation regime — joint down moves
+  if (eqReturn < -0.15) return -0.3;  // equity crash, normal inflation — flight to quality
+  return 0.1;                          // long-run mild positive
 }
 
 /**

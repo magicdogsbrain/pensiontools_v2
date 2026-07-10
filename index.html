@@ -3987,10 +3987,30 @@
         return;
       }
 
-      // Process allocations in chunks for non-blocking UI
+      // Process allocations in chunks for non-blocking UI. Collect every result, then pick the
+      // best AFTER folding in the current allocation as a candidate — so the current split is
+      // always part of the comparison even when it sits outside the sweep's grid/limits (e.g. an
+      // all-cash or very-high-equity current split).
       const BATCH_SIZE = 10;
       let idx = 0;
+      const allResults = [];
       let bestResult = null;
+
+      // Highest success rate wins; among near-ties (within 0.5%) prefer LESS protection, then a
+      // higher median final. Keeps the old "don't take on needless protection" spirit without
+      // hard-excluding clearly-better allocations (which used to make an all-cash current, with
+      // zero protection, look 'already optimal' at a poor success rate).
+      function pickBest(results) {
+        const maxRate = Math.max(...results.map(r => r.rate));
+        const nearTop = results.filter(r => r.rate >= maxRate - 0.5);
+        nearTop.sort((a, b) => (a.avgProt - b.avgProt) || (b.medianFinal - a.medianFinal));
+        return nearTop[0];
+      }
+      function sameAlloc(a, b) {
+        return Math.round(a.equity) === Math.round(b.equity) &&
+               Math.round(a.bond) === Math.round(b.bond) &&
+               Math.round(a.cash) === Math.round(b.cash);
+      }
 
       function processNextBatch() {
         // Check cancellation
@@ -4004,12 +4024,7 @@
         try {
           const end = Math.min(idx + BATCH_SIZE, allocations.length);
           for (; idx < end; idx++) {
-            const result = runSimForAlloc(allocations[idx]);
-            if (result.avgProt <= originalResult.avgProt) {
-              if (!bestResult || result.rate > bestResult.rate) {
-                bestResult = result;
-              }
-            }
+            allResults.push(runSimForAlloc(allocations[idx]));
           }
 
           // Update progress
@@ -4019,7 +4034,8 @@
             // Yield to browser, then continue
             setTimeout(processNextBatch, 0);
           } else {
-            // Done — render results
+            // Current allocation is always a candidate — included even if outside the sweep limits.
+            bestResult = pickBest([...allResults, originalResult]);
             renderOptimisationResults();
           }
         } catch (error) {
@@ -4039,14 +4055,33 @@
           return;
         }
 
+        // Note when the CURRENT split sits outside the sweep's grid range (it is still compared).
+        const curCashPct = totalFunds > 0 ? originalResult.cash / totalFunds * 100 : 0;
+        const curEqPct = totalFunds > 0 ? originalResult.equity / totalFunds * 100 : 0;
+        const curOutside = curCashPct > 90 || curCashPct < 5 || curEqPct < 5;
+        const outsideNote = curOutside
+          ? '<div class="alert alert-info" style="margin-bottom:16px;font-size:13px;">Your current split is outside the range the optimiser sweeps, but it was included in this comparison.</div>'
+          : '';
+
+        // "Better" = a different allocation that either improves success by >0.5%, or matches
+        // success with materially less protection. Current is always the baseline candidate.
+        const isBetter = bestResult && !sameAlloc(bestResult, originalResult) && (
+          bestResult.rate > originalResult.rate + 0.5 ||
+          (bestResult.rate >= originalResult.rate - 0.01 && bestResult.avgProt < originalResult.avgProt - 3)
+        );
+
         let h = '';
-        if (bestResult && bestResult.rate > originalResult.rate) {
+        if (isBetter) {
           const medianDiff = bestResult.medianFinal - originalResult.medianFinal;
           const medianDiffPct = originalResult.medianFinal > 0 ? (medianDiff / originalResult.medianFinal * 100) : 0;
+          const rateDelta = bestResult.rate - originalResult.rate;
 
           h += '<div class="card" style="margin-top:20px;border-color:var(--success);">';
           h += '<h3 style="color:var(--success);margin-top:0;">Better Allocation Found</h3>';
-          h += '<p style="color:var(--text-muted);margin-bottom:16px;">A different fund split could improve your success rate without increasing protection usage:</p>';
+          h += '<p style="color:var(--text-muted);margin-bottom:16px;">' +
+               (rateDelta > 0.5 ? 'A different fund split could improve your success rate:' :
+                'A different fund split reaches a similar success rate with less protection usage:') + '</p>';
+          h += outsideNote;
 
           h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">';
 
@@ -4065,7 +4100,7 @@
           h += '<div style="padding:16px;background:rgba(46,160,67,0.1);border-radius:8px;border:1px solid var(--success);">';
           h += '<div style="font-weight:500;margin-bottom:12px;color:var(--success);">Optimised Split</div>';
           h += '<div style="font-size:24px;font-weight:600;color:var(--success);">' + bestResult.rate.toFixed(1) + '%</div>';
-          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (+' + (bestResult.rate - originalResult.rate).toFixed(1) + '%)</div>';
+          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (' + (rateDelta >= 0 ? '+' : '') + rateDelta.toFixed(1) + '%' + (bestResult.avgProt < originalResult.avgProt - 3 ? ', less protection' : '') + ')</div>';
           h += '<div style="font-size:13px;">Equity: ' + formatCurrency(bestResult.equity) + ' (' + Math.round(bestResult.equity/totalFunds*100) + '%)</div>';
           h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(bestResult.bond) + ' (' + Math.round(bestResult.bond/totalFunds*100) + '%)</div>';
           h += '<div style="font-size:13px;">Cash: ' + formatCurrency(bestResult.cash) + ' (' + Math.round(bestResult.cash/totalFunds*100) + '%)</div>';
@@ -4094,9 +4129,10 @@
           h += '</div>';
         } else {
           h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
-          h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already Optimal</h3>';
-          h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' different fund splits. Your current allocation achieves the best success rate (' + originalResult.rate.toFixed(1) + '%) without increasing protection usage.</p>';
-          h += '<p style="font-size:13px;color:var(--text-muted);">Your protection: ' + originalResult.avgProt.toFixed(0) + ' months average</p>';
+          h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already (Near‑)Optimal</h3>';
+          h += outsideNote;
+          h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' fund splits. Your current allocation (' + originalResult.rate.toFixed(1) + '% success) is the best, or within 0.5% of the best, with no clearly better low-protection alternative.</p>';
+          h += '<p style="font-size:13px;color:var(--text-muted);">Your split — Equity ' + Math.round(curEqPct) + '% · Bonds ' + Math.round(originalResult.bond/totalFunds*100) + '% · Cash ' + Math.round(curCashPct) + '% | protection ' + originalResult.avgProt.toFixed(0) + ' mo avg</p>';
           h += '</div>';
         }
 

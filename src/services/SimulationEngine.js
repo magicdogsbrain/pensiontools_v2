@@ -69,7 +69,9 @@ export function simulate(config, returns, seed = 0) {
   let isaDepletedMonth = null;         // first month the ISA hit £0 (null = survived / never funded)
   let higherRateMonths = 0;            // months of inefficient drawdown (SIPP forced above BRL)
   let totalTaxReal = 0;                // lifetime income tax paid, in today's money
-  const isaByYear = new Array(config.years + 1).fill(0); // start-of-year ISA balance, for the avg chart
+  // Start-of-year ISA balance for each year the run is ALIVE; null after a run fails (no data) so
+  // the chart never zero-fills dead runs — the artifact behind the "ISA drops to 0 mid-plan" bug.
+  const isaByYear = new Array(config.years + 1).fill(null);
 
   // State tracking
   let protMonths = 0;
@@ -363,16 +365,19 @@ export function simulate(config, returns, seed = 0) {
   }
 
   maxConsec = Math.max(maxConsec, curStreak);
-  isaByYear[config.years] = isa; // end-of-plan ISA balance
+  if (!failed) isaByYear[config.years] = isa; // end-of-plan ISA balance (only for runs that finished)
 
   // Per-run environment drivers, for failure-severity diagnosis (sequence risk vs inflation vs
-  // weak overall markets). Averaged over the plan's return sequence.
-  let infSum = 0, eqSum = 0, earlySum = 0, earlyN = 0;
+  // weak overall markets) + cumulative inflation for real-terms (today's money) conversion.
+  let infSum = 0, eqSum = 0, earlySum = 0, earlyN = 0, cumInfl = 1;
   for (let y = 0; y < config.years; y++) {
-    infSum += (returns.inflation[y] ?? 0.025);
+    const inflY = returns.inflation[y] ?? 0.025;
+    infSum += inflY;
+    cumInfl *= (1 + inflY);
     eqSum += (returns.equity[y] ?? 0);
     if (y < 5) { earlySum += (returns.equity[y] ?? 0); earlyN++; }
   }
+  const finalNominal = equity + bond + cash;
 
   return {
     failed,
@@ -382,7 +387,9 @@ export function simulate(config, returns, seed = 0) {
     avgInflation: infSum / config.years,
     avgEquityReturn: eqSum / config.years,
     earlyEquityReturn: earlyN ? earlySum / earlyN : 0,
-    final: equity + bond + cash,
+    cumInflation: cumInfl,
+    finalReal: finalNominal / cumInfl,   // end pot in today's money
+    final: finalNominal,
     finalEquity: equity,
     finalBond: bond,
     finalCash: cash,
@@ -786,7 +793,26 @@ export function analyzeResults(results) {
         failAvgInf: meanBy(failedRuns, 'avgInflation'), succAvgInf: meanBy(successRuns, 'avgInflation')
       };
       sev.diagnosis = buildFailureDiagnosis(sev);
+      // Dominant driver of failure, for a targeted "what you could do" hint in the UI.
+      const gaps = [
+        { k: 'sequence', m: sev.succEarlyEq - sev.failEarlyEq },
+        { k: 'market', m: sev.succAvgEq - sev.failAvgEq },
+        { k: 'inflation', m: sev.failAvgInf - sev.succAvgInf }
+      ].filter(g => g.m > 0.005).sort((a, b) => b.m - a.m);
+      sev.primaryDriver = (sev.failCount > 0 && gaps.length) ? gaps[0].k : null;
       return sev;
+    })(),
+
+    // End-of-plan pot in TODAY'S money across ALL runs (a run that ran out counts as £0). The
+    // honest "what's typically left" figure — free of the survivorship bias + future-pounds
+    // inflation in `finalValue` (which is successful-runs-only and nominal).
+    finalReal: (() => {
+      const reals = results.map(r => (r.failed ? 0 : (r.finalReal || 0))).sort((a, b) => a - b);
+      return {
+        p5: percentile(reals, 0.05), p10: percentile(reals, 0.10), p25: percentile(reals, 0.25),
+        p50: percentile(reals, 0.50), p75: percentile(reals, 0.75), p90: percentile(reals, 0.90),
+        p95: percentile(reals, 0.95), min: reals[0] || 0, max: reals[reals.length - 1] || 0
+      };
     })(),
 
     // ISA analytics (only meaningful when the plan is funded with an ISA)
@@ -797,13 +823,21 @@ export function analyzeResults(results) {
       const finalsIsa = funded.map(r => r.finalIsa).sort((a, b) => a - b);
       const hrYears = funded.map(r => r.higherRateYears);
       const taxes = funded.map(r => r.totalTaxReal).sort((a, b) => a - b);
-      // Element-wise average ISA balance by year across funded runs (depleted/failed years = 0).
+      // ISA chart series, by year. isaByYear is null after a run fails (no data), so we never
+      // zero-fill dead runs (the old artifact). Two honest series:
+      //  • pctHoldingByYear — share of ALL funded plans that still have ISA money (a survival curve)
+      //  • medianAliveByYear — typical ISA balance among plans still running (today's money, so it
+      //    isn't inflated by future pounds)
       const nYears = Math.max(...funded.map(r => (r.isaByYear || []).length));
-      const avgBalanceByYear = [];
+      const pctHoldingByYear = [], medianAliveByYear = [];
       for (let y = 0; y < nYears; y++) {
-        avgBalanceByYear.push(
-          funded.reduce((a, r) => a + ((r.isaByYear && r.isaByYear[y]) || 0), 0) / funded.length
-        );
+        const holding = funded.filter(r => r.isaByYear && r.isaByYear[y] > 0).length;
+        pctHoldingByYear.push(funded.length ? holding / funded.length * 100 : 0);
+        const aliveVals = funded
+          .filter(r => r.isaByYear && r.isaByYear[y] != null)
+          .map(r => r.isaByYear[y])
+          .sort((a, b) => a - b);
+        medianAliveByYear.push(aliveVals.length ? aliveVals[Math.floor(aliveVals.length / 2)] : 0);
       }
       return {
         funded: true,
@@ -822,7 +856,8 @@ export function analyzeResults(results) {
         pctEverHigherRate: (funded.filter(r => r.higherRateYears > 0).length / funded.length) * 100,
         medianTotalTax: percentile(taxes, 0.50),
         p90TotalTax: percentile(taxes, 0.90),
-        avgBalanceByYear
+        pctHoldingByYear,
+        medianAliveByYear
       };
     })(),
 

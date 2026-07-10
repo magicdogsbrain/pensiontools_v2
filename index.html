@@ -1631,6 +1631,18 @@
       display: none;
     }
 
+    .starting-note {
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .starting-note strong { color: var(--text); }
+
     /* Stress subtab content */
     .stress-subtab {
       display: block;
@@ -2116,34 +2128,13 @@
           <div class="card">
             <h2>Monte Carlo Simulation</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
+            <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcCash" value="50000">
-                </div>
-              </div>
               <div class="form-group">
                 <label>Simulation Years</label>
                 <input type="number" id="mcYears" value="35">
               </div>
             </div>
-            <div id="mcInputWarning" class="input-warning hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
               <button id="optimiseBtnMC" onclick="runOptimisationUI('MC')" class="secondary">Optimise Allocation</button>
@@ -2158,34 +2149,13 @@
           <div class="card">
             <h2>Historical Sequence Analysis</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
+            <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histCash" value="50000">
-                </div>
-              </div>
               <div class="form-group">
                 <label>Simulation Years</label>
                 <input type="number" id="histYears" value="35">
               </div>
             </div>
-            <div id="histInputWarning" class="input-warning hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runHistoricalUI()">Run Historical Analysis</button>
               <button id="optimiseBtnHist" onclick="runOptimisationUI('Hist')" class="secondary">Optimise Allocation</button>
@@ -2200,30 +2170,7 @@
           <div class="card">
             <h2>Stress Scenarios</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenCash" value="50000">
-                </div>
-              </div>
-            </div>
-            <div id="scenInputWarning" class="input-warning hidden"></div>
+            <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
               <button onclick="runScenariosUI()">Run All Scenarios</button>
             </div>
@@ -2965,18 +2912,9 @@
         document.getElementById('dsRecoveryBuffer').value = decisionSettings.recoveryBuffer || 10000;
         document.getElementById('dsConsecutiveLimit').value = decisionSettings.consecutiveLimit || 3;
 
-        // Pre-fill ALL stress test input tabs (Monte Carlo, Historical, Scenarios)
-        ['mc', 'hist', 'scen'].forEach(prefix => {
-          const equityEl = document.getElementById(prefix + 'Equity');
-          const bondEl = document.getElementById(prefix + 'Bond');
-          const cashEl = document.getElementById(prefix + 'Cash');
-          const yearsEl = document.getElementById(prefix + 'Years');
-
-          if (equityEl) equityEl.value = stressSettings.equityMin;
-          if (bondEl) bondEl.value = stressSettings.bondMin;
-          if (cashEl) cashEl.value = stressSettings.cashTarget;
-          if (yearsEl) yearsEl.value = stressSettings.duration;
-        });
+        // Stress sims start from the Settings' Fund Minimums (single source of truth) — show a
+        // read-only summary on each tab rather than duplicate starting-value inputs.
+        renderStressStartSummary(stressSettings);
 
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
@@ -3031,6 +2969,7 @@
           equityMin: wizardData.equityMin,
           bondMin: wizardData.bondMin,
           cashTarget: wizardData.cashTarget,
+          isaBalance: wizardData.isaBalance || 0,
           duration: wizardData.duration,
           taxMode: wizardData.taxMode
         };
@@ -3041,6 +2980,7 @@
           equityMin: wizardData.decisionEquity,
           bondMin: wizardData.decisionBond,
           cashTarget: wizardData.decisionCash,
+          isaBalance: wizardData.decisionIsaBalance || 0,
           duration: wizardData.decisionDuration,
           spStartDate: wizardData.spStartDate,
           spWeeklyAmount: wizardData.spWeeklyAmount
@@ -3469,6 +3409,7 @@
                     equityMin: wizardData.equityMin,
                     bondMin: wizardData.bondMin,
                     cashTarget: wizardData.cashTarget,
+                    isaBalance: wizardData.isaBalance || 0,
                     duration: wizardData.duration,
                     baseSalary: wizardData.baseSalary,
                     other: wizardData.otherIncome || 0,
@@ -3481,6 +3422,7 @@
                     equityMin: wizardData.decisionEquity,
                     bondMin: wizardData.decisionBond,
                     cashTarget: wizardData.decisionCash,
+                    isaBalance: wizardData.decisionIsaBalance || 0,
                     duration: wizardData.decisionDuration,
                     baseSalary: wizardData.decisionSalary,
                     spStartDate: wizardData.spStartDate || null,
@@ -3693,6 +3635,25 @@
     }
 
     // Decision form handler
+    // Soft plausibility guard for fund values. If ALL THREE pots are under £10k the user has
+    // most likely entered values in thousands (e.g. 250 meaning £250,000). Ask before proceeding
+    // — a genuinely small or depleted set of pots can still confirm and continue. Returns true to
+    // proceed, false to cancel. ISA is excluded (it can legitimately be small or zero).
+    function confirmFundsIfLow(equity, bond, cash) {
+      const LOW = 10000;
+      // Fire only for a probable thousands-typo: all three small but NOT all zero (an all-zero
+      // set is a deliberate empty/depleted pot, never a units mistake, so don't nag about it).
+      if (equity < LOW && bond < LOW && cash < LOW && (equity + bond + cash) > 0) {
+        const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
+        return confirm(
+          `These fund values look low — Equity ${fmt(equity)}, Bond ${fmt(bond)}, Cash ${fmt(cash)}.\n\n` +
+          'Enter absolute amounts in pounds, to the single pound (e.g. 250000, not 250).\n\n' +
+          'Continue anyway?'
+        );
+      }
+      return true;
+    }
+
     window.handleDecisionSubmit = async function(event) {
       event.preventDefault();
 
@@ -3712,6 +3673,9 @@
         showToast('Missing: ' + missing.join(', '), 'error', 4000);
         return;
       }
+
+      // Soft plausibility guard: values probably typed in thousands (250 meaning £250,000).
+      if (!confirmFundsIfLow(equity, bond, cash)) return;
 
       // Check if this month already has a history entry
       const existingHistory = await getHistoryAsync({ limit: 1000 });
@@ -3797,43 +3761,43 @@
       }
     };
 
-    // Pre-fill stress test inputs from settings
+    // Render the read-only "starting from Settings" summary on the stress sub-tabs, and default
+    // the (still-editable) Simulation Years to the Settings duration. Sims read their starting
+    // balances from the Settings' Fund Minimums via createSimulationConfigFromSettings.
+    function renderStressStartSummary(s) {
+      const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
+      const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
+        `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)} · Cash ${fmt(s.cashTarget)}. ` +
+        'Edit them in the Settings tab.';
+      ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = text;
+      });
+      ['mcYears', 'histYears'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = s.duration;
+      });
+    }
+
+    // Refresh the stress sub-tab summaries from current settings (called on tab switch).
     async function prefillStressInputs(prefix) {
       const s = await getStressSettingsAsync();
-      const prefixMap = { montecarlo: 'mc', historical: 'hist', scenarios: 'scen' };
-      const p = prefixMap[prefix] || prefix;
-
-      const equityEl = document.getElementById(p + 'Equity');
-      const bondEl = document.getElementById(p + 'Bond');
-      const cashEl = document.getElementById(p + 'Cash');
-      const yearsEl = document.getElementById(p + 'Years');
-
-      if (equityEl) equityEl.value = s.equityMin;
-      if (bondEl) bondEl.value = s.bondMin;
-      if (cashEl) cashEl.value = s.cashTarget;
-      if (yearsEl) yearsEl.value = s.duration;
-
-      // Refresh number overlays after programmatic value changes
+      renderStressStartSummary(s);
       refreshNumberOverlays();
     }
 
     // Monte Carlo simulation
     window.runMonteCarloUI = async function() {
-      const config = {
-        equityStart: parseFloat(document.getElementById('mcEquity').value) || 250000,
-        bondStart: parseFloat(document.getElementById('mcBond').value) || 200000,
-        cashStart: parseFloat(document.getElementById('mcCash').value) || 50000,
-        years: parseInt(document.getElementById('mcYears').value) || 35
-      };
+      // Starting balances come from Settings (createSimulationConfigFromSettings defaults
+      // equityStart/bondStart/cashStart from equityMin/bondMin/cashTarget). Only Years is per-run.
+      const s = await getStressSettingsAsync();
+      const config = { years: parseInt(document.getElementById('mcYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
       const optMCEl = document.getElementById('optimiseResultsMC');
       if (optMCEl) optMCEl.innerHTML = '';
 
       document.getElementById('mcResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
-
-      // Pre-load settings async to ensure cache is populated
-      await getStressSettingsAsync();
 
       setTimeout(() => {
         try {
@@ -3849,21 +3813,15 @@
 
     // Historical simulation
     window.runHistoricalUI = async function() {
-      const config = {
-        equityStart: parseFloat(document.getElementById('histEquity').value) || 250000,
-        bondStart: parseFloat(document.getElementById('histBond').value) || 200000,
-        cashStart: parseFloat(document.getElementById('histCash').value) || 50000,
-        years: parseInt(document.getElementById('histYears').value) || 35
-      };
+      // Starting balances come from Settings; only Years is per-run.
+      const s = await getStressSettingsAsync();
+      const config = { years: parseInt(document.getElementById('histYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
       const optHistEl = document.getElementById('optimiseResultsHist');
       if (optHistEl) optHistEl.innerHTML = '';
 
       document.getElementById('histResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running simulation...</div>';
-
-      // Pre-load settings async to ensure cache is populated
-      await getStressSettingsAsync();
 
       setTimeout(() => {
         try {
@@ -3879,17 +3837,11 @@
 
     // Scenarios simulation
     window.runScenariosUI = async function() {
-      const config = {
-        equityStart: parseFloat(document.getElementById('scenEquity').value) || 250000,
-        bondStart: parseFloat(document.getElementById('scenBond').value) || 200000,
-        cashStart: parseFloat(document.getElementById('scenCash').value) || 50000,
-        years: 35 // Scenarios use settings duration
-      };
+      // Starting balances + duration both come from Settings (empty overrides).
+      await getStressSettingsAsync();
+      const config = {};
 
       document.getElementById('scenResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running scenarios...</div>';
-
-      // Pre-load settings async to ensure cache is populated
-      await getStressSettingsAsync();
 
       setTimeout(() => {
         try {
@@ -3922,31 +3874,17 @@
       if (btn) btn.disabled = true;
       if (btn) btn.textContent = 'Optimising...';
 
-      // Get current fund values based on test type
-      let equityEl, bondEl, cashEl, yearsEl;
-      if (testType === 'MC') {
-        equityEl = document.getElementById('mcEquity');
-        bondEl = document.getElementById('mcBond');
-        cashEl = document.getElementById('mcCash');
-        yearsEl = document.getElementById('mcYears');
-      } else {
-        equityEl = document.getElementById('histEquity');
-        bondEl = document.getElementById('histBond');
-        cashEl = document.getElementById('histCash');
-        yearsEl = document.getElementById('histYears');
-      }
-
-      const originalEquity = +equityEl.value;
-      const originalBond = +bondEl.value;
-      const originalCash = +cashEl.value;
-      const years = +yearsEl.value;
-      const totalFunds = originalEquity + originalBond + originalCash;
-
       resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Preparing optimisation...</div>';
 
       // Pre-load settings for the simulation config - make a deep copy to avoid closure issues
       const settingsRaw = await getStressSettingsAsync();
       const s = JSON.parse(JSON.stringify(settingsRaw));
+
+      // The starting fund TOTAL comes from Settings (Fund Minimums) — the single source of truth;
+      // the optimiser sweeps how that total is split across equity/bond/cash. Years is per-run.
+      const yearsEl = document.getElementById(testType === 'MC' ? 'mcYears' : 'histYears');
+      const years = parseInt(yearsEl && yearsEl.value) || s.duration;
+      const totalFunds = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
 
       // Check cancellation after async work
       if (myToken !== optimiseCancelToken) {
@@ -4036,7 +3974,7 @@
       // Run original allocation first (synchronous, quick)
       let originalResult;
       try {
-        const origAlloc = { equity: originalEquity, bond: originalBond, cash: originalCash };
+        const origAlloc = { equity: s.equityMin || 0, bond: s.bondMin || 0, cash: s.cashTarget || 0 };
         const origSim = runSimForAlloc(origAlloc);
         originalResult = { ...origAlloc, ...origSim };
       } catch (error) {
@@ -4181,16 +4119,8 @@
       document.getElementById('dsBondMin').value = bond;
       document.getElementById('dsCashTarget').value = cash;
 
-      // Update test inputs
-      document.getElementById('mcEquity').value = equity;
-      document.getElementById('mcBond').value = bond;
-      document.getElementById('mcCash').value = cash;
-      document.getElementById('histEquity').value = equity;
-      document.getElementById('histBond').value = bond;
-      document.getElementById('histCash').value = cash;
-      document.getElementById('scenEquity').value = equity;
-      document.getElementById('scenBond').value = bond;
-      document.getElementById('scenCash').value = cash;
+      // Refresh the stress sub-tab "starting from Settings" summaries with the new split.
+      renderStressStartSummary({ equityMin: equity, bondMin: bond, cashTarget: cash, duration: parseInt(document.getElementById('ssDuration').value) || 35 });
 
       // Refresh number overlays so visual formatting updates
       refreshNumberOverlays();
@@ -4484,6 +4414,13 @@
         document.getElementById('ssDisableProtection').checked = s.disableProtection || false;
         document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
+        document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
+        const seedNote = document.getElementById('ssSeedNote');
+        if (seedNote) {
+          seedNote.textContent = s.seededFrom === 'decision' && s.seededAt
+            ? 'Seeded from Decision Tool ' + new Date(s.seededAt).toLocaleDateString()
+            : '';
+        }
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();
@@ -4510,6 +4447,14 @@
       if (ssSpCheck.warning) {
         showToast(ssSpCheck.warning, 'warning');
       }
+
+      // Soft plausibility guard: the sims start from these Fund Minimums, so catch values
+      // probably typed in thousands before saving.
+      if (!confirmFundsIfLow(
+        +document.getElementById('ssEquityMin').value,
+        +document.getElementById('ssBondMin').value,
+        +document.getElementById('ssCashTarget').value
+      )) return;
 
       showLoading('Saving settings...');
       try {
@@ -4629,6 +4574,13 @@
       if (dsSpCheck.warning) {
         showToast(dsSpCheck.warning, 'warning');
       }
+
+      // Soft plausibility guard for the fund minimums.
+      if (!confirmFundsIfLow(
+        +document.getElementById('dsEquityMin').value,
+        +document.getElementById('dsBondMin').value,
+        +document.getElementById('dsCashTarget').value
+      )) return;
 
       showLoading('Saving settings...');
       try {

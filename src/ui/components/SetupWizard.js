@@ -24,6 +24,7 @@ let wizardData = {
   equityMin: 250000,
   bondMin: 200000,
   cashTarget: 50000,
+  isaBalance: 0,        // tax-free ISA pot (assumed a steady money-market fund)
   duration: 35,
   taxMode: 'inflates',
   // Decision tool settings (copied from stress or entered)
@@ -31,6 +32,7 @@ let wizardData = {
   decisionEquity: 250000,
   decisionBond: 200000,
   decisionCash: 50000,
+  decisionIsaBalance: 0,
   decisionDuration: 35
 };
 
@@ -56,12 +58,14 @@ function resetWizardState() {
     equityMin: 250000,
     bondMin: 200000,
     cashTarget: 50000,
+    isaBalance: 0,
     duration: 35,
     taxMode: 'inflates',
     decisionSalary: 30000,
     decisionEquity: 250000,
     decisionBond: 200000,
     decisionCash: 50000,
+    decisionIsaBalance: 0,
     decisionDuration: 35
   };
 }
@@ -338,6 +342,17 @@ function renderStressStep(step) {
                 <input type="number" id="wizCashTarget" value="${wizardData.cashTarget}">
               </div>
             </div>
+            <div class="wizard-grid-item">
+              <label>ISA Balance (Tax-Free)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizIsaBalance" min="0" value="${wizardData.isaBalance}">
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-example">
+            <strong>About your ISA:</strong> we assume the ISA is a steady money-market fund with low, stable growth, drawn tax-free to top up income. We don't model different ISA investment strategies — leave it at £0 if you don't have one.
           </div>
 
           <div class="wizard-example">
@@ -490,6 +505,17 @@ function renderDecisionStep(step) {
                 <input type="number" id="wizDCashTarget" value="${wizardData.decisionCash}">
               </div>
             </div>
+            <div class="wizard-grid-item">
+              <label>ISA Balance (Tax-Free)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizDIsaBalance" min="0" value="${wizardData.decisionIsaBalance}">
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-example">
+            <strong>About your ISA:</strong> assumed to be a steady money-market fund with low, stable growth, drawn tax-free to keep income tax-efficient. We don't model different ISA strategies — leave at £0 if none.
           </div>
 
           <div class="wizard-example">
@@ -655,6 +681,7 @@ function handleAction(action) {
       wizardData.decisionEquity = wizardData.equityMin;
       wizardData.decisionBond = wizardData.bondMin;
       wizardData.decisionCash = wizardData.cashTarget;
+      wizardData.decisionIsaBalance = wizardData.isaBalance;
       wizardData.decisionDuration = wizardData.duration;
       advanceToNextToolPhase('stress');
       break;
@@ -746,6 +773,9 @@ function saveCurrentInputs() {
   const cashTarget = document.getElementById('wizCashTarget');
   if (cashTarget) wizardData.cashTarget = parseFloat(cashTarget.value) || 50000;
 
+  const isaBalance = document.getElementById('wizIsaBalance');
+  if (isaBalance) wizardData.isaBalance = parseFloat(isaBalance.value) || 0;
+
   const duration = document.getElementById('wizDuration');
   if (duration) wizardData.duration = parseInt(duration.value) || 35;
 
@@ -764,6 +794,9 @@ function saveCurrentInputs() {
 
   const dCashTarget = document.getElementById('wizDCashTarget');
   if (dCashTarget) wizardData.decisionCash = parseFloat(dCashTarget.value) || 50000;
+
+  const dIsaBalance = document.getElementById('wizDIsaBalance');
+  if (dIsaBalance) wizardData.decisionIsaBalance = parseFloat(dIsaBalance.value) || 0;
 
   const dDuration = document.getElementById('wizDDuration');
   if (dDuration) wizardData.decisionDuration = parseInt(dDuration.value) || 35;
@@ -823,6 +856,7 @@ export function initToolWizard(container, tools, onComplete, existingSettings) {
       wizardData.equityMin = existingSettings.equityMin || 250000;
       wizardData.bondMin = existingSettings.bondMin || 200000;
       wizardData.cashTarget = existingSettings.cashTarget || 50000;
+      wizardData.isaBalance = existingSettings.isaBalance || 0;
       wizardData.duration = existingSettings.duration || 35;
       wizardData.spStartDate = existingSettings.spStartDate || '';
       wizardData.spWeeklyAmount = existingSettings.spWeeklyAmount || 0;
@@ -833,6 +867,7 @@ export function initToolWizard(container, tools, onComplete, existingSettings) {
       wizardData.decisionEquity = existingSettings.equityMin || 250000;
       wizardData.decisionBond = existingSettings.bondMin || 200000;
       wizardData.decisionCash = existingSettings.cashTarget || 50000;
+      wizardData.decisionIsaBalance = existingSettings.isaBalance || 0;
       wizardData.decisionDuration = existingSettings.duration || 35;
     }
   }

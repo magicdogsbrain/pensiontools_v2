@@ -124,17 +124,18 @@ export function simulate(config, returns, seed = 0) {
 
     // Record start-of-month state + the standard (pre-protection) draws for the replay harness.
     // equity/bond/cash/isa here are still start-of-month values (returns applied below).
-    if (trace) {
-      trace.push({
-        month, year, monthInYear, cumInf,
-        equityStart: equity, bondStart: bond, cashStart: cash, isaStart: isa,
-        sippMonthly, isaMonthly,        // standard draws (before protection scaling)
-        effectiveSipp: effectiveDraw,   // after protection scaling
-        effectiveIsa: isaDrawThisMonth,
-        inProtection: prot,
-        planInputs                      // exact planDrawdown inputs used this month
-      });
-    }
+    // `effectiveSipp` is finalised after the tax-boost block below (traceRow mutation).
+    const traceRow = trace ? {
+      month, year, monthInYear, cumInf,
+      equityStart: equity, bondStart: bond, cashStart: cash, isaStart: isa,
+      sippMonthly, isaMonthly,        // standard draws (before protection scaling)
+      effectiveSipp: effectiveDraw,   // updated to include tax-boost after the boost block
+      effectiveIsa: isaDrawThisMonth,
+      boostAmount: 0,
+      inProtection: prot,
+      planInputs                      // exact planDrawdown inputs used this month
+    } : null;
+    if (traceRow) trace.push(traceRow);
 
     // Track protection shortfall for tax boost
     if (prot) {
@@ -206,6 +207,12 @@ export function simulate(config, returns, seed = 0) {
         monthDraw += boostAmount;
         taxYearShortfall -= boostAmount;
       }
+    }
+
+    // Finalise the trace row's effective SIPP now that protection scaling + tax-boost are set.
+    if (traceRow) {
+      traceRow.effectiveSipp = monthDraw;
+      traceRow.boostAmount = boostAmount > 50 ? boostAmount : 0;
     }
 
     let source = 'Growth';

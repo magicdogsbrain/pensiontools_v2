@@ -15,6 +15,7 @@ import { DEFAULT_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
+import { assessProtection } from './ProtectionStrategy.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -83,7 +84,6 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
       const totalGrowth = equity + bond;
       const minGrowth = adjEquity + adjBond;
-      let inProtection = false;
       let consec = 0;
 
       // Get prior history for protection mode calculation
@@ -95,15 +95,15 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         else break;
       }
 
-      // Check if we're continuing protection from last month
-      if (priorHistory.length && priorHistory[priorHistory.length - 1].inProtection) {
-        inProtection = totalGrowth <= minGrowth + (settings.recoveryBuffer || 10000);
-      }
-
-      // Enter NEW protection if below minimum with consecutive cash draws
-      if (!inProtection && totalGrowth < minGrowth && consec + 1 >= (settings.consecutiveLimit || 3)) {
-        inProtection = true;
-      }
+      // Shared protection decision (same module the Stress engine uses).
+      const inProtection = assessProtection({
+        totalGrowth,
+        minGrowth,
+        consecCashDraws: consec,
+        wasInProtection: priorHistory.length > 0 && priorHistory[priorHistory.length - 1].inProtection,
+        consecutiveLimit: settings.consecutiveLimit || 3,
+        recoveryBuffer: settings.recoveryBuffer || 10000
+      });
 
       // Calculate remaining months in tax year
       const remainingMonths = month >= 4 ? (16 - month) : (4 - month);

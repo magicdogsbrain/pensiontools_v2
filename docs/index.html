@@ -1663,6 +1663,9 @@
     .help-tip { position: absolute; z-index: 9999; background: var(--surface, #161b22); color: var(--text, #e6edf3);
       border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 9px 11px; font-size: 12px; font-weight: 400;
       line-height: 1.45; text-align: left; box-shadow: 0 6px 22px rgba(0,0,0,0.45); pointer-events: none; }
+    /* Inline SVG charts: fill the tile, and light up the nearest point on hover. */
+    .ichart { max-width: 100%; }
+    .ichart circle[data-tip]:hover { fill: #60a5fa; stroke: var(--surface, #161b22); stroke-width: 2; }
     .keynums { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
     .keynum { border: 1px solid var(--border, #8883); border-radius: 8px; padding: 12px 14px; }
     .keynum .kn-val { font-size: 22px; font-weight: 700; }
@@ -1845,7 +1848,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-c27hvycl.js"></script>
+  <script type="module" crossorigin src="./assets/main-BPKpuMFn.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->

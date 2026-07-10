@@ -69,9 +69,11 @@ export function simulate(config, returns, seed = 0) {
   let isaDepletedMonth = null;         // first month the ISA hit £0 (null = survived / never funded)
   let higherRateMonths = 0;            // months of inefficient drawdown (SIPP forced above BRL)
   let totalTaxReal = 0;                // lifetime income tax paid, in today's money
-  // Start-of-year ISA balance for each year the run is ALIVE; null after a run fails (no data) so
-  // the chart never zero-fills dead runs — the artifact behind the "ISA drops to 0 mid-plan" bug.
+  // Per-year series in TODAY'S money (deflated by cumulative inflation). isaByYear is null after a
+  // run fails (no data — never zero-fill dead runs, the old artifact). potByYear carries £0 after a
+  // failure because a busted plan genuinely has nothing left — used for the honest outcome fan chart.
   const isaByYear = new Array(config.years + 1).fill(null);
+  const potByYear = new Array(config.years + 1).fill(null);
 
   // State tracking
   let protMonths = 0;
@@ -176,7 +178,10 @@ export function simulate(config, returns, seed = 0) {
 
     // ISA analytics: capture start-of-year ISA balance, accumulate projected income tax (in
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
-    if (monthInYear === 0) isaByYear[year] = isa;
+    if (monthInYear === 0) {
+      isaByYear[year] = isa / cumInf;                       // today's money
+      potByYear[year] = (equity + bond + cash) / cumInf;    // today's money
+    }
     totalTaxReal += (taxAnnual / 12) / cumInf;
     if (higherRate) higherRateMonths++;
 
@@ -365,7 +370,13 @@ export function simulate(config, returns, seed = 0) {
   }
 
   maxConsec = Math.max(maxConsec, curStreak);
-  if (!failed) isaByYear[config.years] = isa; // end-of-plan ISA balance (only for runs that finished)
+  // End-of-plan values (today's money) for finished runs; £0 pot carried forward after a failure.
+  if (!failed) {
+    isaByYear[config.years] = isa / (cumInf || 1);
+    potByYear[config.years] = (equity + bond + cash) / (cumInf || 1);
+  } else {
+    for (let y = Math.floor(failMonth / 12) + 1; y <= config.years; y++) potByYear[y] = 0;
+  }
 
   // Per-run environment drivers, for failure-severity diagnosis (sequence risk vs inflation vs
   // weak overall markets) + cumulative inflation for real-terms (today's money) conversion.
@@ -406,6 +417,7 @@ export function simulate(config, returns, seed = 0) {
     higherRateYears: higherRateMonths / 12,            // years of inefficient (40%-band) drawdown
     totalTaxReal,                                      // lifetime income tax, today's money
     isaByYear,
+    potByYear,                                         // pot value by year, today's money (£0 after fail)
     hist,
     trace,
     seed
@@ -813,6 +825,24 @@ export function analyzeResults(results) {
         p50: percentile(reals, 0.50), p75: percentile(reals, 0.75), p90: percentile(reals, 0.90),
         p95: percentile(reals, 0.95), min: reals[0] || 0, max: reals[reals.length - 1] || 0
       };
+    })(),
+
+    // Per-year data for the charts (today's money): the outcome fan (pot-value percentile bands,
+    // busted runs counted as £0 — no survivorship) and the plan-survival curve (% still solvent).
+    chartData: (() => {
+      const duration = Math.max(...results.map(r => r.duration || r.years), 1);
+      const nY = duration + 1;
+      const potBand = { p10: [], p25: [], p50: [], p75: [], p90: [] };
+      const solvency = [];
+      for (let y = 0; y < nY; y++) {
+        const vals = results.map(r => (r.potByYear && r.potByYear[y] != null) ? r.potByYear[y] : 0).sort((a, b) => a - b);
+        potBand.p10.push(percentile(vals, 0.10)); potBand.p25.push(percentile(vals, 0.25));
+        potBand.p50.push(percentile(vals, 0.50)); potBand.p75.push(percentile(vals, 0.75));
+        potBand.p90.push(percentile(vals, 0.90));
+        const alive = results.filter(r => (r.failed ? r.failMonth / 12 : duration) >= y).length;
+        solvency.push(results.length ? alive / results.length * 100 : 0);
+      }
+      return { years: nY, potBand, solvency };
     })(),
 
     // ISA analytics (only meaningful when the plan is funded with an ISA)

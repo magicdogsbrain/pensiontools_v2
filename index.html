@@ -1643,6 +1643,29 @@
     }
     .starting-note strong { color: var(--text); }
 
+    /* Stress report: verdict, heroes, callouts, tooltips */
+    .verdict { border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; border: 1px solid; }
+    .verdict-success { background: rgba(46,160,67,0.10); border-color: rgba(46,160,67,0.4); }
+    .verdict-warning { background: rgba(240,198,116,0.10); border-color: rgba(240,198,116,0.45); }
+    .verdict-danger  { background: rgba(248,81,73,0.10);  border-color: rgba(248,81,73,0.45); }
+    .verdict-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .verdict-heroes { display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-end; }
+    .hero { font-size: 40px; font-weight: 800; line-height: 1; }
+    .hero-sub { font-size: 13px; color: var(--text-muted); display: block; margin-top: 4px; max-width: 190px; }
+    .verdict-basis { font-size: 12px; color: var(--text-muted); margin-top: 14px; }
+    .callout { border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; border: 1px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.06); }
+    .callout-title { font-weight: 700; margin-bottom: 6px; }
+    .callout p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
+    .callout .lever { color: var(--text); background: rgba(46,160,67,0.08); border-radius: 6px; padding: 8px 10px; margin-bottom: 0; }
+    .hlp { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%;
+      background: var(--text-muted); color: var(--surface, #111); font-size: 10px; font-weight: 700; cursor: help; margin-left: 3px; opacity: 0.7; vertical-align: middle; }
+    .hlp:hover { opacity: 1; }
+    .keynums { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .keynum { border: 1px solid var(--border, #8883); border-radius: 8px; padding: 12px 14px; }
+    .keynum .kn-val { font-size: 22px; font-weight: 700; }
+    .keynum .kn-label { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+    .chart-caption { font-size: 12px; color: var(--text-muted); margin: 2px 0 4px; }
+
     /* Stress subtab content */
     .stress-subtab {
       display: block;
@@ -4252,26 +4275,33 @@
     }
 
     // Inline SVG line chart of the average ISA balance over the plan (the "ISA drawdown" curve).
-    function isaDrawdownSvg(series, startBalance) {
-      const w = 640, h = 180, padL = 48, padR = 12, padT = 12, padB = 24;
-      const n = series.length;
+    // Small hoverable "?" that carries a plain-English explanation (native tooltip).
+    function help(text) {
+      return `<span class="hlp" title="${String(text).replace(/"/g, '&quot;')}">?</span>`;
+    }
+
+    // Inline SVG line chart of a 0-100% series over the plan years (e.g. share of plans still
+    // holding ISA money by year). Hoverable points show the year + value.
+    function survivalCurveSvg(pctSeries) {
+      const w = 640, h = 180, padL = 40, padR = 12, padT = 12, padB = 26;
+      const n = pctSeries.length;
       if (n < 2) return '';
-      const maxY = Math.max(startBalance || 0, ...series) || 1;
       const x = (i) => padL + (i / (n - 1)) * (w - padL - padR);
-      const y = (v) => (h - padB) - (v / maxY) * (h - padT - padB);
-      const line = series.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const y = (v) => (h - padB) - (Math.max(0, Math.min(100, v)) / 100) * (h - padT - padB);
+      const line = pctSeries.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
       const area = `${padL},${(h - padB).toFixed(1)} ${line} ${x(n - 1).toFixed(1)},${(h - padB).toFixed(1)}`;
-      const gx0 = 0, gxMid = Math.floor((n - 1) / 2), gxEnd = n - 1;
-      const yTicks = [0, maxY / 2, maxY];
+      const yTicks = [0, 50, 100];
+      const xTicks = [0, Math.floor((n - 1) / 2), n - 1];
       return `
-        <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img" aria-label="Average ISA balance over time">
+        <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img" aria-label="Share of plans still holding ISA money by year">
           ${yTicks.map(t => `
-            <line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border, #8883)" stroke-width="1"/>
-            <text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted, #999)">${formatCurrency(t)}</text>
+            <line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border, #8883)" stroke-width="1" opacity="0.5"/>
+            <text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted, #999)">${t}%</text>
           `).join('')}
           <polygon points="${area}" fill="rgba(96,165,250,0.15)"/>
           <polyline points="${line}" fill="none" stroke="#60a5fa" stroke-width="2"/>
-          ${[gx0, gxMid, gxEnd].map(i => `<text x="${x(i).toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="var(--text-muted, #999)">Yr ${i}</text>`).join('')}
+          ${pctSeries.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="6" fill="transparent"><title>Year ${i}: ${v.toFixed(0)}% of plans still have ISA money</title></circle>`).join('')}
+          ${xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted, #999)">Year ${i}</text>`).join('')}
         </svg>`;
     }
 
@@ -4282,56 +4312,69 @@
       const survClass = isa.pctSurviveFullTerm >= 80 ? 'success' : isa.pctSurviveFullTerm >= 50 ? 'warning' : 'danger';
       const ineffClass = isa.avgHigherRateYears < 1 ? 'success' : isa.avgHigherRateYears < 4 ? 'warning' : 'danger';
       return `
-        <h3 style="margin:8px 0 4px;">ISA (tax-free bridge)</h3>
+        <h3 style="margin:24px 0 4px;">Your tax-free ISA bridge</h3>
         <p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">
-          Modelled as a steady money-market fund, drawn tax-free to top income up. Starting balance ${formatCurrency(isa.startBalance)}.
+          The ISA (starting at ${formatCurrency(isa.startBalance)}) is drawn tax-free to top your income up, keeping you out of higher-rate tax. Modelled as a steady money-market fund.
         </p>
-        <div class="grid-5" style="margin-bottom:20px;">
-          <div class="stat-box">
-            <div class="stat-value">${yrs(isa.medianLastedYears)}</div>
-            <div class="stat-label">ISA lasts (median yrs)</div>
+        <div class="keynums">
+          <div class="keynum ${survClass}">
+            <div class="kn-val">${isa.pctSurviveFullTerm.toFixed(0)}%</div>
+            <div class="kn-label">of futures the ISA lasts the whole plan ${help('The tax-free ISA still has money at the end. When it runs out, income has to come from the taxable pension instead.')}</div>
           </div>
-          <div class="stat-box ${survClass}">
-            <div class="stat-value">${isa.pctSurviveFullTerm.toFixed(0)}%</div>
-            <div class="stat-label">Survives full term</div>
+          <div class="keynum">
+            <div class="kn-val">${yrs(isa.medianLastedYears)} yrs</div>
+            <div class="kn-label">the ISA typically lasts before running out ${help('Median across all simulated futures.')}</div>
           </div>
-          <div class="stat-box ${ineffClass}">
-            <div class="stat-value">${yrs(isa.avgHigherRateYears)}</div>
-            <div class="stat-label">Inefficient yrs (40% band)</div>
+          <div class="keynum ${ineffClass}">
+            <div class="kn-val">${yrs(isa.avgHigherRateYears)} yrs</div>
+            <div class="kn-label">typically paying 40% (higher-rate) tax ${help('Years you pay higher-rate income tax because the ISA has run out and income must come from the taxable pension above the basic-rate limit. A bigger ISA reduces these.')}</div>
           </div>
-          <div class="stat-box">
-            <div class="stat-value">${formatCurrency(isa.finalBalance.p50)}</div>
-            <div class="stat-label">Median ISA left</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value">${formatCurrency(isa.medianTotalTax)}</div>
-            <div class="stat-label">Lifetime tax (median)</div>
+          <div class="keynum">
+            <div class="kn-val">${formatCurrency(isa.medianTotalTax)}</div>
+            <div class="kn-label">typical lifetime income tax, today's money ${help('Median total income tax paid over the whole plan, in present-day spending power.')}</div>
           </div>
         </div>
         <div style="margin-bottom:24px;">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Average ISA balance over the plan (${isa.pctEverHigherRate.toFixed(0)}% of runs eventually hit the 40% band)</div>
-          ${isaDrawdownSvg(isa.avgBalanceByYear, isa.startBalance)}
+          <div class="chart-caption">Share of plans that still have ISA money, year by year (hover a point for the exact figure)</div>
+          ${survivalCurveSvg(isa.pctHoldingByYear)}
         </div>`;
     }
 
-    // Severity-aware "Resilience" panel: coverage (share of retirement-years funded) alongside
-    // the binary success rate, plus a plain-English diagnosis of what drives the failures.
-    function renderSeveritySection(sev, successRate) {
-      if (!sev) return '';
-      const covClass = sev.coverage >= 95 ? 'success' : sev.coverage >= 85 ? 'warning' : 'danger';
-      let inner = ''
-        + '<div style="display:flex;gap:28px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px;">'
-        + '<div><span style="font-size:26px;font-weight:700;">' + successRate.toFixed(1) + '%</span>'
-        + '<span style="font-size:12px;color:var(--text-muted);"> full success (all years funded)</span></div>'
-        + '<div><span style="font-size:26px;font-weight:700;color:var(--' + covClass + ');">' + sev.coverage.toFixed(1) + '%</span>'
-        + '<span style="font-size:12px;color:var(--text-muted);"> coverage (retirement-years funded)</span></div>'
-        + '</div>';
-      inner += sev.failCount > 0
-        ? '<div style="font-size:13px;line-height:1.6;">' + sev.diagnosis + '</div>'
-        : '<div style="font-size:13px;color:var(--text-muted);">Every run funded the full plan.</div>';
-      return '<div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.25);'
-        + 'border-radius:8px;padding:14px 16px;margin:0 0 24px;">'
-        + '<div style="font-weight:600;margin-bottom:8px;">Resilience</div>' + inner + '</div>';
+    // A targeted "what could help" hint based on the dominant driver of the failing runs.
+    function leverHint(driver) {
+      if (driver === 'sequence') return 'The failing futures were sunk by a bad first few years of markets. Holding a bigger cash/bond buffer for the early years, or starting with a slightly lower withdrawal, would let the plan ride out an early slump.';
+      if (driver === 'inflation') return 'The failing futures were driven by high inflation eroding your spending power. More inflation protection (e.g. index-linked gilts) and less plain cash would help — cash loses to inflation over time.';
+      if (driver === 'market') return 'The failing futures simply had weak markets throughout. A slightly lower withdrawal rate, or more growth assets (equities) accepting more short-term ups and downs, gives more headroom.';
+      return 'Lowering your target income, delaying the start, or a larger starting pot would all raise the odds.';
+    }
+
+    // Verdict headline: plain-English answer to "will my money last?" with the two hero numbers,
+    // then (if any fail) why it might fall short and what could help.
+    function renderVerdictSection(stats, basis) {
+      const sev = stats.severity || {};
+      const sr = stats.successRate;
+      const v = sr >= 90 ? { t: 'Very likely to last', c: 'success' }
+        : sr >= 75 ? { t: 'Likely to last — with some risk', c: 'success' }
+        : sr >= 50 ? { t: 'At real risk of running out', c: 'warning' }
+        : { t: 'Unlikely to last as planned', c: 'danger' };
+      let h = `<div class="verdict verdict-${v.c}">
+        <div class="verdict-title">Will your money last? — ${v.t}</div>
+        <div class="verdict-heroes">
+          <div><span class="hero">${sr.toFixed(0)}%</span>
+            <span class="hero-sub">chance your money lasts the whole plan ${help('Out of ' + basis + ', the share where your pot never runs out before the end of the plan. Higher is better.')}</span></div>
+          <div><span class="hero" style="font-size:30px;">${(sev.coverage || 0).toFixed(0)}%</span>
+            <span class="hero-sub">of retirement years fully paid for ${help('Averaged over every simulated future — a plan that funds 34 of 35 years scores 97%, so a late shortfall counts far less than an early one.')}</span></div>
+        </div>
+        <div class="verdict-basis">Based on ${basis}. Pot and income values are shown in today's money.</div>
+      </div>`;
+      if (sev.failCount > 0) {
+        h += `<div class="callout">
+          <div class="callout-title">Why it might fall short</div>
+          <p>${sev.diagnosis}</p>
+          <p class="lever"><strong>What could help:</strong> ${leverHint(sev.primaryDriver)}</p>
+        </div>`;
+      }
+      return h;
     }
 
     // Render stress test results with charts
@@ -4339,101 +4382,74 @@
       const successClass = stats.successRate >= 90 ? 'success' : stats.successRate >= 80 ? 'warning' : 'danger';
       const chartId = containerId.replace('Results', '');
 
-      // Build enhanced stats from new structure
       const survivalStats = stats.survival || {};
-      const finalStats = stats.finalValue || {};
+      const finalReal = stats.finalReal || {};
       const protStats = stats.protection || {};
+      const protPct = protStats.pctWithProtection != null
+        ? protStats.pctWithProtection
+        : ((protStats.runsWithProtection || 0) / (results.length || 1)) * 100;
+      const isMC = containerId === 'mcResults';
+      const basis = isMC
+        ? `${results.length.toLocaleString()} simulated futures`
+        : `${results.length} historical periods since 1928`;
+      const startValue = results[0] && results[0].hist && results[0].hist[0] ? results[0].hist[0].total : undefined;
 
       let html = `
         <div class="card">
           <h2>${title}</h2>
 
-          <!-- Primary Stats -->
-          <div class="grid-4" style="margin-bottom: 24px;">
-            <div class="stat-box ${successClass}">
-              <div class="stat-value">${stats.successRate.toFixed(1)}%</div>
-              <div class="stat-label">Success Rate</div>
+          ${renderVerdictSection(stats, basis)}
+
+          <div class="keynums">
+            <div class="keynum">
+              <div class="kn-val">${(survivalStats.p10 || 0).toFixed(0)} yrs</div>
+              <div class="kn-label">worst case, your money still lasts at least ${help('In the unluckiest 1-in-10 futures, the money still lasts at least this many years.')}</div>
             </div>
-            <div class="stat-box danger">
-              <div class="stat-value">${stats.failCount}</div>
-              <div class="stat-label">Failures</div>
+            <div class="keynum">
+              <div class="kn-val">${formatCurrency(finalReal.p50 || 0)}</div>
+              <div class="kn-label">typically left at the end, today's money ${help('The middle outcome for the pension pot left at the end, in present-day spending power. Futures that ran out count as £0, so this is not flattered by only the lucky runs.')}</div>
             </div>
-            <div class="stat-box">
-              <div class="stat-value">${(survivalStats.p10 || stats.p10Years || 0).toFixed(1)}</div>
-              <div class="stat-label">10th %ile Years</div>
-            </div>
-            <div class="stat-box success">
-              <div class="stat-value">${formatCurrency(finalStats.p50 || stats.medianFinal || 0)}</div>
-              <div class="stat-label">Median Final</div>
+            <div class="keynum">
+              <div class="kn-val">${protPct.toFixed(0)} in 100</div>
+              <div class="kn-label">futures where the plan had to cut back spending ${help('To ride out a market slump the plan temporarily reduces withdrawals. This is how often that safety response was needed.')}</div>
             </div>
           </div>
 
-          ${renderSeveritySection(stats.severity, stats.successRate)}
-
-          <!-- 7-Point Percentile Stats -->
-          <details style="margin-bottom: 20px;">
-            <summary style="cursor: pointer; font-weight: 600; color: var(--primary); margin-bottom: 10px;">
-              Detailed Percentile Statistics
-            </summary>
-            <div class="grid-7" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 10px;">
-              ${['p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'].map(p => `
-                <div class="stat-box mini">
-                  <div class="stat-value" style="font-size: 14px;">${formatCurrency(finalStats[p] || 0)}</div>
-                  <div class="stat-label" style="font-size: 10px;">${p.toUpperCase()}</div>
-                </div>
-              `).join('')}
-            </div>
-          </details>
-
-          <!-- Protection Stats -->
-          <div class="grid-5" style="margin-bottom: 24px;">
-            <div class="stat-box">
-              <div class="stat-value">${protStats.runsWithProtection || stats.runsWithProtection || 0}</div>
-              <div class="stat-label">Runs w/ Protection</div>
-            </div>
-            <div class="stat-box warning">
-              <div class="stat-value">${(protStats.avgMonths || stats.avgProtMonths || 0).toFixed(0)}</div>
-              <div class="stat-label">Avg Protection Mo</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${(protStats.avgConsecutive || stats.avgConsecutive || 0).toFixed(1)}</div>
-              <div class="stat-label">Avg Consecutive</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${protStats.maxConsecutive || stats.maxConsecutive || 0}</div>
-              <div class="stat-label">Max Consecutive</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${formatCurrency(finalStats.avg || stats.avgFinal || 0)}</div>
-              <div class="stat-label">Avg Final (success)</div>
-            </div>
+          <h3 style="margin:8px 0 4px;">Range of possible futures</h3>
+          <div class="chart-caption">How your pot could grow or shrink over the plan — the shaded band spans the unluckiest 5% to the luckiest 5% of futures. Shown in nominal (future) £; today's money would be lower.</div>
+          <div class="chart-container">
+            <canvas id="${chartId}ConeChart" width="800" height="400"></canvas>
           </div>
 
           ${renderIsaSection(stats.isa)}
 
-          <!-- Charts -->
-          <div class="chart-row">
-            <div class="chart-container">
-              <canvas id="${chartId}ConeChart" width="800" height="400"></canvas>
+          <details style="margin-top:22px;">
+            <summary style="cursor:pointer;font-weight:600;color:var(--primary);">More detail — example paths, safety-net use &amp; full statistics</summary>
+            <div style="margin-top:16px;">
+              <div class="chart-caption">100 example plan paths — <span style="color:#2ea043;">green</span> lasted the whole plan, <span style="color:#f85149;">red</span> ran out. Nominal (future) £.</div>
+              <div class="chart-container"><canvas id="${chartId}TrajChart" width="800" height="400"></canvas></div>
+
+              <div class="chart-caption" style="margin-top:18px;">How many months plans spent in the reduced-withdrawal safety mode (more months = a rougher ride, not necessarily failure).</div>
+              <div class="chart-container" style="max-width:600px;"><canvas id="${chartId}HistChart" width="600" height="250"></canvas></div>
+
+              ${containerId === 'histResults' ? buildWorstPeriodsTable(results) : ''}
+
+              <h4 style="margin:20px 0 8px;">Pot left at the end — full range (today's money)</h4>
+              <div class="grid-7" style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;">
+                ${[['p5', 'unluckiest 5%'], ['p10', '10%'], ['p25', '25%'], ['p50', 'middle'], ['p75', '75%'], ['p90', '90%'], ['p95', 'luckiest 5%']].map(([p, lab]) => `
+                  <div class="stat-box mini">
+                    <div class="stat-value" style="font-size:13px;">${formatCurrency(finalReal[p] || 0)}</div>
+                    <div class="stat-label" style="font-size:10px;">${lab}</div>
+                  </div>`).join('')}
+              </div>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:14px;line-height:1.6;">
+                Based on ${basis}. ${isMC
+                  ? 'Monte Carlo builds each future by stitching together random 5-year blocks of real history (1928–2024), so market slumps and inflation spikes arrive in realistic sustained runs rather than one-off years.'
+                  : 'Each run replays an actual stretch of history in its real order, capturing the true sequence of good and bad years.'}
+                A future "runs out" when the pension/cash pots hit zero before the plan ends.
+              </p>
             </div>
-            <div class="chart-container">
-              <canvas id="${chartId}TrajChart" width="800" height="400"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-container" style="max-width: 600px;">
-            <canvas id="${chartId}HistChart" width="600" height="250"></canvas>
-          </div>
-
-          <!-- Worst Periods Table (for historical only) -->
-          ${containerId === 'histResults' ? buildWorstPeriodsTable(results) : ''}
-
-          <!-- Result Summary -->
-          <div class="alert ${successClass === 'success' ? 'alert-success' : successClass === 'warning' ? 'alert-warning' : 'alert-danger'}" style="margin-top: 24px;">
-            ${stats.successRate >= 90 ? 'Excellent! Very high probability of success.' :
-              stats.successRate >= 80 ? 'Good but some downside risk. Consider adjustments.' :
-              'Warning: Significant risk of depletion.'}
-          </div>
+          </details>
         </div>
       `;
 
@@ -4446,15 +4462,13 @@
         const histCanvas = document.getElementById(`${chartId}HistChart`);
 
         if (coneCanvas && results && results.length > 0) {
-          drawCone(coneCanvas, results, { years, title: 'Cone of Uncertainty (5th-95th Percentile)' });
+          drawCone(coneCanvas, results, { years, title: 'Projected pot value by year (5th–95th percentile)' });
         }
-
         if (trajCanvas && results && results.length > 0) {
-          drawTrajectories(trajCanvas, results, { years, title: 'Sample Trajectories (100 runs)' });
+          drawTrajectories(trajCanvas, results, { years, startValue, title: 'Example plan paths' });
         }
-
         if (histCanvas && results && results.length > 0) {
-          drawHistogram(histCanvas, results, { title: 'Protection Months Distribution' });
+          drawHistogram(histCanvas, results, { title: 'Months in reduced-withdrawal mode' });
         }
       }, 50);
     }

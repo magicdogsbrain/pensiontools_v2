@@ -24,6 +24,12 @@ import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 // cash could never lose to inflation and an all-cash pot looked unrealistically safe.
 export const CASH_REAL_SPREAD = -0.01;
 
+// Monte-Carlo block length (years). Each MC path is stitched from random CONSECUTIVE runs of this
+// many historical years, so regimes (e.g. a sustained 1970s inflation stretch) stay intact instead
+// of being averaged away by independent single-year resampling. ~5y balances regime realism
+// against path variety (cf. Portfolio Visualizer's block bootstrap).
+export const MC_BLOCK_YEARS = 5;
+
 /**
  * Nominal annual cash return: roughly last year's inflation plus the (negative) real spread,
  * floored at 0% (retail deposit rates don't go negative). Depends on the inflation PATH, so cash
@@ -556,12 +562,22 @@ export function runMonteCarlo(config, runs = 1000) {
  */
 export function monteCarloReturns(config, i) {
   const years = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+  const H = years.length;
   const rng = seededRng(i * 12345);
   const returns = { equity: {}, inflation: {} };
-  for (let y = 0; y < config.years; y++) {
-    const randomYear = years[Math.floor(rng() * years.length)];
-    returns.equity[y] = EQUITY_RETURNS[randomYear];
-    returns.inflation[y] = INFLATION[randomYear] || 0.025;
+  // BLOCK BOOTSTRAP (circular): stitch the future from random CONSECUTIVE blocks of history
+  // rather than independent single years. This preserves autocorrelation / regimes — a block
+  // that lands in the 1970s drags the whole sustained-inflation run along — so sequence-of-
+  // returns and inflation risk show up in the headline number (iid resampling averaged them away).
+  const blockYears = config.blockYears || MC_BLOCK_YEARS;
+  let y = 0;
+  while (y < config.years) {
+    const start = Math.floor(rng() * H);
+    for (let b = 0; b < blockYears && y < config.years; b++, y++) {
+      const hy = years[(start + b) % H]; // circular wrap around the historical record
+      returns.equity[y] = EQUITY_RETURNS[hy];
+      returns.inflation[y] = INFLATION[hy] || 0.025;
+    }
   }
   return returns;
 }

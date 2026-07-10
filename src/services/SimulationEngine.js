@@ -150,6 +150,20 @@ export function simulate(config, returns, seed = 0) {
       // Reset yearlyInf at simulation start
     }
 
+    // Rising-equity glidepath ("bond tent"): optionally rebalance the growth pots (equity+bond)
+    // once a year toward a target equity share that RISES over retirement — least equity early
+    // (the vulnerable "red zone" when the pot is largest), more later once sequence risk has
+    // passed. Reduces sequence-of-returns risk (Pfau & Kitces 2014). Opt-in; leaves cash alone.
+    if (config.equityGlide && monthInYear === 0) {
+      const g = config.equityGlide;
+      const growth = equity + bond;
+      if (growth > 0) {
+        const share = g.start + (g.end - g.start) * (year / Math.max(1, config.duration));
+        equity = growth * share;
+        bond = growth * (1 - share);
+      }
+    }
+
     // Get this year's returns
     const eqReturn = returns.equity[year] || 0;
     const inf = returns.inflation[year] || 0.025;

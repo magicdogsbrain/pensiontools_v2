@@ -2404,6 +2404,16 @@
               </p>
             </div>
 
+            <div class="form-group" style="margin-top: 16px;">
+              <label style="display:flex;align-items:center;">
+                <input type="checkbox" id="ssEquityGlide" style="width:auto;margin-right:8px;">
+                Rising-equity glidepath (bond tent)
+              </label>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Hold more bonds early (30% equity) and rebalance toward equity later (70%) — least equity when the pot is largest and most exposed to an early crash. Targets sequence-of-returns risk (Pfau-Kitces). It typically helps the worst cases but can slightly lower median growth — run it and compare.
+              </p>
+            </div>
+
             <div class="button-row" style="margin-top: 24px;">
               <button onclick="saveStressSettingsUI()">Save Settings</button>
               <button class="secondary" onclick="resetStressSettingsUI()">Reset to Defaults</button>
@@ -2977,6 +2987,7 @@
         document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = stressSettings.spendingProfile || 'flat';
+        document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -4591,6 +4602,7 @@
         document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = s.spendingProfile || 'flat';
+        document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -4655,7 +4667,8 @@
           hodlEnabled: document.getElementById('ssHodlEnabled').checked,
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
-          spendingProfile: document.getElementById('ssSpendingProfile').value
+          spendingProfile: document.getElementById('ssSpendingProfile').value,
+          equityGlideEnabled: document.getElementById('ssEquityGlide').checked
         });
         showToast('Settings saved successfully', 'success');
       } catch (error) {

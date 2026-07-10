@@ -1657,9 +1657,12 @@
     .callout-title { font-weight: 700; margin-bottom: 6px; }
     .callout p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
     .callout .lever { color: var(--text); background: rgba(46,160,67,0.08); border-radius: 6px; padding: 8px 10px; margin-bottom: 0; }
-    .hlp { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%;
-      background: var(--text-muted); color: var(--surface, #111); font-size: 10px; font-weight: 700; cursor: help; margin-left: 3px; opacity: 0.7; vertical-align: middle; }
-    .hlp:hover { opacity: 1; }
+    .hlp { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--primary, #58a6ff); color: #fff; font-size: 10px; font-weight: 700; cursor: help; margin-left: 4px; opacity: 0.85; vertical-align: middle; outline: none; }
+    .hlp:hover, .hlp:focus { opacity: 1; box-shadow: 0 0 0 3px rgba(88,166,255,0.25); }
+    .help-tip { position: absolute; z-index: 9999; background: var(--surface, #161b22); color: var(--text, #e6edf3);
+      border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 9px 11px; font-size: 12px; font-weight: 400;
+      line-height: 1.45; text-align: left; box-shadow: 0 6px 22px rgba(0,0,0,0.45); pointer-events: none; }
     .keynums { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
     .keynum { border: 1px solid var(--border, #8883); border-radius: 8px; padding: 12px 14px; }
     .keynum .kn-val { font-size: 22px; font-weight: 700; }
@@ -3942,16 +3945,13 @@
 
       // Helper function to run simulation for an allocation
       const runSimForAlloc = (alloc) => {
-        // Use the SAME config builder as the main Monte Carlo, so the optimizer's
-        // evaluation of an allocation matches the headline result. Previously this built
-        // a divergent inline config whose SP parser (parseSpDate) couldn't read dash-format
-        // dates like "21-4-2037", silently dropping State Pension and tanking the score.
-        const cfg = createSimulationConfigFromSettings({
-          equityStart: alloc.equity,
-          bondStart: alloc.bond,
-          cashStart: alloc.cash,
-          years: years
-        }, s);
+        // Test the allocation as the new FUND MINIMUMS (equityMin/bondMin/cashTarget) — the same
+        // thing "Apply" writes to Settings — not just as a different start value. The minimums are
+        // the glidepath FLOOR, so if the optimiser only changed the start (keeping the old floor)
+        // its success/coverage would not match what you get after applying. Building a per-alloc
+        // settings object makes the optimiser's number equal the re-stressed number.
+        const allocSettings = { ...s, equityMin: alloc.equity, bondMin: alloc.bond, cashTarget: alloc.cash };
+        const cfg = createSimulationConfigFromSettings({ years: years }, allocSettings);
 
         const results = [];
 
@@ -3976,17 +3976,22 @@
         const fails = results.filter(r => r.failed);
         const succ = results.filter(r => !r.failed);
         const rate = (results.length - fails.length) / results.length * 100;
+        // Coverage = average share of retirement-years funded (a late failure barely hurts, an
+        // early one hurts a lot). This is the optimiser's objective, per the "optimise for coverage
+        // not success" decision — it rewards allocations that fail LATE over ones that fail early.
+        const coverage = results.reduce((a, r) => a + Math.min(1, (r.years || 0) / (r.duration || years)), 0) / results.length * 100;
         const protArr = results.map(r => r.protMonths);
         const avgProt = protArr.reduce((a, b) => a + b, 0) / results.length;
         const withProt = results.filter(r => r.protMonths > 0).length;
 
-        const finals = succ.map(r => r.final).sort((a, b) => a - b);
-        const medianFinal = finals.length > 0 ? finals[Math.floor(finals.length * 0.5)] : 0;
-        const p90Final = finals.length > 0 ? finals[Math.floor(finals.length * 0.9)] : 0;
+        // Median end pot in today's money across ALL runs (busted = £0), matching the headline.
+        const realFinals = results.map(r => r.failed ? 0 : (r.finalReal || 0)).sort((a, b) => a - b);
+        const medianFinal = realFinals.length ? realFinals[Math.floor(realFinals.length * 0.5)] : 0;
+        const p90Final = realFinals.length ? realFinals[Math.floor(realFinals.length * 0.9)] : 0;
 
         return {
           equity: alloc.equity, bond: alloc.bond, cash: alloc.cash,
-          rate, avgProt, withProt, totalRuns: results.length, medianFinal, p90Final
+          rate, coverage, avgProt, withProt, totalRuns: results.length, medianFinal, p90Final
         };
       };
 
@@ -4018,8 +4023,10 @@
       // hard-excluding clearly-better allocations (which used to make an all-cash current, with
       // zero protection, look 'already optimal' at a poor success rate).
       function pickBest(results) {
-        const maxRate = Math.max(...results.map(r => r.rate));
-        const nearTop = results.filter(r => r.rate >= maxRate - 0.5);
+        // Optimise for COVERAGE (share of retirement-years funded), not the binary success rate:
+        // an allocation that fails late funds more of your retirement than one that fails early.
+        const maxCov = Math.max(...results.map(r => r.coverage));
+        const nearTop = results.filter(r => r.coverage >= maxCov - 0.5);
         nearTop.sort((a, b) => (a.avgProt - b.avgProt) || (b.medianFinal - a.medianFinal));
         return nearTop[0];
       }
@@ -4083,73 +4090,44 @@
         // "Better" = a different allocation that either improves success by >0.5%, or matches
         // success with materially less protection. Current is always the baseline candidate.
         const isBetter = bestResult && !sameAlloc(bestResult, originalResult) && (
-          bestResult.rate > originalResult.rate + 0.5 ||
-          (bestResult.rate >= originalResult.rate - 0.01 && bestResult.avgProt < originalResult.avgProt - 3)
+          bestResult.coverage > originalResult.coverage + 0.5 ||
+          (bestResult.coverage >= originalResult.coverage - 0.01 && bestResult.avgProt < originalResult.avgProt - 3)
         );
 
+        const splitCard = (r, opt) => {
+          const pct = (v) => Math.round(v / totalFunds * 100);
+          return '<div style="padding:16px;border-radius:8px;' + (opt ? 'background:rgba(46,160,67,0.1);border:1px solid var(--success);' : 'background:rgba(0,0,0,0.2);') + '">'
+            + '<div style="font-weight:500;margin-bottom:10px;color:var(--' + (opt ? 'success' : 'text-muted') + ');">' + (opt ? 'Optimised split' : 'Your current split') + '</div>'
+            + '<div style="font-size:26px;font-weight:700;color:var(--' + (opt ? 'success' : 'warning') + ');">' + r.coverage.toFixed(0) + '%</div>'
+            + '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">of retirement years funded' + (opt ? ' (' + (bestResult.coverage - originalResult.coverage >= 0 ? '+' : '') + (bestResult.coverage - originalResult.coverage).toFixed(0) + '%)' : '') + '</div>'
+            + '<div style="font-size:13px;">Equity ' + pct(r.equity) + '% · Bonds ' + pct(r.bond) + '% · Cash ' + pct(r.cash) + '%</div>'
+            + '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + r.rate.toFixed(0) + '% never run out · ' + formatCurrency(r.medianFinal) + ' typically left</div>'
+            + '</div>';
+        };
         let h = '';
         if (isBetter) {
           const medianDiff = bestResult.medianFinal - originalResult.medianFinal;
           const medianDiffPct = originalResult.medianFinal > 0 ? (medianDiff / originalResult.medianFinal * 100) : 0;
-          const rateDelta = bestResult.rate - originalResult.rate;
 
           h += '<div class="card" style="margin-top:20px;border-color:var(--success);">';
-          h += '<h3 style="color:var(--success);margin-top:0;">Better Allocation Found</h3>';
-          h += '<p style="color:var(--text-muted);margin-bottom:16px;">' +
-               (rateDelta > 0.5 ? 'A different fund split could improve your success rate:' :
-                'A different fund split reaches a similar success rate with less protection usage:') + '</p>';
+          h += '<h3 style="color:var(--success);margin-top:0;">A better fund split</h3>';
+          h += '<p style="color:var(--text-muted);margin-bottom:16px;">This split funds more of your retirement (higher coverage). Coverage credits a plan for every year it pays for, so it prefers splits that fall short late over ones that fail early.</p>';
           h += outsideNote;
+          h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">' + splitCard(originalResult, false) + splitCard(bestResult, true) + '</div>';
 
-          h += '<div class="grid-2" style="gap:20px;margin-bottom:20px;">';
-
-          // Original
-          h += '<div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:8px;">';
-          h += '<div style="font-weight:500;margin-bottom:12px;color:var(--text-muted);">Your Current Split</div>';
-          h += '<div style="font-size:24px;font-weight:600;color:var(--warning);">' + originalResult.rate.toFixed(1) + '%</div>';
-          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate</div>';
-          h += '<div style="font-size:13px;">Equity: ' + formatCurrency(originalResult.equity) + ' (' + Math.round(originalResult.equity/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(originalResult.bond) + ' (' + Math.round(originalResult.bond/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:13px;">Cash: ' + formatCurrency(originalResult.cash) + ' (' + Math.round(originalResult.cash/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + originalResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(originalResult.medianFinal) + '</div>';
-          h += '</div>';
-
-          // Optimised
-          h += '<div style="padding:16px;background:rgba(46,160,67,0.1);border-radius:8px;border:1px solid var(--success);">';
-          h += '<div style="font-weight:500;margin-bottom:12px;color:var(--success);">Optimised Split</div>';
-          h += '<div style="font-size:24px;font-weight:600;color:var(--success);">' + bestResult.rate.toFixed(1) + '%</div>';
-          h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Success Rate (' + (rateDelta >= 0 ? '+' : '') + rateDelta.toFixed(1) + '%' + (bestResult.avgProt < originalResult.avgProt - 3 ? ', less protection' : '') + ')</div>';
-          h += '<div style="font-size:13px;">Equity: ' + formatCurrency(bestResult.equity) + ' (' + Math.round(bestResult.equity/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:13px;">Bonds: ' + formatCurrency(bestResult.bond) + ' (' + Math.round(bestResult.bond/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:13px;">Cash: ' + formatCurrency(bestResult.cash) + ' (' + Math.round(bestResult.cash/totalFunds*100) + '%)</div>';
-          h += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Avg protection: ' + bestResult.avgProt.toFixed(0) + ' mo | Median final: ' + formatCurrency(bestResult.medianFinal) + '</div>';
-          h += '</div>';
-
-          h += '</div>';
-
-          // Upside comparison
           if (medianDiff < 0) {
-            h += '<div class="alert alert-warning" style="margin-bottom:16px;">';
-            h += '<strong>Trade-off:</strong> The optimised allocation has a ' + Math.abs(medianDiffPct).toFixed(0) + '% lower median final value. ';
-            h += 'This is because it likely has less equity exposure. You gain safety but may sacrifice some upside.';
-            h += '</div>';
+            h += '<div class="alert alert-warning" style="margin-bottom:16px;"><strong>Trade-off:</strong> it typically leaves ' + Math.abs(medianDiffPct).toFixed(0) + '% less at the end (usually less equity) — more safety, a bit less upside.</div>';
           } else if (medianDiff > 0) {
-            h += '<div class="alert alert-info" style="margin-bottom:16px;">';
-            h += '<strong>Bonus:</strong> The optimised allocation also has a ' + medianDiffPct.toFixed(0) + '% higher median final value!';
-            h += '</div>';
+            h += '<div class="alert alert-info" style="margin-bottom:16px;"><strong>Bonus:</strong> it also typically leaves ' + medianDiffPct.toFixed(0) + '% more at the end.</div>';
           }
-
-          h += '<div class="alert alert-info" style="margin-bottom:16px;">';
-          h += '<strong>To apply this allocation:</strong> Click the button below to update your Settings with these new fund minimums.';
-          h += '</div>';
-
-          h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply Optimised Allocation to Settings</button>';
+          h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply this split to your Settings</button>';
           h += '</div>';
         } else {
           h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
-          h += '<h3 style="color:var(--primary);margin-top:0;">Your Allocation is Already (Near‑)Optimal</h3>';
+          h += '<h3 style="color:var(--primary);margin-top:0;">Your split is already about as good as it gets</h3>';
           h += outsideNote;
-          h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' fund splits. Your current allocation (' + originalResult.rate.toFixed(1) + '% success) is the best, or within 0.5% of the best, with no clearly better low-protection alternative.</p>';
-          h += '<p style="font-size:13px;color:var(--text-muted);">Your split — Equity ' + Math.round(curEqPct) + '% · Bonds ' + Math.round(originalResult.bond/totalFunds*100) + '% · Cash ' + Math.round(curCashPct) + '% | protection ' + originalResult.avgProt.toFixed(0) + ' mo avg</p>';
+          h += '<p style="color:var(--text-muted);">We tested ' + allocations.length + ' fund splits. Yours funds ' + originalResult.coverage.toFixed(0) + '% of retirement years — the best, or within 0.5% of it, with no clearly better low-protection alternative.</p>';
+          h += '<p style="font-size:13px;color:var(--text-muted);">Your split — Equity ' + Math.round(curEqPct) + '% · Bonds ' + Math.round(originalResult.bond/totalFunds*100) + '% · Cash ' + Math.round(curCashPct) + '% · ' + originalResult.rate.toFixed(0) + '% never run out.</p>';
           h += '</div>';
         }
 
@@ -4275,34 +4253,85 @@
     }
 
     // Inline SVG line chart of the average ISA balance over the plan (the "ISA drawdown" curve).
-    // Small hoverable "?" that carries a plain-English explanation (native tooltip).
+    // Small hoverable "?" that pops up a plain-English explanation (custom tooltip, see initHelpTips).
     function help(text) {
-      return `<span class="hlp" title="${String(text).replace(/"/g, '&quot;')}">?</span>`;
+      return `<span class="hlp" tabindex="0" data-tip="${String(text).replace(/"/g, '&quot;')}">?</span>`;
     }
 
-    // Inline SVG line chart of a 0-100% series over the plan years (e.g. share of plans still
-    // holding ISA money by year). Hoverable points show the year + value.
-    function survivalCurveSvg(pctSeries) {
-      const w = 640, h = 180, padL = 40, padR = 12, padT = 12, padB = 26;
-      const n = pctSeries.length;
+    // One floating tooltip element, shown on hover/focus/tap of any ".hlp". Appended to <body> so
+    // it is never clipped by a card's overflow (the reason the old native title tooltips were poor).
+    function initHelpTips() {
+      if (window.__helpTipInit) return; window.__helpTipInit = true;
+      const tip = document.createElement('div');
+      tip.className = 'help-tip'; tip.style.display = 'none';
+      document.body.appendChild(tip);
+      let hideTimer = null;
+      const show = (el) => {
+        const text = el.getAttribute('data-tip'); if (!text) return;
+        clearTimeout(hideTimer);
+        tip.textContent = text; tip.style.display = 'block';
+        const r = el.getBoundingClientRect();
+        const tw = Math.min(260, window.innerWidth - 24);
+        tip.style.width = tw + 'px';
+        let left = r.left + r.width / 2 - tw / 2 + window.scrollX;
+        left = Math.max(12 + window.scrollX, Math.min(left, window.scrollX + window.innerWidth - tw - 12));
+        tip.style.left = left + 'px';
+        // place above; flip below if not enough room
+        const th = tip.offsetHeight;
+        let top = r.top + window.scrollY - th - 8;
+        if (r.top < th + 12) top = r.bottom + window.scrollY + 8;
+        tip.style.top = top + 'px';
+      };
+      const hide = () => { hideTimer = setTimeout(() => { tip.style.display = 'none'; }, 80); };
+      document.addEventListener('mouseover', (e) => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) show(el); });
+      document.addEventListener('mouseout', (e) => { if (e.target.closest && e.target.closest('[data-tip]')) hide(); });
+      document.addEventListener('focusin', (e) => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) show(el); });
+      document.addEventListener('focusout', (e) => { if (e.target.closest && e.target.closest('[data-tip]')) hide(); });
+      // tap toggles on touch devices
+      document.addEventListener('click', (e) => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) { if (tip.style.display === 'block') hide(); else show(el); } });
+    }
+
+    // --- Inline SVG charts (theme-aware, hover shows a data-tip popup via initHelpTips) ---
+    const _gbp = (v) => '£' + Math.round(v).toLocaleString();
+    function _svgFrame(inner, w, h) {
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img">${inner}</svg>`;
+    }
+    // A single line over the plan years. valueFmt formats the y-axis + hover; tip(v,i) gives the popup.
+    function lineChartSvg(series, { max, valueFmt = _gbp, tip, pct = false } = {}) {
+      const w = 660, h = 200, padL = 56, padR = 14, padT = 14, padB = 26, n = series.length;
       if (n < 2) return '';
+      const maxY = max != null ? max : (pct ? 100 : Math.max(1, ...series));
       const x = (i) => padL + (i / (n - 1)) * (w - padL - padR);
-      const y = (v) => (h - padB) - (Math.max(0, Math.min(100, v)) / 100) * (h - padT - padB);
-      const line = pctSeries.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-      const area = `${padL},${(h - padB).toFixed(1)} ${line} ${x(n - 1).toFixed(1)},${(h - padB).toFixed(1)}`;
-      const yTicks = [0, 50, 100];
+      const y = (v) => (h - padB) - (Math.max(0, Math.min(pct ? 100 : Infinity, v)) / maxY) * (h - padT - padB);
+      const pts = series.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const area = `${padL},${(h - padB).toFixed(1)} ${pts} ${x(n - 1).toFixed(1)},${(h - padB).toFixed(1)}`;
+      const yTicks = pct ? [0, 50, 100] : [0, maxY / 2, maxY];
       const xTicks = [0, Math.floor((n - 1) / 2), n - 1];
-      return `
-        <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img" aria-label="Share of plans still holding ISA money by year">
-          ${yTicks.map(t => `
-            <line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border, #8883)" stroke-width="1" opacity="0.5"/>
-            <text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted, #999)">${t}%</text>
-          `).join('')}
-          <polygon points="${area}" fill="rgba(96,165,250,0.15)"/>
-          <polyline points="${line}" fill="none" stroke="#60a5fa" stroke-width="2"/>
-          ${pctSeries.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="6" fill="transparent"><title>Year ${i}: ${v.toFixed(0)}% of plans still have ISA money</title></circle>`).join('')}
-          ${xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted, #999)">Year ${i}</text>`).join('')}
-        </svg>`;
+      const tipFn = tip || ((v, i) => `Year ${i}: ${valueFmt(v)}`);
+      return _svgFrame(
+        yTicks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".45"/><text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${valueFmt(t)}</text>`).join('')
+        + `<polygon points="${area}" fill="rgba(96,165,250,.13)"/><polyline points="${pts}" fill="none" stroke="#60a5fa" stroke-width="2.5"/>`
+        + series.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="8" fill="transparent" data-tip="${tipFn(v, i).replace(/"/g, '&quot;')}"></circle>`).join('')
+        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
+        w, h);
+    }
+    // A percentile FAN: p10-p90 (light) + p25-p75 (darker) bands with the p50 line. Honest outcome range.
+    function fanChartSvg(band) {
+      const w = 680, h = 250, padL = 60, padR = 14, padT = 14, padB = 28, n = band.p50.length;
+      if (n < 2) return '';
+      const maxY = Math.max(1, ...band.p90);
+      const x = (i) => padL + (i / (n - 1)) * (w - padL - padR);
+      const y = (v) => (h - padB) - (Math.max(0, v) / maxY) * (h - padT - padB);
+      const poly = (top, bot) => top.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).concat(bot.map((v, i) => `${x(n - 1 - i).toFixed(1)},${y(bot[n - 1 - i]).toFixed(1)}`)).join(' ');
+      const line = (a) => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const yTicks = [0, maxY / 4, maxY / 2, 3 * maxY / 4, maxY];
+      const xTicks = [0, Math.floor((n - 1) / 2), n - 1];
+      return _svgFrame(
+        yTicks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".4"/><text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${_gbp(t)}</text>`).join('')
+        + `<polygon points="${poly(band.p90, band.p10)}" fill="rgba(96,165,250,.12)"/><polygon points="${poly(band.p75, band.p25)}" fill="rgba(96,165,250,.22)"/><polyline points="${line(band.p50)}" fill="none" stroke="#60a5fa" stroke-width="2.5"/>`
+        + band.p50.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="8" fill="transparent" data-tip="Year ${i}: middle ${_gbp(v)}; likely range ${_gbp(band.p10[i])} to ${_gbp(band.p90[i])}"></circle>`).join('')
+        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
+        w, h);
     }
 
     // ISA analytics section for the stress results (only when the plan is funded with an ISA).
@@ -4334,9 +4363,9 @@
             <div class="kn-label">typical lifetime income tax, today's money ${help('Median total income tax paid over the whole plan, in present-day spending power.')}</div>
           </div>
         </div>
-        <div style="margin-bottom:24px;">
-          <div class="chart-caption">Share of plans that still have ISA money, year by year (hover a point for the exact figure)</div>
-          ${survivalCurveSvg(isa.pctHoldingByYear)}
+        <div style="margin-bottom:8px;">
+          <div class="chart-caption">Typical ISA balance still to hand, year by year (today's money — hover a point for the figure). A slow, steady fall means it's being drawn as intended; a flat line means it's barely touched (larger than this plan needs); a drop to £0 marks when it typically runs out.</div>
+          ${lineChartSvg(isa.medianAliveByYear, { valueFmt: _gbp, tip: (v, i) => `Year ${i}: typically ${_gbp(v)} of ISA left` })}
         </div>`;
     }
 
@@ -4379,9 +4408,7 @@
 
     // Render stress test results with charts
     function renderStressResults(stats, results, title, containerId, years) {
-      const successClass = stats.successRate >= 90 ? 'success' : stats.successRate >= 80 ? 'warning' : 'danger';
-      const chartId = containerId.replace('Results', '');
-
+      initHelpTips();
       const survivalStats = stats.survival || {};
       const finalReal = stats.finalReal || {};
       const protStats = stats.protection || {};
@@ -4392,7 +4419,6 @@
       const basis = isMC
         ? `${results.length.toLocaleString()} simulated futures`
         : `${results.length} historical periods since 1928`;
-      const startValue = results[0] && results[0].hist && results[0].hist[0] ? results[0].hist[0].total : undefined;
 
       let html = `
         <div class="card">
@@ -4415,23 +4441,19 @@
             </div>
           </div>
 
-          <h3 style="margin:8px 0 4px;">Range of possible futures</h3>
-          <div class="chart-caption">How your pot could grow or shrink over the plan — the shaded band spans the unluckiest 5% to the luckiest 5% of futures. Shown in nominal (future) £; today's money would be lower.</div>
-          <div class="chart-container">
-            <canvas id="${chartId}ConeChart" width="800" height="400"></canvas>
-          </div>
+          <h3 style="margin:8px 0 4px;">How your pot changes over time (today's money)</h3>
+          <div class="chart-caption">The blue line is the middle outcome; the darker band is the middle half of futures, the lighter band the 10th–90th. Futures that ran out count as £0, so a sinking band means real risk. Hover any point for the figures.</div>
+          ${fanChartSvg(stats.chartData.potBand)}
+
+          <h3 style="margin:22px 0 4px;">Chance your plan is still going, year by year</h3>
+          <div class="chart-caption">Share of futures in which the money hasn't run out yet — starts at 100% and dips where plans tend to fail. A late dip means most shortfalls happen late.</div>
+          ${lineChartSvg(stats.chartData.solvency, { pct: true, valueFmt: (v) => v.toFixed(0) + '%', tip: (v, i) => `Year ${i}: ${v.toFixed(0)}% of plans still going` })}
 
           ${renderIsaSection(stats.isa)}
 
           <details style="margin-top:22px;">
-            <summary style="cursor:pointer;font-weight:600;color:var(--primary);">More detail — example paths, safety-net use &amp; full statistics</summary>
+            <summary style="cursor:pointer;font-weight:600;color:var(--primary);">More detail — worst historical periods &amp; full statistics</summary>
             <div style="margin-top:16px;">
-              <div class="chart-caption">100 example plan paths — <span style="color:#2ea043;">green</span> lasted the whole plan, <span style="color:#f85149;">red</span> ran out. Nominal (future) £.</div>
-              <div class="chart-container"><canvas id="${chartId}TrajChart" width="800" height="400"></canvas></div>
-
-              <div class="chart-caption" style="margin-top:18px;">How many months plans spent in the reduced-withdrawal safety mode (more months = a rougher ride, not necessarily failure).</div>
-              <div class="chart-container" style="max-width:600px;"><canvas id="${chartId}HistChart" width="600" height="250"></canvas></div>
-
               ${containerId === 'histResults' ? buildWorstPeriodsTable(results) : ''}
 
               <h4 style="margin:20px 0 8px;">Pot left at the end — full range (today's money)</h4>
@@ -4454,23 +4476,7 @@
       `;
 
       document.getElementById(containerId).innerHTML = html;
-
-      // Draw charts after DOM is updated
-      setTimeout(() => {
-        const coneCanvas = document.getElementById(`${chartId}ConeChart`);
-        const trajCanvas = document.getElementById(`${chartId}TrajChart`);
-        const histCanvas = document.getElementById(`${chartId}HistChart`);
-
-        if (coneCanvas && results && results.length > 0) {
-          drawCone(coneCanvas, results, { years, title: 'Projected pot value by year (5th–95th percentile)' });
-        }
-        if (trajCanvas && results && results.length > 0) {
-          drawTrajectories(trajCanvas, results, { years, startValue, title: 'Example plan paths' });
-        }
-        if (histCanvas && results && results.length > 0) {
-          drawHistogram(histCanvas, results, { title: 'Months in reduced-withdrawal mode' });
-        }
-      }, 50);
+      // Charts are inline SVG (fan / solvency / ISA) rendered directly above — no canvas drawing needed.
     }
 
     // Render scenario results

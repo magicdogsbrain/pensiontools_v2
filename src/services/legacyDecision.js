@@ -16,6 +16,7 @@ import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { assessProtection } from './ProtectionStrategy.js';
+import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -207,23 +208,19 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             }
           });
 
-          if (protectionShortfall > 0) {
-            const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
-            const brlHeadroom = BRL - projectedAnnualTaxable;
-            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
-
-            if (brlHeadroom > 0 && surplus > 0) {
-              const maxBoostFromBRL = brlHeadroom / effectiveRemainingMonths;
-              const catchUpPerMonth = protectionShortfall / effectiveRemainingMonths;
-              const maxBoostFromSurplus = surplus / effectiveRemainingMonths;
-
-              boostAmount = Math.min(catchUpPerMonth, maxBoostFromBRL, maxBoostFromSurplus);
-
-              if (boostAmount > 50) {
-                sipp += boostAmount;
-                note = 'Tax Boost';
-              }
-            }
+          // Shared tax-boost decision (same module the Stress engine uses). The per-month cap
+          // inside planTaxBoost is what stops the old end-of-tax-year "draw £17k this month" cram.
+          const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+          boostAmount = planTaxBoost({
+            shortfall: protectionShortfall,
+            standardMonthly: stdSipp,
+            remainingMonths: effectiveRemainingMonths,
+            surplus: totalGrowth - minGrowth - BOOST_DEFAULTS.SURPLUS_BUFFER,
+            brlHeadroom: BRL - projectedAnnualTaxable
+          });
+          if (boostAmount > 50) {
+            sipp += boostAmount;
+            note = 'Tax Boost';
           }
         }
       } else {

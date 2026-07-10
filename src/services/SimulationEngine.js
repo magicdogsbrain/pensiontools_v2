@@ -12,6 +12,7 @@ import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
+import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 
 /**
  * Runs a single simulation with given returns
@@ -40,7 +41,7 @@ export function simulate(config, returns, seed = 0) {
   let protMonths = 0;
   let maxConsec = 0;
   let curStreak = 0;
-  let consec = 0;  // Consecutive cash draws
+  let consecCashDraws = 0;  // trailing consecutive non-growth (cash-side) draws
   let prot = false;  // Protection mode flag
   let failed = false;
   let failMonth = null;
@@ -113,6 +114,22 @@ export function simulate(config, returns, seed = 0) {
     const bdMin = calculateGlidepath(config.bondMin, year, config.duration, cumInf, true);
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
 
+    // Assess protection for THIS month on the start-of-month growth-pot value (before this
+    // month's returns) — the same inputs and rule the Decision engine uses (shared
+    // ProtectionStrategy). Reduces the SIPP draw during a sustained downturn.
+    const minGrowth = eqMin + bdMin;
+    const wasInProtection = prot;
+    prot = config.disableProtection ? false : assessProtection({
+      totalGrowth: equity + bond,
+      minGrowth,
+      consecCashDraws,
+      wasInProtection,
+      consecutiveLimit: config.consecutiveLimit,
+      recoveryBuffer: config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER
+    });
+    if (prot) { protMonths++; curStreak++; }
+    else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
+
     // Calculate required draw (SIPP + ISA to hit the target via band management)
     const { sippMonthly, isaMonthly, planInputs } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
     const draw = sippMonthly;
@@ -176,19 +193,7 @@ export function simulate(config, returns, seed = 0) {
     }
 
     const totalGrowth = equity + bond;
-    const minGrowth = eqMin + bdMin;
-
-    // Exit protection (with 5000 buffer)
-    if (prot && totalGrowth > minGrowth + 5000) {
-      prot = false;
-      consec = 0;
-      maxConsec = Math.max(maxConsec, curStreak);
-      curStreak = 0;
-    }
-    if (prot) {
-      protMonths++;
-      curStreak++;
-    }
+    // (protection was assessed at the top of the month via the shared ProtectionStrategy)
 
     // TAX BOOST: After protection ends, try to catch up on shortfall
     let boostAmount = 0;
@@ -229,7 +234,6 @@ export function simulate(config, returns, seed = 0) {
       if (totalSurplus > 0) {
         equity -= monthDraw * eqSurplus / totalSurplus;
         bond -= monthDraw * bdSurplus / totalSurplus;
-        consec = 0;
         source = 'Growth';
 
         // Cash replenishment: rebuild cash from growth surplus
@@ -250,12 +254,7 @@ export function simulate(config, returns, seed = 0) {
       // In protection or unhealthy - draw from cash
       if (cash >= monthDraw) {
         cash -= monthDraw;
-        consec++;
         source = 'Cash';
-        // Enter protection after consecutive cash draws
-        if (!config.disableProtection && consec >= config.consecutiveLimit) {
-          prot = true;
-        }
       } else {
         const rem = monthDraw - cash;
         cash = 0;
@@ -277,6 +276,10 @@ export function simulate(config, returns, seed = 0) {
         }
       }
     }
+
+    // Track consecutive non-growth (cash-side) draws for next month's protection assessment,
+    // matching the Decision engine's trailing-Cash count (Growth resets, anything else counts).
+    consecCashDraws = source === 'Growth' ? 0 : consecCashDraws + 1;
 
     // Deplete the ISA pot by this month's tax-free top-up (bounded by the balance).
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP

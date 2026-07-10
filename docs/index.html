@@ -1631,6 +1631,18 @@
       display: none;
     }
 
+    .starting-note {
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .starting-note strong { color: var(--text); }
+
     /* Stress subtab content */
     .stress-subtab {
       display: block;
@@ -1807,7 +1819,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-D-kjMdq2.js"></script>
+  <script type="module" crossorigin src="./assets/main-CtuAEW-1.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2117,34 +2129,13 @@
           <div class="card">
             <h2>Monte Carlo Simulation</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
+            <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="mcCash" value="50000">
-                </div>
-              </div>
               <div class="form-group">
                 <label>Simulation Years</label>
                 <input type="number" id="mcYears" value="35">
               </div>
             </div>
-            <div id="mcInputWarning" class="input-warning hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
               <button id="optimiseBtnMC" onclick="runOptimisationUI('MC')" class="secondary">Optimise Allocation</button>
@@ -2159,34 +2150,13 @@
           <div class="card">
             <h2>Historical Sequence Analysis</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
+            <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="histCash" value="50000">
-                </div>
-              </div>
               <div class="form-group">
                 <label>Simulation Years</label>
                 <input type="number" id="histYears" value="35">
               </div>
             </div>
-            <div id="histInputWarning" class="input-warning hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runHistoricalUI()">Run Historical Analysis</button>
               <button id="optimiseBtnHist" onclick="runOptimisationUI('Hist')" class="secondary">Optimise Allocation</button>
@@ -2201,30 +2171,7 @@
           <div class="card">
             <h2>Stress Scenarios</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Starting Equity</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenEquity" value="250000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Bond</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenBond" value="200000">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Starting Cash</label>
-                <div class="input-with-unit">
-                  <span class="unit">£</span>
-                  <input type="number" id="scenCash" value="50000">
-                </div>
-              </div>
-            </div>
-            <div id="scenInputWarning" class="input-warning hidden"></div>
+            <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
               <button onclick="runScenariosUI()">Run All Scenarios</button>
             </div>

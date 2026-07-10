@@ -1807,7 +1807,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-C2wxr_n3.js"></script>
+  <script type="module" crossorigin src="./assets/main-CSk4Silo.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1915,6 +1915,15 @@
                       <input type="number" id="entryCash" value="50000" required>
                     </div>
                   </div>
+                  <div class="form-group">
+                    <label>ISA Balance
+                      <span class="hint" title="Tax-free pot. When set, the plan draws SIPP up to the basic-rate limit and tops up income from the ISA tax-free (band management). Leave 0 to use the per-tax-year ISA allocation instead.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryIsa" value="0" min="0">
+                    </div>
+                  </div>
                 </div>
 
                 <div class="button-row" style="margin-top: 24px;">
@@ -1987,6 +1996,14 @@
               <div class="form-group">
                 <label>Annual Amount (calculated)</label>
                 <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">ISA</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISA Balance (£)</label>
+                <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
               </div>
             </div>
 
@@ -2352,6 +2369,18 @@
               <strong>Pension Inflation:</strong><br>
               • Other Income/Pension: Follows CPI, capped at 4% per year<br>
               • State Pension: Follows CPI (triple-lock proxy)
+            </div>
+
+            <h3 style="margin-top: 24px;">ISA</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISA Balance (£)</label>
+                <input type="number" id="ssIsaBalance" placeholder="e.g. 50000">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
+              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
             </div>
 
             <h3 style="margin-top: 24px;">Protection Rules</h3>

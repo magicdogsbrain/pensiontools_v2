@@ -316,6 +316,17 @@ export const decisionCases = [
     name: 'glidepath depletion floor (yearNum == duration → min 0)',
     input: { dateStr: '2061-07', ...healthy },
     deps: { settings: baseSettings, history: [], allTaxYears: { '61/62': ty() }, spInfo: noSP }
+  },
+  {
+    name: 'ISA pot (Option A): SIPP to BRL + ISA top-up to target',
+    input: { dateStr: '2026-07', ...healthy },
+    deps: {
+      settings: baseSettings,
+      history: [],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP,
+      isaBalance: 200000 // triggers the shared planDrawdown path
+    }
   }
 ];
 

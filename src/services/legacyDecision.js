@@ -14,6 +14,7 @@ import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
 import { DEFAULT_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath } from './GlidepathService.js';
+import { planDrawdown } from './DrawdownStrategy.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -136,27 +137,37 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         const thisTaxYearHistory = history.filter(h => h.taxYear === taxYear && h.date < dateStr);
 
         const monthlyTargetGross = target / 12;
-        let stdSipp;
+        const isaBalance = deps.isaBalance || 0;
+        let stdSipp, isaToUse;
 
-        // Use expected monthly SIPP from tax year config if available (set by wizard)
-        if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
-          stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
+        if (isaBalance > 0) {
+          // ISA as a real pot via the shared DrawdownStrategy (Option A band management):
+          // SIPP to BRL, ISA tops up the net gap tax-free, extra SIPP above BRL when the pot
+          // can't cover it. Same engine as the Stress Tester (both call planDrawdown), which
+          // is what lets a replayed Monte-Carlo trajectory agree with the Decision Tool.
+          const plan = planDrawdown({
+            targetGross: target, fixedIncome: other, pa: PA, brl: BRL, hrl: HRL,
+            isaBalance,
+            strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
+            yearsUntilSp: 0
+          });
+          stdSipp = plan.sippGross / 12;
+          isaToUse = plan.isaDraw / 12;
         } else {
-          // Fallback: calculate fresh (for older tax years without expectedMonthly)
-          // BRL headroom = BRL - grossIncomeToDate - annual fixed income
-          const brlHeadroom = Math.max(0, BRL - grossIncomeToDate - other);
-          const maxMonthlySippAtBrl = brlHeadroom / 12;
-          stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
+          // Legacy per-tax-year ISA allocation path (unchanged when no ISA balance is set).
+          if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
+            stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
+          } else {
+            const brlHeadroom = Math.max(0, BRL - grossIncomeToDate - other);
+            const maxMonthlySippAtBrl = brlHeadroom / 12;
+            stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
+          }
+          const monthlyTargetNet = grossToNet(target, PA, BRL, HRL) / 12;
+          const grossAtBrl = Math.min(target, BRL);
+          const monthlyNetAtBrl = grossToNet(grossAtBrl, PA, BRL, HRL) / 12;
+          const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
+          isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
         }
-
-        // ISA needed to reach target NET (not gross)
-        // Target gross gives a certain net. At BRL, we get a different net.
-        // ISA (tax-free) makes up the NET difference.
-        const monthlyTargetNet = grossToNet(target, PA, BRL, HRL) / 12;
-        const grossAtBrl = Math.min(target, BRL);
-        const monthlyNetAtBrl = grossToNet(grossAtBrl, PA, BRL, HRL) / 12;
-        const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
-        const isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
         isaSavingsUsedThisMonth = isaToUse;
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
 

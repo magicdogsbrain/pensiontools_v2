@@ -1914,6 +1914,15 @@
                       <input type="number" id="entryCash" value="50000" required>
                     </div>
                   </div>
+                  <div class="form-group">
+                    <label>ISA Balance
+                      <span class="hint" title="Tax-free pot. When set, the plan draws SIPP up to the basic-rate limit and tops up income from the ISA tax-free (band management). Leave 0 to use the per-tax-year ISA allocation instead.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryIsa" value="0" min="0">
+                    </div>
+                  </div>
                 </div>
 
                 <div class="button-row" style="margin-top: 24px;">
@@ -2940,6 +2949,7 @@
         document.getElementById('entryEquity').value = decisionSettings.equityMin || 250000;
         document.getElementById('entryBond').value = decisionSettings.bondMin || 200000;
         document.getElementById('entryCash').value = decisionSettings.cashTarget || 50000;
+        document.getElementById('entryIsa').value = decisionSettings.isaBalance || 0;
 
         // Pre-fill Decision Tool settings
         document.getElementById('dsEquityMin').value = decisionSettings.equityMin || 250000;
@@ -3675,7 +3685,10 @@
         settings: await getDecisionSettingsAsync(),
         history: await getHistoryAsync(),
         allTaxYears: await getAllTaxYearsAsync(),
-        spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr))
+        spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)),
+        // ISA balance from the entry form: when > 0 the engine treats the ISA as a real
+        // depleting pot and draws it via the shared band-management strategy (planDrawdown).
+        isaBalance: parseFloat(document.getElementById('entryIsa')?.value) || 0
       });
     }
 
@@ -4589,6 +4602,7 @@
         document.getElementById('entryEquity').value = s.equityMin || 250000;
         document.getElementById('entryBond').value = s.bondMin || 200000;
         document.getElementById('entryCash').value = s.cashTarget || 50000;
+        document.getElementById('entryIsa').value = s.isaBalance || 0;
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();

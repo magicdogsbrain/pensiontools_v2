@@ -4416,7 +4416,7 @@
           <div><span class="hero">${sr.toFixed(0)}%</span>
             <span class="hero-sub">chance your money lasts the whole plan ${help('Out of ' + basis + ', the share where your pot never runs out before the end of the plan. Higher is better.')}</span></div>
           <div><span class="hero" style="font-size:30px;">${(sev.coverage || 0).toFixed(0)}%</span>
-            <span class="hero-sub">of retirement years fully paid for ${help('Averaged over every simulated future — a plan that funds 34 of 35 years scores 97%, so a late shortfall counts far less than an early one.')}</span></div>
+            <span class="hero-sub">of retirement years funded (coverage) ${help('The average share of retirement years your plan pays for, across every simulated future — so a plan that funds 34 of 35 years scores 97%, and a late shortfall counts far less than an early one. Based on the retirement "coverage ratio" (Estrada & Kritzman, 2019). Note: it is capped at 100% and ignores any money left over, and it is an average — check the worst-case minimum below.')}</span></div>
         </div>
         <div class="verdict-basis">Based on ${basis}. Pot and income values are shown in today's money.</div>
       </div>`;
@@ -4453,8 +4453,8 @@
 
           <div class="keynums">
             <div class="keynum">
-              <div class="kn-val">${(survivalStats.p10 || 0).toFixed(0)} yrs</div>
-              <div class="kn-label">worst case, your money still lasts at least ${help('In the unluckiest 1-in-10 futures, the money still lasts at least this many years.')}</div>
+              <div class="kn-val">${Math.round(survivalStats.min || 0)} / ${years} yrs</div>
+              <div class="kn-label">worst simulated future — money lasted this long ${help('The single unluckiest of all the simulated futures — the true tail. The average coverage can look reassuring; this is the worst it ever got. (10th-percentile: at least ' + (survivalStats.p10 || 0).toFixed(0) + ' years.)')}</div>
             </div>
             <div class="keynum">
               <div class="kn-val">${formatCurrency(finalReal.p50 || 0)}</div>

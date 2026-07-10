@@ -66,7 +66,11 @@ export function simulate(config, returns, seed = 0) {
 
   // ISA stats tracking (for the stress-page ISA analytics)
   const startIsa = config.isaBalance || 0;
-  let isaDepletedMonth = null;         // first month the ISA hit £0 (null = survived / never funded)
+  // "Used up" = the REAL (today's-money) balance falls below 5% of the starting balance (or £1k).
+  // NOT exactly £0: money-market growth always leaves a nominal sliver, so an exactly-£0 test would
+  // never fire and wrongly report "lasts the full term" even as the ISA's real value drains away.
+  const isaUsedUpFloor = Math.max(1000, startIsa * 0.05);
+  let isaDepletedMonth = null;         // first month the ISA is used up (null = never / not funded)
   let higherRateMonths = 0;            // months of inefficient drawdown (SIPP forced above BRL)
   let totalTaxReal = 0;                // lifetime income tax paid, in today's money
   // Per-year series in TODAY'S money (deflated by cumulative inflation). isaByYear is null after a
@@ -339,7 +343,7 @@ export function simulate(config, returns, seed = 0) {
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
     // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
     isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa));
-    if (isaDepletedMonth === null && startIsa > 0 && isa <= 0) isaDepletedMonth = month;
+    if (isaDepletedMonth === null && startIsa > 0 && isa / cumInf < isaUsedUpFloor) isaDepletedMonth = month;
 
     // Ensure no negative values
     equity = Math.max(0, equity);

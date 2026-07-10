@@ -1663,6 +1663,9 @@
     .help-tip { position: absolute; z-index: 9999; background: var(--surface, #161b22); color: var(--text, #e6edf3);
       border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 9px 11px; font-size: 12px; font-weight: 400;
       line-height: 1.45; text-align: left; box-shadow: 0 6px 22px rgba(0,0,0,0.45); pointer-events: none; }
+    /* Inline SVG charts: fill the tile, and light up the nearest point on hover. */
+    .ichart { max-width: 100%; }
+    .ichart circle[data-tip]:hover { fill: #60a5fa; stroke: var(--surface, #161b22); stroke-width: 2; }
     .keynums { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
     .keynum { border: 1px solid var(--border, #8883); border-radius: 8px; padding: 12px 14px; }
     .keynum .kn-val { font-size: 22px; font-weight: 700; }
@@ -4291,10 +4294,31 @@
       document.addEventListener('click', (e) => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) { if (tip.style.display === 'block') hide(); else show(el); } });
     }
 
+    // Makes the whole chart reactive: moving the mouse anywhere over an .ichart highlights the
+    // NEAREST data point and pops its value — so you don't have to land exactly on a dot.
+    function initChartHover() {
+      if (window.__chartHoverInit) return; window.__chartHoverInit = true;
+      const clear = (svg) => svg.querySelectorAll('circle[data-tip]').forEach(c => { c.setAttribute('fill', 'transparent'); c.removeAttribute('stroke'); });
+      document.addEventListener('mousemove', (e) => {
+        const svg = e.target.closest && e.target.closest('.ichart');
+        if (!svg) return;
+        const circles = svg.querySelectorAll('circle[data-tip]');
+        if (!circles.length) return;
+        let nearest = null, nd = Infinity;
+        circles.forEach(c => { const r = c.getBoundingClientRect(); const d = Math.abs(r.left + r.width / 2 - e.clientX); if (d < nd) { nd = d; nearest = c; } });
+        if (!nearest) return;
+        clear(svg);
+        nearest.setAttribute('fill', '#60a5fa'); nearest.setAttribute('stroke', 'var(--surface,#161b22)'); nearest.setAttribute('stroke-width', '2');
+        nearest.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      document.addEventListener('mouseout', (e) => { const svg = e.target.closest && e.target.closest('.ichart'); if (svg) clear(svg); });
+    }
+
     // --- Inline SVG charts (theme-aware, hover shows a data-tip popup via initHelpTips) ---
     const _gbp = (v) => '£' + Math.round(v).toLocaleString();
     function _svgFrame(inner, w, h) {
-      return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;overflow:visible" role="img">${inner}</svg>`;
+      // width:100% + viewBox → the chart fills the full width of its tile and scales with the display.
+      return `<svg class="ichart" viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;overflow:visible;display:block" role="img">${inner}</svg>`;
     }
     // A single line over the plan years. valueFmt formats the y-axis + hover; tip(v,i) gives the popup.
     function lineChartSvg(series, { max, valueFmt = _gbp, tip, pct = false } = {}) {
@@ -4348,11 +4372,11 @@
         <div class="keynums">
           <div class="keynum ${survClass}">
             <div class="kn-val">${isa.pctSurviveFullTerm.toFixed(0)}%</div>
-            <div class="kn-label">of futures the ISA lasts the whole plan ${help('The tax-free ISA still has money at the end. When it runs out, income has to come from the taxable pension instead.')}</div>
+            <div class="kn-label">of futures the ISA still has real money at the end ${help('The ISA is treated as used up once its value in present-day money falls below 5% of what you started with — money-market growth leaves a tiny nominal sliver forever, so an exactly-zero test would be misleading.')}</div>
           </div>
           <div class="keynum">
             <div class="kn-val">${yrs(isa.medianLastedYears)} yrs</div>
-            <div class="kn-label">the ISA typically lasts before running out ${help('Median across all simulated futures.')}</div>
+            <div class="kn-label">the ISA typically lasts before it's used up ${help('Median year its value in present-day money drops below 5% of the starting balance — the point it stops meaningfully topping up your income. Matches the chart below.')}</div>
           </div>
           <div class="keynum ${ineffClass}">
             <div class="kn-val">${yrs(isa.avgHigherRateYears)} yrs</div>
@@ -4409,6 +4433,7 @@
     // Render stress test results with charts
     function renderStressResults(stats, results, title, containerId, years) {
       initHelpTips();
+      initChartHover();
       const survivalStats = stats.survival || {};
       const finalReal = stats.finalReal || {};
       const protStats = stats.protection || {};

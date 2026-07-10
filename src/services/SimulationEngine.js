@@ -150,18 +150,19 @@ export function simulate(config, returns, seed = 0) {
       // Reset yearlyInf at simulation start
     }
 
-    // Rising-equity glidepath ("bond tent"): optionally rebalance the growth pots (equity+bond)
-    // once a year toward a target equity share that RISES over retirement — least equity early
-    // (the vulnerable "red zone" when the pot is largest), more later once sequence risk has
-    // passed. Reduces sequence-of-returns risk (Pfau & Kitces 2014). Opt-in; leaves cash alone.
-    if (config.equityGlide && monthInYear === 0) {
-      const g = config.equityGlide;
+    // Rising-equity glidepath ("bond tent") target equity share for this year, or null when off.
+    // The share RISES over retirement — least equity early (the vulnerable "red zone" when the pot
+    // is largest), more later once sequence risk has passed (Pfau & Kitces 2014).
+    const glideShare = config.equityGlide
+      ? config.equityGlide.start + (config.equityGlide.end - config.equityGlide.start) * (year / Math.max(1, config.duration))
+      : null;
+
+    // When the glidepath is on it OWNS the equity/bond split: rebalance the growth pots to the
+    // target share once a year. So only the TOTAL of the entered equity + bond minimums matters;
+    // the glide, not the entered split, decides how it's divided. Cash is left alone.
+    if (glideShare != null && monthInYear === 0) {
       const growth = equity + bond;
-      if (growth > 0) {
-        const share = g.start + (g.end - g.start) * (year / Math.max(1, config.duration));
-        equity = growth * share;
-        bond = growth * (1 - share);
-      }
+      if (growth > 0) { equity = growth * glideShare; bond = growth * (1 - glideShare); }
     }
 
     // Get this year's returns
@@ -170,9 +171,16 @@ export function simulate(config, returns, seed = 0) {
     // Previous year's inflation for bond model (matches PWA)
     const prevInf = year > 0 ? (returns.inflation[year - 1] || 0.025) : inf;
 
-    // Calculate glidepath minimums
-    const eqMin = calculateGlidepath(config.equityMin, year, config.duration, cumInf, true);
-    const bdMin = calculateGlidepath(config.bondMin, year, config.duration, cumInf, true);
+    // Glidepath depletion floors. With the rising-equity glidepath on, split the TOTAL growth floor
+    // by the same glide share, so the floors track the glided allocation instead of the entered
+    // equity/bond split (which the glide overrides) — keeping protection and draws consistent.
+    let eqMin = calculateGlidepath(config.equityMin, year, config.duration, cumInf, true);
+    let bdMin = calculateGlidepath(config.bondMin, year, config.duration, cumInf, true);
+    if (glideShare != null) {
+      const growthMin = eqMin + bdMin;
+      eqMin = growthMin * glideShare;
+      bdMin = growthMin * (1 - glideShare);
+    }
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
 
     // Assess protection for THIS month on the start-of-month growth-pot value (before this

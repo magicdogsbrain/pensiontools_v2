@@ -359,10 +359,23 @@ export function simulate(config, returns, seed = 0) {
   maxConsec = Math.max(maxConsec, curStreak);
   isaByYear[config.years] = isa; // end-of-plan ISA balance
 
+  // Per-run environment drivers, for failure-severity diagnosis (sequence risk vs inflation vs
+  // weak overall markets). Averaged over the plan's return sequence.
+  let infSum = 0, eqSum = 0, earlySum = 0, earlyN = 0;
+  for (let y = 0; y < config.years; y++) {
+    infSum += (returns.inflation[y] ?? 0.025);
+    eqSum += (returns.equity[y] ?? 0);
+    if (y < 5) { earlySum += (returns.equity[y] ?? 0); earlyN++; }
+  }
+
   return {
     failed,
+    duration: config.years,
     years: failed ? failMonth / 12 : config.years,
     failMonth,
+    avgInflation: infSum / config.years,
+    avgEquityReturn: eqSum / config.years,
+    earlyEquityReturn: earlyN ? earlySum / earlyN : 0,
     final: equity + bond + cash,
     finalEquity: equity,
     finalBond: bond,
@@ -622,6 +635,28 @@ export function calculateSuccessRate(results) {
  * @param {object[]} results - Array of simulation results
  * @returns {object} Statistics summary
  */
+/**
+ * Plain-English diagnosis of WHY runs fail, from the per-run environment drivers. Ranks the
+ * failed-vs-survived gaps in early-market returns (sequence risk), overall returns, and inflation.
+ */
+function buildFailureDiagnosis(sev) {
+  if (!sev || sev.failCount === 0) return 'No failures: every run funded the full plan.';
+  const pct = (x) => (x * 100).toFixed(1) + '%';
+  const timing = `Most failures are late — median failure at year ${Math.round(sev.medianFailYear)} of ${sev.duration}; ` +
+    `${Math.round(sev.pctNearMiss)}% of failures last past year ${Math.round(sev.duration * 0.85)} (near-misses).`;
+
+  const candidates = [
+    { mag: sev.succEarlyEq - sev.failEarlyEq, text: `poor early-market returns (sequence-of-returns risk) — failing runs averaged ${pct(sev.failEarlyEq)} equity in the first 5 years vs ${pct(sev.succEarlyEq)} for survivors` },
+    { mag: sev.succAvgEq - sev.failAvgEq, text: `weaker markets over the whole plan — ${pct(sev.failAvgEq)} average equity return vs ${pct(sev.succAvgEq)} for survivors` },
+    { mag: sev.failAvgInf - sev.succAvgInf, text: `higher inflation — ${pct(sev.failAvgInf)} average vs ${pct(sev.succAvgInf)} for survivors` }
+  ].filter(c => c.mag > 0.005).sort((a, b) => b.mag - a.mag);
+
+  if (!candidates.length) return `${timing} No single market driver stands out — failures look like broad bad luck across returns and inflation.`;
+  let reason = `Failures are driven mainly by ${candidates[0].text}`;
+  if (candidates[1] && candidates[1].mag > candidates[0].mag * 0.5) reason += `; a secondary factor is ${candidates[1].text}`;
+  return `${timing} ${reason}.`;
+}
+
 export function analyzeResults(results) {
   const successful = results.filter(r => !r.failed);
   const failed = results.filter(r => r.failed);
@@ -713,6 +748,30 @@ export function analyzeResults(results) {
         results.filter(r => r.hodlUsed > 0).length
       : 0,
     maxHodlUsed: Math.max(...results.map(r => r.hodlUsed || 0)),
+
+    // Failure SEVERITY + reason diagnosis. Binary success is too crude — a failure at year 34
+    // is a near-success, a failure at year 5 is a collapse. "Coverage" is the average share of
+    // retirement-years funded across all runs; the diagnosis explains what drives the failures.
+    severity: (() => {
+      const duration = Math.max(...results.map(r => r.duration || r.years), 1);
+      const failedRuns = results.filter(r => r.failed);
+      const successRuns = results.filter(r => !r.failed);
+      const failYears = failedRuns.map(r => r.years).sort((a, b) => a - b);
+      const nearMissYear = duration * 0.85;
+      const meanBy = (arr, k) => arr.length ? arr.reduce((s, r) => s + (r[k] || 0), 0) / arr.length : 0;
+      const sev = {
+        duration,
+        coverage: results.reduce((a, r) => a + Math.min(1, (r.years || 0) / duration), 0) / results.length * 100,
+        failCount: failedRuns.length,
+        medianFailYear: failYears.length ? percentile(failYears, 0.5) : 0,
+        pctNearMiss: failedRuns.length ? failedRuns.filter(r => r.years >= nearMissYear).length / failedRuns.length * 100 : 0,
+        failEarlyEq: meanBy(failedRuns, 'earlyEquityReturn'), succEarlyEq: meanBy(successRuns, 'earlyEquityReturn'),
+        failAvgEq: meanBy(failedRuns, 'avgEquityReturn'), succAvgEq: meanBy(successRuns, 'avgEquityReturn'),
+        failAvgInf: meanBy(failedRuns, 'avgInflation'), succAvgInf: meanBy(successRuns, 'avgInflation')
+      };
+      sev.diagnosis = buildFailureDiagnosis(sev);
+      return sev;
+    })(),
 
     // ISA analytics (only meaningful when the plan is funded with an ISA)
     isa: (() => {

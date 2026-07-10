@@ -15,6 +15,26 @@ import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 
+// Cash / money-market real return spread. Short-term rates LAG inflation (they reset off roughly
+// last year's inflation), so in an inflation spike the realised real return (rate − this-year
+// inflation) goes sharply negative — the 1970s cash-erosion dynamic — while cash gains in
+// disinflation. The long-run average real return ≈ this spread. −1% matches the FCA's prescribed
+// cash projection rate (the only asset class the regulator projects as a real-terms loss), the
+// deliberately-conservative choice. Replaces the old +1.2% guaranteed real return, under which
+// cash could never lose to inflation and an all-cash pot looked unrealistically safe.
+export const CASH_REAL_SPREAD = -0.01;
+
+/**
+ * Nominal annual cash return: roughly last year's inflation plus the (negative) real spread,
+ * floored at 0% (retail deposit rates don't go negative). Depends on the inflation PATH, so cash
+ * carries genuine inflation/sequence risk instead of a fixed positive real return.
+ * @param {number} prevInflation - previous year's inflation (the rate cash reprices off)
+ * @returns {number} nominal annual cash return
+ */
+function cashNominalReturn(prevInflation) {
+  return Math.max(0, prevInflation + CASH_REAL_SPREAD);
+}
+
 /**
  * Runs a single simulation with given returns
  * @param {object} config - Simulation configuration
@@ -37,6 +57,13 @@ export function simulate(config, returns, seed = 0) {
   // ISA pot (tax-free top-up; grows at the money-market rate, depletes as drawn)
   let isa = config.isaBalance || 0;
   let hodlUsedMonth = null;
+
+  // ISA stats tracking (for the stress-page ISA analytics)
+  const startIsa = config.isaBalance || 0;
+  let isaDepletedMonth = null;         // first month the ISA hit £0 (null = survived / never funded)
+  let higherRateMonths = 0;            // months of inefficient drawdown (SIPP forced above BRL)
+  let totalTaxReal = 0;                // lifetime income tax paid, in today's money
+  const isaByYear = new Array(config.years + 1).fill(0); // start-of-year ISA balance, for the avg chart
 
   // State tracking
   let protMonths = 0;
@@ -137,7 +164,14 @@ export function simulate(config, returns, seed = 0) {
     else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
 
     // Calculate required draw (SIPP + ISA to hit the target via band management)
-    const { sippMonthly, isaMonthly, planInputs } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
+    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
+
+    // ISA analytics: capture start-of-year ISA balance, accumulate projected income tax (in
+    // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
+    if (monthInYear === 0) isaByYear[year] = isa;
+    totalTaxReal += (taxAnnual / 12) / cumInf;
+    if (higherRate) higherRateMonths++;
+
     const draw = sippMonthly;
     const standardMonthDraw = draw;
     let effectiveDraw = prot ? draw * config.protectionMult : draw;
@@ -171,7 +205,7 @@ export function simulate(config, returns, seed = 0) {
     // so an extreme synthetic bond return (r < -1) can't make (1+r)^(1/12) = NaN — which
     // would otherwise propagate to `final` and be miscounted as a successful full-term run.
     const annualBondReturn = calculateBondReturn(inf, eqReturn, prevInf, rng);
-    const annualCashReturn = Math.max(0.005, inf + 0.012);
+    const annualCashReturn = cashNominalReturn(prevInf);
     const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 
     equity *= monthly(eqReturn);
@@ -292,6 +326,7 @@ export function simulate(config, returns, seed = 0) {
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
     // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
     isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa));
+    if (isaDepletedMonth === null && startIsa > 0 && isa <= 0) isaDepletedMonth = month;
 
     // Ensure no negative values
     equity = Math.max(0, equity);
@@ -322,6 +357,7 @@ export function simulate(config, returns, seed = 0) {
   }
 
   maxConsec = Math.max(maxConsec, curStreak);
+  isaByYear[config.years] = isa; // end-of-plan ISA balance
 
   return {
     failed,
@@ -336,6 +372,14 @@ export function simulate(config, returns, seed = 0) {
     maxConsec,
     hodlUsed,
     hodlUsedMonth,
+    // ISA analytics
+    startIsa,
+    finalIsa: isa,
+    isaDepletedMonth,                                  // null if it survived the full plan
+    isaLastedYears: isaDepletedMonth === null ? config.years : isaDepletedMonth / 12,
+    higherRateYears: higherRateMonths / 12,            // years of inefficient (40%-band) drawdown
+    totalTaxReal,                                      // lifetime income tax, today's money
+    isaByYear,
     hist,
     trace,
     seed
@@ -391,7 +435,7 @@ function calculateBondReturn(inf, eqReturn, prevInf, rng) {
   const nomBondReturn = 0.04 - (inf > 0.04 ? (inf - 0.04) * 0.5 : 0) + gaussianRandom(0, 0.05, rng);
   const propertyReturn = 0.03 + inf * 0.3 + gaussianRandom(0, 0.08, rng);  // Partial inflation hedge
   const commodityReturn = inf * 0.8 + gaussianRandom(0, 0.15, rng);  // Good inflation hedge, volatile
-  const cashReturn = Math.max(0.005, inf + 0.005);
+  const cashReturn = cashNominalReturn(prevInf); // lag model — cash reprices off last year's inflation
   const equityReturn = eqReturn * 0.5 + gaussianRandom(0, 0.02, rng);  // Dampened equity exposure
 
   // Weighted return
@@ -466,6 +510,9 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
   return {
     sippMonthly: plan.sippGross / 12,
     isaMonthly: plan.isaDraw / 12,
+    taxAnnual: plan.tax,                 // income tax the plan pays this year (nominal)
+    higherRate: plan.taxable > brl + 1,  // SIPP forced above the basic-rate limit → 40% band
+                                         // (inefficient drawdown: happens once the ISA can't cover the gap)
     // Exact planDrawdown inputs, surfaced so the cross-validation harness can build
     // Decision-engine tax-year configs that reproduce this call rather than re-deriving them.
     planInputs: { target, other, statePension, fixed, pa, brl, hrl, yearsUntilSp }
@@ -666,6 +713,43 @@ export function analyzeResults(results) {
         results.filter(r => r.hodlUsed > 0).length
       : 0,
     maxHodlUsed: Math.max(...results.map(r => r.hodlUsed || 0)),
+
+    // ISA analytics (only meaningful when the plan is funded with an ISA)
+    isa: (() => {
+      const funded = results.filter(r => (r.startIsa || 0) > 0);
+      if (!funded.length) return { funded: false };
+      const lasted = funded.map(r => r.isaLastedYears).sort((a, b) => a - b);
+      const finalsIsa = funded.map(r => r.finalIsa).sort((a, b) => a - b);
+      const hrYears = funded.map(r => r.higherRateYears);
+      const taxes = funded.map(r => r.totalTaxReal).sort((a, b) => a - b);
+      // Element-wise average ISA balance by year across funded runs (depleted/failed years = 0).
+      const nYears = Math.max(...funded.map(r => (r.isaByYear || []).length));
+      const avgBalanceByYear = [];
+      for (let y = 0; y < nYears; y++) {
+        avgBalanceByYear.push(
+          funded.reduce((a, r) => a + ((r.isaByYear && r.isaByYear[y]) || 0), 0) / funded.length
+        );
+      }
+      return {
+        funded: true,
+        runs: funded.length,
+        startBalance: funded[0].startIsa,
+        medianLastedYears: percentile(lasted, 0.50),
+        minLastedYears: lasted[0],
+        pctSurviveFullTerm: (funded.filter(r => r.isaDepletedMonth === null).length / funded.length) * 100,
+        finalBalance: {
+          p10: percentile(finalsIsa, 0.10),
+          p50: percentile(finalsIsa, 0.50),
+          p90: percentile(finalsIsa, 0.90)
+        },
+        avgHigherRateYears: hrYears.reduce((a, b) => a + b, 0) / funded.length,
+        maxHigherRateYears: Math.max(...hrYears),
+        pctEverHigherRate: (funded.filter(r => r.higherRateYears > 0).length / funded.length) * 100,
+        medianTotalTax: percentile(taxes, 0.50),
+        p90TotalTax: percentile(taxes, 0.90),
+        avgBalanceByYear
+      };
+    })(),
 
     // Failed runs detail (for worst periods table)
     failures: failed.map(r => ({

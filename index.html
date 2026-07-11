@@ -5099,20 +5099,22 @@
         settings.duration = duration;
         const schedule = generateDrawdownSchedule(settings, duration, inflation);
 
-        let html = '<div class="card"><h2>Projected SIPP Drawdown Schedule</h2>';
+        let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA bridge)</h2>';
+        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years (the bridge to the State Pension). Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results.</div>';
         html += '<div style="overflow-x: auto;"><table>';
-        html += '<thead><tr><th>Year</th><th>BRL</th><th>Other</th><th>State</th><th>SIPP Draw</th><th>Tax</th><th>Net</th></tr></thead>';
+        html += '<thead><tr><th>Year</th><th>SIPP Draw</th><th>State</th><th>Tax</th><th>Net (SIPP+SP)</th><th>ISA Top-up</th><th>Spendable</th><th>ISA Left</th></tr></thead>';
         html += '<tbody>';
 
         for (const row of schedule) {
           html += `<tr>
             <td>${row.year}</td>
-            <td>${formatCurrency(row.brl)}</td>
-            <td>${formatCurrency(row.other)}</td>
-            <td>${formatCurrency(row.statePension)}</td>
             <td style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
+            <td>${formatCurrency(row.statePension)}</td>
             <td style="color: var(--danger);">-${formatCurrency(row.tax)}</td>
-            <td style="color: var(--success);">${formatCurrency(row.netIncome)}</td>
+            <td>${formatCurrency(row.netIncome)}</td>
+            <td style="color: var(--info);">${formatCurrency(row.isaDraw)}</td>
+            <td style="color: var(--success); font-weight: 600;">${formatCurrency(row.spendable)}</td>
+            <td>${formatCurrency(row.isaBalance)}</td>
           </tr>`;
         }
 
@@ -5133,22 +5135,31 @@
         const settings = await getStressSettingsAsync();
         settings.duration = duration;
         const schedule = generateGlidepathSchedule(settings, inflation);
+        const ddForIsa = generateDrawdownSchedule(settings, duration, inflation);
+        const isaByYear = {};
+        ddForIsa.forEach(r => { isaByYear[r.year] = r.isaBalance; });
+        const tentOn = !!settings.equityGlideEnabled;
 
-        let html = '<div class="card"><h2>Fund Glidepath (Inflation-Adjusted Minimums)</h2>';
+        let html = '<div class="card"><h2>Fund Glidepath Over Time</h2>';
         html += '<div class="alert alert-info" style="margin-bottom: 20px;">';
-        html += '<strong>Glidepath Logic:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).';
+        html += tentOn
+          ? '<strong>Bond tent on:</strong> the equity share (Shares %) RISES over the early years then holds; the £ floors inflate with CPI and deplete over time, cash holds its real value, and the ISA bridge runs down as it tops up income.'
+          : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete over time to £0; cash inflates only (holds real value); the ISA bridge runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
         html += '</div>';
         html += '<div style="overflow-x: auto;"><table>';
-        html += '<thead><tr><th>Year</th><th>Cum Inflation</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th><th>Total Min</th></tr></thead>';
+        html += '<thead><tr><th>Year</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th><th>Shares (of growth)</th><th>ISA Balance</th><th>Total Min</th></tr></thead>';
         html += '<tbody>';
 
         for (const row of schedule) {
+          const growth = row.equityMin + row.bondMin;
+          const sharesPct = growth > 0 ? Math.round(row.equityMin / growth * 100) : 0;
           html += `<tr>
             <td>${row.year}</td>
-            <td>${(row.cumulativeInflation * 100 - 100).toFixed(1)}%</td>
             <td style="color: var(--success);">${formatCurrency(row.equityMin)}</td>
             <td style="color: var(--info);">${formatCurrency(row.bondMin)}</td>
             <td style="color: var(--warning);">${formatCurrency(row.cashTarget)}</td>
+            <td style="font-weight: 600;">${sharesPct}%</td>
+            <td>${formatCurrency(isaByYear[row.year] || 0)}</td>
             <td style="font-weight: 600;">${formatCurrency(row.totalMin)}</td>
           </tr>`;
         }

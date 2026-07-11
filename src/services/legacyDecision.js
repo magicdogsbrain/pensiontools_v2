@@ -13,7 +13,7 @@
 import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
 import { DEFAULT_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
-import { calculateGlidepath } from './GlidepathService.js';
+import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { assessProtection } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
@@ -79,9 +79,21 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       }
 
       // Calculate glidepath minimums
-      const adjEquity = Math.round(calculateGlidepath(settings.equityMin, yearNum, settings.duration, cumInf, true));
-      const adjBond = Math.round(calculateGlidepath(settings.bondMin, yearNum, settings.duration, cumInf, true));
+      // Depleting fund minimums. With the rising-equity glidepath ("bond tent") on, the entered
+      // equity/bond split is overridden: only their TOTAL matters, re-divided by the glide's target
+      // share for this year (identical formula to the Stress engine, so the two stay in lockstep).
+      // Cash is left alone. Glide off (equityGlide falsy) → byte-identical to the old behaviour.
+      let adjEquity = calculateGlidepath(settings.equityMin, yearNum, settings.duration, cumInf, true);
+      let adjBond = calculateGlidepath(settings.bondMin, yearNum, settings.duration, cumInf, true);
       const adjCash = Math.round(calculateGlidepath(settings.cashTarget, yearNum, settings.duration, cumInf, false));
+      const glideShare = glideShareForYear(settings.equityGlide, yearNum, settings.duration);
+      if (glideShare != null) {
+        const growthMin = adjEquity + adjBond;
+        adjEquity = growthMin * glideShare;
+        adjBond = growthMin * (1 - glideShare);
+      }
+      adjEquity = Math.round(adjEquity);
+      adjBond = Math.round(adjBond);
 
       const totalGrowth = equity + bond;
       const minGrowth = adjEquity + adjBond;

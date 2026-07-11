@@ -27,6 +27,85 @@ export function calculateGlidepath(baseMin, year, duration, cumulativeInflation,
   return baseMin * cumulativeInflation;
 }
 
+// ---------------------------------------------------------------------------
+// Rising-equity glidepath ("bond tent") — shared by BOTH engines
+// ---------------------------------------------------------------------------
+// The tent holds LESS in equity during the vulnerable early "red zone" (pot at
+// its largest, sequence risk highest) and RAISES equity over retirement once
+// that danger has largely passed (Pfau & Kitces 2014). These helpers are the
+// single source of truth so the Stress engine and the Decision engine compute
+// an identical target share each year (required by the cross-validation tests).
+
+/**
+ * Named risk levels → a whole-portfolio split (fractions summing to 1).
+ * This is the ENDGAME allocation: with the tent off it's held flat the whole time; with the tent
+ * on it's the DESTINATION the mix glides up to (from a more bond-heavy start) and then holds for
+ * the flat remainder of retirement — not an average.
+ */
+export const RISK_PRESETS = {
+  cautious:    { key: 'cautious',    label: 'Cautious',    equity: 0.30, bond: 0.45, cash: 0.25 },
+  balanced:    { key: 'balanced',    label: 'Balanced',    equity: 0.50, bond: 0.40, cash: 0.10 },
+  adventurous: { key: 'adventurous', label: 'Adventurous', equity: 0.70, bond: 0.25, cash: 0.05 }
+};
+
+/**
+ * The equity share of the GROWTH sleeve (equity+bond) for a given year under the
+ * tent, or null when the tent is off. MUST match the inline formula the Stress
+ * engine uses so both engines agree month-by-month.
+ * @param {?{start:number,end:number}} equityGlide - {start,end} growth-sleeve equity fractions, or falsy
+ * @param {number} year - 0-indexed year
+ * @param {number} duration - plan length in years
+ * @returns {?number} equity fraction of the growth sleeve, or null
+ */
+export function glideShareForYear(equityGlide, year, duration) {
+  if (!equityGlide) return null;
+  // Rise-then-plateau: equities climb through the early "red zone" then HOLD at the endgame level
+  // for the flat remainder. The rise runs for (duration - 20) years (floored at 5) — so a 35y plan
+  // rises for 15y, a 30y for 10y, a 25y for 5y — matching the practitioner "reach the target within
+  // the first ~10-15 years, then hold" shape (Pfau-Kitces red zone; the first ~15 years dominate a
+  // 30y outcome). Before this the glide ran linearly to the final year.
+  const riseYears = Math.max(5, duration - 20);
+  const progress = Math.min(1, year / riseYears);
+  return equityGlide.start + (equityGlide.end - equityGlide.start) * progress;
+}
+
+/**
+ * Derive the tent's {start,end} growth-sleeve equity fractions from the chosen ENDGAME split.
+ * The chosen allocation is the DESTINATION (end): the tent starts `spread` lower in equity (more
+ * bond-heavy for the early red zone) and rises up to the chosen level, then holds. So "Balanced +
+ * tent" ends at Balanced and is more cautious than Balanced early — never more aggressive.
+ * @param {number} equityPct - whole-portfolio equity fraction of the chosen endgame (0..1)
+ * @param {number} bondPct - whole-portfolio bond fraction of the chosen endgame (0..1)
+ * @param {number} [spread=0.22] - how much lower (in growth-sleeve terms) equity starts vs the endgame
+ * @returns {{start:number,end:number}}
+ */
+export function equityGlideFromRisk(equityPct, bondPct, spread = 0.22) {
+  const growth = equityPct + bondPct;
+  if (growth <= 0) return { start: 0, end: 0 };
+  const endShare = equityPct / growth;                     // endgame equity share of the growth sleeve
+  return {
+    start: Math.max(0, endShare - spread),
+    end:   endShare
+  };
+}
+
+/**
+ * The whole-portfolio target mix for a given year (tent-aware) — what the
+ * Decision Tool reports as "this year's target" and rebalances toward. Cash is
+ * held flat as the downturn buffer; only equity/bond glide within the growth sleeve.
+ * @param {{equity:number,bond:number,cash:number,equityGlide?:{start:number,end:number}}} alloc - fractions
+ * @param {number} year
+ * @param {number} duration
+ * @returns {{equity:number,bond:number,cash:number}} fractions summing to 1
+ */
+export function targetMixForYear(alloc, year, duration) {
+  const cash = alloc.cash;
+  const growth = Math.max(0, 1 - cash);                    // == equity + bond
+  const share = glideShareForYear(alloc.equityGlide, year, duration);
+  if (share == null) return { equity: alloc.equity, bond: alloc.bond, cash };
+  return { equity: growth * share, bond: growth * (1 - share), cash };
+}
+
 /**
  * Calculates all glidepath values for a given point in time
  * @param {object} settings - Settings with equityMin, bondMin, cashTarget, duration

@@ -3059,7 +3059,8 @@
           cashTarget: wizardData.cashTarget,
           isaBalance: wizardData.isaBalance || 0,
           duration: wizardData.duration,
-          taxMode: wizardData.taxMode
+          taxMode: wizardData.taxMode,
+          equityGlideEnabled: wizardData.equityGlideEnabled || false
         };
 
         // Build decision settings from wizard data
@@ -3071,7 +3072,8 @@
           isaBalance: wizardData.decisionIsaBalance || 0,
           duration: wizardData.decisionDuration,
           spStartDate: wizardData.spStartDate,
-          spWeeklyAmount: wizardData.spWeeklyAmount
+          spWeeklyAmount: wizardData.spWeeklyAmount,
+          equityGlideEnabled: wizardData.decisionEquityGlideEnabled || false
         };
 
         // Create scenario with wizard data
@@ -3501,7 +3503,8 @@
                     duration: wizardData.duration,
                     baseSalary: wizardData.baseSalary,
                     other: wizardData.otherIncome || 0,
-                    taxMode: wizardData.taxMode || 'inflates'
+                    taxMode: wizardData.taxMode || 'inflates',
+                    equityGlideEnabled: wizardData.equityGlideEnabled || false
                   });
                   invalidateStressCache();
                 }
@@ -3514,7 +3517,8 @@
                     duration: wizardData.decisionDuration,
                     baseSalary: wizardData.decisionSalary,
                     spStartDate: wizardData.spStartDate || null,
-                    spWeeklyAmount: wizardData.spWeeklyAmount || 0
+                    spWeeklyAmount: wizardData.spWeeklyAmount || 0,
+                    equityGlideEnabled: wizardData.decisionEquityGlideEnabled || false
                   });
                   invalidateCache();
                 }

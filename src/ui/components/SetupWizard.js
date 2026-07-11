@@ -315,31 +315,17 @@ function renderStressStep(step) {
     case 4:
       return `
         <div class="wizard-step">
-          <div class="wizard-step-title">How big are your pension funds?</div>
+          <div class="wizard-step-title">Your pot &amp; risk level</div>
           <div class="wizard-step-desc">
-            Enter the minimum amount you want to keep in each type of investment at the start of retirement.
+            Enter your total pot, then pick a risk level — the buttons set how it's split across shares, bonds and cash.
           </div>
 
           <div class="wizard-grid">
             <div class="wizard-grid-item">
-              <label>Stocks/Shares (Higher Risk)</label>
+              <label>Total Pot (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
-                <input type="number" id="wizEquityMin" value="${wizardData.equityMin}">
-              </div>
-            </div>
-            <div class="wizard-grid-item">
-              <label>Bonds (Medium Risk)</label>
-              <div class="wizard-input">
-                <span class="wizard-unit">£</span>
-                <input type="number" id="wizBondMin" value="${wizardData.bondMin}">
-              </div>
-            </div>
-            <div class="wizard-grid-item">
-              <label>Cash (Low Risk)</label>
-              <div class="wizard-input">
-                <span class="wizard-unit">£</span>
-                <input type="number" id="wizCashTarget" value="${wizardData.cashTarget}">
+                <input type="number" id="wizPot" oninput="updateAllocDisplay('wiz')">
               </div>
             </div>
             <div class="wizard-grid-item">
@@ -350,6 +336,19 @@ function renderStressStep(step) {
               </div>
             </div>
           </div>
+
+          <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
+          <div id="wizRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('wiz','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('wiz','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('wiz','adventurous')">Adventurous</button>
+          </div>
+          <div id="wizAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
+
+          <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
+            <input type="checkbox" id="wizEquityGlide" onchange="updateAllocDisplay('wiz')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
+          </label>
 
           <div class="wizard-example">
             <strong>About your ISA:</strong> we assume the ISA is a steady money-market fund with low, stable growth, drawn tax-free to top up income. We don't model different ISA investment strategies — leave it at £0 if you don't have one.
@@ -485,24 +484,10 @@ function renderDecisionStep(step) {
 
           <div class="wizard-grid">
             <div class="wizard-grid-item">
-              <label>Stocks/Shares</label>
+              <label>Total Pot (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
-                <input type="number" id="wizDEquityMin" value="${wizardData.decisionEquity}">
-              </div>
-            </div>
-            <div class="wizard-grid-item">
-              <label>Bonds</label>
-              <div class="wizard-input">
-                <span class="wizard-unit">£</span>
-                <input type="number" id="wizDBondMin" value="${wizardData.decisionBond}">
-              </div>
-            </div>
-            <div class="wizard-grid-item">
-              <label>Cash</label>
-              <div class="wizard-input">
-                <span class="wizard-unit">£</span>
-                <input type="number" id="wizDCashTarget" value="${wizardData.decisionCash}">
+                <input type="number" id="wizDPot" oninput="updateAllocDisplay('wizD')">
               </div>
             </div>
             <div class="wizard-grid-item">
@@ -513,6 +498,19 @@ function renderDecisionStep(step) {
               </div>
             </div>
           </div>
+
+          <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
+          <div id="wizDRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('wizD','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('wizD','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('wizD','adventurous')">Adventurous</button>
+          </div>
+          <div id="wizDAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
+
+          <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
+            <input type="checkbox" id="wizDEquityGlide" onchange="updateAllocDisplay('wizD')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
+          </label>
 
           <div class="wizard-example">
             <strong>About your ISA:</strong> assumed to be a steady money-market fund with low, stable growth, drawn tax-free to keep income tax-efficient. We don't model different ISA strategies — leave at £0 if none.
@@ -604,6 +602,20 @@ function attachWizardListeners() {
   buttons.forEach(btn => {
     btn.addEventListener('click', () => handleAction(btn.dataset.action));
   });
+
+  // Initialise the shared Pot+risk+tent allocation control when its step is on screen (stress step 4 /
+  // decision allocation step). writeAlloc sets the pot and selects the nearest preset; then restore the
+  // saved bond-tent choice. The control's window functions live in index.html (available at runtime).
+  if (document.getElementById('wizRisks') && typeof window.writeAlloc === 'function') {
+    window.writeAlloc('wiz', wizardData.equityMin, wizardData.bondMin, wizardData.cashTarget);
+    const g = document.getElementById('wizEquityGlide');
+    if (g) { g.checked = !!wizardData.equityGlideEnabled; window.updateAllocDisplay('wiz'); }
+  }
+  if (document.getElementById('wizDRisks') && typeof window.writeAlloc === 'function') {
+    window.writeAlloc('wizD', wizardData.decisionEquity, wizardData.decisionBond, wizardData.decisionCash);
+    const g = document.getElementById('wizDEquityGlide');
+    if (g) { g.checked = !!wizardData.decisionEquityGlideEnabled; window.updateAllocDisplay('wizD'); }
+  }
 }
 
 /**
@@ -683,6 +695,7 @@ function handleAction(action) {
       wizardData.decisionCash = wizardData.cashTarget;
       wizardData.decisionIsaBalance = wizardData.isaBalance;
       wizardData.decisionDuration = wizardData.duration;
+      wizardData.decisionEquityGlideEnabled = wizardData.equityGlideEnabled;
       advanceToNextToolPhase('stress');
       break;
 
@@ -764,14 +777,15 @@ function saveCurrentInputs() {
   const spWeeklyAmount = document.getElementById('wizSpWeeklyAmount');
   if (spWeeklyAmount) wizardData.spWeeklyAmount = parseFloat(spWeeklyAmount.value) || 0;
 
-  const equityMin = document.getElementById('wizEquityMin');
-  if (equityMin) wizardData.equityMin = parseFloat(equityMin.value) || 250000;
-
-  const bondMin = document.getElementById('wizBondMin');
-  if (bondMin) wizardData.bondMin = parseFloat(bondMin.value) || 200000;
-
-  const cashTarget = document.getElementById('wizCashTarget');
-  if (cashTarget) wizardData.cashTarget = parseFloat(cashTarget.value) || 50000;
+  // Stress allocation from the Pot + risk buttons (readAlloc = Pot × the selected preset) + bond tent.
+  if (document.getElementById('wizPot') && typeof window.readAlloc === 'function') {
+    const a = window.readAlloc('wiz');
+    wizardData.equityMin = a.equityMin;
+    wizardData.bondMin = a.bondMin;
+    wizardData.cashTarget = a.cashTarget;
+  }
+  const wizGlide = document.getElementById('wizEquityGlide');
+  if (wizGlide) wizardData.equityGlideEnabled = wizGlide.checked;
 
   const isaBalance = document.getElementById('wizIsaBalance');
   if (isaBalance) wizardData.isaBalance = parseFloat(isaBalance.value) || 0;
@@ -786,14 +800,15 @@ function saveCurrentInputs() {
   const dBaseSalary = document.getElementById('wizDBaseSalary');
   if (dBaseSalary) wizardData.decisionSalary = parseFloat(dBaseSalary.value) || 30000;
 
-  const dEquityMin = document.getElementById('wizDEquityMin');
-  if (dEquityMin) wizardData.decisionEquity = parseFloat(dEquityMin.value) || 250000;
-
-  const dBondMin = document.getElementById('wizDBondMin');
-  if (dBondMin) wizardData.decisionBond = parseFloat(dBondMin.value) || 200000;
-
-  const dCashTarget = document.getElementById('wizDCashTarget');
-  if (dCashTarget) wizardData.decisionCash = parseFloat(dCashTarget.value) || 50000;
+  // Decision allocation from the Pot + risk buttons + bond tent.
+  if (document.getElementById('wizDPot') && typeof window.readAlloc === 'function') {
+    const a = window.readAlloc('wizD');
+    wizardData.decisionEquity = a.equityMin;
+    wizardData.decisionBond = a.bondMin;
+    wizardData.decisionCash = a.cashTarget;
+  }
+  const wizDGlide = document.getElementById('wizDEquityGlide');
+  if (wizDGlide) wizardData.decisionEquityGlideEnabled = wizDGlide.checked;
 
   const dIsaBalance = document.getElementById('wizDIsaBalance');
   if (dIsaBalance) wizardData.decisionIsaBalance = parseFloat(dIsaBalance.value) || 0;

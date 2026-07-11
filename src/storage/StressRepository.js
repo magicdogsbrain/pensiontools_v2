@@ -336,9 +336,10 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.
     spendingProfile: settings.spendingProfile || 'flat',
-    // Rising-equity glidepath (bond tent): the equity share glides over retirement, CENTRED on the
-    // chosen risk split (so the tent's time-average risk equals the static allocation). Derived from
-    // the equity:bond ratio (scale-invariant, so passing the raw £ minimums is fine). Opt-in.
+    // Rising-equity glidepath (bond tent): the equity share rises over the early years UP TO the chosen
+    // split (the ENDGAME/destination) and then holds — so the chosen allocation is where it settles, and
+    // the tent's time-average equity is BELOW it (more cautious early). Derived from the equity:bond
+    // ratio (scale-invariant, so passing the raw £ minimums is fine). Opt-in.
     equityGlide: settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined
   };
 }

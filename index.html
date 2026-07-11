@@ -4700,11 +4700,22 @@
       };
     };
     // Populate the control from three saved £ fund minimums: set the pot and select the nearest preset.
+    // With sliders gone there are no custom splits, so a saved split that isn't exactly a preset is
+    // matched to the nearest one — and we SAY SO (a no-op Save would otherwise rewrite it unseen).
     window.writeAlloc = function(p, equityMin, bondMin, cashTarget) {
       const pot = (+equityMin || 0) + (+bondMin || 0) + (+cashTarget || 0);
       document.getElementById(p + 'Pot').value = Math.round(pot);
+      const eqPct = pot > 0 ? Math.round((+equityMin || 0) / pot * 100) : 50;
+      const bdPct = pot > 0 ? Math.round((+bondMin || 0) / pot * 100) : 40;
       const key = pot > 0 ? nearestPresetKey((+equityMin || 0) / pot, (+bondMin || 0) / pot, (+cashTarget || 0) / pot) : 'balanced';
       setRiskPreset(p, key);
+      const preset = RISK_PRESETS[key];
+      if (pot > 0 && (eqPct !== Math.round(preset.equity * 100) || bdPct !== Math.round(preset.bond * 100))) {
+        const amt = document.getElementById(p + 'AllocAmounts');
+        if (amt) amt.innerHTML += '<div style="margin-top:8px;color:#b45309;font-size:12px;">Your saved split (' +
+          eqPct + '% / ' + bdPct + '% / ' + Math.max(0, 100 - eqPct - bdPct) + '%) was matched to the nearest risk level (<strong>' +
+          preset.label + '</strong>). Pick another if you prefer — saving keeps this one.</div>';
+      }
     };
 
     // --- Report export: print-to-PDF (browser print dialog → Save as PDF) + CSV -------------------
@@ -5915,7 +5926,7 @@
       if (!tentOn) {
         stageText = 'Flat (bond tent off)';
         rebalanceMsg = `Hold a steady ${mixText}. Rebalance back to this whenever it drifts.`;
-      } else if (planYear >= riseYears) {
+      } else if (planYear > riseYears) {
         stageText = `Holding — reached your mix at year ${riseYears}`;
         rebalanceMsg = `You've reached your endgame mix. Hold ${mixText}; no glide change this year.`;
       } else if (dEq > 0) {

@@ -146,17 +146,30 @@ export { cumulativeInflation as calculateCumulativeInflation, cappedInflation as
 export function generateGlidepathSchedule(settings, assumedInflation = INFLATION_DEFAULTS.ASSUMED_CPI) {
   const schedule = [];
 
+  // Bond tent: when enabled, re-split the growth floor each year by the same rising-equity glide the
+  // engine uses, so this schedule reflects the equity share RISING over the early years then holding —
+  // not the flat entered split. Cash is left alone. Off → unchanged (the original depleting floors).
+  const glide = settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : null;
+
   for (let year = 0; year <= settings.duration; year++) {
     const cumInf = Math.pow(1 + assumedInflation, year);
     const values = calculateAllGlidepaths(settings, year, cumInf);
 
+    let equityMin = values.equity, bondMin = values.bond;
+    if (glide) {
+      const share = glideShareForYear(glide, year, settings.duration);
+      const growthMin = equityMin + bondMin;
+      equityMin = growthMin * share;
+      bondMin = growthMin * (1 - share);
+    }
+
     schedule.push({
       year,
       cumulativeInflation: cumInf,
-      equityMin: values.equity,
-      bondMin: values.bond,
+      equityMin,
+      bondMin,
       cashTarget: values.cash,
-      totalMin: values.total
+      totalMin: equityMin + bondMin + values.cash
     });
   }
 

@@ -423,6 +423,12 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   const schedule = [];
   const yearlyInflation = [];
 
+  // ISA bridge: the tax-free ISA tops income up to the target each year (band management), and the
+  // remainder rolls up at the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal).
+  // This is a deterministic projection; the accurate stochastic ISA path is in the MC/Historical runs.
+  let isaBalance = settings.isaBalance || 0;
+  const isaReturn = Math.max(0, assumedInflation - 0.01);
+
   for (let year = 0; year <= duration; year++) {
     if (year > 0) yearlyInflation.push(assumedInflation);
 
@@ -444,6 +450,14 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
 
     const totalTaxable = calc.annualSippDraw + calc.other + calc.statePension;
     const tax = calculateTax(totalTaxable, calc.pa, calc.brl, calc.hrl);
+    const netIncome = totalTaxable - tax;
+
+    // Top the net income up to the inflating target from the ISA (capped by the balance), then grow
+    // the remainder. isaBalance recorded is the START-of-year balance (so it visibly runs down).
+    const target = (settings.baseSalary || 0) * cumInf;
+    const isaStart = isaBalance;
+    const isaDraw = Math.min(isaBalance, Math.max(0, target - netIncome));
+    isaBalance = (isaBalance - isaDraw) * (1 + isaReturn);
 
     schedule.push({
       year,
@@ -453,7 +467,11 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       sippDraw: calc.annualSippDraw,
       totalTaxable,
       tax,
-      netIncome: totalTaxable - tax
+      netIncome,
+      target,
+      isaDraw,
+      isaBalance: isaStart,
+      spendable: netIncome + isaDraw
     });
   }
 

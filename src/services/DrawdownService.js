@@ -12,6 +12,7 @@
 import { calculateTax, grossToNet, calculateBRLHeadroom } from './TaxCalculator.js';
 import { getRemainingTaxYearMonths } from '../utils/DateUtils.js';
 import { cappedInflation as calculateCappedInflation } from './InflationModel.js';
+import { planDrawdown } from './DrawdownStrategy.js';
 
 /**
  * Calculates the recommended SIPP draw based on tax efficiency
@@ -423,55 +424,51 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   const schedule = [];
   const yearlyInflation = [];
 
-  // ISA bridge: the tax-free ISA tops income up to the target each year (band management), and the
-  // remainder rolls up at the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal).
-  // This is a deterministic projection; the accurate stochastic ISA path is in the MC/Historical runs.
+  // ISA bridge + drawdown via the SAME planDrawdown the engine and Decision Tool use, so the SIPP/ISA
+  // split matches them exactly. baseSalary is a GROSS target: SIPP fills the basic-rate band, then the
+  // ISA tops the NET take-home up to the take-home of that gross salary. The remaining ISA rolls up at
+  // the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal). Deterministic projection.
   let isaBalance = settings.isaBalance || 0;
   const isaReturn = Math.max(0, assumedInflation - 0.01);
 
   for (let year = 0; year <= duration; year++) {
-    if (year > 0) yearlyInflation.push(assumedInflation);
-
     const cumInf = Math.pow(1 + assumedInflation, year);
+    const pa = settings.taxMode === 'frozen' ? settings.pa : settings.pa * cumInf;
+    const brl = settings.taxMode === 'frozen' ? settings.brl : settings.brl * cumInf;
+    const hrl = settings.taxMode === 'frozen' ? (settings.hrl || 125140) : (settings.hrl || 125140) * cumInf;
 
-    const calc = calculateSIPPDraw({
-      baseSalary: settings.baseSalary,
-      cumulativeInflation: cumInf,
-      yearlyInflation: [...yearlyInflation],
-      other: settings.other,
-      statePension: settings.statePension,
-      statePensionYear: settings.statePensionYear,
-      yearNumber: year,
-      pa: settings.pa,
-      brl: settings.brl,
-      hrl: settings.hrl,
-      taxMode: settings.taxMode
+    // Declining-spending profile (matches SimulationEngine.spendingFactor): -1%/yr, floored at 75%.
+    const spendFactor = settings.spendingProfile === 'declining' ? Math.max(0.75, Math.pow(0.99, year)) : 1;
+    const target = (settings.baseSalary || 0) * cumInf * spendFactor;
+
+    const other = (settings.other || 0) * cumInf;
+    const statePension = (settings.statePensionYear !== undefined && year >= settings.statePensionYear)
+      ? (settings.statePension || 0) * cumInf : 0;
+    const fixed = other + statePension;
+    const yearsUntilSp = Math.max(0, (settings.statePensionYear ?? 0) - year);
+
+    const plan = planDrawdown({
+      targetGross: target, fixedIncome: fixed, pa, brl, hrl,
+      isaBalance, strategy: settings.isaDrawdownStrategy, yearsUntilSp
     });
 
-    const totalTaxable = calc.annualSippDraw + calc.other + calc.statePension;
-    const tax = calculateTax(totalTaxable, calc.pa, calc.brl, calc.hrl);
-    const netIncome = totalTaxable - tax;
-
-    // Top the net income up to the inflating target from the ISA (capped by the balance), then grow
-    // the remainder. isaBalance recorded is the START-of-year balance (so it visibly runs down).
-    const target = (settings.baseSalary || 0) * cumInf;
+    const netFromTaxable = plan.taxable - plan.tax; // SIPP + fixed income, net of tax
     const isaStart = isaBalance;
-    const isaDraw = Math.min(isaBalance, Math.max(0, target - netIncome));
-    isaBalance = (isaBalance - isaDraw) * (1 + isaReturn);
+    isaBalance = plan.remainingIsa * (1 + isaReturn);
 
     schedule.push({
       year,
-      brl: calc.brl,
-      other: calc.other,
-      statePension: calc.statePension,
-      sippDraw: calc.annualSippDraw,
-      totalTaxable,
-      tax,
-      netIncome,
+      brl,
+      other,
+      statePension,
+      sippDraw: plan.sippGross,
+      totalTaxable: plan.taxable,
+      tax: plan.tax,
+      netIncome: netFromTaxable,
       target,
-      isaDraw,
+      isaDraw: plan.isaDraw,
       isaBalance: isaStart,
-      spendable: netIncome + isaDraw
+      spendable: plan.net
     });
   }
 

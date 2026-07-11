@@ -11,6 +11,7 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constan
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
+import { equityGlideFromRisk } from '../services/GlidepathService.js';
 import {
   getActiveStressSettings,
   saveActiveStressSettings,
@@ -335,7 +336,9 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.
     spendingProfile: settings.spendingProfile || 'flat',
-    // Rising-equity glidepath (bond tent): 30% equity early rising to 70% late. Opt-in.
-    equityGlide: settings.equityGlideEnabled ? { start: 0.30, end: 0.70 } : undefined
+    // Rising-equity glidepath (bond tent): the equity share glides over retirement, CENTRED on the
+    // chosen risk split (so the tent's time-average risk equals the static allocation). Derived from
+    // the equity:bond ratio (scale-invariant, so passing the raw £ minimums is fine). Opt-in.
+    equityGlide: settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined
   };
 }

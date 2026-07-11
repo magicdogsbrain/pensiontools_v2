@@ -1992,24 +1992,38 @@
           <div class="card">
             <h2>Decision Tool Settings</h2>
 
-            <h3 style="margin-top: 16px;">Fund Minimums (Year 0 baseline)</h3>
+            <h3 style="margin-top: 16px;">Starting Pot &amp; Allocation</h3>
             <div class="form-grid">
               <div class="form-group">
-                <label>Equity Minimum (£)</label>
-                <input type="number" id="dsEquityMin" value="250000">
-              </div>
-              <div class="form-group">
-                <label>Bond Minimum (£)</label>
-                <input type="number" id="dsBondMin" value="200000">
-              </div>
-              <div class="form-group">
-                <label>Cash Target (£)</label>
-                <input type="number" id="dsCashTarget" value="50000">
+                <label>Total Pot (£)</label>
+                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')">
               </div>
               <div class="form-group">
                 <label>Depletion Duration (years)</label>
                 <input type="number" id="dsDuration" value="35">
               </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Risk level</label>
+              <div id="dsRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">Cautious</button>
+                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">Balanced</button>
+                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">Adventurous</button>
+              </div>
+            </div>
+
+            <div id="dsAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label style="display:flex; align-items:center; cursor:pointer;">
+                <input type="checkbox" id="dsEquityGlide" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
+              </label>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                When on, the Decision Tool's monthly withdrawal and rebalancing advice follows this rising-equity path, and each year's report tells you the target mix to hold.
+              </p>
+              <div id="dsGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
 
             <h3 style="margin-top: 24px;">Income Settings</h3>
@@ -2166,7 +2180,7 @@
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
-              <button id="optimiseBtnMC" onclick="runOptimisationUI('MC')" class="secondary">Optimise Allocation</button>
+              <button id="optimiseBtnMC" onclick="runCompareStrategiesUI('MC')" class="secondary">Compare strategies</button>
             </div>
           </div>
           <div id="mcResults"></div>
@@ -2187,7 +2201,7 @@
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runHistoricalUI()">Run Historical Analysis</button>
-              <button id="optimiseBtnHist" onclick="runOptimisationUI('Hist')" class="secondary">Optimise Allocation</button>
+              <button id="optimiseBtnHist" onclick="runCompareStrategiesUI('Hist')" class="secondary">Compare strategies</button>
             </div>
           </div>
           <div id="histResults"></div>
@@ -2267,27 +2281,57 @@
               <strong>Target:</strong> The total yearly income you want from all sources. This combines your SIPP withdrawals, other pensions, and state pension.
             </div>
 
-            <h3 style="margin-top: 24px;">Fund Minimums (Year 0, real terms)</h3>
-            <div id="ssGlideMinNote" class="starting-note" style="display:none;">
-              <strong>Rising-equity glidepath is on</strong> — the split between Equity and Bond below is set automatically (30%→70% over retirement). Only their <em>total</em> is used; the Cash target still applies.
-            </div>
+            <style>
+              .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
+              .risk-btn:hover { border-color:#6366f1; }
+              .risk-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; font-weight:600; }
+              #ssEquityPct, #ssBondPct { accent-color:#6366f1; }
+              #printPortal { display: none; }
+              .rpt-header h1 { font-size: 20px; margin: 0 0 4px; }
+              .rpt-header .rpt-sub { color: #555; font-size: 13px; margin-bottom: 10px; }
+              .rpt-meta { border-collapse: collapse; font-size: 12px; margin-bottom: 16px; width: 100%; max-width: 640px; }
+              .rpt-meta td { border: 1px solid #ccc; padding: 4px 8px; }
+              .rpt-meta td:nth-child(odd) { color: #666; white-space: nowrap; }
+              @media print {
+                body.printing > *:not(#printPortal) { display: none !important; }
+                #printPortal { display: block !important; padding: 12px; }
+                .no-print { display: none !important; }
+                #printPortal input, #printPortal select, #printPortal textarea { border: none !important; background: transparent !important; padding: 0 !important; -webkit-appearance: none; appearance: none; color: #000 !important; }
+                #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
+              }
+            </style>
+            <h3 style="margin-top: 24px;">Starting Pot &amp; Allocation</h3>
             <div class="form-grid">
               <div class="form-group">
-                <label>Equity Minimum (£)</label>
-                <input type="number" id="ssEquityMin" value="250000">
-              </div>
-              <div class="form-group">
-                <label>Bond Minimum (£)</label>
-                <input type="number" id="ssBondMin" value="200000">
-              </div>
-              <div class="form-group">
-                <label>Cash Target (£)</label>
-                <input type="number" id="ssCashTarget" value="50000">
+                <label>Total Pot (£)</label>
+                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')">
               </div>
               <div class="form-group">
                 <label>Duration (years)</label>
                 <input type="number" id="ssDuration" value="35">
               </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Risk level</label>
+              <div id="ssRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">Cautious</button>
+                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">Balanced</button>
+                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">Adventurous</button>
+              </div>
+            </div>
+
+            <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label style="display:flex; align-items:center; cursor:pointer;">
+                <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
+              </label>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Holds least in shares when the pot is largest and most exposed to an early crash, then raises shares once that danger passes (Pfau-Kitces). Typically helps the worst cases but can slightly lower typical growth — run it and compare. Your risk level stays the average.
+              </p>
+              <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
             <div class="alert alert-info" style="margin-top: 12px;">
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
@@ -2407,17 +2451,6 @@
               </p>
             </div>
 
-            <div class="form-group" style="margin-top: 16px;">
-              <label style="display:flex;align-items:center;">
-                <input type="checkbox" id="ssEquityGlide" style="width:auto;margin-right:8px;" onchange="toggleGlideMinNote()">
-                Rising-equity glidepath (bond tent)
-              </label>
-              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Hold more bonds early (30% equity) and rebalance toward equity later (70%) — least equity when the pot is largest and most exposed to an early crash. Targets sequence-of-returns risk (Pfau-Kitces). It typically helps the worst cases but can slightly lower median growth — run it and compare.
-                <strong>When this is on, it sets the equity-vs-bond split automatically</strong> — only the <em>total</em> of your Equity + Bond minimums above is used (cash is unaffected).
-              </p>
-            </div>
-
             <div class="button-row" style="margin-top: 24px;">
               <button onclick="saveStressSettingsUI()">Save Settings</button>
               <button class="secondary" onclick="resetStressSettingsUI()">Reset to Defaults</button>
@@ -2474,7 +2507,7 @@
 
     // Import additional services
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
-    import { generateGlidepathSchedule } from './src/services/GlidepathService.js';
+    import { generateGlidepathSchedule, RISK_PRESETS, equityGlideFromRisk, targetMixForYear } from './src/services/GlidepathService.js';
     import { resetStressSettings, invalidateStressCache, createSimulationConfigFromSettings } from './src/storage/StressRepository.js';
     import {
       invalidateScenarioCache,
@@ -2952,11 +2985,11 @@
         document.getElementById('entryCash').value = decisionSettings.cashTarget || 50000;
         document.getElementById('entryIsa').value = decisionSettings.isaBalance || 0;
 
-        // Pre-fill Decision Tool settings
-        document.getElementById('dsEquityMin').value = decisionSettings.equityMin || 250000;
-        document.getElementById('dsBondMin').value = decisionSettings.bondMin || 200000;
-        document.getElementById('dsCashTarget').value = decisionSettings.cashTarget || 50000;
+        // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
+        writeAlloc('ds', decisionSettings.equityMin || 250000, decisionSettings.bondMin || 200000, decisionSettings.cashTarget || 50000);
+        document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
+        updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
         // State Pension (new fields)
         document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
@@ -2972,9 +3005,7 @@
 
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
-        document.getElementById('ssEquityMin').value = stressSettings.equityMin;
-        document.getElementById('ssBondMin').value = stressSettings.bondMin;
-        document.getElementById('ssCashTarget').value = stressSettings.cashTarget;
+        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget);
         document.getElementById('ssDuration').value = stressSettings.duration;
         document.getElementById('ssPA').value = stressSettings.pa;
         document.getElementById('ssBRL').value = stressSettings.brl;
@@ -2992,7 +3023,7 @@
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = stressSettings.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
-        toggleGlideMinNote();
+        updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -3680,8 +3711,14 @@
     // The decision engine lives in src/services/legacyDecision.js. Build its deps
     // (storage reads) here and delegate. History must be the full, ascending list.
     async function calcDecisionWithDeps(dateStr, equity, bond, cash) {
+      const settings = await getDecisionSettingsAsync();
+      // Bond tent: when enabled, hand the engine a rising-equity glide centred on the plan's risk
+      // split (same helper the Stress engine uses), so the monthly draw + rebalance advice follows it.
+      const decisionSettings = settings.equityGlideEnabled
+        ? { ...settings, equityGlide: equityGlideFromRisk(settings.equityMin, settings.bondMin) }
+        : settings;
       return calcDecisionPWA(dateStr, equity, bond, cash, {
-        settings: await getDecisionSettingsAsync(),
+        settings: decisionSettings,
         history: await getHistoryAsync(),
         allTaxYears: await getAllTaxYearsAsync(),
         spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)),
@@ -4173,15 +4210,11 @@
 
     // Apply optimised allocation to settings
     window.applyOptimisedAllocationUI = async function(equity, bond, cash) {
-      // Update stress settings
-      document.getElementById('ssEquityMin').value = equity;
-      document.getElementById('ssBondMin').value = bond;
-      document.getElementById('ssCashTarget').value = cash;
+      // Update stress settings (Pot + allocation sliders)
+      writeAlloc('ss', equity, bond, cash);
 
       // Update decision settings
-      document.getElementById('dsEquityMin').value = equity;
-      document.getElementById('dsBondMin').value = bond;
-      document.getElementById('dsCashTarget').value = cash;
+      writeAlloc('ds', equity, bond, cash);
 
       // Refresh the stress sub-tab "starting from Settings" summaries with the new split.
       renderStressStartSummary({ equityMin: equity, bondMin: bond, cashTarget: cash, duration: parseInt(document.getElementById('ssDuration').value) || 35 });
@@ -4417,7 +4450,7 @@
         </div>
         <div style="margin-bottom:8px;">
           <div class="chart-caption">Typical ISA balance still to hand, year by year (today's money — hover a point for the figure). A slow, steady fall means it's being drawn as intended; a flat line means it's barely touched (larger than this plan needs); a drop to £0 marks when it typically runs out.</div>
-          ${lineChartSvg(isa.medianAliveByYear, { valueFmt: _gbp, tip: (v, i) => `Year ${i}: typically ${_gbp(v)} of ISA left` })}
+          ${lineChartSvg(isa.medianIsaByYear, { valueFmt: _gbp, tip: (v, i) => `Year ${i}: typically ${_gbp(v)} of ISA left` })}
         </div>`;
     }
 
@@ -4582,22 +4615,235 @@
       }, 50);
     }
 
-    // Load stress settings into UI
-    // Show/hide the "split is automatic" note by the Fund Minimums when the glidepath is toggled.
-    window.toggleGlideMinNote = function() {
-      const on = document.getElementById('ssEquityGlide') && document.getElementById('ssEquityGlide').checked;
-      const note = document.getElementById('ssGlideMinNote');
-      if (note) note.style.display = on ? 'block' : 'none';
+    // --- Allocation input (Pot + risk buttons + bond tent) — shared by Stress, Decision & wizard -----
+    // Allocation is picked with ONE of three preset buttons (no sliders). The chosen preset is the
+    // ENDGAME mix; the engine runs on three £ fund minimums derived as Pot × each %. Every element id
+    // is `<p>` + a fixed suffix where p = 'ss' | 'ds' | 'wiz', so one implementation drives all three.
+    function activePreset(p) {
+      const btn = document.querySelector('#' + p + 'Risks .risk-btn.active');
+      return (btn && RISK_PRESETS[btn.dataset.risk]) || RISK_PRESETS.balanced;
+    }
+    function nearestPresetKey(eq, bd, csh) {
+      let best = 'balanced', bestD = Infinity;
+      for (const k in RISK_PRESETS) {
+        const pr = RISK_PRESETS[k];
+        const d = (pr.equity - eq) ** 2 + (pr.bond - bd) ** 2 + (pr.cash - csh) ** 2;
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      return best;
+    }
+    window.updateAllocDisplay = function(p) {
+      const preset = activePreset(p);
+      const eq = Math.round(preset.equity * 100), bd = Math.round(preset.bond * 100), csh = Math.round(preset.cash * 100);
+      const pot = +document.getElementById(p + 'Pot').value || 0;
+      const amt = document.getElementById(p + 'AllocAmounts');
+      if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds &middot; ' + csh + '% cash<br>' +
+        '<span style="color:var(--text-muted);">£' + Math.round(pot * eq / 100).toLocaleString() + ' shares &middot; £' +
+        Math.round(pot * bd / 100).toLocaleString() + ' bonds &middot; £' + Math.round(pot * csh / 100).toLocaleString() + ' cash</span>';
+      const glideEl = document.getElementById(p + 'EquityGlide');
+      const on = !!(glideEl && glideEl.checked);
+      const note = document.getElementById(p + 'GlideMinNote');
+      if (note) {
+        if (!on) { note.style.display = 'none'; }
+        else { note.style.display = 'block'; note.innerHTML = glidePreviewHtml(p, preset); }
+      }
     };
+    // Stacked-band picture of the rise-then-plateau glide: bond-heavy at the START, gliding UP to the
+    // chosen (endgame) mix over the first (duration-20) years, then holding flat. Cash stays level.
+    function glidePreviewHtml(p, preset) {
+      const durEl = document.getElementById(p + 'Duration');
+      const duration = (durEl && +durEl.value) || 35;
+      const riseYears = Math.max(5, duration - 20);
+      const cash = preset.cash, growth = 1 - cash;
+      const g = equityGlideFromRisk(preset.equity, preset.bond);
+      const shStart = Math.round(growth * g.start * 100), shEnd = Math.round(preset.equity * 100);
+      const bdStart = Math.round(growth * (1 - g.start) * 100), bdEnd = Math.round(preset.bond * 100);
+      const cshPct = Math.round(cash * 100);
+      // SVG geometry: value fraction (from the bottom) → y, top(100%)=18, bottom(0%)=104. The bond/share
+      // boundary rises (bonds shrink) from x0 to xRise, then is flat to x1.
+      const X0 = 6, X1 = 314, YT = 18, YB = 104, H = YB - YT;
+      const yOf = v => (YB - v * H).toFixed(1);
+      const xRise = (X0 + (X1 - X0) * Math.min(1, riseYears / duration)).toFixed(1);
+      const cashTop = yOf(cash);
+      const bTopStart = yOf(cash + growth * (1 - g.start)), bTopEnd = yOf(cash + growth * (1 - g.end));
+      const sw = '#6366f1', bw = '#14b8a6', cw = '#94a3b8';
+      const svg =
+        '<svg viewBox="0 0 320 122" style="width:100%;height:auto;display:block;" preserveAspectRatio="none">' +
+        `<polygon points="${X0},${YB} ${X1},${YB} ${X1},${cashTop} ${X0},${cashTop}" fill="${cw}"></polygon>` +
+        `<polygon points="${X0},${cashTop} ${X1},${cashTop} ${X1},${bTopEnd} ${xRise},${bTopEnd} ${X0},${bTopStart}" fill="${bw}"></polygon>` +
+        `<polygon points="${X0},${bTopStart} ${xRise},${bTopEnd} ${X1},${bTopEnd} ${X1},${YT} ${X0},${YT}" fill="${sw}"></polygon>` +
+        `<line x1="${xRise}" y1="${YT}" x2="${xRise}" y2="${YB}" stroke="rgba(148,163,184,0.9)" stroke-width="1" stroke-dasharray="3,2"></line>` +
+        '</svg>';
+      const swatch = c => `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:middle;"></span>`;
+      return '<div style="font-weight:600;margin-bottom:6px;">How your mix glides over ' + duration + ' years</div>' +
+        svg +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:3px;"><span>Now</span><span>reaches your mix at year ' + riseYears + ', then holds</span></div>' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:8px;">' +
+          '<span><strong>Starts</strong><br>' + shStart + '% shares · ' + bdStart + '% bonds · ' + cshPct + '% cash</span>' +
+          '<span style="text-align:right;"><strong>Then holds (' + preset.label + ')</strong><br>' + shEnd + '% shares · ' + bdEnd + '% bonds · ' + cshPct + '% cash</span>' +
+        '</div>' +
+        '<div style="font-size:12px;margin-top:8px;">' + swatch(sw) + ' Shares &nbsp; ' + swatch(bw) + ' Bonds &nbsp; ' + swatch(cw) + ' Cash</div>';
+    }
+    window.setRiskPreset = function(p, key) {
+      if (!RISK_PRESETS[key]) return;
+      document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.toggle('active', b.dataset.risk === key));
+      updateAllocDisplay(p);
+    };
+    // Read the three £ fund minimums the engine uses (Pot × the chosen preset's split).
+    window.readAlloc = function(p) {
+      const pot = +document.getElementById(p + 'Pot').value || 0;
+      const preset = activePreset(p);
+      return {
+        equityMin: Math.round(pot * preset.equity),
+        bondMin: Math.round(pot * preset.bond),
+        cashTarget: Math.round(pot * preset.cash)
+      };
+    };
+    // Populate the control from three saved £ fund minimums: set the pot and select the nearest preset.
+    window.writeAlloc = function(p, equityMin, bondMin, cashTarget) {
+      const pot = (+equityMin || 0) + (+bondMin || 0) + (+cashTarget || 0);
+      document.getElementById(p + 'Pot').value = Math.round(pot);
+      const key = pot > 0 ? nearestPresetKey((+equityMin || 0) / pot, (+bondMin || 0) / pot, (+cashTarget || 0) / pot) : 'balanced';
+      setRiskPreset(p, key);
+    };
+
+    // --- Report export: print-to-PDF (browser print dialog → Save as PDF) + CSV -------------------
+    // A standalone plan header so any exported record stands on its own.
+    function decisionPlanHeaderHtml(s, subtitle) {
+      const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+      const key = pot > 0 ? nearestPresetKey(s.equityMin / pot, s.bondMin / pot, s.cashTarget / pot) : 'balanced';
+      const preset = RISK_PRESETS[key];
+      const gbp = v => '£' + Math.round(v || 0).toLocaleString();
+      const mix = Math.round(preset.equity * 100) + '/' + Math.round(preset.bond * 100) + '/' + Math.round(preset.cash * 100);
+      return `<div class="rpt-header">
+        <h1>Pension Decision Plan</h1>
+        <div class="rpt-sub">${subtitle || ''}</div>
+        <table class="rpt-meta"><tbody>
+          <tr><td>Total pot</td><td>${gbp(pot)}</td><td>Risk level</td><td>${preset.label} (${mix})</td></tr>
+          <tr><td>Bond tent</td><td>${s.equityGlideEnabled ? 'On — rising-equity glidepath' : 'Off'}</td><td>Target income</td><td>${gbp(s.baseSalary)}/yr</td></tr>
+          <tr><td>Duration</td><td>${s.duration || 35} yrs</td><td>Generated</td><td>${new Date().toLocaleDateString('en-GB')}</td></tr>
+        </tbody></table>
+      </div>`;
+    }
+    // Clone the report into a top-level portal and print; @media print hides everything else, so app
+    // styling is preserved without opening a popup window. Cleared on afterprint.
+    function printPortal(html) {
+      let portal = document.getElementById('printPortal');
+      if (!portal) { portal = document.createElement('div'); portal.id = 'printPortal'; document.body.appendChild(portal); }
+      portal.innerHTML = html;
+      document.body.classList.add('printing');
+      window.print();
+    }
+    window.addEventListener('afterprint', () => {
+      document.body.classList.remove('printing');
+      const p = document.getElementById('printPortal'); if (p) p.innerHTML = '';
+    });
+    function downloadFile(filename, text, type) {
+      const blob = new Blob([text], { type: type || 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    window.printAnnualReport = async function(taxYear) {
+      const s = await getDecisionSettingsAsync();
+      printPortal(decisionPlanHeaderHtml(s, 'Annual report — tax year ' + taxYear) + document.getElementById('taxYearDetail').innerHTML);
+    };
+    window.printMonthlyReport = async function(dateStr) {
+      const s = await getDecisionSettingsAsync();
+      printPortal(decisionPlanHeaderHtml(s, 'Monthly record — ' + dateStr) + document.getElementById('historyDetail').innerHTML);
+    };
+    window.exportAnnualCsv = function(taxYear) {
+      const rows = (typeof allHistoryData !== 'undefined' ? allHistoryData : []).filter(h => h.taxYear === taxYear).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const esc = v => { v = (v == null ? '' : String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      const r0 = v => Math.round(v || 0);
+      const cols = ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
+      let csv = cols.map(esc).join(',') + '\n';
+      for (const h of rows) csv += [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || ''].map(esc).join(',') + '\n';
+      if (!rows.length) csv += '(no monthly records saved for this tax year yet)\n';
+      downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
+    };
+
+    // --- Compare strategies: the 3 risk levels × tent off/on, by coverage (replaces the old sweep) ---
+    // Risk level is the retiree's PREFERENCE, so we never crown a single "best split" that overrides
+    // it — we show all six so they can weigh coverage vs the risk they're comfortable holding.
+    window.runCompareStrategiesUI = async function(testType) {
+      const btn = document.getElementById('optimiseBtn' + testType);
+      const resultsDiv = document.getElementById('optimiseResults' + testType);
+      if (btn) { btn.disabled = true; btn.textContent = 'Comparing...'; }
+      if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running six strategies…</div>';
+
+      const s = JSON.parse(JSON.stringify(await getStressSettingsAsync()));
+      const yearsEl = document.getElementById(testType === 'MC' ? 'mcYears' : 'histYears');
+      const years = parseInt(yearsEl && yearsEl.value) || s.duration;
+      const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+      const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+      const maxY = Math.max(...yrs);
+
+      const evalCfg = (cfg) => {
+        const results = [];
+        if (testType === 'MC') {
+          for (let i = 0; i < 1000; i++) results.push(simulate(cfg, monteCarloReturns(cfg, i), i));
+        } else {
+          yrs.forEach(sy => {
+            if (sy + years - 1 > maxY) return;
+            const ret = { equity: {}, inflation: {} };
+            for (let y = 0; y < years; y++) { ret.equity[y] = EQUITY_RETURNS[sy + y] || 0; ret.inflation[y] = INFLATION[sy + y] || 0.025; }
+            results.push(simulate(cfg, ret, sy));
+          });
+        }
+        const n = results.length || 1;
+        const coverage = results.reduce((a, r) => a + Math.min(1, (r.years || 0) / (r.duration || years)), 0) / n * 100;
+        const rate = results.filter(r => !r.failed).length / n * 100;
+        const minYears = results.reduce((m, r) => Math.min(m, r.years || 0), Infinity);
+        return { coverage, rate, minYears: minYears === Infinity ? 0 : minYears };
+      };
+
+      const order = ['cautious', 'balanced', 'adventurous'];
+      const grid = {};
+      for (const key of order) {
+        const preset = RISK_PRESETS[key];
+        grid[key] = {};
+        for (const tent of [false, true]) {
+          const allocSettings = { ...s, equityMin: Math.round(pot * preset.equity), bondMin: Math.round(pot * preset.bond), cashTarget: Math.round(pot * preset.cash), equityGlideEnabled: tent };
+          const cfg = createSimulationConfigFromSettings({ years }, allocSettings);
+          grid[key][tent ? 'tent' : 'flat'] = evalCfg(cfg);
+          await new Promise(r => setTimeout(r, 0)); // yield so the spinner paints
+        }
+      }
+      renderCompareGrid(resultsDiv, grid, order);
+      if (btn) { btn.disabled = false; btn.textContent = 'Compare strategies'; }
+    };
+    function renderCompareGrid(el, grid, order) {
+      let best = { cov: -1, key: null, tent: null };
+      for (const key of order) for (const t of ['flat', 'tent']) {
+        if (grid[key][t].coverage > best.cov) best = { cov: grid[key][t].coverage, key, tent: t };
+      }
+      const cell = (g, isBest) => `<td style="text-align:center;padding:10px;border:1px solid var(--border);${isBest ? 'background:rgba(16,185,129,0.12);' : ''}">
+          <div style="font-size:22px;font-weight:700;color:var(--${isBest ? 'success' : 'text'});">${g.coverage.toFixed(0)}%</div>
+          <div style="font-size:11px;color:var(--text-muted);">worst case ${g.minYears.toFixed(0)} yrs</div>
+        </td>`;
+      let h = '<h3 style="margin-bottom:6px;">Compare strategies</h3>';
+      h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">Coverage = the share of your retirement years the pot funds (worst case = the fewest years it lasted in any run). More shares usually buys a little more coverage but a rougher ride; the bond tent mainly lifts the worst case. Pick the risk level you\'re comfortable holding — the tool won\'t change it for you.</p>';
+      h += '<table style="border-collapse:collapse;width:100%;max-width:520px;"><thead><tr><th style="text-align:left;padding:8px;"></th><th style="padding:8px;">Flat</th><th style="padding:8px;">+ Bond tent</th></tr></thead><tbody>';
+      for (const key of order) {
+        const p = RISK_PRESETS[key];
+        h += `<tr><td style="padding:8px;border:1px solid var(--border);"><strong>${p.label}</strong><br><span style="font-size:11px;color:var(--text-muted);">${Math.round(p.equity * 100)}/${Math.round(p.bond * 100)}/${Math.round(p.cash * 100)}</span></td>`;
+        h += cell(grid[key].flat, best.key === key && best.tent === 'flat');
+        h += cell(grid[key].tent, best.key === key && best.tent === 'tent');
+        h += '</tr>';
+      }
+      h += '</tbody></table>';
+      h += `<p style="margin-top:12px;font-size:13px;">Best coverage: <strong>${RISK_PRESETS[best.key].label}${best.tent === 'tent' ? ' + bond tent' : ''}</strong> at ${best.cov.toFixed(0)}%. Set it in Settings if you'd like it.</p>`;
+      if (el) el.innerHTML = h;
+    }
 
     async function loadStressSettings() {
       showLoading('Loading settings...');
       try {
         const s = await getStressSettingsAsync();
         document.getElementById('ssBaseSalary').value = s.baseSalary;
-        document.getElementById('ssEquityMin').value = s.equityMin;
-        document.getElementById('ssBondMin').value = s.bondMin;
-        document.getElementById('ssCashTarget').value = s.cashTarget;
+        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget);
         document.getElementById('ssDuration').value = s.duration;
         document.getElementById('ssPA').value = s.pa;
         document.getElementById('ssBRL').value = s.brl;
@@ -4615,7 +4861,7 @@
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
-        toggleGlideMinNote();
+        updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -4652,19 +4898,16 @@
 
       // Soft plausibility guard: the sims start from these Fund Minimums, so catch values
       // probably typed in thousands before saving.
-      if (!confirmFundsIfLow(
-        +document.getElementById('ssEquityMin').value,
-        +document.getElementById('ssBondMin').value,
-        +document.getElementById('ssCashTarget').value
-      )) return;
+      const ssAlloc = readAlloc('ss');
+      if (!confirmFundsIfLow(ssAlloc.equityMin, ssAlloc.bondMin, ssAlloc.cashTarget)) return;
 
       showLoading('Saving settings...');
       try {
         await saveStressSettings({
           baseSalary: +document.getElementById('ssBaseSalary').value,
-          equityMin: +document.getElementById('ssEquityMin').value,
-          bondMin: +document.getElementById('ssBondMin').value,
-          cashTarget: +document.getElementById('ssCashTarget').value,
+          equityMin: ssAlloc.equityMin,
+          bondMin: ssAlloc.bondMin,
+          cashTarget: ssAlloc.cashTarget,
           duration: +document.getElementById('ssDuration').value,
           pa: +document.getElementById('ssPA').value,
           brl: +document.getElementById('ssBRL').value,
@@ -4737,10 +4980,10 @@
       showLoading('Loading settings...');
       try {
         const s = await getDecisionSettingsAsync();
-        document.getElementById('dsEquityMin').value = s.equityMin || 250000;
-        document.getElementById('dsBondMin').value = s.bondMin || 200000;
-        document.getElementById('dsCashTarget').value = s.cashTarget || 50000;
         document.getElementById('dsDuration').value = s.duration || 35;
+        writeAlloc('ds', s.equityMin || 250000, s.bondMin || 200000, s.cashTarget || 50000);
+        document.getElementById('dsEquityGlide').checked = s.equityGlideEnabled || false;
+        updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
@@ -4780,19 +5023,17 @@
       }
 
       // Soft plausibility guard for the fund minimums.
-      if (!confirmFundsIfLow(
-        +document.getElementById('dsEquityMin').value,
-        +document.getElementById('dsBondMin').value,
-        +document.getElementById('dsCashTarget').value
-      )) return;
+      const dsAlloc = readAlloc('ds');
+      if (!confirmFundsIfLow(dsAlloc.equityMin, dsAlloc.bondMin, dsAlloc.cashTarget)) return;
 
       showLoading('Saving settings...');
       try {
         await saveDecisionSettings({
-          equityMin: +document.getElementById('dsEquityMin').value,
-          bondMin: +document.getElementById('dsBondMin').value,
-          cashTarget: +document.getElementById('dsCashTarget').value,
+          equityMin: dsAlloc.equityMin,
+          bondMin: dsAlloc.bondMin,
+          cashTarget: dsAlloc.cashTarget,
           duration: +document.getElementById('dsDuration').value,
+          equityGlideEnabled: document.getElementById('dsEquityGlide').checked,
           baseSalary: +document.getElementById('dsBaseSalary').value,
           // State Pension (new fields)
           spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
@@ -5080,6 +5321,9 @@
       }
 
       let html = `
+        <div class="no-print" style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn secondary" onclick="printMonthlyReport('${h.date}')">Download PDF</button>
+        </div>
         <!-- Header with date and mode -->
         <div class="history-detail-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -5136,6 +5380,10 @@
                 <div class="history-field">
                   <label>Cash Target</label>
                   <span class="value">${fmt(h.adjCash)}</span>
+                </div>
+                <div class="history-field">
+                  <label>Shares vs bonds (target)</label>
+                  <span class="value">${(h.adjEquity + h.adjBond) > 0 ? Math.round(h.adjEquity / (h.adjEquity + h.adjBond) * 100) + '% / ' + Math.round(h.adjBond / (h.adjEquity + h.adjBond) * 100) + '%' : '—'}</span>
                 </div>
                 <div class="history-field">
                   <label>Surplus</label>
@@ -5645,7 +5893,51 @@
       const fmt = (val) => val !== undefined && val !== null ? '£' + Math.round(val).toLocaleString() : '—';
       const fmtPct = (val) => val !== undefined && val !== null ? (val * 100).toFixed(1) + '%' : '—';
 
-      let html = `
+      // This year's target asset mix + bond-tent glide stage + rebalance instruction. The plan year is
+      // the tax year's start minus 2026 (same 0-based convention as the engine's getYearNum).
+      const dPot = (decisionSettings.equityMin || 0) + (decisionSettings.bondMin || 0) + (decisionSettings.cashTarget || 0);
+      const dDur = decisionSettings.duration || 35;
+      const planYear = Math.max(0, 2000 + (parseInt(taxYear.split('/')[0], 10) || 26) - 2026);
+      const tentOn = !!decisionSettings.equityGlideEnabled;
+      const dAlloc = {
+        equity: dPot > 0 ? decisionSettings.equityMin / dPot : 0.5,
+        bond:   dPot > 0 ? decisionSettings.bondMin / dPot : 0.4,
+        cash:   dPot > 0 ? decisionSettings.cashTarget / dPot : 0.1,
+        equityGlide: tentOn ? equityGlideFromRisk(decisionSettings.equityMin, decisionSettings.bondMin) : undefined
+      };
+      const mixNow = targetMixForYear(dAlloc, planYear, dDur);
+      const mixPrev = targetMixForYear(dAlloc, Math.max(0, planYear - 1), dDur);
+      const pctOf = f => Math.round(f * 100);
+      const riseYears = Math.max(5, dDur - 20);
+      const dEq = pctOf(mixNow.equity) - pctOf(mixPrev.equity);
+      const mixText = `${pctOf(mixNow.equity)}% shares / ${pctOf(mixNow.bond)}% bonds / ${pctOf(mixNow.cash)}% cash`;
+      let rebalanceMsg, stageText;
+      if (!tentOn) {
+        stageText = 'Flat (bond tent off)';
+        rebalanceMsg = `Hold a steady ${mixText}. Rebalance back to this whenever it drifts.`;
+      } else if (planYear >= riseYears) {
+        stageText = `Holding — reached your mix at year ${riseYears}`;
+        rebalanceMsg = `You've reached your endgame mix. Hold ${mixText}; no glide change this year.`;
+      } else if (dEq > 0) {
+        stageText = `Rising — year ${planYear} of ${riseYears}`;
+        rebalanceMsg = `Shift about ${dEq}% of your pot from bonds into shares this year, reaching ${mixText}.`;
+      } else {
+        stageText = `Rising — year ${planYear} of ${riseYears}`;
+        rebalanceMsg = `Hold ${mixText}.`;
+      }
+      const allocCard = `
+        <div class="tax-year-detail-card">
+          <h3>This Year's Target Mix${tentOn ? ' — Bond Tent' : ''}</h3>
+          <div class="tax-year-grid">
+            <div class="tax-year-field"><label>Shares</label><span class="value">${pctOf(mixNow.equity)}% · ${fmt(dPot * mixNow.equity)}</span></div>
+            <div class="tax-year-field"><label>Bonds</label><span class="value">${pctOf(mixNow.bond)}% · ${fmt(dPot * mixNow.bond)}</span></div>
+            <div class="tax-year-field"><label>Cash</label><span class="value">${pctOf(mixNow.cash)}% · ${fmt(dPot * mixNow.cash)}</span></div>
+            <div class="tax-year-field"><label>Glide stage</label><span class="value">${stageText}</span></div>
+          </div>
+          <div class="alert alert-info" style="margin-top:12px;"><strong>Rebalance:</strong> ${rebalanceMsg}</div>
+        </div>`;
+
+      let html = `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" onclick="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" onclick="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
         <!-- Tax Thresholds -->
         <div class="tax-year-detail-card">
           <h3>Tax Thresholds</h3>

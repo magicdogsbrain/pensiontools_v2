@@ -34,6 +34,10 @@ function getDefaultDecisionDB() {
       bondMin: DRAWDOWN_DEFAULTS.BOND_MIN,
       cashTarget: DRAWDOWN_DEFAULTS.CASH_TARGET,
       duration: DRAWDOWN_DEFAULTS.DURATION_YEARS,
+      // Rising-equity glidepath ("bond tent") for the Decision plan (opt-in). When on,
+      // calcDecisionWithDeps derives equityGlide from the risk split so the monthly draw/rebalance
+      // advice follows the glide.
+      equityGlideEnabled: false,
       baseSalary: DRAWDOWN_DEFAULTS.BASE_SALARY,
       protectionFactor: DRAWDOWN_DEFAULTS.PROTECTION_FACTOR,
       recoveryBuffer: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,

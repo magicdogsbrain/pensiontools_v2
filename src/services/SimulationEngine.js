@@ -7,7 +7,7 @@
 
 import { EQUITY_RETURNS, INFLATION, BOND_MODEL, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
-import { calculateGlidepath } from './GlidepathService.js';
+import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
@@ -153,9 +153,7 @@ export function simulate(config, returns, seed = 0) {
     // Rising-equity glidepath ("bond tent") target equity share for this year, or null when off.
     // The share RISES over retirement — least equity early (the vulnerable "red zone" when the pot
     // is largest), more later once sequence risk has passed (Pfau & Kitces 2014).
-    const glideShare = config.equityGlide
-      ? config.equityGlide.start + (config.equityGlide.end - config.equityGlide.start) * (year / Math.max(1, config.duration))
-      : null;
+    const glideShare = glideShareForYear(config.equityGlide, year, config.duration);
 
     // When the glidepath is on it OWNS the equity/bond split: rebalance the growth pots to the
     // target share once a year. So only the TOTAL of the entered equity + bond minimums matters;
@@ -926,21 +924,22 @@ export function analyzeResults(results) {
       const finalsIsa = funded.map(r => r.finalIsa).sort((a, b) => a - b);
       const hrYears = funded.map(r => r.higherRateYears);
       const taxes = funded.map(r => r.totalTaxReal).sort((a, b) => a - b);
-      // ISA chart series, by year. isaByYear is null after a run fails (no data), so we never
-      // zero-fill dead runs (the old artifact). Two honest series:
+      // ISA chart series, by year (today's money, so not inflated by future pounds). Two honest series:
       //  • pctHoldingByYear — share of ALL funded plans that still have ISA money (a survival curve)
-      //  • medianAliveByYear — typical ISA balance among plans still running (today's money, so it
-      //    isn't inflated by future pounds)
+      //  • medianIsaByYear — typical ISA balance across ALL funded plans, counting failed/spent as £0
       const nYears = Math.max(...funded.map(r => (r.isaByYear || []).length));
-      const pctHoldingByYear = [], medianAliveByYear = [];
+      const pctHoldingByYear = [], medianIsaByYear = [];
       for (let y = 0; y < nYears; y++) {
         const holding = funded.filter(r => r.isaByYear && r.isaByYear[y] > 0).length;
         pctHoldingByYear.push(funded.length ? holding / funded.length * 100 : 0);
-        const aliveVals = funded
-          .filter(r => r.isaByYear && r.isaByYear[y] != null)
-          .map(r => r.isaByYear[y])
+        // Median across ALL funded runs — a run whose plan has failed (isaByYear null) or whose ISA
+        // is spent counts as £0, exactly like the pot fan chart. Taking the median only over runs
+        // still alive would let the surviving pool get richer as poorer runs drop out, so the line
+        // spuriously RISES in the final years (the "£484k in year 35" survivorship artifact).
+        const vals = funded
+          .map(r => (r.isaByYear && r.isaByYear[y] != null) ? r.isaByYear[y] : 0)
           .sort((a, b) => a - b);
-        medianAliveByYear.push(aliveVals.length ? aliveVals[Math.floor(aliveVals.length / 2)] : 0);
+        medianIsaByYear.push(vals[Math.floor(vals.length / 2)]);
       }
       return {
         funded: true,
@@ -960,7 +959,7 @@ export function analyzeResults(results) {
         medianTotalTax: percentile(taxes, 0.50),
         p90TotalTax: percentile(taxes, 0.90),
         pctHoldingByYear,
-        medianAliveByYear
+        medianIsaByYear
       };
     })(),
 

@@ -5139,6 +5139,13 @@
         const isaByYear = {};
         ddForIsa.forEach(r => { isaByYear[r.year] = r.isaBalance; });
         const tentOn = !!settings.equityGlideEnabled;
+        const gpPot = (settings.equityMin || 0) + (settings.bondMin || 0) + (settings.cashTarget || 0);
+        const gpAlloc = {
+          equity: gpPot > 0 ? settings.equityMin / gpPot : 0.5,
+          bond:   gpPot > 0 ? settings.bondMin / gpPot : 0.4,
+          cash:   gpPot > 0 ? settings.cashTarget / gpPot : 0.1,
+          equityGlide: tentOn ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined
+        };
 
         let html = '<div class="card"><h2>Fund Glidepath Over Time</h2>';
         html += '<div class="alert alert-info" style="margin-bottom: 20px;">';
@@ -5147,12 +5154,13 @@
           : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete over time to £0; cash inflates only (holds real value); the ISA bridge runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
         html += '</div>';
         html += '<div style="overflow-x: auto;"><table>';
-        html += '<thead><tr><th>Year</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th><th>Shares (of growth)</th><th>ISA Balance</th><th>Total Min</th></tr></thead>';
+        html += '<thead><tr><th>Year</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th><th>Shares % (of pot)</th><th>ISA Balance</th><th>Total Min</th></tr></thead>';
         html += '<tbody>';
 
         for (const row of schedule) {
-          const growth = row.equityMin + row.bondMin;
-          const sharesPct = growth > 0 ? Math.round(row.equityMin / growth * 100) : 0;
+          // Whole-portfolio target share of shares this year (Balanced + tent = 30% -> 50%, matching the
+          // Settings glide preview) — not the depleting-floor ratio, which reads in "of growth" terms.
+          const sharesPct = Math.round(targetMixForYear(gpAlloc, row.year, settings.duration).equity * 100);
           html += `<tr>
             <td>${row.year}</td>
             <td style="color: var(--success);">${formatCurrency(row.equityMin)}</td>

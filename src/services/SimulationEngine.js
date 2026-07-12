@@ -14,6 +14,7 @@ import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
+import { bondBucketReturn } from './SubAssetReturns.js';
 
 // Cash / money-market real return spread. Short-term rates LAG inflation (they reset off roughly
 // last year's inflation), so in an inflation spike the realised real return (rate − this-year
@@ -241,7 +242,14 @@ export function simulate(config, returns, seed = 0) {
     // Apply monthly returns (compounded from annual). Clamp the annual return to > -100%
     // so an extreme synthetic bond return (r < -1) can't make (1+r)^(1/12) = NaN — which
     // would otherwise propagate to `final` and be miscounted as a successful full-term run.
-    const annualBondReturn = calculateBondReturn(inf, eqReturn, prevInf, rng);
+    // BONDS-bucket return. When a run opts into sub-asset modelling (config.subAsset), the bond
+    // bucket is driven by the labelled sub-classes + the derived gilt-yield path (SubAssetReturns);
+    // otherwise the legacy blended model runs, unchanged. Gating on config.subAsset keeps the RNG
+    // stream and every golden fixture byte-identical for legacy runs.
+    const prevEqReturn = year > 0 ? (returns.equity[year - 1] || 0) : eqReturn;
+    const annualBondReturn = config.subAsset
+      ? bondBucketReturn({ inf, prevInf, eqReturn, prevEqReturn }, rng, config.subAsset.bondWeights)
+      : calculateBondReturn(inf, eqReturn, prevInf, rng);
     const annualCashReturn = cashNominalReturn(prevInf);
     const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 

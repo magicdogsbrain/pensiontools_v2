@@ -50,7 +50,13 @@ export function createSimulationConfig(params = {}) {
     // Sub-asset / Diversifiers bucket (asset-class sub-modelling phase — OFF by default).
     // Read by nothing yet; when undefined/0 the engine path is byte-identical, so golden
     // fixtures and cross-validation are unaffected. See src/services/SubAssetModel.js.
-    diversifierStart: params.diversifierStart ?? undefined
+    diversifierStart: params.diversifierStart ?? undefined,
+
+    // Sub-asset return modelling (opt-in). When present, the BONDS bucket is driven by the
+    // labelled sub-classes + derived gilt-yield path (SubAssetReturns) instead of the legacy
+    // blended calculateBondReturn. Shape: { bondWeights?: { shortGilts, longGilts, ... } }.
+    // Absent by default → legacy path → golden/cross-val fixtures unchanged.
+    subAsset: params.subAsset ?? undefined
   };
 }
 

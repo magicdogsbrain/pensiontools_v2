@@ -2323,6 +2323,16 @@
 
             <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
 
+            <div class="form-group" style="margin-top: 12px;">
+              <label style="display:flex; align-items:center; cursor:pointer;">
+                <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+              </label>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
+              </p>
+            </div>
+
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex; align-items:center; cursor:pointer;">
                 <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
@@ -2987,7 +2997,7 @@
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
-        writeAlloc('ds', decisionSettings.equityMin || 250000, decisionSettings.bondMin || 200000, decisionSettings.cashTarget || 50000);
+        writeAlloc('ds', decisionSettings.equityMin || 250000, decisionSettings.bondMin || 200000, decisionSettings.cashTarget || 50000, decisionSettings.diversifierStart || 0);
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
@@ -3005,7 +3015,7 @@
 
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
-        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget);
+        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         document.getElementById('ssDuration').value = stressSettings.duration;
         document.getElementById('ssPA').value = stressSettings.pa;
         document.getElementById('ssBRL').value = stressSettings.brl;
@@ -4623,15 +4633,34 @@
     // Allocation is picked with ONE of three preset buttons (no sliders). The chosen preset is the
     // ENDGAME mix; the engine runs on three £ fund minimums derived as Pot × each %. Every element id
     // is `<p>` + a fixed suffix where p = 'ss' | 'ds' | 'wiz', so one implementation drives all three.
+    // 4-bucket presets used when the Diversifiers sleeve is switched on. Same risk NAMES, but each
+    // becomes a 4-way split adding gold + trend/macro (held FLAT like cash — the tent glides only
+    // equity↔bond). Weights from docs/asset-class-research.md.
+    const DIVERSIFIER_PRESETS = {
+      cautious:    { key: 'cautious',    label: 'Cautious',    equity: 0.30, bond: 0.45, diversifiers: 0.12, cash: 0.13 },
+      balanced:    { key: 'balanced',    label: 'Balanced',    equity: 0.50, bond: 0.30, diversifiers: 0.15, cash: 0.05 },
+      adventurous: { key: 'adventurous', label: 'Adventurous', equity: 0.65, bond: 0.15, diversifiers: 0.15, cash: 0.05 }
+    };
+    function diversifiersOn(p) {
+      const el = document.getElementById(p + 'Diversifiers');
+      return !!(el && el.checked);
+    }
+    // The active preset. With the Diversifiers sleeve on, the 4-way table is used; otherwise the
+    // classic 3-way RISK_PRESETS — so a preset always carries a (possibly 0) `diversifiers` share.
     function activePreset(p) {
       const btn = document.querySelector('#' + p + 'Risks .risk-btn.active');
-      return (btn && RISK_PRESETS[btn.dataset.risk]) || RISK_PRESETS.balanced;
+      const key = (btn && btn.dataset.risk) || 'balanced';
+      const table = diversifiersOn(p) ? DIVERSIFIER_PRESETS : RISK_PRESETS;
+      return table[key] || table.balanced;
     }
-    function nearestPresetKey(eq, bd, csh) {
+    // Nearest preset over whichever bucket set is active (4-way when a diversifier weight is present).
+    function nearestPresetKey(eq, bd, csh, dv) {
+      dv = dv || 0;
+      const table = dv > 0.001 ? DIVERSIFIER_PRESETS : RISK_PRESETS;
       let best = 'balanced', bestD = Infinity;
-      for (const k in RISK_PRESETS) {
-        const pr = RISK_PRESETS[k];
-        const d = (pr.equity - eq) ** 2 + (pr.bond - bd) ** 2 + (pr.cash - csh) ** 2;
+      for (const k in table) {
+        const pr = table[k];
+        const d = (pr.equity - eq) ** 2 + (pr.bond - bd) ** 2 + ((pr.diversifiers || 0) - dv) ** 2 + (pr.cash - csh) ** 2;
         if (d < bestD) { bestD = d; best = k; }
       }
       return best;
@@ -4639,11 +4668,14 @@
     window.updateAllocDisplay = function(p) {
       const preset = activePreset(p);
       const eq = Math.round(preset.equity * 100), bd = Math.round(preset.bond * 100), csh = Math.round(preset.cash * 100);
+      const dv = Math.round((preset.diversifiers || 0) * 100);
       const pot = +document.getElementById(p + 'Pot').value || 0;
       const amt = document.getElementById(p + 'AllocAmounts');
-      if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds &middot; ' + csh + '% cash<br>' +
+      const divPct = dv > 0 ? ' &middot; ' + dv + '% diversifiers' : '';
+      const divAmt = dv > 0 ? ' &middot; £' + Math.round(pot * dv / 100).toLocaleString() + ' diversifiers' : '';
+      if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds' + divPct + ' &middot; ' + csh + '% cash<br>' +
         '<span style="color:var(--text-muted);">£' + Math.round(pot * eq / 100).toLocaleString() + ' shares &middot; £' +
-        Math.round(pot * bd / 100).toLocaleString() + ' bonds &middot; £' + Math.round(pot * csh / 100).toLocaleString() + ' cash</span>';
+        Math.round(pot * bd / 100).toLocaleString() + ' bonds' + divAmt + ' &middot; £' + Math.round(pot * csh / 100).toLocaleString() + ' cash</span>';
       const glideEl = document.getElementById(p + 'EquityGlide');
       const on = !!(glideEl && glideEl.checked);
       const note = document.getElementById(p + 'GlideMinNote');
@@ -4658,35 +4690,41 @@
       const durEl = document.getElementById(p + 'Duration');
       const duration = (durEl && +durEl.value) || 35;
       const riseYears = Math.max(5, duration - 20);
-      const cash = preset.cash, growth = 1 - cash;
+      const cash = preset.cash, div = preset.diversifiers || 0, growth = 1 - cash - div;
       const g = equityGlideFromRisk(preset.equity, preset.bond);
       const shStart = Math.round(growth * g.start * 100), shEnd = Math.round(preset.equity * 100);
       const bdStart = Math.round(growth * (1 - g.start) * 100), bdEnd = Math.round(preset.bond * 100);
-      const cshPct = Math.round(cash * 100);
-      // SVG geometry: value fraction (from the bottom) → y, top(100%)=18, bottom(0%)=104. The bond/share
-      // boundary rises (bonds shrink) from x0 to xRise, then is flat to x1.
+      const cshPct = Math.round(cash * 100), dvPct = Math.round(div * 100);
+      // SVG geometry: value fraction (from the bottom) → y, top(100%)=18, bottom(0%)=104. Stack from
+      // the bottom: cash, diversifiers (both flat), then the bond/share growth sleeve whose boundary
+      // rises (bonds shrink) from x0 to xRise, then is flat to x1.
       const X0 = 6, X1 = 314, YT = 18, YB = 104, H = YB - YT;
       const yOf = v => (YB - v * H).toFixed(1);
       const xRise = (X0 + (X1 - X0) * Math.min(1, riseYears / duration)).toFixed(1);
       const cashTop = yOf(cash);
-      const bTopStart = yOf(cash + growth * (1 - g.start)), bTopEnd = yOf(cash + growth * (1 - g.end));
-      const sw = '#6366f1', bw = '#14b8a6', cw = '#94a3b8';
+      const divTop = yOf(cash + div);
+      const bTopStart = yOf(cash + div + growth * (1 - g.start)), bTopEnd = yOf(cash + div + growth * (1 - g.end));
+      const sw = '#6366f1', bw = '#14b8a6', cw = '#94a3b8', dw = '#f59e0b';
+      const divBand = div > 0 ? `<polygon points="${X0},${cashTop} ${X1},${cashTop} ${X1},${divTop} ${X0},${divTop}" fill="${dw}"></polygon>` : '';
       const svg =
         '<svg viewBox="0 0 320 122" style="width:100%;height:auto;display:block;" preserveAspectRatio="none">' +
         `<polygon points="${X0},${YB} ${X1},${YB} ${X1},${cashTop} ${X0},${cashTop}" fill="${cw}"></polygon>` +
-        `<polygon points="${X0},${cashTop} ${X1},${cashTop} ${X1},${bTopEnd} ${xRise},${bTopEnd} ${X0},${bTopStart}" fill="${bw}"></polygon>` +
+        divBand +
+        `<polygon points="${X0},${divTop} ${X1},${divTop} ${X1},${bTopEnd} ${xRise},${bTopEnd} ${X0},${bTopStart}" fill="${bw}"></polygon>` +
         `<polygon points="${X0},${bTopStart} ${xRise},${bTopEnd} ${X1},${bTopEnd} ${X1},${YT} ${X0},${YT}" fill="${sw}"></polygon>` +
         `<line x1="${xRise}" y1="${YT}" x2="${xRise}" y2="${YB}" stroke="rgba(148,163,184,0.9)" stroke-width="1" stroke-dasharray="3,2"></line>` +
         '</svg>';
       const swatch = c => `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:middle;"></span>`;
+      const divTxt = div > 0 ? ' · ' + dvPct + '% diversifiers' : '';
+      const divLegend = div > 0 ? ' &nbsp; ' + swatch(dw) + ' Diversifiers' : '';
       return '<div style="font-weight:600;margin-bottom:6px;">How your mix glides over ' + duration + ' years</div>' +
         svg +
         '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:3px;"><span>Now</span><span>reaches your mix at year ' + riseYears + ', then holds</span></div>' +
         '<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:8px;">' +
-          '<span><strong>Starts</strong><br>' + shStart + '% shares · ' + bdStart + '% bonds · ' + cshPct + '% cash</span>' +
-          '<span style="text-align:right;"><strong>Then holds (' + preset.label + ')</strong><br>' + shEnd + '% shares · ' + bdEnd + '% bonds · ' + cshPct + '% cash</span>' +
+          '<span><strong>Starts</strong><br>' + shStart + '% shares · ' + bdStart + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
+          '<span style="text-align:right;"><strong>Then holds (' + preset.label + ')</strong><br>' + shEnd + '% shares · ' + bdEnd + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
         '</div>' +
-        '<div style="font-size:12px;margin-top:8px;">' + swatch(sw) + ' Shares &nbsp; ' + swatch(bw) + ' Bonds &nbsp; ' + swatch(cw) + ' Cash</div>';
+        '<div style="font-size:12px;margin-top:8px;">' + swatch(sw) + ' Shares &nbsp; ' + swatch(bw) + ' Bonds' + divLegend + ' &nbsp; ' + swatch(cw) + ' Cash</div>';
     }
     window.setRiskPreset = function(p, key) {
       if (!RISK_PRESETS[key]) return;
@@ -4697,23 +4735,36 @@
     window.readAlloc = function(p) {
       const pot = +document.getElementById(p + 'Pot').value || 0;
       const preset = activePreset(p);
-      return {
+      const alloc = {
         equityMin: Math.round(pot * preset.equity),
         bondMin: Math.round(pot * preset.bond),
         cashTarget: Math.round(pot * preset.cash)
       };
+      // Diversifiers sleeve: emit the pot + opt into sub-asset modelling so the engine runs the
+      // 4-bucket path. Absent when the sleeve is off → legacy 3-bucket config, unchanged.
+      const dv = preset.diversifiers || 0;
+      if (dv > 0) {
+        alloc.diversifierStart = Math.round(pot * dv);
+        alloc.subAsset = {};
+      }
+      return alloc;
     };
     // Populate the control from three saved £ fund minimums: set the pot and select the nearest preset.
     // With sliders gone there are no custom splits, so a saved split that isn't exactly a preset is
     // matched to the nearest one — and we SAY SO (a no-op Save would otherwise rewrite it unseen).
-    window.writeAlloc = function(p, equityMin, bondMin, cashTarget) {
-      const pot = (+equityMin || 0) + (+bondMin || 0) + (+cashTarget || 0);
+    window.writeAlloc = function(p, equityMin, bondMin, cashTarget, diversifierStart) {
+      const dvStart = +diversifierStart || 0;
+      const pot = (+equityMin || 0) + (+bondMin || 0) + (+cashTarget || 0) + dvStart;
       document.getElementById(p + 'Pot').value = Math.round(pot);
+      // Restore the Diversifiers toggle from whether a sleeve was saved (set BEFORE picking the
+      // preset so activePreset resolves against the right 3-way / 4-way table).
+      const divEl = document.getElementById(p + 'Diversifiers');
+      if (divEl) divEl.checked = dvStart > 0;
       const eqPct = pot > 0 ? Math.round((+equityMin || 0) / pot * 100) : 50;
       const bdPct = pot > 0 ? Math.round((+bondMin || 0) / pot * 100) : 40;
-      const key = pot > 0 ? nearestPresetKey((+equityMin || 0) / pot, (+bondMin || 0) / pot, (+cashTarget || 0) / pot) : 'balanced';
+      const key = pot > 0 ? nearestPresetKey((+equityMin || 0) / pot, (+bondMin || 0) / pot, (+cashTarget || 0) / pot, dvStart / pot) : 'balanced';
       setRiskPreset(p, key);
-      const preset = RISK_PRESETS[key];
+      const preset = (dvStart > 0 ? DIVERSIFIER_PRESETS : RISK_PRESETS)[key];
       if (pot > 0 && (eqPct !== Math.round(preset.equity * 100) || bdPct !== Math.round(preset.bond * 100))) {
         const amt = document.getElementById(p + 'AllocAmounts');
         if (amt) amt.innerHTML += '<div style="margin-top:8px;color:#b45309;font-size:12px;">Your saved split (' +
@@ -4858,7 +4909,7 @@
       try {
         const s = await getStressSettingsAsync();
         document.getElementById('ssBaseSalary').value = s.baseSalary;
-        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget);
+        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0);
         document.getElementById('ssDuration').value = s.duration;
         document.getElementById('ssPA').value = s.pa;
         document.getElementById('ssBRL').value = s.brl;
@@ -4939,7 +4990,10 @@
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
           spendingProfile: document.getElementById('ssSpendingProfile').value,
-          equityGlideEnabled: document.getElementById('ssEquityGlide').checked
+          equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
+          // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
+          diversifierStart: ssAlloc.diversifierStart || 0,
+          subAsset: ssAlloc.subAsset || null
         });
         showToast('Settings saved successfully', 'success');
       } catch (error) {

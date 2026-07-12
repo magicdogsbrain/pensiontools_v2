@@ -87,6 +87,9 @@ export function fromStressSettings(stressSettings) {
     consecutiveLimit: stressSettings.consecutiveLimit,
     disableProtection: stressSettings.disableProtection,
     hodlEnabled: stressSettings.hodlEnabled,
-    hodlValue: stressSettings.hodlValue
+    hodlValue: stressSettings.hodlValue,
+    // Diversifiers sleeve (opt-in). Absent → undefined → legacy 3-bucket engine path.
+    diversifierStart: stressSettings.diversifierStart,
+    subAsset: stressSettings.subAsset
   });
 }

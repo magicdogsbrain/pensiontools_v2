@@ -126,3 +126,77 @@ export function bondBucketReturn(ctx, rng, weights = DEFAULT_BOND_WEIGHTS) {
   }
   return r;
 }
+
+// -----------------------------------------------------------------------------
+// DIVERSIFIERS bucket — gold + trend/macro. These are the two sleeves the {equity,
+// inflation, yield} drivers don't explain; they're the actual tail hedges. Each carries
+// a base drift (the CMA expected return net of the systematic terms) rather than a yield.
+// -----------------------------------------------------------------------------
+// Base drifts are the CMA NOMINAL returns from docs/asset-class-research.md (gold ~5.5%,
+// trend ~4.5%), less a small offset for the crisis boost's positive expected value, so the
+// sleeve earns its documented long-run return on average and only ADDS tail protection —
+// it must not silently under-return vs bonds (~5%), which would fake a compounding drag.
+export const GOLD_DRIFT = 0.048;  // + inflation hedge + (rare) crisis boost ≈ 5.5% nominal mean
+export const TREND_DRIFT = 0.045; // managed-futures nominal; captured-momentum term is ~zero-mean
+
+/**
+ * Gold: near-uncorrelated, a partial inflation hedge, and a flight-to-quality asset that RISES
+ * when equities crash (held up in 2022 when stocks AND bonds both fell). Memoryless.
+ * @param {object} ctx - { inf, eqReturn }
+ */
+export function goldReturn(ctx, rng) {
+  const { inf, eqReturn } = ctx;
+  const p = SUB_ASSET_PROFILES.gold;
+  const inflHedge = (p.inflationBeta || 0) * (inf - 0.025);
+  const eqShock = eqReturn - 0.10;
+  const crisis = (p.crisisBeta || 0) * (eqReturn < CRISIS_EQ_THRESHOLD ? Math.min(0.15, Math.abs(eqShock)) : 0);
+  const idio = gaussianRandom(0, p.idioVol || 0, rng);
+  return GOLD_DRIFT + inflHedge + crisis + idio;
+}
+
+/**
+ * Trend / managed futures: PATH-DEPENDENT. It holds a LAGGED position (the sign of trailing
+ * market momentum) and earns that position times the current move — so it profits when a trend
+ * PERSISTS (the prolonged 2008/2022 selloffs) but is whipsawed when the market reverses sharply
+ * (the V-shaped 2020 crash-and-rebound). `trendSignal` in [-1, 1] is the lagged position.
+ * @param {object} ctx - { eqReturn }
+ * @param {number} trendSignal - lagged position, sign/scale of trailing momentum, clamped [-1,1]
+ */
+export function trendReturn(ctx, rng, trendSignal) {
+  const p = SUB_ASSET_PROFILES.trendMacro;
+  const eqExcess = ctx.eqReturn - 0.05;                    // move relative to a cash-ish anchor
+  const captured = (p.momentumBeta || 0) * trendSignal * eqExcess;
+  const idio = gaussianRandom(0, p.idioVol || 0, rng);
+  return TREND_DRIFT + captured + idio;
+}
+
+// EWMA smoothing + scale for the trend position. Update folds in each year's equity return;
+// the position is the smoothed momentum divided by a ~15% scale, clamped to [-1, 1].
+export const TREND_MOM_DECAY = 0.6;
+export const TREND_MOM_SCALE = 0.15;
+
+/** Fold one year's equity return into the running trend-momentum state. */
+export function updateTrendMomentum(mom, eqReturn) {
+  return TREND_MOM_DECAY * mom + (1 - TREND_MOM_DECAY) * eqReturn;
+}
+
+/** Lagged trend position in [-1, 1] from the momentum state. */
+export function trendSignalFromMomentum(mom) {
+  return Math.max(-1, Math.min(1, mom / TREND_MOM_SCALE));
+}
+
+export const DEFAULT_DIVERSIFIER_WEIGHTS = Object.freeze({ gold: 0.5, trendMacro: 0.5 });
+
+/**
+ * DIVERSIFIERS-bucket annual return: weighted blend of gold + trend.
+ * @param {object} ctx - { inf, eqReturn }
+ * @param {function} rng - seeded RNG
+ * @param {number} trendSignal - the lagged trend position for this year
+ * @param {object} weights - sub-class -> weight (defaults to DEFAULT_DIVERSIFIER_WEIGHTS)
+ */
+export function diversifierBucketReturn(ctx, rng, trendSignal, weights = DEFAULT_DIVERSIFIER_WEIGHTS) {
+  let r = 0;
+  if (weights.gold) r += weights.gold * goldReturn(ctx, rng);
+  if (weights.trendMacro) r += weights.trendMacro * trendReturn(ctx, rng, trendSignal);
+  return r;
+}

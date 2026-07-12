@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  giltYieldLevel, realYieldLevel, subAssetReturn, bondBucketReturn
+  giltYieldLevel, realYieldLevel, subAssetReturn, bondBucketReturn,
+  goldReturn, trendReturn, diversifierBucketReturn,
+  updateTrendMomentum, trendSignalFromMomentum
 } from '../src/services/SubAssetReturns.js';
 import { SUB_ASSET_PROFILES } from '../src/services/SubAssetModel.js';
+import { runMonteCarlo } from '../src/services/SimulationEngine.js';
+import { createSimulationConfig } from '../src/models/SimulationConfig.js';
 
 // A deterministic RNG that ZEROES the idiosyncratic Box–Muller draw (u2=0.25 → cos(π/2)=0),
 // so these tests exercise the DRIVER decomposition with no noise.
@@ -105,5 +109,70 @@ describe('bondBucketReturn (weighted blend)', () => {
     const buffer = bondBucketReturn(Y2022, flatRng, { shortGilts: 1.0 });
     const duration = bondBucketReturn(Y2022, flatRng, { longGilts: 1.0 });
     expect(buffer).toBeGreaterThan(duration);
+  });
+});
+
+describe('gold (diversifier)', () => {
+  it('a modest positive drift in a normal year', () => {
+    const r = goldReturn(NORMAL, flatRng);
+    expect(r).toBeGreaterThan(0);
+    expect(r).toBeLessThan(0.05);
+  });
+
+  it('RISES in an equity crash (flight to safety) — well above a normal year', () => {
+    const crash = goldReturn(CRASH, flatRng);
+    expect(crash).toBeGreaterThan(goldReturn(NORMAL, flatRng) + 0.04);
+  });
+
+  it('partial inflation hedge — higher in a high-inflation year', () => {
+    const hi = goldReturn({ inf: 0.09, eqReturn: 0.10 }, flatRng);
+    expect(hi).toBeGreaterThan(goldReturn(NORMAL, flatRng));
+  });
+});
+
+describe('trend / macro (path-dependent)', () => {
+  it('PROFITS when a downtrend persists (short position + continued fall)', () => {
+    const shortPos = -1; // built up from a prior falling market
+    const r = trendReturn({ eqReturn: -0.20 }, flatRng, shortPos);
+    expect(r).toBeGreaterThan(0.05);
+  });
+
+  it('is WHIPSAWED on a sharp reversal (short position + V-shaped rebound = loss)', () => {
+    const shortPos = -1; // still short after last year's crash
+    const r = trendReturn({ eqReturn: 0.30 }, flatRng, shortPos);
+    expect(r).toBeLessThan(0);
+  });
+
+  it('rides a sustained uptrend (long position + rising market)', () => {
+    const longPos = 1;
+    const r = trendReturn({ eqReturn: 0.20 }, flatRng, longPos);
+    expect(r).toBeGreaterThan(0.05);
+  });
+
+  it('the momentum state goes short after a run of falling years', () => {
+    let mom = 0;
+    for (let i = 0; i < 4; i++) mom = updateTrendMomentum(mom, -0.15);
+    expect(trendSignalFromMomentum(mom)).toBeLessThan(-0.5);
+  });
+});
+
+describe('diversifier pot wired into the engine', () => {
+  const base = { equityStart: 500000, bondStart: 250000, cashStart: 50000, baseSalary: 38000, years: 30, duration: 30 };
+
+  it('funding a Diversifiers pot produces finite pot values counted in the total', () => {
+    const cfg = createSimulationConfig({ ...base, subAsset: {}, diversifierStart: 150000 });
+    const runs = runMonteCarlo(cfg, 100);
+    expect(runs.every(r => Number.isFinite(r.finalDiversifier))).toBe(true);
+    // in at least some paths the crisis reserve is actually tapped
+    expect(runs.some(r => r.divUsed > 0)).toBe(true);
+  });
+
+  it('a diversifier sleeve is drawn as a crisis reserve, sparing equity (helps or holds resilience)', () => {
+    // Same total starting capital; one version carves a diversifier sleeve out of equity.
+    const noDiv = createSimulationConfig({ ...base, equityStart: 650000, subAsset: {} });
+    const withDiv = createSimulationConfig({ ...base, equityStart: 500000, subAsset: {}, diversifierStart: 150000 });
+    const succ = (cfg) => runMonteCarlo(cfg, 400).filter(r => !r.failed).length / 400;
+    // the sleeve should not WORSEN outcomes materially (tail hedge, not a drag)
+    expect(succ(withDiv)).toBeGreaterThan(succ(noDiv) - 0.05);
   });
 });

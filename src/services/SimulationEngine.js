@@ -14,7 +14,7 @@ import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
-import { bondBucketReturn } from './SubAssetReturns.js';
+import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
 
 // Cash / money-market real return spread. Short-term rates LAG inflation (they reset off roughly
 // last year's inflation), so in an inflation spike the realised real return (rate − this-year
@@ -60,6 +60,14 @@ export function simulate(config, returns, seed = 0) {
   // HODL (Break Glass) - emergency reserve
   let hodl = config.hodlEnabled ? (config.hodlStart !== undefined ? config.hodlStart : config.hodlValue) : 0;
   let hodlUsed = 0;
+
+  // Diversifiers pot (gold + trend/macro) — the 4th bucket, held flat and tapped as a crisis
+  // reserve. 0 unless the run opts in via config.diversifierStart, so every legacy/golden run
+  // keeps a byte-identical instruction + RNG stream. `trendMom` carries trend's path-memory.
+  let diversifier = config.diversifierStart || 0;
+  let divUsed = 0;
+  let trendMom = 0;
+  let trendSignal = 0;
 
   // ISA pot (tax-free top-up; grows at the money-market rate, depletes as drawn)
   let isa = config.isaBalance || 0;
@@ -164,6 +172,15 @@ export function simulate(config, returns, seed = 0) {
       if (growth > 0) { equity = growth * glideShare; bond = growth * (1 - glideShare); }
     }
 
+    // Diversifiers: refresh trend's LAGGED position once a year. Fold LAST year's equity return
+    // into the momentum state, then derive this year's position from it — so trend is short after
+    // a sustained fall (profits if it continues, whipsawed if it reverses). Only runs when the
+    // pot is funded, so the legacy RNG/instruction stream is untouched.
+    if (diversifier > 0 && monthInYear === 0) {
+      if (year > 0) trendMom = updateTrendMomentum(trendMom, returns.equity[year - 1] || 0);
+      trendSignal = trendSignalFromMomentum(trendMom);
+    }
+
     // Get this year's returns
     const eqReturn = returns.equity[year] || 0;
     const inf = returns.inflation[year] || 0.025;
@@ -205,7 +222,7 @@ export function simulate(config, returns, seed = 0) {
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
     if (monthInYear === 0) {
       isaByYear[year] = isa / cumInf;                       // today's money
-      potByYear[year] = (equity + bond + cash) / cumInf;    // today's money
+      potByYear[year] = (equity + bond + cash + diversifier) / cumInf;    // today's money
     }
     totalTaxReal += (taxAnnual / 12) / cumInf;
     if (higherRate) higherRateMonths++;
@@ -277,6 +294,15 @@ export function simulate(config, returns, seed = 0) {
       hodl *= monthly(hodlR);
     }
 
+    // Diversifiers pot growth (gold + trend). Computed AFTER the HODL block so its RNG draws are
+    // appended to the existing stream — guarded on diversifier > 0, so nothing fires for legacy runs.
+    if (diversifier > 0) {
+      const annualDivReturn = diversifierBucketReturn(
+        { inf, eqReturn }, rng, trendSignal, config.subAsset && config.subAsset.diversifierWeights
+      );
+      diversifier *= monthly(annualDivReturn);
+    }
+
     const totalGrowth = equity + bond;
     // (protection was assessed at the top of the month via the shared ProtectionStrategy)
 
@@ -344,7 +370,13 @@ export function simulate(config, returns, seed = 0) {
       } else {
         const rem = monthDraw - cash;
         cash = 0;
-        if (bond > rem) {
+        if (diversifier > rem) {
+          // Sell the crisis hedge FIRST — it's the sleeve that tends to have held up or risen in
+          // the downturn, so drawing it preserves the depressed bonds/equity for the recovery.
+          diversifier -= rem;
+          divUsed += rem;
+          source = 'Diversifier';
+        } else if (bond > rem) {
           bond -= rem;
           source = 'Bond';
         } else if (equity > rem) {
@@ -377,6 +409,7 @@ export function simulate(config, returns, seed = 0) {
     equity = Math.max(0, equity);
     bond = Math.max(0, bond);
     cash = Math.max(0, cash);
+    diversifier = Math.max(0, diversifier);
 
     // Record history (yearly snapshots)
     if (monthInYear === 0 || month === config.years * 12 - 1 || failed) {
@@ -387,7 +420,8 @@ export function simulate(config, returns, seed = 0) {
         bond,
         cash,
         hodl,
-        total: equity + bond + cash,
+        diversifier,
+        total: equity + bond + cash + diversifier,
         draw: monthDraw,
         boostAmount,
         source,
@@ -405,7 +439,7 @@ export function simulate(config, returns, seed = 0) {
   // End-of-plan values (today's money) for finished runs; £0 pot carried forward after a failure.
   if (!failed) {
     isaByYear[config.years] = isa / (cumInf || 1);
-    potByYear[config.years] = (equity + bond + cash) / (cumInf || 1);
+    potByYear[config.years] = (equity + bond + cash + diversifier) / (cumInf || 1);
   } else {
     for (let y = Math.floor(failMonth / 12) + 1; y <= config.years; y++) potByYear[y] = 0;
   }
@@ -420,7 +454,7 @@ export function simulate(config, returns, seed = 0) {
     eqSum += (returns.equity[y] ?? 0);
     if (y < 5) { earlySum += (returns.equity[y] ?? 0); earlyN++; }
   }
-  const finalNominal = equity + bond + cash;
+  const finalNominal = equity + bond + cash + diversifier;
 
   return {
     failed,
@@ -437,6 +471,8 @@ export function simulate(config, returns, seed = 0) {
     finalBond: bond,
     finalCash: cash,
     finalHodl: hodl,
+    finalDiversifier: diversifier,
+    divUsed,
     protMonths,
     maxConsec,
     hodlUsed,

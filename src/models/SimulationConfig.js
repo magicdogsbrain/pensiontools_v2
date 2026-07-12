@@ -45,7 +45,12 @@ export function createSimulationConfig(params = {}) {
 
     // HODL (emergency reserve) settings
     hodlEnabled: params.hodlEnabled ?? SIMULATION_DEFAULTS.HODL_ENABLED,
-    hodlValue: params.hodlValue ?? SIMULATION_DEFAULTS.HODL_VALUE
+    hodlValue: params.hodlValue ?? SIMULATION_DEFAULTS.HODL_VALUE,
+
+    // Sub-asset / Diversifiers bucket (asset-class sub-modelling phase — OFF by default).
+    // Read by nothing yet; when undefined/0 the engine path is byte-identical, so golden
+    // fixtures and cross-validation are unaffected. See src/services/SubAssetModel.js.
+    diversifierStart: params.diversifierStart ?? undefined
   };
 }
 

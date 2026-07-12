@@ -51,6 +51,64 @@ export function realYieldLevel(inf, eqReturn = 0.10) {
   return ry;
 }
 
+// -----------------------------------------------------------------------------
+// Regime-aware equity correlation — the generalisation of the legacy single scalar
+// `equityBondRho(inf, eqReturn)` to a PER-SLEEVE, regime-dependent structure.
+//
+// The rate/inflation co-movement (why gilts fall with equities in 2022, rally in 2008) is
+// already carried structurally by each sleeve's `capital` term via the derived-yield path.
+// The overlay below adds only the RESIDUAL equity correlation not explained by rates — the
+// credit/sentiment channel (corporate spreads blow out with equities; gold stays ~uncorrelated;
+// trend turns negative in stress). Imposed on each sleeve's idiosyncratic shock, variance-
+// preserving, so the marginal vol still ≈ the CMA vol while the correlation lands on target.
+// -----------------------------------------------------------------------------
+
+/** Market regime for a year, generalising the three equityBondRho branches. */
+export function marketRegime(ctx) {
+  if (ctx.inf > 0.045) return 'inflation';                 // high inflation — assets fall together
+  if (ctx.eqReturn < CRISIS_EQ_THRESHOLD) return 'crash';  // equity crash, normal inflation — flight to quality
+  return 'normal';                                         // mild positive
+}
+
+// Per-sleeve residual equity correlation by regime. `normal` ≈ each profile's eqCorr net of the
+// rate channel; `inflation` raises it (2022 co-crash); `crash` flips the safe sleeves NEGATIVE
+// (flight to quality) but pushes credit POSITIVE (spreads blow out with equities).
+export const SLEEVE_EQ_RHO = Object.freeze({
+  shortGilts:      { normal: 0.05, inflation: 0.30, crash: -0.20 },
+  longGilts:       { normal: 0.10, inflation: 0.45, crash: -0.35 },
+  indexLinked:     { normal: 0.15, inflation: 0.35, crash: -0.15 },
+  corporateIG:     { normal: 0.35, inflation: 0.45, crash:  0.55 },
+  globalAggHedged: { normal: 0.25, inflation: 0.40, crash:  0.10 },
+  usTreasHedged:   { normal: 0.05, inflation: 0.25, crash: -0.40 },
+  infraDebt:       { normal: 0.30, inflation: 0.35, crash:  0.35 },
+  gold:            { normal: 0.00, inflation: -0.05, crash: -0.20 },
+  trendMacro:      { normal: 0.05, inflation: -0.10, crash: -0.30 }
+});
+
+/** Regime-dependent residual equity correlation for a named sleeve (0 if unknown). */
+export function subAssetEquityRho(key, ctx) {
+  const row = SLEEVE_EQ_RHO[key];
+  if (!row) return 0;
+  const r = row[marketRegime(ctx)];
+  return r == null ? row.normal : r;
+}
+
+// Reverse lookup so subAssetReturn can find a profile's sleeve key without an extra argument.
+const PROFILE_KEY = new Map(Object.entries(SUB_ASSET_PROFILES).map(([k, v]) => [v, k]));
+
+/**
+ * A shock with marginal sd = `sd` and correlation `rho` with the standardised equity surprise
+ * (eqZ, mean 10% / sd 17% — the same anchor the legacy overlay used). Variance-preserving:
+ *   z = rho·eqZ + sqrt(1−rho²)·independent-normal.
+ */
+function correlatedResidual(sd, rho, eqReturn, rng) {
+  if (!sd) return 0;
+  const eqZ = (eqReturn - 0.10) / 0.17;
+  const indep = gaussianRandom(0, 1, rng);
+  const z = rho * eqZ + Math.sqrt(Math.max(0, 1 - rho * rho)) * indep;
+  return sd * z;
+}
+
 /**
  * Annual return for a single (bond-family) sub-class, via the driver decomposition:
  *   return = carry + capital + credit + crisis + inflationHedge + idiosyncratic
@@ -82,22 +140,15 @@ export function subAssetReturn(profile, ctx, rng) {
 
   const capital = -dur * dYield;
 
-  // Corporate credit: spread WIDENS (capital loss) when equities fall, tightens in a rally.
-  // eqShock < 0 in a selloff → credit < 0.
-  const eqShock = eqReturn - 0.10;                        // demeaned equity shock
-  const credit = (profile.creditBeta || 0) * eqShock * 0.5;
-
-  // Crash-hedge boost (long US treasuries, gold): pays in an equity crash.
-  const crisisOn = eqReturn < CRISIS_EQ_THRESHOLD ? 1 : 0;
-  const crisis = (profile.crisisBeta || 0) * crisisOn * Math.min(0.15, Math.abs(eqShock));
-
   // Non-linker inflation hedge (gold): partial, distinct from the linker principal accretion.
   const inflHedge = isReal ? 0 : (profile.inflationBeta || 0) * (inf - 0.025);
 
-  // Idiosyncratic residual, calibrated so total modelled vol ≈ profile.vol.
-  const idio = gaussianRandom(0, profile.idioVol || 0, rng);
+  // Regime-aware, equity-correlated idiosyncratic residual (generalises equityBondRho). Carries
+  // the RESIDUAL credit/sentiment correlation — corporate spreads widen with equities, gilts turn
+  // negative in a flight-to-quality crash — on top of the structural rate co-movement in `capital`.
+  const idio = correlatedResidual(profile.idioVol || 0, subAssetEquityRho(PROFILE_KEY.get(profile), ctx), eqReturn, rng);
 
-  return carry + capital + credit + crisis + inflHedge + idio;
+  return carry + capital + inflHedge + idio;
 }
 
 // Default composition of the BONDS bucket across its sub-classes (used when a run opts in but
@@ -148,10 +199,10 @@ export function goldReturn(ctx, rng) {
   const { inf, eqReturn } = ctx;
   const p = SUB_ASSET_PROFILES.gold;
   const inflHedge = (p.inflationBeta || 0) * (inf - 0.025);
-  const eqShock = eqReturn - 0.10;
-  const crisis = (p.crisisBeta || 0) * (eqReturn < CRISIS_EQ_THRESHOLD ? Math.min(0.15, Math.abs(eqShock)) : 0);
-  const idio = gaussianRandom(0, p.idioVol || 0, rng);
-  return GOLD_DRIFT + inflHedge + crisis + idio;
+  // Flight-to-quality now comes from the NEGATIVE crash-regime correlation (gold rises as equities
+  // fall), not an ad-hoc crisis term — one principled correlation mechanism across all sleeves.
+  const idio = correlatedResidual(p.idioVol || 0, subAssetEquityRho('gold', ctx), eqReturn, rng);
+  return GOLD_DRIFT + inflHedge + idio;
 }
 
 /**
@@ -166,7 +217,7 @@ export function trendReturn(ctx, rng, trendSignal) {
   const p = SUB_ASSET_PROFILES.trendMacro;
   const eqExcess = ctx.eqReturn - 0.05;                    // move relative to a cash-ish anchor
   const captured = (p.momentumBeta || 0) * trendSignal * eqExcess;
-  const idio = gaussianRandom(0, p.idioVol || 0, rng);
+  const idio = correlatedResidual(p.idioVol || 0, subAssetEquityRho('trendMacro', ctx), ctx.eqReturn, rng);
   return TREND_DRIFT + captured + idio;
 }
 

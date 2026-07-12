@@ -58,7 +58,9 @@ function getDefaultStressDB() {
       // Spending profile ('flat' default; 'declining' = spending drifts down with age)
       spendingProfile: 'flat',
       // Rising-equity glidepath / bond tent (opt-in)
-      equityGlideEnabled: false
+      equityGlideEnabled: false,
+      // Diversifiers sleeve (gold + trend/macro), opt-in — 0 = off (legacy 3-bucket)
+      diversifierStart: 0
     },
     lastModified: null,
     checksum: null
@@ -340,6 +342,11 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // split (the ENDGAME/destination) and then holds — so the chosen allocation is where it settles, and
     // the tent's time-average equity is BELOW it (more cautious early). Derived from the equity:bond
     // ratio (scale-invariant, so passing the raw £ minimums is fine). Opt-in.
-    equityGlide: settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined
+    equityGlide: settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined,
+    // Diversifiers sleeve (gold + trend/macro), opt-in. When set, the engine runs the 4-bucket
+    // sub-asset path (subAsset present) and holds this pot flat, tapping it first in a downturn.
+    // Absent/0 → legacy 3-bucket path, byte-identical.
+    diversifierStart: overrides.diversifierStart ?? (settings.diversifierStart || undefined),
+    subAsset: settings.subAsset || undefined
   };
 }

@@ -5,8 +5,10 @@ import {
   updateTrendMomentum, trendSignalFromMomentum
 } from '../src/services/SubAssetReturns.js';
 import { SUB_ASSET_PROFILES } from '../src/services/SubAssetModel.js';
+import { marketRegime, subAssetEquityRho } from '../src/services/SubAssetReturns.js';
 import { runMonteCarlo } from '../src/services/SimulationEngine.js';
 import { createSimulationConfig } from '../src/models/SimulationConfig.js';
+import { seededRng, gaussianRandom } from '../src/utils/MathUtils.js';
 
 // A deterministic RNG that ZEROES the idiosyncratic Box–Muller draw (u2=0.25 → cos(π/2)=0),
 // so these tests exercise the DRIVER decomposition with no noise.
@@ -153,6 +155,52 @@ describe('trend / macro (path-dependent)', () => {
     let mom = 0;
     for (let i = 0; i < 4; i++) mom = updateTrendMomentum(mom, -0.15);
     expect(trendSignalFromMomentum(mom)).toBeLessThan(-0.5);
+  });
+});
+
+describe('regime-aware correlation (generalising equityBondRho)', () => {
+  it('classifies the three regimes', () => {
+    expect(marketRegime({ inf: 0.09, eqReturn: -0.05 })).toBe('inflation'); // inflation dominates
+    expect(marketRegime({ inf: 0.02, eqReturn: -0.34 })).toBe('crash');     // low-inflation crash
+    expect(marketRegime({ inf: 0.025, eqReturn: 0.10 })).toBe('normal');
+  });
+
+  it('gilts flip from POSITIVE correlation in an inflation shock to NEGATIVE in a crash', () => {
+    expect(subAssetEquityRho('longGilts', { inf: 0.09, eqReturn: -0.05 })).toBeGreaterThan(0);
+    expect(subAssetEquityRho('longGilts', { inf: 0.02, eqReturn: -0.34 })).toBeLessThan(0);
+  });
+
+  it('corporate credit stays POSITIVE (blows out with equities) even in a crash; gold ~0', () => {
+    expect(subAssetEquityRho('corporateIG', { inf: 0.02, eqReturn: -0.34 })).toBeGreaterThan(0.3);
+    expect(Math.abs(subAssetEquityRho('gold', { inf: 0.025, eqReturn: 0.10 }))).toBeLessThan(0.1);
+  });
+
+  // Measure the REALISED correlation the model actually produces over many simulated normal years.
+  const measureCorr = (profile, rng, ctxFn, n = 4000) => {
+    const xs = [], ys = [];
+    for (let i = 0; i < n; i++) {
+      const eq = 0.10 + gaussianRandom(0, 0.17, rng);
+      if (eq < -0.15) continue;                       // keep the sample inside the 'normal' regime
+      const ctx = ctxFn(eq);
+      xs.push(eq);
+      ys.push(subAssetReturn(profile, ctx, rng));
+    }
+    const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+    const mx = mean(xs), my = mean(ys);
+    let cov = 0, vx = 0, vy = 0;
+    for (let i = 0; i < xs.length; i++) { const dx = xs[i]-mx, dy = ys[i]-my; cov += dx*dy; vx += dx*dx; vy += dy*dy; }
+    return cov / Math.sqrt(vx * vy);
+  };
+
+  it('realised corporate-vs-equity correlation lands near its target (~0.35)', () => {
+    const rho = measureCorr(SUB_ASSET_PROFILES.corporateIG, seededRng(7), eq => ({ inf: 0.025, prevInf: 0.025, eqReturn: eq, prevEqReturn: 0.10 }));
+    expect(rho).toBeGreaterThan(0.20);
+    expect(rho).toBeLessThan(0.50);
+  });
+
+  it('realised gold-vs-equity correlation is near zero (a genuine diversifier)', () => {
+    const rho = measureCorr(SUB_ASSET_PROFILES.gold, seededRng(7), eq => ({ inf: 0.025, prevInf: 0.025, eqReturn: eq, prevEqReturn: 0.10 }));
+    expect(Math.abs(rho)).toBeLessThan(0.12);
   });
 });
 

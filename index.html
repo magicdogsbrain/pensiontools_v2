@@ -2068,6 +2068,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 When on, the Decision Tool's monthly withdrawal and rebalancing advice follows this rising-equity path, and each year's report tells you the target mix to hold.
               </p>
+              <div id="dsGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="dsGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
 
@@ -2410,6 +2411,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Holds least in shares when the pot is largest and most exposed to an early crash, then raises shares once that danger passes (Pfau-Kitces). Typically helps the worst cases but can slightly lower typical growth — run it and compare. Your risk level stays the average.
               </p>
+              <div id="ssGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
             <div class="alert alert-info" style="margin-top: 12px;">
@@ -4769,6 +4771,12 @@
         bdAmt.toLocaleString() + ' bonds' + divAmtTxt + ' &middot; £' + cshAmt.toLocaleString() + ' cash</span>';
       const glideEl = document.getElementById(p + 'EquityGlide');
       const on = !!(glideEl && glideEl.checked);
+      // Endgame picker: only for a tagged plan with the tent on (your holdings are the start).
+      const endgameEl = document.getElementById(p + 'GlideEndgame');
+      if (endgameEl) {
+        if (on && custom) { endgameEl.style.display = 'block'; endgameEl.innerHTML = glideEndgameSelectorHtml(p); }
+        else { endgameEl.style.display = 'none'; }
+      }
       const note = document.getElementById(p + 'GlideMinNote');
       if (note) {
         if (!on) { note.style.display = 'none'; }
@@ -4784,8 +4792,10 @@
       const cash = preset.cash, div = preset.diversifiers || 0, growth = 1 - cash - div;
       // Tagged (custom) allocation → START-anchored glide (your holdings are the start, equity rises);
       // otherwise the chosen mix is the endgame (start lower). Matches tentGlideForSettings in the engine.
-      const custom = !!window._customAlloc[p];
-      const g = custom ? equityGlideFromStart(preset.equity, preset.bond) : equityGlideFromRisk(preset.equity, preset.bond);
+      const customAlloc = window._customAlloc[p];
+      const custom = !!customAlloc;
+      const endgame = custom && customAlloc.glideEndgame ? customAlloc.glideEndgame : null;
+      const g = custom ? equityGlideFromStart(preset.equity, preset.bond, endgame) : equityGlideFromRisk(preset.equity, preset.bond);
       const shStart = Math.round(growth * g.start * 100), shEnd = Math.round(growth * g.end * 100);
       const bdStart = Math.round(growth * (1 - g.start) * 100), bdEnd = Math.round(growth * (1 - g.end) * 100);
       const cshPct = Math.round(cash * 100), dvPct = Math.round(div * 100);
@@ -4812,7 +4822,7 @@
       const divTxt = div > 0 ? ' · ' + dvPct + '% diversifiers' : '';
       const divLegend = div > 0 ? ' &nbsp; ' + swatch(dw) + ' Diversifiers' : '';
       const startHdr = custom ? 'Now (your funds)' : 'Starts';
-      const endHdr = custom ? 'Rises to' : 'Then holds (' + preset.label + ')';
+      const endHdr = custom ? ('Rises to' + (endgame && endgame.label ? ' (' + endgame.label + ')' : '')) : 'Then holds (' + preset.label + ')';
       const midTxt = custom
         ? 'rises from your holdings, levels off at year ' + riseYears
         : 'reaches your mix at year ' + riseYears + ', then holds';
@@ -4831,6 +4841,29 @@
       document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.toggle('active', b.dataset.risk === key));
       updateAllocDisplay(p);
     };
+    // Endgame picker — shown only for a TAGGED plan with the tent on. Your holdings are the start;
+    // the tent glides equity UP to this chosen risk level (user-adjustable any time, up or down).
+    function glideEndgameSelectorHtml(p) {
+      const cur = (window._customAlloc[p] && window._customAlloc[p].glideEndgame && window._customAlloc[p].glideEndgame.key) || '';
+      const btn = (key, label) => '<button type="button" class="risk-btn' + (cur === key ? ' active' : '') + '" style="padding:6px 12px;" onclick="setGlideEndgame(\'' + p + '\',\'' + key + '\')">' + label + '</button>';
+      return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;"><strong>Glide towards</strong> — your funds are the start; the tent raises shares over time to this level:</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + btn('cautious', 'Cautious') + btn('balanced', 'Balanced') + btn('adventurous', 'Adventurous') + '</div>';
+    }
+    window.setGlideEndgame = function(p, key) {
+      const custom = window._customAlloc[p];
+      if (!custom) return;
+      const table = diversifiersOn(p) ? DIVERSIFIER_PRESETS : RISK_PRESETS;
+      const preset = table[key];
+      if (!preset) return;
+      custom.glideEndgame = { equityPct: preset.equity, bondPct: preset.bond, key, label: preset.label };
+      // A rising tent needs an endgame MORE share-heavy than the current holdings; flag if not.
+      const startRatio = custom.equity / ((custom.equity + custom.bond) || 1);
+      const endRatio = preset.equity / ((preset.equity + preset.bond) || 1);
+      if (endRatio <= startRatio) {
+        showToast('That endgame isn’t more share-heavy than your holdings — the glide would flatten or decline, not rise.', 'warning', 5000);
+      }
+      updateAllocDisplay(p);
+    };
     // Read the three £ fund minimums the engine uses (Pot × the chosen preset's split).
     window.readAlloc = function(p) {
       // A custom (from-funds) allocation carries exact £ amounts + the tagged sub-class mix.
@@ -4839,6 +4872,7 @@
         const a = { equityMin: custom.equityMin, bondMin: custom.bondMin, cashTarget: custom.cashTarget };
         if (custom.diversifierStart > 0) a.diversifierStart = custom.diversifierStart;
         if (custom.subAsset) a.subAsset = custom.subAsset;
+        if (custom.glideEndgame) a.glideEndgame = custom.glideEndgame;   // tent endgame for a tagged plan
         return a;
       }
       const pot = +document.getElementById(p + 'Pot').value || 0;
@@ -5011,7 +5045,8 @@
           equity: total ? s.equityMin / total : 0, bond: total ? s.bondMin / total : 0,
           diversifiers: total ? (s.diversifierStart || 0) / total : 0, cash: total ? s.cashTarget / total : 0,
           equityMin: s.equityMin, bondMin: s.bondMin, cashTarget: s.cashTarget,
-          diversifierStart: s.diversifierStart || 0, subAsset: s.subAsset
+          diversifierStart: s.diversifierStart || 0, subAsset: s.subAsset,
+          glideEndgame: s.glideEndgame || null   // restore the chosen tent endgame
         };
       } else {
         delete window._customAlloc[p];
@@ -5282,6 +5317,7 @@
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
           diversifierStart: ssAlloc.diversifierStart || 0,
           subAsset: ssAlloc.subAsset || null,
+          glideEndgame: ssAlloc.glideEndgame || null,   // tent endgame for a tagged plan
           // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
           // my tagged funds") without re-entering it.
           taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
@@ -5409,6 +5445,7 @@
           // allocation (preset / custom / tagged) consistently with Stress.
           diversifierStart: dsAlloc.diversifierStart || 0,
           subAsset: dsAlloc.subAsset || null,
+          glideEndgame: dsAlloc.glideEndgame || null,   // tent endgame for a tagged plan
           taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0)
         });
         showToast('Settings saved successfully', 'success');

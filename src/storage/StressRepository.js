@@ -60,7 +60,9 @@ function getDefaultStressDB() {
       // Rising-equity glidepath / bond tent (opt-in)
       equityGlideEnabled: false,
       // Diversifiers sleeve (gold + trend/macro), opt-in — 0 = off (legacy 3-bucket)
-      diversifierStart: 0
+      diversifierStart: 0,
+      // Tagged fund holdings (from "Build from my funds"), reused across tabs
+      taggedFunds: []
     },
     lastModified: null,
     checksum: null

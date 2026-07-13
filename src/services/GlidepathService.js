@@ -89,6 +89,52 @@ export function equityGlideFromRisk(equityPct, bondPct, spread = 0.22) {
   };
 }
 
+// Default growth-sleeve equity-share RISE for a start-anchored (tagged) tent. Kept modest — the tent
+// can be subtle. Overridable per plan once the endgame picker exists.
+export const TENT_DEFAULT_RISE = 0.12;
+
+/**
+ * Tent glide for a TAGGED portfolio: the tagged allocation is the START (the user's real holdings NOW),
+ * and equity rises FROM there toward an endgame — the opposite anchoring to equityGlideFromRisk (where
+ * the chosen mix is the destination). Year-0 target therefore equals current holdings, so there is no
+ * spurious "rebalance now" advice; the moves appear gradually as the glide progresses.
+ * @param {number} startEquityPct - whole-portfolio equity fraction of the tagged start
+ * @param {number} startBondPct - whole-portfolio bond fraction of the tagged start
+ * @param {?{equityPct:number,bondPct:number}} endgame - optional endgame allocation; default = start + rise
+ * @param {number} [rise=TENT_DEFAULT_RISE] - fallback rise in growth-sleeve equity share
+ * @returns {{start:number,end:number}} growth-sleeve equity shares
+ */
+export function equityGlideFromStart(startEquityPct, startBondPct, endgame = null, rise = TENT_DEFAULT_RISE) {
+  const growth = startEquityPct + startBondPct;
+  if (growth <= 0) return { start: 0, end: 0 };
+  const startShare = startEquityPct / growth;
+  let endShare;
+  if (endgame && (endgame.equityPct + endgame.bondPct) > 0) {
+    endShare = endgame.equityPct / (endgame.equityPct + endgame.bondPct);
+  } else {
+    endShare = Math.min(1, startShare + rise);
+  }
+  return { start: startShare, end: endShare };
+}
+
+/**
+ * The tent glide for a plan's settings, used by BOTH engines so they stay in lockstep:
+ *   - TAGGED allocation (settings carry sub-class weights) → START-anchored (tagged mix = the start),
+ *     rising toward settings.glideEndgame (or a default rise). Year-0 target = current holdings.
+ *   - otherwise → DESTINATION-anchored (chosen mix = the endgame), the classic behaviour.
+ * @param {object} settings - plan settings (equityMin/bondMin, optional subAsset, optional glideEndgame)
+ * @returns {{start:number,end:number}}
+ */
+export function tentGlideForSettings(settings) {
+  const tagged = !!(settings.subAsset && settings.subAsset.bondWeights &&
+    Object.keys(settings.subAsset.bondWeights).length > 0);
+  const endgame = (settings.glideEndgame &&
+    (settings.glideEndgame.equityPct + settings.glideEndgame.bondPct) > 0) ? settings.glideEndgame : null;
+  return tagged
+    ? equityGlideFromStart(settings.equityMin, settings.bondMin, endgame)
+    : equityGlideFromRisk(settings.equityMin, settings.bondMin);
+}
+
 /**
  * The whole-portfolio target mix for a given year (tent-aware) — what the
  * Decision Tool reports as "this year's target" and rebalances toward. Cash is

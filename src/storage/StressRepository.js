@@ -11,7 +11,7 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constan
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
-import { equityGlideFromRisk } from '../services/GlidepathService.js';
+import { tentGlideForSettings } from '../services/GlidepathService.js';
 import {
   getActiveStressSettings,
   saveActiveStressSettings,
@@ -344,7 +344,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // split (the ENDGAME/destination) and then holds — so the chosen allocation is where it settles, and
     // the tent's time-average equity is BELOW it (more cautious early). Derived from the equity:bond
     // ratio (scale-invariant, so passing the raw £ minimums is fine). Opt-in.
-    equityGlide: settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : undefined,
+    equityGlide: settings.equityGlideEnabled ? tentGlideForSettings(settings) : undefined,
     // Diversifiers sleeve (gold + trend/macro), opt-in. When set, the engine runs the 4-bucket
     // sub-asset path (subAsset present) and holds this pot flat, tapping it first in a downturn.
     // Absent/0 → legacy 3-bucket path, byte-identical.

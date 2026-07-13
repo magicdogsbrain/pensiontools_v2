@@ -10,7 +10,10 @@ import {
   calculateCappedInflation,
   generateGlidepathSchedule,
   checkGlidepathStatus,
-  calculateProportionalDraw
+  calculateProportionalDraw,
+  equityGlideFromRisk,
+  equityGlideFromStart,
+  tentGlideForSettings
 } from '../src/services/GlidepathService.js';
 
 describe('GlidepathService', () => {
@@ -213,6 +216,37 @@ describe('GlidepathService', () => {
       const draw = calculateProportionalDraw(1000, 50000, 0);
       expect(draw.fromEquity).toBe(1000);
       expect(draw.fromBond).toBe(0);
+    });
+  });
+
+  describe('tent anchoring: destination (non-tagged) vs start (tagged)', () => {
+    it('equityGlideFromRisk: chosen mix is the ENDGAME, start is lower', () => {
+      const g = equityGlideFromRisk(500000, 400000);       // 55.6% equity of growth
+      expect(g.end).toBeCloseTo(0.556, 2);
+      expect(g.start).toBeLessThan(g.end);                 // starts more bond-heavy
+    });
+
+    it('equityGlideFromStart: tagged mix is the START, equity rises from there', () => {
+      const g = equityGlideFromStart(670000, 385000);      // PDF: 63.5% equity of growth
+      expect(g.start).toBeCloseTo(0.635, 2);               // starts AT the tagged mix
+      expect(g.end).toBeGreaterThan(g.start);              // rises
+    });
+
+    it('equityGlideFromStart honours an explicit endgame', () => {
+      const g = equityGlideFromStart(670000, 385000, { equityPct: 80, bondPct: 20 });
+      expect(g.start).toBeCloseTo(0.635, 2);
+      expect(g.end).toBeCloseTo(0.80, 2);
+    });
+
+    it('tentGlideForSettings: tagged plan (sub-class weights) → start-anchored at holdings', () => {
+      const tagged = tentGlideForSettings({ equityMin: 670000, bondMin: 385000, subAsset: { bondWeights: { shortGilts: 1 } } });
+      expect(tagged.start).toBeCloseTo(0.635, 2);          // year-0 target == current holdings → no spurious rebalance
+      expect(tagged.end).toBeGreaterThan(tagged.start);
+    });
+
+    it('tentGlideForSettings: non-tagged plan → destination-anchored (unchanged behaviour)', () => {
+      const preset = tentGlideForSettings({ equityMin: 500000, bondMin: 400000 });
+      expect(preset).toEqual(equityGlideFromRisk(500000, 400000));
     });
   });
 });

@@ -88,7 +88,9 @@ export const SUB_ASSET_PROFILES = Object.freeze({
 // funds to a modelled sub-class so it feels like the user's own portfolio.
 // -----------------------------------------------------------------------------
 export const FUND_TAG_MAP = Object.freeze({
-  UKW:  'infraDebt',        HICL: 'infraDebt',
+  // UKW/HICL are infrastructure EQUITY income trusts (renewable + social infra, RPI-linked payouts),
+  // not debt → shares bucket (proxied as UK equity income). SEQI is genuine infra DEBT → bonds.
+  UKW:  'ukEquityIncome',   HICL: 'ukEquityIncome',
   CTY:  'ukEquityIncome',   MYI:  'globalEquityIncome', LWDB: 'ukEquityIncome',
   PACW: 'worldGrowth',
   SEQI: 'infraDebt',

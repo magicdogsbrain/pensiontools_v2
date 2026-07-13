@@ -2354,9 +2354,9 @@
                 Enter your holdings; each fund is tagged to a bucket (shares / bonds / diversifiers / cash) and its sub-class. Apply to set your allocation from the real portfolio — including the exact bond &amp; diversifier mix.
               </p>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" onclick="loadPdfExample()">Load PDF example (£1.3M)</button>
-                <button type="button" class="risk-btn" onclick="addFundRow()">+ Add fund</button>
-                <button type="button" class="risk-btn" onclick="clearFunds()">Clear</button>
+                <button type="button" class="risk-btn" onclick="loadPdfExample('ss')">Load PDF example (£1.3M)</button>
+                <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add fund</button>
+                <button type="button" class="risk-btn" onclick="clearFunds('ss')">Clear</button>
               </div>
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
@@ -2368,7 +2368,7 @@
                 <datalist id="ssFundCatalogue"></datalist>
               </div>
               <div id="ssFundSummary" style="margin-top:12px;"></div>
-              <button type="button" class="btn-primary" style="margin-top:12px;" onclick="applyTaggedPortfolio()">Apply this portfolio to the plan</button>
+              <button type="button" class="btn-primary" style="margin-top:12px;" onclick="applyTaggedPortfolio('ss')">Apply this portfolio to the plan</button>
             </details>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -3057,8 +3057,8 @@
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
-        window._ssFunds = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
-        renderFunds();                                          // render the tagging panel
+        window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
+        renderFunds('ss');                                      // render the tagging panel
         document.getElementById('ssDuration').value = stressSettings.duration;
         document.getElementById('ssPA').value = stressSettings.pa;
         document.getElementById('ssBRL').value = stressSettings.brl;
@@ -4840,12 +4840,14 @@
     };
 
     // --- Fund tagging: build a custom allocation from real holdings -----------------------------
-    window._ssFunds = window._ssFunds || [];
+    // Tagged fund lists per surface ('ss' | 'ds'). Each plan tags independently.
+    window._taggedFunds = window._taggedFunds || {};
+    function funds(p) { return (window._taggedFunds[p] = window._taggedFunds[p] || []); }
     const BUCKET_LABELS = { shares: 'Shares', bonds: 'Bonds', diversifiers: 'Diversifiers', cash: 'Cash' };
 
-    // Populate the ticker autocomplete datalist from the catalogue (once).
-    function ensureFundDatalist() {
-      const dl = document.getElementById('ssFundCatalogue');
+    // Populate a surface's ticker autocomplete datalist from the catalogue (once).
+    function ensureFundDatalist(p) {
+      const dl = document.getElementById(p + 'FundCatalogue');
       if (dl && !dl.childElementCount) {
         dl.innerHTML = FUND_CATALOGUE.map(f => '<option value="' + f.ticker + '">' + f.ticker + ' — ' + f.name + '</option>').join('');
       }
@@ -4856,7 +4858,7 @@
     }
     // Editable category dropdown (sub-classes grouped by bucket). Defaults are suggestions; any fund
     // can be re-categorised (e.g. CGT diversifier -> a bond sub-class).
-    function categorySelectHtml(i, selected) {
+    function categorySelectHtml(p, i, selected) {
       const groups = subClassOptionsByBucket();
       let opts = '<option value="">— not set —</option>';
       for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
@@ -4866,25 +4868,25 @@
           g.map(o => '<option value="' + o.key + '"' + (o.key === selected ? ' selected' : '') + '>' + o.label + '</option>').join('') +
           '</optgroup>';
       }
-      return '<select onchange="updateFundField(' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
+      return '<select onchange="updateFundField(\'' + p + '\',' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
     }
-    function renderFunds() {
-      const tb = document.getElementById('ssFundRows');
+    window.renderFunds = function(p) {
+      const tb = document.getElementById(p + 'FundRows');
       if (!tb) return;
-      ensureFundDatalist();
-      tb.innerHTML = window._ssFunds.map((f, i) =>
+      ensureFundDatalist(p);
+      tb.innerHTML = funds(p).map((f, i) =>
         '<tr>' +
-        '<td style="padding:3px 6px;"><input type="text" list="ssFundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
-        '<td style="padding:3px 6px;"><input type="number" value="' + (f.value || '') + '" oninput="updateFundField(' + i + ',\'value\',this.value)" style="width:96px;" placeholder="0"></td>' +
-        '<td style="padding:3px 6px;"><select onchange="updateFundField(' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
-        '<td id="ss_fcat_' + i + '" style="padding:3px 6px;">' + categorySelectHtml(i, effectiveSubClass(f)) + '</td>' +
-        '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(' + i + ')">&times;</button></td>' +
+        '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
+        '<td style="padding:3px 6px;"><input type="number" value="' + (f.value || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" style="width:96px;" placeholder="0"></td>' +
+        '<td style="padding:3px 6px;"><select onchange="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
+        '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categorySelectHtml(p, i, effectiveSubClass(f)) + '</td>' +
+        '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
         '</tr>'
       ).join('');
-      updateTaggingSummary();
-    }
-    window.updateFundField = function(i, field, val) {
-      const f = window._ssFunds[i];
+      updateTaggingSummary(p);
+    };
+    window.updateFundField = function(p, i, field, val) {
+      const f = funds(p)[i];
       if (!f) return;
       if (field === 'value') {
         f.value = +val || 0;
@@ -4893,29 +4895,29 @@
         // Seed the category from the catalogue on a recognised ticker (user can still change it).
         const cat = catalogueEntry(val);
         if (cat) f.subClass = cat.subClass;
-        const cell = document.getElementById('ss_fcat_' + i);
-        if (cell) cell.innerHTML = categorySelectHtml(i, effectiveSubClass(f));
+        const cell = document.getElementById(p + '_fcat_' + i);
+        if (cell) cell.innerHTML = categorySelectHtml(p, i, effectiveSubClass(f));
       } else if (field === 'subClass') {
         f.subClass = val;   // explicit user override, stored on the holding
       } else {
         f[field] = val;
       }
-      updateTaggingSummary();
+      updateTaggingSummary(p);
     };
-    window.addFundRow = function(ticker, value, wrapper) {
-      window._ssFunds.push({ ticker: typeof ticker === 'string' ? ticker : '', value: +value || '', wrapper: wrapper || 'SIPP' });
-      renderFunds();
+    window.addFundRow = function(p) {
+      funds(p).push({ ticker: '', value: '', wrapper: 'SIPP' });
+      renderFunds(p);
     };
-    window.removeFund = function(i) { window._ssFunds.splice(i, 1); renderFunds(); };
-    window.clearFunds = function() { window._ssFunds = []; renderFunds(); };
-    window.loadPdfExample = function() {
-      window._ssFunds = PDF_PORTFOLIO.map(h => ({ ticker: h.ticker, value: h.value, wrapper: h.wrapper }));
-      renderFunds();
+    window.removeFund = function(p, i) { funds(p).splice(i, 1); renderFunds(p); };
+    window.clearFunds = function(p) { window._taggedFunds[p] = []; renderFunds(p); };
+    window.loadPdfExample = function(p) {
+      window._taggedFunds[p] = PDF_PORTFOLIO.map(h => ({ ticker: h.ticker, value: h.value, wrapper: h.wrapper }));
+      renderFunds(p);
     };
-    function updateTaggingSummary() {
-      const el = document.getElementById('ssFundSummary');
+    function updateTaggingSummary(p) {
+      const el = document.getElementById(p + 'FundSummary');
       if (!el) return;
-      const holdings = window._ssFunds.filter(f => f.ticker && f.value > 0);
+      const holdings = funds(p).filter(f => f.ticker && f.value > 0);
       if (!holdings.length) { el.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">Add holdings above to see the bucket roll-up.</span>'; return; }
       const t = tagPortfolio(holdings);
       const pct = b => t.total ? Math.round(t.buckets[b] / t.total * 100) : 0;
@@ -4934,13 +4936,13 @@
       if (t.untagged.length) html += '<div style="color:#b45309;font-size:12px;margin-top:6px;">Not recognised (ignored): ' + t.untagged.map(u => u.ticker).join(', ') + '</div>';
       el.innerHTML = html;
     }
-    window.applyTaggedPortfolio = function() {
-      const holdings = window._ssFunds.filter(f => f.ticker && f.value > 0);
+    window.applyTaggedPortfolio = function(p) {
+      const holdings = funds(p).filter(f => f.ticker && f.value > 0);
       if (!holdings.length) { showToast('Add some holdings first', 'warning'); return; }
       const t = tagPortfolio(holdings);
       const alloc = allocationFromTags(t);
       // Store as a custom allocation (exact £ + tagged sub-class mix + display fractions).
-      window._customAlloc.ss = {
+      window._customAlloc[p] = {
         label: 'Custom (from your funds)',
         equity: t.total ? t.buckets.shares / t.total : 0,
         bond: t.total ? t.buckets.bonds / t.total : 0,
@@ -4949,13 +4951,13 @@
         equityMin: alloc.equityStart, bondMin: alloc.bondStart, cashTarget: alloc.cashStart,
         diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null
       };
-      document.getElementById('ssPot').value = Math.round(t.total);
-      document.getElementById('ssDiversifiers').checked = (alloc.diversifierStart || 0) > 0;
-      if (t.isaTotal) { const isaEl = document.getElementById('ssIsaBalance'); if (isaEl) isaEl.value = Math.round(t.isaTotal); }
-      document.querySelectorAll('#ssRisks .risk-btn').forEach(b => b.classList.remove('active'));
-      updateAllocDisplay('ss');
+      const potEl = document.getElementById(p + 'Pot'); if (potEl) potEl.value = Math.round(t.total);
+      const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = (alloc.diversifierStart || 0) > 0;
+      if (t.isaTotal) { const isaEl = document.getElementById(p + 'IsaBalance'); if (isaEl) isaEl.value = Math.round(t.isaTotal); }
+      document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.remove('active'));
+      updateAllocDisplay(p);
       showToast('Applied your portfolio: ' + '£' + Math.round(t.total).toLocaleString() + ' across ' + Object.values(t.buckets).filter(v => v > 0).length + ' buckets', 'success');
-      document.getElementById('ssFundTagPanel').open = false;
+      const panel = document.getElementById(p + 'FundTagPanel'); if (panel) panel.open = false;
     };
     // Restore a saved custom (from-funds) allocation: settings that carry sub-class bondWeights came
     // from tagged funds, so rebuild the exact split rather than snapping to a preset.
@@ -4993,14 +4995,16 @@
       html += '</div>';
       return html;
     }
-    // Decision tab: fill the monthly fund values from the funds tagged in Stress → Build from my funds.
+    // Decision tab: fill the monthly fund values from the tagged funds — the Decision plan's own list
+    // first, then the Stress list / saved settings as a fallback.
     window.fillDecisionFromTaggedFunds = async function() {
-      let holdings = (window._ssFunds || []).filter(f => f.ticker && f.value > 0);
+      let holdings = funds('ds').filter(f => f.ticker && f.value > 0);
+      if (!holdings.length) holdings = funds('ss').filter(f => f.ticker && f.value > 0);
       if (!holdings.length) {
         try { const s = await getStressSettingsAsync(); holdings = (s.taggedFunds || []).filter(f => f.ticker && f.value > 0); } catch (e) { /* ignore */ }
       }
       if (!holdings.length) {
-        showToast('No tagged funds yet — tag them in Stress Tester → Settings → "Build from my funds", then come back.', 'info', 6000);
+        showToast('No tagged funds yet — tag your holdings in Settings → "Build from my funds", then come back.', 'info', 6000);
         return;
       }
       const t = tagPortfolio(holdings);
@@ -5238,7 +5242,7 @@
           subAsset: ssAlloc.subAsset || null,
           // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
           // my tagged funds") without re-entering it.
-          taggedFunds: (window._ssFunds || []).filter(f => f.ticker && f.value > 0)
+          taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
         });
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).

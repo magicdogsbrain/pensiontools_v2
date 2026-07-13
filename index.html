@@ -2359,12 +2359,13 @@
                 <button type="button" class="risk-btn" onclick="clearFunds()">Clear</button>
               </div>
               <div style="overflow-x:auto;">
-                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:440px;">
+                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Ticker</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Bucket</th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="ssFundRows"></tbody>
                 </table>
+                <datalist id="ssFundCatalogue"></datalist>
               </div>
               <div id="ssFundSummary" style="margin-top:12px;"></div>
               <button type="button" class="btn-primary" style="margin-top:12px;" onclick="applyTaggedPortfolio()">Apply this portfolio to the plan</button>
@@ -2573,7 +2574,7 @@
     // Import simulation engine for direct access in optimization
     import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
     import { tagPortfolio, allocationFromTags, PDF_PORTFOLIO } from './src/services/PortfolioTagger.js';
-    import { SUB_ASSET_PROFILES, FUND_TAG_MAP } from './src/services/SubAssetModel.js';
+    import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
 
     // Import constants for optimization
     import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
@@ -4842,31 +4843,63 @@
     window._ssFunds = window._ssFunds || [];
     const BUCKET_LABELS = { shares: 'Shares', bonds: 'Bonds', diversifiers: 'Diversifiers', cash: 'Cash' };
 
-    function bucketCellHtml(ticker) {
-      const key = FUND_TAG_MAP[(ticker || '').toUpperCase().trim()];
-      const profile = key ? SUB_ASSET_PROFILES[key] : null;
-      if (!ticker) return '<span style="color:var(--text-muted);">—</span>';
-      if (!profile) return '<span style="color:#b45309;">not recognised</span>';
-      return BUCKET_LABELS[profile.bucket] + ' <span style="color:var(--text-muted);font-size:11px;">' + profile.label + '</span>';
+    // Populate the ticker autocomplete datalist from the catalogue (once).
+    function ensureFundDatalist() {
+      const dl = document.getElementById('ssFundCatalogue');
+      if (dl && !dl.childElementCount) {
+        dl.innerHTML = FUND_CATALOGUE.map(f => '<option value="' + f.ticker + '">' + f.ticker + ' — ' + f.name + '</option>').join('');
+      }
+    }
+    // The effective sub-class for a holding: an explicit override, else the catalogue default.
+    function effectiveSubClass(f) {
+      return f.subClass || FUND_TAG_MAP[(f.ticker || '').toUpperCase().trim()] || '';
+    }
+    // Editable category dropdown (sub-classes grouped by bucket). Defaults are suggestions; any fund
+    // can be re-categorised (e.g. CGT diversifier -> a bond sub-class).
+    function categorySelectHtml(i, selected) {
+      const groups = subClassOptionsByBucket();
+      let opts = '<option value="">— not set —</option>';
+      for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
+        const g = groups[b] || [];
+        if (!g.length) continue;
+        opts += '<optgroup label="' + BUCKET_LABELS[b] + '">' +
+          g.map(o => '<option value="' + o.key + '"' + (o.key === selected ? ' selected' : '') + '>' + o.label + '</option>').join('') +
+          '</optgroup>';
+      }
+      return '<select onchange="updateFundField(' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
     }
     function renderFunds() {
       const tb = document.getElementById('ssFundRows');
       if (!tb) return;
+      ensureFundDatalist();
       tb.innerHTML = window._ssFunds.map((f, i) =>
         '<tr>' +
-        '<td style="padding:3px 6px;"><input type="text" value="' + (f.ticker || '') + '" oninput="updateFundField(' + i + ',\'ticker\',this.value)" style="width:80px;text-transform:uppercase;" placeholder="SGLN"></td>' +
+        '<td style="padding:3px 6px;"><input type="text" list="ssFundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
         '<td style="padding:3px 6px;"><input type="number" value="' + (f.value || '') + '" oninput="updateFundField(' + i + ',\'value\',this.value)" style="width:96px;" placeholder="0"></td>' +
         '<td style="padding:3px 6px;"><select onchange="updateFundField(' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
-        '<td id="ss_fb_' + i + '" style="padding:3px 6px;">' + bucketCellHtml(f.ticker) + '</td>' +
+        '<td id="ss_fcat_' + i + '" style="padding:3px 6px;">' + categorySelectHtml(i, effectiveSubClass(f)) + '</td>' +
         '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(' + i + ')">&times;</button></td>' +
         '</tr>'
       ).join('');
       updateTaggingSummary();
     }
     window.updateFundField = function(i, field, val) {
-      if (!window._ssFunds[i]) return;
-      window._ssFunds[i][field] = field === 'value' ? (+val || 0) : val;
-      if (field === 'ticker') { const c = document.getElementById('ss_fb_' + i); if (c) c.innerHTML = bucketCellHtml(val); }
+      const f = window._ssFunds[i];
+      if (!f) return;
+      if (field === 'value') {
+        f.value = +val || 0;
+      } else if (field === 'ticker') {
+        f.ticker = val;
+        // Seed the category from the catalogue on a recognised ticker (user can still change it).
+        const cat = catalogueEntry(val);
+        if (cat) f.subClass = cat.subClass;
+        const cell = document.getElementById('ss_fcat_' + i);
+        if (cell) cell.innerHTML = categorySelectHtml(i, effectiveSubClass(f));
+      } else if (field === 'subClass') {
+        f.subClass = val;   // explicit user override, stored on the holding
+      } else {
+        f[field] = val;
+      }
       updateTaggingSummary();
     };
     window.addFundRow = function(ticker, value, wrapper) {

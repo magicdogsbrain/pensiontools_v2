@@ -2586,7 +2586,7 @@
 
     // Import additional services
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
-    import { generateGlidepathSchedule, RISK_PRESETS, equityGlideFromRisk, targetMixForYear } from './src/services/GlidepathService.js';
+    import { generateGlidepathSchedule, RISK_PRESETS, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';
     import { resetStressSettings, invalidateStressCache, createSimulationConfigFromSettings } from './src/storage/StressRepository.js';
     import {
       invalidateScenarioCache,
@@ -3806,7 +3806,7 @@
       // Bond tent: when enabled, hand the engine a rising-equity glide centred on the plan's risk
       // split (same helper the Stress engine uses), so the monthly draw + rebalance advice follows it.
       const decisionSettings = settings.equityGlideEnabled
-        ? { ...settings, equityGlide: equityGlideFromRisk(settings.equityMin, settings.bondMin) }
+        ? { ...settings, equityGlide: tentGlideForSettings(settings) }
         : settings;
       return calcDecisionPWA(dateStr, equity, bond, cash, {
         settings: decisionSettings,
@@ -4782,9 +4782,12 @@
       const duration = (durEl && +durEl.value) || 35;
       const riseYears = Math.max(5, duration - 20);
       const cash = preset.cash, div = preset.diversifiers || 0, growth = 1 - cash - div;
-      const g = equityGlideFromRisk(preset.equity, preset.bond);
-      const shStart = Math.round(growth * g.start * 100), shEnd = Math.round(preset.equity * 100);
-      const bdStart = Math.round(growth * (1 - g.start) * 100), bdEnd = Math.round(preset.bond * 100);
+      // Tagged (custom) allocation → START-anchored glide (your holdings are the start, equity rises);
+      // otherwise the chosen mix is the endgame (start lower). Matches tentGlideForSettings in the engine.
+      const custom = !!window._customAlloc[p];
+      const g = custom ? equityGlideFromStart(preset.equity, preset.bond) : equityGlideFromRisk(preset.equity, preset.bond);
+      const shStart = Math.round(growth * g.start * 100), shEnd = Math.round(growth * g.end * 100);
+      const bdStart = Math.round(growth * (1 - g.start) * 100), bdEnd = Math.round(growth * (1 - g.end) * 100);
       const cshPct = Math.round(cash * 100), dvPct = Math.round(div * 100);
       // SVG geometry: value fraction (from the bottom) → y, top(100%)=18, bottom(0%)=104. Stack from
       // the bottom: cash, diversifiers (both flat), then the bond/share growth sleeve whose boundary
@@ -4808,12 +4811,17 @@
       const swatch = c => `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:middle;"></span>`;
       const divTxt = div > 0 ? ' · ' + dvPct + '% diversifiers' : '';
       const divLegend = div > 0 ? ' &nbsp; ' + swatch(dw) + ' Diversifiers' : '';
+      const startHdr = custom ? 'Now (your funds)' : 'Starts';
+      const endHdr = custom ? 'Rises to' : 'Then holds (' + preset.label + ')';
+      const midTxt = custom
+        ? 'rises from your holdings, levels off at year ' + riseYears
+        : 'reaches your mix at year ' + riseYears + ', then holds';
       return '<div style="font-weight:600;margin-bottom:6px;">How your mix glides over ' + duration + ' years</div>' +
         svg +
-        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:3px;"><span>Now</span><span>reaches your mix at year ' + riseYears + ', then holds</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:3px;"><span>Now</span><span>' + midTxt + '</span></div>' +
         '<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:8px;">' +
-          '<span><strong>Starts</strong><br>' + shStart + '% shares · ' + bdStart + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
-          '<span style="text-align:right;"><strong>Then holds (' + preset.label + ')</strong><br>' + shEnd + '% shares · ' + bdEnd + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
+          '<span><strong>' + startHdr + '</strong><br>' + shStart + '% shares · ' + bdStart + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
+          '<span style="text-align:right;"><strong>' + endHdr + '</strong><br>' + shEnd + '% shares · ' + bdEnd + '% bonds' + divTxt + ' · ' + cshPct + '% cash</span>' +
         '</div>' +
         '<div style="font-size:12px;margin-top:8px;">' + swatch(sw) + ' Shares &nbsp; ' + swatch(bw) + ' Bonds' + divLegend + ' &nbsp; ' + swatch(cw) + ' Cash</div>';
     }

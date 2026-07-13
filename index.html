@@ -3901,8 +3901,9 @@
     // balances from the Settings' Fund Minimums via createSimulationConfigFromSettings.
     function renderStressStartSummary(s) {
       const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
+      const div = (s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart)}` : '';
       const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
-        `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)} · Cash ${fmt(s.cashTarget)}. ` +
+        `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. ` +
         'Edit them in the Settings tab.';
       ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach(id => {
         const el = document.getElementById(id);
@@ -5144,6 +5145,9 @@
           diversifierStart: ssAlloc.diversifierStart || 0,
           subAsset: ssAlloc.subAsset || null
         });
+        // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
+        // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
+        renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 });
         showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving stress settings:', error);

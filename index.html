@@ -1932,27 +1932,28 @@
                   </div>
                 </div>
 
-                <h3 style="margin-top: 24px;">Fund Values</h3>
+                <h3 style="margin-top: 24px;">This month's fund values</h3>
+                <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Equity Fund</label>
+                    <label>Equity Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryEquity" value="250000" required>
+                      <input type="number" id="entryEquity" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Bond Fund</label>
+                    <label>Bond Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryBond" value="200000" required>
+                      <input type="number" id="entryBond" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Cash Fund</label>
+                    <label>Cash <a href="#" class="itemise-link" onclick="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryCash" value="50000" required>
+                      <input type="number" id="entryCash" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
@@ -1965,7 +1966,7 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Diversifiers
+                    <label>Diversifiers <a href="#" class="itemise-link" onclick="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
                       <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
                     </label>
                     <div class="input-with-unit">
@@ -1977,7 +1978,21 @@
 
                 <div id="entryFundTagHelp" style="margin-top:12px;"></div>
                 <div style="margin-top:8px;">
-                  <button type="button" class="risk-btn" style="padding:6px 12px;" onclick="fillDecisionFromTaggedFunds()">Fill from my tagged funds</button>
+                  <button type="button" class="risk-btn" style="padding:6px 12px;" onclick="fillDecisionFromTaggedFunds()">Fill all from my tagged funds</button>
+                </div>
+
+                <!-- Per-bucket "enter this month's fund values" popup -->
+                <div id="fundBucketModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
+                  <div style="background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:12px; padding:22px; max-width:520px; width:90%; max-height:80vh; overflow:auto;">
+                    <h3 id="fundModalTitle" style="margin-top:0;">Fund values</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Enter this month's value for each fund. The bucket total is the sum.</p>
+                    <div id="fundModalRows"></div>
+                    <div id="fundModalSubtotal" style="font-weight:600; margin-top:12px; border-top:1px solid var(--border,#334155); padding-top:10px;"></div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+                      <button type="button" class="risk-btn" onclick="closeFundBucketModal()">Cancel</button>
+                      <button type="button" class="btn-primary" onclick="applyFundBucketModal()">Done</button>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="button-row" style="margin-top: 24px;">
@@ -2328,6 +2343,8 @@
             </div>
 
             <style>
+              .itemise-link { font-size:12px; color:var(--primary,#6366f1); margin-left:8px; text-decoration:none; font-weight:normal; }
+              .itemise-link:hover { text-decoration:underline; }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
               .risk-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; font-weight:600; }
@@ -3062,10 +3079,12 @@
         const stressSettings = await getStressSettingsAsync();
         const decisionSettings = await getDecisionSettingsAsync();
 
-        // Pre-fill Decision Tool entry form
-        document.getElementById('entryEquity').value = decisionSettings.equityMin || 250000;
-        document.getElementById('entryBond').value = decisionSettings.bondMin || 200000;
-        document.getElementById('entryCash').value = decisionSettings.cashTarget || 50000;
+        // Monthly Entry captures THIS MONTH's current fund values — NOT the plan's starting minimums.
+        // Leave the bucket boxes blank; the user enters them (per-fund via the popups, "Fill all from my
+        // tagged funds", or by typing). ISA balance is a real running balance, so seed it from settings.
+        document.getElementById('entryEquity').value = '';
+        document.getElementById('entryBond').value = '';
+        document.getElementById('entryCash').value = '';
         document.getElementById('entryIsa').value = decisionSettings.isaBalance || 0;
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
@@ -3074,6 +3093,7 @@
         restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
         window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));  // restore the plan's funds
         renderFunds('ds');
+        updateEntryTagPrompt();                                              // nudge to tag if none yet
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
@@ -5072,6 +5092,55 @@
       html += '</div>';
       return html;
     }
+
+    // --- Per-bucket "enter this month's fund values" popup (Decision Monthly Entry) ----------------
+    window._fundModal = { fieldId: null, subtotal: 0 };
+    window.openFundBucketModal = function(bucket, fieldId, title) {
+      const bucketFunds = funds('ds').filter(f => {
+        const k = effectiveSubClass(f);
+        return f.ticker && k && SUB_ASSET_PROFILES[k] && SUB_ASSET_PROFILES[k].bucket === bucket;
+      });
+      window._fundModal = { fieldId, subtotal: 0 };
+      document.getElementById('fundModalTitle').textContent = title;
+      const rows = document.getElementById('fundModalRows');
+      if (!bucketFunds.length) {
+        rows.innerHTML = '<p style="color:var(--text-muted);">No ' + title.toLowerCase() + ' tagged yet. Define your holdings in <strong>Settings → Build from my funds</strong>, then come back — or just type the total into the box.</p>';
+      } else {
+        rows.innerHTML = bucketFunds.map(f => {
+          const cat = catalogueEntry(f.ticker);
+          const prof = SUB_ASSET_PROFILES[effectiveSubClass(f)];
+          const name = cat ? cat.name : (prof ? prof.label : '');
+          return '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0;">' +
+            '<span><strong>' + f.ticker + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + name + '</span></span>' +
+            '<span style="white-space:nowrap;">£ <input type="number" class="fund-modal-input" oninput="updateFundModalSubtotal()" style="width:120px;" placeholder="0"></span>' +
+            '</div>';
+        }).join('');
+      }
+      updateFundModalSubtotal();
+      document.getElementById('fundBucketModal').style.display = 'flex';
+    };
+    window.updateFundModalSubtotal = function() {
+      let sum = 0;
+      document.querySelectorAll('#fundModalRows .fund-modal-input').forEach(inp => { sum += (+inp.value || 0); });
+      window._fundModal.subtotal = sum;
+      document.getElementById('fundModalSubtotal').textContent = 'Total: £' + Math.round(sum).toLocaleString();
+    };
+    window.applyFundBucketModal = function() {
+      const el = document.getElementById(window._fundModal.fieldId);
+      if (el) el.value = Math.round(window._fundModal.subtotal || 0);
+      closeFundBucketModal();
+    };
+    window.closeFundBucketModal = function() { document.getElementById('fundBucketModal').style.display = 'none'; };
+    // Decision requires a tagged portfolio — nudge the user to Settings if they haven't tagged one.
+    window.updateEntryTagPrompt = function() {
+      const el = document.getElementById('entryTagPrompt');
+      if (!el) return;
+      const hasTags = funds('ds').filter(f => f.ticker).length > 0;
+      if (hasTags) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      el.style.display = 'block';
+      el.innerHTML = '<div class="alert alert-info" style="font-size:13px;">The Decision Tool works from your real portfolio. Tag your funds in <strong>Settings → “Build from my funds”</strong> to enter values per fund via the <em>enter per fund ▸</em> links. You can still type bucket totals directly.</div>';
+    };
+
     // Decision tab: fill the monthly fund values from the tagged funds — the Decision plan's own list
     // first, then the Stress list / saved settings as a fallback.
     window.fillDecisionFromTaggedFunds = async function() {

@@ -1964,6 +1964,20 @@
                       <input type="number" id="entryIsa" value="0" min="0">
                     </div>
                   </div>
+                  <div class="form-group">
+                    <label>Diversifiers
+                      <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryDiversifier" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+
+                <div id="entryFundTagHelp" style="margin-top:12px;"></div>
+                <div style="margin-top:8px;">
+                  <button type="button" class="risk-btn" style="padding:6px 12px;" onclick="fillDecisionFromTaggedFunds()">Fill from my tagged funds</button>
                 </div>
 
                 <div class="button-row" style="margin-top: 24px;">
@@ -3042,7 +3056,8 @@
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
-        renderFunds();                                          // seed the (empty) tagging panel
+        window._ssFunds = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
+        renderFunds();                                          // render the tagging panel
         document.getElementById('ssDuration').value = stressSettings.duration;
         document.getElementById('ssPA').value = stressSettings.pa;
         document.getElementById('ssBRL').value = stressSettings.brl;
@@ -3765,7 +3780,10 @@
         spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)),
         // ISA balance from the entry form: when > 0 the engine treats the ISA as a real
         // depleting pot and draws it via the shared band-management strategy (planDrawdown).
-        isaBalance: parseFloat(document.getElementById('entryIsa')?.value) || 0
+        isaBalance: parseFloat(document.getElementById('entryIsa')?.value) || 0,
+        // Diversifiers sleeve (optional): the engine advises drawing this reserve before depressed
+        // growth in a downturn. 0/absent → 3-bucket advice, unchanged.
+        diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0
       });
     }
 
@@ -4923,6 +4941,47 @@
       }
     };
 
+    // "Which of your funds went where" — the collation helper. Reused on the Decision tab so the
+    // user sees exactly which of their real holdings landed in each bucket.
+    function fundBucketBreakdownHtml(t) {
+      const byBucket = { shares: [], bonds: [], diversifiers: [], cash: [] };
+      t.tagged.forEach(f => { if (byBucket[f.bucket]) byBucket[f.bucket].push(f); });
+      const money = n => '£' + Math.round(n).toLocaleString();
+      const names = { shares: 'Shares', bonds: 'Bonds', diversifiers: 'Diversifiers', cash: 'Cash' };
+      let html = '<div style="font-size:12px;border:1px solid var(--border,#cbd5e1);border-radius:8px;padding:10px 12px;">';
+      html += '<div style="font-weight:600;margin-bottom:6px;">Which of your funds went where</div>';
+      for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
+        if (!byBucket[b].length) continue;
+        const tot = byBucket[b].reduce((s, f) => s + (+f.value || 0), 0);
+        html += '<div style="margin:3px 0;"><strong>' + names[b] + '</strong> ' + money(tot) + ': <span style="color:var(--text-muted);">' + byBucket[b].map(f => f.ticker).join(', ') + '</span></div>';
+      }
+      if (t.isaTotal) html += '<div style="margin-top:4px;color:var(--text-muted);">of which £' + Math.round(t.isaTotal).toLocaleString() + ' is in an ISA (the bridge)</div>';
+      if (t.untagged.length) html += '<div style="color:#b45309;margin-top:4px;">Not recognised: ' + t.untagged.map(u => u.ticker).join(', ') + '</div>';
+      html += '</div>';
+      return html;
+    }
+    // Decision tab: fill the monthly fund values from the funds tagged in Stress → Build from my funds.
+    window.fillDecisionFromTaggedFunds = async function() {
+      let holdings = (window._ssFunds || []).filter(f => f.ticker && f.value > 0);
+      if (!holdings.length) {
+        try { const s = await getStressSettingsAsync(); holdings = (s.taggedFunds || []).filter(f => f.ticker && f.value > 0); } catch (e) { /* ignore */ }
+      }
+      if (!holdings.length) {
+        showToast('No tagged funds yet — tag them in Stress Tester → Settings → "Build from my funds", then come back.', 'info', 6000);
+        return;
+      }
+      const t = tagPortfolio(holdings);
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = Math.round(v); };
+      set('entryEquity', t.buckets.shares);
+      set('entryBond', t.buckets.bonds);
+      set('entryCash', t.buckets.cash);
+      set('entryDiversifier', t.buckets.diversifiers);
+      if (t.isaTotal) set('entryIsa', t.isaTotal);
+      const help = document.getElementById('entryFundTagHelp');
+      if (help) help.innerHTML = fundBucketBreakdownHtml(t);
+      showToast('Filled your fund values from ' + holdings.length + ' tagged funds', 'success');
+    };
+
     // --- Report export: print-to-PDF (browser print dialog → Save as PDF) + CSV -------------------
     // A standalone plan header so any exported record stands on its own.
     function decisionPlanHeaderHtml(s, subtitle) {
@@ -5143,7 +5202,10 @@
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
           diversifierStart: ssAlloc.diversifierStart || 0,
-          subAsset: ssAlloc.subAsset || null
+          subAsset: ssAlloc.subAsset || null,
+          // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
+          // my tagged funds") without re-entering it.
+          taggedFunds: (window._ssFunds || []).filter(f => f.ticker && f.value > 0)
         });
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).

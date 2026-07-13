@@ -165,7 +165,7 @@ export function buildDecisionHTML(decision) {
   // Withdrawal source
   html += '<div class="source-card">';
   html += '<h4>Withdraw From</h4>';
-  html += `<div class="source-label ${d.source.toLowerCase()}">${d.source}</div>`;
+  html += `<div class="source-label ${d.source.toLowerCase().replace(/[^a-z]+/g, '-')}">${d.source}</div>`;
 
   if (d.source === 'Growth' && (d.drawFromEquity > 0 || d.drawFromBond > 0)) {
     html += '<div class="source-breakdown">';
@@ -178,13 +178,21 @@ export function buildDecisionHTML(decision) {
     html += '</div>';
   }
 
+  // Diversifier reserve draw (downturn): the sleeve is sold before depressed growth is touched.
+  if (d.drawFromDiversifier > 0) {
+    html += '<div class="source-breakdown">';
+    if (d.drawFromCash > 0) html += `<div class="source-item">Cash: ${formatCurrency(d.drawFromCash)}</div>`;
+    html += `<div class="source-item">Diversifier reserve: ${formatCurrency(d.drawFromDiversifier)}</div>`;
+    html += '</div>';
+  }
+
   html += '</div>'; // End source-card
 
   // Fund status summary
   html += '<div class="fund-status">';
   html += '<h4>Fund Status</h4>';
 
-  const totalFunds = d.equity + d.bond + d.cash;
+  const totalFunds = d.equity + d.bond + d.cash + (d.diversifier || 0);
   const totalMins = d.adjEquityMin + d.adjBondMin + d.adjCashTarget;
   const surplus = totalFunds - totalMins;
   const surplusPercent = totalMins > 0 ? (surplus / totalMins) * 100 : 0;
@@ -202,6 +210,11 @@ export function buildDecisionHTML(decision) {
   // Cash
   const csSurplus = d.cash - d.adjCashTarget;
   html += buildFundCell('Cash', d.cash, d.adjCashTarget, csSurplus);
+
+  // Diversifiers (only when the sleeve is in use). Held flat, so its whole balance is "surplus".
+  if (d.diversifier != null) {
+    html += buildFundCell('Diversifiers', d.diversifier, 0, d.diversifier);
+  }
 
   html += '</div>'; // End fund-grid
 

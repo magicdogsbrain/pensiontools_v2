@@ -341,7 +341,11 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const stdSippMonthly = (BRL - other) / 12;
 
       // Determine withdrawal source
-      let source, reason, dEquity = 0, dBond = 0, dCash = 0, warn = '';
+      // Diversifiers sleeve (opt-in via deps.diversifier). Held flat; tapped as a crisis reserve in a
+      // downturn BEFORE the depressed growth pots — the same rule the Stress engine uses. Absent/0 →
+      // every branch below is byte-identical to the 3-bucket behaviour (golden-safe).
+      const diversifier = deps.diversifier || 0;
+      let source, reason, dEquity = 0, dBond = 0, dCash = 0, dDiversifier = 0, warn = '';
 
       if (!inProtection && totalGrowth >= minGrowth + sipp) {
         source = 'Growth';
@@ -359,9 +363,22 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         }
       } else {
         source = 'Cash';
-        dCash = sipp;
         reason = inProtection ? 'Protection' : 'Below min';
-        if (cash < sipp) warn = 'Cash low!';
+        if (diversifier > 0) {
+          // Draw available cash, then top the shortfall up from the diversifier reserve (sell the
+          // risen hedge) before eating into depressed growth. Warn only if BOTH are exhausted.
+          dCash = Math.min(cash, sipp);
+          let rem = sipp - dCash;
+          if (rem > 0) {
+            dDiversifier = Math.min(diversifier, rem);
+            rem -= dDiversifier;
+            source = dCash > 0 ? 'Cash + Diversifier' : 'Diversifier';
+          }
+          if (rem > 0) warn = 'Cash low!';
+        } else {
+          dCash = sipp;
+          if (cash < sipp) warn = 'Cash low!';
+        }
       }
 
       // Rebalancing check
@@ -515,6 +532,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         drawFromEquity: dEquity,
         drawFromBond: dBond,
         drawFromCash: dCash,
+        // Diversifier fields emitted ONLY when the sleeve is in use, so 3-bucket (golden) output
+        // is byte-identical.
+        ...(diversifier > 0 ? { drawFromDiversifier: dDiversifier, diversifier } : {}),
 
         // Rebalancing
         rebalanceNeeded: rebal !== '',

@@ -2033,29 +2033,36 @@
               </div>
             </div>
 
+            <!-- Allocation mode: a risk level, OR your own tagged funds -->
             <div class="form-group" style="margin-top: 12px;">
-              <label>Risk level</label>
-              <div id="dsRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">Cautious</button>
-                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">Balanced</button>
-                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">Adventurous</button>
+              <label>How do you want to set your allocation?</label>
+              <div style="display:flex; gap:0; width:fit-content; border:1px solid var(--border,#cbd5e1); border-radius:8px; overflow:hidden;">
+                <button type="button" id="dsModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ds','risk')">Pick a risk level</button>
+                <button type="button" id="dsModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ds','funds')">Use my own funds</button>
               </div>
             </div>
 
-            <div id="dsAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
-
-            <div class="form-group" style="margin-top: 12px;">
-              <label style="display:flex; align-items:center; cursor:pointer;">
-                <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
-                <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
-              </label>
+            <div id="dsRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="dsRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">Cautious</button>
+                  <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">Balanced</button>
+                  <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">Adventurous</button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                  <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
+              </div>
             </div>
 
-            <!-- Fund tagging: define the Decision plan's portfolio (its target allocation comes from this) -->
-            <details id="dsFundTagPanel" style="margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
-              <summary style="cursor:pointer; font-weight:600;">Build from my funds — tag your holdings to buckets</summary>
-              <p style="font-size:12px;color:var(--text-muted);margin:8px 0 10px;">
-                The Decision Tool works from your real portfolio. Enter your holdings; each is tagged to a bucket and sub-class (change any of them). Apply to set your plan's target allocation from the funds you actually hold.
+            <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
+            <div id="dsFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
               </p>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
                 <button type="button" class="risk-btn" onclick="loadPdfExample('ds')">Load PDF example (£1.3M)</button>
@@ -2072,8 +2079,9 @@
                 <datalist id="dsFundCatalogue"></datalist>
               </div>
               <div id="dsFundSummary" style="margin-top:12px;"></div>
-              <button type="button" class="btn-primary" style="margin-top:12px;" onclick="applyTaggedPortfolio('ds')">Apply this portfolio to the plan</button>
-            </details>
+            </div>
+
+            <div id="dsAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
 
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex; align-items:center; cursor:pointer;">
@@ -2345,6 +2353,8 @@
             <style>
               .itemise-link { font-size:12px; color:var(--primary,#6366f1); margin-left:8px; text-decoration:none; font-weight:normal; }
               .itemise-link:hover { text-decoration:underline; }
+              .alloc-mode-btn { padding:8px 16px; border:none; background:var(--card,#fff); color:var(--text-muted,#64748b); cursor:pointer; font-size:14px; }
+              .alloc-mode-btn.active { background:#6366f1; color:#fff; font-weight:600; }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
               .risk-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; font-weight:600; }
@@ -2375,32 +2385,39 @@
               </div>
             </div>
 
+            <!-- Allocation mode: a risk level, OR your own tagged funds -->
             <div class="form-group" style="margin-top: 12px;">
-              <label>Risk level</label>
-              <div id="ssRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">Cautious</button>
-                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">Balanced</button>
-                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">Adventurous</button>
+              <label>How do you want to set your allocation?</label>
+              <div style="display:flex; gap:0; width:fit-content; border:1px solid var(--border,#cbd5e1); border-radius:8px; overflow:hidden;">
+                <button type="button" id="ssModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ss','risk')">Pick a risk level</button>
+                <button type="button" id="ssModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ss','funds')">Use my own funds</button>
               </div>
             </div>
 
-            <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
-
-            <div class="form-group" style="margin-top: 12px;">
-              <label style="display:flex; align-items:center; cursor:pointer;">
-                <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
-                <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
-              </label>
-              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
-              </p>
+            <div id="ssRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="ssRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">Cautious</button>
+                  <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">Balanced</button>
+                  <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">Adventurous</button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
+                </p>
+              </div>
             </div>
 
-            <!-- Fund tagging: build the allocation from real holdings -->
-            <details id="ssFundTagPanel" style="margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
-              <summary style="cursor:pointer; font-weight:600;">Build from my funds — tag real holdings to buckets</summary>
-              <p style="font-size:12px;color:var(--text-muted);margin:8px 0 10px;">
-                Enter your holdings; each fund is tagged to a bucket (shares / bonds / diversifiers / cash) and its sub-class. Apply to set your allocation from the real portfolio — including the exact bond &amp; diversifier mix.
+            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
+            <div id="ssFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
               </p>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
                 <button type="button" class="risk-btn" onclick="loadPdfExample('ss')">Load PDF example (£1.3M)</button>
@@ -2417,8 +2434,9 @@
                 <datalist id="ssFundCatalogue"></datalist>
               </div>
               <div id="ssFundSummary" style="margin-top:12px;"></div>
-              <button type="button" class="btn-primary" style="margin-top:12px;" onclick="applyTaggedPortfolio('ss')">Apply this portfolio to the plan</button>
-            </details>
+            </div>
+
+            <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
 
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex; align-items:center; cursor:pointer;">
@@ -3092,7 +3110,7 @@
         writeAlloc('ds', decisionSettings.equityMin || 250000, decisionSettings.bondMin || 200000, decisionSettings.cashTarget || 50000, decisionSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
         window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));  // restore the plan's funds
-        renderFunds('ds');
+        setAllocMode('ds', decisionSettings.allocMode || ((decisionSettings.taggedFunds && decisionSettings.taggedFunds.length) ? 'funds' : 'risk'));
         updateEntryTagPrompt();                                              // nudge to tag if none yet
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
         updateAllocDisplay('ds');
@@ -3114,7 +3132,8 @@
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
         window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
-        renderFunds('ss');                                      // render the tagging panel
+        // A saved fund list means the plan is in "My funds" mode; otherwise "Risk level".
+        setAllocMode('ss', stressSettings.allocMode || ((stressSettings.taggedFunds && stressSettings.taggedFunds.length) ? 'funds' : 'risk'));
         document.getElementById('ssDuration').value = stressSettings.duration;
         document.getElementById('ssPA').value = stressSettings.pa;
         document.getElementById('ssBRL').value = stressSettings.brl;
@@ -4750,6 +4769,9 @@
     }
     // Custom allocations built from tagged funds, per surface. When set, it overrides the presets.
     window._customAlloc = window._customAlloc || {};
+    // Allocation mode per surface: 'risk' (a preset/custom %) or 'funds' (your tagged funds ARE the plan).
+    window._allocMode = window._allocMode || {};
+    function allocMode(p) { return window._allocMode[p] || 'risk'; }
     // The active preset. A custom (from-funds) allocation wins; else with the Diversifiers sleeve on
     // the 4-way table is used, otherwise the classic 3-way RISK_PRESETS — so a preset always carries a
     // (possibly 0) `diversifiers` share.
@@ -4857,9 +4879,32 @@
     }
     window.setRiskPreset = function(p, key) {
       if (!RISK_PRESETS[key]) return;
+      window._allocMode[p] = 'risk';
       delete window._customAlloc[p];   // choosing a risk level reverts a from-funds custom allocation
       document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.toggle('active', b.dataset.risk === key));
       updateAllocDisplay(p);
+    };
+    // Switch between "risk level" and "my funds" allocation modes.
+    window.setAllocMode = function(p, mode) {
+      window._allocMode[p] = mode;
+      const rb = document.getElementById(p + 'ModeRisk'), fb = document.getElementById(p + 'ModeFunds');
+      if (rb) rb.classList.toggle('active', mode === 'risk');
+      if (fb) fb.classList.toggle('active', mode === 'funds');
+      const riskPanel = document.getElementById(p + 'RiskMode'), fundsPanel = document.getElementById(p + 'FundsMode');
+      if (riskPanel) riskPanel.style.display = mode === 'risk' ? '' : 'none';
+      if (fundsPanel) fundsPanel.style.display = mode === 'funds' ? '' : 'none';
+      if (mode === 'funds') {
+        renderFunds(p);
+        rebuildCustomAllocFromFunds(p);            // the fund list IS the allocation
+      } else {
+        delete window._customAlloc[p];             // back to the chosen risk preset
+        if (!document.querySelector('#' + p + 'Risks .risk-btn.active')) {
+          const b = document.querySelector('#' + p + 'Risks .risk-btn[data-risk="balanced"]');
+          if (b) b.classList.add('active');
+        }
+      }
+      updateAllocDisplay(p);
+      if (typeof updateEntryTagPrompt === 'function') updateEntryTagPrompt();
     };
     // Endgame picker — shown only for a TAGGED plan with the tent on. Your holdings are the start;
     // the tent glides equity UP to this chosen risk level (user-adjustable any time, up or down).
@@ -5031,29 +5076,38 @@
       html += '</div>';
       if (t.untagged.length) html += '<div style="color:#b45309;font-size:12px;margin-top:6px;">Not recognised (ignored): ' + t.untagged.map(u => u.ticker).join(', ') + '</div>';
       el.innerHTML = html;
+      // In "My funds" mode the list IS the allocation — rebuild + refresh the plan on every edit.
+      if (allocMode(p) === 'funds') { rebuildCustomAllocFromFunds(p); updateAllocDisplay(p); }
     }
-    window.applyTaggedPortfolio = function(p) {
+    // Build the custom allocation from the current tagged funds (no toast/side-effects). The fund list
+    // drives the plan directly, so this runs on every add/edit/remove while in "My funds" mode.
+    function rebuildCustomAllocFromFunds(p) {
       const holdings = funds(p).filter(f => f.ticker && f.value > 0);
-      if (!holdings.length) { showToast('Add some holdings first', 'warning'); return; }
+      if (!holdings.length) { delete window._customAlloc[p]; return null; }
       const t = tagPortfolio(holdings);
       const alloc = allocationFromTags(t);
-      // Store as a custom allocation (exact £ + tagged sub-class mix + display fractions).
+      const prev = window._customAlloc[p] || {};
       window._customAlloc[p] = {
-        label: 'Custom (from your funds)',
+        label: 'Your funds',
         equity: t.total ? t.buckets.shares / t.total : 0,
         bond: t.total ? t.buckets.bonds / t.total : 0,
         diversifiers: t.total ? t.buckets.diversifiers / t.total : 0,
         cash: t.total ? t.buckets.cash / t.total : 0,
         equityMin: alloc.equityStart, bondMin: alloc.bondStart, cashTarget: alloc.cashStart,
-        diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null
+        diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null,
+        glideEndgame: prev.glideEndgame || null   // preserve the chosen tent endgame across edits
       };
       const potEl = document.getElementById(p + 'Pot'); if (potEl) potEl.value = Math.round(t.total);
       const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = (alloc.diversifierStart || 0) > 0;
       if (t.isaTotal) { const isaEl = document.getElementById(p + 'IsaBalance'); if (isaEl) isaEl.value = Math.round(t.isaTotal); }
-      document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.remove('active'));
+      return t;
+    }
+    // Legacy handler (kept for any remaining "Apply" button); the fund list now auto-applies.
+    window.applyTaggedPortfolio = function(p) {
+      window._allocMode[p] = 'funds';
+      const t = rebuildCustomAllocFromFunds(p);
+      if (!t) { showToast('Add some holdings first', 'warning'); return; }
       updateAllocDisplay(p);
-      showToast('Applied your portfolio: ' + '£' + Math.round(t.total).toLocaleString() + ' across ' + Object.values(t.buckets).filter(v => v > 0).length + ' buckets', 'success');
-      const panel = document.getElementById(p + 'FundTagPanel'); if (panel) panel.open = false;
     };
     // Restore a saved custom (from-funds) allocation: settings that carry sub-class bondWeights came
     // from tagged funds, so rebuild the exact split rather than snapping to a preset.
@@ -5061,7 +5115,7 @@
       if (s && s.subAsset && s.subAsset.bondWeights && Object.keys(s.subAsset.bondWeights).length) {
         const total = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
         window._customAlloc[p] = {
-          label: 'Custom (from your funds)',
+          label: 'Your funds',
           equity: total ? s.equityMin / total : 0, bond: total ? s.bondMin / total : 0,
           diversifiers: total ? (s.diversifierStart || 0) / total : 0, cash: total ? s.cashTarget / total : 0,
           equityMin: s.equityMin, bondMin: s.bondMin, cashTarget: s.cashTarget,
@@ -5387,6 +5441,7 @@
           diversifierStart: ssAlloc.diversifierStart || 0,
           subAsset: ssAlloc.subAsset || null,
           glideEndgame: ssAlloc.glideEndgame || null,   // tent endgame for a tagged plan
+          allocMode: allocMode('ss'),                   // 'risk' or 'funds'
           // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
           // my tagged funds") without re-entering it.
           taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
@@ -5515,6 +5570,7 @@
           diversifierStart: dsAlloc.diversifierStart || 0,
           subAsset: dsAlloc.subAsset || null,
           glideEndgame: dsAlloc.glideEndgame || null,   // tent endgame for a tagged plan
+          allocMode: allocMode('ds'),                   // 'risk' or 'funds'
           taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0)
         });
         showToast('Settings saved successfully', 'success');

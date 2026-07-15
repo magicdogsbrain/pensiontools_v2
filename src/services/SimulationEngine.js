@@ -15,6 +15,7 @@ import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
+import { spendingSmileFactor } from './SpendingModel.js';
 
 // Cash / money-market real return spread. Short-term rates LAG inflation (they reset off roughly
 // last year's inflation), so in an inflation spike the realised real return (rate − this-year
@@ -574,16 +575,11 @@ function equityBondRho(inf, eqReturn) {
 }
 
 // Retirement spending profile. 'flat' (default, pessimistic) holds real spending level for life.
-// 'declining' models the documented drift DOWN in real spending as retirees age (Blanchett's
-// "spending smile/smirk", ~1%/yr), floored so it can't fall unrealistically far. Late-life care
-// costs are deliberately NOT rebounded here — they belong in a separate overlay (per Blanchett's
-// newer "smirk" finding). Opt-in, so the conservative flat profile stays the default.
-const SPENDING_DEFAULTS = { DECLINE_RATE: 0.01, FLOOR: 0.75 };
+// 'declining' uses the shared spending smile (level years 0-4, ~1%/yr decline years 5-24, level after
+// — see SpendingModel). Both engines consume the SAME curve so Stress and Decision agree. Opt-in, so
+// the conservative flat profile stays the default.
 function spendingFactor(config, year) {
-  if ((config.spendingProfile || 'flat') !== 'declining') return 1;
-  const rate = config.spendingDeclineRate ?? SPENDING_DEFAULTS.DECLINE_RATE;
-  const floor = config.spendingFloor ?? SPENDING_DEFAULTS.FLOOR;
-  return Math.max(floor, Math.pow(1 - rate, year));
+  return spendingSmileFactor(year, config.spendingProfile || 'flat');
 }
 
 /**

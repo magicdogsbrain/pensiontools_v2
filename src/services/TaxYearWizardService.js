@@ -4,6 +4,7 @@
  */
 
 import { getTaxYear, getRemainingTaxYearMonths, parseMonth } from '../utils/DateUtils.js';
+import { spendingDeclineRateForYear } from './SpendingModel.js';
 import {
   getTaxYearConfigAsync,
   getDecisionSettingsAsync,
@@ -46,12 +47,10 @@ export async function shouldShowWizard(selectedMonth) {
   };
 }
 
-/**
- * Real spending decline applied per year when the plan's spendingProfile is 'declining'
- * (Blanchett's "spending smile" ~1%/yr). Matches the Stress tester's spendingFactor so the two
- * tools move the target income the same way. Subtractive against CPI: e.g. CPI 2.5% − 1% = 1.5%.
- */
-export const SPEND_DECLINE_RATE = 0.01;
+// Re-exported so callers/tests can reach the shared constant from here. The per-year decline is now
+// driven by SpendingModel.spendingDeclineRateForYear (the smile: level 0-4, ~1%/yr 5-24, level after),
+// so the wizard reproduces the same curve the engines use rather than a flat rate every year.
+export { SPEND_DECLINE_RATE } from './SpendingModel.js';
 
 /**
  * Suggests next year's target salary by uplifting the PREVIOUS year's confirmed salary by last
@@ -255,10 +254,12 @@ export async function getWizardData(selectedMonth) {
   const statePensionInfo = await getStatePensionForTaxYear(taxYear);
 
   // Suggest salary: uplift LAST year's confirmed salary (or the plan base in year 1) by last year's
-  // CPI, netted by the spending decline when the plan declines — mirrors the Stress tester.
+  // CPI, netted by the spending decline for THIS plan year — mirrors the Stress tester's smile.
   const prevCpi = prevYearConfig?.cpi || 0.025;
   const spendingProfile = settings.spendingProfile || 'flat';
-  const declineRate = spendingProfile === 'declining' ? SPEND_DECLINE_RATE : 0;
+  // Plan year (0-based) for this tax year — same anchor as legacyDecision.getYearNum (26/27 = year 0).
+  const planYear = Math.max(0, (2000 + (parseInt(taxYear.split('/')[0], 10) || 26)) - 2026);
+  const declineRate = spendingDeclineRateForYear(planYear, spendingProfile);
   const suggestionBase = (prevYearConfig && prevYearConfig.confirmedSalary) || settings.baseSalary;
   const suggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
 

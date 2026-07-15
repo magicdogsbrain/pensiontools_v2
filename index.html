@@ -355,6 +355,42 @@
       gap: 16px;
     }
 
+    /* Bordered card for a logical group of settings — consistent framing, responsive. */
+    .settings-section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 18px;
+      background: var(--card-alt);
+    }
+    .settings-section > .section-title {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .settings-section > .section-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: -6px 0 12px;
+    }
+    /* Segmented mode toggle (risk level / my funds) */
+    .mode-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .mode-toggle .alloc-mode-btn { flex: 1; white-space: nowrap; }
+    @media (max-width: 480px) {
+      .mode-toggle { display: flex; width: 100%; }
+      .settings-section { padding: 14px; }
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
@@ -2016,18 +2052,15 @@
           <div class="card">
             <h2>Decision Tool Settings</h2>
 
-            <h3 style="margin-top: 16px;">Starting Pot &amp; Allocation</h3>
-
-            <!-- Allocation mode FIRST: a risk level, OR your own tagged funds -->
-            <div class="form-group" style="margin-top: 12px;">
-              <label>How do you want to set your allocation?</label>
-              <div style="display:flex; gap:0; width:fit-content; border:1px solid var(--border,#cbd5e1); border-radius:8px; overflow:hidden;">
+            <div class="settings-section">
+              <div class="section-title">Your allocation</div>
+              <div class="section-hint">How do you want to set your allocation?</div>
+              <div class="mode-toggle">
                 <button type="button" id="dsModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ds','risk')">Pick a risk level</button>
                 <button type="button" id="dsModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ds','funds')">Use my own funds</button>
               </div>
-            </div>
 
-            <div class="form-group" style="margin-top: 12px;">
+            <div class="form-group" style="margin-top: 16px;">
               <label>Depletion Duration (years)</label>
               <input type="number" id="dsDuration" value="35" style="max-width:220px;">
             </div>
@@ -2092,59 +2125,68 @@
               <div id="dsGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="dsGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
+            </div><!-- /.settings-section (allocation) -->
 
-            <h3 style="margin-top: 24px;">Income Settings</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Target Gross Salary (£/yr)</label>
-                <input type="number" id="dsBaseSalary" value="30000">
-              </div>
-            </div>
-
-            <h3 style="margin-top: 24px;">State Pension (from HMRC Forecast)</h3>
-            <div class="alert alert-info" style="margin-bottom: 16px;">
-              Get your forecast at <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>State Pension Start Date</label>
-                <input type="text" id="dsSpStartDate" placeholder="e.g. 6 May 2040">
-              </div>
-              <div class="form-group">
-                <label>Weekly Amount (£)</label>
-                <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
-              </div>
-              <div class="form-group">
-                <label>Annual Amount (calculated)</label>
-                <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+            <div class="settings-section">
+              <div class="section-title">Income</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Target Gross Salary (£/yr)</label>
+                  <input type="number" id="dsBaseSalary" value="30000">
+                </div>
               </div>
             </div>
 
-            <h3 style="margin-top: 24px;">ISA</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>ISA Balance (£)</label>
-                <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
+            <div class="settings-section">
+              <div class="section-title">State Pension <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(from your HMRC forecast)</span></div>
+              <div class="alert alert-info" style="margin-bottom: 14px;">
+                Get your forecast at <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>State Pension Start Date</label>
+                  <input type="text" id="dsSpStartDate" placeholder="e.g. 6 May 2040">
+                </div>
+                <div class="form-group">
+                  <label>Weekly Amount (£)</label>
+                  <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+                </div>
+                <div class="form-group">
+                  <label>Annual Amount (calculated)</label>
+                  <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+                </div>
               </div>
             </div>
 
-            <h3 style="margin-top: 24px;">Protection Settings</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Protection Reduction (%)</label>
-                <input type="number" id="dsProtectionFactor" value="20">
-              </div>
-              <div class="form-group">
-                <label>Recovery Buffer (£)</label>
-                <input type="number" id="dsRecoveryBuffer" value="15000">
-              </div>
-              <div class="form-group">
-                <label>Cash Draws Before Protection</label>
-                <input type="number" id="dsConsecutiveLimit" value="3">
+            <div class="settings-section">
+              <div class="section-title">ISA</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>ISA Balance (£)</label>
+                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
+                </div>
               </div>
             </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
-              <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+
+            <div class="settings-section">
+              <div class="section-title">Protection</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Protection Reduction (%)</label>
+                  <input type="number" id="dsProtectionFactor" value="20">
+                </div>
+                <div class="form-group">
+                  <label>Recovery Buffer (£)</label>
+                  <input type="number" id="dsRecoveryBuffer" value="15000">
+                </div>
+                <div class="form-group">
+                  <label>Cash Draws Before Protection</label>
+                  <input type="number" id="dsConsecutiveLimit" value="3">
+                </div>
+              </div>
+              <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+              </div>
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
@@ -2916,16 +2958,25 @@
         if (input.dataset.formatted) return;
         input.dataset.formatted = 'true';
 
-        const wrapper = input.closest('.input-with-unit') || input.parentElement;
-        const hasUnit = input.closest('.input-with-unit') !== null;
+        // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
+        // always centres on the input box. If the input isn't already in a tight `.input-with-unit`,
+        // wrap it in a relative span. (Previously the wrapper fell back to input.parentElement — often
+        // a .form-group that also contains the <label>, so top:50% landed at the TOP of the input.)
+        let wrapper = input.closest('.input-with-unit');
+        const hasUnit = !!wrapper;
+        if (!wrapper) {
+          wrapper = document.createElement('span');
+          wrapper.className = 'num-format-wrap';
+          wrapper.style.cssText = 'position:relative; display:block;';
+          input.parentNode.insertBefore(wrapper, input);
+          wrapper.appendChild(input);
+        }
 
         // Create overlay span for formatted display
         const overlay = document.createElement('span');
         overlay.className = 'number-format-overlay';
 
-        // Position overlay to align with input text
-        // For inputs with £ unit: unit width (~12px) + gap (8px) + input padding (14px) = ~34px
-        // For plain inputs: just the input padding (14px)
+        // Left offset aligns with the input's text: with a £ unit ~34px, otherwise the input padding.
         const leftOffset = hasUnit ? '34px' : '14px';
 
         overlay.style.cssText = `
@@ -2941,7 +2992,6 @@
           z-index: 1;
         `;
 
-        // Make wrapper relative if needed
         if (getComputedStyle(wrapper).position === 'static') {
           wrapper.style.position = 'relative';
         }
@@ -2951,9 +3001,7 @@
           const val = parseFloat(input.value);
           if (!isNaN(val) && val >= 1000 && document.activeElement !== input) {
             overlay.textContent = formatWithSpaces(val);
-            // Center vertically on the INPUT, not the wrapper — the wrapper can be a form-group that
-            // also contains the <label>, which pushed the overlay to the top of the input box.
-            if (input.offsetHeight > 0) overlay.style.top = (input.offsetTop + input.offsetHeight / 2) + 'px';
+            // top:50% is correct now that the wrapper is always tight around the input.
             overlay.style.display = 'block';
             input.style.color = 'transparent';
           } else {

@@ -2064,9 +2064,13 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ds', this.value)" onfocus="showFundSearch('ds', this.value)" onblur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
+                <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
+              </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
                 <button type="button" class="risk-btn" onclick="loadPdfExample('ds')">Load PDF example (£1.3M)</button>
-                <button type="button" class="risk-btn" onclick="addFundRow('ds')">+ Add fund</button>
+                <button type="button" class="risk-btn" onclick="addFundRow('ds')">+ Add custom ticker</button>
                 <button type="button" class="risk-btn" onclick="clearFunds('ds')">Clear</button>
               </div>
               <div style="overflow-x:auto;">
@@ -2355,6 +2359,10 @@
               .itemise-link:hover { text-decoration:underline; }
               .alloc-mode-btn { padding:8px 16px; border:none; background:var(--card,#fff); color:var(--text-muted,#64748b); cursor:pointer; font-size:14px; }
               .alloc-mode-btn.active { background:#6366f1; color:#fff; font-weight:600; }
+              /* Fund-tagging + modal inputs: force a visible text colour (was rendering transparent). */
+              #ssFundRows input, #ssFundRows select, #dsFundRows input, #dsFundRows select,
+              #fundModalRows input, .fund-search-box input { color:var(--text,#0f172a) !important; -webkit-text-fill-color:var(--text,#0f172a); }
+              .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
               .risk-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; font-weight:600; }
@@ -2419,9 +2427,13 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ss', this.value)" onfocus="showFundSearch('ss', this.value)" onblur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
+                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
+              </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
                 <button type="button" class="risk-btn" onclick="loadPdfExample('ss')">Load PDF example (£1.3M)</button>
-                <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add fund</button>
+                <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add custom ticker</button>
                 <button type="button" class="risk-btn" onclick="clearFunds('ss')">Clear</button>
               </div>
               <div style="overflow-x:auto;">
@@ -3103,7 +3115,7 @@
         document.getElementById('entryEquity').value = '';
         document.getElementById('entryBond').value = '';
         document.getElementById('entryCash').value = '';
-        document.getElementById('entryIsa').value = decisionSettings.isaBalance || 0;
+        document.getElementById('entryIsa').value = '';
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
@@ -4997,6 +5009,53 @@
     function effectiveSubClass(f) {
       return f.subClass || FUND_TAG_MAP[(f.ticker || '').toUpperCase().trim()] || '';
     }
+    // --- Fuzzy fund search (ticker OR company name; most-probable ranking, not just prefix) --------
+    function fuzzyFundScore(q, ticker, name) {
+      q = q.toLowerCase().trim();
+      if (!q) return 0;
+      const t = ticker.toLowerCase(), n = name.toLowerCase();
+      if (t === q) return 1000;
+      if (t.startsWith(q)) return 900 - (t.length - q.length);
+      const words = n.split(/[^a-z0-9]+/).filter(Boolean);
+      if (words.some(w => w.startsWith(q))) return 820;
+      if (t.includes(q)) return 720;
+      if (n.includes(q)) return 660 - Math.min(50, n.indexOf(q));
+      // subsequence match (chars appear in order) — the "fuzzy" fallback
+      const sub = str => { let i = 0; for (const c of str) { if (c === q[i]) i++; if (i === q.length) return true; } return false; };
+      if (sub(t)) return 360;
+      if (sub(n)) return 300;
+      return 0;
+    }
+    function searchFunds(query, limit = 8) {
+      return FUND_CATALOGUE
+        .map(f => ({ f, s: fuzzyFundScore(query, f.ticker, f.name) }))
+        .filter(x => x.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, limit)
+        .map(x => x.f);
+    }
+    window.showFundSearch = function(p, query) {
+      const box = document.getElementById(p + 'FundSearchResults');
+      if (!box) return;
+      const matches = searchFunds(query);
+      if (!query.trim() || !matches.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      box.innerHTML = matches.map(f =>
+        '<div class="fund-search-item" onmousedown="addFundFromSearch(\'' + p + '\',\'' + f.ticker + '\')" style="padding:7px 10px; cursor:pointer;">' +
+        '<strong>' + f.ticker + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + f.name + '</span></div>'
+      ).join('');
+      box.style.display = 'block';
+    };
+    window.hideFundSearch = function(p) {
+      const box = document.getElementById(p + 'FundSearchResults');
+      if (box) { box.style.display = 'none'; }
+    };
+    window.addFundFromSearch = function(p, ticker) {
+      const cat = catalogueEntry(ticker);
+      funds(p).push({ ticker, value: '', wrapper: 'SIPP', subClass: cat ? cat.subClass : '' });
+      const s = document.getElementById(p + 'FundSearch'); if (s) s.value = '';
+      hideFundSearch(p);
+      renderFunds(p);
+    };
     // Editable category dropdown (sub-classes grouped by bucket). Defaults are suggestions; any fund
     // can be re-categorised (e.g. CGT diversifier -> a bond sub-class).
     function categorySelectHtml(p, i, selected) {

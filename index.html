@@ -1976,11 +1976,6 @@
                   </div>
                 </div>
 
-                <div id="entryFundTagHelp" style="margin-top:12px;"></div>
-                <div style="margin-top:8px;">
-                  <button type="button" class="risk-btn" style="padding:6px 12px;" onclick="fillDecisionFromTaggedFunds()">Fill all from my tagged funds</button>
-                </div>
-
                 <!-- Per-bucket "enter this month's fund values" popup -->
                 <div id="fundBucketModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
                   <div style="background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:12px; padding:22px; max-width:520px; width:90%; max-height:80vh; overflow:auto;">
@@ -2022,18 +2017,8 @@
             <h2>Decision Tool Settings</h2>
 
             <h3 style="margin-top: 16px;">Starting Pot &amp; Allocation</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Total Pot (£)</label>
-                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')">
-              </div>
-              <div class="form-group">
-                <label>Depletion Duration (years)</label>
-                <input type="number" id="dsDuration" value="35">
-              </div>
-            </div>
 
-            <!-- Allocation mode: a risk level, OR your own tagged funds -->
+            <!-- Allocation mode FIRST: a risk level, OR your own tagged funds -->
             <div class="form-group" style="margin-top: 12px;">
               <label>How do you want to set your allocation?</label>
               <div style="display:flex; gap:0; width:fit-content; border:1px solid var(--border,#cbd5e1); border-radius:8px; overflow:hidden;">
@@ -2042,7 +2027,16 @@
               </div>
             </div>
 
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Depletion Duration (years)</label>
+              <input type="number" id="dsDuration" value="35" style="max-width:220px;">
+            </div>
+
             <div id="dsRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Total Pot (£)</label>
+                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -2069,7 +2063,6 @@
                 <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" onclick="loadPdfExample('ds')">Load PDF example (£1.3M)</button>
                 <button type="button" class="risk-btn" onclick="addFundRow('ds')">+ Add custom ticker</button>
                 <button type="button" class="risk-btn" onclick="clearFunds('ds')">Clear</button>
               </div>
@@ -2083,6 +2076,7 @@
                 <datalist id="dsFundCatalogue"></datalist>
               </div>
               <div id="dsFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="dsPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
             </div>
 
             <div id="dsAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
@@ -2391,18 +2385,8 @@
               }
             </style>
             <h3 style="margin-top: 24px;">Starting Pot &amp; Allocation</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Total Pot (£)</label>
-                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')">
-              </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="ssDuration" value="35">
-              </div>
-            </div>
 
-            <!-- Allocation mode: a risk level, OR your own tagged funds -->
+            <!-- Allocation mode FIRST: a risk level, OR your own tagged funds -->
             <div class="form-group" style="margin-top: 12px;">
               <label>How do you want to set your allocation?</label>
               <div style="display:flex; gap:0; width:fit-content; border:1px solid var(--border,#cbd5e1); border-radius:8px; overflow:hidden;">
@@ -2411,7 +2395,16 @@
               </div>
             </div>
 
+            <div class="form-group" style="margin-top: 12px;">
+              <label>Duration (years)</label>
+              <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+            </div>
+
             <div id="ssRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Total Pot (£)</label>
+                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -2455,6 +2448,7 @@
                 <datalist id="ssFundCatalogue"></datalist>
               </div>
               <div id="ssFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
             </div>
 
             <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
@@ -4832,6 +4826,9 @@
       if (custom && potEl0) {
         const total = Math.round((custom.equityMin || 0) + (custom.bondMin || 0) + (custom.cashTarget || 0) + (custom.diversifierStart || 0));
         if (+potEl0.value !== total) { potEl0.value = total; if (potEl0._updateOverlay) potEl0._updateOverlay(); }
+        // Funds mode shows the pot as a read-only DERIVED figure (no input).
+        const potDisp = document.getElementById(p + 'PotDisplay');
+        if (potDisp) potDisp.textContent = '£' + total.toLocaleString();
       }
       const pot = +document.getElementById(p + 'Pot').value || 0;
       const eqAmt = custom ? custom.equityMin : Math.round(pot * eq / 100);
@@ -5595,7 +5592,12 @@
       try {
         const s = await getDecisionSettingsAsync();
         document.getElementById('dsDuration').value = s.duration || 35;
-        writeAlloc('ds', s.equityMin || 250000, s.bondMin || 200000, s.cashTarget || 50000);
+        // FULL allocation restore (mirrors initializeAllInputsFromSettings) — restore the tagged funds,
+        // the custom split, and the mode, so a saved "My funds" plan doesn't revert to a risk preset.
+        writeAlloc('ds', s.equityMin ?? 250000, s.bondMin ?? 200000, s.cashTarget ?? 50000, s.diversifierStart || 0);
+        restoreCustomAllocFromSettings('ds', s);
+        window._taggedFunds.ds = (s.taggedFunds || []).map(f => ({ ...f }));
+        setAllocMode('ds', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
         document.getElementById('dsEquityGlide').checked = s.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
@@ -5604,11 +5606,11 @@
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
         document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
 
-        // Also update entry form with settings
-        document.getElementById('entryEquity').value = s.equityMin || 250000;
-        document.getElementById('entryBond').value = s.bondMin || 200000;
-        document.getElementById('entryCash').value = s.cashTarget || 50000;
-        document.getElementById('entryIsa').value = s.isaBalance || 0;
+        // Monthly Entry captures THIS MONTH's values — leave blank, not the plan's starting minimums.
+        document.getElementById('entryEquity').value = '';
+        document.getElementById('entryBond').value = '';
+        document.getElementById('entryCash').value = '';
+        document.getElementById('entryIsa').value = '';
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();

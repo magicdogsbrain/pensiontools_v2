@@ -4994,7 +4994,11 @@
       const eqPct = pot > 0 ? Math.round((+equityMin || 0) / pot * 100) : 50;
       const bdPct = pot > 0 ? Math.round((+bondMin || 0) / pot * 100) : 40;
       const key = pot > 0 ? nearestPresetKey((+equityMin || 0) / pot, (+bondMin || 0) / pot, (+cashTarget || 0) / pot, dvStart / pot) : 'balanced';
-      setRiskPreset(p, key);
+      // Highlight the nearest preset button for display, but DON'T change the alloc mode or clear a
+      // custom (funds) allocation — the caller controls the mode via setAllocMode. (Previously this
+      // called setRiskPreset, which forced 'risk' mode and dropped a saved funds plan on reload.)
+      document.querySelectorAll('#' + p + 'Risks .risk-btn').forEach(b => b.classList.toggle('active', b.dataset.risk === key));
+      updateAllocDisplay(p);
       const preset = (dvStart > 0 ? DIVERSIFIER_PRESETS : RISK_PRESETS)[key];
       if (pot > 0 && (eqPct !== Math.round(preset.equity * 100) || bdPct !== Math.round(preset.bond * 100))) {
         const amt = document.getElementById(p + 'AllocAmounts');

@@ -4822,10 +4822,18 @@
       const preset = activePreset(p);
       const eq = Math.round(preset.equity * 100), bd = Math.round(preset.bond * 100), csh = Math.round(preset.cash * 100);
       const dv = Math.round((preset.diversifiers || 0) * 100);
-      const pot = +document.getElementById(p + 'Pot').value || 0;
       const amt = document.getElementById(p + 'AllocAmounts');
       // For a custom (from-funds) allocation show the EXACT £ holdings; for presets use % × pot.
       const custom = window._customAlloc[p];
+      // In funds mode the Pot is DERIVED from the tagged funds — keep the Pot field in sync with the
+      // true total. A later writeAlloc/entry-sync can otherwise leave the field showing a stale figure
+      // (e.g. "1 105 000") even though the actual allocation is correct.
+      const potEl0 = document.getElementById(p + 'Pot');
+      if (custom && potEl0) {
+        const total = Math.round((custom.equityMin || 0) + (custom.bondMin || 0) + (custom.cashTarget || 0) + (custom.diversifierStart || 0));
+        if (+potEl0.value !== total) { potEl0.value = total; if (potEl0._updateOverlay) potEl0._updateOverlay(); }
+      }
+      const pot = +document.getElementById(p + 'Pot').value || 0;
       const eqAmt = custom ? custom.equityMin : Math.round(pot * eq / 100);
       const bdAmt = custom ? custom.bondMin : Math.round(pot * bd / 100);
       const cshAmt = custom ? custom.cashTarget : Math.round(pot * csh / 100);

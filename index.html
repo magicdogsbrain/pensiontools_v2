@@ -2359,9 +2359,17 @@
               .itemise-link:hover { text-decoration:underline; }
               .alloc-mode-btn { padding:8px 16px; border:none; background:var(--card,#fff); color:var(--text-muted,#64748b); cursor:pointer; font-size:14px; }
               .alloc-mode-btn.active { background:#6366f1; color:#fff; font-weight:600; }
-              /* Fund-tagging + modal inputs: force a visible text colour (was rendering transparent). */
+              /* Fund-tagging + modal inputs live outside .form-group, so they missed the app's input
+                 theme and defaulted to a white background with invisible text. Match the themed inputs. */
               #ssFundRows input, #ssFundRows select, #dsFundRows input, #dsFundRows select,
-              #fundModalRows input, .fund-search-box input { color:var(--text,#0f172a) !important; -webkit-text-fill-color:var(--text,#0f172a); }
+              #fundModalRows input, .fund-search-box input {
+                background: var(--card-alt) !important;
+                color: var(--text) !important;
+                -webkit-text-fill-color: var(--text);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 5px 7px;
+              }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }

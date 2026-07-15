@@ -39,6 +39,11 @@ function getDefaultDecisionDB() {
       // advice follows the glide.
       equityGlideEnabled: false,
       baseSalary: DRAWDOWN_DEFAULTS.BASE_SALARY,
+      // Spending over retirement, locked with the plan: 'flat' (level real spend, default) or
+      // 'declining' (real spend drifts down ~1%/yr — Blanchett's spending smile). Mirrors the Stress
+      // tester so the Decision tool / April wizard adjust the target salary the same way: the yearly
+      // inflation uplift is netted by the ~1% decline (e.g. CPI 2.5% − 1% = 1.5% nominal rise).
+      spendingProfile: 'flat',
       protectionFactor: DRAWDOWN_DEFAULTS.PROTECTION_FACTOR,
       recoveryBuffer: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
       consecutiveLimit: DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,

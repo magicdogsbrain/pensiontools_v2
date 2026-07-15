@@ -2143,7 +2143,18 @@
                   <label>Target Gross Salary (£/yr)</label>
                   <input type="number" id="dsBaseSalary" value="30000">
                 </div>
+                <div class="form-group">
+                  <label>Spending over retirement</label>
+                  <select id="dsSpendingProfile">
+                    <option value="flat">Level for life (flat real spending) — conservative</option>
+                    <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
+                  </select>
+                </div>
               </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">
+                Locked with the plan. "Declining" nets the spending drop off each April's inflation uplift
+                in the tax-year wizard (e.g. CPI 2.5% − 1% = a 1.5% target rise), matching the Stress tester.
+              </p>
             </div>
 
             <div class="settings-section">
@@ -3231,6 +3242,7 @@
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
+        document.getElementById('dsSpendingProfile').value = decisionSettings.spendingProfile || 'flat';
         // State Pension (new fields)
         document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
         document.getElementById('dsSpWeeklyAmount').value = decisionSettings.spWeeklyAmount || '';
@@ -5705,6 +5717,7 @@
         document.getElementById('dsEquityGlide').checked = s.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
+        document.getElementById('dsSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
@@ -5755,6 +5768,7 @@
           duration: +document.getElementById('dsDuration').value,
           equityGlideEnabled: document.getElementById('dsEquityGlide').checked,
           baseSalary: +document.getElementById('dsBaseSalary').value,
+          spendingProfile: document.getElementById('dsSpendingProfile').value || 'flat',
           // State Pension (new fields)
           spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,

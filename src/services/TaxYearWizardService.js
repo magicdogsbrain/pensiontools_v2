@@ -47,14 +47,25 @@ export async function shouldShowWizard(selectedMonth) {
 }
 
 /**
- * Suggests an inflation-adjusted salary based on last year's CPI
+ * Real spending decline applied per year when the plan's spendingProfile is 'declining'
+ * (Blanchett's "spending smile" ~1%/yr). Matches the Stress tester's spendingFactor so the two
+ * tools move the target income the same way. Subtractive against CPI: e.g. CPI 2.5% − 1% = 1.5%.
+ */
+export const SPEND_DECLINE_RATE = 0.01;
+
+/**
+ * Suggests next year's target salary by uplifting the PREVIOUS year's confirmed salary by last
+ * year's CPI, netted by the real-spending decline when the plan declines. Compounding off last
+ * year's income (not a fixed base) is what makes the declining profile actually reduce real spend
+ * over time, exactly as the Stress engine does.
  *
- * @param {number} baseSalary - Base salary from settings
+ * @param {number} prevSalary - Previous tax year's confirmed salary (or the plan base for year 1)
  * @param {number} lastYearCpi - CPI from previous tax year (as decimal, e.g., 0.04 for 4%)
+ * @param {number} declineRate - Real-spending decline (0 for 'flat', SPEND_DECLINE_RATE for 'declining')
  * @returns {number} Suggested salary
  */
-export function suggestSalary(baseSalary, lastYearCpi) {
-  return baseSalary * (1 + lastYearCpi);
+export function suggestSalary(prevSalary, lastYearCpi, declineRate = 0) {
+  return prevSalary * (1 + lastYearCpi - declineRate);
 }
 
 /**
@@ -243,9 +254,13 @@ export async function getWizardData(selectedMonth) {
   // Get state pension info
   const statePensionInfo = await getStatePensionForTaxYear(taxYear);
 
-  // Suggest salary based on CPI
+  // Suggest salary: uplift LAST year's confirmed salary (or the plan base in year 1) by last year's
+  // CPI, netted by the spending decline when the plan declines — mirrors the Stress tester.
   const prevCpi = prevYearConfig?.cpi || 0.025;
-  const suggestedSalary = suggestSalary(settings.baseSalary, prevCpi);
+  const spendingProfile = settings.spendingProfile || 'flat';
+  const declineRate = spendingProfile === 'declining' ? SPEND_DECLINE_RATE : 0;
+  const suggestionBase = (prevYearConfig && prevYearConfig.confirmedSalary) || settings.baseSalary;
+  const suggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
 
   return {
     taxYear,
@@ -255,6 +270,11 @@ export async function getWizardData(selectedMonth) {
 
     // Current settings
     baseSalary: settings.baseSalary,
+    // The figure the yearly uplift compounds off (last year's confirmed salary, else the plan base)
+    suggestionBase,
+    // Locked spending behaviour + the per-year real decline it implies (0 when 'flat')
+    spendingProfile,
+    declineRate,
     suggestedSalary,
 
     // Previous year defaults

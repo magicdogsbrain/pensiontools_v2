@@ -13,6 +13,7 @@ import { calculateTax, grossToNet, calculateBRLHeadroom } from './TaxCalculator.
 import { getRemainingTaxYearMonths } from '../utils/DateUtils.js';
 import { cappedInflation as calculateCappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
+import { spendingSmileFactor } from './SpendingModel.js';
 
 /**
  * Calculates the recommended SIPP draw based on tax efficiency
@@ -437,8 +438,9 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const brl = settings.taxMode === 'frozen' ? settings.brl : settings.brl * cumInf;
     const hrl = settings.taxMode === 'frozen' ? (settings.hrl || 125140) : (settings.hrl || 125140) * cumInf;
 
-    // Declining-spending profile (matches SimulationEngine.spendingFactor): -1%/yr, floored at 75%.
-    const spendFactor = settings.spendingProfile === 'declining' ? Math.max(0.75, Math.pow(0.99, year)) : 1;
+    // Declining-spending profile — shared spending smile (level 0-4, ~1%/yr decline 5-24, level after).
+    // Same curve as SimulationEngine.spendingFactor and the Decision wizard.
+    const spendFactor = spendingSmileFactor(year, settings.spendingProfile || 'flat');
     const target = (settings.baseSalary || 0) * cumInf * spendFactor;
 
     const other = (settings.other || 0) * cumInf;

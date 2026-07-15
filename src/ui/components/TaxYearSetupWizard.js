@@ -216,9 +216,13 @@ function renderCpiAndSalary() {
   const currentCpi = wizardInputs.cpi !== undefined ? wizardInputs.cpi : wizardContext.defaults.cpi;
   const cpiPercent = (currentCpi * 100).toFixed(1);
 
-  // Calculate suggested salary based on current CPI
-  const baseSalary = wizardContext.baseSalary;
-  const suggestedSalary = Math.round(baseSalary * (1 + currentCpi));
+  // Calculate suggested salary: uplift last year's confirmed salary (or the plan base in year 1) by
+  // CPI, netted by the real-spending decline when the plan declines — mirrors the Stress tester.
+  const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
+  const declineRate = wizardContext.declineRate || 0;
+  const suggestedSalary = Math.round(base * (1 + currentCpi - declineRate));
+  const declining = declineRate > 0;
+  const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
 
   return `
     <div class="wizard-step">
@@ -234,7 +238,9 @@ function renderCpiAndSalary() {
       </div>
 
       <div class="wizard-info-box" id="salaryInfoBox">
-        <p>Based on <span id="cpiDisplay">${cpiPercent}</span>% inflation, your target salary should be:</p>
+        ${declining
+          ? `<p>Your plan uses <strong>declining spending</strong> (~${(declineRate * 100).toFixed(0)}%/yr real). Last year's salary rises with <span id="cpiDisplay">${cpiPercent}</span>% CPI less that decline — a net <strong><span id="netUpliftDisplay">${netUpliftPct}</span>%</strong> — to:</p>`
+          : `<p>Based on <span id="cpiDisplay">${cpiPercent}</span>% inflation, your target salary should be:<span id="netUpliftDisplay" hidden>${netUpliftPct}</span></p>`}
         <p style="font-size: 24px; color: var(--primary); margin: 12px 0;">£<span id="suggestedSalaryDisplay">${suggestedSalary.toLocaleString()}</span></p>
         <p>per year (gross)</p>
       </div>
@@ -651,12 +657,17 @@ function attachListeners() {
     if (cpiInput && salaryInput && cpiDisplay && suggestedDisplay) {
       const cpiPercent = parseFloat(cpiInput.value) || 0;
       const cpi = cpiPercent / 100;
-      const baseSalary = wizardContext.baseSalary;
-      const suggestedSalary = Math.round(baseSalary * (1 + cpi));
+      // Compound off last year's confirmed salary (or the plan base in year 1), netting the spending
+      // decline when the plan declines — same behaviour as the Stress tester.
+      const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
+      const declineRate = wizardContext.declineRate || 0;
+      const suggestedSalary = Math.round(base * (1 + cpi - declineRate));
 
       // Update displays
       cpiDisplay.textContent = cpiPercent.toFixed(1);
       suggestedDisplay.textContent = suggestedSalary.toLocaleString();
+      const netDisplay = document.getElementById('netUpliftDisplay');
+      if (netDisplay) netDisplay.textContent = ((cpi - declineRate) * 100).toFixed(1);
 
       // Update the salary input to match suggestion
       salaryInput.value = suggestedSalary;

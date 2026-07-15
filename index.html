@@ -2360,15 +2360,16 @@
               .alloc-mode-btn { padding:8px 16px; border:none; background:var(--card,#fff); color:var(--text-muted,#64748b); cursor:pointer; font-size:14px; }
               .alloc-mode-btn.active { background:#6366f1; color:#fff; font-weight:600; }
               /* Fund-tagging + modal inputs live outside .form-group, so they missed the app's input
-                 theme and defaulted to a white background with invisible text. Match the themed inputs. */
+                 theme and defaulted to a white background. Match the themed inputs. Do NOT use
+                 !important on colour: the number-format overlay sets colour:transparent inline to hide
+                 the raw value while showing the formatted span — forcing colour caused doubled/blurred text. */
               #ssFundRows input, #ssFundRows select, #dsFundRows input, #dsFundRows select,
               #fundModalRows input, .fund-search-box input {
-                background: var(--card-alt) !important;
-                color: var(--text) !important;
-                -webkit-text-fill-color: var(--text);
+                background: var(--card-alt);
+                color: var(--text);
                 border: 1px solid var(--border);
                 border-radius: 6px;
-                padding: 5px 7px;
+                padding: 5px 14px;
               }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
@@ -2956,6 +2957,9 @@
           const val = parseFloat(input.value);
           if (!isNaN(val) && val >= 1000 && document.activeElement !== input) {
             overlay.textContent = formatWithSpaces(val);
+            // Center vertically on the INPUT, not the wrapper — the wrapper can be a form-group that
+            // also contains the <label>, which pushed the overlay to the top of the input box.
+            if (input.offsetHeight > 0) overlay.style.top = (input.offsetTop + input.offsetHeight / 2) + 'px';
             overlay.style.display = 'block';
             input.style.color = 'transparent';
           } else {
@@ -3127,7 +3131,7 @@
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
-        writeAlloc('ds', decisionSettings.equityMin || 250000, decisionSettings.bondMin || 200000, decisionSettings.cashTarget || 50000, decisionSettings.diversifierStart || 0);
+        writeAlloc('ds', decisionSettings.equityMin ?? 250000, decisionSettings.bondMin ?? 200000, decisionSettings.cashTarget ?? 50000, decisionSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
         window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));  // restore the plan's funds
         setAllocMode('ds', decisionSettings.allocMode || ((decisionSettings.taggedFunds && decisionSettings.taggedFunds.length) ? 'funds' : 'risk'));
@@ -5017,6 +5021,11 @@
     function effectiveSubClass(f) {
       return f.subClass || FUND_TAG_MAP[(f.ticker || '').toUpperCase().trim()] || '';
     }
+    // Re-format a money text input with thousands separators (used on blur of fund value fields).
+    window.reformatMoney = function(el) {
+      const n = parseFloat(String(el.value).replace(/[^0-9.]/g, ''));
+      el.value = (isNaN(n) || n === 0) ? '' : formatWithSpaces(n);
+    };
     // --- Fuzzy fund search (ticker OR company name; most-probable ranking, not just prefix) --------
     function fuzzyFundScore(q, ticker, name) {
       q = q.toLowerCase().trim();
@@ -5085,7 +5094,7 @@
       tb.innerHTML = funds(p).map((f, i) =>
         '<tr>' +
         '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
-        '<td style="padding:3px 6px;"><input type="number" value="' + (f.value || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" style="width:96px;" placeholder="0"></td>' +
+        '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" onblur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
         '<td style="padding:3px 6px;"><select onchange="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
         '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categorySelectHtml(p, i, effectiveSubClass(f)) + '</td>' +
         '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
@@ -5097,7 +5106,7 @@
       const f = funds(p)[i];
       if (!f) return;
       if (field === 'value') {
-        f.value = +val || 0;
+        f.value = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;   // strip thousands separators
       } else if (field === 'ticker') {
         f.ticker = val;
         // Seed the category from the catalogue on a recognised ticker (user can still change it).
@@ -5164,9 +5173,12 @@
         diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null,
         glideEndgame: prev.glideEndgame || null   // preserve the chosen tent endgame across edits
       };
-      const potEl = document.getElementById(p + 'Pot'); if (potEl) potEl.value = Math.round(t.total);
+      // Set Pot/ISA and REFRESH their number-format overlays (they don't update on a programmatic
+      // value change, which left the Pot showing a stale formatted number, e.g. "1 105 000").
+      const potEl = document.getElementById(p + 'Pot');
+      if (potEl) { potEl.value = Math.round(t.total); if (potEl._updateOverlay) potEl._updateOverlay(); }
       const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = (alloc.diversifierStart || 0) > 0;
-      if (t.isaTotal) { const isaEl = document.getElementById(p + 'IsaBalance'); if (isaEl) isaEl.value = Math.round(t.isaTotal); }
+      if (t.isaTotal) { const isaEl = document.getElementById(p + 'IsaBalance'); if (isaEl) { isaEl.value = Math.round(t.isaTotal); if (isaEl._updateOverlay) isaEl._updateOverlay(); } }
       return t;
     }
     // Legacy handler (kept for any remaining "Apply" button); the fund list now auto-applies.

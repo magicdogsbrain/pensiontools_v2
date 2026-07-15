@@ -2161,8 +2161,8 @@
                   <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
                 </div>
                 <div class="form-group">
-                  <label>Annual Amount (calculated)</label>
-                  <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+                  <label>Annual Amount (£/yr)</label>
+                  <input type="number" id="dsSpAnnualAmount" step="1" placeholder="e.g. 11500">
                 </div>
               </div>
             </div>
@@ -2587,8 +2587,8 @@
                   <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
                 </div>
                 <div class="form-group">
-                  <label>Annual Amount (calculated)</label>
-                  <input type="text" id="ssSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
+                  <label>Annual Amount (£/yr)</label>
+                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500">
                 </div>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">
@@ -2920,27 +2920,36 @@
      * Update the calculated annual SP amount display
      * @param {string} prefix - 'ds' for decision settings, 'ss' for stress settings
      */
+    // State Pension weekly and annual are two views of ONE figure. Weekly is the canonical value the
+    // engine stores/uses (spWeeklyAmount); annual = weekly × 52. The user may know EITHER (the GOV.UK
+    // forecast quotes both), so both boxes are editable and sync to each other. To avoid a feedback
+    // loop we only ever write the OPPOSITE field from a given field's own input event.
     function updateSpAnnualDisplay(prefix) {
+      // Recompute the annual box from weekly (used on load and when weekly is set programmatically).
       const weeklyInput = document.getElementById(prefix + 'SpWeeklyAmount');
-      const annualDisplay = document.getElementById(prefix + 'SpAnnualAmount');
-
-      if (!weeklyInput || !annualDisplay) return;
-
+      const annualInput = document.getElementById(prefix + 'SpAnnualAmount');
+      if (!weeklyInput || !annualInput) return;
       const weekly = parseFloat(weeklyInput.value) || 0;
-      const annual = weekly * 52;
-
-      if (weekly > 0) {
-        annualDisplay.value = '£' + annual.toLocaleString('en-GB', { maximumFractionDigits: 2 });
-      } else {
-        annualDisplay.value = '';
-      }
+      annualInput.value = weekly > 0 ? Math.round(weekly * 52) : '';
+      if (annualInput._updateOverlay) annualInput._updateOverlay();
     }
 
-    // Add event listeners for real-time annual calculation
+    // Add event listeners for real-time two-way weekly ⇄ annual sync
     ['ds', 'ss'].forEach(prefix => {
       const weeklyInput = document.getElementById(prefix + 'SpWeeklyAmount');
-      if (weeklyInput) {
-        weeklyInput.addEventListener('input', () => updateSpAnnualDisplay(prefix));
+      const annualInput = document.getElementById(prefix + 'SpAnnualAmount');
+      if (weeklyInput && annualInput) {
+        weeklyInput.addEventListener('input', () => {
+          const weekly = parseFloat(weeklyInput.value) || 0;
+          annualInput.value = weekly > 0 ? Math.round(weekly * 52) : '';
+          if (annualInput._updateOverlay) annualInput._updateOverlay();
+        });
+        annualInput.addEventListener('input', () => {
+          const annual = parseFloat(annualInput.value) || 0;
+          // Derive and store the canonical weekly figure (2dp) — the engine reads weekly.
+          weeklyInput.value = annual > 0 ? +(annual / 52).toFixed(2) : '';
+          if (weeklyInput._updateOverlay) weeklyInput._updateOverlay();
+        });
       }
     });
 
@@ -5532,7 +5541,13 @@
       try {
         const s = await getStressSettingsAsync();
         document.getElementById('ssBaseSalary').value = s.baseSalary;
+        // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
+        // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
+        // a risk preset, and a plan with no funds defaults to "Pick a risk level".
         writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0);
+        restoreCustomAllocFromSettings('ss', s);
+        window._taggedFunds.ss = (s.taggedFunds || []).map(f => ({ ...f }));
+        setAllocMode('ss', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
         document.getElementById('ssDuration').value = s.duration;
         document.getElementById('ssPA').value = s.pa;
         document.getElementById('ssBRL').value = s.brl;

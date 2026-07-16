@@ -49,6 +49,13 @@ describe('golden-master: stress engine', () => {
     expect(withIsa).toBeGreaterThan(base);
   });
 
+  it('declining spending smile beats the flat base (less drawn mid-retirement)', () => {
+    // Same starting pot; the smile draws less through years 5-24, so the pot lasts better.
+    const base = fixtures.cases['base / SP from year 5'].mc.successRate;
+    const declining = fixtures.cases['declining spending smile (should beat flat base)'].mc.successRate;
+    expect(declining).toBeGreaterThanOrEqual(base);
+  });
+
   it('FIXED (was NaN-blowup): every run now has a finite final value', () => {
     // Regression test for the bond (1+r)^(1/12), r<-1 → NaN bug. Previously the seed-0
     // run reported failed=false with a NaN final (miscounted as a successful survival);

@@ -2751,6 +2751,7 @@
       saveDecisionDB,
       getHistory,
       getHistoryAsync,
+      decisionSettingsChecksum,
       invalidateCache,
       getStressSettings,
       getStressSettingsAsync,
@@ -5775,12 +5776,13 @@
 
     // ---- Plan settings lock -------------------------------------------------------------------
     // A plan's Decision settings ARE the plan definition. The moment they are saved the plan locks:
-    // no further editing, and the Save button becomes a greyed "Locked" pill. To use different
-    // settings the user creates a NEW plan (settings are per-plan). Cached lock flag for cheap guards.
+    // no further editing, and the Save button becomes a greyed "Locked" pill. It can be UNLOCKED only
+    // while nothing has been recorded against those settings (no tax years, no decisions with a
+    // matching/unknown checksum); once entries depend on them, changing = a new plan. Cached flags.
     let _dsLocked = false;
+    let _dsCanUnlock = false;
 
-    // A plan locks the moment its Decision settings are saved (settings.locked flag). There is no
-    // in-place editing after that — to use different settings the user creates a NEW plan.
+    // A plan locks the moment its Decision settings are saved (settings.locked flag).
     async function planIsLocked() {
       try {
         const s = await getDecisionSettingsAsync();
@@ -5788,6 +5790,26 @@
       } catch (e) {
         console.warn('Could not read decision settings for lock state:', e);
         return false;   // fail open — never trap the user out of a plan
+      }
+    }
+
+    // True if any tax year is set up, or any saved decision was computed against THESE settings
+    // (checksum match) or has unknown provenance (legacy record, no stamp). Such data would be made
+    // inconsistent by editing the settings, so it blocks the unlock.
+    async function planHasDataDependentOnSettings() {
+      try {
+        const [settings, hist, taxYears] = await Promise.all([
+          getDecisionSettingsAsync(),
+          getHistoryAsync({ limit: 1000 }),
+          getAllTaxYearsAsync()
+        ]);
+        if (taxYears && Object.values(taxYears).some(ty => ty && ty.yearSetupComplete)) return true;
+        const cur = decisionSettingsChecksum(settings);
+        const list = Array.isArray(hist) ? hist : [];
+        return list.some(h => h.settingsChecksum === undefined || h.settingsChecksum === cur);
+      } catch (e) {
+        console.warn('Could not determine derived-data state:', e);
+        return true;    // fail safe: if unsure, do NOT offer an unlock
       }
     }
 
@@ -5818,16 +5840,45 @@
       }
 
       // Locked: freeze the form, show the notice, and turn Save into a greyed "Locked" pill.
+      _dsCanUnlock = !(await planHasDataDependentOnSettings());
       banner.style.display = 'flex';
       banner.className = 'lock-banner';
-      banner.innerHTML =
-        '<span>🔒 <strong>These settings are locked.</strong> They were saved as this plan’s definition ' +
-        'and can’t be changed. To use different settings, create a new plan.</span>' +
-        '<button type="button" onclick="createNewPlanForSettings()">Create new plan</button>';
+      if (_dsCanUnlock) {
+        banner.innerHTML =
+          '<span>🔒 <strong>These settings are locked.</strong> Nothing has been recorded against them ' +
+          'yet — no tax years, no monthly entries — so you can unlock and edit them.</span>' +
+          '<button type="button" onclick="unlockDecisionSettings()">Unlock to edit</button>';
+      } else {
+        banner.innerHTML =
+          '<span>🔒 <strong>These settings are locked.</strong> Tax years or monthly entries have been ' +
+          'recorded against them, so they can’t be changed. To use different settings, create a new plan.</span>' +
+          '<button type="button" onclick="createNewPlanForSettings()">Create new plan</button>';
+      }
       setDecisionSettingsEnabled(false);
       saveBtn.textContent = '🔒 Locked';
       saveBtn.classList.add('btn-locked');
     }
+
+    // Unlock the plan for editing — allowed only while nothing depends on the settings (re-checked here
+    // to guard against a stale banner). Clears settings.locked and reloads the form editable.
+    window.unlockDecisionSettings = async function() {
+      if (await planHasDataDependentOnSettings()) {
+        showToast('Can’t unlock — tax years or entries now depend on these settings. Create a new plan.', 'warning');
+        await refreshDecisionLock();
+        return;
+      }
+      showLoading('Unlocking…');
+      try {
+        await saveDecisionSettings({ locked: false });
+        await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
+        showToast('Settings unlocked — you can edit them now.', 'success');
+      } catch (e) {
+        console.error('Unlock error:', e);
+        showToast('Could not unlock: ' + e.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    };
 
     // Trigger the existing "+ New Plan" flow (setup wizard) from the locked notice.
     window.createNewPlanForSettings = function() {
@@ -5844,7 +5895,9 @@
 
       // Locked plan: the Save button is a "Locked" pill — clicking it just explains the lock.
       if (_dsLocked || await planIsLocked()) {
-        showToast('These settings are locked. Define a new plan to use different settings.', 'info');
+        showToast(_dsCanUnlock
+          ? 'These settings are locked. Use “Unlock to edit” above to change them.'
+          : 'These settings are locked. Define a new plan to use different settings.', 'info');
         return;
       }
 

@@ -181,6 +181,22 @@ export function generateDecisionChecksum(db) {
 }
 
 /**
+ * Checksum of the PLAN-DEFINING decision settings only — the allocation, income, spending profile,
+ * State Pension, protection and glidepath inputs a decision is computed against. Volatile/bookkeeping
+ * fields that don't change the plan (the `locked` flag, timestamps) are excluded so toggling the lock
+ * never changes the checksum. Stamped onto each saved decision (history.settingsChecksum) so we can
+ * tell whether a decision still matches the current settings, and gate the settings unlock on it.
+ *
+ * @param {object} settings - Decision settings
+ * @returns {string} Stable checksum
+ */
+export function decisionSettingsChecksum(settings) {
+  if (!settings) return '';
+  const { locked, ...planDefining } = settings;
+  return simpleHash(planDefining);
+}
+
+/**
  * Gets settings from the database (sync - uses cache)
  * @returns {object} Settings
  */

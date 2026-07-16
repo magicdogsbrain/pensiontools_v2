@@ -46,6 +46,7 @@ import {
   getHistory,
   getHistoryAsync,
   addHistoryRecord,
+  decisionSettingsChecksum,
   invalidateCache
 } from './storage/DecisionRepository.js';
 
@@ -329,6 +330,7 @@ export {
   getAllTaxYearsAsync,
   getHistory,
   getHistoryAsync,
+  decisionSettingsChecksum,
   getStressSettings,
   getStressSettingsAsync,
   saveStressSettings,

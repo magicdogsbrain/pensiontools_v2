@@ -21,7 +21,8 @@ import {
   addHistoryRecord,
   getAllTaxYears,
   getAllTaxYearsAsync,
-  recalculateIsaSavingsUsed
+  recalculateIsaSavingsUsed,
+  decisionSettingsChecksum
 } from '../storage/DecisionRepository.js';
 
 /**
@@ -549,6 +550,17 @@ export async function saveDecision(decision) {
 
   // Add standard SIPP for boost calculations (from decision object, set in calcDecisionPWA)
   historyRecord.stdSipp = decision.stdSipp || decision.sippDraw;
+
+  // Stamp the checksum of the settings this decision was computed against. Lets us tell whether a
+  // saved decision still matches the plan's settings and gate the settings unlock on it (unlock only
+  // while nothing has been recorded against those settings).
+  try {
+    const settings = await getDecisionSettingsAsync();
+    historyRecord.settingsChecksum = decisionSettingsChecksum(settings);
+  } catch (e) {
+    // Non-fatal: a missing checksum just means we can't prove the match later.
+    console.warn('Could not stamp settings checksum on decision:', e);
+  }
 
   // Save the history record (this will overwrite if same date exists)
   await addHistoryRecord(historyRecord);

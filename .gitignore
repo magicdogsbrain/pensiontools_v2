@@ -22,3 +22,6 @@ npm-debug.log*
 
 # Test coverage
 coverage/
+
+# Local reference material (third-party / personal — kept locally, not part of the app)
+Cashflow Plan*.xlsx

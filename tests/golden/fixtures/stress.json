@@ -990,6 +990,186 @@
         },
         "total": 68
       }
+    },
+    "declining spending smile (should beat flat base)": {
+      "mc": {
+        "failCount": 20,
+        "finalValue": {
+          "min": 35800.94,
+          "p10": 178927.85,
+          "p25": 368437.33,
+          "p5": 105116.15,
+          "p50": 899981.55,
+          "p75": 2128712.65,
+          "p90": 3382688.5,
+          "p95": 4627604.78
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 64.99,
+          "avgMonths": 93.22,
+          "maxConsecutive": 314,
+          "maxMonths": 335,
+          "p50Months": 55,
+          "p90Months": 264,
+          "p95Months": 295,
+          "pctWithProtection": 86,
+          "runsWithProtection": 172
+        },
+        "successCount": 180,
+        "successRate": 90,
+        "survival": {
+          "max": 30,
+          "min": 20.5,
+          "p10": 30,
+          "p25": 30,
+          "p5": 26.67,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 11,
+        "finalValue": {
+          "min": 56758.47,
+          "p10": 287177.8,
+          "p25": 859169.19,
+          "p5": 130879.98,
+          "p50": 1325823.63,
+          "p75": 2327503.21,
+          "p90": 2925571.7,
+          "p95": 3309914.37
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 80.44,
+          "avgMonths": 99.68,
+          "maxConsecutive": 286,
+          "maxMonths": 286,
+          "p50Months": 67,
+          "p90Months": 246,
+          "p95Months": 255,
+          "pctWithProtection": 73.53,
+          "runsWithProtection": 50
+        },
+        "successCount": 57,
+        "successRate": 83.82,
+        "survival": {
+          "max": 30,
+          "min": 20.42,
+          "p10": 25.25,
+          "p25": 30,
+          "p5": 23.75,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "declining spending / 20y horizon (truncated smile)": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 31527.62,
+          "p10": 405837.1,
+          "p25": 645056.62,
+          "p5": 273852.41,
+          "p50": 1040775.57,
+          "p75": 1613993.64,
+          "p90": 2308523.6,
+          "p95": 2694496.08
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 25.23,
+          "avgMonths": 36.08,
+          "maxConsecutive": 200,
+          "maxMonths": 227,
+          "p50Months": 18,
+          "p90Months": 108,
+          "p95Months": 134,
+          "pctWithProtection": 76,
+          "runsWithProtection": 152
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 40599.79,
+          "p10": 364339.17,
+          "p25": 649588.66,
+          "p5": 270135.47,
+          "p50": 1169157.87,
+          "p75": 1735689.14,
+          "p90": 2425203.66,
+          "p95": 3294947.39
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 32.87,
+          "avgMonths": 42.81,
+          "maxConsecutive": 202,
+          "maxMonths": 222,
+          "p50Months": 15,
+          "p90Months": 151,
+          "p95Months": 182,
+          "pctWithProtection": 73.08,
+          "runsWithProtection": 57
+        },
+        "successCount": 78,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 78
+      }
     }
   }
 }

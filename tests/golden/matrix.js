@@ -383,5 +383,10 @@ export const stressConfigs = [
   { name: 'partial first State-Pension year (ratio 0.5)', config: { ...baseConfig, spFirstYearRatio: 0.5 } },
   // ISA pot helping the SIPP: tax-free top-up means less SIPP drawn → higher success than base.
   { name: 'base + £200k ISA (should beat base)', config: { ...baseConfig, isaBalance: 200000 } },
-  { name: 'base + £200k ISA / maximise longevity', config: { ...baseConfig, isaBalance: 200000, isaDrawdownStrategy: 'maximiseLongevity' } }
+  { name: 'base + £200k ISA / maximise longevity', config: { ...baseConfig, isaBalance: 200000, isaDrawdownStrategy: 'maximiseLongevity' } },
+  // Spending smile (level 0-4, ~1%/yr decline 5-24, level after). Less is drawn mid-retirement, so
+  // it should beat the flat base. Pins the shared SpendingModel curve at the engine level.
+  { name: 'declining spending smile (should beat flat base)', config: { ...baseConfig, spendingProfile: 'declining' } },
+  // Shorter horizon than the 25y decline window → truncated smile (never reaches the final level).
+  { name: 'declining spending / 20y horizon (truncated smile)', config: { ...baseConfig, years: 20, duration: 20, spendingProfile: 'declining' } }
 ];

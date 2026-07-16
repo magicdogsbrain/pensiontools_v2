@@ -363,6 +363,28 @@
       margin-top: 18px;
       background: var(--card-alt);
     }
+    /* Plan lock banner (Decision settings). Two states: locked (neutral) and amending (warning). */
+    .lock-banner {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary, #6366f1);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 4px 0 8px;
+      background: var(--card-alt);
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .lock-banner > span { flex: 1 1 320px; }
+    .lock-banner.amending { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+    .lock-banner button { flex: 0 0 auto; }
+    /* Disabled controls inside the locked settings read clearly as inert, not broken. */
+    #decision-decisionsettings input:disabled,
+    #decision-decisionsettings select:disabled,
+    #decision-decisionsettings button:disabled { opacity: 0.55; cursor: not-allowed; }
     .settings-section > .section-title {
       margin: 0 0 12px;
       font-size: 14px;
@@ -2052,6 +2074,10 @@
           <div class="card">
             <h2>Decision Tool Settings</h2>
 
+            <!-- Plan lock: once the first monthly decision is saved, these settings define the plan the
+                 entries are measured against, so they're locked. "Amend plan…" re-baselines deliberately. -->
+            <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
+
             <div class="settings-section">
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
@@ -2211,8 +2237,8 @@
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button onclick="saveDecisionSettingsUI()">Save Settings</button>
-              <button class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
+              <button id="dsSaveBtn" onclick="saveDecisionSettingsUI()">Save Settings</button>
+              <button id="dsResetBtn" class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
         </div>
@@ -5732,6 +5758,7 @@
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();
+        await refreshDecisionLock();
       } catch (error) {
         console.error('Error loading decision settings:', error);
       } finally {
@@ -5739,10 +5766,86 @@
       }
     }
 
+    // ---- Plan settings lock -------------------------------------------------------------------
+    // A plan's Decision settings define the baseline its monthly entries are measured against. Once
+    // the first decision is saved to history, editing the plan mid-stream would make past entries
+    // inconsistent — so the settings lock. "Amend plan…" re-baselines deliberately (an explicit
+    // choice), matching the design: fund rotation / risk change = amend the plan, not free editing.
+    let _dsAmending = false;
+
+    async function planHasDecisionEntry() {
+      try {
+        const h = await getHistoryAsync({ limit: 1 });
+        return Array.isArray(h) && h.length > 0;
+      } catch (e) {
+        console.warn('Could not read decision history for lock state:', e);
+        return false;   // fail open — never trap the user out of an unsaved plan
+      }
+    }
+
+    // Enable/disable every control in the Decision settings pane, except the lock banner's own buttons.
+    function setDecisionSettingsEnabled(enabled) {
+      const root = document.getElementById('decision-decisionsettings');
+      if (!root) return;
+      root.querySelectorAll('input, select, textarea, button').forEach(el => {
+        if (el.closest('#dsLockBanner')) return;   // banner controls stay live
+        el.disabled = !enabled;
+      });
+    }
+
+    async function refreshDecisionLock() {
+      const banner = document.getElementById('dsLockBanner');
+      if (!banner) return;
+      const locked = await planHasDecisionEntry();
+
+      if (!locked) {                       // brand-new plan, no entries yet → fully editable
+        _dsAmending = false;
+        banner.style.display = 'none';
+        setDecisionSettingsEnabled(true);
+        return;
+      }
+
+      banner.style.display = 'flex';
+      if (_dsAmending) {
+        banner.className = 'lock-banner amending';
+        banner.innerHTML =
+          '<span><strong>Amending the plan.</strong> Past monthly entries were recorded against the ' +
+          'current settings and may no longer line up. Save when you’re done, or cancel to keep the ' +
+          'plan locked.</span>' +
+          '<button type="button" class="secondary" onclick="cancelAmendPlan()">Cancel</button>';
+        setDecisionSettingsEnabled(true);
+      } else {
+        banner.className = 'lock-banner';
+        banner.innerHTML =
+          '<span>🔒 <strong>This plan is locked.</strong> Your settings define the plan your ' +
+          'monthly entries are measured against, so they’re fixed once you’ve saved an entry. ' +
+          'To change the baseline, amend the plan deliberately.</span>' +
+          '<button type="button" onclick="startAmendPlan()">Amend plan…</button>';
+        setDecisionSettingsEnabled(false);
+      }
+    }
+
+    window.startAmendPlan = function() {
+      _dsAmending = true;
+      refreshDecisionLock();
+    };
+
+    window.cancelAmendPlan = async function() {
+      _dsAmending = false;
+      await loadDecisionSettings();   // discard any edits by reloading, then re-lock
+    };
+
     // Save decision settings
     window.saveDecisionSettingsUI = async function() {
       if (!isLoggedIn()) {
         showToast('Please sign in to save settings', 'error');
+        return;
+      }
+
+      // Locked plan: only allow a save while deliberately amending (the button is disabled otherwise,
+      // this is a belt-and-braces guard).
+      if (!_dsAmending && await planHasDecisionEntry()) {
+        showToast('This plan is locked — use “Amend plan…” to change it', 'warning');
         return;
       }
 
@@ -5786,6 +5889,9 @@
           taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0)
         });
         showToast('Settings saved successfully', 'success');
+        // Finished amending (if we were) → re-evaluate and re-lock.
+        _dsAmending = false;
+        await refreshDecisionLock();
       } catch (error) {
         console.error('Error saving decision settings:', error);
         showToast('Error saving: ' + error.message, 'error');

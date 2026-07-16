@@ -38,6 +38,9 @@ function getDefaultDecisionDB() {
       // calcDecisionWithDeps derives equityGlide from the risk split so the monthly draw/rebalance
       // advice follows the glide.
       equityGlideEnabled: false,
+      // Plan lock: set true the first time these settings are saved. A locked plan's Decision settings
+      // can't be edited — the user creates a new plan to use different settings. See refreshDecisionLock.
+      locked: false,
       baseSalary: DRAWDOWN_DEFAULTS.BASE_SALARY,
       // Spending over retirement, locked with the plan: 'flat' (level real spend, default) or
       // 'declining' (real spend drifts down ~1%/yr — Blanchett's spending smile). Mirrors the Stress

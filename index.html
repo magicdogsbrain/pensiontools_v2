@@ -381,6 +381,13 @@
     .lock-banner > span { flex: 1 1 320px; }
     .lock-banner.amending { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
     .lock-banner button { flex: 0 0 auto; }
+    /* Save button in its locked state: looks inert (greyed) but stays clickable to explain the lock. */
+    #dsSaveBtn.btn-locked {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
     /* Disabled controls inside the locked settings read clearly as inert, not broken. */
     #decision-decisionsettings input:disabled,
     #decision-decisionsettings select:disabled,
@@ -2074,8 +2081,8 @@
           <div class="card">
             <h2>Decision Tool Settings</h2>
 
-            <!-- Plan lock: once the first monthly decision is saved, these settings define the plan the
-                 entries are measured against, so they're locked. "Amend plan…" re-baselines deliberately. -->
+            <!-- Plan lock: saving these settings commits them as the plan definition and locks them.
+                 To use different settings the user creates a new plan. Populated by refreshDecisionLock. -->
             <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
 
             <div class="settings-section">
@@ -5767,72 +5774,65 @@
     }
 
     // ---- Plan settings lock -------------------------------------------------------------------
-    // A plan's Decision settings define the baseline its monthly entries are measured against. Once
-    // the first decision is saved to history, editing the plan mid-stream would make past entries
-    // inconsistent — so the settings lock. "Amend plan…" re-baselines deliberately (an explicit
-    // choice), matching the design: fund rotation / risk change = amend the plan, not free editing.
-    let _dsAmending = false;
+    // A plan's Decision settings ARE the plan definition. The moment they are saved the plan locks:
+    // no further editing, and the Save button becomes a greyed "Locked" pill. To use different
+    // settings the user creates a NEW plan (settings are per-plan). Cached lock flag for cheap guards.
+    let _dsLocked = false;
 
-    async function planHasDecisionEntry() {
+    // A plan locks the moment its Decision settings are saved (settings.locked flag). There is no
+    // in-place editing after that — to use different settings the user creates a NEW plan.
+    async function planIsLocked() {
       try {
-        const h = await getHistoryAsync({ limit: 1 });
-        return Array.isArray(h) && h.length > 0;
+        const s = await getDecisionSettingsAsync();
+        return !!(s && s.locked);
       } catch (e) {
-        console.warn('Could not read decision history for lock state:', e);
-        return false;   // fail open — never trap the user out of an unsaved plan
+        console.warn('Could not read decision settings for lock state:', e);
+        return false;   // fail open — never trap the user out of a plan
       }
     }
 
-    // Enable/disable every control in the Decision settings pane, except the lock banner's own buttons.
+    // Enable/disable every control in the Decision settings pane. The Save button is excluded — it stays
+    // clickable while locked so a click can explain the lock (it is restyled to a "Locked" pill instead).
     function setDecisionSettingsEnabled(enabled) {
       const root = document.getElementById('decision-decisionsettings');
       if (!root) return;
       root.querySelectorAll('input, select, textarea, button').forEach(el => {
         if (el.closest('#dsLockBanner')) return;   // banner controls stay live
+        if (el.id === 'dsSaveBtn') return;         // handled separately (see below)
         el.disabled = !enabled;
       });
     }
 
     async function refreshDecisionLock() {
       const banner = document.getElementById('dsLockBanner');
-      if (!banner) return;
-      const locked = await planHasDecisionEntry();
+      const saveBtn = document.getElementById('dsSaveBtn');
+      if (!banner || !saveBtn) return;
+      _dsLocked = await planIsLocked();
 
-      if (!locked) {                       // brand-new plan, no entries yet → fully editable
-        _dsAmending = false;
+      if (!_dsLocked) {                    // unsaved plan → fully editable, normal Save button
         banner.style.display = 'none';
         setDecisionSettingsEnabled(true);
+        saveBtn.textContent = 'Save Settings';
+        saveBtn.classList.remove('btn-locked');
         return;
       }
 
+      // Locked: freeze the form, show the notice, and turn Save into a greyed "Locked" pill.
       banner.style.display = 'flex';
-      if (_dsAmending) {
-        banner.className = 'lock-banner amending';
-        banner.innerHTML =
-          '<span><strong>Amending the plan.</strong> Past monthly entries were recorded against the ' +
-          'current settings and may no longer line up. Save when you’re done, or cancel to keep the ' +
-          'plan locked.</span>' +
-          '<button type="button" class="secondary" onclick="cancelAmendPlan()">Cancel</button>';
-        setDecisionSettingsEnabled(true);
-      } else {
-        banner.className = 'lock-banner';
-        banner.innerHTML =
-          '<span>🔒 <strong>This plan is locked.</strong> Your settings define the plan your ' +
-          'monthly entries are measured against, so they’re fixed once you’ve saved an entry. ' +
-          'To change the baseline, amend the plan deliberately.</span>' +
-          '<button type="button" onclick="startAmendPlan()">Amend plan…</button>';
-        setDecisionSettingsEnabled(false);
-      }
+      banner.className = 'lock-banner';
+      banner.innerHTML =
+        '<span>🔒 <strong>These settings are locked.</strong> They were saved as this plan’s definition ' +
+        'and can’t be changed. To use different settings, create a new plan.</span>' +
+        '<button type="button" onclick="createNewPlanForSettings()">Create new plan</button>';
+      setDecisionSettingsEnabled(false);
+      saveBtn.textContent = '🔒 Locked';
+      saveBtn.classList.add('btn-locked');
     }
 
-    window.startAmendPlan = function() {
-      _dsAmending = true;
-      refreshDecisionLock();
-    };
-
-    window.cancelAmendPlan = async function() {
-      _dsAmending = false;
-      await loadDecisionSettings();   // discard any edits by reloading, then re-lock
+    // Trigger the existing "+ New Plan" flow (setup wizard) from the locked notice.
+    window.createNewPlanForSettings = function() {
+      const btn = document.getElementById('scenarioNewBtn');
+      if (btn) btn.click();
     };
 
     // Save decision settings
@@ -5842,10 +5842,9 @@
         return;
       }
 
-      // Locked plan: only allow a save while deliberately amending (the button is disabled otherwise,
-      // this is a belt-and-braces guard).
-      if (!_dsAmending && await planHasDecisionEntry()) {
-        showToast('This plan is locked — use “Amend plan…” to change it', 'warning');
+      // Locked plan: the Save button is a "Locked" pill — clicking it just explains the lock.
+      if (_dsLocked || await planIsLocked()) {
+        showToast('These settings are locked. Define a new plan to use different settings.', 'info');
         return;
       }
 
@@ -5886,11 +5885,12 @@
           subAsset: dsAlloc.subAsset || null,
           glideEndgame: dsAlloc.glideEndgame || null,   // tent endgame for a tagged plan
           allocMode: allocMode('ds'),                   // 'risk' or 'funds'
-          taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0)
+          taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0),
+          // Saving IS committing the plan definition → lock it. New settings need a new plan.
+          locked: true
         });
-        showToast('Settings saved successfully', 'success');
-        // Finished amending (if we were) → re-evaluate and re-lock.
-        _dsAmending = false;
+        showToast('Settings saved and locked. Create a new plan to use different settings.', 'success', 4000);
+        // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).
         await refreshDecisionLock();
       } catch (error) {
         console.error('Error saving decision settings:', error);

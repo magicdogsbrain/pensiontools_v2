@@ -23,5 +23,23 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# Local reference material (third-party / personal — kept locally, not part of the app)
-Cashflow Plan*.xlsx
+# Local reference material & personal files — documents/spreadsheets/archives are never app code.
+# (App image assets like icons/favicons are kept; they're served by the PWA.)
+*.pdf
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.numbers
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.odt
+*.ods
+*.zip
+*.tar
+*.gz
+*.tgz
+*.7z
+*.rar

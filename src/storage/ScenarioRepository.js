@@ -23,6 +23,7 @@ import {
 } from '../firebase/FirestoreService.js';
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
+import { defaultBudget } from '../services/BudgetModel.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -155,6 +156,13 @@ export function getDefaultTaxYears() {
 }
 
 /**
+ * Default budget object for a new scenario (net-first budgeting tool, Stage 0)
+ */
+export function getDefaultBudget() {
+  return defaultBudget();
+}
+
+/**
  * Create a default scenario object
  * @param {string} name - Scenario name
  * @param {string} description - Scenario description
@@ -173,6 +181,9 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
     },
     stressTool: {
       settings: getDefaultStressSettings()
+    },
+    budgetTool: {
+      settings: getDefaultBudget()
     }
   };
 }
@@ -460,6 +471,35 @@ export async function saveActiveDecisionSettings(settings) {
   if (cachedActiveScenario) {
     if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
     cachedActiveScenario.decisionTool.settings = settings;
+  }
+}
+
+/**
+ * Get the budget from the active scenario
+ * @returns {Promise<object>} Budget object
+ */
+export async function getActiveBudget() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.budgetTool?.settings || getDefaultBudget();
+}
+
+/**
+ * Save the budget to the active scenario
+ * @param {object} budget - Updated budget object
+ * @returns {Promise<void>}
+ */
+export async function saveActiveBudget(budget) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) {
+    throw new Error('No active scenario');
+  }
+
+  await saveScenario(scenario.id, { 'budgetTool.settings': budget });
+
+  // Update cache
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.budgetTool) cachedActiveScenario.budgetTool = {};
+    cachedActiveScenario.budgetTool.settings = budget;
   }
 }
 

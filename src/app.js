@@ -60,6 +60,16 @@ import {
   createSimulationConfigFromSettings
 } from './storage/StressRepository.js';
 
+import { getBudgetAsync, saveBudget } from './storage/BudgetRepository.js';
+import {
+  PLSA_2024,
+  summariseBudget,
+  annualNetAtAge,
+  oneOffSchedule,
+  grossUpAnnual,
+  defaultBudget
+} from './services/BudgetModel.js';
+
 // UI
 import {
   renderDecisionPanel,
@@ -354,6 +364,16 @@ export {
   showTaxYearWizard,
   hideTaxYearWizard,
   getTaxYearWizardStyles,
+
+  // Budget (net-first budgeting tool, Stage 0)
+  getBudgetAsync,
+  saveBudget,
+  PLSA_2024,
+  summariseBudget,
+  annualNetAtAge,
+  oneOffSchedule,
+  grossUpAnnual,
+  defaultBudget,
 
   // Constants
   VERSION

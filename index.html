@@ -1970,6 +1970,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab" data-tab="budget">Budget</button>
         </nav>
       </div>
 
@@ -2718,6 +2719,75 @@
         </div>
       </div>
 
+      <!-- Budget Tab -->
+      <div id="budget-content" class="tab-content">
+        <div class="card">
+          <h2>Budget — your spending plan</h2>
+          <p class="section-hint" style="margin-bottom:4px;">
+            Enter what you expect to spend, in <strong>today's money</strong>. We total it into your
+            <strong>essential</strong> (the floor that must always be covered) and <strong>comfortable</strong>
+            (your target) monthly take-home — then you can push that to your plan's target income.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">Horizon</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Age today</label>
+                <input type="number" id="budCurrentAge" oninput="onBudgetHorizonChange()">
+              </div>
+              <div class="form-group">
+                <label>Retirement age</label>
+                <input type="number" id="budRetireAge" oninput="onBudgetHorizonChange()">
+              </div>
+              <div class="form-group">
+                <label>Plan to age</label>
+                <input type="number" id="budEndAge" oninput="onBudgetHorizonChange()">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Essential spending
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the floor that must always be covered (housing, bills, food, transport, health)</span>
+            </div>
+            <div id="budEssentialRows"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="risk-btn" onclick="addBudgetLine('essential')">+ Add essential</button>
+              <div style="font-size:13px;">Essential subtotal: <strong id="budEssentialSubtotal">—</strong>/yr</div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Lifestyle spending
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— nice-to-haves on top (holidays, eating out, hobbies, gifts)</span>
+            </div>
+            <div id="budDiscretionaryRows"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="risk-btn" onclick="addBudgetLine('discretionary')">+ Add lifestyle</button>
+              <div style="font-size:13px;">Lifestyle subtotal: <strong id="budDiscretionarySubtotal">—</strong>/yr</div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">One-off &amp; periodic costs
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— a car every few years, a new roof, a big trip, helping the kids</span>
+            </div>
+            <div id="budOneOffRows"></div>
+            <button type="button" class="risk-btn" onclick="addBudgetOneOff()" style="margin-top:8px;">+ Add one-off</button>
+          </div>
+
+          <div class="settings-section" id="budSummarySection">
+            <div class="section-title">Your spending need</div>
+            <div id="budSummary"></div>
+          </div>
+
+          <div class="button-row" style="margin-top: 24px;">
+            <button id="budSaveBtn" onclick="saveBudgetUI()">Save budget</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2762,7 +2832,15 @@
       renderDecisionPanel,
       getDecisionPanelStyles,
       getDrawdownProjection,
-      getGlidepathProjection
+      getGlidepathProjection,
+      getBudgetAsync,
+      saveBudget,
+      PLSA_2024,
+      summariseBudget,
+      annualNetAtAge,
+      oneOffSchedule,
+      grossUpAnnual,
+      defaultBudget
     } from './src/app.js';
 
     // Import additional services
@@ -3052,6 +3130,8 @@
       numberInputs.forEach(input => {
         // Skip inputs that already have formatting
         if (input.dataset.formatted) return;
+        // Budget tab uses dynamic flex rows; the overlay wrapper would disrupt their layout.
+        if (input.closest('#budget-content')) return;
         input.dataset.formatted = 'true';
 
         // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
@@ -3948,6 +4028,7 @@
 
         // Load content if needed (async)
         if (tab.dataset.tab === 'stress') await loadStressSettings();
+        if (tab.dataset.tab === 'budget') await loadBudgetUI();
       });
     });
 
@@ -5773,6 +5854,197 @@
         hideLoading();
       }
     }
+
+    // ==================== Budget (net-first budgeting tool, Stage 0) ====================
+    // Working copy of the active plan's budget while the tab is open. Saved via saveBudgetUI.
+    let _budIdSeq = 0;
+    const budId = () => 'b' + (++_budIdSeq);
+    const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString();
+    const budEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+    function normaliseBudget(b) {
+      const out = { ...defaultBudget(), ...(b || {}) };
+      out.lines = (Array.isArray(out.lines) ? out.lines : []).map((l) => ({ id: l.id || budId(), ...l }));
+      out.oneOffs = (Array.isArray(out.oneOffs) ? out.oneOffs : []).map((o) => ({ id: o.id || budId(), ...o }));
+      return out;
+    }
+
+    async function loadBudgetUI() {
+      try {
+        window._budget = normaliseBudget(await getBudgetAsync());
+      } catch (e) {
+        console.error('Budget load error:', e);
+        window._budget = normaliseBudget(defaultBudget());
+      }
+      document.getElementById('budCurrentAge').value = window._budget.currentAge;
+      document.getElementById('budRetireAge').value = window._budget.retirementAge;
+      document.getElementById('budEndAge').value = window._budget.endAge;
+      renderBudgetLines();
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+    }
+
+    function budgetLineRowHtml(line) {
+      return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">' +
+        '<input type="text" placeholder="e.g. Housing" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="flex:1 1 160px;">' +
+        '<input type="number" placeholder="£/yr" value="' + (line.annual ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'annual\',this.value)" style="flex:0 0 120px;">' +
+        '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 92px;">' +
+        '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 92px;">' +
+        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
+        '</div>';
+    }
+
+    function renderBudgetLines() {
+      const ess = window._budget.lines.filter((l) => l.tier === 'essential');
+      const dis = window._budget.lines.filter((l) => l.tier === 'discretionary');
+      document.getElementById('budEssentialRows').innerHTML = ess.map(budgetLineRowHtml).join('') ||
+        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No essentials yet — add housing, bills, food, transport…</p>';
+      document.getElementById('budDiscretionaryRows').innerHTML = dis.map(budgetLineRowHtml).join('') ||
+        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No lifestyle spending yet — holidays, hobbies, eating out…</p>';
+    }
+
+    function budgetOneOffRowHtml(o) {
+      return '<div class="bud-row" data-id="' + o.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">' +
+        '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)" style="flex:1 1 150px;">' +
+        '<input type="number" placeholder="£ amount" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)" style="flex:0 0 120px;">' +
+        '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 92px;">' +
+        '<input type="number" placeholder="every N yrs" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 110px;">' +
+        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
+        '</div>';
+    }
+
+    function renderBudgetOneOffs() {
+      document.getElementById('budOneOffRows').innerHTML = window._budget.oneOffs.map(budgetOneOffRowHtml).join('') ||
+        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No one-off costs yet — a car every ~8 years, a new roof, a milestone trip…</p>';
+    }
+
+    function syncHorizonFromInputs() {
+      window._budget.currentAge = +document.getElementById('budCurrentAge').value || 0;
+      window._budget.retirementAge = +document.getElementById('budRetireAge').value || 0;
+      window._budget.endAge = +document.getElementById('budEndAge').value || 100;
+    }
+
+    window.onBudgetHorizonChange = function () { syncHorizonFromInputs(); updateBudgetSummary(); };
+
+    window.updateBudgetLine = function (id, field, value) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      if (field === 'label') line.label = value;
+      else line[field] = value === '' ? null : +value;
+      updateBudgetSummary();
+    };
+
+    window.updateBudgetOneOff = function (id, field, value) {
+      const o = window._budget.oneOffs.find((x) => x.id === id);
+      if (!o) return;
+      if (field === 'label') o.label = value;
+      else o[field] = value === '' ? null : +value;
+      updateBudgetSummary();
+    };
+
+    window.addBudgetLine = function (tier) {
+      window._budget.lines.push({ id: budId(), label: '', tier, annual: null, fromAge: null, toAge: null });
+      renderBudgetLines();
+      updateBudgetSummary();
+    };
+
+    window.addBudgetOneOff = function () {
+      window._budget.oneOffs.push({ id: budId(), label: '', tier: 'essential', amount: null, atAge: null, everyYears: null });
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+    };
+
+    window.removeBudgetLine = function (id) {
+      window._budget.lines = window._budget.lines.filter((l) => l.id !== id);
+      renderBudgetLines();
+      updateBudgetSummary();
+    };
+
+    window.removeBudgetOneOff = function (id) {
+      window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+    };
+
+    function updateBudgetSummary() {
+      syncHorizonFromInputs();
+      const b = window._budget;
+      const retire = b.retirementAge;
+      const ess = annualNetAtAge(b, retire, 'essential');
+      const all = annualNetAtAge(b, retire, 'all');
+      document.getElementById('budEssentialSubtotal').textContent = gbp(ess);
+      document.getElementById('budDiscretionarySubtotal').textContent = gbp(all - ess);
+
+      const s = summariseBudget(b);
+      const events = oneOffSchedule(b);
+      const nextEvent = events.find((e) => e.age >= retire) || events[0];
+      const plsa = PLSA_2024.single;
+      const tier = all >= plsa.comfortable ? 'at/above Comfortable' : all >= plsa.moderate ? 'between Moderate and Comfortable' : all >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
+
+      const money = (n) => gbp(n);
+      let html = '';
+      html += '<div style="display:flex; gap:18px; flex-wrap:wrap; margin-bottom:14px;">';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(ess) + '/yr take-home</div></div>';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">Comfortable (target)</div><div style="font-size:22px;font-weight:700;color:var(--primary,#6366f1);">' + money(s.comfortableMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(all) + '/yr take-home</div></div>';
+      html += '</div>';
+
+      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your comfortable spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
+
+      if (events.length) {
+        html += '<div style="font-size:13px;margin-bottom:12px;"><strong>One-offs:</strong> ' + events.length + ' event' + (events.length === 1 ? '' : 's') + ' across the plan' + (nextEvent ? ' · next: ' + budEsc(nextEvent.label || 'item') + ' at age ' + nextEvent.age + ' (' + money(nextEvent.amount) + ')' : '') + '.</div>';
+      }
+
+      html += '<div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">';
+      html += '<div style="font-size:13px;">Suggested plan target: <strong>' + money(s.suggestedGrossAnnual) + '/yr gross</strong> <span style="color:var(--text-muted);">(grosses up your comfortable take-home — approximate)</span></div>';
+      html += '<button type="button" onclick="applyBudgetToPlan()">Use as my plan’s target income</button>';
+      html += '</div>';
+
+      document.getElementById('budSummary').innerHTML = html;
+    }
+
+    window.saveBudgetUI = async function () {
+      if (!isLoggedIn()) { showToast('Please sign in to save your budget', 'error'); return; }
+      syncHorizonFromInputs();
+      showLoading('Saving budget…');
+      try {
+        const clean = {
+          ...window._budget,
+          lines: window._budget.lines.filter((l) => (l.label && l.label.trim()) || l.annual),
+          oneOffs: window._budget.oneOffs.filter((o) => (o.label && o.label.trim()) || o.amount)
+        };
+        await saveBudget(clean);
+        window._budget = normaliseBudget(clean);
+        renderBudgetLines();
+        renderBudgetOneOffs();
+        updateBudgetSummary();
+        showToast('Budget saved', 'success');
+      } catch (e) {
+        console.error('Budget save error:', e);
+        showToast('Error saving budget: ' + e.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    };
+
+    window.applyBudgetToPlan = async function () {
+      const s = summariseBudget(window._budget);
+      const gross = Math.round(s.suggestedGrossAnnual);
+      if (!gross) { showToast('Add some spending first', 'warning'); return; }
+      if (await planIsLocked()) {
+        showToast('Your plan is locked — unlock it or start a new plan to change its target.', 'warning');
+        return;
+      }
+      showLoading('Applying to plan…');
+      try {
+        await saveDecisionSettings({ baseSalary: gross });
+        showToast('Plan target set to ' + gbp(gross) + '/yr (≈ your ' + gbp(s.comfortableMonthlyNet) + '/mo take-home)', 'success', 4500);
+      } catch (e) {
+        console.error('Apply-to-plan error:', e);
+        showToast('Could not apply: ' + e.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    };
 
     // ---- Plan settings lock -------------------------------------------------------------------
     // A plan's Decision settings ARE the plan definition. The moment they are saved the plan locks:

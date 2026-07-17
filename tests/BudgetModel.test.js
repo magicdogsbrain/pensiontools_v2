@@ -7,6 +7,7 @@ import {
   PLSA_2024,
   BUDGET_CATEGORIES,
   starterLines,
+  starterOneOffs,
   DEFAULT_TAX_BANDS,
   lineActiveAtAge,
   annualNetAtAge,
@@ -132,16 +133,49 @@ describe('BudgetModel — summary & defaults', () => {
 });
 
 describe('BudgetModel — starter categories', () => {
-  it('seeds essential + discretionary lines with blank amounts and hints', () => {
+  it('seeds essential + discretionary lines with blank amounts, hints and a period', () => {
     const lines = starterLines();
     expect(lines.some((l) => l.tier === 'essential' && l.label === 'Rent / mortgage')).toBe(true);
-    expect(lines.some((l) => l.tier === 'discretionary' && l.label === 'Holidays')).toBe(true);
+    expect(lines.some((l) => l.tier === 'discretionary' && l.label === 'Main holiday')).toBe(true);
     expect(lines.every((l) => l.annual === null)).toBe(true); // amounts left for the user
+    expect(lines.every((l) => l.period === 'mo' || l.period === 'yr')).toBe(true);
     expect(lines.length).toBe(BUDGET_CATEGORIES.essential.length + BUDGET_CATEGORIES.discretionary.length);
+  });
+
+  it('covers the user-requested specifics (mobiles, streaming, subscriptions, car tax, pets…)', () => {
+    const labels = starterLines().map((l) => l.label.toLowerCase()).join(' | ');
+    for (const needle of ['mobile', 'streaming', 'subscriptions', 'car tax', 'pets', 'council tax', 'petrol', 'gym']) {
+      expect(labels).toContain(needle);
+    }
   });
 
   it('the boundary with one-offs is spelled out in the hints', () => {
     const upkeep = starterLines().find((l) => l.label === 'Home upkeep');
     expect(upkeep.hint.toLowerCase()).toContain('one-off');
+  });
+
+  it('seeds starter one-off items (new car, major home work, white goods)', () => {
+    const labels = starterOneOffs().map((o) => o.label);
+    expect(labels).toContain('New car');
+    expect(labels).toContain('Major home work');
+    expect(starterOneOffs().every((o) => o.amount === null)).toBe(true);
+  });
+});
+
+describe('BudgetModel — periodic averaging (recurring lumpy → monthly need)', () => {
+  it('averages recurring one-offs but not single ones', () => {
+    const b = {
+      version: 1, currentAge: 45, retirementAge: 60, endAge: 95,
+      lines: [{ id: 'a', label: 'x', tier: 'essential', annual: 24000 }],
+      oneOffs: [
+        { id: 'car', label: 'Car', tier: 'essential', amount: 24000, atAge: 62, everyYears: 8 }, // → 3000/yr
+        { id: 'roof', label: 'Roof', tier: 'essential', amount: 15000, atAge: 70, everyYears: null } // single → excluded
+      ]
+    };
+    const s = summariseBudget(b);
+    expect(s.periodicAnnualAverage).toBe(3000);
+    expect(s.allInComfortableAnnual).toBe(27000); // 24000 recurring + 3000 averaged
+    expect(s.allInComfortableMonthly).toBeCloseTo(2250, 6);
+    expect(s.suggestedGrossAnnual).toBeGreaterThan(27000); // grossed up from all-in
   });
 });

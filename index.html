@@ -2837,6 +2837,7 @@
       saveBudget,
       PLSA_2024,
       starterLines,
+      starterOneOffs,
       summariseBudget,
       annualNetAtAge,
       oneOffSchedule,
@@ -5880,6 +5881,9 @@
       // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
       if (!window._budget.lines.length) {
         window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
+        if (!window._budget.oneOffs.length) {
+          window._budget.oneOffs = starterOneOffs().map((o) => ({ id: budId(), ...o }));
+        }
       }
       document.getElementById('budCurrentAge').value = window._budget.currentAge;
       document.getElementById('budRetireAge').value = window._budget.retirementAge;
@@ -5893,14 +5897,19 @@
       const hint = line.hint
         ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(line.hint) + '</div>'
         : '';
+      const period = line.period || 'yr';
+      const shown = line.annual == null ? '' : (period === 'mo' ? Math.round(line.annual / 12) : line.annual);
       return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
         '<div style="flex:1 1 200px; min-width:170px;">' +
           '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">' +
           hint +
         '</div>' +
-        '<input type="number" placeholder="£/yr" title="Amount per YEAR in today\'s money" value="' + (line.annual ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'annual\',this.value)" style="flex:0 0 120px;">' +
-        '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 92px;">' +
-        '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 92px;">' +
+        '<div style="display:flex; gap:4px; flex:0 0 150px; align-items:center;">' +
+          '<input type="number" placeholder="Amount" title="Amount in today\'s money" value="' + shown + '" oninput="updateBudgetAmount(\'' + line.id + '\',this.value)" style="flex:1 1 auto; min-width:0;">' +
+          '<button type="button" class="risk-btn" style="padding:4px 8px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
+        '</div>' +
+        '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
+        '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 84px;">' +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
         '</div>';
     }
@@ -5915,10 +5924,16 @@
     }
 
     function budgetOneOffRowHtml(o) {
-      return '<div class="bud-row" data-id="' + o.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">' +
-        '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)" style="flex:1 1 150px;">' +
-        '<input type="number" placeholder="£ amount" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)" style="flex:0 0 120px;">' +
-        '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 92px;">' +
+      const hint = o.hint
+        ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(o.hint) + '</div>'
+        : '';
+      return '<div class="bud-row" data-id="' + o.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
+        '<div style="flex:1 1 170px; min-width:150px;">' +
+          '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)" style="width:100%;">' +
+          hint +
+        '</div>' +
+        '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)" style="flex:0 0 120px;">' +
+        '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="every N yrs" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 110px;">' +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
         '</div>';
@@ -5942,6 +5957,23 @@
       if (!line) return;
       if (field === 'label') line.label = value;
       else line[field] = value === '' ? null : +value;
+      updateBudgetSummary();
+    };
+
+    // Amount respects the line's mo/yr period; `annual` stays the canonical stored value.
+    window.updateBudgetAmount = function (id, value) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      const n = value === '' ? null : +value;
+      line.annual = n == null ? null : ((line.period || 'yr') === 'mo' ? n * 12 : n);
+      updateBudgetSummary();
+    };
+
+    window.toggleBudgetPeriod = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      line.period = (line.period || 'yr') === 'mo' ? 'yr' : 'mo';
+      renderBudgetLines();  // re-render so the shown amount reflects the new period
       updateBudgetSummary();
     };
 
@@ -5987,26 +6019,49 @@
       document.getElementById('budDiscretionarySubtotal').textContent = gbp(all - ess);
 
       const s = summariseBudget(b);
-      const events = oneOffSchedule(b);
-      const nextEvent = events.find((e) => e.age >= retire) || events[0];
-      const plsa = PLSA_2024.single;
-      const tier = all >= plsa.comfortable ? 'at/above Comfortable' : all >= plsa.moderate ? 'between Moderate and Comfortable' : all >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
-
       const money = (n) => gbp(n);
+
+      // Split lumpy items: recurring (averaged into the monthly need) vs single (discrete events).
+      const recurring = b.oneOffs.filter((o) => (+o.everyYears || 0) > 0 && (+o.amount || 0) > 0);
+      const singles = b.oneOffs.filter((o) => !((+o.everyYears || 0) > 0) && (+o.amount || 0) > 0);
+
+      const plsa = PLSA_2024.single;
+      const allIn = s.allInComfortableAnnual;
+      const tier = allIn >= plsa.comfortable ? 'at/above Comfortable' : allIn >= plsa.moderate ? 'between Moderate and Comfortable' : allIn >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
+
       let html = '';
-      html += '<div style="display:flex; gap:18px; flex-wrap:wrap; margin-bottom:14px;">';
-      html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(ess) + '/yr take-home</div></div>';
-      html += '<div><div style="font-size:12px;color:var(--text-muted);">Comfortable (target)</div><div style="font-size:22px;font-weight:700;color:var(--primary,#6366f1);">' + money(s.comfortableMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(all) + '/yr take-home</div></div>';
+      // Headline figures
+      html += '<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:14px;">';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">All-in comfortable</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + money(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(allIn) + '/yr take-home</div></div>';
       html += '</div>';
 
-      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your comfortable spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
+      // Breakdown of the all-in figure
+      html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">= comfortable recurring <strong style="color:var(--text);">' + money(s.comfortableMonthlyNet) + '/mo</strong>' +
+        (s.periodicMonthlyAverage > 0 ? ' + periodic set-aside <strong style="color:var(--text);">' + money(s.periodicMonthlyAverage) + '/mo</strong> <span>(averaged from the big periodic costs below)</span>' : '') + '.</div>';
 
-      if (events.length) {
-        html += '<div style="font-size:13px;margin-bottom:12px;"><strong>One-offs:</strong> ' + events.length + ' event' + (events.length === 1 ? '' : 's') + ' across the plan' + (nextEvent ? ' · next: ' + budEsc(nextEvent.label || 'item') + ' at age ' + nextEvent.age + ' (' + money(nextEvent.amount) + ')' : '') + '.</div>';
+      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your all-in spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
+
+      // Periodic (recurring) one-offs, shown with their averaged cost
+      if (recurring.length) {
+        html += '<div style="font-size:13px;margin-bottom:8px;"><strong>Periodic costs</strong> (averaged into the monthly need, but the cash lands lumpily):<ul style="margin:6px 0 0; padding-left:18px;">';
+        for (const o of recurring) {
+          const perYr = (+o.amount) / (+o.everyYears);
+          html += '<li>' + budEsc(o.label || 'item') + ': ' + money(o.amount) + ' every ' + (+o.everyYears) + ' yrs ≈ <strong>' + money(perYr) + '/yr</strong> (' + money(perYr / 12) + '/mo)</li>';
+        }
+        html += '</ul></div>';
+      }
+      // Single one-offs, shown as discrete events
+      if (singles.length) {
+        html += '<div style="font-size:13px;margin-bottom:12px;"><strong>One-time costs</strong> (not in the monthly average — planned for the year they fall):<ul style="margin:6px 0 0; padding-left:18px;">';
+        for (const o of singles) {
+          html += '<li>' + budEsc(o.label || 'item') + ': ' + money(o.amount) + (o.atAge ? ' at age ' + (+o.atAge) : '') + '</li>';
+        }
+        html += '</ul></div>';
       }
 
       html += '<div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">';
-      html += '<div style="font-size:13px;">Suggested plan target: <strong>' + money(s.suggestedGrossAnnual) + '/yr gross</strong> <span style="color:var(--text-muted);">(grosses up your comfortable take-home — approximate)</span></div>';
+      html += '<div style="font-size:13px;">Suggested plan target: <strong>' + money(s.suggestedGrossAnnual) + '/yr gross</strong> <span style="color:var(--text-muted);">(grosses up your all-in take-home — approximate)</span></div>';
       html += '<button type="button" onclick="applyBudgetToPlan()">Use as my plan’s target income</button>';
       html += '</div>';
 
@@ -6048,7 +6103,7 @@
       showLoading('Applying to plan…');
       try {
         await saveDecisionSettings({ baseSalary: gross });
-        showToast('Plan target set to ' + gbp(gross) + '/yr (≈ your ' + gbp(s.comfortableMonthlyNet) + '/mo take-home)', 'success', 4500);
+        showToast('Plan target set to ' + gbp(gross) + '/yr (≈ your ' + gbp(s.allInComfortableMonthly) + '/mo all-in take-home)', 'success', 4500);
       } catch (e) {
         console.error('Apply-to-plan error:', e);
         showToast('Could not apply: ' + e.message, 'error');

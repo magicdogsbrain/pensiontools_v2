@@ -162,6 +162,44 @@ describe('BudgetModel — starter categories', () => {
   });
 });
 
+describe('BudgetModel — partner cost sharing', () => {
+  const base = {
+    version: 1, currentAge: 45, retirementAge: 60, endAge: 95,
+    sharedWithPartner: true, mySharePct: 50,
+    lines: [
+      { id: 'a', label: 'Rent', tier: 'essential', annual: 12000, paidBy: 'me' },
+      { id: 'b', label: 'Shopping', tier: 'essential', annual: 6000, paidBy: 'partner' },
+      { id: 'c', label: 'Holidays', tier: 'discretionary', annual: 8000, paidBy: 'shared' }
+    ],
+    oneOffs: []
+  };
+
+  it("owner's need excludes partner-paid lines and halves shared ones", () => {
+    const s = summariseBudget(base);
+    // mine: rent 12000 (me) + holidays 8000×50% = 16000 ; household: 12000+6000+8000 = 26000
+    expect(s.comfortableAnnualNet).toBe(16000);
+    expect(s.householdComfortableAnnual).toBe(26000);
+    expect(s.essentialAnnualNet).toBe(12000); // shopping (partner) excluded from owner essentials
+  });
+
+  it('respects a non-50 share', () => {
+    const s = summariseBudget({ ...base, mySharePct: 25 });
+    expect(s.comfortableAnnualNet).toBe(12000 + 8000 * 0.25); // 14000
+  });
+
+  it('with sharing OFF, mine == household (back-compat)', () => {
+    const s = summariseBudget({ ...base, sharedWithPartner: false });
+    expect(s.comfortableAnnualNet).toBe(26000);
+    expect(s.householdComfortableAnnual).toBe(26000);
+  });
+
+  it('shares periodic one-offs too', () => {
+    const b = { ...base, oneOffs: [{ id: 'car', label: 'Her car', tier: 'essential', amount: 16000, atAge: 62, everyYears: 8, paidBy: 'partner' }] };
+    const s = summariseBudget(b);
+    expect(s.periodicAnnualAverage).toBe(0); // partner's car → excluded from owner's need
+  });
+});
+
 describe('BudgetModel — periodic averaging (recurring lumpy → monthly need)', () => {
   it('averages recurring one-offs but not single ones', () => {
     const b = {

@@ -63,6 +63,8 @@ import {
 import { getBudgetAsync, saveBudget } from './storage/BudgetRepository.js';
 import {
   PLSA_2024,
+  BUDGET_CATEGORIES,
+  starterLines,
   summariseBudget,
   annualNetAtAge,
   oneOffSchedule,
@@ -369,6 +371,8 @@ export {
   getBudgetAsync,
   saveBudget,
   PLSA_2024,
+  BUDGET_CATEGORIES,
+  starterLines,
   summariseBudget,
   annualNetAtAge,
   oneOffSchedule,

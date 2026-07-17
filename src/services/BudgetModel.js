@@ -67,6 +67,55 @@ export const BUDGET_CATEGORIES = {
   ]
 };
 
+// Commonly-FORGOTTEN categories — NOT seeded, offered by the completeness nudge ("are you sure you don't
+// want X?"). The single biggest budgeting failure is leaving things out; these are the usual suspects
+// (healthcare/dental, insurance renewals, seasonal/Christmas, personal care, family, long-term care,
+// per-person spends). Sources: PLSA basket + retirement-budget "overlooked costs" research (2026).
+export const SUGGESTED_EXTRAS = [
+  { label: 'Eating out & takeaways', tier: 'discretionary', period: 'mo', hint: 'Meals out, takeaways, coffees' },
+  { label: 'Life insurance / income protection', tier: 'essential', period: 'mo', hint: 'Protection premiums' },
+  { label: 'Health / dental insurance', tier: 'essential', period: 'mo', hint: 'Private medical, dental plan, cash plan' },
+  { label: 'Dental & optical', tier: 'essential', period: 'yr', hint: 'Check-ups, glasses, treatment not on the NHS' },
+  { label: 'Hearing', tier: 'essential', period: 'yr', hint: 'Hearing tests & aids' },
+  { label: 'Breakdown cover', tier: 'essential', period: 'yr', hint: 'AA / RAC vehicle breakdown' },
+  { label: 'Parking & permits', tier: 'essential', period: 'yr', hint: 'Residents permit, ULEZ / congestion' },
+  { label: 'Public transport', tier: 'essential', period: 'mo', hint: 'Bus, rail, rail card' },
+  { label: 'Cleaner / gardener', tier: 'essential', period: 'mo', hint: 'Cleaner, window cleaner, gardener' },
+  { label: 'Long-term care set-aside', tier: 'essential', period: 'mo', hint: 'A monthly reserve toward possible later-life care (easily forgotten)' },
+  { label: 'Christmas & birthdays', tier: 'discretionary', period: 'yr', hint: 'Seasonal gifts & celebrations' },
+  { label: 'Alcohol', tier: 'discretionary', period: 'mo', hint: 'Beer, wine, spirits' },
+  { label: 'Hairdressing & grooming', tier: 'discretionary', period: 'mo', hint: 'Haircuts, beauty, barber' },
+  { label: 'Newspapers, books & media', tier: 'discretionary', period: 'mo', hint: 'Papers, magazines, books' },
+  { label: 'Grandchildren', tier: 'discretionary', period: 'mo', hint: 'Treats, days out, help with costs' },
+  { label: 'Professional memberships', tier: 'discretionary', period: 'yr', hint: 'Institutes, unions, clubs' },
+  { label: 'Second / holiday home', tier: 'discretionary', period: 'mo', hint: 'Running costs of a second property' },
+  { label: 'Storage / lock-up', tier: 'discretionary', period: 'mo', hint: 'Self-storage, garage rental' },
+  { label: 'My personal spending', tier: 'discretionary', period: 'mo', hint: "Your own day-to-day 'spends'", paidBy: 'me' },
+  { label: "Partner's personal spending", tier: 'discretionary', period: 'mo', hint: "Your partner's day-to-day 'spends'", paidBy: 'partner' }
+];
+
+/**
+ * Catalogue items the user hasn't added yet — powers the completeness nudge. Sources: the seeded defaults
+ * (so a REMOVED category is re-offered — e.g. you delete "Eating out", it reappears as a suggestion) plus
+ * the commonly-forgotten extras. Compared case-insensitively on label.
+ */
+export function missingSuggestions(budget) {
+  const present = new Set((budget.lines || []).map((l) => (l.label || '').trim().toLowerCase()).filter(Boolean));
+  const defaults = [
+    ...BUDGET_CATEGORIES.essential.map((c) => ({ ...c, tier: 'essential' })),
+    ...BUDGET_CATEGORIES.discretionary.map((c) => ({ ...c, tier: 'discretionary' }))
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const item of [...SUGGESTED_EXTRAS, ...defaults]) {
+    const key = item.label.trim().toLowerCase();
+    if (present.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 // A few starter LUMPY items (blank amounts) so the "save up for big periodic costs" idea is visible.
 export const STARTER_ONEOFFS = [
   { label: 'New car', tier: 'essential', hint: 'Replacement vehicle', everyYears: 8 },

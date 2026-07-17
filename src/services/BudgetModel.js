@@ -108,7 +108,7 @@ export function lineActiveAtAge(line, budget, age) {
 }
 
 /**
- * Total annual expenditure (today's money) active at an age.
+ * Total annual expenditure (today's money) active at an age — the whole HOUSEHOLD cost, ignoring who pays.
  * @param {'essential'|'discretionary'|'all'} tier - which lines to include ('all' = comfortable)
  */
 export function annualNetAtAge(budget, age, tier = 'all') {
@@ -116,6 +116,31 @@ export function annualNetAtAge(budget, age, tier = 'all') {
     .filter((l) => tier === 'all' || l.tier === tier)
     .filter((l) => lineActiveAtAge(l, budget, age))
     .reduce((sum, l) => sum + num(l.annual), 0);
+}
+
+/**
+ * The fraction of a line/one-off the PLAN OWNER funds. Only applies when the budget opts into partner
+ * sharing (`sharedWithPartner`); otherwise everything is theirs. paidBy: 'me' → 1, 'partner' → 0,
+ * 'shared' → their `mySharePct` (default 50%). This keeps the plan single-person while letting a couple
+ * split who-pays-what — and is the same attribution the Stage 2 couples engine will build on.
+ */
+export function myShareFactor(item, budget) {
+  if (!budget || !budget.sharedWithPartner) return 1;
+  const who = (item && item.paidBy) || 'me';
+  if (who === 'partner') return 0;
+  if (who === 'shared') {
+    const pct = Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50;
+    return Math.max(0, Math.min(1, pct / 100));
+  }
+  return 1;
+}
+
+/** Annual expenditure the PLAN OWNER funds (household cost × their share of each line). */
+export function myAnnualNetAtAge(budget, age, tier = 'all') {
+  return (budget.lines || [])
+    .filter((l) => tier === 'all' || l.tier === tier)
+    .filter((l) => lineActiveAtAge(l, budget, age))
+    .reduce((sum, l) => sum + num(l.annual) * myShareFactor(l, budget), 0);
 }
 
 /** Essential (floor) annual spend at the start of retirement. */
@@ -174,20 +199,29 @@ export function grossUpAnnual(netAnnual, bands = DEFAULT_TAX_BANDS) {
  * This lets us fold periodic costs into the monthly spending need without hiding the real lumpy timing
  * (the actual dated amounts are still available via oneOffSchedule for the cashflow engine).
  */
-export function periodicAnnualAverage(budget) {
+export function periodicAnnualAverage(budget, mineOnly = false) {
   return (budget.oneOffs || []).reduce((sum, o) => {
     const amt = num(o.amount);
     const every = num(o.everyYears);
-    return every > 0 && amt ? sum + amt / every : sum;
+    if (!(every > 0 && amt)) return sum;
+    return sum + (amt / every) * (mineOnly ? myShareFactor(o, budget) : 1);
   }, 0);
 }
 
-/** Cached summary written on save + shown in the UI / used by the hand-off. */
+/**
+ * Cached summary written on save + shown in the UI / used by the hand-off.
+ * The headline plan need is the OWNER'S share (partner-paid costs excluded); household totals are also
+ * returned so the UI can show the whole picture. With no partner sharing, mine == household.
+ */
 export function summariseBudget(budget) {
-  const essentialAnnual = essentialAnnualNet(budget);
-  const comfortableAnnual = comfortableAnnualNet(budget);
-  const periodicAnnual = periodicAnnualAverage(budget);
-  const allInComfortableAnnual = comfortableAnnual + periodicAnnual; // recurring + averaged periodic
+  const retire = num(budget.retirementAge);
+  // Owner's share (what the plan must fund)
+  const essentialAnnual = myAnnualNetAtAge(budget, retire, 'essential');
+  const comfortableAnnual = myAnnualNetAtAge(budget, retire, 'all');
+  const periodicAnnual = periodicAnnualAverage(budget, true);
+  const allInComfortableAnnual = comfortableAnnual + periodicAnnual;
+  // Whole household (ignores who pays)
+  const householdComfortableAnnual = comfortableAnnualNet(budget) + periodicAnnualAverage(budget, false);
   return {
     essentialAnnualNet: essentialAnnual,
     comfortableAnnualNet: comfortableAnnual,
@@ -197,7 +231,10 @@ export function summariseBudget(budget) {
     periodicMonthlyAverage: periodicAnnual / 12,
     allInComfortableAnnual,
     allInComfortableMonthly: allInComfortableAnnual / 12,
-    // The plan's income target should fund the all-in need (recurring + set-aside for periodic costs).
+    householdComfortableAnnual,
+    householdComfortableMonthly: householdComfortableAnnual / 12,
+    sharedWithPartner: !!budget.sharedWithPartner,
+    // The plan's income target funds the owner's all-in need (recurring + set-aside for periodic costs).
     suggestedGrossAnnual: grossUpAnnual(allInComfortableAnnual)
   };
 }
@@ -209,6 +246,9 @@ export function defaultBudget(currentAge = 45, retirementAge = 60, endAge = 100)
     currentAge: num(currentAge),
     retirementAge: num(retirementAge),
     endAge: num(endAge),
+    // Optional partner cost-sharing (single-person plan; partner-paid lines drop out of the owner's need).
+    sharedWithPartner: false,
+    mySharePct: 50,
     lines: [],
     oneOffs: []
   };

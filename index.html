@@ -2457,13 +2457,17 @@
                  !important on colour: the number-format overlay sets colour:transparent inline to hide
                  the raw value while showing the formatted span — forcing colour caused doubled/blurred text. */
               #ssFundRows input, #ssFundRows select, #dsFundRows input, #dsFundRows select,
-              #fundModalRows input, .fund-search-box input {
+              #fundModalRows input, .fund-search-box input,
+              #budget-content input, #budget-content select {
                 background: var(--card-alt);
                 color: var(--text);
                 border: 1px solid var(--border);
                 border-radius: 6px;
                 padding: 5px 14px;
               }
+              /* Keep the budget's dynamic row inputs compact so the flex layout stays tidy. */
+              #budEssentialRows input, #budDiscretionaryRows input, #budOneOffRows input,
+              #budEssentialRows select, #budDiscretionaryRows select, #budOneOffRows select { padding: 5px 8px; }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
@@ -2766,6 +2770,11 @@
             </div>
           </div>
 
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
+            <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
+            <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
+          </div>
+
           <div class="settings-section">
             <div class="section-title">Essential spending
               <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the floor that must always be covered (housing, bills, food, transport, health)</span>
@@ -2865,6 +2874,7 @@
       starterLines,
       starterOneOffs,
       missingSuggestions,
+      typicalMonthlyFor,
       summariseBudget,
       annualNetAtAge,
       oneOffSchedule,
@@ -5949,18 +5959,24 @@
         : '';
       const period = line.period || 'yr';
       const shown = line.annual == null ? '' : (period === 'mo' ? Math.round(line.annual / 12) : line.annual);
+      const typ = typicalMonthlyFor(line.label, window._budget);
+      const ph = typ != null ? ('≈' + (period === 'mo' ? typ : typ * 12)) : 'Amount';
+      const dup = window._budget.sharedWithPartner
+        ? '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Add a copy for your partner (e.g. their car)" onclick="duplicateBudgetLine(\'' + line.id + '\')">⧉</button>'
+        : '';
       return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
         '<div style="flex:1 1 200px; min-width:170px;">' +
           '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">' +
           hint +
         '</div>' +
         '<div style="display:flex; gap:4px; flex:0 0 150px; align-items:center;">' +
-          '<input type="number" placeholder="Amount" title="Amount in today\'s money" value="' + shown + '" oninput="updateBudgetAmount(\'' + line.id + '\',this.value)" style="flex:1 1 auto; min-width:0;">' +
+          '<input type="number" placeholder="' + ph + '" title="Amount in today\'s money' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" oninput="updateBudgetAmount(\'' + line.id + '\',this.value)" style="flex:1 1 auto; min-width:0;">' +
           '<button type="button" class="risk-btn" style="padding:4px 8px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line.id, line.paidBy, 'updateBudgetLine') : '') +
         '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 84px;">' +
+        dup +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
         '</div>';
     }
@@ -5988,6 +6004,7 @@
         (window._budget.sharedWithPartner ? paidBySelectHtml(o.id, o.paidBy, 'updateBudgetOneOff') : '') +
         '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="every N yrs" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 110px;">' +
+        (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Add a copy for your partner" onclick="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
         '</div>';
     }
@@ -6085,6 +6102,41 @@
       window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
       renderBudgetOneOffs();
       updateBudgetSummary();
+    };
+
+    // Duplicate a line as the partner's own (e.g. you each pay for your own car's petrol, tax, insurance).
+    window.duplicateBudgetLine = function (id) {
+      const arr = window._budget.lines;
+      const line = arr.find((l) => l.id === id);
+      if (!line) return;
+      const copy = { ...line, id: budId(), label: (line.label || 'Item') + ' (partner)', paidBy: 'partner' };
+      arr.splice(arr.indexOf(line) + 1, 0, copy);
+      renderBudgetLines();
+      updateBudgetSummary();
+    };
+
+    window.duplicateBudgetOneOff = function (id) {
+      const arr = window._budget.oneOffs;
+      const o = arr.find((x) => x.id === id);
+      if (!o) return;
+      const copy = { ...o, id: budId(), label: (o.label || 'Item') + ' (partner)', paidBy: 'partner' };
+      arr.splice(arr.indexOf(o) + 1, 0, copy);
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+    };
+
+    // Fill BLANK amounts with the ONS typical figures (never overwrites what you've entered).
+    window.fillTypicalAmounts = function () {
+      let n = 0;
+      for (const line of window._budget.lines) {
+        if (line.annual == null || line.annual === '') {
+          const t = typicalMonthlyFor(line.label, window._budget);
+          if (t != null) { line.annual = t * 12; n++; }
+        }
+      }
+      renderBudgetLines();
+      updateBudgetSummary();
+      showToast(n ? ('Filled ' + n + ' blank categories with typical UK amounts — adjust freely') : 'No blank categories with a typical figure', n ? 'success' : 'info');
     };
 
     function updateBudgetSummary() {

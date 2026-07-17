@@ -119,9 +119,68 @@ export function missingSuggestions(budget) {
 // A few starter LUMPY items (blank amounts) so the "save up for big periodic costs" idea is visible.
 export const STARTER_ONEOFFS = [
   { label: 'New car', tier: 'essential', hint: 'Replacement vehicle', everyYears: 8 },
+  { label: 'Redecorating', tier: 'essential', hint: 'Whole-house repaint — a 4-bed runs ~£2,000–3,500 professionally, ~£300–600 DIY', everyYears: 7 },
   { label: 'Major home work', tier: 'essential', hint: 'Kitchen, bathroom, roof, windows', everyYears: null },
   { label: 'White goods', tier: 'essential', hint: 'Fridge, washer, cooker', everyYears: 10 }
 ];
+
+// Typical MONTHLY spend per category (today's money, £). Derived from the ONS "Other retired" households
+// table (Family Spending detailed, FYE2023 — private/occupational-pension retirees), converted £/week ×
+// 52/12, with a few known fixed values (TV licence, water, VED). { s: one person, c: couple }. These are
+// AVERAGES — shown as editable placeholders / a "fill typical" starting point, never silently assumed.
+export const TYPICAL_MONTHLY = {
+  'Council tax': { s: 97, c: 165 },
+  'Gas': { s: 54, c: 71 },
+  'Electricity': { s: 69, c: 81 },
+  'Water': { s: 30, c: 40 },
+  'Broadband': { s: 28, c: 33 },
+  'Mobile phones': { s: 15, c: 30 },
+  'TV licence': { s: 14, c: 14 },
+  'Groceries & household': { s: 180, c: 320 },
+  'Home insurance': { s: 20, c: 28 },
+  'Car insurance': { s: 26, c: 37 },
+  'Car tax': { s: 16, c: 16 },
+  'Petrol / fuel': { s: 38, c: 82 },
+  'Car servicing & maintenance': { s: 30, c: 60 },
+  'Boiler service': { s: 10, c: 12 },
+  'Personal health': { s: 15, c: 40 },
+  'Home upkeep': { s: 36, c: 72 },
+  'Main holiday': { s: 70, c: 145 },
+  'UK breaks': { s: 30, c: 56 },
+  'Day trips': { s: 20, c: 30 },
+  'Eating out & takeaways': { s: 40, c: 110 },
+  'Streaming & entertainment': { s: 15, c: 20 },
+  'Digital subscriptions': { s: 10, c: 15 },
+  'Gym & fitness': { s: 25, c: 45 },
+  'Sports & equipment': { s: 10, c: 15 },
+  'Clothes': { s: 25, c: 46 },
+  'Sports clothes': { s: 5, c: 8 },
+  'Hobbies & leisure': { s: 20, c: 30 },
+  'Gifts & family': { s: 40, c: 60 },
+  'Charity': { s: 10, c: 15 },
+  'Pets': { s: 25, c: 25 },
+  'Personal spending money': { s: 30, c: 50 },
+  'Home furnishings & décor': { s: 30, c: 50 },
+  'Home technology': { s: 20, c: 30 },
+  // Suggested-extra categories
+  'Alcohol': { s: 18, c: 53 },
+  'Hairdressing & grooming': { s: 13, c: 16 },
+  'Newspapers, books & media': { s: 20, c: 28 },
+  'Life insurance / income protection': { s: 24, c: 24 },
+  'Health / dental insurance': { s: 10, c: 17 },
+  'Dental & optical': { s: 15, c: 25 },
+  'Public transport': { s: 29, c: 55 },
+  'Christmas & birthdays': { s: 30, c: 50 },
+  'My personal spending': { s: 30, c: 30 },
+  "Partner's personal spending": { s: 0, c: 30 }
+};
+
+/** Typical MONTHLY spend for a category label, picking couple vs single by the budget's sharing flag. */
+export function typicalMonthlyFor(label, budget) {
+  const t = TYPICAL_MONTHLY[(label || '').trim()];
+  if (!t) return null;
+  return (budget && budget.sharedWithPartner) ? t.c : t.s;
+}
 
 /** Starter expenditure lines (blank amounts) seeded into a fresh budget so categories are self-explanatory. */
 export function starterLines() {

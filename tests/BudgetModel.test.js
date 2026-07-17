@@ -9,6 +9,7 @@ import {
   starterLines,
   starterOneOffs,
   missingSuggestions,
+  typicalMonthlyFor,
   DEFAULT_TAX_BANDS,
   lineActiveAtAge,
   annualNetAtAge,
@@ -160,6 +161,19 @@ describe('BudgetModel — starter categories', () => {
     expect(labels).toContain('New car');
     expect(labels).toContain('Major home work');
     expect(starterOneOffs().every((o) => o.amount === null)).toBe(true);
+  });
+});
+
+describe('BudgetModel — typical amounts (ONS retired households)', () => {
+  it('returns a monthly figure and picks couple vs single by the sharing flag', () => {
+    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(97);
+    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: true })).toBe(165);
+    expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(320);
+  });
+
+  it('returns null for a category with no typical (custom / too variable)', () => {
+    expect(typicalMonthlyFor('Rent / mortgage', {})).toBe(null);
+    expect(typicalMonthlyFor('Some custom thing', {})).toBe(null);
   });
 });
 

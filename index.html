@@ -2796,6 +2796,13 @@
             <button type="button" class="risk-btn" onclick="addBudgetOneOff()" style="margin-top:8px;">+ Add one-off</button>
           </div>
 
+          <div class="settings-section" id="budSuggestionsSection" style="display:none;">
+            <div class="section-title">Did you miss anything?
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the biggest budgeting mistake is leaving things out. Tap to add.</span>
+            </div>
+            <div id="budSuggestions" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          </div>
+
           <div class="settings-section" id="budSummarySection">
             <div class="section-title">Your spending need</div>
             <div id="budSummary"></div>
@@ -2857,6 +2864,7 @@
       PLSA_2024,
       starterLines,
       starterOneOffs,
+      missingSuggestions,
       summariseBudget,
       annualNetAtAge,
       oneOffSchedule,
@@ -5964,6 +5972,7 @@
         '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No essentials yet — add housing, bills, food, transport…</p>';
       document.getElementById('budDiscretionaryRows').innerHTML = dis.map(budgetLineRowHtml).join('') ||
         '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No lifestyle spending yet — holidays, hobbies, eating out…</p>';
+      renderBudgetSuggestions();
     }
 
     function budgetOneOffRowHtml(o) {
@@ -5988,6 +5997,30 @@
         '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No one-off costs yet — a car every ~8 years, a new roof, a milestone trip…</p>';
     }
 
+    // Completeness nudge: chips for common categories the user hasn't added (incl. any they removed).
+    function renderBudgetSuggestions() {
+      const missing = missingSuggestions(window._budget);
+      const section = document.getElementById('budSuggestionsSection');
+      const box = document.getElementById('budSuggestions');
+      if (!missing.length) { section.style.display = 'none'; box.innerHTML = ''; return; }
+      section.style.display = 'block';
+      box.innerHTML = missing.map((m) =>
+        '<button type="button" class="risk-btn" style="padding:5px 10px;" title="' + budEsc(m.hint || '') + '" onclick="addBudgetSuggestion(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\')">+ ' + budEsc(m.label) + '</button>'
+      ).join('');
+    }
+
+    window.addBudgetSuggestion = function (label) {
+      const m = missingSuggestions(window._budget).find((x) => x.label === label);
+      if (!m) return;
+      window._budget.lines.push({
+        id: budId(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null,
+        hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me'
+      });
+      renderBudgetLines();
+      renderBudgetSuggestions();
+      updateBudgetSummary();
+    };
+
     function syncHorizonFromInputs() {
       window._budget.currentAge = +document.getElementById('budCurrentAge').value || 0;
       window._budget.retirementAge = +document.getElementById('budRetireAge').value || 0;
@@ -6001,6 +6034,7 @@
       if (!line) return;
       if (field === 'label' || field === 'paidBy') line[field] = value;
       else line[field] = value === '' ? null : +value;
+      if (field === 'label') renderBudgetSuggestions(); // a rename can change what's "missing"
       updateBudgetSummary();
     };
 

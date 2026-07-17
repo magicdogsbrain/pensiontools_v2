@@ -8,6 +8,7 @@ import {
   BUDGET_CATEGORIES,
   starterLines,
   starterOneOffs,
+  missingSuggestions,
   DEFAULT_TAX_BANDS,
   lineActiveAtAge,
   annualNetAtAge,
@@ -159,6 +160,29 @@ describe('BudgetModel — starter categories', () => {
     expect(labels).toContain('New car');
     expect(labels).toContain('Major home work');
     expect(starterOneOffs().every((o) => o.amount === null)).toBe(true);
+  });
+});
+
+describe('BudgetModel — completeness nudge (missingSuggestions)', () => {
+  const seeded = { retirementAge: 60, endAge: 100, lines: starterLines() };
+
+  it('offers commonly-forgotten extras not in the seeded set', () => {
+    const labels = missingSuggestions(seeded).map((m) => m.label);
+    expect(labels).toContain('Christmas & birthdays');
+    expect(labels).toContain('Long-term care set-aside');
+    expect(labels).toContain("Partner's personal spending");
+    expect(labels).not.toContain('Rent / mortgage'); // already seeded
+  });
+
+  it("re-offers a category the user removed (their 'we don't eat out' case)", () => {
+    const lines = starterLines().filter((l) => l.label !== 'Eating out & takeaways');
+    const labels = missingSuggestions({ retirementAge: 60, endAge: 100, lines }).map((m) => m.label);
+    expect(labels).toContain('Eating out & takeaways');
+  });
+
+  it('does not offer duplicates', () => {
+    const labels = missingSuggestions(seeded).map((m) => m.label.toLowerCase());
+    expect(labels.length).toBe(new Set(labels).size);
   });
 });
 

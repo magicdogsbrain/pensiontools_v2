@@ -19,6 +19,41 @@ export const PLSA_2024 = {
   couple: { minimum: 22400, moderate: 43100, comfortable: 59000 }
 };
 
+// Curated starter categories so a user isn't left guessing what a one-word label means. Each carries a
+// one-line "what goes here" hint; the boundary with lumpy one-offs is spelled out (routine upkeep here,
+// big replacements in the One-off list). Users can still rename / add / remove.
+export const BUDGET_CATEGORIES = {
+  essential: [
+    { label: 'Rent / mortgage', hint: 'Your regular housing payment' },
+    { label: 'Council tax', hint: '' },
+    { label: 'Gas & electricity', hint: 'Energy bills' },
+    { label: 'Water', hint: '' },
+    { label: 'Broadband, phone & TV licence', hint: '' },
+    { label: 'Groceries & household', hint: 'Food shop, toiletries, cleaning' },
+    { label: 'Home & contents insurance', hint: '' },
+    { label: 'Transport', hint: 'Car running costs (fuel, insurance, tax, MOT, servicing) or public transport' },
+    { label: 'Health', hint: 'Prescriptions, dental, optical' },
+    { label: 'Home upkeep', hint: 'Routine maintenance & small repairs — big replacements go in One-off costs' }
+  ],
+  discretionary: [
+    { label: 'Eating out & takeaways', hint: '' },
+    { label: 'Holidays', hint: 'Regular annual holidays — a one-off big trip goes in One-off costs' },
+    { label: 'Hobbies & leisure', hint: '' },
+    { label: 'Subscriptions & memberships', hint: 'Streaming, gym, clubs' },
+    { label: 'Clothing', hint: '' },
+    { label: 'Gifts & family', hint: 'Presents, helping family' },
+    { label: 'Charity', hint: '' },
+    { label: 'Pets', hint: '' }
+  ]
+};
+
+/** Starter expenditure lines (blank amounts) seeded into a fresh budget so categories are self-explanatory. */
+export function starterLines() {
+  const mk = (tier) =>
+    BUDGET_CATEGORIES[tier].map((c) => ({ label: c.label, tier, annual: null, fromAge: null, toAge: null, hint: c.hint }));
+  return [...mk('essential'), ...mk('discretionary')];
+}
+
 // UK tax bands used only for the interim, clearly-approximate net→gross hand-off (Stage 0). The real,
 // per-year, multi-source solve is Stage 1. Ignores the PA taper and assumes the top-up is taxable income.
 export const DEFAULT_TAX_BANDS = { pa: 12570, brl: 50270, hrl: 125140 };

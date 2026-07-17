@@ -5,6 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   PLSA_2024,
+  BUDGET_CATEGORIES,
+  starterLines,
   DEFAULT_TAX_BANDS,
   lineActiveAtAge,
   annualNetAtAge,
@@ -126,5 +128,20 @@ describe('BudgetModel — summary & defaults', () => {
   it('exposes PLSA 2024 benchmarks', () => {
     expect(PLSA_2024.single.comfortable).toBe(43100);
     expect(PLSA_2024.couple.minimum).toBe(22400);
+  });
+});
+
+describe('BudgetModel — starter categories', () => {
+  it('seeds essential + discretionary lines with blank amounts and hints', () => {
+    const lines = starterLines();
+    expect(lines.some((l) => l.tier === 'essential' && l.label === 'Rent / mortgage')).toBe(true);
+    expect(lines.some((l) => l.tier === 'discretionary' && l.label === 'Holidays')).toBe(true);
+    expect(lines.every((l) => l.annual === null)).toBe(true); // amounts left for the user
+    expect(lines.length).toBe(BUDGET_CATEGORIES.essential.length + BUDGET_CATEGORIES.discretionary.length);
+  });
+
+  it('the boundary with one-offs is spelled out in the hints', () => {
+    const upkeep = starterLines().find((l) => l.label === 'Home upkeep');
+    expect(upkeep.hint.toLowerCase()).toContain('one-off');
   });
 });

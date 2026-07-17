@@ -2836,6 +2836,7 @@
       getBudgetAsync,
       saveBudget,
       PLSA_2024,
+      starterLines,
       summariseBudget,
       annualNetAtAge,
       oneOffSchedule,
@@ -5876,6 +5877,10 @@
         console.error('Budget load error:', e);
         window._budget = normaliseBudget(defaultBudget());
       }
+      // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
+      if (!window._budget.lines.length) {
+        window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
+      }
       document.getElementById('budCurrentAge').value = window._budget.currentAge;
       document.getElementById('budRetireAge').value = window._budget.retirementAge;
       document.getElementById('budEndAge').value = window._budget.endAge;
@@ -5885,9 +5890,15 @@
     }
 
     function budgetLineRowHtml(line) {
-      return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">' +
-        '<input type="text" placeholder="e.g. Housing" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="flex:1 1 160px;">' +
-        '<input type="number" placeholder="£/yr" value="' + (line.annual ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'annual\',this.value)" style="flex:0 0 120px;">' +
+      const hint = line.hint
+        ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(line.hint) + '</div>'
+        : '';
+      return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
+        '<div style="flex:1 1 200px; min-width:170px;">' +
+          '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">' +
+          hint +
+        '</div>' +
+        '<input type="number" placeholder="£/yr" title="Amount per YEAR in today\'s money" value="' + (line.annual ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'annual\',this.value)" style="flex:0 0 120px;">' +
         '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 92px;">' +
         '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 92px;">' +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +

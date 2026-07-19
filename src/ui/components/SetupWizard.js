@@ -10,9 +10,16 @@ let wizardElement = null;
 let onCompleteCallback = null;
 let wizardData = {
   // Scenario info
-  scenarioName: 'My Plan',
+  scenarioName: 'My plan',
   scenarioDescription: '',
-  enabledTools: ['stress', 'decision'],  // which tools user wants
+  enabledTools: ['stress', 'decision'],  // all tools enabled; Budget tab always shows
+  // Minimal creation (net-first flow)
+  household: 'single',        // 'single' | 'couple'
+  currentAge: '',
+  retirementAge: '',
+  partnerAge: '',
+  partnerRetirementAge: '',
+  startAt: 'budget',          // intent router: 'budget' | 'stress' | 'decision'
   // Intro done flag
   introDone: false,
   // Stress tester settings
@@ -47,9 +54,15 @@ function resetWizardState() {
   currentPhase = 'scenario';
   currentStep = 1;
   wizardData = {
-    scenarioName: 'My Plan',
+    scenarioName: 'My plan',
     scenarioDescription: '',
     enabledTools: ['stress', 'decision'],
+    household: 'single',
+    currentAge: '',
+    retirementAge: '',
+    partnerAge: '',
+    partnerRetirementAge: '',
+    startAt: 'budget',
     introDone: false,
     baseSalary: 30000,
     otherIncome: 0,
@@ -123,76 +136,102 @@ function renderScenarioWizard() {
 }
 
 /**
- * Render scenario step 1 - Name your plan
+ * Render scenario step 1 - Create the plan (name, who, ages). No money questions.
  */
 function renderScenarioStep1() {
+  const couple = wizardData.household === 'couple';
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">Name your plan</div>
+      <div class="wizard-step-title">Let's create your plan</div>
       <div class="wizard-step-desc">
-        Give your plan a name. You can create multiple plans later for different scenarios
-        (e.g. "Retire at 57", "Conservative at 60").
+        Just a few basics to start — no money questions yet. You'll add your spending, pots and other
+        details in the tools themselves, only when you need them.
       </div>
 
       <div class="wizard-input" style="margin-bottom: 16px;">
-        <input type="text" id="wizScenarioName" value="${wizardData.scenarioName}" placeholder="e.g. My Retirement Plan" style="max-width: 300px;">
+        <label style="display:block; font-size:13px; margin-bottom:4px;">Plan name</label>
+        <input type="text" id="wizScenarioName" value="${wizardData.scenarioName}" placeholder="e.g. My plan" style="max-width: 320px;">
       </div>
 
-      <div class="wizard-step-desc" style="margin-bottom: 8px;">
-        Add an optional description:
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Who's this plan for?</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
+            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerAges').style.display='none'"> Just me
+          </label>
+          <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
+            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerAges').style.display='flex'"> Me and a partner
+          </label>
+        </div>
       </div>
 
-      <div class="wizard-input">
-        <input type="text" id="wizScenarioDesc" value="${wizardData.scenarioDescription}" placeholder="e.g. Based on retiring at age 57" style="max-width: 400px;">
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Your age today</label>
+          <input type="number" id="wizCurrentAge" value="${wizardData.currentAge || ''}" placeholder="e.g. 52" style="max-width:120px;">
+        </div>
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Target retirement age</label>
+          <input type="number" id="wizRetireAge" value="${wizardData.retirementAge || ''}" placeholder="e.g. 60" style="max-width:150px;">
+        </div>
+      </div>
+
+      <div id="wizPartnerAges" style="display:${couple ? 'flex' : 'none'}; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Partner's age today</label>
+          <input type="number" id="wizPartnerAge" value="${wizardData.partnerAge || ''}" placeholder="e.g. 50" style="max-width:120px;">
+        </div>
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Partner's retirement age</label>
+          <input type="number" id="wizPartnerRetireAge" value="${wizardData.partnerRetirementAge || ''}" placeholder="e.g. 60" style="max-width:150px;">
+        </div>
       </div>
 
       <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="skip-all">Skip Setup</button>
-        <button class="wizard-btn primary" data-action="next">Next</button>
+        <button class="wizard-btn secondary" data-action="skip-all">Skip</button>
+        <button class="wizard-btn primary" data-action="to-router">Next</button>
       </div>
     </div>
   `;
 }
 
 /**
- * Render scenario step 2 - Choose tools
+ * Render scenario step 2 - Intent router. Pick where to start; the rest is filled in lazily by each tool.
  */
 function renderScenarioStep2() {
-  const hasStress = wizardData.enabledTools.includes('stress');
-  const hasDecision = wizardData.enabledTools.includes('decision');
-
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">What would you like to use?</div>
+      <div class="wizard-step-title">Where would you like to start?</div>
       <div class="wizard-step-desc">
-        Choose the tools you're interested in. You can change this later.
+        You can do any of these, in any order — this just picks your first stop. Everything else is asked
+        for by each tool when it needs it.
       </div>
 
       <div class="wizard-tool-choices">
-        <label class="wizard-tool-option">
-          <input type="checkbox" id="wizToolStress" ${hasStress ? 'checked' : ''}>
+        <button type="button" class="wizard-tool-option" data-action="start-budget" style="text-align:left; width:100%; cursor:pointer;">
           <div class="wizard-tool-info">
-            <strong>Stress Tester</strong>
-            <p>"Can I afford to retire?" Run simulations using real historical market data to see the range of possible outcomes for your pension.</p>
+            <strong>Work out my budget</strong>
+            <p>"What will I actually spend?" Build your monthly take-home need from your real expenses. The best place to begin — it drives everything else. <em>(Recommended)</em></p>
           </div>
-        </label>
+        </button>
 
-        <label class="wizard-tool-option">
-          <input type="checkbox" id="wizToolDecision" ${hasDecision ? 'checked' : ''}>
+        <button type="button" class="wizard-tool-option" data-action="start-stress" style="text-align:left; width:100%; cursor:pointer;">
           <div class="wizard-tool-info">
-            <strong>Monthly Decision Tool</strong>
-            <p>"Where should I take money from this month?" Helps you decide each month which fund to withdraw from to maximise tax efficiency.</p>
+            <strong>See if I can afford to retire</strong>
+            <p>"Will my money last?" Enter your pots and run simulations against real market history.</p>
           </div>
-        </label>
-      </div>
+        </button>
 
-      <div class="wizard-example">
-        <strong>Tip:</strong> If you're still working, start with just the Stress Tester. Add the Decision Tool when you're ready to start drawing your pension.
+        <button type="button" class="wizard-tool-option" data-action="start-decision" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>Decide this month's withdrawal</strong>
+            <p>"Where should I take money from this month?" Tax-efficient drawdown advice from your pots.</p>
+          </div>
+        </button>
       </div>
 
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="start-tools">Continue</button>
       </div>
     </div>
   `;
@@ -627,6 +666,31 @@ function handleAction(action) {
 
   switch (action) {
     case 'skip-all':
+      wizardData.startAt = 'budget';
+      finishWizard();
+      break;
+
+    // Minimal-creation → intent router
+    case 'to-router': {
+      const cur = parseInt(wizardData.currentAge);
+      const ret = parseInt(wizardData.retirementAge);
+      if (!ret || ret < 40 || ret > 90) {
+        if (typeof window.showToast === 'function') window.showToast('Please enter a target retirement age', 'error');
+        return;
+      }
+      if (cur && ret && ret < cur) {
+        if (typeof window.showToast === 'function') window.showToast('Retirement age should be your current age or later', 'error');
+        return;
+      }
+      currentStep = 2;
+      renderWizard();
+      break;
+    }
+
+    case 'start-budget':
+    case 'start-stress':
+    case 'start-decision':
+      wizardData.startAt = action.replace('start-', '');
       finishWizard();
       break;
 
@@ -753,6 +817,18 @@ function saveCurrentInputs() {
 
   const scenarioDesc = document.getElementById('wizScenarioDesc');
   if (scenarioDesc) wizardData.scenarioDescription = scenarioDesc.value.trim() || '';
+
+  // Minimal-creation fields (net-first flow)
+  const household = document.querySelector('input[name="wizHousehold"]:checked');
+  if (household) wizardData.household = household.value;
+  const curAge = document.getElementById('wizCurrentAge');
+  if (curAge) wizardData.currentAge = parseInt(curAge.value) || '';
+  const retAge = document.getElementById('wizRetireAge');
+  if (retAge) wizardData.retirementAge = parseInt(retAge.value) || '';
+  const pAge = document.getElementById('wizPartnerAge');
+  if (pAge) wizardData.partnerAge = parseInt(pAge.value) || '';
+  const pRetAge = document.getElementById('wizPartnerRetireAge');
+  if (pRetAge) wizardData.partnerRetirementAge = parseInt(pRetAge.value) || '';
 
   // Tool selection checkboxes
   const toolStress = document.getElementById('wizToolStress');

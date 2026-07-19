@@ -3457,56 +3457,52 @@
     async function handleWizardComplete(wizardData) {
       console.log('Wizard completed with data:', wizardData);
 
+      // Net-first minimal creation: no money questions in the wizard. Create the plan with sensible
+      // defaults + the chosen ages/household, seed the budget with those, and open the chosen start tab.
+      // Everything else (spending, pots, State Pension) is filled in lazily by each tool.
+      const retire = parseInt(wizardData.retirementAge) || 60;
+      const endAge = 95;
+      const duration = Math.max(5, endAge - retire);
+
       try {
-        // Build stress settings from wizard data
-        const stressSettings = {
-          baseSalary: wizardData.baseSalary,
-          other: wizardData.otherIncome,
-          spStartDate: wizardData.spStartDate,
-          spWeeklyAmount: wizardData.spWeeklyAmount,
-          equityMin: wizardData.equityMin,
-          bondMin: wizardData.bondMin,
-          cashTarget: wizardData.cashTarget,
-          isaBalance: wizardData.isaBalance || 0,
-          duration: wizardData.duration,
-          taxMode: wizardData.taxMode,
-          equityGlideEnabled: wizardData.equityGlideEnabled || false
-        };
+        // Duration flows from the horizon; the rest are defaults (target income is derived from the
+        // Budget, not asked as a gross salary here).
+        const stressSettings = { duration };
+        const decisionSettings = { duration };
 
-        // Build decision settings from wizard data
-        const decisionSettings = {
-          baseSalary: wizardData.decisionSalary,
-          equityMin: wizardData.decisionEquity,
-          bondMin: wizardData.decisionBond,
-          cashTarget: wizardData.decisionCash,
-          isaBalance: wizardData.decisionIsaBalance || 0,
-          duration: wizardData.decisionDuration,
-          spStartDate: wizardData.spStartDate,
-          spWeeklyAmount: wizardData.spWeeklyAmount,
-          equityGlideEnabled: wizardData.decisionEquityGlideEnabled || false
-        };
-
-        // Create scenario with wizard data
         await createNewScenario(
-          wizardData.scenarioName || 'My Plan',
-          wizardData.scenarioDescription || '',
-          wizardData.enabledTools || ['stress', 'decision'],
+          wizardData.scenarioName || 'My plan',
+          '',
+          ['stress', 'decision'],   // both tabs on; Budget tab always shows
           { stressSettings, decisionSettings },
-          true  // set as active
+          true                       // set as active
         );
 
-        // Invalidate caches so app loads fresh from the new scenario
         invalidateCache();
         invalidateStressCache();
 
+        // Seed the plan's Budget with the horizon + household sharing.
+        try {
+          const b = await getBudgetAsync();
+          b.currentAge = parseInt(wizardData.currentAge) || b.currentAge;
+          b.retirementAge = retire;
+          b.endAge = endAge;
+          b.sharedWithPartner = wizardData.household === 'couple';
+          await saveBudget(b);
+        } catch (e) {
+          console.warn('Could not seed budget from wizard:', e);
+        }
       } catch (error) {
         console.error('Error creating scenario from wizard:', error);
       }
 
-      // Show main app - go to first enabled tool tab
+      // Show the app, then open the chosen starting tab (its click handler runs the tab's loader,
+      // e.g. loadBudgetUI). Default to Budget — the net-first front door.
       const user = getCurrentUser();
-      const initialTab = wizardData.enabledTools.includes('stress') ? 'stress' : 'decision';
-      showMainApp(user, initialTab);
+      const startAt = wizardData.startAt || 'budget';
+      await showMainApp(user);
+      const tabEl = document.querySelector('.tab[data-tab="' + startAt + '"]');
+      if (tabEl) tabEl.click();
     }
 
     /**

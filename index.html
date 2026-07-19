@@ -3461,8 +3461,10 @@
       // defaults + the chosen ages/household, seed the budget with those, and open the chosen start tab.
       // Everything else (spending, pots, State Pension) is filled in lazily by each tool.
       const retire = parseInt(wizardData.retirementAge) || 60;
+      const cur = parseInt(wizardData.currentAge) || retire;
       const endAge = 95;
-      const duration = Math.max(5, endAge - retire);
+      // Drawdown horizon runs from retirement, or from now if already retired (retire ≤ current age).
+      const duration = Math.max(5, endAge - Math.max(cur, retire));
 
       try {
         // Duration flows from the horizon; the rest are defaults (target income is derived from the
@@ -3487,7 +3489,14 @@
           b.currentAge = parseInt(wizardData.currentAge) || b.currentAge;
           b.retirementAge = retire;
           b.endAge = endAge;
+          b.retired = !!wizardData.retired;
           b.sharedWithPartner = wizardData.household === 'couple';
+          // Partner facts stored for the Stage 2 two-person engine (not used by the single-person model yet).
+          if (wizardData.household === 'couple') {
+            b.partnerAge = parseInt(wizardData.partnerAge) || null;
+            b.partnerRetirementAge = parseInt(wizardData.partnerRetirementAge) || null;
+            b.partnerRetired = !!wizardData.partnerRetired;
+          }
           await saveBudget(b);
         } catch (e) {
           console.warn('Could not seed budget from wizard:', e);

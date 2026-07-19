@@ -17,8 +17,10 @@ let wizardData = {
   household: 'single',        // 'single' | 'couple'
   currentAge: '',
   retirementAge: '',
+  retired: false,             // already retired (retirement age may be ≤ current age)
   partnerAge: '',
   partnerRetirementAge: '',
+  partnerRetired: false,
   startAt: 'budget',          // intent router: 'budget' | 'stress' | 'decision'
   // Intro done flag
   introDone: false,
@@ -60,8 +62,10 @@ function resetWizardState() {
     household: 'single',
     currentAge: '',
     retirementAge: '',
+    retired: false,
     partnerAge: '',
     partnerRetirementAge: '',
+    partnerRetired: false,
     startAt: 'budget',
     introDone: false,
     baseSalary: 30000,
@@ -157,39 +161,54 @@ function renderScenarioStep1() {
         <label style="display:block; font-size:13px; margin-bottom:6px;">Who's this plan for?</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
-            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerAges').style.display='none'"> Just me
+            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerBlock').style.display='none'"> Just me
           </label>
           <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
-            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerAges').style.display='flex'"> Me and a partner
+            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerBlock').style.display='block'"> Me and a partner
           </label>
         </div>
       </div>
 
-      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
-        <div class="wizard-input" style="flex:0 0 auto;">
-          <label style="display:block; font-size:13px; margin-bottom:4px;">Your age today</label>
-          <input type="number" id="wizCurrentAge" value="${wizardData.currentAge || ''}" placeholder="e.g. 52" style="max-width:120px;">
-        </div>
-        <div class="wizard-input" style="flex:0 0 auto;">
-          <label style="display:block; font-size:13px; margin-bottom:4px;">Target retirement age</label>
-          <input type="number" id="wizRetireAge" value="${wizardData.retirementAge || ''}" placeholder="e.g. 60" style="max-width:150px;">
-        </div>
-      </div>
-
-      <div id="wizPartnerAges" style="display:${couple ? 'flex' : 'none'}; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
-        <div class="wizard-input" style="flex:0 0 auto;">
-          <label style="display:block; font-size:13px; margin-bottom:4px;">Partner's age today</label>
-          <input type="number" id="wizPartnerAge" value="${wizardData.partnerAge || ''}" placeholder="e.g. 50" style="max-width:120px;">
-        </div>
-        <div class="wizard-input" style="flex:0 0 auto;">
-          <label style="display:block; font-size:13px; margin-bottom:4px;">Partner's retirement age</label>
-          <input type="number" id="wizPartnerRetireAge" value="${wizardData.partnerRetirementAge || ''}" placeholder="e.g. 60" style="max-width:150px;">
-        </div>
+      ${personAgeBlock('You', 'wiz', wizardData.currentAge, wizardData.retirementAge, wizardData.retired)}
+      <div id="wizPartnerBlock" style="display:${couple ? 'block' : 'none'};">
+        ${personAgeBlock("Your partner", 'wizPartner', wizardData.partnerAge, wizardData.partnerRetirementAge, wizardData.partnerRetired)}
       </div>
 
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="skip-all">Skip</button>
         <button class="wizard-btn primary" data-action="to-router">Next</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * One person's age + retirement status. Supports already-retired (retirement age ≤ current age) so any
+ * combination works for a couple. `prefix` gives the field ids: <prefix>CurrentAge / <prefix>RetireAge /
+ * <prefix>Retired (for the partner, prefix='wizPartner' → wizPartnerCurrentAge etc.).
+ */
+function personAgeBlock(who, prefix, ageVal, retVal, retiredChecked) {
+  const retLabel = retiredChecked ? 'Age you retired' : 'Target retirement age';
+  const ageId = prefix + 'CurrentAge';
+  const retId = prefix + 'RetireAge';
+  const retiredId = prefix + 'Retired';
+  return `
+    <div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+      <strong style="font-size:14px;">${who}</strong>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-top:8px;">
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Age today</label>
+          <input type="number" id="${ageId}" value="${ageVal || ''}" placeholder="e.g. 52" style="max-width:110px;">
+        </div>
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label id="${retId}Label" style="display:block; font-size:13px; margin-bottom:4px;">${retLabel}</label>
+          <input type="number" id="${retId}" value="${retVal || ''}" placeholder="e.g. 60" style="max-width:150px;">
+        </div>
+        <label style="flex:0 0 auto; display:flex; align-items:center; gap:6px; font-size:13px; padding-bottom:8px; cursor:pointer;">
+          <input type="checkbox" id="${retiredId}" ${retiredChecked ? 'checked' : ''} style="width:auto;"
+            onchange="document.getElementById('${retId}Label').textContent = this.checked ? 'Age you retired' : 'Target retirement age'">
+          Already retired
+        </label>
       </div>
     </div>
   `;
@@ -674,12 +693,18 @@ function handleAction(action) {
     case 'to-router': {
       const cur = parseInt(wizardData.currentAge);
       const ret = parseInt(wizardData.retirementAge);
-      if (!ret || ret < 40 || ret > 90) {
-        if (typeof window.showToast === 'function') window.showToast('Please enter a target retirement age', 'error');
+      const toast = (m) => { if (typeof window.showToast === 'function') window.showToast(m, 'error'); };
+      if (!ret || ret < 40 || ret > 95) {
+        toast(wizardData.retired ? 'Please enter the age you retired' : 'Please enter a target retirement age');
         return;
       }
-      if (cur && ret && ret < cur) {
-        if (typeof window.showToast === 'function') window.showToast('Retirement age should be your current age or later', 'error');
+      // Already-retired is allowed (retirement age ≤ current age). Only nudge on a contradiction.
+      if (cur && ret > cur && wizardData.retired) {
+        toast("You ticked 'already retired' but the age is in the future — untick it, or lower the age.");
+        return;
+      }
+      if (cur && ret < cur && !wizardData.retired) {
+        toast("That retirement age is in the past — tick 'already retired' if you've already retired.");
         return;
       }
       currentStep = 2;
@@ -825,10 +850,14 @@ function saveCurrentInputs() {
   if (curAge) wizardData.currentAge = parseInt(curAge.value) || '';
   const retAge = document.getElementById('wizRetireAge');
   if (retAge) wizardData.retirementAge = parseInt(retAge.value) || '';
-  const pAge = document.getElementById('wizPartnerAge');
+  const retired = document.getElementById('wizRetired');
+  if (retired) wizardData.retired = retired.checked;
+  const pAge = document.getElementById('wizPartnerCurrentAge');
   if (pAge) wizardData.partnerAge = parseInt(pAge.value) || '';
   const pRetAge = document.getElementById('wizPartnerRetireAge');
   if (pRetAge) wizardData.partnerRetirementAge = parseInt(pRetAge.value) || '';
+  const pRetired = document.getElementById('wizPartnerRetired');
+  if (pRetired) wizardData.partnerRetired = pRetired.checked;
 
   // Tool selection checkboxes
   const toolStress = document.getElementById('wizToolStress');

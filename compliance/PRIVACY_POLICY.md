@@ -33,7 +33,10 @@ your data, use it for advertising, or share it for marketing.
 
 ## Who processes your data on our behalf
 - **Google / Firebase** (Firebase Authentication and Cloud Firestore) — account sign-in and data
-  storage. Data is stored in the [UK/EU — confirm] region.
+  storage. Data is stored in Google's **United States** multi-region (`nam5`). This is a transfer
+  outside the UK, safeguarded by Google's certification under the UK Extension to the EU–US Data
+  Privacy Framework and by Google Cloud's data processing terms (which incorporate the UK
+  International Data Transfer Addendum / EU Standard Contractual Clauses where applicable).
 - **GitHub (Microsoft)** — hosts the app's static files (GitHub Pages); receives standard request
   metadata (IP, browser) when you load the page. Your financial data does not pass through GitHub;
   it goes directly from your browser to Firebase.

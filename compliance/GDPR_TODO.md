@@ -12,9 +12,12 @@ order.
 ## P1 — 🔒 Firestore security rules (CRITICAL, do first)
 There is **no `firestore.rules` file in this repo**. The rules are the only thing stopping one
 user reading another user's financial data.
-- [ ] In the Firebase console, check the live rules for `pensiontools-4b237`. Confirm they are
-      **not** in test/open mode.
-- [ ] Add a `firestore.rules` file to this repo (source-controlled) and deploy it. Baseline:
+- [x] Checked the live rules for `pensiontools-4b237` (2026-07-26, via Rules API): they were **not**
+      open — users were already locked to their own `users/{uid}` subtree since 2026-01-23. The only
+      gap was no `email_verified` requirement.
+- [x] Add a `firestore.rules` file to this repo (source-controlled) — **done and deployed 2026-07-26**
+      (adds the `email_verified` requirement; the only existing account is a verified Google login,
+      so nobody is locked out). Baseline:
   ```
   rules_version = '2';
   service cloud.firestore {
@@ -27,7 +30,8 @@ user reading another user's financial data.
     }
   }
   ```
-- [ ] Add `firebase.json` deploy config if not present; document `firebase deploy --only firestore:rules`.
+- [x] Add `firebase.json` deploy config (+ `.firebaserc` targeting `pensiontools-4b237`); deploy with
+      `firebase deploy --only firestore:rules`.
 
 ## P2 — ✉️ Enforce email verification (free)
 Currently email/password accounts are usable unverified.
@@ -45,8 +49,13 @@ Currently email/password accounts are usable unverified.
       to remove the Firebase Auth account. Double-confirm before running.
 
 ## P4 — 🌍 Data residency
-- [ ] Confirm the Firestore location for `pensiontools-4b237` is **UK or EU** (Firebase console →
-      Firestore → location). Record it; it feeds the privacy policy's international-transfers wording.
+- [x] Checked 2026-07-26: the Firestore location is **`nam5` (United States multi-region)** — NOT
+      UK/EU. The location cannot be changed on an existing database. Privacy policy updated to
+      disclose the US transfer (DPF UK Extension + Google DP terms as safeguards).
+- [ ] Decide: either keep US storage with that disclosure (lawful, but weaker optics for a UK
+      finance app), or migrate — create a new Firestore database/project in `europe-west2` (London)
+      and copy the `users/{uid}` data across. With one active user, migration is cheap now and only
+      gets harder.
 
 ## P5 — Docs & disclosure
 - [ ] The `README.md` claims "all data is stored in browser localStorage" — this is **false**

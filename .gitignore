@@ -43,3 +43,6 @@ coverage/
 *.tgz
 *.7z
 *.rar
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json

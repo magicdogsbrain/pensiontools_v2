@@ -33,37 +33,41 @@ user reading another user's financial data.
 - [x] Add `firebase.json` deploy config (+ `.firebaserc` targeting `pensiontools-4b237`); deploy with
       `firebase deploy --only firestore:rules`.
 
-## P2 — ✉️ Enforce email verification (free)
-Currently email/password accounts are usable unverified.
-- [ ] After `createUserWithEmailAndPassword` (`src/firebase/AuthService.js`), call
-      `sendEmailVerification(user)`.
-- [ ] Gate the app on `user.emailVerified` (block save/load until verified; show a "verify your
-      email" prompt with a resend button in `src/ui/components/AuthPanel.js`).
-- [ ] Keep the `email_verified` requirement in the Firestore rules above.
-- [ ] Google sign-in accounts are already verified — no action for those.
+## P2 — ✉️ Enforce email verification (free) — DONE 2026-07-28
+- [x] `signUpWithEmail` (`src/firebase/AuthService.js`) now sends a verification email on signup;
+      `sendVerificationEmail()` and `reloadCurrentUser()` added for the resend/refresh flow.
+- [x] App gated on `user.emailVerified` in `src/ui/components/AuthScreen.js` (the live auth UI —
+      note `AuthPanel.js` is dead code, never initialised): unverified users get a full-screen
+      "Verify your email" prompt with resend / I've-verified / sign-out buttons.
+- [x] `email_verified` requirement kept in the Firestore rules.
+- [x] Google sign-in accounts are already verified — no action needed.
 
-## P3 — 🗑️ Right to erasure (account deletion)
-- [ ] `deleteAccount()` exists in `AuthService.js` but has **no caller/UI** — wire up a
-      "Delete my account" button that: (1) runs `wipeAllUserData()` (already exists in
-      `FirestoreService.js`) to purge all `users/{uid}/…` docs, THEN (2) calls `deleteAccount()`
-      to remove the Firebase Auth account. Double-confirm before running.
+## P3 — 🗑️ Right to erasure (account deletion) — DONE 2026-07-28
+- [x] "Delete Account" button added to the app header (`index.html`): double-confirms, then runs
+      `wipeAllUserData()` to purge all `users/{uid}/…` docs, then `deleteAccount()` to remove the
+      Firebase Auth account. Handles `auth/requires-recent-login` by asking the user to
+      re-authenticate and retry (data is already purged by that point).
 
 ## P4 — 🌍 Data residency
-- [x] Checked 2026-07-26: the Firestore location is **`nam5` (United States multi-region)** — NOT
-      UK/EU. The location cannot be changed on an existing database. Privacy policy updated to
-      disclose the US transfer (DPF UK Extension + Google DP terms as safeguards).
-- [ ] Decide: either keep US storage with that disclosure (lawful, but weaker optics for a UK
-      finance app), or migrate — create a new Firestore database/project in `europe-west2` (London)
-      and copy the `users/{uid}` data across. With one active user, migration is cheap now and only
-      gets harder.
+- [x] Checked 2026-07-26: the Firestore location was **`nam5` (United States multi-region)**.
+- [x] **Migrated 2026-07-28 to `europe-west2` (London)**: dumped all docs via the REST API,
+      deleted the `(default)` database, recreated it in `europe-west2`, restored and verified all
+      documents byte-identical, redeployed the rules. Privacy policy now states Firestore data is
+      in the UK; Firebase **Auth** identity data (a global Google service) may still be processed
+      in the US, disclosed with DPF UK Extension safeguards.
 
 ## P5 — Docs & disclosure
-- [ ] The `README.md` claims "all data is stored in browser localStorage" — this is **false**
-      (data is in Firestore). Correct it.
-- [ ] Publish `compliance/PRIVACY_POLICY.md` (in this folder) and link it from the app UI + footer,
-      naming Usefulish Ltd as controller. Add the ICO registration number once registered.
-- [ ] `measurementId G-80XX542QZE` is in the Firebase config but Analytics is **not** initialised
-      in code — either remove it or, if you enable Analytics later, update the privacy policy first.
+- [x] `README.md` localStorage claim corrected 2026-07-28 — now describes Firestore (London) +
+      auth + security rules.
+- [x] Policy published 2026-07-28 as `public/privacy.html` (served at `/privacy.html` on the
+      site), linked from the auth screen footer and landing page footer, naming Usefulish Ltd as
+      controller. **Still to do:** add the ICO registration number once registered (update both
+      `compliance/PRIVACY_POLICY.md` and `public/privacy.html`).
+- [x] Unused `measurementId` removed from the Firebase config 2026-07-28 (Analytics was never
+      initialised). If Analytics is ever enabled, update the privacy policy first.
+- [x] Also removed internal notes (`audit-jul-2026.md`, `model-review-feb-2026.md`, `roadmap.md`)
+      from `public/` 2026-07-28 — Vite was copying them into the published site; canonical copies
+      live in `research/`.
 
 ## Admin (not code — do in the console)
 - [ ] Enable **2-Step Verification** on the Google account that owns `pensiontools-4b237`.

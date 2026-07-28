@@ -1,7 +1,7 @@
 # PensionTools — Privacy Policy
 
-_Last updated: [DATE]. Draft — review before publishing. Swap `cpbooth@gmail.com` for a company
-email and add the ICO registration number once registered._
+_Last updated: 28 July 2026. Note: swap `cpbooth@gmail.com` for a company email and add the ICO
+registration number once registered._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
@@ -33,10 +33,13 @@ your data, use it for advertising, or share it for marketing.
 
 ## Who processes your data on our behalf
 - **Google / Firebase** (Firebase Authentication and Cloud Firestore) — account sign-in and data
-  storage. Data is stored in Google's **United States** multi-region (`nam5`). This is a transfer
-  outside the UK, safeguarded by Google's certification under the UK Extension to the EU–US Data
-  Privacy Framework and by Google Cloud's data processing terms (which incorporate the UK
-  International Data Transfer Addendum / EU Standard Contractual Clauses where applicable).
+  storage. Your saved plans and financial data are stored in Cloud Firestore in Google's
+  **London (`europe-west2`)** region, in the UK. Firebase Authentication is a global Google
+  service, so account identity data (email address, display name) may be processed on Google
+  systems outside the UK, including the United States; that transfer is safeguarded by Google's
+  certification under the UK Extension to the EU–US Data Privacy Framework and by Google Cloud's
+  data processing terms (which incorporate the UK International Data Transfer Addendum / EU
+  Standard Contractual Clauses where applicable).
 - **GitHub (Microsoft)** — hosts the app's static files (GitHub Pages); receives standard request
   metadata (IP, browser) when you load the page. Your financial data does not pass through GitHub;
   it goes directly from your browser to Firebase.
@@ -44,9 +47,9 @@ your data, use it for advertising, or share it for marketing.
 We do not use analytics or advertising services in this app.
 
 ## How long we keep it
-We keep your account and saved plans until you delete them or ask us to delete your account. You
-can wipe your saved data at any time in the app ("Reset all data"). To delete your **account**
-entirely, contact **cpbooth@gmail.com** (self-service account deletion is being added).
+We keep your account and saved plans until you delete them. In the app you can wipe your saved
+data at any time ("Reset"), or permanently delete your account **and** all data ("Delete
+Account"). You can also ask us to delete everything by emailing **cpbooth@gmail.com**.
 
 ## Your rights
 Under UK GDPR you can ask us to: access a copy of your data; correct it; delete it ("right to

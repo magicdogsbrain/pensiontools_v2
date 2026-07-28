@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — PensionTools</title>
+  <link rel="icon" href="favicon.png">
+  <style>
+    :root {
+      --bg: #12121a;
+      --card: #1e1e2e;
+      --border: #333345;
+      --text: #e4e4ef;
+      --text-muted: #9898ab;
+      --primary: #7c3aed;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+      padding: 40px 20px;
+    }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { color: var(--primary); font-size: 28px; margin-bottom: 4px; }
+    .updated { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+    h2 { font-size: 19px; margin: 32px 0 10px; }
+    p, li { font-size: 15px; margin-bottom: 10px; color: var(--text); }
+    ul { padding-left: 22px; }
+    strong { color: #fff; }
+    a { color: var(--primary); }
+    .table-wrap { overflow-x: auto; margin: 12px 0; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--card); }
+    .back { display: inline-block; margin-bottom: 24px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="./">&larr; Back to PensionTools</a>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: 28 July 2026</p>
+
+    <h2>Who we are</h2>
+    <p>PensionTools is provided by <strong>Usefulish Ltd</strong>, a company registered in England
+    and Wales (company number <strong>17360947</strong>), registered office 71-75 Shelton Street,
+    Covent Garden, London, WC2H 9JQ. Usefulish Ltd is the <strong>data controller</strong> for the
+    personal data described here. Contact for any privacy question or request:
+    <a href="mailto:cpbooth@gmail.com">cpbooth@gmail.com</a>.</p>
+
+    <h2>What this app is</h2>
+    <p>PensionTools is a UK pension drawdown planning and stress-testing tool. It is
+    <strong>not financial advice</strong> — it performs calculations on figures you enter. You are
+    responsible for the accuracy of your inputs and any decisions you make.</p>
+
+    <h2>The personal data we process</h2>
+    <p>To use the saving features you create an account and log in. We process:</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Category</th><th>Examples</th><th>Purpose</th><th>Lawful basis</th></tr>
+        <tr><td>Account identity</td><td>email address, display name, (Google) profile photo</td><td>create and secure your account</td><td>Contract</td></tr>
+        <tr><td>Saved plans ("scenarios")</td><td>plan name/notes, timestamps</td><td>let you save and reload your work</td><td>Contract</td></tr>
+        <tr><td>Financial data</td><td>portfolio balances over time, SIPP/ISA balances, target income, drawdowns</td><td>run your drawdown plan</td><td>Contract</td></tr>
+        <tr><td>State Pension</td><td>forecast start date and weekly amount (from your HMRC forecast)</td><td>income modelling</td><td>Contract</td></tr>
+        <tr><td>Tax details</td><td>allowances/bands you set, other taxable income, tax paid/projected</td><td>tax-efficient calculations</td><td>Contract</td></tr>
+        <tr><td>Ages / dates</td><td>current/retirement/end ages</td><td>planning horizon</td><td>Contract</td></tr>
+        <tr><td>Household budget</td><td>itemised spending you enter, including any health-related, dependent or partner costs</td><td>estimate your income needs</td><td>Contract</td></tr>
+      </table>
+    </div>
+    <p>All of the above is stored against your account in <strong>Google Cloud Firestore</strong>.
+    We do <strong>not</strong> sell your data, use it for advertising, or share it for marketing.</p>
+
+    <h2>Who processes your data on our behalf</h2>
+    <ul>
+      <li><strong>Google / Firebase</strong> (Firebase Authentication and Cloud Firestore) —
+      account sign-in and data storage. Your saved plans and financial data are stored in Cloud
+      Firestore in Google's <strong>London (europe-west2)</strong> region, in the UK. Firebase
+      Authentication is a global Google service, so account identity data (email address, display
+      name) may be processed on Google systems outside the UK, including the United States; that
+      transfer is safeguarded by Google's certification under the UK Extension to the EU–US Data
+      Privacy Framework and by Google Cloud's data processing terms (which incorporate the UK
+      International Data Transfer Addendum / EU Standard Contractual Clauses where applicable).</li>
+      <li><strong>GitHub (Microsoft)</strong> — hosts the app's static files (GitHub Pages);
+      receives standard request metadata (IP, browser) when you load the page. Your financial data
+      does not pass through GitHub; it goes directly from your browser to Firebase.</li>
+    </ul>
+    <p>We do not use analytics or advertising services in this app.</p>
+
+    <h2>How long we keep it</h2>
+    <p>We keep your account and saved plans until you delete them. In the app you can wipe your
+    saved data at any time ("Reset"), or permanently delete your account <strong>and</strong> all
+    data ("Delete Account"). You can also ask us to delete everything by emailing
+    <a href="mailto:cpbooth@gmail.com">cpbooth@gmail.com</a>.</p>
+
+    <h2>Your rights</h2>
+    <p>Under UK GDPR you can ask us to: access a copy of your data; correct it; delete it ("right
+    to erasure"); restrict or object to processing; or receive it in a portable format. Email
+    <a href="mailto:cpbooth@gmail.com">cpbooth@gmail.com</a> and we will respond within one month.
+    You can also complain to the ICO (<a href="https://ico.org.uk" rel="noopener">ico.org.uk</a>).</p>
+
+    <h2>Security</h2>
+    <p>Access to your data is restricted to your own account via authentication and database
+    security rules. Data is encrypted in transit. Please use a strong, unique password.</p>
+
+    <h2>Children</h2>
+    <p>This app is intended for adults planning their own finances and is not directed at children.</p>
+
+    <h2>Changes</h2>
+    <p>We will update this policy as the app changes and post the new version here.</p>
+  </main>
+</body>
+</html>

@@ -72,6 +72,10 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
           <button class="landing-btn secondary" id="landingSignIn">Already have an account? Sign In</button>
         </div>
 
+        <div class="landing-footer">
+          <p><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> &middot; Usefulish Ltd</p>
+        </div>
+
       </div>
     </div>
   `;
@@ -213,6 +217,18 @@ export function getLandingPageStyles() {
       flex-direction: column;
       align-items: center;
       gap: 12px;
+    }
+
+    .landing-footer {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .landing-footer a {
+      color: var(--text-muted);
+      text-decoration: underline;
     }
 
     .landing-btn {

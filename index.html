@@ -1960,6 +1960,7 @@
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
             <button class="logout-btn" id="resetBtn" title="Delete all data and start fresh">Reset</button>
+            <button class="logout-btn" id="deleteAccountBtn" title="Permanently delete your account and all data">Delete Account</button>
             <button class="logout-btn" id="logoutBtn">Sign Out</button>
           </div>
         </div>
@@ -2966,7 +2967,7 @@
     import { deleteHistoryRecord, getStatePensionForTaxYear } from './src/storage/DecisionRepository.js';
 
     // Import auth helpers and data check
-    import { isLoggedIn, logOut, getCurrentUser } from './src/firebase/index.js';
+    import { isLoggedIn, logOut, getCurrentUser, deleteAccount } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData } from './src/firebase/FirestoreService.js';
 
     // Import charts module
@@ -4047,6 +4048,46 @@
       } catch (error) {
         console.error('Reset error:', error);
         showToast('Error resetting data: ' + error.message, 'error');
+      }
+    });
+
+    // Delete account handler (GDPR right to erasure): purge Firestore data, then the auth account
+    document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
+      const confirmed = confirm(
+        '⚠️ DELETE YOUR ACCOUNT?\n\n' +
+        'This permanently deletes your login AND all saved data:\n\n' +
+        '• All plans and settings\n' +
+        '• All portfolio/decision history\n' +
+        '• Your household budget\n\n' +
+        'This cannot be undone.'
+      );
+      if (!confirmed) return;
+
+      const doubleConfirmed = confirm(
+        'FINAL WARNING\n\n' +
+        'Your account and every piece of data will be gone forever.\n\n' +
+        'Delete everything?'
+      );
+      if (!doubleConfirmed) return;
+
+      try {
+        await wipeAllUserData();
+        invalidateCache();
+        invalidateStressCache();
+        invalidateScenarioCache();
+        localStorage.clear();
+        await deleteAccount();
+
+        showToast('Your account and all data have been deleted.', 'success', 4000);
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (error) {
+        console.error('Delete account error:', error);
+        if (error.code === 'auth/requires-recent-login') {
+          // Data is already wiped at this point; only the auth record remains
+          showToast('For security, please sign out, sign back in, and press Delete Account again.', 'error', 8000);
+        } else {
+          showToast('Error deleting account: ' + error.message, 'error');
+        }
       }
     });
 

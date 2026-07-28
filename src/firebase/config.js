@@ -24,8 +24,7 @@ const firebaseConfig = {
   projectId: "pensiontools-4b237",
   storageBucket: "pensiontools-4b237.firebasestorage.app",
   messagingSenderId: "760877353696",
-  appId: "1:760877353696:web:2d6f7173c8d7fab6fd9e85",
-  measurementId: "G-80XX542QZE"
+  appId: "1:760877353696:web:2d6f7173c8d7fab6fd9e85"
 };
 
 // Check if Firebase is configured

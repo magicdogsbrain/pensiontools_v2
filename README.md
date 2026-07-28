@@ -25,7 +25,10 @@ python3 -m http.server 8000
 
 ## Data Storage
 
-All data is stored in browser localStorage. Use Export/Import in Settings to backup your data.
+Data is stored server-side in **Cloud Firestore** (Google Firebase, London/`europe-west2` region),
+tied to your account — sign-in (email/password or Google) is required to save and load. Firestore
+security rules restrict every user to their own data. See `compliance/PRIVACY_POLICY.md` (published
+in-app as `privacy.html`) and `compliance/GDPR_TODO.md` for the data-protection posture.
 
 ## License
 

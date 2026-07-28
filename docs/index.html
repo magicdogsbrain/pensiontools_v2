@@ -355,6 +355,71 @@
       gap: 16px;
     }
 
+    /* Bordered card for a logical group of settings — consistent framing, responsive. */
+    .settings-section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 18px;
+      background: var(--card-alt);
+    }
+    /* Plan lock banner (Decision settings). Two states: locked (neutral) and amending (warning). */
+    .lock-banner {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary, #6366f1);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 4px 0 8px;
+      background: var(--card-alt);
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .lock-banner > span { flex: 1 1 320px; }
+    .lock-banner.amending { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+    .lock-banner button { flex: 0 0 auto; }
+    /* Save button in its locked state: looks inert (greyed) but stays clickable to explain the lock. */
+    #dsSaveBtn.btn-locked {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+    /* Disabled controls inside the locked settings read clearly as inert, not broken. */
+    #decision-decisionsettings input:disabled,
+    #decision-decisionsettings select:disabled,
+    #decision-decisionsettings button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .settings-section > .section-title {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .settings-section > .section-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: -6px 0 12px;
+    }
+    /* Segmented mode toggle (risk level / my funds) */
+    .mode-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .mode-toggle .alloc-mode-btn { flex: 1; white-space: nowrap; }
+    @media (max-width: 480px) {
+      .mode-toggle { display: flex; width: 100%; }
+      .settings-section { padding: 14px; }
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
@@ -1848,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-TpVnVVik.js"></script>
+  <script type="module" crossorigin src="./assets/main-UgMpxgsT.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1896,6 +1961,7 @@
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
             <button class="logout-btn" id="resetBtn" title="Delete all data and start fresh">Reset</button>
+            <button class="logout-btn" id="deleteAccountBtn" title="Permanently delete your account and all data">Delete Account</button>
             <button class="logout-btn" id="logoutBtn">Sign Out</button>
           </div>
         </div>
@@ -1906,6 +1972,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab" data-tab="budget">Budget</button>
         </nav>
       </div>
 
@@ -1933,27 +2000,28 @@
                   </div>
                 </div>
 
-                <h3 style="margin-top: 24px;">Fund Values</h3>
+                <h3 style="margin-top: 24px;">This month's fund values</h3>
+                <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Equity Fund</label>
+                    <label>Equity Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryEquity" value="250000" required>
+                      <input type="number" id="entryEquity" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Bond Fund</label>
+                    <label>Bond Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryBond" value="200000" required>
+                      <input type="number" id="entryBond" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Cash Fund</label>
+                    <label>Cash <a href="#" class="itemise-link" onclick="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryCash" value="50000" required>
+                      <input type="number" id="entryCash" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
@@ -1963,6 +2031,29 @@
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryIsa" value="0" min="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Diversifiers <a href="#" class="itemise-link" onclick="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
+                      <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryDiversifier" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Per-bucket "enter this month's fund values" popup -->
+                <div id="fundBucketModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
+                  <div style="background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:12px; padding:22px; max-width:520px; width:90%; max-height:80vh; overflow:auto;">
+                    <h3 id="fundModalTitle" style="margin-top:0;">Fund values</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Enter this month's value for each fund. The bucket total is the sum.</p>
+                    <div id="fundModalRows"></div>
+                    <div id="fundModalSubtotal" style="font-weight:600; margin-top:12px; border-top:1px solid var(--border,#334155); padding-top:10px;"></div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+                      <button type="button" class="risk-btn" onclick="closeFundBucketModal()">Cancel</button>
+                      <button type="button" class="btn-primary" onclick="applyFundBucketModal()">Done</button>
                     </div>
                   </div>
                 </div>
@@ -1993,25 +2084,77 @@
           <div class="card">
             <h2>Decision Tool Settings</h2>
 
-            <h3 style="margin-top: 16px;">Starting Pot &amp; Allocation</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Total Pot (£)</label>
-                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')">
+            <!-- Plan lock: saving these settings commits them as the plan definition and locks them.
+                 To use different settings the user creates a new plan. Populated by refreshDecisionLock. -->
+            <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
+
+            <div class="settings-section">
+              <div class="section-title">Your allocation</div>
+              <div class="section-hint">How do you want to set your allocation?</div>
+              <div class="mode-toggle">
+                <button type="button" id="dsModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ds','risk')">Pick a risk level</button>
+                <button type="button" id="dsModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ds','funds')">Use my own funds</button>
               </div>
-              <div class="form-group">
-                <label>Depletion Duration (years)</label>
-                <input type="number" id="dsDuration" value="35">
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label>Depletion Duration (years)</label>
+              <input type="number" id="dsDuration" value="35" style="max-width:220px;">
+            </div>
+
+            <div id="dsRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Total Pot (£)</label>
+                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="dsRisks" class="risk-cards">
+                  <button type="button" class="risk-card" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">
+                    <div class="rc-title">Cautious</div>
+                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">
+                    <div class="rc-title">Balanced</div>
+                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">
+                    <div class="rc-title">Adventurous</div>
+                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                  <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
               </div>
             </div>
 
-            <div class="form-group" style="margin-top: 12px;">
-              <label>Risk level</label>
-              <div id="dsRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">Cautious</button>
-                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">Balanced</button>
-                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">Adventurous</button>
+            <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
+            <div id="dsFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
+              </p>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ds', this.value)" onfocus="showFundSearch('ds', this.value)" onblur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
+                <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                <button type="button" class="risk-btn" onclick="addFundRow('ds')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" onclick="clearFunds('ds')">Clear</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
+                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                  </tr></thead>
+                  <tbody id="dsFundRows"></tbody>
+                </table>
+                <datalist id="dsFundCatalogue"></datalist>
+              </div>
+              <div id="dsFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="dsPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
             </div>
 
             <div id="dsAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
@@ -2024,66 +2167,88 @@
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 When on, the Decision Tool's monthly withdrawal and rebalancing advice follows this rising-equity path, and each year's report tells you the target mix to hold.
               </p>
+              <div id="dsGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="dsGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
+            </div><!-- /.settings-section (allocation) -->
 
-            <h3 style="margin-top: 24px;">Income Settings</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Target Gross Salary (£/yr)</label>
-                <input type="number" id="dsBaseSalary" value="30000">
+            <div class="settings-section">
+              <div class="section-title">Income</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Target Gross Salary (£/yr)</label>
+                  <input type="number" id="dsBaseSalary" value="30000">
+                </div>
+                <div class="form-group">
+                  <label>Spending over retirement</label>
+                  <select id="dsSpendingProfile">
+                    <option value="flat">Level for life (flat real spending) — conservative</option>
+                    <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
+                  </select>
+                </div>
               </div>
-            </div>
-
-            <h3 style="margin-top: 24px;">State Pension (from HMRC Forecast)</h3>
-            <div class="alert alert-info" style="margin-bottom: 16px;">
-              Get your forecast at <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>State Pension Start Date</label>
-                <input type="text" id="dsSpStartDate" placeholder="e.g. 6 May 2040">
-              </div>
-              <div class="form-group">
-                <label>Weekly Amount (£)</label>
-                <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
-              </div>
-              <div class="form-group">
-                <label>Annual Amount (calculated)</label>
-                <input type="text" id="dsSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
-              </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">
+                Locked with the plan. "Declining" is level for the first 5 years, then drifts down ~1%/yr for
+                20 years, then holds — the same spending smile as the Stress tester. In those declining years the
+                April wizard nets the drop off the inflation uplift (e.g. CPI 2.5% − 1% = a 1.5% target rise).
+              </p>
             </div>
 
-            <h3 style="margin-top: 24px;">ISA</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>ISA Balance (£)</label>
-                <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
+            <div class="settings-section">
+              <div class="section-title">State Pension <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(from your HMRC forecast)</span></div>
+              <div class="alert alert-info" style="margin-bottom: 14px;">
+                Get your forecast at <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>State Pension Start Date</label>
+                  <input type="text" id="dsSpStartDate" placeholder="e.g. 6 May 2040">
+                </div>
+                <div class="form-group">
+                  <label>Weekly Amount (£)</label>
+                  <input type="number" id="dsSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+                </div>
+                <div class="form-group">
+                  <label>Annual Amount (£/yr)</label>
+                  <input type="number" id="dsSpAnnualAmount" step="1" placeholder="e.g. 11500">
+                </div>
               </div>
             </div>
 
-            <h3 style="margin-top: 24px;">Protection Settings</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Protection Reduction (%)</label>
-                <input type="number" id="dsProtectionFactor" value="20">
-              </div>
-              <div class="form-group">
-                <label>Recovery Buffer (£)</label>
-                <input type="number" id="dsRecoveryBuffer" value="15000">
-              </div>
-              <div class="form-group">
-                <label>Cash Draws Before Protection</label>
-                <input type="number" id="dsConsecutiveLimit" value="3">
+            <div class="settings-section">
+              <div class="section-title">ISA</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>ISA Balance (£)</label>
+                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
+                </div>
               </div>
             </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
-              <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+
+            <div class="settings-section">
+              <div class="section-title">Protection</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Protection Reduction (%)</label>
+                  <input type="number" id="dsProtectionFactor" value="20">
+                </div>
+                <div class="form-group">
+                  <label>Recovery Buffer (£)</label>
+                  <input type="number" id="dsRecoveryBuffer" value="15000">
+                </div>
+                <div class="form-group">
+                  <label>Cash Draws Before Protection</label>
+                  <input type="number" id="dsConsecutiveLimit" value="3">
+                </div>
+              </div>
+              <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+              </div>
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button onclick="saveDecisionSettingsUI()">Save Settings</button>
-              <button class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
+              <button id="dsSaveBtn" onclick="saveDecisionSettingsUI()">Save Settings</button>
+              <button id="dsResetBtn" class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
         </div>
@@ -2271,21 +2436,52 @@
           <div class="card">
             <h2>Stress Tester Settings</h2>
 
-            <h3 style="margin-top: 16px;">Income Target</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Target Gross Salary (£/yr)</label>
-                <input type="number" id="ssBaseSalary" value="30000">
+            <div class="settings-section">
+              <div class="section-title">Income target</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Target Gross Salary (£/yr)</label>
+                  <input type="number" id="ssBaseSalary" value="30000">
+                </div>
               </div>
-            </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
-              <strong>Target:</strong> The total yearly income you want from all sources. This combines your SIPP withdrawals, other pensions, and state pension.
+              <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>Target:</strong> The total yearly income you want from all sources. This combines your SIPP withdrawals, other pensions, and state pension.
+              </div>
             </div>
 
             <style>
+              .itemise-link { font-size:12px; color:var(--primary,#6366f1); margin-left:8px; text-decoration:none; font-weight:normal; }
+              .itemise-link:hover { text-decoration:underline; }
+              .alloc-mode-btn { padding:8px 16px; border:none; background:var(--card,#fff); color:var(--text-muted,#64748b); cursor:pointer; font-size:14px; }
+              .alloc-mode-btn.active { background:#6366f1; color:#fff; font-weight:600; }
+              /* Fund-tagging + modal inputs live outside .form-group, so they missed the app's input
+                 theme and defaulted to a white background. Match the themed inputs. Do NOT use
+                 !important on colour: the number-format overlay sets colour:transparent inline to hide
+                 the raw value while showing the formatted span — forcing colour caused doubled/blurred text. */
+              #ssFundRows input, #ssFundRows select, #dsFundRows input, #dsFundRows select,
+              #fundModalRows input, .fund-search-box input,
+              #budget-content input, #budget-content select {
+                background: var(--card-alt);
+                color: var(--text);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 5px 14px;
+              }
+              /* Keep the budget's dynamic row inputs compact so the flex layout stays tidy. */
+              #budEssentialRows input, #budDiscretionaryRows input, #budOneOffRows input,
+              #budEssentialRows select, #budDiscretionaryRows select, #budOneOffRows select { padding: 5px 8px; }
+              .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
               .risk-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; font-weight:600; }
+              /* Risk-level picker cards (Cautious / Balanced / Adventurous) */
+              .risk-cards { display:flex; gap:10px; flex-wrap:wrap; }
+              .risk-card { flex:1 1 170px; min-width:150px; text-align:left; padding:12px 14px; border:1px solid var(--border,#cbd5e1); border-radius:10px; background:var(--card-alt,#0f172a); color:var(--text,#0f172a); cursor:pointer; transition:border-color .12s, background .12s; }
+              .risk-card:hover { border-color:#6366f1; }
+              .risk-card.active { border-color:#6366f1; background:rgba(99,102,241,0.12); box-shadow:inset 0 0 0 1px #6366f1; }
+              .risk-card .rc-title { font-weight:700; font-size:14px; margin-bottom:3px; }
+              .risk-card.active .rc-title { color:#818cf8; }
+              .risk-card .rc-desc { font-size:12px; color:var(--text-muted,#64748b); line-height:1.35; }
               #ssEquityPct, #ssBondPct { accent-color:#6366f1; }
               #printPortal { display: none; }
               .rpt-header h1 { font-size: 20px; margin: 0 0 4px; }
@@ -2301,25 +2497,77 @@
                 #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
               }
             </style>
-            <h3 style="margin-top: 24px;">Starting Pot &amp; Allocation</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Total Pot (£)</label>
-                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')">
+            <div class="settings-section">
+              <div class="section-title">Your allocation</div>
+              <div class="section-hint">How do you want to set your allocation?</div>
+              <div class="mode-toggle">
+                <button type="button" id="ssModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ss','risk')">Pick a risk level</button>
+                <button type="button" id="ssModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ss','funds')">Use my own funds</button>
               </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="ssDuration" value="35">
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label>Duration (years)</label>
+              <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+            </div>
+
+            <div id="ssRiskMode">
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Total Pot (£)</label>
+                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="ssRisks" class="risk-cards">
+                  <button type="button" class="risk-card" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">
+                    <div class="rc-title">Cautious</div>
+                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">
+                    <div class="rc-title">Balanced</div>
+                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">
+                    <div class="rc-title">Adventurous</div>
+                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
+                </p>
               </div>
             </div>
 
-            <div class="form-group" style="margin-top: 12px;">
-              <label>Risk level</label>
-              <div id="ssRisks" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">Cautious</button>
-                <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">Balanced</button>
-                <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">Adventurous</button>
+            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
+            <div id="ssFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
+              </p>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ss', this.value)" onfocus="showFundSearch('ss', this.value)" onblur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
+                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                <button type="button" class="risk-btn" onclick="loadPdfExample('ss')">Load PDF example (£1.3M)</button>
+                <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" onclick="clearFunds('ss')">Clear</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
+                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                  </tr></thead>
+                  <tbody id="ssFundRows"></tbody>
+                </table>
+                <datalist id="ssFundCatalogue"></datalist>
+              </div>
+              <div id="ssFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
             </div>
 
             <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
@@ -2332,13 +2580,16 @@
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Holds least in shares when the pot is largest and most exposed to an early crash, then raises shares once that danger passes (Pfau-Kitces). Typically helps the worst cases but can slightly lower typical growth — run it and compare. Your risk level stays the average.
               </p>
+              <div id="ssGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
             </div>
             <div class="alert alert-info" style="margin-top: 12px;">
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
             </div>
+            </div><!-- /.settings-section (allocation) -->
 
-            <h3 style="margin-top: 24px;">Tax Thresholds (Year 0)</h3>
+            <div class="settings-section">
+            <div class="section-title">Tax thresholds (year 0)</div>
             <div class="form-grid">
               <div class="form-group">
                 <label>Personal Allowance (£)</label>
@@ -2364,98 +2615,212 @@
               <strong>SIPP Calculation:</strong> SIPP Draw = Target Income - Other Pensions - State Pension<br>
               (But never more than the Basic Rate Limit, to avoid 40% tax)
             </div>
+            </div><!-- /.settings-section (tax thresholds) -->
 
-            <h3 style="margin-top: 24px;">Other Income (Year 0)</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Other Income/Pension (£/yr)</label>
-                <input type="number" id="ssOther" value="0">
-              </div>
-            </div>
-
-            <h3 style="margin-top: 24px;">State Pension</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>SP Start Date</label>
-                <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040">
-              </div>
-              <div class="form-group">
-                <label>Weekly Amount (£)</label>
-                <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
-              </div>
-              <div class="form-group">
-                <label>Annual Amount (calculated)</label>
-                <input type="text" id="ssSpAnnualAmount" readonly style="background: var(--bg); cursor: not-allowed;">
-              </div>
-            </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
-              <strong>Pension Inflation:</strong><br>
-              • Other Income/Pension: Follows CPI, capped at 4% per year<br>
-              • State Pension: Follows CPI (triple-lock proxy)
-            </div>
-
-            <h3 style="margin-top: 24px;">ISA</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>ISA Balance (£)</label>
-                <input type="number" id="ssIsaBalance" placeholder="e.g. 50000">
-              </div>
-            </div>
-            <div style="margin-top: 12px;">
-              <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
-              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
-            </div>
-
-            <h3 style="margin-top: 24px;">Protection Rules</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Cash Draws Before Protection</label>
-                <input type="number" id="ssConsecutiveLimit" value="3">
-              </div>
-              <div class="form-group">
-                <label>Protection Multiplier</label>
-                <input type="number" id="ssProtectionMult" value="0.8" step="0.05">
-              </div>
-              <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
-                <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
-                  <input type="checkbox" id="ssDisableProtection" style="width: auto; margin-right: 8px;">
-                  <span style="text-transform: none; font-size: 13px;">Disable Protection Mode</span>
-                </label>
+            <div class="settings-section">
+              <div class="section-title">Other income (year 0)</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Other Income/Pension (£/yr)</label>
+                  <input type="number" id="ssOther" value="0">
+                </div>
               </div>
             </div>
 
-            <h3 style="margin-top: 24px;">Break Glass HODL (Emergency Reserve)</h3>
-            <div class="form-grid">
-              <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
-                <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
-                  <input type="checkbox" id="ssHodlEnabled" style="width: auto; margin-right: 8px;">
-                  <span style="text-transform: none; font-size: 13px;">Enable HODL Reserve</span>
-                </label>
+            <div class="settings-section">
+              <div class="section-title">State Pension</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>SP Start Date</label>
+                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040">
+                </div>
+                <div class="form-group">
+                  <label>Weekly Amount (£)</label>
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+                </div>
+                <div class="form-group">
+                  <label>Annual Amount (£/yr)</label>
+                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500">
+                </div>
               </div>
-              <div class="form-group">
-                <label>HODL Value (£)</label>
-                <input type="number" id="ssHodlValue" value="25000">
+              <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>Pension Inflation:</strong><br>
+                • Other Income/Pension: Follows CPI, capped at 4% per year<br>
+                • State Pension: Follows CPI (triple-lock proxy)
               </div>
-            </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
-              <strong>Break Glass Reserve:</strong> Emergency fund only accessed when main strategy would otherwise fail.
             </div>
 
-            <div class="form-group" style="margin-top: 16px;">
-              <label>Spending over retirement</label>
-              <select id="ssSpendingProfile">
-                <option value="flat">Level for life (flat real spending) — conservative</option>
-                <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
-              </select>
-              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Real spending typically falls through retirement (Blanchett's "spending smile"). "Declining" models a ~1%/yr real drop, floored at 75% of today's spend. Flat is the pessimistic default. Late-life care costs are not auto-added.
-              </p>
+            <div class="settings-section">
+              <div class="section-title">ISA</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>ISA Balance (£)</label>
+                  <input type="number" id="ssIsaBalance" placeholder="e.g. 50000">
+                </div>
+              </div>
+              <div style="margin-top: 12px;">
+                <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
+                <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="section-title">Protection</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Cash Draws Before Protection</label>
+                  <input type="number" id="ssConsecutiveLimit" value="3">
+                </div>
+                <div class="form-group">
+                  <label>Protection Multiplier</label>
+                  <input type="number" id="ssProtectionMult" value="0.8" step="0.05">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="ssDisableProtection" style="width: auto; margin-right: 8px;">
+                    <span style="text-transform: none; font-size: 13px;">Disable Protection Mode</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="section-title">Break Glass HODL <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(emergency reserve)</span></div>
+              <div class="form-grid">
+                <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="ssHodlEnabled" style="width: auto; margin-right: 8px;">
+                    <span style="text-transform: none; font-size: 13px;">Enable HODL Reserve</span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>HODL Value (£)</label>
+                  <input type="number" id="ssHodlValue" value="25000">
+                </div>
+              </div>
+              <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>Break Glass Reserve:</strong> Emergency fund only accessed when main strategy would otherwise fail.
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="section-title">Spending</div>
+              <div class="form-group" style="margin-top: 0;">
+                <label>Spending over retirement</label>
+                <select id="ssSpendingProfile">
+                  <option value="flat">Level for life (flat real spending) — conservative</option>
+                  <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
+                </select>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Real spending typically falls through retirement (Blanchett's "spending smile"). "Declining" holds spending level for the first 5 years, drifts down ~1%/yr for the next 20, then holds (a ~18% real fall in mid-retirement — gentler than a straight-line drop). Flat is the pessimistic default. Late-life care costs are not auto-added.
+                </p>
+              </div>
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
               <button onclick="saveStressSettingsUI()">Save Settings</button>
               <button class="secondary" onclick="resetStressSettingsUI()">Reset to Defaults</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget Tab -->
+      <div id="budget-content" class="tab-content">
+        <div class="card">
+          <h2>Budget — your spending plan</h2>
+          <p class="section-hint" style="margin-bottom:4px;">
+            Enter what you expect to spend, in <strong>today's money</strong>. We total it into your
+            <strong>essential</strong> (the floor that must always be covered) and <strong>comfortable</strong>
+            (your target) monthly take-home — then you can push that to your plan's target income.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">Horizon</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Age today</label>
+                <input type="number" id="budCurrentAge" oninput="onBudgetHorizonChange()">
+              </div>
+              <div class="form-group">
+                <label>Retirement age</label>
+                <input type="number" id="budRetireAge" oninput="onBudgetHorizonChange()">
+              </div>
+              <div class="form-group">
+                <label>Plan to age</label>
+                <input type="number" id="budEndAge" oninput="onBudgetHorizonChange()">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Sharing with a partner
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— optional</span>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="budShared" style="width:auto;" onchange="onBudgetSharedToggle()">
+              <span style="text-transform:none;">Some of these costs are paid by a partner</span>
+            </label>
+            <div id="budShareRow" style="display:none; margin-top:10px;">
+              <label style="font-size:13px;">Your share of any “Shared” costs:
+                <input type="number" id="budSharePct" value="50" min="0" max="100" style="width:72px; margin:0 4px;" oninput="onBudgetSharePctChange()">%
+              </label>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Mark each line <strong>Me / Partner / Shared</strong>. Your plan only funds your share — costs your
+                partner covers (their shopping, their car) drop out of your target but still show in the household total.
+              </p>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
+            <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
+            <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Essential spending
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the floor that must always be covered (housing, bills, food, transport, health)</span>
+            </div>
+            <div id="budEssentialRows"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="risk-btn" onclick="addBudgetLine('essential')">+ Add essential</button>
+              <div style="font-size:13px;">Essential subtotal: <strong id="budEssentialSubtotal">—</strong>/yr</div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Lifestyle spending
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— nice-to-haves on top (holidays, eating out, hobbies, gifts)</span>
+            </div>
+            <div id="budDiscretionaryRows"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="risk-btn" onclick="addBudgetLine('discretionary')">+ Add lifestyle</button>
+              <div style="font-size:13px;">Lifestyle subtotal: <strong id="budDiscretionarySubtotal">—</strong>/yr</div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">One-off &amp; periodic costs
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— a car every few years, a new roof, a big trip, helping the kids</span>
+            </div>
+            <div id="budOneOffRows"></div>
+            <button type="button" class="risk-btn" onclick="addBudgetOneOff()" style="margin-top:8px;">+ Add one-off</button>
+          </div>
+
+          <div class="settings-section" id="budSuggestionsSection" style="display:none;">
+            <div class="section-title">Did you miss anything?
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the biggest budgeting mistake is leaving things out. Tap to add.</span>
+            </div>
+            <div id="budSuggestions" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          </div>
+
+          <div class="settings-section" id="budSummarySection">
+            <div class="section-title">Your spending need</div>
+            <div id="budSummary"></div>
+          </div>
+
+          <div class="button-row" style="margin-top: 24px;">
+            <button id="budSaveBtn" onclick="saveBudgetUI()">Save budget</button>
           </div>
         </div>
       </div>

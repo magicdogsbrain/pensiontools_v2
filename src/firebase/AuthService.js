@@ -13,6 +13,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   deleteUser
 } from 'firebase/auth';
@@ -98,7 +99,39 @@ export async function signUpWithEmail(email, password, displayName = null) {
     await updateProfile(userCredential.user, { displayName });
   }
 
+  // Firestore rules require email_verified, so the account is unusable until verified
+  try {
+    await sendEmailVerification(userCredential.user);
+  } catch (e) {
+    console.error('Failed to send verification email:', e);
+  }
+
   return userCredential;
+}
+
+/**
+ * Re-send the verification email to the current user
+ * @returns {Promise<void>}
+ */
+export async function sendVerificationEmail() {
+  if (!isFirebaseConfigured() || !auth || !currentUser) {
+    throw new Error('Not logged in');
+  }
+
+  return sendEmailVerification(currentUser);
+}
+
+/**
+ * Reload the current user from Firebase (picks up emailVerified changes)
+ * @returns {Promise<object|null>} The refreshed user
+ */
+export async function reloadCurrentUser() {
+  if (!currentUser) return null;
+
+  await currentUser.reload();
+  // reload() mutates auth.currentUser in place; re-read it to be safe
+  currentUser = auth.currentUser;
+  return currentUser;
 }
 
 /**

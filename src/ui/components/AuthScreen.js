@@ -10,7 +10,10 @@ import {
   signInWithEmail,
   signInWithGoogle,
   resetPassword,
-  onAuthStateChange
+  onAuthStateChange,
+  sendVerificationEmail,
+  reloadCurrentUser,
+  logOut
 } from '../../firebase/index.js';
 
 // Auth screen state
@@ -32,6 +35,12 @@ export function initAuthScreen(container, onSuccess) {
   // Listen for auth state changes
   onAuthStateChange((user) => {
     console.log('AuthScreen: auth state change received:', user ? user.email : 'null', 'processed:', authProcessed);
+    if (user && !user.emailVerified) {
+      // Firestore rules reject unverified accounts — block the app and prompt.
+      // (Google sign-ins are always verified; this only affects email/password.)
+      renderVerifyEmailScreen(user);
+      return;
+    }
     if (user && onAuthSuccessCallback && !authProcessed) {
       console.log('AuthScreen: calling onAuthSuccessCallback');
       authProcessed = true; // Mark as processed to prevent duplicate calls
@@ -136,6 +145,7 @@ export function renderAuthScreen() {
 
         <div class="auth-screen-footer">
           <p>Your data is stored securely in the cloud and synced across devices.</p>
+          <p><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> &middot; Usefulish Ltd</p>
         </div>
       </div>
     </div>
@@ -321,6 +331,80 @@ function getAuthErrorMessage(code) {
   };
 
   return messages[code] || 'An error occurred. Please try again.';
+}
+
+/**
+ * Full-screen prompt shown to signed-in but unverified email/password accounts.
+ * Saving/loading is blocked (client-side here, server-side by Firestore rules)
+ * until the address is verified.
+ */
+function renderVerifyEmailScreen(user) {
+  if (!authScreenElement) return;
+
+  authScreenElement.style.display = 'block';
+  authScreenElement.innerHTML = `
+    <div class="auth-screen">
+      <div class="auth-screen-box" style="text-align: center;">
+        <div class="auth-screen-header">
+          <h1>Verify your email</h1>
+          <p>We've sent a verification link to <strong>${user.email}</strong>.<br>
+             Click the link in that email, then come back here.</p>
+        </div>
+        <div id="authScreenError" class="auth-screen-error" style="display: none;"></div>
+        <div class="auth-screen-form">
+          <button class="auth-screen-btn primary" id="verifiedContinueBtn">I've verified — continue</button>
+          <button class="auth-screen-btn secondary" id="resendVerificationBtn">Resend verification email</button>
+          <button class="auth-screen-btn secondary" id="verifySignOutBtn">Sign out</button>
+        </div>
+        <div class="auth-screen-footer">
+          <p>Your data stays locked until your email is verified.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('verifiedContinueBtn').addEventListener('click', async () => {
+    hideError();
+    try {
+      const refreshed = await reloadCurrentUser();
+      if (refreshed && refreshed.emailVerified) {
+        if (onAuthSuccessCallback && !authProcessed) {
+          authProcessed = true;
+          showLoadingState();
+          onAuthSuccessCallback(refreshed);
+        }
+      } else {
+        showError('Not verified yet. Click the link in the email first (check spam), then try again.');
+      }
+    } catch (error) {
+      console.error('Verification check error:', error);
+      showError('Could not check verification status. Please try again.');
+    }
+  });
+
+  document.getElementById('resendVerificationBtn').addEventListener('click', async () => {
+    hideError();
+    try {
+      await sendVerificationEmail();
+      if (typeof window.showToast === 'function') {
+        window.showToast('Verification email sent. Check your inbox.', 'success', 5000);
+      }
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      showError(error.code === 'auth/too-many-requests'
+        ? 'Too many attempts. Please wait a few minutes and try again.'
+        : 'Could not send the email. Please try again.');
+    }
+  });
+
+  document.getElementById('verifySignOutBtn').addEventListener('click', async () => {
+    try {
+      await logOut();
+      renderAuthScreen();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  });
 }
 
 /**

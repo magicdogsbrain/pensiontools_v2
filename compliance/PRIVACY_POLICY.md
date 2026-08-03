@@ -1,14 +1,16 @@
 # PensionTools — Privacy Policy
 
-_Last updated: 28 July 2026. Note: swap `cpbooth@gmail.com` for a company email and add the ICO
-registration number once registered._
+_Last updated: 3 August 2026. Note: swap `cpbooth@gmail.com` for a company email; when the ICO
+issues the final register number (ZB…), replace the application reference below (and in
+`public/privacy.html`)._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
 (company number **17360947**), registered office **71-75 Shelton Street, Covent Garden, London,
 WC2H 9JQ**. Usefulish Ltd is the **data controller** for the personal data described here.
 Contact for any privacy question or request: **cpbooth@gmail.com**.
-ICO Data Protection Register number: **[to be added]**.
+Usefulish Ltd is registered with the Information Commissioner's Office (ICO) as a data protection
+fee payer (registration submitted 29 July 2026, reference **C1994426**; register entry pending).
 
 ## What this app is
 PensionTools is a UK pension drawdown planning and stress-testing tool. It is **not financial

@@ -1,100 +1,47 @@
-# Stage 1a — Partner income streams + guided Budget wizard (plan for sign-off)
+# Couples model + guided Budget wizard (plan for sign-off) — v2
 
-Two sibling features in the net-first arc (see `budget-and-income-model-research.md`,
-`user-flow-redesign.md`). Both are additive: no engine formula changes when the new inputs are
-empty — golden master stays byte-identical.
+**v2 supersedes v1 of this doc.** v1 designed "partner income streams" (partner's salary/pension/SP
+as time-phased net income offsetting the household draw). Rejected after product review: it models
+income for a person who isn't the user, and dragged in partner tax treatment. The chosen model is
+simpler and mostly already shipped.
 
-The incoherence being fixed: the wizard and Budget tab are couple-aware (household, partner ages,
-per-person spend lines) but the engines model one person — the partner's *income* exists nowhere.
-Full two-pot couples simulation is deliberately **out** (later stage); this stage models the
-partner as **time-phased net income** that reduces what the household must draw from the owner's
-pots. Covers: partner still working → retires onto private pension → private + State Pension —
-and every other combination — with one primitive.
+## The couples decision (settled)
 
-## 1. The primitive: age-banded income streams
+**Each person models their own plan; the budget splits the household.**
 
-Same idea as the budget's age-banded expense lines and James Shack's income rows
-(Start Age · End Age · Amount). Stored in `budgetTool.settings` (the established home for
-household facts — `partnerAge`, `partnerRetirementAge`, `partnerRetired` already live there):
+- Research: IFA tools (Voyant, CashCalc, Timeline) model the full household — both partners,
+  individually taxed, joint expenses, survivor analysis — because an adviser has a paid hour to
+  gather two people's finances. Wrong benchmark for self-serve; James Shack's household spreadsheet
+  needs both people's full data up front for the same reason.
+- This app's unit is **one person**: the engines simulate the owner's pots against the owner's
+  **share** of household spending. A couple = two accounts/plans, one shared budget logic. No joint
+  tax optimisation (deliberately dropped — the "500x" swamp), no partner income modelling at all.
+- Already shipped in Stage 0 (`BudgetModel.js`): `paidBy: 'me'|'partner'|'shared'` per line,
+  `mySharePct` (global) for shared lines, `myShareFactor` / `myAnnualNetAtAge`, and
+  `suggestedGrossAnnual` already feeds **the owner's share** to the target handoff.
 
-```
-partnerIncome: [
-  { id, label,                      // "Salary", "NHS pension", "State Pension"…
-    type: 'salary'|'pension'|'statePension'|'other',
-    amount, period: 'mo'|'yr',      // today's money
-    gross: bool,                    // see tax treatment below
-    fromAge, toAge|null,            // PARTNER's own age; null = for life
-    inflationLinked: bool }         // true: full CPI; false: capped like 'other' income
-]
-```
+### Remaining work (small)
+1. **Partner's share summary.** Budget review shows: "Household £X/mo → your share £Y · partner's
+   share £Z" (`Z = household − myShare`, per tier). Plus a line inviting the partner to create
+   their own plan using £Z as *their* target. This is the whole "what will it cost your partner"
+   deliverable.
+2. **Per-line share override.** Today one global `mySharePct` applies to every `shared` line. Add
+   optional per-line `mySharePct` (default = global). One-line change in `myShareFactor` + a small
+   % control on shared lines. Tests: per-line overrides, mixed budgets.
+3. **Honest caveat in the UI** (copy, not code): the plan doesn't verify the partner can fund
+   their share; a survivor scenario (expenses don't halve when one income stops) is future work —
+   the one thing the IFA household model genuinely does better. Candidate future stress preset.
+4. Wizard copy: when "me + a partner" is chosen, explain the model in one sentence ("you'll plan
+   your own money against your share of the joint budget — your partner can do the same").
 
-- Ages are the **partner's own** ages (people think "she retires at 64, SP at 67"), converted to
-  plan years via `planYear = fromAge − partnerAge` (partner's age today, already stored). Anchor
-  on plan start — do **not** replicate the `new Date()` anchoring bug in
-  `StressRepository.js:278` (`calculateSpConfigFromSettings`).
-- The typical couple is 2–3 rows: salary `now → retirementAge` (auto-suggested from the wizard
-  facts we already collect), private pension `retirementAge → life`, State Pension `SPage → life`.
-  Already-retired, no-private-pension, part-time-later etc. are just different rows.
+### Explicitly rejected / deferred
+- Partner income streams & partner tax (v1 of this doc) — not needed under the per-person model.
+- Two-pot joint drawdown & joint tax optimisation — deferred indefinitely.
+- Account linking between two users — never; two independent accounts sharing nothing but the
+  budget *conventions* (each enters the household budget in their own plan; a future
+  "export/share budget" affordance could remove the double entry — note as an idea only).
 
-### Tax treatment — the one thing that must not be fudged
-
-The exploration confirmed both engines funnel non-pot income into `fixedIncome`
-(`DrawdownStrategy.js:37-81` via `SimulationEngine.js:634` and `legacyDecision.js:127`), and
-`fixedIncome` is **taxed against the owner's bands** (`taxable = sippGross + fixedIncome`).
-Partner income must NOT go there — it would wrongly consume the owner's PA/BRL headroom.
-
-Instead: partner income is resolved to **net** in the partner's own hands, then subtracted from
-the **household net need**. ("Spending is joint, income is per-person.")
-
-- `type:'salary'` → entered **net** (take-home — the number people actually know; sidesteps NI).
-- `type:'pension'|'statePension'` → entered **gross** (how they're quoted), taxed through the
-  partner's own PA/basic/higher bands with the existing `TaxCalculator.grossToNet` — trivially
-  cheap because streams are deterministic (no drawdown decision). All active gross streams in a
-  year are taxed **together** (SP + private pension interact through the partner's PA).
-
-New pure function in `BudgetModel.js` (unit-tested):
-`partnerNetIncomeByYear(budget, taxBands, horizonYears) → number[]` — today's-money net £/yr per
-plan year. Computed once at config-assembly time; the engines stay pure.
-
-## 2. Engine insertion (minimal, guarded)
-
-One new optional parameter end-to-end: a per-year **net offset**.
-
-- **`planDrawdown(…, netOffset = 0)`** (`DrawdownStrategy.js`): after
-  `targetNet = grossToNet(targetGross,…)`, apply `targetNet = max(0, targetNet − netOffset)` and
-  re-derive the gross-side cap consistently (`sippToBrl` sizing must use the reduced need).
-  `netOffset = 0` ⇒ byte-identical behaviour (golden master + cross-validation prove it).
-- **Stress** (`SimulationEngine.js` `calculateMonthlyDraw`): config gains
-  `partnerNetByYear[]` (today's money); per month:
-  `offset = partnerNetByYear[year] × (inflationLinked handling below) `. Inflation: linked
-  streams × `cumInf` (like SP); non-linked × `cappedInflation` (like `other`). Practical split:
-  build TWO arrays at config time (`partnerNetLinkedByYear`, `partnerNetCappedByYear`) so the
-  engine applies the right index to each without re-taxing. Wired in
-  `createSimulationConfigFromSettings` (`StressRepository.js`), reading the budget blob.
-- **Decision** (`legacyDecision.js`): same offset for the current tax year, resolved by calendar
-  tax year (mirroring `getStatePensionForTaxYear`), subtracted from `targetNet` at the `:128`
-  site. Per-tax-year `other` stays the owner's own non-pot income.
-- **Survivor note** (future stage 3 hook): because partner income is a separate offset — not
-  merged into owner tax — a survivor stress test is later just "zero the partner arrays from
-  year N + switch budget to single basket". The design leaves that door open.
-
-### Known engine debts adjacent to this work (fix or log, not silently extend)
-- `spFirstYearRatio` uses the calendar-year remainder, not plan-year (`StressRepository.js:286`).
-- Decision multi-year projection `generateDrawdownSchedule` ignores date-based SP entirely
-  (`DrawdownService.js:447-450`).
-- `applyBudgetToPlan` (`index.html:6275`) writes only Decision `baseSalary`; widen to offer
-  Stress too, and make `summariseBudget`'s `suggestedGrossAnnual` net off partner income first
-  (otherwise the suggested target double-counts).
-
-## 3. Partner income UI
-
-A "Partner's income" card in the Budget tab (only when `sharedWithPartner`), rows =
-label · amount (£/mo|£/yr) · from-age → to-age · net/gross pill. Pre-seeded from wizard facts:
-if partner not retired → a salary row `now→retirementAge` prompting for take-home; a State
-Pension row prompting for the forecast (link: gov.uk "Check your State Pension"). Timeline strip
-showing the phases ("working → pension → pension + SP") so the user *sees* the coverage story.
-
-## 4. Guided Budget wizard (the "very very helpful" walkthrough)
+## Guided Budget wizard (unchanged from v1 — the "very very helpful" walkthrough)
 
 Pure UI over the tested `BudgetModel` — no engine risk. Principles: one category per screen,
 conversational, skippable/resumable, running total + PLSA tier position always pinned.
@@ -113,25 +60,21 @@ conversational, skippable/resumable, running total + PLSA tier position always p
    - sanity nudges: entered value ≪ or ≫ typical range → gentle non-blocking flag;
    - retirement wisdom at the right moment: mortgage ends → age-band it; commuting disappears;
      holidays rise in go-go years; later-life care flag (PLSA excludes it — say so).
-6. **Couple-aware** — per-person lines and couple typicals already exist; wizard asks who each
-   personal line belongs to and pitches the couple benchmarks.
+6. **Couple-aware** — each line gets the me/partner/shared control (+ per-line % when shared) in
+   the flow itself, so the your-share/partner-share split falls out of the walkthrough naturally.
 
-## 5. Build order & tests
+## Engine debts logged during this investigation (independent of the above)
+- `spFirstYearRatio` uses the calendar-year remainder, not plan-year (`StressRepository.js:286`).
+- Decision multi-year projection `generateDrawdownSchedule` ignores date-based SP
+  (`DrawdownService.js:447-450`).
+- `applyBudgetToPlan` (`index.html:6275`) writes only Decision `baseSalary`, never Stress.
 
-1. `BudgetModel`: `partnerIncome` schema + `partnerNetIncomeByYear` (+ tests: each phase combo,
-   gross taxation incl. SP+pension interaction, age→year conversion, horizon clipping).
-2. `planDrawdown` netOffset param (+ tests: 0 ⇒ golden identical; offset reduces SIPP first;
-   offset > need ⇒ zero draw, no negative).
-3. Stress + Decision wiring (+ cross-validation case: partner SP == moving the same amount from
-   `other` when bands make net==gross — sanity anchor).
-4. Budget tab partner-income card + wizard pre-seed.
-5. Guided budget wizard (independent track, can ship before or after 1–4).
-6. Widen `applyBudgetToPlan` + net-off `suggestedGrossAnnual`.
+## Build order
+1. Per-line share override + partner-share summary card (+ tests). Small, ships first.
+2. Guided budget wizard (the main effort; independent track).
+3. Wizard copy + caveat text.
 
 ## Open confirmations before coding
-1. Partner salary entered **net**, partner pensions/SP entered **gross** (taxed via partner's own
-   bands) — agree?
-2. Streams live in `budgetTool.settings.partnerIncome` (household facts stay together) — agree?
-3. Scope check: owner's own pre-SP extra incomes (e.g. owner DB pension with a start age) — leave
-   `other` as-is for now, or generalise the same stream primitive to the owner in this stage?
-4. Budget wizard: ship as a separate track alongside (recommended), or gate partner streams on it?
+1. Partner-share summary in the budget review (+ "invite partner to plan with £Z") — agree?
+2. Per-line % override with global default — agree, or keep the single global split?
+3. Budget wizard scope as specced — anything to add/cut before build?

@@ -18,7 +18,9 @@ import {
   oneOffSchedule,
   grossUpAnnual,
   summariseBudget,
-  defaultBudget
+  defaultBudget,
+  evalAmountExpr,
+  typicalSanityFlag
 } from '../src/services/BudgetModel.js';
 
 const budget = {
@@ -235,6 +237,75 @@ describe('BudgetModel — partner cost sharing', () => {
     const b = { ...base, oneOffs: [{ id: 'car', label: 'Her car', tier: 'essential', amount: 16000, atAge: 62, everyYears: 8, paidBy: 'partner' }] };
     const s = summariseBudget(b);
     expect(s.periodicAnnualAverage).toBe(0); // partner's car → excluded from owner's need
+  });
+
+  it('a per-line mySharePct overrides the budget-wide split', () => {
+    const b = {
+      ...base,
+      lines: [
+        { id: 'a', label: 'Rent', tier: 'essential', annual: 12000, paidBy: 'shared', mySharePct: 70 },
+        { id: 'c', label: 'Holidays', tier: 'discretionary', annual: 8000, paidBy: 'shared' } // falls back to global 50
+      ]
+    };
+    const s = summariseBudget(b);
+    expect(s.comfortableAnnualNet).toBe(12000 * 0.7 + 8000 * 0.5); // 12400
+  });
+
+  it('blank / non-numeric per-line pct falls back to the global split', () => {
+    const b = { ...base, lines: [{ id: 'c', label: 'Holidays', tier: 'discretionary', annual: 8000, paidBy: 'shared', mySharePct: '' }] };
+    expect(summariseBudget(b).comfortableAnnualNet).toBe(4000);
+  });
+
+  it("reports the partner's side: household minus mine", () => {
+    const s = summariseBudget(base);
+    // household 26000, mine 16000 → partner 10000 (shopping 6000 + half of holidays 4000)
+    expect(s.partnerAllInAnnual).toBe(10000);
+    expect(s.partnerAllInMonthly).toBeCloseTo(10000 / 12, 6);
+  });
+
+  it("partner share is zero when sharing is off", () => {
+    expect(summariseBudget({ ...base, sharedWithPartner: false }).partnerAllInAnnual).toBe(0);
+  });
+});
+
+describe('BudgetModel — amount expression calculator (evalAmountExpr)', () => {
+  it('evaluates sums, products and mixed expressions', () => {
+    expect(evalAmountExpr('11.99+8.99+5.99')).toBeCloseTo(26.97, 2);
+    expect(evalAmountExpr('4×52/12')).toBeCloseTo(17.33, 2);
+    expect(evalAmountExpr('3*40')).toBe(120);
+    expect(evalAmountExpr(' (25+15) * 2 ')).toBe(80);
+    expect(evalAmountExpr('1,200+300')).toBe(1500); // thousands separators tolerated
+  });
+
+  it('passes plain numbers through', () => {
+    expect(evalAmountExpr('85')).toBe(85);
+    expect(evalAmountExpr('85.5')).toBe(85.5);
+  });
+
+  it('rejects anything that is not plain arithmetic', () => {
+    expect(evalAmountExpr('alert(1)')).toBeNull();
+    expect(evalAmountExpr('1+process.exit()')).toBeNull();
+    expect(evalAmountExpr('')).toBeNull();
+    expect(evalAmountExpr('abc')).toBeNull();
+    expect(evalAmountExpr(null)).toBeNull();
+    expect(evalAmountExpr('()')).toBeNull(); // no digits
+    expect(evalAmountExpr('1/0')).toBeNull(); // not finite
+    expect(evalAmountExpr('2+')).toBeNull(); // malformed
+  });
+});
+
+describe('BudgetModel — typical sanity flag', () => {
+  const b = { sharedWithPartner: false };
+  it('flags implausibly low and high amounts against ONS typicals', () => {
+    // Groceries typical single = £180/mo = £2160/yr
+    expect(typicalSanityFlag('Groceries & household', 500, b)).toBe('low');    // ≤35%
+    expect(typicalSanityFlag('Groceries & household', 8000, b)).toBe('high');  // ≥300%
+    expect(typicalSanityFlag('Groceries & household', 2200, b)).toBeNull();    // plausible
+  });
+  it('stays silent with no typical figure or no amount', () => {
+    expect(typicalSanityFlag('My weird custom line', 99999, b)).toBeNull();
+    expect(typicalSanityFlag('Groceries & household', 0, b)).toBeNull();
+    expect(typicalSanityFlag('Groceries & household', null, b)).toBeNull();
   });
 });
 

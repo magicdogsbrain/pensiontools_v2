@@ -5979,11 +5979,17 @@
       updateBudgetSummary();
     }
 
-    // Who-pays selector, shown per row only when partner sharing is on.
-    function paidBySelectHtml(id, current, fn) {
-      const opt = (v, l) => '<option value="' + v + '"' + ((current || 'me') === v ? ' selected' : '') + '>' + l + '</option>';
-      return '<select title="Who pays this?" onchange="' + fn + '(\'' + id + '\',\'paidBy\',this.value)" style="flex:0 0 96px;">' +
-        opt('me', 'Me') + opt('partner', 'Partner') + opt('shared', 'Shared') + '</select>';
+    // Who-pays selector, shown per row only when partner sharing is on. Shared rows get an optional
+    // per-line "my %" override (blank = the budget-wide split).
+    function paidBySelectHtml(item, fn) {
+      const current = (item.paidBy || 'me');
+      const opt = (v, l) => '<option value="' + v + '"' + (current === v ? ' selected' : '') + '>' + l + '</option>';
+      const globalPct = window._budget.mySharePct ?? 50;
+      const pct = current === 'shared'
+        ? '<input type="number" min="0" max="100" placeholder="' + globalPct + '%" title="Your % of this shared cost (blank = the overall split)" value="' + (item.mySharePct ?? '') + '" oninput="' + fn + '(\'' + item.id + '\',\'mySharePct\',this.value)" style="flex:0 0 62px;">'
+        : '';
+      return '<select title="Who pays this?" onchange="' + fn + '(\'' + item.id + '\',\'paidBy\',this.value)" style="flex:0 0 96px;">' +
+        opt('me', 'Me') + opt('partner', 'Partner') + opt('shared', 'Shared') + '</select>' + pct;
     }
 
     window.onBudgetSharedToggle = function () {
@@ -6019,7 +6025,7 @@
           '<input type="number" placeholder="' + ph + '" title="Amount in today\'s money' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" oninput="updateBudgetAmount(\'' + line.id + '\',this.value)" style="flex:1 1 auto; min-width:0;">' +
           '<button type="button" class="risk-btn" style="padding:4px 8px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
         '</div>' +
-        (window._budget.sharedWithPartner ? paidBySelectHtml(line.id, line.paidBy, 'updateBudgetLine') : '') +
+        (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'updateBudgetLine') : '') +
         '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 84px;">' +
         dup +
@@ -6047,7 +6053,7 @@
           hint +
         '</div>' +
         '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)" style="flex:0 0 120px;">' +
-        (window._budget.sharedWithPartner ? paidBySelectHtml(o.id, o.paidBy, 'updateBudgetOneOff') : '') +
+        (window._budget.sharedWithPartner ? paidBySelectHtml(o, 'updateBudgetOneOff') : '') +
         '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="every N yrs" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 110px;">' +
         (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Add a copy for your partner" onclick="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
@@ -6098,6 +6104,7 @@
       if (field === 'label' || field === 'paidBy') line[field] = value;
       else line[field] = value === '' ? null : +value;
       if (field === 'label') renderBudgetSuggestions(); // a rename can change what's "missing"
+      if (field === 'paidBy') renderBudgetLines();      // shared rows gain/lose the % input
       updateBudgetSummary();
     };
 
@@ -6123,6 +6130,7 @@
       if (!o) return;
       if (field === 'label' || field === 'paidBy') o[field] = value;
       else o[field] = value === '' ? null : +value;
+      if (field === 'paidBy') renderBudgetOneOffs();
       updateBudgetSummary();
     };
 
@@ -6212,9 +6220,14 @@
       html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)' + (shared ? ' — your share' : '') + '</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>';
       html += '<div><div style="font-size:12px;color:var(--text-muted);">' + (shared ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + money(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(allIn) + '/yr — what your plan funds</div></div>';
       if (shared) {
+        html += '<div><div style="font-size:12px;color:var(--text-muted);">Partner’s share</div><div style="font-size:22px;font-weight:700;">' + money(s.partnerAllInMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(s.partnerAllInAnnual) + '/yr — their side of this budget</div></div>';
         html += '<div><div style="font-size:12px;color:var(--text-muted);">Household all-in</div><div style="font-size:22px;font-weight:700;">' + money(s.householdComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">everything, both of you</div></div>';
       }
       html += '</div>';
+
+      if (shared && s.partnerAllInAnnual > 0) {
+        html += '<div class="alert alert-info" style="margin-bottom:12px;">Your partner’s share is <strong>' + money(s.partnerAllInMonthly) + '/mo</strong> (' + money(s.partnerAllInAnnual) + '/yr). They can create their own free plan and use that as <em>their</em> target income. <span style="color:var(--text-muted);">Note: this plan only funds <em>your</em> share — it doesn’t check your partner can fund theirs.</span></div>';
+      }
 
       // Breakdown of the all-in figure
       html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">= comfortable recurring <strong style="color:var(--text);">' + money(s.comfortableMonthlyNet) + '/mo</strong>' +

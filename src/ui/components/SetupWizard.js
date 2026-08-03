@@ -172,6 +172,10 @@ function renderScenarioStep1() {
       ${personAgeBlock('You', 'wiz', wizardData.currentAge, wizardData.retirementAge, wizardData.retired)}
       <div id="wizPartnerBlock" style="display:${couple ? 'block' : 'none'};">
         ${personAgeBlock("Your partner", 'wizPartner', wizardData.partnerAge, wizardData.partnerRetirementAge, wizardData.partnerRetired)}
+        <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0;">
+          You'll plan <strong>your own money</strong> against your share of the joint budget —
+          your partner can do the same in a plan of their own.
+        </p>
       </div>
 
       <div class="wizard-buttons">

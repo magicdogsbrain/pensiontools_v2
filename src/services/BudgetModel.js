@@ -229,15 +229,18 @@ export function annualNetAtAge(budget, age, tier = 'all') {
 /**
  * The fraction of a line/one-off the PLAN OWNER funds. Only applies when the budget opts into partner
  * sharing (`sharedWithPartner`); otherwise everything is theirs. paidBy: 'me' → 1, 'partner' → 0,
- * 'shared' → their `mySharePct` (default 50%). This keeps the plan single-person while letting a couple
- * split who-pays-what — and is the same attribution the Stage 2 couples engine will build on.
+ * 'shared' → the item's own `mySharePct` if set, else the budget-wide `mySharePct` (default 50%).
+ * This keeps the plan single-person while letting a couple split who-pays-what: each person models
+ * their own plan against their share of the household budget.
  */
 export function myShareFactor(item, budget) {
   if (!budget || !budget.sharedWithPartner) return 1;
   const who = (item && item.paidBy) || 'me';
   if (who === 'partner') return 0;
   if (who === 'shared') {
-    const pct = Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50;
+    const own = item && item.mySharePct;
+    const pct = (own != null && own !== '' && Number.isFinite(+own)) ? +own
+      : (Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50);
     return Math.max(0, Math.min(1, pct / 100));
   }
   return 1;
@@ -330,7 +333,12 @@ export function summariseBudget(budget) {
   const allInComfortableAnnual = comfortableAnnual + periodicAnnual;
   // Whole household (ignores who pays)
   const householdComfortableAnnual = comfortableAnnualNet(budget) + periodicAnnualAverage(budget, false);
+  // Partner's side of the same budget: everything the owner doesn't fund. Their target if they
+  // run their own plan.
+  const partnerAllInAnnual = Math.max(0, householdComfortableAnnual - allInComfortableAnnual);
   return {
+    partnerAllInAnnual,
+    partnerAllInMonthly: partnerAllInAnnual / 12,
     essentialAnnualNet: essentialAnnual,
     comfortableAnnualNet: comfortableAnnual,
     essentialMonthlyNet: essentialAnnual / 12,
@@ -345,6 +353,38 @@ export function summariseBudget(budget) {
     // The plan's income target funds the owner's all-in need (recurring + set-aside for periodic costs).
     suggestedGrossAnnual: grossUpAnnual(allInComfortableAnnual)
   };
+}
+
+/**
+ * Evaluate a simple arithmetic amount expression ("11.99+8.99+5.99", "4×52/12"). Lets wizard amount
+ * fields double as a calculator. Returns a finite number (rounded to pennies) or null if the input
+ * isn't plain arithmetic. Only digits, . + - * / × x ( ) and whitespace are permitted.
+ */
+export function evalAmountExpr(str) {
+  if (str == null) return null;
+  const src = String(str).trim().replace(/[×x]/gi, '*').replace(/,/g, '');
+  if (!src || !/^[\d+\-*/().\s]+$/.test(src) || !/\d/.test(src)) return null;
+  try {
+    const val = Function('"use strict"; return (' + src + ');')();
+    return Number.isFinite(val) ? Math.round(val * 100) / 100 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gentle sanity check of an entered amount against the ONS typical figure for the category.
+ * Returns 'low' | 'high' | null (null = no typical known, no amount, or within the plausible band).
+ * Thresholds are deliberately wide (≤35% / ≥300% of typical) — a nudge, never a nag.
+ */
+export function typicalSanityFlag(label, annual, budget) {
+  const typ = typicalMonthlyFor(label, budget);
+  const amt = num(annual);
+  if (typ == null || typ <= 0 || amt <= 0) return null;
+  const typAnnual = typ * 12;
+  if (amt <= typAnnual * 0.35) return 'low';
+  if (amt >= typAnnual * 3) return 'high';
+  return null;
 }
 
 /** A blank budget for a new plan. */

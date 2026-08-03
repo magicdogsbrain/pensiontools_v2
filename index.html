@@ -2469,6 +2469,29 @@
               /* Keep the budget's dynamic row inputs compact so the flex layout stays tidy. */
               #budEssentialRows input, #budDiscretionaryRows input, #budOneOffRows input,
               #budEssentialRows select, #budDiscretionaryRows select, #budOneOffRows select { padding: 5px 8px; }
+
+              /* Guided budget wizard overlay */
+              #budWizardOverlay { position:fixed; inset:0; z-index:1100; background:var(--bg); overflow:hidden; }
+              .budwiz-shell { display:flex; flex-direction:column; height:100%; max-width:860px; margin:0 auto; }
+              .budwiz-head { padding:16px 20px 8px; }
+              .budwiz-body { flex:1 1 auto; overflow-y:auto; padding:4px 20px 16px; }
+              .budwiz-foot { flex:0 0 auto; border-top:1px solid var(--border); background:var(--card);
+                             padding:12px 20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+              .budwiz-dots { display:flex; gap:6px; }
+              .budwiz-dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
+              .budwiz-dot.on { background:var(--primary,#6366f1); }
+              .budwiz-dot.done { background:var(--primary,#6366f1); opacity:0.45; }
+              #budWizardOverlay input, #budWizardOverlay select {
+                background: var(--card-alt); color: var(--text);
+                border:1px solid var(--border); border-radius:6px; padding:6px 10px;
+              }
+              .budwiz-row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;
+                            padding:10px 0; border-bottom:1px solid var(--border); }
+              .budwiz-chip { padding:4px 10px; border:1px solid var(--border); border-radius:999px;
+                             background:transparent; color:var(--text-muted); cursor:pointer; font-size:12px; }
+              .budwiz-chip:hover { border-color:var(--primary,#6366f1); color:var(--text); }
+              .budwiz-nudge { flex-basis:100%; font-size:12px; color:#eab308; }
+              .budwiz-err { flex-basis:100%; font-size:12px; color:var(--danger,#f85149); }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
@@ -2771,7 +2794,14 @@
             </div>
           </div>
 
+          <div id="budWizBanner" style="display:none;" class="alert alert-info">
+            <strong>New to budgeting?</strong> The guided walk-through takes you category by category with
+            typical UK figures, a built-in calculator and tips on what changes at retirement.
+            <button type="button" onclick="openBudgetWizard()" style="margin-left:8px;">Start the walk-through</button>
+          </div>
+
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
+            <button type="button" onclick="openBudgetWizard()">Guided walk-through</button>
             <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
             <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
           </div>
@@ -2823,6 +2853,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Guided budget wizard (full-screen overlay; content rendered by JS) -->
+      <div id="budWizardOverlay" style="display:none;"></div>
 
     </div>
   </div>
@@ -2880,7 +2913,9 @@
       annualNetAtAge,
       oneOffSchedule,
       grossUpAnnual,
-      defaultBudget
+      defaultBudget,
+      evalAmountExpr,
+      typicalSanityFlag
     } from './src/app.js';
 
     // Import additional services
@@ -3170,8 +3205,8 @@
       numberInputs.forEach(input => {
         // Skip inputs that already have formatting
         if (input.dataset.formatted) return;
-        // Budget tab uses dynamic flex rows; the overlay wrapper would disrupt their layout.
-        if (input.closest('#budget-content')) return;
+        // Budget tab + wizard use dynamic flex rows; the overlay wrapper would disrupt their layout.
+        if (input.closest('#budget-content') || input.closest('#budWizardOverlay')) return;
         input.dataset.formatted = 'true';
 
         // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
@@ -5977,6 +6012,9 @@
       renderBudgetLines();
       renderBudgetOneOffs();
       updateBudgetSummary();
+      // Nudge brand-new budgets (no amounts entered anywhere) toward the guided walk-through.
+      const untouched = !window._budget.lines.some((l) => l.annual) && !window._budget.oneOffs.some((o) => o.amount);
+      document.getElementById('budWizBanner').style.display = untouched ? 'block' : 'none';
     }
 
     // Who-pays selector, shown per row only when partner sharing is on. Shared rows get an optional
@@ -6304,6 +6342,384 @@
         hideLoading();
       }
     };
+
+    // ==================== Guided budget wizard ====================
+    // A category-by-category walk-through over the SAME working copy (window._budget) the main page
+    // edits: typical-UK "use this" chips, arithmetic-capable amount fields, a break-it-down mini
+    // calculator, per-category completeness chips and sanity nudges. Closing the wizard leaves all
+    // edits in the working copy; saving goes through the normal saveBudgetUI path.
+    const BUD_WIZ_GROUPS = [
+      { key: 'home', title: 'Home & bills', tier: 'essential',
+        tip: 'Will your mortgage still exist at retirement? If it ends earlier, leave it out (or give it a "to age" on the main Budget page). Bills mostly carry on — but you\'ll be home more, so heating often rises.',
+        labels: ['Rent / mortgage', 'Council tax', 'Gas', 'Electricity', 'Water', 'Broadband', 'Mobile phones', 'TV licence', 'Home insurance', 'Boiler service', 'Home upkeep', 'Premier banking / account fees', 'Cleaner / gardener', 'Second / holiday home', 'Storage / lock-up'] },
+      { key: 'food', title: 'Food, drink & eating out', tier: 'essential',
+        tip: 'With more free time most retirees eat OUT more, not less. Check 2–3 months of bank statements for what you really spend — real numbers beat guesses.',
+        labels: ['Groceries & household', 'Eating out & takeaways', 'Alcohol'] },
+      { key: 'transport', title: 'Transport', tier: 'essential',
+        tip: 'Commuting disappears at retirement, but running costs are easy to underestimate — servicing, MOT, tyres, repairs. Replacing the car itself goes in One-off costs (a later step).',
+        labels: ['Car insurance', 'Car tax', 'Petrol / fuel', 'Car servicing & maintenance', 'Breakdown cover', 'Parking & permits', 'Public transport'] },
+      { key: 'health', title: 'Health & protection', tier: 'essential',
+        tip: 'Health spending tends to RISE with age — and the PLSA benchmarks exclude long-term care entirely. A monthly care set-aside is easy to add now and painful to discover missing later.',
+        labels: ['Personal health', 'Health / dental insurance', 'Dental & optical', 'Hearing', 'Life insurance / income protection', 'Long-term care set-aside'] },
+      { key: 'leisure', title: 'Holidays, hobbies & leisure', tier: 'discretionary',
+        tip: 'Most people spend MORE on holidays and hobbies in the early "go-go" years. Budget for the retirement you actually want — the spending smile tapers it in later life.',
+        labels: ['Main holiday', 'UK breaks', 'Day trips', 'Streaming & entertainment', 'Digital subscriptions', 'Gym & fitness', 'Sports & equipment', 'Sports clothes', 'Hobbies & leisure', 'Newspapers, books & media'] },
+      { key: 'personal', title: 'Personal, family & giving', tier: 'discretionary',
+        tip: 'The easiest category to underestimate: gifts, grandchildren, Christmas. A personal "spends" line per person keeps day-to-day money simple.',
+        labels: ['Clothes', 'Gifts & family', 'Charity', 'Pets', 'Personal spending money', 'Kids / dependents', 'Christmas & birthdays', 'Hairdressing & grooming', 'Grandchildren', 'Professional memberships', 'My personal spending', "Partner's personal spending"] },
+      { key: 'extras', title: 'Around the home & everything else', tier: 'discretionary',
+        tip: 'Furniture wears out, technology needs refreshing, and a small emergency buffer stops a bad month becoming a plan problem. Anything of yours that didn\'t fit an earlier screen appears here too.',
+        labels: ['Home furnishings & décor', 'Home technology', 'Emergency buffer'] }
+    ];
+    const BUD_WIZ_LABEL_GROUP = (() => {
+      const m = {};
+      for (const g of BUD_WIZ_GROUPS) for (const l of g.labels) m[l.toLowerCase()] = g.key;
+      return m;
+    })();
+    // intro + category groups + one-offs + review
+    const BUD_WIZ_STEPS = ['intro', ...BUD_WIZ_GROUPS.map((g) => g.key), 'oneoffs', 'review'];
+    let budWizStep = 0;
+
+    function budWizGroupOfLine(line) {
+      if (line.wizGroup && BUD_WIZ_GROUPS.some((g) => g.key === line.wizGroup)) return line.wizGroup;
+      return BUD_WIZ_LABEL_GROUP[(line.label || '').trim().toLowerCase()] || 'extras';
+    }
+
+    window.openBudgetWizard = function () {
+      if (!window._budget) return;
+      budWizStep = 0;
+      document.getElementById('budWizardOverlay').style.display = 'block';
+      budWizRender();
+    };
+
+    window.closeBudgetWizard = function () {
+      document.getElementById('budWizardOverlay').style.display = 'none';
+      // Reflect wizard edits on the main page (working copy is shared; nothing is saved yet).
+      renderBudgetLines();
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+    };
+
+    window.budWizGo = function (delta) {
+      budWizStep = Math.max(0, Math.min(BUD_WIZ_STEPS.length - 1, budWizStep + delta));
+      budWizRender();
+    };
+
+    // ---- rows ----
+    function budWizAmountShown(line) {
+      if (line.annual == null) return '';
+      return (line.period || 'yr') === 'mo' ? Math.round(line.annual / 12) : line.annual;
+    }
+
+    function budWizLineRowHtml(line) {
+      const period = line.period || 'yr';
+      const typ = typicalMonthlyFor(line.label, window._budget);
+      const typTxt = typ != null ? ('Typical ' + gbp(period === 'mo' ? typ : typ * 12) + '/' + period) : null;
+      const fixed = !!BUD_WIZ_LABEL_GROUP[(line.label || '').trim().toLowerCase()];
+      const nameCell = fixed
+        ? '<div style="font-weight:600;">' + budEsc(line.label) + '</div>'
+        : '<input type="text" placeholder="What is it?" value="' + budEsc(line.label) + '" oninput="budWizField(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">';
+      const hint = line.hint ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + budEsc(line.hint) + '</div>' : '';
+      const flag = typicalSanityFlag(line.label, line.annual, window._budget);
+      const nudge = flag
+        ? '<div class="budwiz-nudge" id="bw-n-' + line.id + '">' + (flag === 'low'
+            ? 'Well below typical (' + gbp(typ) + '/mo) — deliberate, or missing something?'
+            : 'Well above typical (' + gbp(typ) + '/mo) — worth double-checking.') + '</div>'
+        : '<div class="budwiz-nudge" id="bw-n-' + line.id + '"></div>';
+      return '<div class="budwiz-row" id="bw-row-' + line.id + '">' +
+        '<div style="flex:1 1 190px; min-width:160px;">' + nameCell + hint + '</div>' +
+        '<div style="display:flex; gap:4px; flex:0 0 170px; align-items:center;">' +
+          '<input type="text" inputmode="decimal" placeholder="£ or e.g. 12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, 4×52/12" value="' + budWizAmountShown(line) + '" onchange="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
+          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Switch monthly / yearly" onclick="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
+          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Break it down into parts" onclick="budWizBreakToggle(\'' + line.id + '\')">&Sigma;</button>' +
+        '</div>' +
+        (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
+        (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'budWizField') : '') +
+        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
+        '<div id="bw-err-' + line.id + '" class="budwiz-err"></div>' +
+        nudge +
+        '<div id="bw-break-' + line.id + '" style="display:none; flex-basis:100%;"></div>' +
+        '</div>';
+    }
+
+    // ---- field handlers ----
+    window.budWizField = function (id, field, value) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      if (field === 'label' || field === 'paidBy') line[field] = value;
+      else line[field] = value === '' ? null : +value;
+      if (field === 'paidBy') budWizRender();
+      budWizFooterTotals();
+    };
+
+    window.budWizAmount = function (id, value, el) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      const err = document.getElementById('bw-err-' + id);
+      const v = String(value).trim();
+      if (v === '') {
+        line.annual = null;
+        if (err) err.textContent = '';
+      } else {
+        const n = evalAmountExpr(v);
+        if (n == null) {
+          if (err) err.textContent = 'Couldn’t read that — a number or a simple sum like 12.99+8.50 works.';
+          return;
+        }
+        if (err) err.textContent = '';
+        line.annual = (line.period || 'yr') === 'mo' ? n * 12 : n;
+        if (el) el.value = (line.period || 'yr') === 'mo' ? Math.round(line.annual / 12) : line.annual;
+      }
+      budWizNudge(line);
+      budWizFooterTotals();
+    };
+
+    function budWizNudge(line) {
+      const n = document.getElementById('bw-n-' + line.id);
+      if (!n) return;
+      const typ = typicalMonthlyFor(line.label, window._budget);
+      const flag = typicalSanityFlag(line.label, line.annual, window._budget);
+      n.textContent = !flag ? '' : (flag === 'low'
+        ? 'Well below typical (' + gbp(typ) + '/mo) — deliberate, or missing something?'
+        : 'Well above typical (' + gbp(typ) + '/mo) — worth double-checking.');
+    }
+
+    window.budWizTogglePeriod = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      line.period = (line.period || 'yr') === 'mo' ? 'yr' : 'mo';
+      budWizRender();
+    };
+
+    window.budWizUseTypical = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      const typ = typicalMonthlyFor(line.label, window._budget);
+      if (typ == null) return;
+      line.annual = typ * 12;
+      budWizRender();
+    };
+
+    window.budWizRemove = function (id) {
+      window._budget.lines = window._budget.lines.filter((l) => l.id !== id);
+      budWizRender();
+    };
+
+    window.budWizAddLine = function (groupKey) {
+      const g = BUD_WIZ_GROUPS.find((x) => x.key === groupKey);
+      window._budget.lines.push({ id: budId(), label: '', tier: (g && g.tier) || 'discretionary', annual: null, fromAge: null, toAge: null, period: 'mo', wizGroup: groupKey });
+      budWizRender();
+    };
+
+    window.budWizSuggest = function (label, groupKey) {
+      const m = missingSuggestions(window._budget).find((x) => x.label === label);
+      if (!m) return;
+      window._budget.lines.push({
+        id: budId(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null,
+        hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me', wizGroup: groupKey
+      });
+      budWizRender();
+    };
+
+    // ---- break-it-down mini calculator (transient; writes its sum into the amount) ----
+    window.budWizBreakToggle = function (id) {
+      const box = document.getElementById('bw-break-' + id);
+      if (!box) return;
+      if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+      const line = window._budget.lines.find((l) => l.id === id);
+      const per = (line && line.period) === 'mo' ? 'mo' : 'yr';
+      let rows = '';
+      for (let i = 0; i < 5; i++) {
+        rows += '<div style="display:flex; gap:6px; margin-bottom:6px;">' +
+          '<input type="text" placeholder="' + (i === 0 ? 'e.g. fuel' : i === 1 ? 'e.g. insurance' : 'part ' + (i + 1)) + '" style="flex:1 1 auto;">' +
+          '<input type="text" inputmode="decimal" placeholder="£/' + per + '" oninput="budWizBreakSum(\'' + id + '\')" style="flex:0 0 110px;" data-break-amt>' +
+          '</div>';
+      }
+      box.innerHTML = '<div style="background:var(--card-alt); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:6px;">' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Add it up part by part — the parts double as a checklist. Sums are fine in each box.</div>' +
+        rows +
+        '<div style="display:flex; gap:10px; align-items:center;">' +
+          '<div style="font-size:13px;">Total: <strong id="bw-break-sum-' + id + '">£0</strong>/' + per + '</div>' +
+          '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="budWizBreakApply(\'' + id + '\')">Use total</button>' +
+        '</div></div>';
+      box.style.display = 'block';
+    };
+
+    function budWizBreakTotal(id) {
+      const box = document.getElementById('bw-break-' + id);
+      if (!box) return 0;
+      let sum = 0;
+      box.querySelectorAll('[data-break-amt]').forEach((inp) => {
+        const n = evalAmountExpr(inp.value);
+        if (n != null) sum += n;
+      });
+      return sum;
+    }
+
+    window.budWizBreakSum = function (id) {
+      const el = document.getElementById('bw-break-sum-' + id);
+      if (el) el.textContent = gbp(budWizBreakTotal(id));
+    };
+
+    window.budWizBreakApply = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      const sum = budWizBreakTotal(id);
+      line.annual = (line.period || 'yr') === 'mo' ? sum * 12 : sum;
+      budWizRender();
+    };
+
+    // ---- one-offs step ----
+    function budWizOneOffRowHtml(o) {
+      return '<div class="budwiz-row">' +
+        '<input type="text" placeholder="e.g. Replacement car" value="' + budEsc(o.label) + '" oninput="budWizOneOff(\'' + o.id + '\',\'label\',this.value)" style="flex:1 1 170px; min-width:150px;">' +
+        '<input type="text" inputmode="decimal" placeholder="£ total" title="Total cost in today\'s money — sums welcome" value="' + (o.amount ?? '') + '" onchange="budWizOneOffAmount(\'' + o.id + '\',this.value,this)" style="flex:0 0 110px;">' +
+        '<input type="number" placeholder="at age" title="Age it first happens" value="' + (o.atAge ?? '') + '" oninput="budWizOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
+        '<input type="number" placeholder="every N yrs" title="Blank = one-time" value="' + (o.everyYears ?? '') + '" oninput="budWizOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 104px;">' +
+        (window._budget.sharedWithPartner ? paidBySelectHtml(o, 'budWizOneOff') : '') +
+        '<button type="button" class="risk-btn" style="padding:4px 10px;" onclick="budWizRemoveOneOff(\'' + o.id + '\')">&times;</button>' +
+        '<div id="bw-oerr-' + o.id + '" class="budwiz-err"></div>' +
+        '</div>';
+    }
+
+    window.budWizOneOff = function (id, field, value) {
+      const o = window._budget.oneOffs.find((x) => x.id === id);
+      if (!o) return;
+      if (field === 'label' || field === 'paidBy') o[field] = value;
+      else o[field] = value === '' ? null : +value;
+      if (field === 'paidBy') budWizRender();
+      budWizFooterTotals();
+    };
+
+    window.budWizOneOffAmount = function (id, value, el) {
+      const o = window._budget.oneOffs.find((x) => x.id === id);
+      if (!o) return;
+      const err = document.getElementById('bw-oerr-' + id);
+      const v = String(value).trim();
+      if (v === '') { o.amount = null; if (err) err.textContent = ''; }
+      else {
+        const n = evalAmountExpr(v);
+        if (n == null) { if (err) err.textContent = 'Couldn’t read that — a number or a simple sum works.'; return; }
+        if (err) err.textContent = '';
+        o.amount = n;
+        if (el) el.value = n;
+      }
+      budWizFooterTotals();
+    };
+
+    window.budWizAddOneOff = function () {
+      window._budget.oneOffs.push({ id: budId(), label: '', tier: 'essential', amount: null, atAge: null, everyYears: null });
+      budWizRender();
+    };
+
+    window.budWizRemoveOneOff = function (id) {
+      window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
+      budWizRender();
+    };
+
+    // ---- save / finish ----
+    window.budWizSave = async function (alsoApply) {
+      await saveBudgetUI();
+      if (alsoApply) await applyBudgetToPlan();
+      closeBudgetWizard();
+    };
+
+    // ---- rendering ----
+    function budWizFooterTotals() {
+      const el = document.getElementById('budWizTotals');
+      if (!el) return;
+      const b = window._budget;
+      const s = summariseBudget(b);
+      el.innerHTML = 'Essential <strong>' + gbp(s.essentialMonthlyNet) + '</strong>/mo · Lifestyle <strong>' +
+        gbp(s.comfortableMonthlyNet - s.essentialMonthlyNet) + '</strong>/mo · All-in' +
+        (s.sharedWithPartner ? ' (your share)' : '') + ' <strong style="color:var(--primary,#6366f1);">' +
+        gbp(s.allInComfortableMonthly) + '</strong>/mo';
+    }
+
+    function budWizStepBody(step) {
+      if (step === 'intro') {
+        return '<h2 style="margin-bottom:10px;">Let’s build your budget</h2>' +
+          '<p style="margin-bottom:12px;">We’ll walk through your spending one category at a time — bills first, then the fun stuff, then the big occasional costs. Skip anything; you can come back any time.</p>' +
+          '<div class="alert alert-info" style="margin-bottom:12px;"><strong>Before you start:</strong> open your banking app and look at the last 2–3 months of statements. Real numbers beat guesses — most people who guess miss 20% of their spending.</div>' +
+          '<ul style="padding-left:18px; font-size:14px; color:var(--text-muted); line-height:1.7;">' +
+          '<li>Every amount box is a <strong>calculator</strong> — type <code>11.99+8.99+5.99</code> or <code>4×52/12</code> and it does the maths.</li>' +
+          '<li><strong>Typical UK figures</strong> (ONS retired households) appear as one-tap chips when you’re unsure.</li>' +
+          '<li>The <strong>&Sigma;</strong> button breaks a cost into parts (fuel + insurance + MOT…) so nothing gets forgotten.</li>' +
+          '<li>Everything is in <strong>today’s money</strong>.</li>' +
+          (window._budget.sharedWithPartner ? '<li>Mark each line <strong>Me / Partner / Shared</strong> — your plan funds your share; your partner sees theirs.</li>' : '') +
+          '</ul>';
+      }
+      if (step === 'oneoffs') {
+        const rows = window._budget.oneOffs.map(budWizOneOffRowHtml).join('') ||
+          '<p style="font-size:13px;color:var(--text-muted);">Nothing yet — add the big things below.</p>';
+        return '<h2 style="margin-bottom:6px;">One-off & periodic costs</h2>' +
+          '<p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Big costs that land in a specific year: cars, roofs, weddings, milestone trips, helping the kids. Give recurring ones an "every N years" and we average them into your monthly need; one-time items stay as dated events.</p>' +
+          rows +
+          '<button type="button" class="risk-btn" style="margin-top:10px;" onclick="budWizAddOneOff()">+ Add a one-off</button>';
+      }
+      if (step === 'review') {
+        const s = summariseBudget(window._budget);
+        const plsa = PLSA_2024.single;
+        const allIn = s.allInComfortableAnnual;
+        const tier = allIn >= plsa.comfortable ? 'at or above <strong>Comfortable</strong>' : allIn >= plsa.moderate ? 'between <strong>Moderate</strong> and <strong>Comfortable</strong>' : allIn >= plsa.minimum ? 'between <strong>Minimum</strong> and <strong>Moderate</strong>' : 'below the <strong>Minimum</strong>';
+        let h = '<h2 style="margin-bottom:10px;">Your spending picture</h2>' +
+          '<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:14px;">' +
+          '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)' + (s.sharedWithPartner ? ' — your share' : '') + '</div><div style="font-size:24px;font-weight:700;">' + gbp(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>' +
+          '<div><div style="font-size:12px;color:var(--text-muted);">' + (s.sharedWithPartner ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:28px;font-weight:800;color:var(--primary,#6366f1);">' + gbp(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + gbp(allIn) + '/yr — what your plan funds</div></div>';
+        if (s.sharedWithPartner) {
+          h += '<div><div style="font-size:12px;color:var(--text-muted);">Partner’s share</div><div style="font-size:24px;font-weight:700;">' + gbp(s.partnerAllInMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">their side — they can plan with this</div></div>';
+        }
+        h += '</div>';
+        h += '<div class="alert alert-info" style="margin-bottom:14px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + gbp(plsa.minimum) + ' · Moderate ' + gbp(plsa.moderate) + ' · Comfortable ' + gbp(plsa.comfortable) + ' per year — you’re ' + tier + '. <span style="color:var(--text-muted);">(Home owned outright; excludes care costs.)</span></div>';
+        const missed = missingSuggestions(window._budget).slice(0, 8);
+        if (missed.length) {
+          h += '<div style="margin-bottom:14px;"><div style="font-size:13px; margin-bottom:6px;"><strong>Did you miss anything?</strong> Tap to add, then find it on its category screen:</div><div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+            missed.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" onclick="budWizSuggest(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\', null)">+ ' + budEsc(m.label) + '</button>').join('') + '</div></div>';
+        }
+        h += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">' +
+          '<button type="button" onclick="budWizSave(false)">Save budget</button>' +
+          '<button type="button" onclick="budWizSave(true)">Save &amp; use as my plan’s target</button>' +
+          '</div>';
+        return h;
+      }
+      // category group screen
+      const g = BUD_WIZ_GROUPS.find((x) => x.key === step);
+      const lines = window._budget.lines.filter((l) => budWizGroupOfLine(l) === g.key);
+      const chips = missingSuggestions(window._budget)
+        .filter((m) => (BUD_WIZ_LABEL_GROUP[m.label.toLowerCase()] || 'extras') === g.key);
+      return '<h2 style="margin-bottom:6px;">' + g.title + '</h2>' +
+        '<div class="alert alert-info" style="margin-bottom:10px; font-size:13px;">' + g.tip + '</div>' +
+        (lines.map(budWizLineRowHtml).join('') || '<p style="font-size:13px;color:var(--text-muted);">Nothing here yet — add below.</p>') +
+        '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center;">' +
+          '<button type="button" class="risk-btn" onclick="budWizAddLine(\'' + g.key + '\')">+ Add your own</button>' +
+          (chips.length ? '<span style="font-size:12px;color:var(--text-muted);">Often forgotten:</span>' +
+            chips.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" onclick="budWizSuggest(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\',\'' + g.key + '\')">+ ' + budEsc(m.label) + '</button>').join('') : '') +
+        '</div>';
+    }
+
+    function budWizRender() {
+      const overlay = document.getElementById('budWizardOverlay');
+      const step = BUD_WIZ_STEPS[budWizStep];
+      const last = budWizStep === BUD_WIZ_STEPS.length - 1;
+      const dots = BUD_WIZ_STEPS.map((_, i) =>
+        '<span class="budwiz-dot ' + (i === budWizStep ? 'on' : i < budWizStep ? 'done' : '') + '"></span>').join('');
+      overlay.innerHTML =
+        '<div class="budwiz-shell">' +
+          '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<div style="font-size:13px; color:var(--text-muted);">Budget walk-through · step ' + (budWizStep + 1) + ' of ' + BUD_WIZ_STEPS.length + '</div>' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px;" title="Close (your entries are kept)" onclick="closeBudgetWizard()">&times;</button>' +
+          '</div>' +
+          '<div class="budwiz-body">' + budWizStepBody(step) + '</div>' +
+          '<div class="budwiz-foot">' +
+            '<button type="button" class="risk-btn" onclick="budWizGo(-1)"' + (budWizStep === 0 ? ' disabled' : '') + '>Back</button>' +
+            (!last ? '<button type="button" onclick="budWizGo(1)">' + (step === 'intro' ? 'Start' : 'Next') + '</button>' : '') +
+            '<div class="budwiz-dots">' + dots + '</div>' +
+            '<div id="budWizTotals" style="margin-left:auto; font-size:13px; color:var(--text-muted);"></div>' +
+          '</div>' +
+        '</div>';
+      budWizFooterTotals();
+      overlay.querySelector('.budwiz-body').scrollTop = 0;
+    }
 
     // ---- Plan settings lock -------------------------------------------------------------------
     // A plan's Decision settings ARE the plan definition. The moment they are saved the plan locks:

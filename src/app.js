@@ -72,7 +72,9 @@ import {
   annualNetAtAge,
   oneOffSchedule,
   grossUpAnnual,
-  defaultBudget
+  defaultBudget,
+  evalAmountExpr,
+  typicalSanityFlag
 } from './services/BudgetModel.js';
 
 // UI
@@ -384,6 +386,8 @@ export {
   oneOffSchedule,
   grossUpAnnual,
   defaultBudget,
+  evalAmountExpr,
+  typicalSanityFlag,
 
   // Constants
   VERSION

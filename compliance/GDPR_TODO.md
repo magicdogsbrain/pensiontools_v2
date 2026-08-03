@@ -61,10 +61,9 @@ user reading another user's financial data.
       auth + security rules.
 - [x] Policy published 2026-07-28 as `public/privacy.html` (served at `/privacy.html` on the
       site), linked from the auth screen footer and landing page footer, naming Usefulish Ltd as
-      controller. ICO registration submitted 29 Jul 2026 (ref C1994426, per
-      `~/AshworthEnterprises/accounting/company.yaml`) — reference added to the policy 3 Aug 2026.
-      **Still to do:** swap in the final ZB register number once the entry appears in the ICO
-      public register (update both `compliance/PRIVACY_POLICY.md` and `public/privacy.html`).
+      controller. ICO registration **ZC209401** (registered 29 Jul 2026, expires 28 Jul 2027,
+      auto-renews by DD; certificate at `~/AshworthEnterprises/Usefulish/Registration Certificate
+      - ZC209401.pdf`) — number in the policy since 3 Aug 2026.
 - [x] Unused `measurementId` removed from the Firebase config 2026-07-28 (Analytics was never
       initialised). If Analytics is ever enabled, update the privacy policy first.
 - [x] Also removed internal notes (`audit-jul-2026.md`, `model-review-feb-2026.md`, `roadmap.md`)

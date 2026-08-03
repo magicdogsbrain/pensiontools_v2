@@ -71,7 +71,14 @@ user reading another user's financial data.
       live in `research/`.
 
 ## Admin (not code — do in the console)
-- [ ] Enable **2-Step Verification** on the Google account that owns `pensiontools-4b237`.
+- [x] **2-Step Verification** already enabled on the Google account that owns `pensiontools-4b237`
+      (confirmed by the account owner, 2026-08-03).
+
+---
+**All items complete as of 2026-08-03.** Ongoing obligations: keep the ICO registration current
+(ZC209401, auto-renews by direct debit, expires 28 Jul 2027); update the privacy policy before any
+material change (new processors, analytics, new data categories); report any personal-data breach
+to the ICO within 72 hours.
 
 ---
 See also: `compliance/PRIVACY_POLICY.md` (this repo) and the company Record of Processing in the

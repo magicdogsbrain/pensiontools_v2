@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CipKHddP.js"></script>
+  <script type="module" crossorigin src="./assets/main-cs_Q7nLs.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2470,6 +2470,29 @@
               /* Keep the budget's dynamic row inputs compact so the flex layout stays tidy. */
               #budEssentialRows input, #budDiscretionaryRows input, #budOneOffRows input,
               #budEssentialRows select, #budDiscretionaryRows select, #budOneOffRows select { padding: 5px 8px; }
+
+              /* Guided budget wizard overlay */
+              #budWizardOverlay { position:fixed; inset:0; z-index:1100; background:var(--bg); overflow:hidden; }
+              .budwiz-shell { display:flex; flex-direction:column; height:100%; max-width:860px; margin:0 auto; }
+              .budwiz-head { padding:16px 20px 8px; }
+              .budwiz-body { flex:1 1 auto; overflow-y:auto; padding:4px 20px 16px; }
+              .budwiz-foot { flex:0 0 auto; border-top:1px solid var(--border); background:var(--card);
+                             padding:12px 20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+              .budwiz-dots { display:flex; gap:6px; }
+              .budwiz-dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
+              .budwiz-dot.on { background:var(--primary,#6366f1); }
+              .budwiz-dot.done { background:var(--primary,#6366f1); opacity:0.45; }
+              #budWizardOverlay input, #budWizardOverlay select {
+                background: var(--card-alt); color: var(--text);
+                border:1px solid var(--border); border-radius:6px; padding:6px 10px;
+              }
+              .budwiz-row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;
+                            padding:10px 0; border-bottom:1px solid var(--border); }
+              .budwiz-chip { padding:4px 10px; border:1px solid var(--border); border-radius:999px;
+                             background:transparent; color:var(--text-muted); cursor:pointer; font-size:12px; }
+              .budwiz-chip:hover { border-color:var(--primary,#6366f1); color:var(--text); }
+              .budwiz-nudge { flex-basis:100%; font-size:12px; color:#eab308; }
+              .budwiz-err { flex-basis:100%; font-size:12px; color:var(--danger,#f85149); }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
@@ -2772,7 +2795,14 @@
             </div>
           </div>
 
+          <div id="budWizBanner" style="display:none;" class="alert alert-info">
+            <strong>New to budgeting?</strong> The guided walk-through takes you category by category with
+            typical UK figures, a built-in calculator and tips on what changes at retirement.
+            <button type="button" onclick="openBudgetWizard()" style="margin-left:8px;">Start the walk-through</button>
+          </div>
+
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
+            <button type="button" onclick="openBudgetWizard()">Guided walk-through</button>
             <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
             <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
           </div>
@@ -2824,6 +2854,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Guided budget wizard (full-screen overlay; content rendered by JS) -->
+      <div id="budWizardOverlay" style="display:none;"></div>
 
     </div>
   </div>

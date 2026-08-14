@@ -40,9 +40,10 @@ your data, use it for advertising, or share it for marketing.
   certification under the UK Extension to the EU–US Data Privacy Framework and by Google Cloud's
   data processing terms (which incorporate the UK International Data Transfer Addendum / EU
   Standard Contractual Clauses where applicable).
-- **GitHub (Microsoft)** — hosts the app's static files (GitHub Pages); receives standard request
-  metadata (IP, browser) when you load the page. Your financial data does not pass through GitHub;
-  it goes directly from your browser to Firebase.
+- **GitHub (Microsoft)** and **Cloudflare** — host and serve the app's static files (GitHub Pages
+  and Cloudflare Pages respectively); each receives standard request metadata (IP address, browser)
+  when you load the page. Your financial data does not pass through either; it goes directly from
+  your browser to Firebase.
 
 We do not use analytics or advertising services in this app.
 

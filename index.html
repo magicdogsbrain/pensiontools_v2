@@ -1987,6 +1987,12 @@
 
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
+          <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
+            <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
+            spending need and State Pension — and they're still the defaults, so any answer would be
+            meaningless. It takes a couple of minutes.
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('decision')">Open Settings</button>
+          </div>
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
@@ -2343,6 +2349,12 @@
 
         <!-- Monte Carlo Sub-tab -->
         <div id="stress-montecarlo" class="stress-subtab">
+          <div id="ssSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
+            <strong>Set up this plan first.</strong> Simulations run on your Settings — your pots,
+            spending need and State Pension — and they're still the defaults, so any result would be
+            meaningless. It takes a couple of minutes.
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
+          </div>
           <div class="card">
             <h2>Monte Carlo Simulation</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
@@ -2826,7 +2838,7 @@
           <div id="budWizBanner" style="display:none;" class="alert alert-info">
             <strong>New to budgeting?</strong> The guided walk-through takes you category by category with
             typical UK figures, a built-in calculator and tips on what changes at retirement.
-            <button type="button" onclick="openBudgetWizard()" style="margin-left:8px;">Start the walk-through</button>
+            <button type="button" class="risk-btn" onclick="openBudgetWizard()" style="margin-left:8px; padding:5px 14px; font-size:13px;">Start the walk-through</button>
           </div>
 
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
@@ -3439,11 +3451,44 @@
      * Initialize ALL input fields from stored settings
      * Called once on app load to ensure all forms have correct values
      */
+    // ---- "Configured" routing: default settings give meaningless answers -----------------------
+    // Each tool's settings carry `configured: true` once the user has saved them (set by the two
+    // Settings save buttons). Until then the tool page shows a set-up-first banner, and the setup
+    // wizard's intent router lands on the Settings sub-tab instead of the tool itself. Older plans
+    // predate the flag: a locked plan (settings committed) counts as configured.
+    window.openToolSettingsTab = function (tool) {
+      const sel = tool === 'decision' ? '.sub-tab[data-decisiontab="decisionsettings"]' : '.sub-tab[data-stresstab="stresssettings"]';
+      const btn = document.querySelector(sel);
+      if (btn) btn.click();
+    };
+
+    async function isToolConfigured(tool) {
+      try {
+        // Legacy plans predate the flag: a non-default target (30000 is the factory default, and
+        // the net-first field never produces that round number) means someone set this plan up.
+        const legacy = (s) => !!s.baseSalary && +s.baseSalary !== 30000;
+        if (tool === 'decision') {
+          const s = await getDecisionSettingsAsync();
+          return !!s.configured || legacy(s) || await planIsLocked();
+        }
+        const s = await getStressSettingsAsync();
+        return !!s.configured || legacy(s);
+      } catch (e) { return true; } // fail open — never block a working plan on a read error
+    }
+
+    async function updateSetupBanners() {
+      const ds = document.getElementById('dsSetupBanner');
+      const ss = document.getElementById('ssSetupBanner');
+      if (ds) ds.style.display = (await isToolConfigured('decision')) ? 'none' : 'block';
+      if (ss) ss.style.display = (await isToolConfigured('stress')) ? 'none' : 'block';
+    }
+
     async function initializeAllInputsFromSettings() {
       try {
         // Load both settings sets
         const stressSettings = await getStressSettingsAsync();
         const decisionSettings = await getDecisionSettingsAsync();
+        updateSetupBanners();
 
         // Monthly Entry captures THIS MONTH's current fund values — NOT the plan's starting minimums.
         // Leave the bucket boxes blank; the user enters them (per-fund via the popups, "Fill all from my
@@ -3584,6 +3629,12 @@
       await showMainApp(user);
       const tabEl = document.querySelector('.tab[data-tab="' + startAt + '"]');
       if (tabEl) tabEl.click();
+      // Decision/Stress are meaningless on default settings — land unconfigured plans on the
+      // tool's Settings sub-tab so the first stop is entering pots / spending / State Pension.
+      if ((startAt === 'decision' || startAt === 'stress') && !(await isToolConfigured(startAt))) {
+        openToolSettingsTab(startAt);
+        showToast('First, set up this plan: your pot, spending need and State Pension.', 'info', 6000);
+      }
     }
 
     /**
@@ -5953,6 +6004,7 @@
       showLoading('Saving settings...');
       try {
         await saveStressSettings({
+          configured: true,  // user has been through Settings — routing can go straight to the tool
           baseSalary: +document.getElementById('ssBaseSalary').value,
           equityMin: ssAlloc.equityMin,
           bondMin: ssAlloc.bondMin,
@@ -5986,6 +6038,7 @@
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 });
+        updateSetupBanners();
         showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving stress settings:', error);
@@ -6986,6 +7039,7 @@
       showLoading('Saving settings...');
       try {
         await saveDecisionSettings({
+          configured: true,  // user has been through Settings — routing can go straight to the tool
           equityMin: dsAlloc.equityMin,
           bondMin: dsAlloc.bondMin,
           cashTarget: dsAlloc.cashTarget,
@@ -7010,6 +7064,7 @@
           // Saving IS committing the plan definition → lock it. New settings need a new plan.
           locked: true
         });
+        updateSetupBanners();
         showToast('Settings saved and locked. Create a new plan to use different settings.', 'success', 4000);
         // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).
         await refreshDecisionLock();

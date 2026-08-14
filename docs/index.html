@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-TlouZyvG.js"></script>
+  <script type="module" crossorigin src="./assets/main-B5hnmGE8.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1988,6 +1988,12 @@
 
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
+          <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
+            <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
+            spending need and State Pension — and they're still the defaults, so any answer would be
+            meaningless. It takes a couple of minutes.
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('decision')">Open Settings</button>
+          </div>
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
@@ -2344,6 +2350,12 @@
 
         <!-- Monte Carlo Sub-tab -->
         <div id="stress-montecarlo" class="stress-subtab">
+          <div id="ssSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
+            <strong>Set up this plan first.</strong> Simulations run on your Settings — your pots,
+            spending need and State Pension — and they're still the defaults, so any result would be
+            meaningless. It takes a couple of minutes.
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
+          </div>
           <div class="card">
             <h2>Monte Carlo Simulation</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
@@ -2827,7 +2839,7 @@
           <div id="budWizBanner" style="display:none;" class="alert alert-info">
             <strong>New to budgeting?</strong> The guided walk-through takes you category by category with
             typical UK figures, a built-in calculator and tips on what changes at retirement.
-            <button type="button" onclick="openBudgetWizard()" style="margin-left:8px;">Start the walk-through</button>
+            <button type="button" class="risk-btn" onclick="openBudgetWizard()" style="margin-left:8px; padding:5px 14px; font-size:13px;">Start the walk-through</button>
           </div>
 
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">

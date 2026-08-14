@@ -2472,26 +2472,34 @@
 
               /* Guided budget wizard overlay */
               #budWizardOverlay { position:fixed; inset:0; z-index:1100; background:var(--bg); overflow:hidden; }
-              .budwiz-shell { display:flex; flex-direction:column; height:100%; max-width:860px; margin:0 auto; }
+              .budwiz-shell { display:flex; flex-direction:column; height:100%; max-width:900px; margin:0 auto; }
               .budwiz-head { padding:16px 20px 8px; }
-              .budwiz-body { flex:1 1 auto; overflow-y:auto; padding:4px 20px 16px; }
+              .budwiz-body { flex:1 1 auto; overflow-y:auto; padding:4px 20px 16px; font-size:16px; line-height:1.55; }
+              .budwiz-body h2 { font-size:26px; margin-bottom:8px; }
+              .budwiz-body .alert { font-size:15px; }
               .budwiz-foot { flex:0 0 auto; border-top:1px solid var(--border); background:var(--card);
-                             padding:12px 20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+                             padding:12px 20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+                             font-size:15px; }
+              .budwiz-foot button { font-size:15px; }
               .budwiz-dots { display:flex; gap:6px; }
               .budwiz-dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
               .budwiz-dot.on { background:var(--primary,#6366f1); }
               .budwiz-dot.done { background:var(--primary,#6366f1); opacity:0.45; }
               #budWizardOverlay input, #budWizardOverlay select {
                 background: var(--card-alt); color: var(--text);
-                border:1px solid var(--border); border-radius:6px; padding:6px 10px;
+                border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:16px;
               }
-              .budwiz-row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;
-                            padding:10px 0; border-bottom:1px solid var(--border); }
-              .budwiz-chip { padding:4px 10px; border:1px solid var(--border); border-radius:999px;
-                             background:transparent; color:var(--text-muted); cursor:pointer; font-size:12px; }
+              .budwiz-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+                            padding:12px 0; border-bottom:1px solid var(--border); }
+              .budwiz-name { flex:1 1 220px; min-width:180px; font-size:16px; }
+              .budwiz-name .budwiz-hint { font-size:13px; color:var(--text-muted); margin-top:2px; line-height:1.35; }
+              .budwiz-amt { display:flex; gap:5px; flex:0 0 205px; align-items:center; }
+              .budwiz-chipslot { flex:0 0 172px; display:flex; }
+              .budwiz-chip { padding:6px 12px; border:1px solid var(--border); border-radius:999px;
+                             background:transparent; color:var(--text-muted); cursor:pointer; font-size:13px; }
               .budwiz-chip:hover { border-color:var(--primary,#6366f1); color:var(--text); }
-              .budwiz-nudge { flex-basis:100%; font-size:12px; color:#eab308; }
-              .budwiz-err { flex-basis:100%; font-size:12px; color:var(--danger,#f85149); }
+              .budwiz-nudge { flex-basis:100%; font-size:13px; color:#eab308; }
+              .budwiz-err { flex-basis:100%; font-size:13px; color:var(--danger,#f85149); }
               .fund-search-item:hover { background:rgba(99,102,241,0.15); }
               .risk-btn { padding:8px 16px; border:1px solid var(--border,#cbd5e1); border-radius:8px; background:var(--card,#fff); color:var(--text,#0f172a); cursor:pointer; font-size:14px; }
               .risk-btn:hover { border-color:#6366f1; }
@@ -3542,9 +3550,12 @@
       }
 
       // Show the app, then open the chosen starting tab (its click handler runs the tab's loader,
-      // e.g. loadBudgetUI). Default to Budget — the net-first front door.
+      // e.g. loadBudgetUI). Default to Budget — the net-first front door. Landing on Budget from
+      // the setup wizard drops the new user straight into the guided walk-through (loadBudgetUI
+      // consumes the flag), whose final step derives their plan's target income.
       const user = getCurrentUser();
       const startAt = wizardData.startAt || 'budget';
+      if (startAt === 'budget') window._budWizAutoOpen = true;
       await showMainApp(user);
       const tabEl = document.querySelector('.tab[data-tab="' + startAt + '"]');
       if (tabEl) tabEl.click();
@@ -6015,6 +6026,11 @@
       // Nudge brand-new budgets (no amounts entered anywhere) toward the guided walk-through.
       const untouched = !window._budget.lines.some((l) => l.annual) && !window._budget.oneOffs.some((o) => o.amount);
       document.getElementById('budWizBanner').style.display = untouched ? 'block' : 'none';
+      // Arriving fresh from the setup wizard → open the walk-through directly.
+      if (window._budWizAutoOpen) {
+        window._budWizAutoOpen = false;
+        openBudgetWizard();
+      }
     }
 
     // Who-pays selector, shown per row only when partner sharing is on. Shared rows get an optional
@@ -6419,7 +6435,7 @@
       const nameCell = fixed
         ? '<div style="font-weight:600;">' + budEsc(line.label) + '</div>'
         : '<input type="text" placeholder="What is it?" value="' + budEsc(line.label) + '" oninput="budWizField(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">';
-      const hint = line.hint ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + budEsc(line.hint) + '</div>' : '';
+      const hint = line.hint ? '<div class="budwiz-hint">' + budEsc(line.hint) + '</div>' : '';
       const flag = typicalSanityFlag(line.label, line.annual, window._budget);
       const nudge = flag
         ? '<div class="budwiz-nudge" id="bw-n-' + line.id + '">' + (flag === 'low'
@@ -6427,15 +6443,17 @@
             : 'Well above typical (' + gbp(typ) + '/mo) — worth double-checking.') + '</div>'
         : '<div class="budwiz-nudge" id="bw-n-' + line.id + '"></div>';
       return '<div class="budwiz-row" id="bw-row-' + line.id + '">' +
-        '<div style="flex:1 1 190px; min-width:160px;">' + nameCell + hint + '</div>' +
-        '<div style="display:flex; gap:4px; flex:0 0 170px; align-items:center;">' +
+        '<div class="budwiz-name">' + nameCell + hint + '</div>' +
+        '<div class="budwiz-amt">' +
           '<input type="text" inputmode="decimal" placeholder="£ or e.g. 12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, 4×52/12" value="' + budWizAmountShown(line) + '" onchange="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
-          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Switch monthly / yearly" onclick="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
-          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Break it down into parts" onclick="budWizBreakToggle(\'' + line.id + '\')">&Sigma;</button>' +
+          '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Switch monthly / yearly" onclick="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
+          '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Break it down into parts" onclick="budWizBreakToggle(\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
-        (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
+        '<div class="budwiz-chipslot">' +
+          (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
+        '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'budWizField') : '') +
-        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
+        '<button type="button" class="risk-btn" style="padding:6px 11px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
         '<div id="bw-err-' + line.id + '" class="budwiz-err"></div>' +
         nudge +
         '<div id="bw-break-' + line.id + '" style="display:none; flex-basis:100%;"></div>' +
@@ -6617,6 +6635,15 @@
       budWizRender();
     };
 
+    // Clear every amount in the WORKING COPY (labels/structure kept). Nothing is persisted until the
+    // user saves, so a reload restores the last-saved budget — safe without a confirm dialog.
+    window.budWizClearAmounts = function () {
+      for (const l of window._budget.lines) l.annual = null;
+      for (const o of window._budget.oneOffs) o.amount = null;
+      budWizRender();
+      showToast('Amounts cleared — nothing is saved until you choose Save.', 'info', 4000);
+    };
+
     // ---- save / finish ----
     window.budWizSave = async function (alsoApply) {
       await saveBudgetUI();
@@ -6638,10 +6665,17 @@
 
     function budWizStepBody(step) {
       if (step === 'intro') {
+        const hasData = window._budget.lines.some((l) => l.annual) || window._budget.oneOffs.some((o) => o.amount);
+        const savedNote = hasData
+          ? '<div class="alert alert-warning" style="margin-bottom:12px;"><strong>You already have a saved budget</strong> — the totals in the bar below are your own saved figures, and each screen shows them ready to edit. Prefer a clean slate? ' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px; margin-left:4px;" onclick="budWizClearAmounts()">Start fresh — clear all amounts</button>' +
+            '<span style="color:var(--text-muted);"> (nothing is saved until you choose Save at the end)</span></div>'
+          : '';
         return '<h2 style="margin-bottom:10px;">Let’s build your budget</h2>' +
           '<p style="margin-bottom:12px;">We’ll walk through your spending one category at a time — bills first, then the fun stuff, then the big occasional costs. Skip anything; you can come back any time.</p>' +
+          savedNote +
           '<div class="alert alert-info" style="margin-bottom:12px;"><strong>Before you start:</strong> open your banking app and look at the last 2–3 months of statements. Real numbers beat guesses — most people who guess miss 20% of their spending.</div>' +
-          '<ul style="padding-left:18px; font-size:14px; color:var(--text-muted); line-height:1.7;">' +
+          '<ul style="padding-left:18px; color:var(--text-muted); line-height:1.8;">' +
           '<li>Every amount box is a <strong>calculator</strong> — type <code>11.99+8.99+5.99</code> or <code>4×52/12</code> and it does the maths.</li>' +
           '<li><strong>Typical UK figures</strong> (ONS retired households) appear as one-tap chips when you’re unsure.</li>' +
           '<li>The <strong>&Sigma;</strong> button breaks a cost into parts (fuel + insurance + MOT…) so nothing gets forgotten.</li>' +

@@ -2172,11 +2172,21 @@
             </div><!-- /.settings-section (allocation) -->
 
             <div class="settings-section">
-              <div class="section-title">Income</div>
+              <div class="section-title">Spending need</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Target Gross Salary (£/yr)</label>
-                  <input type="number" id="dsBaseSalary" value="30000">
+                  <label>What you want to spend (take-home)</label>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="number" id="dsNetSpend" style="flex:1 1 auto; min-width:0;" oninput="netSpendChanged('ds', this.value)">
+                    <button type="button" class="risk-btn" id="dsNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleNetPeriod('ds')">/mo</button>
+                  </div>
+                  <div id="dsNetGrossNote" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
+                  <div id="dsBudgetChipRow" style="margin-top:6px; display:none;">
+                    <button type="button" class="budwiz-chip" id="dsBudgetChip" onclick="useBudgetSpend('ds')"></button>
+                  </div>
+                  <!-- Hidden gross-equivalent target: keeps the save/load path (baseSalary) and the
+                       tax-efficient engine unchanged while the UI is net-first. -->
+                  <input type="hidden" id="dsBaseSalary" value="30000">
                 </div>
                 <div class="form-group">
                   <label>Spending over retirement</label>
@@ -2441,12 +2451,12 @@
                 <div class="form-group">
                   <label>What you want to spend (take-home)</label>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" id="ssNetSpend" style="flex:1 1 auto; min-width:0;" oninput="ssNetSpendChanged(this.value)">
-                    <button type="button" class="risk-btn" id="ssNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="ssToggleNetPeriod()">/mo</button>
+                    <input type="number" id="ssNetSpend" style="flex:1 1 auto; min-width:0;" oninput="netSpendChanged('ss', this.value)">
+                    <button type="button" class="risk-btn" id="ssNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleNetPeriod('ss')">/mo</button>
                   </div>
                   <div id="ssNetGrossNote" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
                   <div id="ssBudgetChipRow" style="margin-top:6px; display:none;">
-                    <button type="button" class="budwiz-chip" id="ssBudgetChip" onclick="ssUseBudgetSpend()"></button>
+                    <button type="button" class="budwiz-chip" id="ssBudgetChip" onclick="useBudgetSpend('ss')"></button>
                   </div>
                   <!-- The engine still works from a gross-equivalent annual target; this hidden field keeps
                        the existing save/load path (baseSalary) while the UI is net-first. -->
@@ -2595,7 +2605,6 @@
                 <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" onclick="loadPdfExample('ss')">Load PDF example (£1.3M)</button>
                 <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add custom ticker</button>
                 <button type="button" class="risk-btn" onclick="clearFunds('ss')">Clear</button>
               </div>
@@ -2960,7 +2969,7 @@
 
     // Import simulation engine for direct access in optimization
     import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
-    import { tagPortfolio, allocationFromTags, PDF_PORTFOLIO } from './src/services/PortfolioTagger.js';
+    import { tagPortfolio, allocationFromTags } from './src/services/PortfolioTagger.js';
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
 
     // Import constants for optimization
@@ -3454,6 +3463,7 @@
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
+        syncNetFromGross('ds');
         document.getElementById('dsSpendingProfile').value = decisionSettings.spendingProfile || 'flat';
         // State Pension (new fields)
         document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
@@ -3469,7 +3479,7 @@
 
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
-        ssSyncNetFromGross();
+        syncNetFromGross('ss');
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
         window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
@@ -5508,10 +5518,6 @@
     };
     window.removeFund = function(p, i) { funds(p).splice(i, 1); renderFunds(p); };
     window.clearFunds = function(p) { window._taggedFunds[p] = []; renderFunds(p); };
-    window.loadPdfExample = function(p) {
-      window._taggedFunds[p] = PDF_PORTFOLIO.map(h => ({ ticker: h.ticker, value: h.value, wrapper: h.wrapper }));
-      renderFunds(p);
-    };
     function updateTaggingSummary(p) {
       const el = document.getElementById(p + 'FundSummary');
       if (!el) return;
@@ -5810,45 +5816,46 @@
       if (el) el.innerHTML = h;
     }
 
-    // ---- Net-first spending need (Stress) --------------------------------------------------------
-    // The UI asks for take-home spend (/mo or /yr, today's money); the hidden #ssBaseSalary keeps the
-    // engine's gross-equivalent annual target so the save/load path and engine are unchanged. The
+    // ---- Net-first spending need (Stress 'ss' + Decision 'ds') -----------------------------------
+    // The UI asks for take-home spend (/mo or /yr, today's money); the hidden #<p>BaseSalary keeps the
+    // engine's gross-equivalent annual target so the save/load paths and both engines are unchanged —
+    // the Decision tool's tax-efficient waterfall still sees the same gross target it always did. The
     // net⇄gross conversion uses the same approximate bands as the budget hand-off (DEFAULT_TAX_BANDS).
-    let ssNetPeriod = 'mo';
+    const netSpendPeriod = { ss: 'mo', ds: 'mo' };
 
-    window.ssNetSpendChanged = function (v) {
+    window.netSpendChanged = function (p, v) {
       const n = +v || 0;
-      const netAnnual = ssNetPeriod === 'mo' ? n * 12 : n;
-      document.getElementById('ssBaseSalary').value = Math.round(grossUpAnnual(netAnnual));
-      ssUpdateGrossNote();
+      const netAnnual = netSpendPeriod[p] === 'mo' ? n * 12 : n;
+      document.getElementById(p + 'BaseSalary').value = Math.round(grossUpAnnual(netAnnual));
+      updateGrossNote(p);
     };
 
-    window.ssToggleNetPeriod = function () {
-      ssNetPeriod = ssNetPeriod === 'mo' ? 'yr' : 'mo';
-      document.getElementById('ssNetPeriodBtn').textContent = '/' + ssNetPeriod;
-      ssSyncNetFromGross(); // re-derive the display from the canonical gross value
+    window.toggleNetPeriod = function (p) {
+      netSpendPeriod[p] = netSpendPeriod[p] === 'mo' ? 'yr' : 'mo';
+      document.getElementById(p + 'NetPeriodBtn').textContent = '/' + netSpendPeriod[p];
+      syncNetFromGross(p); // re-derive the display from the canonical gross value
     };
 
     // Reflect the stored gross target back into the net field (on settings load / period toggle).
-    window.ssSyncNetFromGross = function () {
-      const gross = +document.getElementById('ssBaseSalary').value || 0;
+    window.syncNetFromGross = function (p) {
+      const gross = +document.getElementById(p + 'BaseSalary').value || 0;
       const netAnnual = grossToNet(gross, DEFAULT_TAX_BANDS.pa, DEFAULT_TAX_BANDS.brl, DEFAULT_TAX_BANDS.hrl);
-      const el = document.getElementById('ssNetSpend');
-      if (el) el.value = gross ? Math.round(ssNetPeriod === 'mo' ? netAnnual / 12 : netAnnual) : '';
-      ssUpdateGrossNote();
-      ssRenderBudgetChip();
+      const el = document.getElementById(p + 'NetSpend');
+      if (el) el.value = gross ? Math.round(netSpendPeriod[p] === 'mo' ? netAnnual / 12 : netAnnual) : '';
+      updateGrossNote(p);
+      renderBudgetSpendChip(p);
     };
 
-    function ssUpdateGrossNote() {
-      const gross = Math.round(+document.getElementById('ssBaseSalary').value || 0);
-      const note = document.getElementById('ssNetGrossNote');
-      if (note) note.textContent = gross ? ('≈ ' + gbp(gross) + '/yr before tax — the simulation draws enough to cover the tax') : '';
+    function updateGrossNote(p) {
+      const gross = Math.round(+document.getElementById(p + 'BaseSalary').value || 0);
+      const note = document.getElementById(p + 'NetGrossNote');
+      if (note) note.textContent = gross ? ('≈ ' + gbp(gross) + '/yr before tax — withdrawals are sized to cover the tax') : '';
     }
 
     // Offer the saved budget's all-in figure as a one-tap fill (the owner's share).
-    async function ssRenderBudgetChip() {
-      const row = document.getElementById('ssBudgetChipRow');
-      const chip = document.getElementById('ssBudgetChip');
+    async function renderBudgetSpendChip(p) {
+      const row = document.getElementById(p + 'BudgetChipRow');
+      const chip = document.getElementById(p + 'BudgetChip');
       if (!row || !chip) return;
       try {
         const b = window._budget || normaliseBudget(await getBudgetAsync());
@@ -5863,14 +5870,14 @@
       row.style.display = 'none';
     }
 
-    window.ssUseBudgetSpend = function () {
-      const chip = document.getElementById('ssBudgetChip');
+    window.useBudgetSpend = function (p) {
+      const chip = document.getElementById(p + 'BudgetChip');
       const monthly = +((chip && chip.dataset.monthly) || 0);
       if (!monthly) return;
-      ssNetPeriod = 'mo';
-      document.getElementById('ssNetPeriodBtn').textContent = '/mo';
-      document.getElementById('ssNetSpend').value = monthly;
-      ssNetSpendChanged(monthly);
+      netSpendPeriod[p] = 'mo';
+      document.getElementById(p + 'NetPeriodBtn').textContent = '/mo';
+      document.getElementById(p + 'NetSpend').value = monthly;
+      netSpendChanged(p, monthly);
     };
 
     async function loadStressSettings() {
@@ -5878,7 +5885,7 @@
       try {
         const s = await getStressSettingsAsync();
         document.getElementById('ssBaseSalary').value = s.baseSalary;
-        ssSyncNetFromGross();
+        syncNetFromGross('ss');
         // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
         // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
         // a risk preset, and a plan with no funds defaults to "Pick a risk level".
@@ -6043,6 +6050,7 @@
         document.getElementById('dsEquityGlide').checked = s.equityGlideEnabled || false;
         updateAllocDisplay('ds');
         document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
+        syncNetFromGross('ds');
         document.getElementById('dsSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;

@@ -2436,15 +2436,27 @@
             <h2>Stress Tester Settings</h2>
 
             <div class="settings-section">
-              <div class="section-title">Income target</div>
+              <div class="section-title">Spending need</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Target Gross Salary (£/yr)</label>
-                  <input type="number" id="ssBaseSalary" value="30000">
+                  <label>What you want to spend (take-home)</label>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="number" id="ssNetSpend" style="flex:1 1 auto; min-width:0;" oninput="ssNetSpendChanged(this.value)">
+                    <button type="button" class="risk-btn" id="ssNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="ssToggleNetPeriod()">/mo</button>
+                  </div>
+                  <div id="ssNetGrossNote" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
+                  <div id="ssBudgetChipRow" style="margin-top:6px; display:none;">
+                    <button type="button" class="budwiz-chip" id="ssBudgetChip" onclick="ssUseBudgetSpend()"></button>
+                  </div>
+                  <!-- The engine still works from a gross-equivalent annual target; this hidden field keeps
+                       the existing save/load path (baseSalary) while the UI is net-first. -->
+                  <input type="hidden" id="ssBaseSalary" value="30000">
                 </div>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">
-                <strong>Target:</strong> The total yearly income you want from all sources. This combines your SIPP withdrawals, other pensions, and state pension.
+                <strong>Net, not gross:</strong> enter the money you actually want in your pocket each month
+                (or year), in today's money — tax is handled for you. This is the total from all sources:
+                SIPP withdrawals, ISA, other pensions and State Pension.
               </div>
             </div>
 
@@ -2923,7 +2935,9 @@
       grossUpAnnual,
       defaultBudget,
       evalAmountExpr,
-      typicalSanityFlag
+      typicalSanityFlag,
+      DEFAULT_TAX_BANDS,
+      grossToNet
     } from './src/app.js';
 
     // Import additional services
@@ -3455,6 +3469,7 @@
 
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
+        ssSyncNetFromGross();
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
         window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
@@ -5795,11 +5810,75 @@
       if (el) el.innerHTML = h;
     }
 
+    // ---- Net-first spending need (Stress) --------------------------------------------------------
+    // The UI asks for take-home spend (/mo or /yr, today's money); the hidden #ssBaseSalary keeps the
+    // engine's gross-equivalent annual target so the save/load path and engine are unchanged. The
+    // net⇄gross conversion uses the same approximate bands as the budget hand-off (DEFAULT_TAX_BANDS).
+    let ssNetPeriod = 'mo';
+
+    window.ssNetSpendChanged = function (v) {
+      const n = +v || 0;
+      const netAnnual = ssNetPeriod === 'mo' ? n * 12 : n;
+      document.getElementById('ssBaseSalary').value = Math.round(grossUpAnnual(netAnnual));
+      ssUpdateGrossNote();
+    };
+
+    window.ssToggleNetPeriod = function () {
+      ssNetPeriod = ssNetPeriod === 'mo' ? 'yr' : 'mo';
+      document.getElementById('ssNetPeriodBtn').textContent = '/' + ssNetPeriod;
+      ssSyncNetFromGross(); // re-derive the display from the canonical gross value
+    };
+
+    // Reflect the stored gross target back into the net field (on settings load / period toggle).
+    window.ssSyncNetFromGross = function () {
+      const gross = +document.getElementById('ssBaseSalary').value || 0;
+      const netAnnual = grossToNet(gross, DEFAULT_TAX_BANDS.pa, DEFAULT_TAX_BANDS.brl, DEFAULT_TAX_BANDS.hrl);
+      const el = document.getElementById('ssNetSpend');
+      if (el) el.value = gross ? Math.round(ssNetPeriod === 'mo' ? netAnnual / 12 : netAnnual) : '';
+      ssUpdateGrossNote();
+      ssRenderBudgetChip();
+    };
+
+    function ssUpdateGrossNote() {
+      const gross = Math.round(+document.getElementById('ssBaseSalary').value || 0);
+      const note = document.getElementById('ssNetGrossNote');
+      if (note) note.textContent = gross ? ('≈ ' + gbp(gross) + '/yr before tax — the simulation draws enough to cover the tax') : '';
+    }
+
+    // Offer the saved budget's all-in figure as a one-tap fill (the owner's share).
+    async function ssRenderBudgetChip() {
+      const row = document.getElementById('ssBudgetChipRow');
+      const chip = document.getElementById('ssBudgetChip');
+      if (!row || !chip) return;
+      try {
+        const b = window._budget || normaliseBudget(await getBudgetAsync());
+        const s = summariseBudget(b);
+        if (s.allInComfortableMonthly > 0) {
+          chip.textContent = 'From your budget: ' + gbp(s.allInComfortableMonthly) + '/mo — use';
+          chip.dataset.monthly = Math.round(s.allInComfortableMonthly);
+          row.style.display = 'block';
+          return;
+        }
+      } catch (e) { /* no budget yet — leave hidden */ }
+      row.style.display = 'none';
+    }
+
+    window.ssUseBudgetSpend = function () {
+      const chip = document.getElementById('ssBudgetChip');
+      const monthly = +((chip && chip.dataset.monthly) || 0);
+      if (!monthly) return;
+      ssNetPeriod = 'mo';
+      document.getElementById('ssNetPeriodBtn').textContent = '/mo';
+      document.getElementById('ssNetSpend').value = monthly;
+      ssNetSpendChanged(monthly);
+    };
+
     async function loadStressSettings() {
       showLoading('Loading settings...');
       try {
         const s = await getStressSettingsAsync();
         document.getElementById('ssBaseSalary').value = s.baseSalary;
+        ssSyncNetFromGross();
         // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
         // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
         // a risk preset, and a plan with no funds defaults to "Pick a risk level".

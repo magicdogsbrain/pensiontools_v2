@@ -74,8 +74,11 @@ import {
   grossUpAnnual,
   defaultBudget,
   evalAmountExpr,
-  typicalSanityFlag
+  typicalSanityFlag,
+  DEFAULT_TAX_BANDS
 } from './services/BudgetModel.js';
+
+import { grossToNet } from './services/TaxCalculator.js';
 
 // UI
 import {
@@ -388,6 +391,8 @@ export {
   defaultBudget,
   evalAmountExpr,
   typicalSanityFlag,
+  DEFAULT_TAX_BANDS,
+  grossToNet,
 
   // Constants
   VERSION

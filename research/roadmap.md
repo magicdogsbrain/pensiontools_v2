@@ -79,6 +79,16 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Landing page: showcase all THREE tools** (user, 15 Aug 2026). The pre-login landing
+  (`src/ui/components/LandingPage.js`) and onboarding still pitch only the Stress Tester
+  and Decision Tool — the Budget planner (now the front door of the whole flow) is
+  missing. Present all three, Budget first.
+- **Privacy policy: single canonical URL** (user, 15 Aug 2026). Treat **pensiontools.uk**
+  as THE app URL in the privacy policy — drop the GitHub Pages framing (Cloudflare is
+  the primary host; keep processors accurate). Update `compliance/PRIVACY_POLICY.md` +
+  `public/privacy.html` together.
+- ⚠️ **HOLD deployments to pensiontools.uk** — live user test in progress (Aug 2026).
+  Commits/merges are fine; do not run the wrangler deploy until cleared.
 - **[2] Net-budget mode.** "Enter target gross salary" is backwards — people know
   "£3,200 in the bank", not a gross figure. Add a second entry mode that takes a net
   monthly target and back-solves the drawdown/ISA/UFPLS mix. Builds directly on [1].

@@ -79,10 +79,10 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
-- **Landing page: showcase all THREE tools** (user, 15 Aug 2026). The pre-login landing
-  (`src/ui/components/LandingPage.js`) and onboarding still pitch only the Stress Tester
-  and Decision Tool — the Budget planner (now the front door of the whole flow) is
-  missing. Present all three, Budget first.
+- ~~**Landing page: showcase all THREE tools**~~ DONE 15 Aug 2026 (commit on branch, not
+  yet deployed to pensiontools.uk): landing + post-signin onboarding now present Budget
+  Planner first, then Stress Tester (Tool 2) and Decision Tool (Tool 3); net-first
+  wording; stale "choose which tools" copy fixed; Accumulation Planner stays Coming Soon.
 - **Privacy policy: single canonical URL** (user, 15 Aug 2026). Treat **pensiontools.uk**
   as THE app URL in the privacy policy — drop the GitHub Pages framing (Cloudflare is
   the primary host; keep processors accurate). Update `compliance/PRIVACY_POLICY.md` +

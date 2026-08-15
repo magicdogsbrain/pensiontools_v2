@@ -4093,11 +4093,18 @@ This typically indicates that your device does not have a healthy Internet conne
         <div class="landing-hero">
           <h1>Pension Planner</h1>
           <p class="landing-tagline">Plan your retirement with confidence</p>
-          <p class="landing-subtitle">Free tools to help you stress-test your pension, decide where to withdraw from each month, and make smarter drawdown decisions.</p>
+          <p class="landing-subtitle">Free tools to work out what your retirement will actually cost, stress-test whether your pension can pay for it, and decide where to draw from each month.</p>
         </div>
 
         <!-- Tools overview -->
         <div class="landing-tools">
+          <div class="landing-tool-card">
+            <div class="landing-tool-icon">&#x1F9FE;</div>
+            <h3>Budget Planner</h3>
+            <p class="landing-tool-question">"What will retirement actually cost?"</p>
+            <p>A guided walk-through of your real spending — bills to holidays to the car you'll replace every few years — with typical UK figures when you're unsure. Couples can split who pays what. The answer becomes your plan's target.</p>
+          </div>
+
           <div class="landing-tool-card">
             <div class="landing-tool-icon">&#x1F4CA;</div>
             <h3>Stress Tester</h3>
@@ -4116,7 +4123,7 @@ This typically indicates that your device does not have a healthy Internet conne
         <!-- Why use this -->
         <div class="landing-section">
           <h2>What you'll need</h2>
-          <p>Just a few basic numbers about your pension — fund values, how much income you want, and how long you need it to last. No sensitive data like account numbers or passwords.</p>
+          <p>Just a few basic numbers — your ages, roughly what you spend, and your pension fund values. Everything works in take-home terms: you say what you want in your pocket each month and the tax is handled for you. No gross-salary puzzles, and no sensitive data like account numbers or passwords.</p>
         </div>
 
         <div class="landing-section">
@@ -4189,7 +4196,7 @@ This typically indicates that your device does not have a healthy Internet conne
 
     .landing-tools {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 20px;
       margin-bottom: 40px;
     }
@@ -4627,10 +4634,28 @@ This typically indicates that your device does not have a healthy Internet conne
           <p>Your account is set up and ready to go. Here's what Pension Planner can do for you.</p>
         </div>
 
-        <!-- Tool: Stress Tester -->
+        <!-- Tool: Budget Planner -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
             <span class="onboarding-tool-badge">Tool 1</span>
+            <h2>Budget Planner</h2>
+          </div>
+          <p class="onboarding-tool-question">"What will retirement actually cost?"</p>
+          <p>Everything starts with what you'll spend. A guided walk-through builds your budget category by category:</p>
+          <ul>
+            <li>Typical UK figures on tap when you're unsure, and tips on what changes at retirement</li>
+            <li>An <strong>essential</strong> floor and a <strong>comfortable</strong> target, in take-home terms</li>
+            <li>Big occasional costs — a car every few years, a new roof — averaged in properly</li>
+            <li>Couples: mark each cost Me / Partner / Shared, and see each person's share</li>
+          </ul>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Everyone — it needs nothing but your ages, and its answer becomes the target the other tools test. Start here.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> A couple of recent bank statements makes it much more accurate — real numbers beat guesses.</p>
+        </div>
+
+        <!-- Tool: Stress Tester -->
+        <div class="onboarding-tool-section">
+          <div class="onboarding-tool-header">
+            <span class="onboarding-tool-badge">Tool 2</span>
             <h2>Stress Tester</h2>
           </div>
           <p class="onboarding-tool-question">"Can I afford to retire?"</p>
@@ -4639,16 +4664,16 @@ This typically indicates that your device does not have a healthy Internet conne
             <li>The range of possible outcomes for your pension pot</li>
             <li>How likely your money is to last through retirement</li>
             <li>What happens if markets crash early in your retirement</li>
-            <li>Whether your target income is sustainable</li>
+            <li>Whether your spending need is sustainable</li>
           </ul>
-          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone thinking about retirement, whether you're 10 years away or already drawing your pension. Start here.</p>
-          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your pension fund values (equity, bonds, cash), desired yearly income, and expected retirement duration.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone thinking about retirement, whether you're 10 years away or already drawing your pension.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your pension fund values (or your actual funds — you can tag real holdings), what you want to spend (take-home — one tap if you've done the Budget), and your State Pension forecast.</p>
         </div>
 
         <!-- Tool: Decision Tool -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
-            <span class="onboarding-tool-badge">Tool 2</span>
+            <span class="onboarding-tool-badge">Tool 3</span>
             <h2>Monthly Decision Tool</h2>
           </div>
           <p class="onboarding-tool-question">"Where should I take money from this month?"</p>
@@ -4659,8 +4684,8 @@ This typically indicates that your device does not have a healthy Internet conne
             <li>Whether to enter "protection mode" during market downturns</li>
             <li>ISA top-up recommendations</li>
           </ul>
-          <p class="onboarding-tool-who"><strong>Best for:</strong> People already in pension drawdown, or about to start. You can always add this tool later if you're not ready yet.</p>
-          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Current fund values, tax year details, and your desired income level.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> People already in pension drawdown, or about to start. It's there whenever you're ready.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Current fund values, tax year details, and your spending need (take-home).</p>
         </div>
 
         <!-- Future: Accumulation -->
@@ -4675,7 +4700,7 @@ This typically indicates that your device does not have a healthy Internet conne
 
         <!-- Reassurance -->
         <div class="onboarding-reassurance">
-          <p><strong>You don't have to use everything.</strong> When you set up a plan, you choose which tools you want. You can always add more later as your needs change.</p>
+          <p><strong>You don't have to do everything at once.</strong> Setting up a plan takes about 30 seconds — your ages and a name — then you choose where to start. Most people begin with the Budget; the other tools are one tab away whenever you're ready.</p>
         </div>
 
         <!-- CTA -->

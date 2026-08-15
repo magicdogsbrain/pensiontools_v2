@@ -34,10 +34,28 @@ function renderOnboardingPage(userName, onStartWizard) {
           <p>Your account is set up and ready to go. Here's what Pension Planner can do for you.</p>
         </div>
 
-        <!-- Tool: Stress Tester -->
+        <!-- Tool: Budget Planner -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
             <span class="onboarding-tool-badge">Tool 1</span>
+            <h2>Budget Planner</h2>
+          </div>
+          <p class="onboarding-tool-question">"What will retirement actually cost?"</p>
+          <p>Everything starts with what you'll spend. A guided walk-through builds your budget category by category:</p>
+          <ul>
+            <li>Typical UK figures on tap when you're unsure, and tips on what changes at retirement</li>
+            <li>An <strong>essential</strong> floor and a <strong>comfortable</strong> target, in take-home terms</li>
+            <li>Big occasional costs — a car every few years, a new roof — averaged in properly</li>
+            <li>Couples: mark each cost Me / Partner / Shared, and see each person's share</li>
+          </ul>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Everyone — it needs nothing but your ages, and its answer becomes the target the other tools test. Start here.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> A couple of recent bank statements makes it much more accurate — real numbers beat guesses.</p>
+        </div>
+
+        <!-- Tool: Stress Tester -->
+        <div class="onboarding-tool-section">
+          <div class="onboarding-tool-header">
+            <span class="onboarding-tool-badge">Tool 2</span>
             <h2>Stress Tester</h2>
           </div>
           <p class="onboarding-tool-question">"Can I afford to retire?"</p>
@@ -46,16 +64,16 @@ function renderOnboardingPage(userName, onStartWizard) {
             <li>The range of possible outcomes for your pension pot</li>
             <li>How likely your money is to last through retirement</li>
             <li>What happens if markets crash early in your retirement</li>
-            <li>Whether your target income is sustainable</li>
+            <li>Whether your spending need is sustainable</li>
           </ul>
-          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone thinking about retirement, whether you're 10 years away or already drawing your pension. Start here.</p>
-          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your pension fund values (equity, bonds, cash), desired yearly income, and expected retirement duration.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone thinking about retirement, whether you're 10 years away or already drawing your pension.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your pension fund values (or your actual funds — you can tag real holdings), what you want to spend (take-home — one tap if you've done the Budget), and your State Pension forecast.</p>
         </div>
 
         <!-- Tool: Decision Tool -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
-            <span class="onboarding-tool-badge">Tool 2</span>
+            <span class="onboarding-tool-badge">Tool 3</span>
             <h2>Monthly Decision Tool</h2>
           </div>
           <p class="onboarding-tool-question">"Where should I take money from this month?"</p>
@@ -66,8 +84,8 @@ function renderOnboardingPage(userName, onStartWizard) {
             <li>Whether to enter "protection mode" during market downturns</li>
             <li>ISA top-up recommendations</li>
           </ul>
-          <p class="onboarding-tool-who"><strong>Best for:</strong> People already in pension drawdown, or about to start. You can always add this tool later if you're not ready yet.</p>
-          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Current fund values, tax year details, and your desired income level.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> People already in pension drawdown, or about to start. It's there whenever you're ready.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Current fund values, tax year details, and your spending need (take-home).</p>
         </div>
 
         <!-- Future: Accumulation -->
@@ -82,7 +100,7 @@ function renderOnboardingPage(userName, onStartWizard) {
 
         <!-- Reassurance -->
         <div class="onboarding-reassurance">
-          <p><strong>You don't have to use everything.</strong> When you set up a plan, you choose which tools you want. You can always add more later as your needs change.</p>
+          <p><strong>You don't have to do everything at once.</strong> Setting up a plan takes about 30 seconds — your ages and a name — then you choose where to start. Most people begin with the Budget; the other tools are one tab away whenever you're ready.</p>
         </div>
 
         <!-- CTA -->

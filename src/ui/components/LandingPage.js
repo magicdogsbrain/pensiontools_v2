@@ -30,11 +30,18 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
         <div class="landing-hero">
           <h1>Pension Planner</h1>
           <p class="landing-tagline">Plan your retirement with confidence</p>
-          <p class="landing-subtitle">Free tools to help you stress-test your pension, decide where to withdraw from each month, and make smarter drawdown decisions.</p>
+          <p class="landing-subtitle">Free tools to work out what your retirement will actually cost, stress-test whether your pension can pay for it, and decide where to draw from each month.</p>
         </div>
 
         <!-- Tools overview -->
         <div class="landing-tools">
+          <div class="landing-tool-card">
+            <div class="landing-tool-icon">&#x1F9FE;</div>
+            <h3>Budget Planner</h3>
+            <p class="landing-tool-question">"What will retirement actually cost?"</p>
+            <p>A guided walk-through of your real spending — bills to holidays to the car you'll replace every few years — with typical UK figures when you're unsure. Couples can split who pays what. The answer becomes your plan's target.</p>
+          </div>
+
           <div class="landing-tool-card">
             <div class="landing-tool-icon">&#x1F4CA;</div>
             <h3>Stress Tester</h3>
@@ -53,7 +60,7 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
         <!-- Why use this -->
         <div class="landing-section">
           <h2>What you'll need</h2>
-          <p>Just a few basic numbers about your pension — fund values, how much income you want, and how long you need it to last. No sensitive data like account numbers or passwords.</p>
+          <p>Just a few basic numbers — your ages, roughly what you spend, and your pension fund values. Everything works in take-home terms: you say what you want in your pocket each month and the tax is handled for you. No gross-salary puzzles, and no sensitive data like account numbers or passwords.</p>
         </div>
 
         <div class="landing-section">
@@ -155,7 +162,7 @@ export function getLandingPageStyles() {
 
     .landing-tools {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 20px;
       margin-bottom: 40px;
     }

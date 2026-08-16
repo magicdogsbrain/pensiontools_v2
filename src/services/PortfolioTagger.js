@@ -31,10 +31,14 @@ export function tagPortfolio(holdings) {
     const profile = key ? SUB_ASSET_PROFILES[key] : null;
     if (!profile) { untagged.push({ ...h }); continue; }
     total += value;
-    if ((h.wrapper || '').toUpperCase() === 'ISA') isaTotal += value;
+    tagged.push({ ...h, subClass: key, bucket: profile.bucket, label: profile.label });
+    // ISA-wrapped holdings are the engine's SEPARATE tax-free pool (isaBalance) — they must NOT
+    // also land in the taxable buckets or the pot is double-counted (one £60k ISA became £120k
+    // of simulated wealth). They're kept out of the sub-class weights too: the ISA pool grows at
+    // its own flat return, not through the sub-asset model.
+    if ((h.wrapper || '').toUpperCase() === 'ISA') { isaTotal += value; continue; }
     buckets[profile.bucket] += value;
     subClassTotals[key] = (subClassTotals[key] || 0) + value;
-    tagged.push({ ...h, subClass: key, bucket: profile.bucket, label: profile.label });
   }
 
   return {

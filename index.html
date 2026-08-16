@@ -5685,10 +5685,11 @@
       const holdings = funds(p).filter(f => f.ticker && f.value > 0);
       if (!holdings.length) { el.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">Add holdings above to see the bucket roll-up.</span>'; return; }
       const t = tagPortfolio(holdings);
-      const pct = b => t.total ? Math.round(t.buckets[b] / t.total * 100) : 0;
+      const taxable = t.total - t.isaTotal;   // buckets exclude ISA-wrapped holdings (separate pool)
+      const pct = b => taxable ? Math.round(t.buckets[b] / taxable * 100) : 0;
       const money = n => '£' + Math.round(n).toLocaleString();
       const mix = w => Object.entries(w).map(([k, v]) => (SUB_ASSET_PROFILES[k].label) + ' ' + Math.round(v * 100) + '%').join(' · ');
-      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to (' + money(t.total) + ' total' + (t.isaTotal ? ', ' + money(t.isaTotal) + ' ISA' : '') + ')</div>';
+      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to ' + money(taxable) + ' pot' + (t.isaTotal ? ' + ' + money(t.isaTotal) + ' ISA (kept separate — the tax-free bridge)' : '') + '</div>';
       html += '<div style="font-size:13px;">';
       for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
         if (!t.buckets[b]) continue;
@@ -5723,8 +5724,9 @@
       };
       // Set Pot/ISA and REFRESH their number-format overlays (they don't update on a programmatic
       // value change, which left the Pot showing a stale formatted number, e.g. "1 105 000").
+      // Pot = the taxable side only; ISA-wrapped value fills the separate ISA balance below.
       const potEl = document.getElementById(p + 'Pot');
-      if (potEl) { potEl.value = Math.round(t.total); if (potEl._updateOverlay) potEl._updateOverlay(); }
+      if (potEl) { potEl.value = Math.round(t.total - t.isaTotal); if (potEl._updateOverlay) potEl._updateOverlay(); }
       const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = (alloc.diversifierStart || 0) > 0;
       if (t.isaTotal) { const isaEl = document.getElementById(p + 'IsaBalance'); if (isaEl) { isaEl.value = Math.round(t.isaTotal); if (isaEl._updateOverlay) isaEl._updateOverlay(); } }
       return t;
@@ -5758,7 +5760,12 @@
     // user sees exactly which of their real holdings landed in each bucket.
     function fundBucketBreakdownHtml(t) {
       const byBucket = { shares: [], bonds: [], diversifiers: [], cash: [] };
-      t.tagged.forEach(f => { if (byBucket[f.bucket]) byBucket[f.bucket].push(f); });
+      const isaFunds = [];
+      // ISA-wrapped holdings are their own pool (the tax-free bridge), not part of the buckets.
+      t.tagged.forEach(f => {
+        if ((f.wrapper || '').toUpperCase() === 'ISA') isaFunds.push(f);
+        else if (byBucket[f.bucket]) byBucket[f.bucket].push(f);
+      });
       const money = n => '£' + Math.round(n).toLocaleString();
       const names = { shares: 'Shares', bonds: 'Bonds', diversifiers: 'Diversifiers', cash: 'Cash' };
       let html = '<div style="font-size:12px;border:1px solid var(--border,#cbd5e1);border-radius:8px;padding:10px 12px;">';
@@ -5768,7 +5775,7 @@
         const tot = byBucket[b].reduce((s, f) => s + (+f.value || 0), 0);
         html += '<div style="margin:3px 0;"><strong>' + names[b] + '</strong> ' + money(tot) + ': <span style="color:var(--text-muted);">' + byBucket[b].map(f => f.ticker).join(', ') + '</span></div>';
       }
-      if (t.isaTotal) html += '<div style="margin-top:4px;color:var(--text-muted);">of which £' + Math.round(t.isaTotal).toLocaleString() + ' is in an ISA (the bridge)</div>';
+      if (isaFunds.length) html += '<div style="margin:3px 0;"><strong>ISA (separate tax-free pool)</strong> ' + money(t.isaTotal) + ': <span style="color:var(--text-muted);">' + isaFunds.map(f => f.ticker).join(', ') + '</span></div>';
       if (t.untagged.length) html += '<div style="color:#b45309;margin-top:4px;">Not recognised: ' + t.untagged.map(u => u.ticker).join(', ') + '</div>';
       html += '</div>';
       return html;

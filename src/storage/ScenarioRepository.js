@@ -141,10 +141,63 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     isaReturn: d.isaReturn ?? ISA_DEFAULTS.RETURN,
     isaMin: d.isaMin ?? ISA_DEFAULTS.MIN,
     isaDrawdownStrategy: d.isaDrawdownStrategy ?? ISA_DEFAULTS.DRAWDOWN_STRATEGY,
+    // The full allocation picture — tagged funds ARE the allocation in own-funds mode, and the
+    // glide/spending choices are part of the plan being copied (previously missed: the copy
+    // brought only the headline numbers across).
+    taggedFunds: (d.taggedFunds || []).map((f) => ({ ...f })),
+    allocMode: d.allocMode ?? currentStress.allocMode,
+    subAsset: d.subAsset ?? null,
+    diversifierStart: d.diversifierStart ?? 0,
+    glideEndgame: d.glideEndgame ?? null,
+    equityGlideEnabled: d.equityGlideEnabled ?? false,
+    spendingProfile: d.spendingProfile ?? currentStress.spendingProfile ?? 'flat',
     // provenance for the drift banner / re-sync
     seededFrom: 'decision',
     seededAt,
     decisionChecksum: simpleHash(d)
+  };
+}
+
+/**
+ * Seed DECISION settings from the Stress Tester's current settings — the reverse direction:
+ * "I've found a plan that survives the stress tests; run the Decision Tool on these settings."
+ * Mirrors seedStressFromDecision, converting the protection unit back (multiplier → percent).
+ * Does NOT set `locked` — the user still reviews and saves (which locks as usual).
+ * @param {object} stressSettings
+ * @param {object} [currentDecision={}] - existing Decision settings to overlay onto
+ * @returns {object} new Decision settings
+ */
+export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
+  const s = stressSettings || {};
+  return {
+    ...getDefaultDecisionSettings(),
+    ...currentDecision,
+    equityMin: s.equityMin,
+    bondMin: s.bondMin,
+    cashTarget: s.cashTarget,
+    duration: s.duration,
+    baseSalary: s.baseSalary,
+    spStartDate: s.spStartDate ?? currentDecision.spStartDate ?? null,
+    spWeeklyAmount: s.spWeeklyAmount ?? currentDecision.spWeeklyAmount ?? 0,
+    consecutiveLimit: s.consecutiveLimit ?? currentDecision.consecutiveLimit,
+    recoveryBuffer: s.recoveryBuffer ?? currentDecision.recoveryBuffer,
+    // protection unit: Stress multiplier → Decision percent (0.8 → 20)
+    protectionFactor: s.protectionMult != null
+      ? Math.round((1 - s.protectionMult) * 100)
+      : currentDecision.protectionFactor,
+    isaBalance: s.isaBalance ?? 0,
+    isaReturn: s.isaReturn ?? ISA_DEFAULTS.RETURN,
+    isaMin: s.isaMin ?? ISA_DEFAULTS.MIN,
+    isaDrawdownStrategy: s.isaDrawdownStrategy ?? ISA_DEFAULTS.DRAWDOWN_STRATEGY,
+    taggedFunds: (s.taggedFunds || []).map((f) => ({ ...f })),
+    allocMode: s.allocMode ?? currentDecision.allocMode,
+    subAsset: s.subAsset ?? null,
+    diversifierStart: s.diversifierStart ?? 0,
+    glideEndgame: s.glideEndgame ?? null,
+    equityGlideEnabled: s.equityGlideEnabled ?? false,
+    spendingProfile: s.spendingProfile ?? currentDecision.spendingProfile ?? 'flat',
+    configured: true,   // a full copy IS a configuration — routing can go straight to the tool
+    seededFrom: 'stress'
   };
 }
 

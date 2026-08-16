@@ -59,7 +59,10 @@ export const BUCKETS = Object.freeze({
 //   All figures NOMINAL unless noted; real yields flagged. These are calibration seeds, not
 //   final tuned values — the wiring step calibrates idioVol to hit each vol anchor exactly.
 // -----------------------------------------------------------------------------
-export const SUB_ASSET_PROFILES = Object.freeze({
+// NOTE: intentionally NOT frozen — admin overrides (Firestore admin/subAssetProfiles) tune the
+// numeric calibration in place at runtime via applySubAssetOverrides(). Object identity is
+// preserved (fields are mutated, never replaced) so identity-keyed lookups stay valid.
+export const SUB_ASSET_PROFILES = ({
   // ---- SHARES ----------------------------------------------------------------
   ukEquityIncome:   { bucket: BUCKETS.SHARES, label: 'UK equity income',        nominalReturn: 0.068, yield: 0.040, vol: 0.16, eqCorr: 0.90, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.07 },
   globalEquityIncome:{ bucket: BUCKETS.SHARES, label: 'Global equity income',    nominalReturn: 0.070, yield: 0.030, vol: 0.16, eqCorr: 0.95, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.05 },
@@ -88,6 +91,40 @@ export const SUB_ASSET_PROFILES = Object.freeze({
   trendMacro:       { bucket: BUCKETS.DIVERSIFIERS, label: 'Trend / macro',      nominalReturn: 0.045, yield: 0.000, vol: 0.12,  eqCorr: 0.07, duration: 0, inflationBeta: 0,   creditBeta: 0, crisisBeta: 0,   momentumBeta: 0.6, idioVol: 0.10, note: 'lagged path-momentum; pays in prolonged 2008/2022, whipsaws in V-shaped 2020' },
   commodities:      { bucket: BUCKETS.DIVERSIFIERS, label: 'Broad commodities',  nominalReturn: 0.045, yield: 0.000, vol: 0.16,  eqCorr: 0.25, duration: 0, inflationBeta: 0.8, creditBeta: 0, crisisBeta: 0,   idioVol: 0.14, note: 'the strongest inflation hedge (2022); long flat stretches otherwise; crashes WITH equities in a demand shock (2008)' }
 });
+
+// Snapshot of the shipped calibration, for display ("default vs current") and for reverting.
+export const SUB_ASSET_PROFILE_DEFAULTS = Object.freeze(
+  JSON.parse(JSON.stringify(SUB_ASSET_PROFILES))
+);
+
+// Numeric fields the admin may tune. Everything else (bucket, label, notes) stays code-owned.
+export const TUNABLE_PROFILE_FIELDS = Object.freeze([
+  'nominalReturn', 'yield', 'yieldReal', 'vol', 'eqCorr', 'duration',
+  'inflationBeta', 'creditBeta', 'crisisBeta', 'momentumBeta', 'idioVol'
+]);
+
+/**
+ * Apply admin overrides to the live profiles IN PLACE (identity preserved). Only known profiles
+ * and tunable numeric fields are applied; everything else is ignored. Passing null/undefined
+ * restores the shipped defaults.
+ * @param {object|null} overrides - { profileKey: { field: number, … }, … }
+ */
+export function applySubAssetOverrides(overrides) {
+  for (const [key, def] of Object.entries(SUB_ASSET_PROFILE_DEFAULTS)) {
+    const live = SUB_ASSET_PROFILES[key];
+    for (const f of TUNABLE_PROFILE_FIELDS) {
+      if (def[f] !== undefined) live[f] = def[f];        // reset to shipped value first
+      else delete live[f];
+    }
+    const o = overrides && overrides[key];
+    if (o) {
+      for (const f of TUNABLE_PROFILE_FIELDS) {
+        if (o[f] !== undefined && Number.isFinite(+o[f])) live[f] = +o[f];
+      }
+    }
+  }
+}
+
 
 // -----------------------------------------------------------------------------
 // PDF fund -> sub-class tag map (the user's "tell me what bucket my asset is in").

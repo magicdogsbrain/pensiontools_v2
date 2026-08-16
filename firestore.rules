@@ -19,5 +19,22 @@ service cloud.firestore {
                          && request.auth.uid == uid
                          && request.auth.token.email_verified == true;
     }
+
+    // Shared curated datasets (fund catalogue, typical amounts): readable by any signed-in
+    // verified user; writable only by the administrator account.
+    match /admin/{docId} {
+      allow read: if request.auth != null && request.auth.token.email_verified == true;
+      allow write: if request.auth != null && request.auth.uid == 'K5BLVvYKtzWTzqWqT5qUH7EqrwU2';
+    }
+
+    // Unknown-fund categorisation queue: any signed-in verified user may submit their own
+    // suggestion; only the administrator may read or manage the queue.
+    match /fundSuggestions/{suggestionId} {
+      allow create: if request.auth != null
+                    && request.auth.token.email_verified == true
+                    && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && request.auth.uid == 'K5BLVvYKtzWTzqWqT5qUH7EqrwU2';
+    }
   }
 }

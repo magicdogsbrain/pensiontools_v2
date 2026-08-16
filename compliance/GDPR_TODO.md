@@ -74,6 +74,13 @@ user reading another user's financial data.
 - [x] **2-Step Verification** already enabled on the Google account that owns `pensiontools-4b237`
       (confirmed by the account owner, 2026-08-03).
 
+## New processing added 2026-08-16 (document before next policy publish)
+- [ ] `fundSuggestions` collection: when a user categorises an unknown fund ticker, the app logs
+      {ticker, name, chosen category, uid, timestamp} to an admin-only queue (curation telemetry).
+      Add a sentence to the privacy policy in the pending single-URL rewrite. Rules restrict
+      reads to the admin account; users can only create their own records.
+- `admin/*` config docs hold NO personal data (curated fund/typical-amount datasets).
+
 ---
 **All items complete as of 2026-08-03.** Ongoing obligations: keep the ICO registration current
 (ZC209401, auto-renews by direct debit, expires 28 Jul 2027); update the privacy policy before any

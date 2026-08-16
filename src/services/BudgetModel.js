@@ -184,6 +184,10 @@ export const PLSA_TIER_LABELS = Object.freeze({
   minimum: 'PLSA Minimum', moderate: 'PLSA Moderate', comfortable: 'PLSA Comfortable'
 });
 
+// Optional runtime override of the tier table (Firestore admin/typicalAmounts). Null = code table.
+let _tiersOverride = null;
+export function setTypicalTiersOverride(tiers) { _tiersOverride = tiers || null; }
+
 /** The budget's chosen PLSA tier ('minimum' | 'moderate' | 'comfortable'; default moderate). */
 export function plsaTierOf(budget) {
   const t = budget && budget.plsaTier;
@@ -195,7 +199,8 @@ export function plsaTierOf(budget) {
  * sharing flag. Returns null when no figure exists; 0 is meaningful (e.g. Minimum assumes no car).
  */
 export function typicalMonthlyFor(label, budget) {
-  const entry = TYPICAL_TIERS[(label || '').trim()];
+  const table = _tiersOverride || TYPICAL_TIERS;
+  const entry = table[(label || '').trim()];
   if (!entry) return null;
   const tier = entry[plsaTierOf(budget)];
   if (!tier) return null;

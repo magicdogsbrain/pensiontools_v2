@@ -75,7 +75,8 @@ user reading another user's financial data.
       (confirmed by the account owner, 2026-08-03).
 
 ## New processing added 2026-08-16 (document before next policy publish)
-- [ ] `fundSuggestions` collection: when a user categorises an unknown fund ticker, the app logs
+- [x] `fundSuggestions` collection (policy sentence added + published 16 Aug 2026): when a user
+      categorises an unknown fund ticker, the app logs
       {ticker, name, chosen category, uid, timestamp} to an admin-only queue (curation telemetry).
       Add a sentence to the privacy policy in the pending single-URL rewrite. Rules restrict
       reads to the admin account; users can only create their own records.

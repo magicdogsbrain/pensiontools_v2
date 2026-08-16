@@ -7,31 +7,38 @@
 let onboardingElement = null;
 
 /**
- * Initialize the onboarding page
+ * Initialize the onboarding page.
+ * Plan-agnostic: shown automatically for the FIRST plan (empty account) and re-shown, skippable,
+ * at the start of every "+ New Plan" — so the tour is never locked away behind a data wipe.
  * @param {HTMLElement} container - Container element
  * @param {string} userName - User's display name or email
- * @param {Function} onStartWizard - Callback when user clicks to start the wizard
+ * @param {Function} onStartWizard - Callback when user clicks the CTA
+ * @param {Object} [opts] - { title, subtitle, ctaLabel, onSkip } — onSkip renders a "skip the tour" link
  */
-export function initOnboardingPage(container, userName, onStartWizard) {
+export function initOnboardingPage(container, userName, onStartWizard, opts = {}) {
   onboardingElement = container;
-  renderOnboardingPage(userName, onStartWizard);
+  renderOnboardingPage(userName, onStartWizard, opts);
 }
 
 /**
  * Render the onboarding page content
  */
-function renderOnboardingPage(userName, onStartWizard) {
+function renderOnboardingPage(userName, onStartWizard, opts = {}) {
   if (!onboardingElement) return;
 
   const displayName = userName || 'there';
+  const title = opts.title || `Welcome, ${displayName}!`;
+  const subtitle = opts.subtitle || "Your account is set up and ready to go. Here's what Pension Planner can do for you.";
+  const ctaLabel = opts.ctaLabel || 'Set Up Your First Plan';
 
   onboardingElement.innerHTML = `
     <div class="onboarding-page">
       <div class="onboarding-content">
 
         <div class="onboarding-welcome">
-          <h1>Welcome, ${displayName}!</h1>
-          <p>Your account is set up and ready to go. Here's what Pension Planner can do for you.</p>
+          <h1>${title}</h1>
+          <p>${subtitle}</p>
+          ${opts.onSkip ? '<button type="button" class="onboarding-skip" id="onboardingSkip">Skip the tour — set up the plan now &#8594;</button>' : ''}
         </div>
 
         <!-- How it works: the flow at a glance -->
@@ -142,7 +149,7 @@ function renderOnboardingPage(userName, onStartWizard) {
 
         <!-- CTA -->
         <div class="onboarding-cta">
-          <button class="onboarding-btn primary" id="onboardingStartWizard">Set Up Your First Plan</button>
+          <button class="onboarding-btn primary" id="onboardingStartWizard">${ctaLabel}</button>
         </div>
 
       </div>
@@ -150,6 +157,7 @@ function renderOnboardingPage(userName, onStartWizard) {
   `;
 
   document.getElementById('onboardingStartWizard').addEventListener('click', onStartWizard);
+  if (opts.onSkip) document.getElementById('onboardingSkip').addEventListener('click', opts.onSkip);
 }
 
 /**
@@ -209,6 +217,16 @@ export function getOnboardingPageStyles() {
       font-size: 15px;
       color: var(--text-muted);
       line-height: 1.6;
+    }
+
+    .onboarding-skip {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 10px;
+      text-decoration: underline;
     }
 
     .onboarding-tool-section {

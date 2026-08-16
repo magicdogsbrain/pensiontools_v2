@@ -3936,10 +3936,24 @@
     document.getElementById('scenarioNewBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
 
-      // Show the wizard to create a new plan
+      // Plan-agnostic onboarding: every new plan starts with the tour (skippable), so the
+      // how-it-works flow is always one click away instead of locked behind an empty account.
       document.getElementById('mainApp').classList.add('hidden');
-      document.getElementById('setupWizard').style.display = 'block';
-      initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+      const startWizard = () => {
+        hideOnboardingPage();
+        document.getElementById('setupWizard').style.display = 'block';
+        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+      };
+      const user = getCurrentUser();
+      const displayName = (user && (user.displayName || (user.email || '').split('@')[0])) || 'there';
+      const ob = document.getElementById('onboardingPage');
+      ob.style.display = 'block';
+      initOnboardingPage(ob, displayName, startWizard, {
+        title: 'A new plan — here’s the flow',
+        subtitle: 'A quick refresher on how the pieces fit together before you set it up.',
+        ctaLabel: 'Set up the new plan',
+        onSkip: startWizard
+      });
     });
 
     // Duplicate Plan button

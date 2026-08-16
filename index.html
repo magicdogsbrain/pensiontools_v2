@@ -5606,7 +5606,7 @@
       return FUND_CATALOGUE
         .map(f => ({ f, s: fuzzyFundScore(query, f.ticker, f.name) }))
         .filter(x => x.s > 0)
-        .sort((a, b) => b.s - a.s)
+        .sort((a, b) => b.s - a.s || a.f.ticker.localeCompare(b.f.ticker))
         .slice(0, limit)
         .map(x => x.f);
     }

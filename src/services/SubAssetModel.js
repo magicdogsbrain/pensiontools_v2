@@ -28,6 +28,8 @@
 // Feature flag — OFF. Nothing reads this yet; it exists so the later wiring can gate
 // on a single switch and keep the golden fixtures byte-identical when disabled.
 // -----------------------------------------------------------------------------
+import { DEFAULT_FUND_CATALOGUE } from './FundCatalogue.js';
+
 export const SUB_ASSET_ENABLED = false;
 
 // -----------------------------------------------------------------------------
@@ -97,50 +99,9 @@ export const SUB_ASSET_PROFILES = Object.freeze({
 // funds not listed here. Not financial advice; illustrative categorisation. UKW/HICL are infrastructure
 // EQUITY income (renewable + social infra, RPI-linked payouts) → shares; SEQI is infra DEBT → bonds;
 // CGT (Capital Gearing) is defensive multi-asset — defaulted to diversifier but commonly re-tagged bonds.
-export const FUND_CATALOGUE = Object.freeze([
-  // ---- Shares: world growth / tracker ----
-  { ticker: 'VWRL', name: 'Vanguard FTSE All-World (Dist)',        subClass: 'worldGrowth' },
-  { ticker: 'VWRP', name: 'Vanguard FTSE All-World (Acc)',         subClass: 'worldGrowth' },
-  { ticker: 'VEVE', name: 'Vanguard FTSE Developed World',         subClass: 'worldGrowth' },
-  { ticker: 'SWDA', name: 'iShares Core MSCI World',               subClass: 'worldGrowth' },
-  { ticker: 'HMWO', name: 'HSBC MSCI World',                       subClass: 'worldGrowth' },
-  { ticker: 'VUSA', name: 'Vanguard S&P 500',                      subClass: 'worldGrowth' },
-  { ticker: 'PACW', name: 'Amundi Prime All Country World',        subClass: 'worldGrowth' },
-  // ---- Shares: UK equity income ----
-  { ticker: 'CTY',  name: 'City of London Investment Trust',       subClass: 'ukEquityIncome' },
-  { ticker: 'LWDB', name: 'Law Debenture Corporation',             subClass: 'ukEquityIncome' },
-  { ticker: 'FGT',  name: 'Finsbury Growth & Income Trust',        subClass: 'ukEquityIncome' },
-  { ticker: 'MRCH', name: 'Merchants Trust',                       subClass: 'ukEquityIncome' },
-  { ticker: 'ISF',  name: 'iShares Core FTSE 100',                 subClass: 'ukEquityIncome' },
-  { ticker: 'VUKE', name: 'Vanguard FTSE 100',                     subClass: 'ukEquityIncome' },
-  { ticker: 'UKW',  name: 'Greencoat UK Wind',                     subClass: 'ukEquityIncome' },
-  { ticker: 'HICL', name: 'HICL Infrastructure',                   subClass: 'ukEquityIncome' },
-  { ticker: 'TRIG', name: 'The Renewables Infrastructure Group',   subClass: 'ukEquityIncome' },
-  // ---- Shares: global equity income ----
-  { ticker: 'MYI',  name: 'Murray International Trust',            subClass: 'globalEquityIncome' },
-  { ticker: 'VHYL', name: 'Vanguard FTSE All-World High Div Yld',  subClass: 'globalEquityIncome' },
-  { ticker: 'JGGI', name: 'JPMorgan Global Growth & Income',       subClass: 'globalEquityIncome' },
-  // ---- Bonds ----
-  { ticker: 'IGLS', name: 'iShares UK Gilts 0-5yr',               subClass: 'shortGilts' },
-  { ticker: 'IGLT', name: 'iShares Core UK Gilts',               subClass: 'longGilts' },
-  { ticker: 'VGOV', name: 'Vanguard UK Gilt',                    subClass: 'longGilts' },
-  { ticker: 'INXG', name: 'iShares £ Index-Linked Gilts',        subClass: 'indexLinked' },
-  { ticker: 'TI5G', name: 'iShares $ TIPS 0-5 (GBP Hedged)',     subClass: 'indexLinked' },
-  { ticker: 'SLXX', name: 'iShares Core £ Corp Bond',            subClass: 'corporateIG' },
-  { ticker: 'VAGP', name: 'Vanguard Global Aggregate Bond (GBP Hedged)', subClass: 'globalAggHedged' },
-  { ticker: 'IBTM', name: 'iShares $ Treasury Bond 7-10yr',      subClass: 'usTreasHedged' },
-  { ticker: 'SEQI', name: 'Sequoia Economic Infrastructure',     subClass: 'infraDebt' },
-  // ---- Cash / money market ----
-  { ticker: 'CSH2', name: 'Amundi Smart Overnight Return',       subClass: 'moneyMarket' },
-  { ticker: 'ERNS', name: 'iShares £ Ultrashort Bond',          subClass: 'moneyMarket' },
-  // ---- Diversifiers ----
-  { ticker: 'SGLN', name: 'iShares Physical Gold',              subClass: 'gold' },
-  { ticker: 'PHGP', name: 'WisdomTree Physical Gold (GBP)',     subClass: 'gold' },
-  { ticker: 'BHMG', name: 'BH Macro',                          subClass: 'trendMacro' },
-  { ticker: 'CGT',  name: 'Capital Gearing Trust',             subClass: 'trendMacro' },
-  { ticker: 'PNL',  name: 'Personal Assets Trust',            subClass: 'trendMacro' },
-  { ticker: 'RICA', name: 'Ruffer Investment Company',        subClass: 'trendMacro' }
-]);
+// The curated fund list now lives in FundCatalogue.js (~150+ UK funds, alphabetical);
+// re-exported here for back-compat. A Firestore admin override can supersede it at runtime.
+export const FUND_CATALOGUE = DEFAULT_FUND_CATALOGUE;
 
 // Ticker -> default sub-class (derived from the catalogue). tagPortfolio honours a per-holding
 // `subClass` override ahead of this, so users can re-categorise any fund.

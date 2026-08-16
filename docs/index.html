@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BlVlLrdY.js"></script>
+  <script type="module" crossorigin src="./assets/main-BYgcWn4C.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2109,10 +2109,20 @@
             </div>
 
             <div id="dsRiskMode">
-              <div class="form-group" style="margin-top: 12px;">
-                <label>Total Pot (£)</label>
-                <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+              <div class="form-grid" style="margin-top: 12px;">
+                <div class="form-group">
+                  <label>Total in your SIPP (£)</label>
+                  <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+                </div>
+                <div class="form-group">
+                  <label>Total in your ISA (£)</label>
+                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+                </div>
               </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
+                tax-free bridge, drawn without tax and modelled with its own steady return.
+              </p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" class="risk-cards">
@@ -2232,15 +2242,6 @@
               </div>
             </div>
 
-            <div class="settings-section">
-              <div class="section-title">ISA</div>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>ISA Balance (£)</label>
-                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000">
-                </div>
-              </div>
-            </div>
 
             <div class="settings-section">
               <div class="section-title">Protection</div>
@@ -2577,10 +2578,20 @@
             </div>
 
             <div id="ssRiskMode">
-              <div class="form-group" style="margin-top: 12px;">
-                <label>Total Pot (£)</label>
-                <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+              <div class="form-grid" style="margin-top: 12px;">
+                <div class="form-group">
+                  <label>Total in your SIPP (£)</label>
+                  <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+                </div>
+                <div class="form-group">
+                  <label>Total in your ISA (£)</label>
+                  <input type="number" id="ssIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+                </div>
               </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
+                tax-free bridge, drawn without tax and modelled with its own steady return.
+              </p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
@@ -2716,17 +2727,9 @@
             </div>
 
             <div class="settings-section">
-              <div class="section-title">ISA</div>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>ISA Balance (£)</label>
-                  <input type="number" id="ssIsaBalance" placeholder="e.g. 50000">
-                </div>
-              </div>
-              <div style="margin-top: 12px;">
-                <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
-                <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
-              </div>
+              <div class="section-title">Start from your Decision plan</div>
+              <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
+              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
             </div>
 
             <div class="settings-section">

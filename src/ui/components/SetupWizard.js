@@ -386,14 +386,14 @@ function renderStressStep(step) {
 
           <div class="wizard-grid">
             <div class="wizard-grid-item">
-              <label>Total Pot (£)</label>
+              <label>Total in your SIPP (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
                 <input type="number" id="wizPot" oninput="updateAllocDisplay('wiz')">
               </div>
             </div>
             <div class="wizard-grid-item">
-              <label>ISA Balance (Tax-Free)</label>
+              <label>Total in your ISA (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
                 <input type="number" id="wizIsaBalance" min="0" value="${wizardData.isaBalance}">
@@ -548,14 +548,14 @@ function renderDecisionStep(step) {
 
           <div class="wizard-grid">
             <div class="wizard-grid-item">
-              <label>Total Pot (£)</label>
+              <label>Total in your SIPP (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
                 <input type="number" id="wizDPot" oninput="updateAllocDisplay('wizD')">
               </div>
             </div>
             <div class="wizard-grid-item">
-              <label>ISA Balance (Tax-Free)</label>
+              <label>Total in your ISA (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
                 <input type="number" id="wizDIsaBalance" min="0" value="${wizardData.decisionIsaBalance}">

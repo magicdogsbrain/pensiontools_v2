@@ -34,6 +34,33 @@ function renderOnboardingPage(userName, onStartWizard) {
           <p>Your account is set up and ready to go. Here's what Pension Planner can do for you.</p>
         </div>
 
+        <!-- How it works: the flow at a glance -->
+        <div class="onboarding-flow">
+          <div class="onboarding-flow-step">
+            <div class="onboarding-flow-icon">&#x1F4C4;</div>
+            <div class="onboarding-flow-label">Create a plan</div>
+            <div class="onboarding-flow-sub">name + ages,<br>30 seconds</div>
+          </div>
+          <div class="onboarding-flow-arrow">&#8594;</div>
+          <div class="onboarding-flow-step">
+            <div class="onboarding-flow-icon">&#x1F9FE;</div>
+            <div class="onboarding-flow-label">Budget</div>
+            <div class="onboarding-flow-sub">what retirement<br>will cost</div>
+          </div>
+          <div class="onboarding-flow-arrow">&#8594;</div>
+          <div class="onboarding-flow-step">
+            <div class="onboarding-flow-icon">&#x1F4CA;</div>
+            <div class="onboarding-flow-label">Stress-test</div>
+            <div class="onboarding-flow-sub">will the money<br>last?</div>
+          </div>
+          <div class="onboarding-flow-arrow">&#8594;</div>
+          <div class="onboarding-flow-step">
+            <div class="onboarding-flow-icon">&#x1F4B7;</div>
+            <div class="onboarding-flow-label">Decide monthly</div>
+            <div class="onboarding-flow-sub">what to draw,<br>tax-efficiently</div>
+          </div>
+        </div>
+
         <!-- Tool: Budget Planner -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
@@ -96,6 +123,16 @@ function renderOnboardingPage(userName, onStartWizard) {
           </div>
           <p class="onboarding-tool-question">"Am I saving enough for retirement?"</p>
           <p>A future tool for people still building their pension. Project how your contributions and investment growth could add up over time.</p>
+        </div>
+
+        <!-- Plans & the lock -->
+        <div class="onboarding-tool-section">
+          <div class="onboarding-tool-header">
+            <span class="onboarding-tool-badge">Good to know</span>
+            <h2>Everything lives in a "plan" &nbsp;&#x1F4C4;&#x1F512;</h2>
+          </div>
+          <p>A <strong>plan</strong> holds one set of assumptions — your pots, spending target, State Pension — plus everything you record against them. You can keep several (say, "Retire at 60" vs "Retire at 62") and switch or duplicate them from the dropdown at the top.</p>
+          <p>Once you commit a plan's Decision settings and start recording monthly entries, the plan <strong>locks &#x1F512;</strong> — its settings freeze so your history stays meaningful. Want to try different assumptions later? Duplicate into a new plan. The Budget and Stress Tester never lock: the budget saves as you type, and Stress is a free sandbox for what-ifs. The &#x1F512;/&#x270F;&#xFE0F; chip next to the plan name always shows where you stand.</p>
         </div>
 
         <!-- Reassurance -->
@@ -180,6 +217,34 @@ export function getOnboardingPageStyles() {
       border-radius: 12px;
       padding: 24px;
       margin-bottom: 20px;
+    }
+
+    .onboarding-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 14px;
+      margin-bottom: 28px;
+    }
+
+    .onboarding-flow-step {
+      text-align: center;
+      min-width: 104px;
+    }
+
+    .onboarding-flow-icon { font-size: 26px; margin-bottom: 4px; }
+    .onboarding-flow-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .onboarding-flow-sub { font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 2px; }
+    .onboarding-flow-arrow { font-size: 20px; color: var(--primary); flex-shrink: 0; }
+
+    @media (max-width: 560px) {
+      .onboarding-flow { flex-direction: column; gap: 4px; }
+      .onboarding-flow-arrow { transform: rotate(90deg); }
     }
 
     .onboarding-tool-section.future {

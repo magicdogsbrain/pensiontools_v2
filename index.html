@@ -1946,6 +1946,7 @@
           <span class="scenario-selector-label">Plan:</span>
           <button class="scenario-active-btn" id="scenarioActiveBtn">
             <span class="scenario-name" id="scenarioActiveName">Loading...</span>
+            <span id="planLockChip" style="display:none; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--text-muted); white-space:nowrap;"></span>
             <span class="scenario-chevron">&#9660;</span>
           </button>
           <div class="scenario-dropdown" id="scenarioDropdown">
@@ -3725,6 +3726,48 @@
     /**
      * Render the scenario dropdown list
      */
+    // Always-visible lock cue next to the plan name (the lock otherwise only shows deep in
+    // Decision → Settings). Locked = the plan's definition is committed; entries record against it.
+    async function updatePlanLockChip() {
+      const chip = document.getElementById('planLockChip');
+      if (!chip) return;
+      const locked = await planIsLocked();
+      chip.style.display = 'inline-block';
+      chip.textContent = locked ? '🔒 locked' : '✏️ draft';
+      chip.title = locked
+        ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
+        : 'This plan’s settings are still editable. Saving the Decision settings commits (locks) the plan. Click for details.';
+      chip.style.cursor = 'pointer';
+      chip.onclick = (e) => { e.stopPropagation(); explainPlanLock(locked); };
+    }
+
+    // A small explainer card for the plans/lock concept, reachable from the header chip.
+    window.explainPlanLock = function (locked) {
+      let el = document.getElementById('planLockExplainer');
+      if (el) { el.remove(); }
+      el = document.createElement('div');
+      el.id = 'planLockExplainer';
+      el.style.cssText = 'position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:20px;';
+      el.innerHTML =
+        '<div style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:560px; width:100%; padding:26px; font-size:15px; line-height:1.6;">' +
+          '<h2 style="margin-bottom:12px;">Plans — and why they lock 🔒</h2>' +
+          '<p style="margin-bottom:10px; color:var(--text-muted);">A <strong style="color:var(--text);">plan</strong> is a named scenario: its settings (pots, spending target, State Pension, rules) plus everything you record against them — monthly decisions and tax years. You can keep several plans and switch or duplicate them from this dropdown.</p>' +
+          '<p style="margin-bottom:10px; color:var(--text-muted);">When you save a plan’s Decision settings, the plan <strong style="color:var(--text);">locks</strong>: the settings freeze so your recorded history stays meaningful — a decision saved under one set of rules shouldn’t be silently re-judged under another.</p>' +
+          '<ul style="margin:0 0 12px 18px; color:var(--text-muted);">' +
+            '<li><strong style="color:var(--text);">✏️ draft</strong> — settings still editable; nothing committed yet.</li>' +
+            '<li><strong style="color:var(--text);">🔒 locked, nothing recorded</strong> — you can unlock and edit freely.</li>' +
+            '<li><strong style="color:var(--text);">🔒 locked with history</strong> — settings can’t change; duplicate into a new plan instead.</li>' +
+          '</ul>' +
+          '<p style="margin-bottom:16px; color:var(--text-muted);">The Budget and the Stress Tester are never locked — the budget autosaves like a document, and Stress is a sandbox for what-ifs.</p>' +
+          '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
+            '<button type="button" onclick="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +
+            (locked ? '<button type="button" class="risk-btn" onclick="document.getElementById(\'planLockExplainer\').remove(); document.querySelector(\'.tab[data-tab=&quot;decision&quot;]\').click(); openToolSettingsTab(\'decision\');">View the locked settings</button>' : '') +
+          '</div>' +
+        '</div>';
+      el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+      document.body.appendChild(el);
+    };
+
     async function renderScenarioSelector() {
       const scenarios = await listScenariosAsync();
       const active = scenarios.find(s => s.isActive);
@@ -3734,6 +3777,8 @@
       if (nameEl) {
         nameEl.textContent = active ? (active.planDetails?.name || active.name || 'No Plan') : 'No Plan';
       }
+
+      await updatePlanLockChip();
 
       // Render dropdown list
       const listEl = document.getElementById('scenarioList');
@@ -7103,6 +7148,7 @@
         setDecisionSettingsEnabled(true);
         saveBtn.textContent = 'Save Settings';
         saveBtn.classList.remove('btn-locked');
+        updatePlanLockChip();
         return;
       }
 
@@ -7124,6 +7170,7 @@
       setDecisionSettingsEnabled(false);
       saveBtn.textContent = '🔒 Locked';
       saveBtn.classList.add('btn-locked');
+      updatePlanLockChip(); // keep the header cue in sync with lock changes
     }
 
     // Unlock the plan for editing — allowed only while nothing depends on the settings (re-checked here

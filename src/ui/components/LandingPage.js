@@ -33,9 +33,13 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
           <p class="landing-subtitle">Free tools to work out what your retirement will actually cost, stress-test whether your pension can pay for it, and decide where to draw from each month.</p>
         </div>
 
+        <!-- The flow in one line -->
+        <p class="landing-flow">What will it cost? <span>&#8594;</span> Will the money last? <span>&#8594;</span> What do I draw this month?</p>
+
         <!-- Tools overview -->
         <div class="landing-tools">
           <div class="landing-tool-card">
+            <div class="landing-step-badge">Step 1</div>
             <div class="landing-tool-icon">&#x1F9FE;</div>
             <h3>Budget Planner</h3>
             <p class="landing-tool-question">"What will retirement actually cost?"</p>
@@ -43,6 +47,7 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
           </div>
 
           <div class="landing-tool-card">
+            <div class="landing-step-badge">Step 2</div>
             <div class="landing-tool-icon">&#x1F4CA;</div>
             <h3>Stress Tester</h3>
             <p class="landing-tool-question">"Can I afford to retire?"</p>
@@ -50,6 +55,7 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
           </div>
 
           <div class="landing-tool-card">
+            <div class="landing-step-badge">Step 3</div>
             <div class="landing-tool-icon">&#x1F4B7;</div>
             <h3>Monthly Decisions</h3>
             <p class="landing-tool-question">"Where should I take money from?"</p>
@@ -158,6 +164,28 @@ export function getLandingPageStyles() {
       line-height: 1.6;
       max-width: 520px;
       margin: 0 auto;
+    }
+
+    .landing-flow {
+      text-align: center;
+      font-size: 15px;
+      color: var(--text-muted);
+      margin: 0 0 18px;
+    }
+
+    .landing-flow span { color: var(--primary); font-weight: 700; padding: 0 4px; }
+
+    .landing-step-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 999px;
+      padding: 2px 10px;
+      margin-bottom: 10px;
     }
 
     .landing-tools {

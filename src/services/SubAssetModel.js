@@ -62,6 +62,9 @@ export const SUB_ASSET_PROFILES = Object.freeze({
   ukEquityIncome:   { bucket: BUCKETS.SHARES, label: 'UK equity income',        nominalReturn: 0.068, yield: 0.040, vol: 0.16, eqCorr: 0.90, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.07 },
   globalEquityIncome:{ bucket: BUCKETS.SHARES, label: 'Global equity income',    nominalReturn: 0.070, yield: 0.030, vol: 0.16, eqCorr: 0.95, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.05 },
   worldGrowth:      { bucket: BUCKETS.SHARES, label: 'World growth / tracker',   nominalReturn: 0.070, yield: 0.020, vol: 0.17, eqCorr: 1.00, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.00 },
+  reit:             { bucket: BUCKETS.SHARES, label: 'Property / REITs',          nominalReturn: 0.065, yield: 0.045, vol: 0.19, eqCorr: 0.65, duration: 4,   inflationBeta: 0.3, creditBeta: 0.2, crisisBeta: 0,    idioVol: 0.13, note: 'listed property: equity-like with rate sensitivity; rents partly inflation-linked' },
+  emEquity:         { bucket: BUCKETS.SHARES, label: 'Emerging-markets equity',   nominalReturn: 0.075, yield: 0.028, vol: 0.22, eqCorr: 0.80, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.13 },
+  globalSmallCap:   { bucket: BUCKETS.SHARES, label: 'Global smaller companies',  nominalReturn: 0.075, yield: 0.018, vol: 0.20, eqCorr: 0.90, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.09 },
 
   // ---- BONDS -----------------------------------------------------------------
   shortGilts:       { bucket: BUCKETS.BONDS,  label: 'Short gilts 0-5y (buffer)', nominalReturn: 0.043, yield: 0.043, vol: 0.026, eqCorr: 0.10, duration: 2.5, inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.01 },
@@ -71,6 +74,7 @@ export const SUB_ASSET_PROFILES = Object.freeze({
   globalAggHedged:  { bucket: BUCKETS.BONDS,  label: 'Global-agg £-hedged',       nominalReturn: 0.045, yield: 0.045, vol: 0.053, eqCorr: 0.30, duration: 6,   inflationBeta: 0,   creditBeta: 0.2, crisisBeta: 0,    idioVol: 0.02 },
   usTreasHedged:    { bucket: BUCKETS.BONDS,  label: 'US treasuries £-hedged',    nominalReturn: 0.040, yield: 0.040, vol: 0.068, eqCorr: 0.10, duration: 7,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0.15, idioVol: 0.02 },
   infraDebt:        { bucket: BUCKETS.BONDS,  label: 'Infrastructure debt',       nominalReturn: 0.064, yield: 0.060, vol: 0.07,  eqCorr: 0.30, duration: 8,   inflationBeta: 0.3, creditBeta: 0.3, crisisBeta: 0,    idioVol: 0.03, note: 'IG + ~115bps illiquidity premium' },
+  highYield:        { bucket: BUCKETS.BONDS,  label: 'Global high-yield (£-hedged)', nominalReturn: 0.058, yield: 0.065, vol: 0.10, eqCorr: 0.60, duration: 3.5, inflationBeta: 0,  creditBeta: 0.8, crisisBeta: 0,    idioVol: 0.05, note: 'credit carry net of defaults; spreads blow out with equities in a crash' },
 
   // ---- CASH ------------------------------------------------------------------
   moneyMarket:      { bucket: BUCKETS.CASH,   label: 'Money-market fund',         nominalReturn: 0.034, yield: 0.034, vol: 0.002, eqCorr: 0.00, duration: 0.1, inflationBeta: 0, creditBeta: 0, crisisBeta: 0, idioVol: 0.00, note: 'FCA -1% real; = engine cash model' },
@@ -79,7 +83,8 @@ export const SUB_ASSET_PROFILES = Object.freeze({
   // ---- DIVERSIFIERS ----------------------------------------------------------
   // The two sleeves {equity, inflation, yield} don't fully explain — the real tail hedges.
   gold:             { bucket: BUCKETS.DIVERSIFIERS, label: 'Gold',               nominalReturn: 0.055, yield: 0.000, vol: 0.155, eqCorr: 0.05, duration: 0, inflationBeta: 0.3, creditBeta: 0, crisisBeta: 0.5, idioVol: 0.14, note: 'near-uncorrelated; rises when stocks AND bonds fall (2022)' },
-  trendMacro:       { bucket: BUCKETS.DIVERSIFIERS, label: 'Trend / macro',      nominalReturn: 0.045, yield: 0.000, vol: 0.12,  eqCorr: 0.07, duration: 0, inflationBeta: 0,   creditBeta: 0, crisisBeta: 0,   momentumBeta: 0.6, idioVol: 0.10, note: 'lagged path-momentum; pays in prolonged 2008/2022, whipsaws in V-shaped 2020' }
+  trendMacro:       { bucket: BUCKETS.DIVERSIFIERS, label: 'Trend / macro',      nominalReturn: 0.045, yield: 0.000, vol: 0.12,  eqCorr: 0.07, duration: 0, inflationBeta: 0,   creditBeta: 0, crisisBeta: 0,   momentumBeta: 0.6, idioVol: 0.10, note: 'lagged path-momentum; pays in prolonged 2008/2022, whipsaws in V-shaped 2020' },
+  commodities:      { bucket: BUCKETS.DIVERSIFIERS, label: 'Broad commodities',  nominalReturn: 0.045, yield: 0.000, vol: 0.16,  eqCorr: 0.25, duration: 0, inflationBeta: 0.8, creditBeta: 0, crisisBeta: 0,   idioVol: 0.14, note: 'the strongest inflation hedge (2022); long flat stretches otherwise; crashes WITH equities in a demand shock (2008)' }
 });
 
 // -----------------------------------------------------------------------------

@@ -82,7 +82,9 @@ export const SLEEVE_EQ_RHO = Object.freeze({
   usTreasHedged:   { normal: 0.05, inflation: 0.25, crash: -0.40 },
   infraDebt:       { normal: 0.30, inflation: 0.35, crash:  0.35 },
   gold:            { normal: 0.00, inflation: -0.05, crash: -0.20 },
-  trendMacro:      { normal: 0.05, inflation: -0.10, crash: -0.30 }
+  trendMacro:      { normal: 0.05, inflation: -0.10, crash: -0.30 },
+  highYield:       { normal: 0.50, inflation: 0.55, crash:  0.60 },   // credit = equity risk in a crash
+  commodities:     { normal: 0.20, inflation: -0.10, crash:  0.40 }   // 2022: up as equities fell; 2008: down together
 });
 
 /** Regime-dependent residual equity correlation for a named sleeve (0 if unknown). */
@@ -236,6 +238,22 @@ export function trendSignalFromMomentum(mom) {
   return Math.max(-1, Math.min(1, mom / TREND_MOM_SCALE));
 }
 
+export const COMMODITY_DRIFT = 0.035; // + inflation hedge term ≈ 4.5% nominal mean at 2.5% CPI... higher when inflation runs
+
+/**
+ * Broad commodities: gold-like mechanics with a STRONGER inflation hedge and a positive
+ * crash-regime equity correlation (a 2008-style demand shock drags commodities down with
+ * equities, unlike gold). Memoryless.
+ * @param {object} ctx - { inf, eqReturn }
+ */
+export function commoditiesReturn(ctx, rng) {
+  const { inf } = ctx;
+  const p = SUB_ASSET_PROFILES.commodities;
+  const inflHedge = (p.inflationBeta || 0) * (inf - 0.025);
+  const idio = correlatedResidual(p.idioVol || 0, subAssetEquityRho('commodities', ctx), ctx.eqReturn, rng);
+  return COMMODITY_DRIFT + inflHedge + idio;
+}
+
 export const DEFAULT_DIVERSIFIER_WEIGHTS = Object.freeze({ gold: 0.5, trendMacro: 0.5 });
 
 /**
@@ -249,5 +267,6 @@ export function diversifierBucketReturn(ctx, rng, trendSignal, weights = DEFAULT
   let r = 0;
   if (weights.gold) r += weights.gold * goldReturn(ctx, rng);
   if (weights.trendMacro) r += weights.trendMacro * trendReturn(ctx, rng, trendSignal);
+  if (weights.commodities) r += weights.commodities * commoditiesReturn(ctx, rng);
   return r;
 }

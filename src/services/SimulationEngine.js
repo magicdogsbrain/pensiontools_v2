@@ -274,7 +274,22 @@ export function simulate(config, returns, seed = 0) {
     equity *= monthly(eqReturn);
     bond *= monthly(annualBondReturn);
     cash *= monthly(annualCashReturn);
-    isa = applyIsaGrowthMonthly(isa, config.isaReturn || ISA_DEFAULTS.RETURN);
+    if (config.isaMix && isa > 0) {
+      // Own-funds mode: the ISA is modelled at ITS tagged asset mix through the same driver
+      // machinery as the taxable pots (equity path, sub-asset bonds, diversifiers, cash model).
+      // Gated on config.isaMix so legacy runs keep the flat rate AND an untouched RNG stream.
+      const m = config.isaMix;
+      let isaAnnual = (m.shares || 0) * eqReturn + (m.cash || 0) * annualCashReturn;
+      if (m.bonds) {
+        isaAnnual += m.bonds * bondBucketReturn({ inf, prevInf, eqReturn, prevEqReturn }, rng, m.bondWeights);
+      }
+      if (m.diversifiers) {
+        isaAnnual += m.diversifiers * diversifierBucketReturn({ inf, eqReturn }, rng, trendSignal, m.diversifierWeights);
+      }
+      isa *= monthly(isaAnnual);
+    } else {
+      isa = applyIsaGrowthMonthly(isa, config.isaReturn || ISA_DEFAULTS.RETURN);
+    }
 
     // HODL fund return (Ruffer-style absolute return)
     if (hodl > 0) {

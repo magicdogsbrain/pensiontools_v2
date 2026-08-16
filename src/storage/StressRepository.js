@@ -12,6 +12,7 @@ import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
+import { tagPortfolio } from '../services/PortfolioTagger.js';
 import {
   getActiveStressSettings,
   saveActiveStressSettings,
@@ -311,7 +312,15 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     ? { spStartYear: spConfig.spStartYear, spWeeklyAmount: spConfig.spWeeklyAmount, spFirstYearRatio: spConfig.spFirstYearRatio }
     : { statePension: settings.statePension || 0, statePensionYear: settings.statePensionYear ?? 999 };
 
+  // ISA composition (own-funds mode): when the plan has tagged ISA-wrapped holdings, model the
+  // ISA pool at THEIR asset mix (same driver machinery as the taxable pots) instead of the flat
+  // conservative rate. Re-wrapped as SIPP for tagging because tagPortfolio deliberately keeps
+  // ISA-wrapped holdings out of the buckets. Absent => engine keeps the legacy flat-rate path
+  // (and an untouched RNG stream — golden-safe).
+  const isaMix = deriveIsaMix(settings.taggedFunds);
+
   return {
+    ...(isaMix ? { isaMix } : {}),
     equityStart: overrides.equityStart ?? settings.equityMin,
     bondStart: overrides.bondStart ?? settings.bondMin,
     cashStart: overrides.cashStart ?? settings.cashTarget,
@@ -351,4 +360,27 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     diversifierStart: overrides.diversifierStart ?? (settings.diversifierStart || undefined),
     subAsset: settings.subAsset || undefined
   };
+}
+
+
+/**
+ * Asset mix of the ISA-wrapped tagged holdings, as bucket fractions (+ sub-class weights),
+ * or null when there are none.
+ */
+export function deriveIsaMix(taggedFunds) {
+  const isaHoldings = (taggedFunds || []).filter(
+    (f) => (f.wrapper || '').toUpperCase() === 'ISA' && +f.value > 0
+  );
+  if (!isaHoldings.length) return null;
+  const t = tagPortfolio(isaHoldings.map((f) => ({ ...f, wrapper: 'SIPP' })));
+  if (!(t.total > 0)) return null;
+  const mix = {
+    shares: t.buckets.shares / t.total,
+    bonds: t.buckets.bonds / t.total,
+    diversifiers: t.buckets.diversifiers / t.total,
+    cash: t.buckets.cash / t.total
+  };
+  if (Object.keys(t.bondWeights).length) mix.bondWeights = t.bondWeights;
+  if (Object.keys(t.diversifierWeights).length) mix.diversifierWeights = t.diversifierWeights;
+  return mix;
 }

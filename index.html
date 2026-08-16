@@ -5759,7 +5759,7 @@
       const pct = b => taxable ? Math.round(t.buckets[b] / taxable * 100) : 0;
       const money = n => '£' + Math.round(n).toLocaleString();
       const mix = w => Object.entries(w).map(([k, v]) => (SUB_ASSET_PROFILES[k].label) + ' ' + Math.round(v * 100) + '%').join(' · ');
-      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to ' + money(taxable) + ' pot' + (t.isaTotal ? ' + ' + money(t.isaTotal) + ' ISA (kept separate — the tax-free bridge)' : '') + '</div>';
+      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to ' + money(taxable) + ' pot' + (t.isaTotal ? ' + ' + money(t.isaTotal) + ' ISA (separate tax-free bridge, modelled at its own tagged mix)' : '') + '</div>';
       html += '<div style="font-size:13px;">';
       for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
         if (!t.buckets[b]) continue;

@@ -7,6 +7,7 @@ vi.mock('../src/firebase/index.js', () => ({
 }));
 
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
+import { runMonteCarlo } from '../src/services/SimulationEngine.js';
 
 const base = {
   equityMin: 600000, bondMin: 480000, cashTarget: 120000,
@@ -56,5 +57,48 @@ describe('createSimulationConfigFromSettings — State Pension wiring', () => {
     // legacy fallback with no legacy fields → statePensionYear sentinel, statePension 0
     expect(cfg.statePension).toBe(0);
     expect(cfg.spStartYear).toBeUndefined();
+  });
+});
+
+describe('ISA composition (own-funds mode → config.isaMix)', () => {
+  const base = { equityMin: 100000, bondMin: 50000, cashTarget: 10000, duration: 30, baseSalary: 30000 };
+
+  it('derives bucket fractions from ISA-wrapped tagged holdings only', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      taggedFunds: [
+        { ticker: 'UKW', value: 40000, wrapper: 'ISA' },   // ukEquityIncome → shares
+        { ticker: 'IGLS', value: 20000, wrapper: 'ISA' },  // shortGilts → bonds
+        { ticker: 'PACW', value: 500000, wrapper: 'SIPP' } // must NOT influence the ISA mix
+      ]
+    });
+    expect(cfg.isaMix).toBeTruthy();
+    expect(cfg.isaMix.shares).toBeCloseTo(40000 / 60000, 6);
+    expect(cfg.isaMix.bonds).toBeCloseTo(20000 / 60000, 6);
+    expect(cfg.isaMix.diversifiers).toBe(0);
+    expect(cfg.isaMix.bondWeights).toHaveProperty('shortGilts');
+  });
+
+  it('no ISA-wrapped holdings (risk mode / SIPP-only funds) → no isaMix, legacy flat path', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      taggedFunds: [{ ticker: 'PACW', value: 500000, wrapper: 'SIPP' }]
+    });
+    expect(cfg.isaMix).toBeUndefined();
+    const cfg2 = createSimulationConfigFromSettings({}, { ...base, isaBalance: 60000 });
+    expect(cfg2.isaMix).toBeUndefined();
+  });
+
+  it('an equity-tagged ISA runs through Monte Carlo without error and can lose money in bad runs', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      isaDrawdownStrategy: 'maximiseLongevity',
+      taggedFunds: [{ ticker: 'UKW', value: 60000, wrapper: 'ISA' }]
+    });
+    const runs = runMonteCarlo(cfg, 100);
+    expect(runs.every((r) => Number.isFinite(r.final))).toBe(true);
   });
 });

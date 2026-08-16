@@ -362,7 +362,8 @@ export function summariseBudget(budget) {
  */
 export function evalAmountExpr(str) {
   if (str == null) return null;
-  const src = String(str).trim().replace(/[×x]/gi, '*').replace(/,/g, '');
+  // A leading '=' is spreadsheet muscle memory — accept and strip it.
+  const src = String(str).trim().replace(/^=/, '').replace(/[×x]/gi, '*').replace(/,/g, '');
   if (!src || !/^[\d+\-*/().\s]+$/.test(src) || !/\d/.test(src)) return null;
   try {
     const val = Function('"use strict"; return (' + src + ');')();
@@ -370,6 +371,20 @@ export function evalAmountExpr(str) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Sum a line's breakdown sub-items ("sub sheet") into an ANNUAL figure. Rows carry their own
+ * period, so a car line can mix insurance £450/yr with fuel £80/mo. Rows without a numeric
+ * amount are ignored (they can still hold a label as a checklist entry).
+ * @param {Array<{label?:string, amount?:number|null, period?:'mo'|'yr'}>} breakdown
+ */
+export function breakdownAnnual(breakdown) {
+  return (breakdown || []).reduce((sum, r) => {
+    const amt = num(r && r.amount);
+    if (!amt) return sum;
+    return sum + ((r.period || 'yr') === 'mo' ? amt * 12 : amt);
+  }, 0);
 }
 
 /**

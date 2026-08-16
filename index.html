@@ -2889,8 +2889,9 @@
             <div id="budSummary"></div>
           </div>
 
-          <div class="button-row" style="margin-top: 24px;">
-            <button id="budSaveBtn" onclick="saveBudgetUI()">Save budget</button>
+          <div class="button-row" style="margin-top: 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <span id="budSaveStatus" style="font-size:13px; color:var(--text-muted);">Autosaves as you edit</span>
+            <button type="button" class="risk-btn" onclick="resetBudgetUI()">Reset budget…</button>
           </div>
         </div>
       </div>
@@ -2957,6 +2958,7 @@
       defaultBudget,
       evalAmountExpr,
       typicalSanityFlag,
+      breakdownAnnual,
       DEFAULT_TAX_BANDS,
       grossToNet
     } from './src/app.js';
@@ -6141,6 +6143,7 @@
     }
 
     async function loadBudgetUI() {
+      _budLoaded = false; // suppress autosave while (re)loading
       try {
         window._budget = normaliseBudget(await getBudgetAsync());
       } catch (e) {
@@ -6166,6 +6169,8 @@
       // Nudge brand-new budgets (no amounts entered anywhere) toward the guided walk-through.
       const untouched = !window._budget.lines.some((l) => l.annual) && !window._budget.oneOffs.some((o) => o.amount);
       document.getElementById('budWizBanner').style.display = untouched ? 'block' : 'none';
+      _budLoaded = true;
+      budSetStatus('Autosaves as you edit');
       // Arriving fresh from the setup wizard → open the walk-through directly.
       if (window._budWizAutoOpen) {
         window._budWizAutoOpen = false;
@@ -6215,15 +6220,17 @@
           '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">' +
           hint +
         '</div>' +
-        '<div style="display:flex; gap:4px; flex:0 0 150px; align-items:center;">' +
-          '<input type="number" placeholder="' + ph + '" title="Amount in today\'s money' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" oninput="updateBudgetAmount(\'' + line.id + '\',this.value)" style="flex:1 1 auto; min-width:0;">' +
+        '<div style="display:flex; gap:4px; flex:0 0 186px; align-items:center;">' +
+          '<input type="text" inputmode="decimal" id="bm-amt-' + line.id + '" placeholder="' + ph + '" title="Amount in today\'s money — sums welcome: 11.99+8.99 or =4×52/12' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" onchange="updateBudgetAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
           '<button type="button" class="risk-btn" style="padding:4px 8px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
+          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:4px 8px; flex:0 0 auto;" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'updateBudgetLine') : '') +
-        '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
+        '<input type="number" placeholder="from age" title="From age (blank = retirement). For temporary costs — e.g. a car lease with 3 years left — set when it starts and stops." value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
         '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 84px;">' +
         dup +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
+        (line.breakdownOpen ? '<div style="flex-basis:100%;">' + budBreakPanelHtml('bm', line) + '</div>' : '') +
         '</div>';
     }
 
@@ -6303,11 +6310,19 @@
     };
 
     // Amount respects the line's mo/yr period; `annual` stays the canonical stored value.
-    window.updateBudgetAmount = function (id, value) {
+    // Accepts arithmetic ("11.99+8.99", "=4×52/12") — evaluated on commit (change), like the wizard.
+    window.updateBudgetAmount = function (id, value, el) {
       const line = window._budget.lines.find((l) => l.id === id);
       if (!line) return;
-      const n = value === '' ? null : +value;
-      line.annual = n == null ? null : ((line.period || 'yr') === 'mo' ? n * 12 : n);
+      const v = String(value).trim();
+      if (v === '') line.annual = null;
+      else {
+        const n = evalAmountExpr(v);
+        if (n == null) return; // not evaluable — leave as typed, keep last stored value
+        line.annual = (line.period || 'yr') === 'mo' ? n * 12 : n;
+        if (el) el.value = n;
+      }
+      budTouch();
       updateBudgetSummary();
     };
 
@@ -6315,8 +6330,11 @@
       const line = window._budget.lines.find((l) => l.id === id);
       if (!line) return;
       line.period = (line.period || 'yr') === 'mo' ? 'yr' : 'mo';
+      budTouch();
+      const y = window.scrollY;
       renderBudgetLines();  // re-render so the shown amount reflects the new period
       updateBudgetSummary();
+      window.scrollTo(0, y); // stay put — a toggle mustn't throw the user back to the top
     };
 
     window.updateBudgetOneOff = function (id, field, value) {
@@ -6388,6 +6406,7 @@
     };
 
     function updateBudgetSummary() {
+      budTouch(); // every main-page mutation funnels through here → debounced cloud save
       syncHorizonFromInputs();
       const b = window._budget;
       const retire = b.retirementAge;
@@ -6447,29 +6466,75 @@
         html += '</ul></div>';
       }
 
-      html += '<div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">';
-      html += '<div style="font-size:13px;">Suggested plan target: <strong>' + money(s.suggestedGrossAnnual) + '/yr gross</strong> <span style="color:var(--text-muted);">(grosses up your all-in take-home — approximate)</span></div>';
-      html += '<button type="button" onclick="applyBudgetToPlan()">Use as my plan’s target income</button>';
+      html += '<div style="border-top:1px solid var(--border); padding-top:12px;">';
+      html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently. <span style="color:var(--text-muted);">(≈ ' + money(s.suggestedGrossAnnual) + '/yr before tax.)</span></div>';
+      html += '<button type="button" onclick="applyBudgetToPlan()">Set as my plan’s target (Stress + Decision)</button>';
       html += '</div>';
 
       document.getElementById('budSummary').innerHTML = html;
     }
+
+    // ---- Cloud-document autosave ---------------------------------------------------------------
+    // The budget behaves like a shared doc: every edit funnels through budTouch(), which debounces a
+    // silent save. No Save button needed; a status chip shows Saving…/Saved. Manual flush still
+    // exists (saveBudgetUI) for the wizard's finish buttons.
+    let _budLoaded = false;
+    let _budSaveTimer = null;
+
+    function budSetStatus(txt) {
+      const el = document.getElementById('budSaveStatus');
+      if (el) el.textContent = txt;
+    }
+
+    window.budTouch = function () {
+      if (!_budLoaded || !window._budget) return;
+      budSetStatus('Saving\u2026');
+      clearTimeout(_budSaveTimer);
+      _budSaveTimer = setTimeout(budAutosave, 1200);
+    };
+
+    function budCleanForSave() {
+      return {
+        ...window._budget,
+        lines: window._budget.lines.filter((l) => (l.label && l.label.trim()) || l.annual ||
+          (l.breakdown && l.breakdown.some((r) => (r.label && r.label.trim()) || r.amount))),
+        oneOffs: window._budget.oneOffs.filter((o) => (o.label && o.label.trim()) || o.amount)
+      };
+    }
+
+    async function budAutosave() {
+      if (!isLoggedIn()) { budSetStatus('Sign in to save'); return; }
+      try {
+        await saveBudget(budCleanForSave());
+        budSetStatus('Saved \u2713');
+      } catch (e) {
+        console.error('Budget autosave error:', e);
+        budSetStatus('Not saved \u2014 retrying\u2026');
+        clearTimeout(_budSaveTimer);
+        _budSaveTimer = setTimeout(budAutosave, 4000);
+      }
+    }
+
+    // Start over: fresh seeded categories, amounts blank. Horizon and partner-sharing are kept.
+    window.resetBudgetUI = async function () {
+      if (!confirm('Reset the budget?\n\nAll amounts, sub-sheets and custom lines go back to a fresh start. Your ages and partner-sharing setting are kept.\n\nThis saves immediately and cannot be undone.')) return;
+      window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
+      window._budget.oneOffs = starterOneOffs().map((o) => ({ id: budId(), ...o }));
+      renderBudgetLines();
+      renderBudgetOneOffs();
+      updateBudgetSummary();
+      await budAutosave();
+      showToast('Budget reset to a fresh start', 'success');
+    };
 
     window.saveBudgetUI = async function () {
       if (!isLoggedIn()) { showToast('Please sign in to save your budget', 'error'); return; }
       syncHorizonFromInputs();
       showLoading('Saving budget…');
       try {
-        const clean = {
-          ...window._budget,
-          lines: window._budget.lines.filter((l) => (l.label && l.label.trim()) || l.annual),
-          oneOffs: window._budget.oneOffs.filter((o) => (o.label && o.label.trim()) || o.amount)
-        };
-        await saveBudget(clean);
-        window._budget = normaliseBudget(clean);
-        renderBudgetLines();
-        renderBudgetOneOffs();
-        updateBudgetSummary();
+        clearTimeout(_budSaveTimer);
+        await saveBudget(budCleanForSave());
+        budSetStatus('Saved \u2713');
         showToast('Budget saved', 'success');
       } catch (e) {
         console.error('Budget save error:', e);
@@ -6483,14 +6548,20 @@
       const s = summariseBudget(window._budget);
       const gross = Math.round(s.suggestedGrossAnnual);
       if (!gross) { showToast('Add some spending first', 'warning'); return; }
-      if (await planIsLocked()) {
-        showToast('Your plan is locked — unlock it or start a new plan to change its target.', 'warning');
-        return;
-      }
       showLoading('Applying to plan…');
       try {
-        await saveDecisionSettings({ baseSalary: gross });
-        showToast('Plan target set to ' + gbp(gross) + '/yr (≈ your ' + gbp(s.allInComfortableMonthly) + '/mo all-in take-home)', 'success', 4500);
+        // Stress settings are a sandbox (never plan-locked); the Decision target is part of the
+        // locked plan definition, so it only updates when the plan is unlocked.
+        await saveStressSettings({ baseSalary: gross });
+        const locked = await planIsLocked();
+        if (!locked) await saveDecisionSettings({ baseSalary: gross });
+        // The stress settings screen shows the net-first field — refresh if it's loaded.
+        const ssGross = document.getElementById('ssBaseSalary');
+        if (ssGross) { ssGross.value = gross; syncNetFromGross('ss'); }
+        const dsGross = document.getElementById('dsBaseSalary');
+        if (dsGross && !locked) { dsGross.value = gross; syncNetFromGross('ds'); }
+        showToast('Target set: both tools now work to ' + gbp(s.allInComfortableMonthly) + '/mo take-home (' + gbp(gross) + '/yr gross)' +
+          (locked ? ' — Stress only; the Decision plan is locked' : ''), 'success', 5000);
       } catch (e) {
         console.error('Apply-to-plan error:', e);
         showToast('Could not apply: ' + e.message, 'error');
@@ -6585,18 +6656,20 @@
       return '<div class="budwiz-row" id="bw-row-' + line.id + '">' +
         '<div class="budwiz-name">' + nameCell + hint + '</div>' +
         '<div class="budwiz-amt">' +
-          '<input type="text" inputmode="decimal" placeholder="£ or e.g. 12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, 4×52/12" value="' + budWizAmountShown(line) + '" onchange="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
+          '<input type="text" inputmode="decimal" id="bw-amt-' + line.id + '" placeholder="£ or e.g. =12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, =4×52/12" value="' + budWizAmountShown(line) + '" onchange="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
           '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Switch monthly / yearly" onclick="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
-          '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Break it down into parts" onclick="budWizBreakToggle(\'' + line.id + '\')">&Sigma;</button>' +
+          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:6px 9px;" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bw\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
         '<div class="budwiz-chipslot">' +
           (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'budWizField') : '') +
+        '<input type="number" placeholder="from" title="From age (blank = retirement). For temporary costs — e.g. a car lease with 3 years left: from retirement age, to retirement age + 3." value="' + (line.fromAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 64px;">' +
+        '<input type="number" placeholder="to" title="To age (blank = end of plan). For temporary costs, set the age this stops." value="' + (line.toAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 64px;">' +
         '<button type="button" class="risk-btn" style="padding:6px 11px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
         '<div id="bw-err-' + line.id + '" class="budwiz-err"></div>' +
         nudge +
-        '<div id="bw-break-' + line.id + '" style="display:none; flex-basis:100%;"></div>' +
+        (line.breakdownOpen ? '<div style="flex-basis:100%;">' + budBreakPanelHtml('bw', line) + '</div>' : '') +
         '</div>';
     }
 
@@ -6606,7 +6679,8 @@
       if (!line) return;
       if (field === 'label' || field === 'paidBy') line[field] = value;
       else line[field] = value === '' ? null : +value;
-      if (field === 'paidBy') budWizRender();
+      if (field === 'paidBy') budWizRender(true);
+      budTouch();
       budWizFooterTotals();
     };
 
@@ -6629,6 +6703,7 @@
         if (el) el.value = (line.period || 'yr') === 'mo' ? Math.round(line.annual / 12) : line.annual;
       }
       budWizNudge(line);
+      budTouch();
       budWizFooterTotals();
     };
 
@@ -6646,7 +6721,8 @@
       const line = window._budget.lines.find((l) => l.id === id);
       if (!line) return;
       line.period = (line.period || 'yr') === 'mo' ? 'yr' : 'mo';
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     window.budWizUseTypical = function (id) {
@@ -6655,18 +6731,21 @@
       const typ = typicalMonthlyFor(line.label, window._budget);
       if (typ == null) return;
       line.annual = typ * 12;
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     window.budWizRemove = function (id) {
       window._budget.lines = window._budget.lines.filter((l) => l.id !== id);
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     window.budWizAddLine = function (groupKey) {
       const g = BUD_WIZ_GROUPS.find((x) => x.key === groupKey);
       window._budget.lines.push({ id: budId(), label: '', tier: (g && g.tier) || 'discretionary', annual: null, fromAge: null, toAge: null, period: 'mo', wizGroup: groupKey });
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     window.budWizSuggest = function (label, groupKey) {
@@ -6676,55 +6755,114 @@
         id: budId(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null,
         hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me', wizGroup: groupKey
       });
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
-    // ---- break-it-down mini calculator (transient; writes its sum into the amount) ----
-    window.budWizBreakToggle = function (id) {
-      const box = document.getElementById('bw-break-' + id);
-      if (!box) return;
-      if (box.style.display !== 'none') { box.style.display = 'none'; return; }
-      const line = window._budget.lines.find((l) => l.id === id);
-      const per = (line && line.period) === 'mo' ? 'mo' : 'yr';
-      let rows = '';
-      for (let i = 0; i < 5; i++) {
-        rows += '<div style="display:flex; gap:6px; margin-bottom:6px;">' +
-          '<input type="text" placeholder="' + (i === 0 ? 'e.g. fuel' : i === 1 ? 'e.g. insurance' : 'part ' + (i + 1)) + '" style="flex:1 1 auto;">' +
-          '<input type="text" inputmode="decimal" placeholder="£/' + per + '" oninput="budWizBreakSum(\'' + id + '\')" style="flex:0 0 110px;" data-break-amt>' +
-          '</div>';
-      }
-      box.innerHTML = '<div style="background:var(--card-alt); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:6px;">' +
-        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Add it up part by part — the parts double as a checklist. Sums are fine in each box.</div>' +
-        rows +
-        '<div style="display:flex; gap:10px; align-items:center;">' +
-          '<div style="font-size:13px;">Total: <strong id="bw-break-sum-' + id + '">£0</strong>/' + per + '</div>' +
-          '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="budWizBreakApply(\'' + id + '\')">Use total</button>' +
-        '</div></div>';
-      box.style.display = 'block';
-    };
+    // ---- break-it-down "sub sheet" (persisted on the line) ----------------------------------
+    // Each line can carry a `breakdown`: rows of { label, amount, period } with their OWN /mo|/yr,
+    // saved with the budget (the parts double as a checklist). While any row has an amount, the
+    // line's annual is derived from the rows automatically. `breakdownOpen` remembers whether the
+    // sheet was left open or minimised. Shared by the wizard (ctx 'bw') and the main Budget page
+    // (ctx 'bm') — element ids are ctx-prefixed because both can be in the DOM at once.
+    const budLine = (id) => window._budget.lines.find((l) => l.id === id);
 
-    function budWizBreakTotal(id) {
-      const box = document.getElementById('bw-break-' + id);
-      if (!box) return 0;
-      let sum = 0;
-      box.querySelectorAll('[data-break-amt]').forEach((inp) => {
-        const n = evalAmountExpr(inp.value);
-        if (n != null) sum += n;
-      });
-      return sum;
+    function budCtxRerender(ctx) {
+      if (ctx === 'bw') { budWizRender(true); return; }
+      const y = window.scrollY;
+      renderBudgetLines();
+      updateBudgetSummary();
+      window.scrollTo(0, y);
     }
 
-    window.budWizBreakSum = function (id) {
-      const el = document.getElementById('bw-break-sum-' + id);
-      if (el) el.textContent = gbp(budWizBreakTotal(id));
+    function budBreakPanelHtml(ctx, line) {
+      const rows = (line.breakdown || []).map((r, i) =>
+        '<div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">' +
+          '<input type="text" placeholder="' + (i === 0 ? 'e.g. insurance' : i === 1 ? 'e.g. fuel' : 'part ' + (i + 1)) + '" value="' + budEsc(r.label) + '" oninput="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'label\',this.value)" style="flex:1 1 auto; min-width:0;">' +
+          '<input type="text" inputmode="decimal" placeholder="£ or =12+8" value="' + (r.amount ?? '') + '" onchange="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'amount\',this.value,this)" style="flex:0 0 104px;">' +
+          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="This part is per month / per year" onclick="budBreakTogglePeriod(\'' + ctx + '\',\'' + line.id + '\',' + i + ',this)">/' + (r.period || 'yr') + '</button>' +
+          '<button type="button" class="risk-btn" style="padding:4px 9px;" title="Remove part" onclick="budBreakRemoveRow(\'' + ctx + '\',\'' + line.id + '\',' + i + ')">&times;</button>' +
+        '</div>'
+      ).join('');
+      return '<div style="background:var(--card-alt); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:6px;">' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Break it into parts — mix /mo and /yr freely; sums (or =sums) are fine in each box. The total is written to the line for you, and the parts are saved.</div>' +
+        rows +
+        '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
+          '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="budBreakAddRow(\'' + ctx + '\',\'' + line.id + '\')">+ add part</button>' +
+          '<div style="font-size:13px;">Adds up to <strong id="' + ctx + '-bsum-' + line.id + '">' + budBreakTotalLabel(line) + '</strong></div>' +
+        '</div></div>';
+    }
+
+    function budBreakTotalLabel(line) {
+      const ann = breakdownAnnual(line.breakdown);
+      return (line.period || 'yr') === 'mo' ? gbp(ann / 12) + '/mo' : gbp(ann) + '/yr';
+    }
+
+    // Recompute the line from its rows and refresh the small bits of UI without a re-render
+    // (so typing never loses focus or scroll position).
+    function budBreakRecompute(ctx, id) {
+      const line = budLine(id);
+      if (!line) return;
+      if ((line.breakdown || []).some((r) => +r.amount)) {
+        line.annual = breakdownAnnual(line.breakdown);
+        const amt = document.getElementById(ctx + '-amt-' + id);
+        if (amt) amt.value = (line.period || 'yr') === 'mo' ? Math.round(line.annual / 12) : line.annual;
+      }
+      const sum = document.getElementById(ctx + '-bsum-' + id);
+      if (sum) sum.textContent = budBreakTotalLabel(line);
+      if (ctx === 'bw') { budWizFooterTotals(); if (typeof budWizNudge === 'function') budWizNudge(line); }
+      else updateBudgetSummary();
+      budTouch();
+    }
+
+    window.budBreakToggle = function (ctx, id) {
+      const line = budLine(id);
+      if (!line) return;
+      line.breakdownOpen = !line.breakdownOpen;
+      if (line.breakdownOpen && !Array.isArray(line.breakdown)) line.breakdown = [{ label: '', amount: null, period: 'mo' }, { label: '', amount: null, period: 'mo' }];
+      budTouch();
+      budCtxRerender(ctx);
     };
 
-    window.budWizBreakApply = function (id) {
-      const line = window._budget.lines.find((l) => l.id === id);
+    window.budBreakAddRow = function (ctx, id) {
+      const line = budLine(id);
       if (!line) return;
-      const sum = budWizBreakTotal(id);
-      line.annual = (line.period || 'yr') === 'mo' ? sum * 12 : sum;
-      budWizRender();
+      (line.breakdown = line.breakdown || []).push({ label: '', amount: null, period: 'mo' });
+      budCtxRerender(ctx);
+    };
+
+    window.budBreakRemoveRow = function (ctx, id, i) {
+      const line = budLine(id);
+      if (!line || !line.breakdown) return;
+      line.breakdown.splice(i, 1);
+      budBreakRecompute(ctx, id);
+      budCtxRerender(ctx);
+    };
+
+    window.budBreakField = function (ctx, id, i, field, value, el) {
+      const line = budLine(id);
+      const row = line && line.breakdown && line.breakdown[i];
+      if (!row) return;
+      if (field === 'label') { row.label = value; budTouch(); return; }
+      // amount: evaluated on commit; accepts sums and a leading '='
+      const v = String(value).trim();
+      if (v === '') row.amount = null;
+      else {
+        const n = evalAmountExpr(v);
+        if (n == null) return; // leave as typed; not evaluable
+        row.amount = n;
+        if (el) el.value = n;
+      }
+      budBreakRecompute(ctx, id);
+    };
+
+    window.budBreakTogglePeriod = function (ctx, id, i, btn) {
+      const line = budLine(id);
+      const row = line && line.breakdown && line.breakdown[i];
+      if (!row) return;
+      row.period = (row.period || 'yr') === 'mo' ? 'yr' : 'mo';
+      if (btn) btn.textContent = '/' + row.period;
+      budBreakRecompute(ctx, id);
     };
 
     // ---- one-offs step ----
@@ -6745,7 +6883,8 @@
       if (!o) return;
       if (field === 'label' || field === 'paidBy') o[field] = value;
       else o[field] = value === '' ? null : +value;
-      if (field === 'paidBy') budWizRender();
+      if (field === 'paidBy') budWizRender(true);
+      budTouch();
       budWizFooterTotals();
     };
 
@@ -6762,17 +6901,20 @@
         o.amount = n;
         if (el) el.value = n;
       }
+      budTouch();
       budWizFooterTotals();
     };
 
     window.budWizAddOneOff = function () {
       window._budget.oneOffs.push({ id: budId(), label: '', tier: 'essential', amount: null, atAge: null, everyYears: null });
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     window.budWizRemoveOneOff = function (id) {
       window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
-      budWizRender();
+      budTouch();
+      budWizRender(true);
     };
 
     // Clear every amount in the WORKING COPY (labels/structure kept). Nothing is persisted until the
@@ -6780,6 +6922,7 @@
     window.budWizClearAmounts = function () {
       for (const l of window._budget.lines) l.annual = null;
       for (const o of window._budget.oneOffs) o.amount = null;
+      budTouch();
       budWizRender();
       showToast('Amounts cleared — nothing is saved until you choose Save.', 'info', 4000);
     };
@@ -6850,9 +6993,10 @@
           h += '<div style="margin-bottom:14px;"><div style="font-size:13px; margin-bottom:6px;"><strong>Did you miss anything?</strong> Tap to add, then find it on its category screen:</div><div style="display:flex; flex-wrap:wrap; gap:6px;">' +
             missed.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" onclick="budWizSuggest(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\', null)">+ ' + budEsc(m.label) + '</button>').join('') + '</div></div>';
         }
+        h += '<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">Everything is saved automatically as you type.</div>';
         h += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">' +
-          '<button type="button" onclick="budWizSave(false)">Save budget</button>' +
-          '<button type="button" onclick="budWizSave(true)">Save &amp; use as my plan’s target</button>' +
+          '<button type="button" onclick="budWizSave(false)">Done</button>' +
+          '<button type="button" onclick="budWizSave(true)">Set as my plan’s target (Stress + Decision) &amp; finish</button>' +
           '</div>';
         return h;
       }
@@ -6871,8 +7015,10 @@
         '</div>';
     }
 
-    function budWizRender() {
+    function budWizRender(preserveScroll = false) {
       const overlay = document.getElementById('budWizardOverlay');
+      const prevBody = overlay.querySelector('.budwiz-body');
+      const prevScroll = preserveScroll && prevBody ? prevBody.scrollTop : 0;
       const step = BUD_WIZ_STEPS[budWizStep];
       const last = budWizStep === BUD_WIZ_STEPS.length - 1;
       const dots = BUD_WIZ_STEPS.map((_, i) =>
@@ -6892,7 +7038,7 @@
           '</div>' +
         '</div>';
       budWizFooterTotals();
-      overlay.querySelector('.budwiz-body').scrollTop = 0;
+      overlay.querySelector('.budwiz-body').scrollTop = prevScroll;
     }
 
     // ---- Plan settings lock -------------------------------------------------------------------

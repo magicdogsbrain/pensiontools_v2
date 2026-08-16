@@ -8,6 +8,7 @@ import { validateStatePensionDate } from '../../utils/StatePensionUtils.js';
 // Wizard state
 let wizardElement = null;
 let onCompleteCallback = null;
+let onCancelCallback = null;
 let wizardData = {
   // Scenario info
   scenarioName: 'My plan',
@@ -92,9 +93,10 @@ function resetWizardState() {
  * @param {HTMLElement} container - Container element
  * @param {Function} onComplete - Callback when wizard completes
  */
-export function initSetupWizard(container, onComplete) {
+export function initSetupWizard(container, onComplete, onCancel = null) {
   wizardElement = container;
   onCompleteCallback = onComplete;
+  onCancelCallback = onCancel;
   // Reset to beginning on every init
   resetWizardState();
   renderWizard();
@@ -179,7 +181,7 @@ function renderScenarioStep1() {
       </div>
 
       <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="skip-all">Skip</button>
+        <button class="wizard-btn secondary" data-action="skip-all">Cancel</button>
         <button class="wizard-btn primary" data-action="to-router">Next</button>
       </div>
     </div>
@@ -689,6 +691,9 @@ function handleAction(action) {
 
   switch (action) {
     case 'skip-all':
+      // Cancel: abandon plan creation entirely and hand control back to the app. (Legacy
+      // fallback: with no cancel handler wired, behave as before and create a default plan.)
+      if (onCancelCallback) { onCancelCallback(); break; }
       wizardData.startAt = 'budget';
       finishWizard();
       break;

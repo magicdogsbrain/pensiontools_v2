@@ -3640,6 +3640,25 @@
       }
     }
 
+
+    /**
+     * Abandon plan creation (wizard Cancel). With existing plans: back to the app on the current
+     * plan, with the plan dropdown opened as a quiet "load a different one?" cue. With none
+     * (first run): back to the onboarding tour.
+     */
+    async function cancelPlanCreation() {
+      hideSetupWizard();
+      const has = await hasCloudData();
+      if (has) {
+        document.getElementById('mainApp').classList.remove('hidden');
+        const dd = document.getElementById('scenarioDropdown');
+        if (dd) dd.classList.add('open');
+        showToast('Plan creation cancelled — you\u2019re back on your current plan.', 'info', 3500);
+      } else {
+        showOnboarding(getCurrentUser());
+      }
+    }
+
     /**
      * Show the onboarding page for new users
      */
@@ -3655,7 +3674,7 @@
           // User clicked "Set Up Your First Plan" — launch wizard
           hideOnboardingPage();
           document.getElementById('setupWizard').style.display = 'block';
-          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete, cancelPlanCreation);
         }
       );
     }
@@ -3942,7 +3961,7 @@
       const startWizard = () => {
         hideOnboardingPage();
         document.getElementById('setupWizard').style.display = 'block';
-        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete);
+        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete, cancelPlanCreation);
       };
       const user = getCurrentUser();
       const displayName = (user && (user.displayName || (user.email || '').split('@')[0])) || 'there';
@@ -6362,6 +6381,7 @@
       const line = window._budget.lines.find((l) => l.id === id);
       if (!line) return;
       if (field === 'label' || field === 'paidBy') line[field] = value;
+      else if (field === 'fromAge' || field === 'toAge') line[field] = value === '' ? null : budAgeFromInput(value);
       else line[field] = value === '' ? null : +value;
       if (field === 'label') renderBudgetSuggestions(); // a rename can change what's "missing"
       if (field === 'paidBy') renderBudgetLines();      // shared rows gain/lose the % input
@@ -6400,6 +6420,7 @@
       const o = window._budget.oneOffs.find((x) => x.id === id);
       if (!o) return;
       if (field === 'label' || field === 'paidBy') o[field] = value;
+      else if (field === 'atAge') o[field] = value === '' ? null : budAgeFromInput(value);
       else o[field] = value === '' ? null : +value;
       if (field === 'paidBy') renderBudgetOneOffs();
       updateBudgetSummary();
@@ -6636,7 +6657,7 @@
     // edits in the working copy; saving goes through the normal saveBudgetUI path.
     const BUD_WIZ_GROUPS = [
       { key: 'home', title: 'Home & bills', tier: 'essential',
-        tip: 'Will your mortgage still exist at retirement? If it ends earlier, leave it out (or give it a "to age" on the main Budget page). Bills mostly carry on — but you\'ll be home more, so heating often rises.',
+        tip: 'Will your mortgage still exist at retirement? If it ends earlier, use the ⏱ button on its row to set the age it stops. Bills mostly carry on — but you\'ll be home more, so heating often rises.',
         labels: ['Rent / mortgage', 'Council tax', 'Gas', 'Electricity', 'Water', 'Broadband', 'Mobile phones', 'TV licence', 'Home insurance', 'Boiler service', 'Home upkeep', 'Premier banking / account fees', 'Cleaner / gardener', 'Second / holiday home', 'Storage / lock-up'] },
       { key: 'food', title: 'Food, drink & eating out', tier: 'essential',
         tip: 'With more free time most retirees eat OUT more, not less. Check 2–3 months of bank statements for what you really spend — real numbers beat guesses.',
@@ -6723,8 +6744,11 @@
           (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'budWizField') : '') +
-        '<input type="number" placeholder="from" title="From age (blank = retirement). For temporary costs — e.g. a car lease with 3 years left: from retirement age, to retirement age + 3." value="' + (line.fromAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 64px;">' +
-        '<input type="number" placeholder="to" title="To age (blank = end of plan). For temporary costs, set the age this stops." value="' + (line.toAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 64px;">' +
+        (budWizIsBanded(line)
+          ? '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 78px;">' +
+            '<input type="number" placeholder="to age" title="To age (blank = end of plan). E.g. a car lease with 3 years left: to retirement age + 3." value="' + (line.toAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 78px;">'
+          : '') +
+        '<button type="button" class="risk-btn' + (budWizIsBanded(line) ? ' active' : '') + '" style="padding:6px 9px;" title="' + (budWizIsBanded(line) ? 'Remove the age limits — make this a whole-of-retirement cost again' : 'Assumed for the whole retirement. Click to limit it to an age range — for temporary costs like a lease or a mortgage that ends.') + '" onclick="budWizBandToggle(\'' + line.id + '\')">&#x23F1;</button>' +
         '<button type="button" class="risk-btn" style="padding:6px 11px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
         '<div id="bw-err-' + line.id + '" class="budwiz-err"></div>' +
         nudge +
@@ -6737,6 +6761,7 @@
       const line = window._budget.lines.find((l) => l.id === id);
       if (!line) return;
       if (field === 'label' || field === 'paidBy') line[field] = value;
+      else if (field === 'fromAge' || field === 'toAge') line[field] = value === '' ? null : budAgeFromInput(value);
       else line[field] = value === '' ? null : +value;
       if (field === 'paidBy') budWizRender(true);
       budTouch();
@@ -6775,6 +6800,38 @@
         ? 'Well below typical (' + gbp(typ) + '/mo) — deliberate, or missing something?'
         : 'Well above typical (' + gbp(typ) + '/mo) — worth double-checking.');
     }
+
+    // Users type calendar years into age fields ("from 2026 to 2036") — observed in live testing.
+    // Anything over 1000 is treated as a year and converted to the owner's age in that year.
+    function budAgeFromInput(v) {
+      const n = +v;
+      if (!Number.isFinite(n)) return null;
+      if (n > 1000) {
+        const birthYear = new Date().getFullYear() - (+window._budget.currentAge || 0);
+        return Math.max(0, n - birthYear);
+      }
+      return n;
+    }
+
+    // Age-banding is opt-in per row: every cost is assumed to run the whole retirement unless the
+    // user opens the ⏱ range (temporary costs). Toggling it off clears the ages again.
+    function budWizIsBanded(line) {
+      return line.fromAge != null || line.toAge != null || line._bandOpen;
+    }
+
+    window.budWizBandToggle = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      if (budWizIsBanded(line)) {
+        line._bandOpen = false;
+        line.fromAge = null;
+        line.toAge = null;
+        budTouch();
+      } else {
+        line._bandOpen = true;
+      }
+      budWizRender(true);
+    };
 
     window.budWizTogglePeriod = function (id) {
       const line = window._budget.lines.find((l) => l.id === id);
@@ -6941,6 +6998,7 @@
       const o = window._budget.oneOffs.find((x) => x.id === id);
       if (!o) return;
       if (field === 'label' || field === 'paidBy') o[field] = value;
+      else if (field === 'atAge') o[field] = value === '' ? null : budAgeFromInput(value);
       else o[field] = value === '' ? null : +value;
       if (field === 'paidBy') budWizRender(true);
       budTouch();

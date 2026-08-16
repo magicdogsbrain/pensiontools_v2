@@ -21,7 +21,8 @@ import {
   defaultBudget,
   evalAmountExpr,
   typicalSanityFlag,
-  breakdownAnnual
+  breakdownAnnual,
+  plsaTierOf
 } from '../src/services/BudgetModel.js';
 
 const budget = {
@@ -167,11 +168,33 @@ describe('BudgetModel — starter categories', () => {
   });
 });
 
-describe('BudgetModel — typical amounts (ONS retired households)', () => {
-  it('returns a monthly figure and picks couple vs single by the sharing flag', () => {
-    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(97);
-    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: true })).toBe(165);
-    expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(320);
+describe('BudgetModel — typical amounts (PLSA-tier anchored)', () => {
+  it('defaults to the Moderate tier and picks couple vs single by the sharing flag', () => {
+    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(115);
+    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: true })).toBe(170);
+    expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(470);
+  });
+
+  it('the chosen tier changes the figure (Minimum < Moderate < Comfortable)', () => {
+    const min = typicalMonthlyFor('Main holiday', { plsaTier: 'minimum' });
+    const mod = typicalMonthlyFor('Main holiday', { plsaTier: 'moderate' });
+    const comf = typicalMonthlyFor('Main holiday', { plsaTier: 'comfortable' });
+    expect(min).toBeLessThan(mod);
+    expect(mod).toBeLessThan(comf);
+  });
+
+  it('Minimum tier assumes no car — car categories return 0 (a meaningful zero)', () => {
+    expect(typicalMonthlyFor('Car insurance', { plsaTier: 'minimum' })).toBe(0);
+    expect(typicalMonthlyFor('Petrol / fuel', { plsaTier: 'minimum' })).toBe(0);
+    // …and its public transport figure is HIGHER than the car tiers'
+    expect(typicalMonthlyFor('Public transport', { plsaTier: 'minimum' }))
+      .toBeGreaterThan(typicalMonthlyFor('Public transport', { plsaTier: 'comfortable' }));
+  });
+
+  it('an unknown tier string falls back to Moderate', () => {
+    expect(typicalMonthlyFor('Council tax', { plsaTier: 'banana' })).toBe(115);
+    expect(plsaTierOf({ plsaTier: 'comfortable' })).toBe('comfortable');
+    expect(plsaTierOf({})).toBe('moderate');
   });
 
   it('returns null for a category with no typical (custom / too variable)', () => {
@@ -320,11 +343,11 @@ describe('BudgetModel — breakdown sub-sheet (breakdownAnnual)', () => {
 
 describe('BudgetModel — typical sanity flag', () => {
   const b = { sharedWithPartner: false };
-  it('flags implausibly low and high amounts against ONS typicals', () => {
-    // Groceries typical single = £180/mo = £2160/yr
-    expect(typicalSanityFlag('Groceries & household', 500, b)).toBe('low');    // ≤35%
-    expect(typicalSanityFlag('Groceries & household', 8000, b)).toBe('high');  // ≥300%
-    expect(typicalSanityFlag('Groceries & household', 2200, b)).toBeNull();    // plausible
+  it('flags implausibly low and high amounts against the tier typicals', () => {
+    // Groceries typical single (Moderate) = £300/mo = £3,600/yr
+    expect(typicalSanityFlag('Groceries & household', 900, b)).toBe('low');     // ≤35%
+    expect(typicalSanityFlag('Groceries & household', 12000, b)).toBe('high');  // ≥300%
+    expect(typicalSanityFlag('Groceries & household', 3600, b)).toBeNull();     // plausible
   });
   it('stays silent with no typical figure or no amount', () => {
     expect(typicalSanityFlag('My weird custom line', 99999, b)).toBeNull();

@@ -40,12 +40,16 @@ your data, use it for advertising, or share it for marketing.
   certification under the UK Extension to the EU–US Data Privacy Framework and by Google Cloud's
   data processing terms (which incorporate the UK International Data Transfer Addendum / EU
   Standard Contractual Clauses where applicable).
-- **GitHub (Microsoft)** and **Cloudflare** — host and serve the app's static files (GitHub Pages
-  and Cloudflare Pages respectively); each receives standard request metadata (IP address, browser)
-  when you load the page. Your financial data does not pass through either; it goes directly from
-  your browser to Firebase.
+- **Cloudflare** — serves the app at **pensiontools.uk** (Cloudflare Pages) and receives standard
+  request metadata (IP address, browser) when you load the page. GitHub (Microsoft) provides
+  supporting code-hosting infrastructure. Your financial data does not pass through either; it
+  goes directly from your browser to Firebase.
 
 We do not use analytics or advertising services in this app.
+
+If you categorise an investment fund the app doesn't recognise, the ticker and the category you
+chose are logged (with your account id) to an administrator-only list so the shared fund catalogue
+can be improved. No financial amounts are included.
 
 ## How long we keep it
 We keep your account and saved plans until you delete them. In the app you can wipe your saved

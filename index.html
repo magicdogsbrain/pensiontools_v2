@@ -1960,6 +1960,7 @@
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
+            <button class="logout-btn" id="adminGearBtn" style="display:none;" title="Administration" onclick="openAdminPanel()">&#9881;</button>
             <button class="logout-btn" id="resetBtn" title="Delete all data and start fresh">Reset</button>
             <button class="logout-btn" id="deleteAccountBtn" title="Permanently delete your account and all data">Delete Account</button>
             <button class="logout-btn" id="logoutBtn">Sign Out</button>
@@ -2520,7 +2521,7 @@
               #budEssentialRows select, #budDiscretionaryRows select, #budOneOffRows select { padding: 5px 8px; }
 
               /* Guided budget wizard overlay */
-              #budWizardOverlay { position:fixed; inset:0; z-index:1100; background:var(--bg); overflow:hidden; }
+              #budWizardOverlay, #adminPanelOverlay { position:fixed; inset:0; z-index:1100; background:var(--bg); overflow:hidden; }
               .budwiz-shell { display:flex; flex-direction:column; height:100%; max-width:900px; margin:0 auto; }
               .budwiz-head { padding:16px 20px 8px; }
               .budwiz-body { flex:1 1 auto; overflow-y:auto; padding:4px 20px 16px; font-size:16px; line-height:1.55; }
@@ -2534,7 +2535,8 @@
               .budwiz-dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
               .budwiz-dot.on { background:var(--primary,#6366f1); }
               .budwiz-dot.done { background:var(--primary,#6366f1); opacity:0.45; }
-              #budWizardOverlay input, #budWizardOverlay select {
+              #budWizardOverlay input, #budWizardOverlay select,
+              #adminPanelOverlay input, #adminPanelOverlay select {
                 background: var(--card-alt); color: var(--text);
                 border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:16px;
               }
@@ -2927,20 +2929,15 @@
             <button type="button" class="risk-btn" onclick="resetBudgetUI()">Reset budget…</button>
           </div>
 
-          <!-- Administrator only (owner account): curation queue for unknown-fund suggestions. -->
-          <div class="settings-section" id="budAdminSection" style="display:none;">
-            <div class="section-title">Admin — fund suggestion queue
-              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— visible only to the administrator account</span>
-            </div>
-            <button type="button" class="risk-btn" onclick="loadFundSuggestionsUI()">Load suggestions</button>
-            <button type="button" class="risk-btn" onclick="copyFundSuggestionsUI()">Copy as JSON</button>
-            <div id="budAdminSuggestions" style="margin-top:10px; font-size:13px;"></div>
-          </div>
         </div>
       </div>
 
       <!-- Guided budget wizard (full-screen overlay; content rendered by JS) -->
       <div id="budWizardOverlay" style="display:none;"></div>
+
+      <!-- Admin panel (full-screen overlay; rendered by JS; gears icon appears only when the
+           adminPrivate probe succeeds — see AdminConfigService security model) -->
+      <div id="adminPanelOverlay" style="display:none;"></div>
 
     </div>
   </div>
@@ -3031,7 +3028,12 @@
     import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
     import { tagPortfolio, allocationFromTags } from './src/services/PortfolioTagger.js';
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
-    import { initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, listFundSuggestions, submitFundSuggestion } from './src/firebase/AdminConfigService.js';
+    import {
+      initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
+      listFundSuggestions, submitFundSuggestion, deleteFundSuggestion,
+      saveFundCatalogueOverride, clearFundCatalogueOverride, saveProfileOverrides, activeProfileOverrides
+    } from './src/firebase/AdminConfigService.js';
+    import { SUB_ASSET_PROFILE_DEFAULTS, TUNABLE_PROFILE_FIELDS } from './src/services/SubAssetModel.js';
 
     // Import constants for optimization
     import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
@@ -3298,7 +3300,7 @@
         // Skip inputs that already have formatting
         if (input.dataset.formatted) return;
         // Budget tab + wizard use dynamic flex rows; the overlay wrapper would disrupt their layout.
-        if (input.closest('#budget-content') || input.closest('#budWizardOverlay')) return;
+        if (input.closest('#budget-content') || input.closest('#budWizardOverlay') || input.closest('#adminPanelOverlay')) return;
         input.dataset.formatted = 'true';
 
         // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
@@ -3435,8 +3437,8 @@
       initAdminConfig().then(() => {
         ensureFundDatalist('ss', true);
         ensureFundDatalist('ds', true);
-        const adm = document.getElementById('budAdminSection');
-        if (adm) adm.style.display = isAdminUser() ? 'block' : 'none';
+        const gear = document.getElementById('adminGearBtn');
+        if (gear) gear.style.display = isAdminUser() ? 'inline-block' : 'none';
       });
 
       // Update user info in header
@@ -6737,31 +6739,6 @@
       document.getElementById('budSummary').innerHTML = html;
     }
 
-    // ---- Admin: unknown-fund suggestion queue (owner account only) -----------------------------
-    let _fundSuggestionsCache = [];
-    window.loadFundSuggestionsUI = async function () {
-      const box = document.getElementById('budAdminSuggestions');
-      if (!box) return;
-      box.textContent = 'Loading…';
-      try {
-        _fundSuggestionsCache = await listFundSuggestions();
-        if (!_fundSuggestionsCache.length) { box.textContent = 'No pending suggestions.'; return; }
-        box.innerHTML = _fundSuggestionsCache.map((x) =>
-          '<div>' + budEsc(x.ticker) + ' → ' + budEsc(x.subClass || '(none)') +
-          (x.name ? ' <span style="color:var(--text-muted);">' + budEsc(x.name) + '</span>' : '') + '</div>'
-        ).join('');
-      } catch (e) {
-        box.textContent = 'Could not load: ' + e.message;
-      }
-    };
-    window.copyFundSuggestionsUI = async function () {
-      if (!_fundSuggestionsCache.length) await loadFundSuggestionsUI();
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(_fundSuggestionsCache, null, 2));
-        showToast('Suggestions copied to clipboard', 'success');
-      } catch (e) { showToast('Copy failed: ' + e.message, 'error'); }
-    };
-
     // ---- Cloud-document autosave ---------------------------------------------------------------
     // The budget behaves like a shared doc: every edit funnels through budTouch(), which debounces a
     // silent save. No Save button needed; a status chip shows Saving…/Saved. Manual flush still
@@ -7421,6 +7398,182 @@
           '</div>' +
         '</div>';
       budWizFooterTotals();
+      overlay.querySelector('.budwiz-body').scrollTop = prevScroll;
+    }
+
+    // ==================== Admin panel (administrator account only) ====================
+    // The gears icon renders only after the adminPrivate probe succeeds; every write below is
+    // enforced server-side by firestore.rules regardless of anything the client does.
+    let _adminTab = 'funds';
+    let _adminFunds = null;        // working copy of the catalogue
+    let _adminProfiles = null;     // staged { key: { field: value } } overrides
+    let _adminSuggestions = [];
+
+    window.openAdminPanel = function () {
+      const pass = adminPassphrase();
+      if (pass) {
+        const entered = prompt('Admin passphrase:');
+        if (entered !== pass) { if (entered !== null) showToast('Wrong passphrase', 'error'); return; }
+      }
+      _adminFunds = activeFundCatalogue().map((f) => ({ ...f }));
+      _adminProfiles = JSON.parse(JSON.stringify(activeProfileOverrides() || {}));
+      document.getElementById('adminPanelOverlay').style.display = 'block';
+      renderAdminPanel();
+    };
+
+    window.closeAdminPanel = function () {
+      document.getElementById('adminPanelOverlay').style.display = 'none';
+    };
+
+    window.adminSetTab = function (t) { _adminTab = t; renderAdminPanel(true); };
+
+    function adminSubClassSelect(i, selected) {
+      const groups = subClassOptionsByBucket();
+      let opts = '';
+      for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
+        const g = groups[b] || [];
+        opts += '<optgroup label="' + BUCKET_LABELS[b] + '">' +
+          g.map((o) => '<option value="' + o.key + '"' + (o.key === selected ? ' selected' : '') + '>' + o.label + '</option>').join('') + '</optgroup>';
+      }
+      return '<select onchange="adminFundField(' + i + ',\'subClass\',this.value)" style="width:200px;">' + opts + '</select>';
+    }
+
+    window.adminFundField = function (i, field, val) {
+      const f = _adminFunds[i];
+      if (!f) return;
+      f[field] = field === 'ticker' ? String(val).toUpperCase() : val;
+    };
+    window.adminFundRemove = function (i) { _adminFunds.splice(i, 1); renderAdminPanel(true); };
+    window.adminFundAdd = function () { _adminFunds.push({ ticker: '', name: '', subClass: 'worldGrowth' }); renderAdminPanel(true); };
+
+    window.adminSaveFunds = async function () {
+      try {
+        const n = await saveFundCatalogueOverride(_adminFunds);
+        ensureFundDatalist('ss', true); ensureFundDatalist('ds', true);
+        showToast('Fund catalogue saved to cloud (' + n + ' funds) — live for all users.', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
+    };
+    window.adminRevertFunds = async function () {
+      if (!confirm('Remove the cloud fund-catalogue override and return to the shipped default list?')) return;
+      try {
+        await clearFundCatalogueOverride();
+        _adminFunds = activeFundCatalogue().map((f) => ({ ...f }));
+        ensureFundDatalist('ss', true); ensureFundDatalist('ds', true);
+        renderAdminPanel(true);
+        showToast('Reverted to the shipped catalogue.', 'success');
+      } catch (e) { showToast('Revert failed: ' + e.message, 'error'); }
+    };
+
+    window.adminProfileField = function (key, field, val) {
+      const def = SUB_ASSET_PROFILE_DEFAULTS[key][field];
+      const n = val === '' ? undefined : +val;
+      if (n === undefined || !Number.isFinite(n) || n === def) {
+        if (_adminProfiles[key]) { delete _adminProfiles[key][field]; if (!Object.keys(_adminProfiles[key]).length) delete _adminProfiles[key]; }
+      } else {
+        (_adminProfiles[key] = _adminProfiles[key] || {})[field] = n;
+      }
+    };
+    window.adminSaveProfiles = async function () {
+      try {
+        await saveProfileOverrides(_adminProfiles);
+        showToast(Object.keys(_adminProfiles).length ? 'Category model overrides saved — live for all users.' : 'No overrides — shipped calibration active.', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
+    };
+    window.adminResetProfiles = async function () {
+      if (!confirm('Clear ALL category-model overrides and return to the shipped calibration?')) return;
+      _adminProfiles = {};
+      try { await saveProfileOverrides(null); renderAdminPanel(true); showToast('Shipped calibration restored.', 'success'); }
+      catch (e) { showToast('Reset failed: ' + e.message, 'error'); }
+    };
+
+    window.adminLoadSuggestions = async function () {
+      try { _adminSuggestions = await listFundSuggestions(); renderAdminPanel(true); }
+      catch (e) { showToast('Could not load suggestions: ' + e.message, 'error'); }
+    };
+    window.adminSuggestionToFunds = function (i) {
+      const x = _adminSuggestions[i];
+      if (!x) return;
+      _adminFunds.push({ ticker: x.ticker, name: x.name || '', subClass: x.subClass || 'worldGrowth' });
+      adminDeleteSuggestion(i, true);
+      _adminTab = 'funds';
+      renderAdminPanel(true);
+      showToast(x.ticker + ' added to the funds editor — press "Save to cloud" to publish.', 'info', 4500);
+    };
+    window.adminDeleteSuggestion = async function (i, silent) {
+      const x = _adminSuggestions[i];
+      if (!x) return;
+      _adminSuggestions.splice(i, 1);
+      try { await deleteFundSuggestion(x.id); } catch (e) { /* rules-enforced; ignore */ }
+      if (!silent) renderAdminPanel(true);
+    };
+
+    function adminBodyHtml() {
+      if (_adminTab === 'funds') {
+        const rows = _adminFunds.map((f, i) =>
+          '<tr>' +
+          '<td><input type="text" value="' + budEsc(f.ticker) + '" oninput="adminFundField(' + i + ',\'ticker\',this.value)" style="width:80px;text-transform:uppercase;"></td>' +
+          '<td><input type="text" value="' + budEsc(f.name) + '" oninput="adminFundField(' + i + ',\'name\',this.value)" style="width:280px;"></td>' +
+          '<td>' + adminSubClassSelect(i, f.subClass) + '</td>' +
+          '<td><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminFundRemove(' + i + ')">&times;</button></td>' +
+          '</tr>').join('');
+        return '<p style="font-size:13px;color:var(--text-muted);">The shared catalogue every user sees. Saving publishes a cloud override; revert returns to the list shipped in code. Each fund\u2019s category decides which model it runs through.</p>' +
+          '<div style="display:flex;gap:8px;margin:8px 0;">' +
+          '<button type="button" class="risk-btn" onclick="adminFundAdd()">+ Add fund</button>' +
+          '<button type="button" onclick="adminSaveFunds()">Save to cloud</button>' +
+          '<button type="button" class="risk-btn" onclick="adminRevertFunds()">Revert to shipped list</button>' +
+          '<span style="font-size:12px;color:var(--text-muted);align-self:center;">' + _adminFunds.length + ' funds</span></div>' +
+          '<div style="overflow-x:auto;"><table style="font-size:13px;border-collapse:collapse;">' +
+          '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Name</th><th style="text-align:left;">Category (model)</th><th></th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table></div>';
+      }
+      if (_adminTab === 'categories') {
+        const fields = ['nominalReturn', 'yield', 'vol', 'eqCorr', 'duration', 'inflationBeta', 'creditBeta', 'idioVol'];
+        const rows = Object.entries(SUB_ASSET_PROFILE_DEFAULTS).map(([key, def]) => {
+          const ov = _adminProfiles[key] || {};
+          const cells = fields.map((f) => {
+            if (def[f] === undefined && ov[f] === undefined) return '<td style="color:var(--text-muted);text-align:center;">\u2014</td>';
+            const cur = ov[f] !== undefined ? ov[f] : def[f];
+            const changed = ov[f] !== undefined;
+            return '<td><input type="number" step="0.001" value="' + cur + '" title="Shipped default: ' + def[f] + '" onchange="adminProfileField(\'' + key + '\',\'' + f + '\',this.value)" style="width:74px;' + (changed ? 'border-color:#eab308;' : '') + '"></td>';
+          }).join('');
+          return '<tr><td style="white-space:nowrap;"><strong>' + def.label + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + key + ' \u00B7 ' + def.bucket + '</span></td>' + cells + '</tr>';
+        }).join('');
+        return '<p style="font-size:13px;color:var(--text-muted);">The calibration seeds behind each category\u2019s model (nominal figures; see SubAssetModel.js for the driver decomposition). Amber border = overridden vs shipped. Changes go live for all users on save \u2014 tune with care; the golden tests only protect the shipped values.</p>' +
+          '<div style="display:flex;gap:8px;margin:8px 0;">' +
+          '<button type="button" onclick="adminSaveProfiles()">Save overrides to cloud</button>' +
+          '<button type="button" class="risk-btn" onclick="adminResetProfiles()">Reset all to shipped</button></div>' +
+          '<div style="overflow-x:auto;"><table style="font-size:12px;border-collapse:collapse;">' +
+          '<thead><tr><th style="text-align:left;">Category</th>' + fields.map((f) => '<th>' + f + '</th>').join('') + '</tr></thead>' +
+          '<tbody>' + rows + '</tbody></table></div>';
+      }
+      // suggestions
+      const rows = _adminSuggestions.length ? _adminSuggestions.map((x, i) =>
+        '<tr><td><strong>' + budEsc(x.ticker) + '</strong></td><td>' + budEsc(x.subClass || '(none)') + '</td>' +
+        '<td style="color:var(--text-muted);">' + budEsc(x.name || '') + '</td>' +
+        '<td><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminSuggestionToFunds(' + i + ')">Add to funds</button> ' +
+        '<button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminDeleteSuggestion(' + i + ')">Dismiss</button></td></tr>'
+      ).join('') : '<tr><td colspan="4" style="color:var(--text-muted);">Nothing loaded \u2014 press Refresh.</td></tr>';
+      return '<p style="font-size:13px;color:var(--text-muted);">Unknown tickers users categorised themselves. \u201CAdd to funds\u201D copies one into the Funds editor (publish from there).</p>' +
+        '<button type="button" class="risk-btn" onclick="adminLoadSuggestions()" style="margin:8px 0;">Refresh</button>' +
+        '<div style="overflow-x:auto;"><table style="font-size:13px;border-collapse:collapse;">' +
+        '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Chosen category</th><th style="text-align:left;">Name</th><th></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+    }
+
+    function renderAdminPanel(preserveScroll = false) {
+      const overlay = document.getElementById('adminPanelOverlay');
+      const prevBody = overlay.querySelector('.budwiz-body');
+      const prevScroll = preserveScroll && prevBody ? prevBody.scrollTop : 0;
+      const tabBtn = (t, label) => '<button type="button" class="risk-btn' + (_adminTab === t ? ' active' : '') + '" onclick="adminSetTab(\'' + t + '\')">' + label + '</button>';
+      overlay.innerHTML =
+        '<div class="budwiz-shell">' +
+          '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<div style="display:flex; gap:8px; align-items:center;"><strong>\u2699 Administration</strong>' +
+            tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + '</div>' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="closeAdminPanel()">&times;</button>' +
+          '</div>' +
+          '<div class="budwiz-body">' + adminBodyHtml() + '</div>' +
+        '</div>';
       overlay.querySelector('.budwiz-body').scrollTop = prevScroll;
     }
 

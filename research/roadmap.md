@@ -56,7 +56,20 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
 ## Now → Next → Later
 
 ### 🔵 Now
-- **[0] Unify the whole engine.** Full audit in `design/engine-unification.md` (+
+- **[0] STATUS UPDATE (16 Aug 2026 audit):** unification is ~70% done — tax, planDrawdown,
+  protection DETECTION, tax-boost, glidepath, inflation, spending smile and the ISA pot are all
+  shared modules called by BOTH live engines, and the central bug (stress modelling a different
+  withdrawal) is fixed with golden + crossval suites pinning parity (312 tests). REMAINING to hit
+  the DoD, in order (sizes S/M/L): (1)S one protection unit (factor% vs mult, disableProtection in
+  decision); (2)S one recovery-buffer constant + pass-through; (3)S stress SP year/pro-rata off the
+  tax-year grid; (4)S Drawdown sub-tab reads date-based SP + capped other-income (user-visible bug
+  today); (5)S/M fold the tax-inefficient branch into planTaxBoost/planDrawdown; (6)M/L extract
+  WithdrawalSourcing (Mixed branch, one replenishment threshold-set with execute flag, rebalance,
+  one spill order); (7)L PlanContext + DrawdownStrategy.decide() (one remainingMonths convention,
+  kill the 2026 epoch + '26/27' key-walk); (8)S delete the dead layer (ProtectionService,
+  DecisionService except saveDecision, most of DrawdownService, BOND_MODEL, SimulationConfig
+  legacy builder); (9)M MarketModel registry; (10)S refresh the two design/*.md audits.
+- **[0] Unify the whole engine.** (original framing — see status above) Full audit in `design/engine-unification.md` (+
   tax/drawdown deep-dive in `design/decision-engine-unification.md`). Every functional
   area — tax, inflation, returns, protection, glidepath, State Pension, sourcing — has
   **three parallel implementations** (live inline decision, live stress, and a

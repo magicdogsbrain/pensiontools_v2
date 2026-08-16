@@ -124,62 +124,82 @@ export const STARTER_ONEOFFS = [
   { label: 'White goods', tier: 'essential', hint: 'Fridge, washer, cooker', everyYears: 10 }
 ];
 
-// Typical MONTHLY spend per category (today's money, £). Derived from the ONS "Other retired" households
-// table (Family Spending detailed, FYE2023 — private/occupational-pension retirees), converted £/week ×
-// 52/12, with a few known fixed values (TV licence, water, VED). { s: one person, c: couple }. These are
-// AVERAGES — shown as editable placeholders / a "fill typical" starting point, never silently assumed.
-export const TYPICAL_MONTHLY = {
-  'Council tax': { s: 97, c: 165 },
-  'Gas': { s: 54, c: 71 },
-  'Electricity': { s: 69, c: 81 },
-  'Water': { s: 30, c: 40 },
-  'Broadband': { s: 28, c: 33 },
-  'Mobile phones': { s: 15, c: 30 },
-  'TV licence': { s: 14, c: 14 },
-  'Groceries & household': { s: 180, c: 320 },
-  'Home insurance': { s: 20, c: 28 },
-  'Car insurance': { s: 26, c: 37 },
-  'Car tax': { s: 16, c: 16 },
-  'Petrol / fuel': { s: 38, c: 82 },
-  'Car servicing & maintenance': { s: 30, c: 60 },
-  'Boiler service': { s: 10, c: 12 },
-  'Personal health': { s: 15, c: 40 },
-  'Home upkeep': { s: 36, c: 72 },
-  'Main holiday': { s: 70, c: 145 },
-  'UK breaks': { s: 30, c: 56 },
-  'Day trips': { s: 20, c: 30 },
-  'Eating out & takeaways': { s: 40, c: 110 },
-  'Streaming & entertainment': { s: 15, c: 20 },
-  'Digital subscriptions': { s: 10, c: 15 },
-  'Gym & fitness': { s: 25, c: 45 },
-  'Sports & equipment': { s: 10, c: 15 },
-  'Clothes': { s: 25, c: 46 },
-  'Sports clothes': { s: 5, c: 8 },
-  'Hobbies & leisure': { s: 20, c: 30 },
-  'Gifts & family': { s: 40, c: 60 },
-  'Charity': { s: 10, c: 15 },
-  'Pets': { s: 25, c: 25 },
-  'Personal spending money': { s: 30, c: 50 },
-  'Home furnishings & décor': { s: 30, c: 50 },
-  'Home technology': { s: 20, c: 30 },
+// Typical MONTHLY spend per category (today's money, £), TIERED to the PLSA Retirement Living
+// Standards (retirementlivingstandards.org.uk). The user picks the standard they're aiming for
+// (budget.plsaTier: 'minimum' | 'moderate' | 'comfortable'), and every chip/placeholder shows that
+// tier's figure. Values are per-category central estimates consistent with each tier's published
+// basket (2024/25 standards, uplifted to 2026 prices), with judgement where PLSA doesn't itemise
+// 1:1 — they deliberately do NOT force-sum to the tier totals, since few users fill every category.
+// Construction notes: Minimum assumes NO car (public transport instead) and a UK holiday only;
+// Moderate ≈ one car + 2 weeks Europe; Comfortable ≈ newer car(s) + 2 weeks Med 4* + long weekends.
+// { tier: { s: one person, c: couple } }. Shown as editable suggestions, never silently assumed.
+export const TYPICAL_TIERS = {
+  'Council tax':                { minimum: { s: 95, c: 150 },  moderate: { s: 115, c: 170 }, comfortable: { s: 125, c: 185 } },
+  'Gas':                        { minimum: { s: 45, c: 60 },   moderate: { s: 58, c: 75 },   comfortable: { s: 68, c: 90 } },
+  'Electricity':                { minimum: { s: 55, c: 70 },   moderate: { s: 68, c: 85 },   comfortable: { s: 80, c: 100 } },
+  'Water':                      { minimum: { s: 28, c: 38 },   moderate: { s: 33, c: 44 },   comfortable: { s: 38, c: 50 } },
+  'Broadband':                  { minimum: { s: 27, c: 27 },   moderate: { s: 32, c: 32 },   comfortable: { s: 38, c: 38 } },
+  'Mobile phones':              { minimum: { s: 8, c: 16 },    moderate: { s: 14, c: 28 },   comfortable: { s: 20, c: 40 } },
+  'TV licence':                 { minimum: { s: 15, c: 15 },   moderate: { s: 15, c: 15 },   comfortable: { s: 15, c: 15 } },
+  'Groceries & household':      { minimum: { s: 230, c: 350 }, moderate: { s: 300, c: 470 }, comfortable: { s: 360, c: 580 } },
+  'Home insurance':             { minimum: { s: 16, c: 22 },   moderate: { s: 22, c: 30 },   comfortable: { s: 28, c: 38 } },
+  'Car insurance':              { minimum: { s: 0, c: 0 },     moderate: { s: 38, c: 50 },   comfortable: { s: 48, c: 80 } },
+  'Car tax':                    { minimum: { s: 0, c: 0 },     moderate: { s: 16, c: 16 },   comfortable: { s: 16, c: 32 } },
+  'Petrol / fuel':              { minimum: { s: 0, c: 0 },     moderate: { s: 95, c: 130 },  comfortable: { s: 115, c: 190 } },
+  'Car servicing & maintenance':{ minimum: { s: 0, c: 0 },     moderate: { s: 48, c: 65 },   comfortable: { s: 65, c: 105 } },
+  'Boiler service':             { minimum: { s: 9, c: 9 },     moderate: { s: 11, c: 11 },   comfortable: { s: 13, c: 13 } },
+  'Personal health':            { minimum: { s: 15, c: 25 },   moderate: { s: 32, c: 55 },   comfortable: { s: 58, c: 95 } },
+  'Home upkeep':                { minimum: { s: 30, c: 42 },   moderate: { s: 52, c: 75 },   comfortable: { s: 85, c: 120 } },
+  'Main holiday':               { minimum: { s: 42, c: 65 },   moderate: { s: 130, c: 200 }, comfortable: { s: 220, c: 350 } },
+  'UK breaks':                  { minimum: { s: 0, c: 0 },     moderate: { s: 38, c: 60 },   comfortable: { s: 75, c: 115 } },
+  'Day trips':                  { minimum: { s: 15, c: 25 },   moderate: { s: 32, c: 48 },   comfortable: { s: 52, c: 80 } },
+  'Eating out & takeaways':     { minimum: { s: 42, c: 70 },   moderate: { s: 100, c: 170 }, comfortable: { s: 170, c: 285 } },
+  'Streaming & entertainment':  { minimum: { s: 12, c: 12 },   moderate: { s: 26, c: 32 },   comfortable: { s: 42, c: 48 } },
+  'Digital subscriptions':      { minimum: { s: 5, c: 8 },     moderate: { s: 13, c: 20 },   comfortable: { s: 26, c: 38 } },
+  'Gym & fitness':              { minimum: { s: 15, c: 26 },   moderate: { s: 32, c: 55 },   comfortable: { s: 48, c: 85 } },
+  'Sports & equipment':         { minimum: { s: 5, c: 8 },     moderate: { s: 13, c: 22 },   comfortable: { s: 26, c: 42 } },
+  'Clothes':                    { minimum: { s: 48, c: 80 },   moderate: { s: 65, c: 115 },  comfortable: { s: 105, c: 190 } },
+  'Sports clothes':             { minimum: { s: 3, c: 5 },     moderate: { s: 8, c: 13 },    comfortable: { s: 13, c: 22 } },
+  'Hobbies & leisure':          { minimum: { s: 16, c: 26 },   moderate: { s: 37, c: 58 },   comfortable: { s: 62, c: 100 } },
+  'Gifts & family':             { minimum: { s: 22, c: 32 },   moderate: { s: 58, c: 90 },   comfortable: { s: 95, c: 150 } },
+  'Charity':                    { minimum: { s: 5, c: 10 },    moderate: { s: 16, c: 27 },   comfortable: { s: 32, c: 55 } },
+  'Pets':                       { minimum: { s: 32, c: 32 },   moderate: { s: 42, c: 42 },   comfortable: { s: 58, c: 58 } },
+  'Personal spending money':    { minimum: { s: 26, c: 48 },   moderate: { s: 52, c: 95 },   comfortable: { s: 95, c: 170 } },
+  'Home furnishings & décor':   { minimum: { s: 16, c: 26 },   moderate: { s: 37, c: 58 },   comfortable: { s: 68, c: 105 } },
+  'Home technology':            { minimum: { s: 10, c: 16 },   moderate: { s: 26, c: 37 },   comfortable: { s: 48, c: 68 } },
   // Suggested-extra categories
-  'Alcohol': { s: 18, c: 53 },
-  'Hairdressing & grooming': { s: 13, c: 16 },
-  'Newspapers, books & media': { s: 20, c: 28 },
-  'Life insurance / income protection': { s: 24, c: 24 },
-  'Health / dental insurance': { s: 10, c: 17 },
-  'Dental & optical': { s: 15, c: 25 },
-  'Public transport': { s: 29, c: 55 },
-  'Christmas & birthdays': { s: 30, c: 50 },
-  'My personal spending': { s: 30, c: 30 },
-  "Partner's personal spending": { s: 0, c: 30 }
+  'Alcohol':                    { minimum: { s: 16, c: 42 },   moderate: { s: 32, c: 80 },   comfortable: { s: 52, c: 115 } },
+  'Hairdressing & grooming':    { minimum: { s: 13, c: 19 },   moderate: { s: 26, c: 42 },   comfortable: { s: 48, c: 80 } },
+  'Newspapers, books & media':  { minimum: { s: 8, c: 13 },    moderate: { s: 19, c: 30 },   comfortable: { s: 32, c: 48 } },
+  'Life insurance / income protection': { minimum: { s: 20, c: 24 }, moderate: { s: 20, c: 24 }, comfortable: { s: 20, c: 24 } },
+  'Health / dental insurance':  { minimum: { s: 0, c: 0 },     moderate: { s: 16, c: 27 },   comfortable: { s: 42, c: 75 } },
+  'Dental & optical':           { minimum: { s: 10, c: 16 },   moderate: { s: 19, c: 32 },   comfortable: { s: 32, c: 55 } },
+  'Public transport':           { minimum: { s: 42, c: 75 },   moderate: { s: 26, c: 48 },   comfortable: { s: 26, c: 48 } },
+  'Christmas & birthdays':      { minimum: { s: 22, c: 37 },   moderate: { s: 48, c: 75 },   comfortable: { s: 85, c: 125 } },
+  'My personal spending':       { minimum: { s: 26, c: 26 },   moderate: { s: 48, c: 48 },   comfortable: { s: 85, c: 85 } },
+  "Partner's personal spending":{ minimum: { s: 0, c: 26 },    moderate: { s: 0, c: 48 },    comfortable: { s: 0, c: 85 } }
 };
 
-/** Typical MONTHLY spend for a category label, picking couple vs single by the budget's sharing flag. */
+export const PLSA_TIER_LABELS = Object.freeze({
+  minimum: 'PLSA Minimum', moderate: 'PLSA Moderate', comfortable: 'PLSA Comfortable'
+});
+
+/** The budget's chosen PLSA tier ('minimum' | 'moderate' | 'comfortable'; default moderate). */
+export function plsaTierOf(budget) {
+  const t = budget && budget.plsaTier;
+  return (t === 'minimum' || t === 'comfortable') ? t : 'moderate';
+}
+
+/**
+ * Typical MONTHLY spend for a category at the budget's chosen PLSA tier, single vs couple by the
+ * sharing flag. Returns null when no figure exists; 0 is meaningful (e.g. Minimum assumes no car).
+ */
 export function typicalMonthlyFor(label, budget) {
-  const t = TYPICAL_MONTHLY[(label || '').trim()];
-  if (!t) return null;
-  return (budget && budget.sharedWithPartner) ? t.c : t.s;
+  const entry = TYPICAL_TIERS[(label || '').trim()];
+  if (!entry) return null;
+  const tier = entry[plsaTierOf(budget)];
+  if (!tier) return null;
+  return (budget && budget.sharedWithPartner) ? tier.c : tier.s;
 }
 
 /** Starter expenditure lines (blank amounts) seeded into a fresh budget so categories are self-explanatory. */
@@ -412,6 +432,8 @@ export function defaultBudget(currentAge = 45, retirementAge = 60, endAge = 100)
     // Optional partner cost-sharing (single-person plan; partner-paid lines drop out of the owner's need).
     sharedWithPartner: false,
     mySharePct: 50,
+    // Which PLSA Retirement Living Standard the typical-amount chips aim at.
+    plsaTier: 'moderate',
     lines: [],
     oneOffs: []
   };

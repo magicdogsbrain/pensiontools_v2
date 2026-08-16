@@ -6439,13 +6439,19 @@
     };
 
     window.removeBudgetLine = function (id) {
-      window._budget.lines = window._budget.lines.filter((l) => l.id !== id);
+      const i = window._budget.lines.findIndex((l) => l.id === id);
+      if (i < 0) return;
+      budOfferUndo('line', window._budget.lines[i], i);
+      window._budget.lines.splice(i, 1);
       renderBudgetLines();
       updateBudgetSummary();
     };
 
     window.removeBudgetOneOff = function (id) {
-      window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
+      const i = window._budget.oneOffs.findIndex((o) => o.id === id);
+      if (i < 0) return;
+      budOfferUndo('oneOff', window._budget.oneOffs[i], i);
+      window._budget.oneOffs.splice(i, 1);
       renderBudgetOneOffs();
       updateBudgetSummary();
     };
@@ -6562,9 +6568,48 @@
     let _budSaveTimer = null;
 
     function budSetStatus(txt) {
+      if (_budLastRemoved) return; // an Undo offer owns the status slot until it expires
       const el = document.getElementById('budSaveStatus');
       if (el) el.textContent = txt;
     }
+
+    // Removal undo: with autosave, an accidental × would otherwise be instantly permanent
+    // (live-test finding: a deleted Rent/mortgage line simply "disappeared from the wizard").
+    let _budLastRemoved = null;
+    let _budUndoTimer = null;
+
+    function budOfferUndo(kind, item, index) {
+      _budLastRemoved = { kind, item, index };
+      clearTimeout(_budUndoTimer);
+      _budUndoTimer = setTimeout(() => { _budLastRemoved = null; budRenderUndoChips(); }, 12000);
+      budRenderUndoChips();
+    }
+
+    function budRenderUndoChips() {
+      const label = _budLastRemoved ? (_budLastRemoved.item.label || 'item') : null;
+      const html = _budLastRemoved
+        ? 'Removed \u201C' + budEsc(label) + '\u201D \u2014 <button type="button" class="budwiz-chip" onclick="budUndoRemove()">Undo</button>'
+        : null;
+      const statusEl = document.getElementById('budSaveStatus');
+      if (statusEl && html) statusEl.innerHTML = html;
+      else if (statusEl && !html) budSetStatus('Saved \u2713');
+      const wiz = document.getElementById('budWizUndoSlot');
+      if (wiz) wiz.innerHTML = html || '';
+    }
+
+    window.budUndoRemove = function () {
+      if (!_budLastRemoved) return;
+      const { kind, item, index } = _budLastRemoved;
+      _budLastRemoved = null;
+      clearTimeout(_budUndoTimer);
+      const arr = kind === 'line' ? window._budget.lines : window._budget.oneOffs;
+      arr.splice(Math.min(index, arr.length), 0, item);
+      budTouch();
+      const wizOpen = document.getElementById('budWizardOverlay').style.display !== 'none';
+      if (wizOpen) budWizRender(true);
+      else { const y = window.scrollY; renderBudgetLines(); renderBudgetOneOffs(); updateBudgetSummary(); window.scrollTo(0, y); }
+      budRenderUndoChips();
+    };
 
     window.budTouch = function () {
       if (!_budLoaded || !window._budget) return;
@@ -6852,7 +6897,10 @@
     };
 
     window.budWizRemove = function (id) {
-      window._budget.lines = window._budget.lines.filter((l) => l.id !== id);
+      const i = window._budget.lines.findIndex((l) => l.id === id);
+      if (i < 0) return;
+      budOfferUndo('line', window._budget.lines[i], i);
+      window._budget.lines.splice(i, 1);
       budTouch();
       budWizRender(true);
     };
@@ -7029,7 +7077,10 @@
     };
 
     window.budWizRemoveOneOff = function (id) {
-      window._budget.oneOffs = window._budget.oneOffs.filter((o) => o.id !== id);
+      const i = window._budget.oneOffs.findIndex((o) => o.id === id);
+      if (i < 0) return;
+      budOfferUndo('oneOff', window._budget.oneOffs[i], i);
+      window._budget.oneOffs.splice(i, 1);
       budTouch();
       budWizRender(true);
     };
@@ -7151,6 +7202,7 @@
             '<button type="button" class="risk-btn" onclick="budWizGo(-1)"' + (budWizStep === 0 ? ' disabled' : '') + '>Back</button>' +
             (!last ? '<button type="button" onclick="budWizGo(1)">' + (step === 'intro' ? 'Start' : 'Next') + '</button>' : '') +
             '<div class="budwiz-dots">' + dots + '</div>' +
+            '<div id="budWizUndoSlot" style="font-size:13px; color:var(--text-muted);"></div>' +
             '<div id="budWizTotals" style="margin-left:auto; font-size:13px; color:var(--text-muted);"></div>' +
           '</div>' +
         '</div>';

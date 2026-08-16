@@ -2913,6 +2913,16 @@
             <span id="budSaveStatus" style="font-size:13px; color:var(--text-muted);">Autosaves as you edit</span>
             <button type="button" class="risk-btn" onclick="resetBudgetUI()">Reset budget…</button>
           </div>
+
+          <!-- Administrator only (owner account): curation queue for unknown-fund suggestions. -->
+          <div class="settings-section" id="budAdminSection" style="display:none;">
+            <div class="section-title">Admin — fund suggestion queue
+              <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— visible only to the administrator account</span>
+            </div>
+            <button type="button" class="risk-btn" onclick="loadFundSuggestionsUI()">Load suggestions</button>
+            <button type="button" class="risk-btn" onclick="copyFundSuggestionsUI()">Copy as JSON</button>
+            <div id="budAdminSuggestions" style="margin-top:10px; font-size:13px;"></div>
+          </div>
         </div>
       </div>
 
@@ -3007,6 +3017,7 @@
     import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
     import { tagPortfolio, allocationFromTags } from './src/services/PortfolioTagger.js';
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
+    import { initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, listFundSuggestions, submitFundSuggestion } from './src/firebase/AdminConfigService.js';
 
     // Import constants for optimization
     import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
@@ -3404,6 +3415,15 @@
       hideOnboardingPage();
       hideSetupWizard();
       document.getElementById('mainApp').classList.remove('hidden');
+
+      // Shared curated datasets (fund catalogue / typical amounts) may have Firestore overrides —
+      // fetch once, silently, then refresh the ticker autocompletes if a bigger list arrived.
+      initAdminConfig().then(() => {
+        ensureFundDatalist('ss', true);
+        ensureFundDatalist('ds', true);
+        const adm = document.getElementById('budAdminSection');
+        if (adm) adm.style.display = isAdminUser() ? 'block' : 'none';
+      });
 
       // Update user info in header
       document.getElementById('userEmail').textContent = user.email;
@@ -5587,16 +5607,19 @@
     function funds(p) { return (window._taggedFunds[p] = window._taggedFunds[p] || []); }
     const BUCKET_LABELS = { shares: 'Shares', bonds: 'Bonds', diversifiers: 'Diversifiers', cash: 'Cash' };
 
-    // Populate a surface's ticker autocomplete datalist from the catalogue (once).
-    function ensureFundDatalist(p) {
+    // Populate a surface's ticker autocomplete datalist from the LIVE catalogue (admin override
+    // when present, code default otherwise). Rebuilt when the override arrives.
+    function ensureFundDatalist(p, force = false) {
       const dl = document.getElementById(p + 'FundCatalogue');
-      if (dl && !dl.childElementCount) {
-        dl.innerHTML = FUND_CATALOGUE.map(f => '<option value="' + f.ticker + '">' + f.ticker + ' — ' + f.name + '</option>').join('');
+      if (dl && (force || !dl.childElementCount)) {
+        dl.innerHTML = activeFundCatalogue().map(f => '<option value="' + f.ticker + '">' + f.ticker + ' — ' + f.name + '</option>').join('');
       }
     }
-    // The effective sub-class for a holding: an explicit override, else the catalogue default.
+    // The effective sub-class for a holding: an explicit override, else the LIVE catalogue default.
     function effectiveSubClass(f) {
-      return f.subClass || FUND_TAG_MAP[(f.ticker || '').toUpperCase().trim()] || '';
+      const t = (f.ticker || '').toUpperCase().trim();
+      const cat = liveCatalogueEntry(t);
+      return f.subClass || (cat && cat.subClass) || FUND_TAG_MAP[t] || '';
     }
     // Re-format a money text input with thousands separators (used on blur of fund value fields).
     window.reformatMoney = function(el) {
@@ -5621,7 +5644,7 @@
       return 0;
     }
     function searchFunds(query, limit = 8) {
-      return FUND_CATALOGUE
+      return activeFundCatalogue()
         .map(f => ({ f, s: fuzzyFundScore(query, f.ticker, f.name) }))
         .filter(x => x.s > 0)
         .sort((a, b) => b.s - a.s || a.f.ticker.localeCompare(b.f.ticker))
@@ -5644,7 +5667,7 @@
       if (box) { box.style.display = 'none'; }
     };
     window.addFundFromSearch = function(p, ticker) {
-      const cat = catalogueEntry(ticker);
+      const cat = liveCatalogueEntry(ticker);
       funds(p).push({ ticker, value: '', wrapper: 'SIPP', subClass: cat ? cat.subClass : '' });
       const s = document.getElementById(p + 'FundSearch'); if (s) s.value = '';
       hideFundSearch(p);
@@ -5664,6 +5687,24 @@
       }
       return '<select onchange="updateFundField(\'' + p + '\',' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
     }
+    // Category cell: the sub-class dropdown, plus — for tickers we don't recognise — lookup links
+    // (plain search pages in a new tab; the user decides the category) and a not-recognised hint.
+    function fundLookupLinksHtml(ticker) {
+      const t = encodeURIComponent((ticker || '').toUpperCase().trim());
+      const a = (href, label) => '<a href="' + href + '" target="_blank" rel="noopener" style="margin-right:8px;">' + label + '</a>';
+      return '<div style="font-size:11px; margin-top:3px; color:var(--text-muted);">Not in our list — how is it invested? Look it up: ' +
+        a('https://markets.ft.com/data/search?query=' + t, 'FT') +
+        a('https://www.morningstar.co.uk/uk/util/SecuritySearchResults.aspx?search=' + t, 'Morningstar') +
+        a('https://www.justetf.com/uk/search.html?query=' + t, 'justETF') +
+        'then pick a category.</div>';
+    }
+
+    function categoryCellHtml(p, i, f) {
+      const t = (f.ticker || '').toUpperCase().trim();
+      const unknown = t && !liveCatalogueEntry(t);
+      return categorySelectHtml(p, i, effectiveSubClass(f)) + (unknown ? fundLookupLinksHtml(t) : '');
+    }
+
     window.renderFunds = function(p) {
       const tb = document.getElementById(p + 'FundRows');
       if (!tb) return;
@@ -5673,7 +5714,7 @@
         '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
         '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" onblur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
         '<td style="padding:3px 6px;"><select onchange="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
-        '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categorySelectHtml(p, i, effectiveSubClass(f)) + '</td>' +
+        '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categoryCellHtml(p, i, f) + '</td>' +
         '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
         '</tr>'
       ).join('');
@@ -5687,12 +5728,16 @@
       } else if (field === 'ticker') {
         f.ticker = val;
         // Seed the category from the catalogue on a recognised ticker (user can still change it).
-        const cat = catalogueEntry(val);
+        const cat = liveCatalogueEntry(val);
         if (cat) f.subClass = cat.subClass;
         const cell = document.getElementById(p + '_fcat_' + i);
-        if (cell) cell.innerHTML = categorySelectHtml(p, i, effectiveSubClass(f));
+        if (cell) cell.innerHTML = categoryCellHtml(p, i, f);
       } else if (field === 'subClass') {
         f.subClass = val;   // explicit user override, stored on the holding
+        // Unknown ticker + a chosen category → log to the admin curation queue (fire-and-forget).
+        if (val && f.ticker && !liveCatalogueEntry(f.ticker)) {
+          submitFundSuggestion({ ticker: f.ticker, name: '', subClass: val });
+        }
       } else {
         f[field] = val;
       }
@@ -5822,7 +5867,7 @@
         rows.innerHTML = '<p style="color:var(--text-muted);">No ' + title.toLowerCase() + ' tagged yet. Define your holdings in <strong>Settings → Build from my funds</strong>, then come back — or just type the total into the box.</p>';
       } else {
         rows.innerHTML = bucketFunds.map(f => {
-          const cat = catalogueEntry(f.ticker);
+          const cat = liveCatalogueEntry(f.ticker);
           const prof = SUB_ASSET_PROFILES[effectiveSubClass(f)];
           const name = cat ? cat.name : (prof ? prof.label : '');
           return '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0;">' +
@@ -6648,6 +6693,31 @@
 
       document.getElementById('budSummary').innerHTML = html;
     }
+
+    // ---- Admin: unknown-fund suggestion queue (owner account only) -----------------------------
+    let _fundSuggestionsCache = [];
+    window.loadFundSuggestionsUI = async function () {
+      const box = document.getElementById('budAdminSuggestions');
+      if (!box) return;
+      box.textContent = 'Loading…';
+      try {
+        _fundSuggestionsCache = await listFundSuggestions();
+        if (!_fundSuggestionsCache.length) { box.textContent = 'No pending suggestions.'; return; }
+        box.innerHTML = _fundSuggestionsCache.map((x) =>
+          '<div>' + budEsc(x.ticker) + ' → ' + budEsc(x.subClass || '(none)') +
+          (x.name ? ' <span style="color:var(--text-muted);">' + budEsc(x.name) + '</span>' : '') + '</div>'
+        ).join('');
+      } catch (e) {
+        box.textContent = 'Could not load: ' + e.message;
+      }
+    };
+    window.copyFundSuggestionsUI = async function () {
+      if (!_fundSuggestionsCache.length) await loadFundSuggestionsUI();
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(_fundSuggestionsCache, null, 2));
+        showToast('Suggestions copied to clipboard', 'success');
+      } catch (e) { showToast('Copy failed: ' + e.message, 'error'); }
+    };
 
     // ---- Cloud-document autosave ---------------------------------------------------------------
     // The budget behaves like a shared doc: every edit funnels through budTouch(), which debounces a

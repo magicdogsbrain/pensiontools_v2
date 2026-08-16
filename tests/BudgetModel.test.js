@@ -20,7 +20,8 @@ import {
   summariseBudget,
   defaultBudget,
   evalAmountExpr,
-  typicalSanityFlag
+  typicalSanityFlag,
+  breakdownAnnual
 } from '../src/services/BudgetModel.js';
 
 const budget = {
@@ -282,6 +283,13 @@ describe('BudgetModel — amount expression calculator (evalAmountExpr)', () => 
     expect(evalAmountExpr('85.5')).toBe(85.5);
   });
 
+  it("strips a leading '=' (spreadsheet muscle memory)", () => {
+    expect(evalAmountExpr('=12+8')).toBe(20);
+    expect(evalAmountExpr(' =4×52/12 ')).toBeCloseTo(17.33, 2);
+    expect(evalAmountExpr('=85')).toBe(85);
+    expect(evalAmountExpr('1=2')).toBeNull(); // '=' only valid at the front
+  });
+
   it('rejects anything that is not plain arithmetic', () => {
     expect(evalAmountExpr('alert(1)')).toBeNull();
     expect(evalAmountExpr('1+process.exit()')).toBeNull();
@@ -291,6 +299,22 @@ describe('BudgetModel — amount expression calculator (evalAmountExpr)', () => 
     expect(evalAmountExpr('()')).toBeNull(); // no digits
     expect(evalAmountExpr('1/0')).toBeNull(); // not finite
     expect(evalAmountExpr('2+')).toBeNull(); // malformed
+  });
+});
+
+describe('BudgetModel — breakdown sub-sheet (breakdownAnnual)', () => {
+  it('sums mixed per-month and per-year rows into an annual figure', () => {
+    const rows = [
+      { label: 'Insurance', amount: 450, period: 'yr' },
+      { label: 'Fuel', amount: 80, period: 'mo' },     // 960/yr
+      { label: 'MOT', amount: 55 }                     // default yr
+    ];
+    expect(breakdownAnnual(rows)).toBe(450 + 960 + 55);
+  });
+  it('ignores rows without an amount and handles empty/missing input', () => {
+    expect(breakdownAnnual([{ label: 'todo item' }, { label: 'x', amount: null, period: 'mo' }])).toBe(0);
+    expect(breakdownAnnual([])).toBe(0);
+    expect(breakdownAnnual(undefined)).toBe(0);
   });
 });
 

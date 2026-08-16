@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DYANIHSx.js"></script>
+  <script type="module" crossorigin src="./assets/main-CQOaVbBr.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2890,8 +2890,9 @@
             <div id="budSummary"></div>
           </div>
 
-          <div class="button-row" style="margin-top: 24px;">
-            <button id="budSaveBtn" onclick="saveBudgetUI()">Save budget</button>
+          <div class="button-row" style="margin-top: 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <span id="budSaveStatus" style="font-size:13px; color:var(--text-muted);">Autosaves as you edit</span>
+            <button type="button" class="risk-btn" onclick="resetBudgetUI()">Reset budget…</button>
           </div>
         </div>
       </div>

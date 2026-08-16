@@ -75,6 +75,7 @@ import {
   defaultBudget,
   evalAmountExpr,
   typicalSanityFlag,
+  breakdownAnnual,
   DEFAULT_TAX_BANDS
 } from './services/BudgetModel.js';
 
@@ -391,6 +392,7 @@ export {
   defaultBudget,
   evalAmountExpr,
   typicalSanityFlag,
+  breakdownAnnual,
   DEFAULT_TAX_BANDS,
   grossToNet,
 

@@ -3048,7 +3048,7 @@
     import { deleteHistoryRecord, getStatePensionForTaxYear } from './src/storage/DecisionRepository.js';
 
     // Import auth helpers and data check
-    import { isLoggedIn, logOut, getCurrentUser, deleteAccount } from './src/firebase/index.js';
+    import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData } from './src/firebase/FirestoreService.js';
 
     // Import charts module
@@ -4162,50 +4162,80 @@
     // Inactivity Timeout - Auto logout after 1 hour of inactivity
     // ============================================================
     const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
+    const ACTIVITY_KEY = 'pt_lastActivity';    // cross-tab: signing out is global, so idleness must be too
     let inactivityTimer = null;
     let warningShown = false;
+    let _lastActivityWrite = 0;
+
+    // Record activity for ALL tabs (throttled). A second idle tab must never log out a tab
+    // that is being actively used — Firebase sign-out kills the session everywhere.
+    function recordActivity() {
+      const now = Date.now();
+      if (now - _lastActivityWrite > 10000) {
+        _lastActivityWrite = now;
+        try { localStorage.setItem(ACTIVITY_KEY, String(now)); } catch (e) { /* private mode */ }
+      }
+    }
+
+    function lastActivityAnyTab() {
+      try { return +localStorage.getItem(ACTIVITY_KEY) || 0; } catch (e) { return 0; }
+    }
+
+    async function inactivityCheck() {
+      if (!isLoggedIn()) return;
+      // Another tab may have been active — if so, just reschedule for the remaining time.
+      const idleFor = Date.now() - lastActivityAnyTab();
+      if (idleFor < INACTIVITY_TIMEOUT) {
+        inactivityTimer = setTimeout(inactivityCheck, Math.max(60000, INACTIVITY_TIMEOUT - idleFor));
+        return;
+      }
+      showToast('You have been logged out due to inactivity (1 hour).', 'info', 5000);
+      try {
+        invalidateCache();
+        invalidateStressCache();
+        invalidateScenarioCache();
+        await logOut();
+        document.getElementById('mainApp').classList.add('hidden');
+        hideOnboardingPage();
+        hideSetupWizard();
+        showAuthScreenWithTab('signin');
+      } catch (error) {
+        console.error('Auto-logout error:', error);
+      }
+    }
 
     function resetInactivityTimer() {
-      // Clear any existing timer
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer);
-      }
+      if (inactivityTimer) clearTimeout(inactivityTimer);
       warningShown = false;
-
-      // Only set timer if user is logged in
       if (!isLoggedIn()) return;
-
-      // Set new timer
-      inactivityTimer = setTimeout(async () => {
-        // Double-check user is still logged in
-        if (isLoggedIn()) {
-          showToast('You have been logged out due to inactivity (1 hour).', 'info', 5000);
-          try {
-            invalidateCache();
-            invalidateStressCache();
-            invalidateScenarioCache();
-            await logOut();
-            document.getElementById('mainApp').classList.add('hidden');
-            hideOnboardingPage();
-            hideSetupWizard();
-            showAuthScreenWithTab('signin');
-          } catch (error) {
-            console.error('Auto-logout error:', error);
-          }
-        }
-      }, INACTIVITY_TIMEOUT);
+      inactivityTimer = setTimeout(inactivityCheck, INACTIVITY_TIMEOUT);
     }
 
     // Track user activity
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     activityEvents.forEach(event => {
       document.addEventListener(event, () => {
+        recordActivity();
         resetInactivityTimer();
       }, { passive: true });
     });
 
     // Start the inactivity timer when app loads (if logged in)
+    recordActivity();
     resetInactivityTimer();
+
+    // If the session ends UNDER this tab (logout in another tab, token revoked), don't leave a
+    // zombie UI: return to the sign-in screen so the user isn't editing into the void.
+    onAuthStateChange((user) => {
+      const appVisible = !document.getElementById('mainApp').classList.contains('hidden');
+      if (!user && appVisible) {
+        document.getElementById('mainApp').classList.add('hidden');
+        hideOnboardingPage();
+        hideSetupWizard();
+        showAuthScreenWithTab('signin');
+        showToast('You’ve been signed out — sign in again to continue. Unsaved changes in open forms were not stored.', 'warning', 8000);
+      }
+    });
 
     // Reset button handler - wipes all data and shows wizard
     document.getElementById('resetBtn').addEventListener('click', async () => {
@@ -6552,8 +6582,13 @@
         html += '</ul></div>';
       }
 
+      const headM = +window._budget.targetHeadroomMonthly || 0;
+      const targetMonthly = s.allInComfortableMonthly + headM;
+      const targetGrossAnnual = grossUpAnnual(s.allInComfortableAnnual + headM * 12);
       html += '<div style="border-top:1px solid var(--border); padding-top:12px;">';
-      html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently. <span style="color:var(--text-muted);">(≈ ' + money(s.suggestedGrossAnnual) + '/yr before tax.)</span></div>';
+      html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.</div>';
+      html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" onchange="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
+      html += '<div style="font-size:13px; margin-bottom:8px;">Plan target: <strong>' + money(targetMonthly) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(targetGrossAnnual) + '/yr before tax' + (headM ? ' — budget + ' + money(headM) + '/mo headroom' : '') + ')</span></div>';
       html += '<button type="button" onclick="applyBudgetToPlan()">Set as my plan’s target (Stress + Decision)</button>';
       html += '</div>';
 
@@ -6669,9 +6704,15 @@
       }
     };
 
+    window.budHeadroomChanged = function (v) {
+      window._budget.targetHeadroomMonthly = v === '' ? null : Math.max(0, +v || 0);
+      updateBudgetSummary(); // re-renders the hand-off block + autosaves via budTouch
+    };
+
     window.applyBudgetToPlan = async function () {
       const s = summariseBudget(window._budget);
-      const gross = Math.round(s.suggestedGrossAnnual);
+      const headM = +window._budget.targetHeadroomMonthly || 0;
+      const gross = Math.round(grossUpAnnual(s.allInComfortableAnnual + headM * 12));
       if (!gross) { showToast('Add some spending first', 'warning'); return; }
       showLoading('Applying to plan…');
       try {
@@ -6685,8 +6726,8 @@
         if (ssGross) { ssGross.value = gross; syncNetFromGross('ss'); }
         const dsGross = document.getElementById('dsBaseSalary');
         if (dsGross && !locked) { dsGross.value = gross; syncNetFromGross('ds'); }
-        showToast('Target set: both tools now work to ' + gbp(s.allInComfortableMonthly) + '/mo take-home (' + gbp(gross) + '/yr gross)' +
-          (locked ? ' — Stress only; the Decision plan is locked' : ''), 'success', 5000);
+        showToast('Target set: both tools now work to ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + ' — ' + gbp(gross) + '/yr gross' +
+          (locked ? '. Stress only; the Decision plan is locked' : ''), 'success', 5000);
       } catch (e) {
         console.error('Apply-to-plan error:', e);
         showToast('Could not apply: ' + e.message, 'error');

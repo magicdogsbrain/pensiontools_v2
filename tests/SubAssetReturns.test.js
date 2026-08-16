@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   giltYieldLevel, realYieldLevel, subAssetReturn, bondBucketReturn,
   goldReturn, trendReturn, diversifierBucketReturn,
-  updateTrendMomentum, trendSignalFromMomentum
+  updateTrendMomentum, trendSignalFromMomentum,
+  commoditiesReturn
 } from '../src/services/SubAssetReturns.js';
+import { tagPortfolio } from '../src/services/PortfolioTagger.js';
 import { SUB_ASSET_PROFILES } from '../src/services/SubAssetModel.js';
 import { marketRegime, subAssetEquityRho } from '../src/services/SubAssetReturns.js';
 import { runMonteCarlo } from '../src/services/SimulationEngine.js';
@@ -222,5 +224,49 @@ describe('diversifier pot wired into the engine', () => {
     const succ = (cfg) => runMonteCarlo(cfg, 400).filter(r => !r.failed).length / 400;
     // the sleeve should not WORSEN outcomes materially (tail hedge, not a drag)
     expect(succ(withDiv)).toBeGreaterThan(succ(noDiv) - 0.05);
+  });
+});
+
+describe('new sub-classes (REITs, EM, small-cap, high-yield, commodities)', () => {
+  const expectBucket = { reit: 'shares', emEquity: 'shares', globalSmallCap: 'shares', highYield: 'bonds', commodities: 'diversifiers' };
+
+  it('all five profiles are complete and in the right buckets', () => {
+    for (const [key, bucket] of Object.entries(expectBucket)) {
+      const p = SUB_ASSET_PROFILES[key];
+      expect(p, key).toBeTruthy();
+      expect(p.bucket, key).toBe(bucket);
+      for (const f of ['nominalReturn', 'vol', 'eqCorr', 'idioVol', 'label']) {
+        expect(p[f], key + '.' + f).toBeDefined();
+      }
+    }
+  });
+
+  it('high-yield: carry-positive in a normal year, hit harder than IG in a crash', () => {
+    const hyNormal = subAssetReturn(SUB_ASSET_PROFILES.highYield, NORMAL, flatRng);
+    expect(hyNormal).toBeGreaterThan(0.03);          // ~6.5% carry, small duration drag
+    const hyCrash = subAssetReturn(SUB_ASSET_PROFILES.highYield, CRASH, flatRng);
+    const igCrash = subAssetReturn(SUB_ASSET_PROFILES.corporateIG, CRASH, flatRng);
+    expect(hyCrash).toBeLessThan(igCrash);           // bigger credit hit than IG
+  });
+
+  it('commodities: strong 2022 inflation hedge; falls WITH equities in a 2008-style crash', () => {
+    const c2022 = commoditiesReturn(Y2022, flatRng);
+    expect(c2022).toBeGreaterThan(0.05);             // 0.8 × (9% − 2.5%) hedge dominates
+    const cCrash = commoditiesReturn(CRASH, flatRng);
+    expect(cCrash).toBeLessThan(0);                  // demand shock: down with equities
+    expect(c2022).toBeGreaterThan(cCrash + 0.15);    // the regimes are meaningfully different
+  });
+
+  it('diversifierBucketReturn blends a commodities weight', () => {
+    const withC = diversifierBucketReturn(Y2022, flatRng, 0, { gold: 0.4, trendMacro: 0.3, commodities: 0.3 });
+    const withoutC = diversifierBucketReturn(Y2022, flatRng, 0, { gold: 0.4, trendMacro: 0.3 });
+    expect(Number.isFinite(withC)).toBe(true);
+    expect(withC).toBeGreaterThan(withoutC);         // 2022: the commodities sleeve adds hedge return
+  });
+
+  it('a REIT holding tags to the shares bucket with its own label', () => {
+    const t = tagPortfolio([{ ticker: 'XYZ', subClass: 'reit', value: 100000, wrapper: 'SIPP' }]);
+    expect(t.buckets.shares).toBe(100000);
+    expect(t.tagged[0].label).toBe('Property / REITs');
   });
 });

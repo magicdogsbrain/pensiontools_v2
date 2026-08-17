@@ -113,8 +113,14 @@ export function decisionToHistory(decision) {
       annualTax = (brl - pa) * 0.2 + (hrl - brl) * 0.4 + (annualTaxable - hrl) * 0.45;
     }
   }
-  const monthlyTax = annualTax / 12;
-  const monthlyNet = monthlyTaxable - monthlyTax + (decision.isaDraw || 0);
+  // Prefer the ENGINE's per-month tax (partial-year aware: mid-year starts spread the year's tax
+  // over the months actually drawn, net of pre-start income). The local recomputation above is a
+  // fallback for legacy callers only — it annualises this month × 12, which is wrong in a partial
+  // first year and duplicated tax logic besides.
+  const monthlyTax = decision.monthlyTax != null ? decision.monthlyTax : annualTax / 12;
+  const monthlyNet = decision.monthlyTax != null
+    ? (decision.totalMonthlyNet != null ? decision.totalMonthlyNet : monthlyTaxable - monthlyTax + (decision.isaDraw || 0))
+    : monthlyTaxable - monthlyTax + (decision.isaDraw || 0);
 
   return {
     // Date and context

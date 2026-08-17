@@ -140,6 +140,13 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       let protectionInducedTaxEfficiency = false;
       let isaSavingsUsedThisMonth = 0;
 
+      // Mid-year start frame (wizard-configured partial first year): the year's target is
+      // delivered over the REMAINING months, and income received before drawdown started
+      // (grossIncomeToDate) both reduces what the SIPP must provide AND consumes the year's
+      // tax bands. For a normal full year this collapses to the identity (12 months, £0).
+      const deliverMonths = Math.max(1, Math.min(12, taxYearConfig.remainingMonths || 12));
+      const preStartIncome = deliverMonths < 12 ? (grossIncomeToDate || 0) : 0;
+
       // Calculate remaining ISA allocation
       const remainingIsaAllocation = Math.max(0, yearlyIsaSavingsAllocation - isaSavingsUsedSoFar);
       const monthlyIsaFromAllocation = remainingIsaAllocation / effectiveRemainingMonths;
@@ -165,7 +172,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           // can't cover it. Same engine as the Stress Tester (both call planDrawdown), which
           // is what lets a replayed Monte-Carlo trajectory agree with the Decision Tool.
           const plan = planDrawdown({
-            targetGross: target, fixedIncome: other, pa: PA, brl: BRL, hrl: HRL,
+            targetGross: target, fixedIncome: other + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
             isaBalance,
             strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
             // yearsUntilSp only affects the maximiseLongevity ration cap. The Decision Tool has
@@ -174,8 +181,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             // years-until-SP from the SP start date — see tests/crossval/replay.test.js "KNOWN GAP".
             yearsUntilSp: 0
           });
-          stdSipp = plan.sippGross / 12;
-          isaToUse = plan.isaDraw / 12;
+          stdSipp = plan.sippGross / deliverMonths;
+          isaToUse = plan.isaDraw / deliverMonths;
         } else {
           // Legacy per-tax-year ISA allocation path (unchanged when no ISA balance is set).
           if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
@@ -439,9 +446,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // SIPP drawn so far this tax year (from history)
       const sippYTD = thisTaxYearHistory.reduce((sum, h) => sum + (h.sipp || 0), 0);
 
-      // Calculate remaining months after this one
+      // Calculate remaining months after this one (partial first year has fewer slots)
       const monthsPassedIncludingThis = thisTaxYearHistory.length + 1;
-      const monthsRemaining = Math.max(0, 12 - monthsPassedIncludingThis);
+      const monthsRemaining = Math.max(0, deliverMonths - monthsPassedIncludingThis);
 
       // Use stdSipp for projected remaining months (standard draw without boost/protection)
       const projectedRemainingSipp = monthsRemaining * stdSippForHistory;
@@ -449,14 +456,17 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Total annual SIPP = YTD + this month + projected remaining at standard rate
       const totalAnnualSipp = sippYTD + sipp + projectedRemainingSipp;
 
-      // Annual taxable = total SIPP + Other + State Pension
-      const annualTaxable = totalAnnualSipp + OTHER + STATE;
+      // Annual taxable = total SIPP + Other + State Pension + income earned before drawdown
+      // started (mid-year first year) — that income consumed personal allowance/band headroom,
+      // so ignoring it under-taxes every drawn month.
+      const annualTaxable = totalAnnualSipp + OTHER + STATE + preStartIncome;
 
       // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.
       const annualTax = calculateTax(annualTaxable, PA, BRL, HRL);
 
-      // Monthly tax = annual tax / 12 (even distribution)
-      const monthlyTax = annualTax / 12;
+      // Monthly tax: the drawdown months carry the year's tax NET of what the pre-start income
+      // would owe on its own, spread evenly over the months actually drawn.
+      const monthlyTax = (annualTax - calculateTax(preStartIncome, PA, BRL, HRL)) / deliverMonths;
 
       // Net = gross taxable this month - monthly tax + ISA (tax-free)
       const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
@@ -508,6 +518,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         stdSipp: stdSippForHistory, // Standard SIPP before protection, for tax boost tracking
         isaDraw: isa,
         totalMonthlyNet: monthlyNet,
+        monthlyTax,   // the engine's per-month tax (partial-year aware) — decisionToHistory prefers this
 
         // Year-level tax efficiency
         isTaxEfficientYear,

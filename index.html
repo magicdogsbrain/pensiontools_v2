@@ -2372,7 +2372,9 @@
             <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
           </div>
           <div class="card">
-            <h2>Monte Carlo Simulation</h2>
+            <h2>Monte Carlo Simulation
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
             <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
@@ -2393,7 +2395,9 @@
         <!-- Historical Sub-tab -->
         <div id="stress-historical" class="stress-subtab hidden">
           <div class="card">
-            <h2>Historical Sequence Analysis</h2>
+            <h2>Historical Sequence Analysis
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('hist')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
             <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
@@ -2414,7 +2418,9 @@
         <!-- Scenarios Sub-tab -->
         <div id="stress-scenarios" class="stress-subtab hidden">
           <div class="card">
-            <h2>Stress Scenarios</h2>
+            <h2>Stress Scenarios
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('scen')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
             <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
@@ -7400,6 +7406,72 @@
       budWizFooterTotals();
       overlay.querySelector('.budwiz-body').scrollTop = prevScroll;
     }
+
+    // ==================== "What is this doing?" — stress modelling explainer ====================
+    // One friendly page covering the three run modes and the shared asset modelling, opened from
+    // the button on each tab (scrolled to the relevant section).
+    window.openStressExplainer = function (section) {
+      let el = document.getElementById('stressExplainer');
+      if (el) el.remove();
+      el = document.createElement('div');
+      el.id = 'stressExplainer';
+      el.style.cssText = 'position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:20px;';
+      el.innerHTML =
+        '<div style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto; padding:28px; font-size:15px; line-height:1.65;">' +
+
+        '<h2 style="margin-bottom:4px;">What the Stress Tester is doing</h2>' +
+        '<p style="color:var(--text-muted); margin-bottom:18px;">Every run asks the same question \u2014 <em>\u201Cif the future looked like this, would your money last?\u201D</em> \u2014 and simulates your plan month by month: withdrawals sized to your spending need, tax paid, the ISA bridge drawn tax-free, protection mode in downturns. The three tabs differ only in <strong>where the \u201Cfuture\u201D comes from</strong>.</p>' +
+
+        '<div id="sx-mc" style="border-left:3px solid var(--primary,#6366f1); padding-left:14px; margin-bottom:16px;">' +
+        '<h3 style="margin-bottom:6px;">\uD83C\uDFB2 Monte Carlo \u2014 a thousand plausible futures</h3>' +
+        '<p style="color:var(--text-muted);">We deal 1,000 different futures by <strong>shuffling real history</strong>: each simulated year is a randomly-drawn year from 1928\u20132024, keeping that year\u2019s stock market return and inflation together as they actually happened. Your plan is run through all 1,000; the headline number is how many survive. It answers: <em>\u201Cacross a wide spread of plausible futures, what are my odds?\u201D</em></p>' +
+        '</div>' +
+
+        '<div id="sx-hist" style="border-left:3px solid #14b8a6; padding-left:14px; margin-bottom:16px;">' +
+        '<h3 style="margin-bottom:6px;">\uD83D\uDCDc Historical \u2014 every real retirement since 1928</h3>' +
+        '<p style="color:var(--text-muted);">No shuffling: we replay history <strong>in order</strong>, once for every possible start year \u2014 retiring into 1929, into 1966, into 1973, into 2000\u2026 This is the classic sequence-of-returns test: the <em>order</em> of good and bad years matters as much as the average, and this tab shows exactly which real-world start years would have sunk your plan.</p>' +
+        '</div>' +
+
+        '<div id="sx-scen" style="border-left:3px solid #e67e22; padding-left:14px; margin-bottom:16px;">' +
+        '<h3 style="margin-bottom:6px;">\uD83D\uDD25 Scenarios \u2014 named nightmares, on repeat</h3>' +
+        '<p style="color:var(--text-muted);">Five hand-picked 10-year sequences \u2014 the Great Depression, 1970s stagflation, the 2000s lost decade, 2008, and a synthetic worst-case \u2014 <strong>looped for your whole horizon</strong>. Deliberately unfair: a 35-year plan gets the 1970s three and a half times over. If your plan survives these, sequence risk is well covered; treat them as a stress rig, not a forecast.</p>' +
+        '</div>' +
+
+        '<h3 style="margin:20px 0 6px;">How each asset category is modelled</h3>' +
+        '<p style="color:var(--text-muted); margin-bottom:8px;">Every future is built from just <strong>two primitives per year: the equity return and inflation</strong>. Everything else is derived from them, the same way in all three tabs:</p>' +
+        '<ul style="color:var(--text-muted); padding-left:20px; margin-bottom:12px; line-height:1.8;">' +
+        '<li><strong>Shares</strong> (trackers, income, REITs, EM, small-cap) ride the equity path directly.</li>' +
+        '<li><strong>Bonds</strong> earn their own yield, and gain or lose as a <strong>gilt-yield path derived from inflation</strong> moves \u2014 so long gilts crash in a 2022-style inflation spike (big duration \u00D7 rising yields) and rally in a 2008-style flight to quality. Your own bond-class mix (short gilts, linkers, credit\u2026) drives the blend.</li>' +
+        '<li><strong>Diversifiers</strong>: gold hedges inflation and tends to rise in crashes; trend-following holds a lagged momentum position (pays in long grinding bear markets, whipsaws in V-shapes); commodities hedge inflation hardest but fall <em>with</em> shares in a demand shock.</li>' +
+        '<li><strong>Cash</strong> follows a rate model tied to inflation (roughly \u22121% real \u2014 the FCA convention).</li>' +
+        '<li><strong>Your ISA</strong>: if you tagged your own funds, it\u2019s modelled at <em>its</em> mix through all of the above; with a risk level only, it grows at a deliberately modest flat rate (the cash-like \u201Cbridge\u201D).</li>' +
+        '</ul>' +
+
+        '<h3 style="margin:16px 0 6px;">Are the asset classes correlated? Yes \u2014 three ways</h3>' +
+        '<ul style="color:var(--text-muted); padding-left:20px; margin-bottom:12px; line-height:1.8;">' +
+        '<li><strong>Equity\u2194inflation:</strong> years are sampled (or replayed) whole, so \u201Cbad market + high inflation\u201D arrive together exactly as often as they did in real history.</li>' +
+        '<li><strong>Structural:</strong> bonds are mechanically linked to inflation through the yield path; gold, commodities and trend are functions of the same two primitives.</li>' +
+        '<li><strong>Regime-aware residuals:</strong> each bond and diversifier class carries a correlation to equities that <em>changes with the regime</em> \u2014 in a normal year gilts barely co-move; in an inflation shock everything falls together (2022); in a deflationary crash gilts flip <em>negative</em> (flight to quality) while credit blows out <em>with</em> equities.</li>' +
+        '</ul>' +
+
+        '<h3 style="margin:16px 0 6px;">Honest limitations</h3>' +
+        '<ul style="color:var(--text-muted); padding-left:20px; margin-bottom:16px; line-height:1.8;">' +
+        '<li>In Historical replays, only shares-and-inflation are literal history \u2014 bond, gold and commodity returns are <em>model-implied</em> from those primitives, not the measured returns of that year.</li>' +
+        '<li>Monte Carlo samples each year independently \u2014 real markets have some momentum and mean-reversion it doesn\u2019t capture (the Historical tab covers that gap).</li>' +
+        '<li>Categories are modelled, not individual funds \u2014 your specific fund can beat or trail its category.</li>' +
+        '<li>The calibration figures are long-run estimates, not predictions. This is modelling, not advice.</li>' +
+        '</ul>' +
+
+        '<button type="button" onclick="document.getElementById(\'stressExplainer\').remove()">Got it</button>' +
+        '</div>';
+      el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+      document.body.appendChild(el);
+      const target = { mc: 'sx-mc', hist: 'sx-hist', scen: 'sx-scen' }[section];
+      if (target) {
+        const t = document.getElementById(target);
+        if (t) { t.scrollIntoView({ block: 'start' }); t.style.background = 'rgba(99,102,241,0.08)'; }
+      }
+    };
 
     // ==================== Admin panel (administrator account only) ====================
     // The gears icon renders only after the adminPrivate probe succeeds; every write below is

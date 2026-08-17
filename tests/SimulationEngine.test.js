@@ -370,3 +370,53 @@ describe('SimulationEngine', () => {
     });
   });
 });
+
+describe('Phased access (UFPLS → optional PCLS → drawdown)', () => {
+  const flatReturns = (years) => {
+    const eq = {}, inf = {};
+    for (let i = 0; i < years; i++) { eq[i] = 0.05; inf[i] = 0.025; }
+    return { equity: eq, inflation: inf };
+  };
+  const cfg = {
+    equityStart: 300000, bondStart: 200000, cashStart: 50000,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000,
+    duration: 35, years: 10, baseSalary: 30000, other: 0,
+    statePension: 0, statePensionYear: 99,
+    pa: 12570, brl: 50270, taxMode: 'inflates',
+    disableProtection: true, protectionMult: 0.8,
+    hodlEnabled: false, hodlValue: 0, isaBalance: 50000
+  };
+
+  it('ufplsYears blank behaves exactly like whole-plan UFPLS', () => {
+    const a = simulate({ ...cfg, accessMethod: 'ufpls' }, flatReturns(10), 42);
+    const b = simulate({ ...cfg, accessMethod: 'ufpls', ufplsYears: null }, flatReturns(10), 42);
+    expect(b.final).toBe(a.final);
+    expect(b.totalTaxReal).toBe(a.totalTaxReal);
+  });
+
+  it('a shorter UFPLS phase pays more lifetime tax than whole-plan UFPLS, less than pure drawdown', () => {
+    const whole = simulate({ ...cfg, accessMethod: 'ufpls' }, flatReturns(10), 42);
+    const phased = simulate({ ...cfg, accessMethod: 'ufpls', ufplsYears: 3 }, flatReturns(10), 42);
+    const dd = simulate({ ...cfg, accessMethod: 'drawdown' }, flatReturns(10), 42);
+    expect(phased.totalTaxReal).toBeGreaterThan(whole.totalTaxReal);
+    expect(phased.totalTaxReal).toBeLessThan(dd.totalTaxReal);
+  });
+
+  it('PCLS at the switch moves 25% of the remaining SIPP into the ISA (LSA-capped)', () => {
+    const noPcls = simulate({ ...cfg, accessMethod: 'ufpls', ufplsYears: 3 }, flatReturns(10), 42);
+    const withPcls = simulate({ ...cfg, accessMethod: 'ufpls', ufplsYears: 3, ufplsThenPcls: true }, flatReturns(10), 42);
+    expect(withPcls.pclsTaken).toBeGreaterThan(0);
+    expect(noPcls.pclsTaken).toBe(0);
+    // The lump sum landed in the ISA: end-of-plan ISA must be materially larger
+    expect(withPcls.finalIsa).toBeGreaterThan(noPcls.finalIsa);
+    // And it's genuinely tax-free: lifetime tax is no higher than without the PCLS
+    expect(withPcls.totalTaxReal).toBeLessThanOrEqual(noPcls.totalTaxReal + 1);
+  });
+
+  it('drawdown plans are untouched by phased-access fields', () => {
+    const a = simulate({ ...cfg, accessMethod: 'drawdown' }, flatReturns(10), 42);
+    const b = simulate({ ...cfg, accessMethod: 'drawdown', ufplsYears: 3, ufplsThenPcls: true }, flatReturns(10), 42);
+    expect(b.final).toBe(a.final);
+    expect(b.pclsTaken).toBe(0);
+  });
+});

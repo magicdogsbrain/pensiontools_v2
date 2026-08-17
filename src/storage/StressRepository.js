@@ -346,6 +346,8 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     isaBalance: settings.isaBalance || 0,
     isaReturn: settings.isaReturn,
     accessMethod: settings.accessMethod || 'drawdown',
+    ufplsYears: settings.ufplsYears || null,
+    ufplsThenPcls: !!settings.ufplsThenPcls,
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.

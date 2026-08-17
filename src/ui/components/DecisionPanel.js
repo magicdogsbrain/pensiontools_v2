@@ -80,6 +80,17 @@ export function buildDecisionHTML(decision) {
     </div>`;
   }
 
+  // Phased-access switch-year reminder: the plan says the UFPLS phase is over — advise the
+  // real-world PCLS action (the tool never silently moves money the user actually holds).
+  if (d.pclsSuggestion > 0) {
+    html += `<div class="alert alert-info">
+      💡 Your plan's UFPLS phase has ended. If you haven't already, take your remaining 25% tax-free
+      lump sum — about <strong>${formatCurrency(d.pclsSuggestion)}</strong> at today's pot value
+      (capped by your remaining Lump Sum Allowance) — into your ISA, then continue in drawdown.
+      Update your fund values here once done.
+    </div>`;
+  }
+
   // Alerts
   if (d.alerts && d.alerts.length > 0) {
     html += '<div class="alerts">';

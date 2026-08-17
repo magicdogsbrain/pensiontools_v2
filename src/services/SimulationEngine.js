@@ -74,6 +74,11 @@ export function simulate(config, returns, seed = 0) {
   let isa = config.isaBalance || 0;
   // UFPLS lifetime Lump Sum Allowance headroom (nominal, frozen). Irrelevant (0) for drawdown.
   let lsaRemaining = config.accessMethod === 'ufpls' ? 268275 : 0;
+  // Phased access: PCLS-at-switch. UFPLS never crystallises the untouched pot, so at the end of
+  // the UFPLS phase 25% of whatever remains can still be taken tax-free (capped by the remaining
+  // LSA) and moved into the ISA before the plan reverts to fully-taxable drawdown.
+  let pclsTaken = 0;
+  let pclsDone = false;
   let hodlUsedMonth = null;
 
   // ISA stats tracking (for the stress-page ISA analytics)
@@ -217,6 +222,24 @@ export function simulate(config, returns, seed = 0) {
     });
     if (prot) { protMonths++; curStreak++; }
     else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
+
+    // Phased-access switch event: in the first month after the UFPLS phase ends, optionally take
+    // 25% of the remaining (still-uncrystallised) SIPP as a tax-free lump sum into the ISA, capped
+    // by the remaining LSA. Trimmed proportionally across the SIPP pots (HODL, a deliberately
+    // ring-fenced emergency reserve, is left alone). Happens BEFORE this month's draw is computed.
+    if (config.accessMethod === 'ufpls' && config.ufplsThenPcls && config.ufplsYears > 0
+        && year >= config.ufplsYears && monthInYear === 0 && !pclsDone) {
+      pclsDone = true;
+      const sippTotal = equity + bond + cash + diversifier;
+      const pcls = Math.max(0, Math.min(0.25 * sippTotal, lsaRemaining));
+      if (pcls > 0 && sippTotal > 0) {
+        const keep = 1 - pcls / sippTotal;
+        equity *= keep; bond *= keep; cash *= keep; diversifier *= keep;
+        isa += pcls;
+        lsaRemaining -= pcls;
+        pclsTaken = pcls;
+      }
+    }
 
     // Calculate required draw (SIPP + ISA to hit the target via band management)
     const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa, lsaRemaining);
@@ -499,6 +522,7 @@ export function simulate(config, returns, seed = 0) {
     // ISA analytics
     startIsa,
     finalIsa: isa,
+    pclsTaken,                                         // PCLS moved SIPP→ISA at the phase switch (0 if none)
     isaDepletedMonth,                                  // null if it survived the full plan
     isaLastedYears: isaDepletedMonth === null ? config.years : isaDepletedMonth / 12,
     higherRateYears: higherRateMonths / 12,            // years of inefficient (40%-band) drawdown
@@ -653,7 +677,10 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
   const yearsUntilSp = yearsUntilStatePension(config, year);
   // UFPLS: a quarter of each withdrawal is tax-free until the lifetime Lump Sum Allowance is
   // used up (tracked by the caller in nominal £; the LSA is a frozen nominal figure).
-  const taxFreeFraction = (config.accessMethod === 'ufpls' && lsaRemaining > 0) ? 0.25 : 0;
+  // Phased access: config.ufplsYears limits the UFPLS phase to the first N plan years; after
+  // that the plan reverts to fully-taxable drawdown (blank/0 = UFPLS for the whole plan).
+  const inUfplsPhase = !config.ufplsYears || year < config.ufplsYears;
+  const taxFreeFraction = (config.accessMethod === 'ufpls' && inUfplsPhase && lsaRemaining > 0) ? 0.25 : 0;
   const plan = planDrawdown({
     targetGross: target,
     fixedIncome: fixed,

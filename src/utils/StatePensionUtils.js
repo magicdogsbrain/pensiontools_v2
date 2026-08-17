@@ -347,3 +347,23 @@ export function validateStatePensionDate(dateStr, { now = new Date() } = {}) {
 
   return { valid: true, error: null, warning: null, date };
 }
+
+/**
+ * Derives the simulation-grid State Pension config ({spStartYear, spWeeklyAmount,
+ * spFirstYearRatio}) from date-based settings, or null when no date/amount is set (callers
+ * fall back to the legacy statePension/statePensionYear fields). Shared by the Stress config
+ * builder and the deterministic Drawdown schedule so every projection sees the SAME start
+ * year and first-year pro-rata. `now` is injectable for tests.
+ */
+export function spSimConfigFromSettings(settings, now = new Date()) {
+  if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear);
+  const spStartYear = Math.floor(yearsUntilSp);
+  const daysInYear = 365;
+  const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
+  const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;
+  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: firstYearRatio };
+}

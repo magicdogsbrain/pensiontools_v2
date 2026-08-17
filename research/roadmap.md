@@ -43,8 +43,8 @@ these better, it's a distraction.
 | 2 | ~~Net-budget income mode~~ | B | M | Low | 1 | **Done Aug 2026** |
 | 3 | **Person-scoped data model** (household = 1–2 people) | A+B | M | Med (touches data model) | — (fold into 1–2) | Next |
 | 3b | **Unified settings model** (one schema, two instances; ISA as a depleting pot; seed-from-Decision) — design in `design/settings-model.md` | A+B | L | Med | 0, 3 | Next |
-| 4 | **Bucket composition** (asset-class registry; user weights) | A+B | L | Med (assumptions) | — | Later |
-| 5 | **Equity/bond correlation** (Cholesky, per Feb model review) | A | S | Low | 4 | Later |
+| 4 | ~~Bucket composition~~ — superseded by SUB_ASSET_PROFILES (18-class registry, user weights via fund tagging, admin-tunable) | A+B | L | Med | — | **Done Aug 2026** |
+| 5 | ~~Equity/bond correlation~~ — superseded: per-sleeve regime-dependent ρ via variance-preserving transform in SubAssetReturns | A | S | Low | 4 | **Done Aug 2026** |
 | 6 | **Capital expenditure** (lumpy one-off spends, e.g. car every 4 yrs) | A+B | S | Low | 2 | Later |
 | 7 | **Couples build** (dual allowances, who-draws-what optimisation) | A+B | L | High | 3 | Later |
 | 8 | Composition auto-optimisation in stress optimiser | A | XL | High | 4 | **Deferred** (rabbit hole) |
@@ -66,9 +66,18 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
   today); (5)S/M fold the tax-inefficient branch into planTaxBoost/planDrawdown; (6)M/L extract
   WithdrawalSourcing (Mixed branch, one replenishment threshold-set with execute flag, rebalance,
   one spill order); (7)L PlanContext + DrawdownStrategy.decide() (one remainingMonths convention,
-  kill the 2026 epoch + '26/27' key-walk); (8)S delete the dead layer (ProtectionService,
-  DecisionService except saveDecision, most of DrawdownService, BOND_MODEL, SimulationConfig
-  legacy builder); (9)M MarketModel registry; (10)S refresh the two design/*.md audits.
+  kill the 2026 epoch + '26/27' key-walk); (8)S ~~delete the dead layer~~ DONE 17 Aug 2026 (ProtectionService,
+  DecisionService except saveDecision, DrawdownService's dead calculateSIPPDraw/
+  calculateDrawdownRecommendation — generateDrawdownSchedule is LIVE and was FIXED not
+  deleted, BOND_MODEL, SimulationConfig legacy builder, services barrel, STATE_PENSION_FLOOR,
+  isaContribution); (9)S/M equity into the SubAsset registry (the registry itself shipped —
+  see audit); (10)S refresh the two design/*.md audits. Items (1)-(4) DONE 17 Aug 2026
+  (protection unit seam + disableProtection in decision; recovery buffer single-sourced
+  15000 + pass-through + stress UI field; SP sim-config shared helper; Drawdown sub-tab
+  date-based SP + capped other + UFPLS-aware). CPI: decision-side unentered-year assumption
+  unified to DECISION_ASSUMED_CPI (4%) — entered CPI is authoritative (user knows current
+  CPI; the stress tester assumes). **See research/roadmap-audit-aug-2026.md for the
+  authoritative tiered plan.**
 - **[0] Unify the whole engine.** (original framing — see status above) Full audit in `design/engine-unification.md` (+
   tax/drawdown deep-dive in `design/decision-engine-unification.md`). Every functional
   area — tax, inflation, returns, protection, glidepath, State Pension, sourcing — has

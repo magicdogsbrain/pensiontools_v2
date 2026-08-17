@@ -20,6 +20,7 @@ import {
 
 // Mock constants to avoid dependency on full data
 vi.mock('../src/constants.js', () => ({
+  DRAWDOWN_DEFAULTS: { RECOVERY_BUFFER: 15000 },
   EQUITY_RETURNS: {
     1990: 0.10,
     1991: 0.08,

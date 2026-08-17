@@ -30,7 +30,7 @@ describe('assessProtection', () => {
 
   it('applies sensible defaults', () => {
     expect(PROTECTION_DEFAULTS.CONSECUTIVE_LIMIT).toBe(3);
-    expect(PROTECTION_DEFAULTS.RECOVERY_BUFFER).toBe(10000);
+    expect(PROTECTION_DEFAULTS.RECOVERY_BUFFER).toBe(15000); // single source: DRAWDOWN_DEFAULTS (was 10000 while saved settings carried 15000)
     // With defaults: below min, 2 prior cash draws → enters.
     expect(assessProtection({ totalGrowth: 99000, minGrowth: 100000, consecCashDraws: 2, wasInProtection: false })).toBe(true);
   });

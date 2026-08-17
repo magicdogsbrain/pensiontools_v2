@@ -2076,11 +2076,11 @@
   "glidepath depletion floor (yearNum == duration → min 0)": {
     "accessMethod": "drawdown",
     "adjBondMin": 0,
-    "adjCashTarget": 284785,
+    "adjCashTarget": 473531,
     "adjEquityMin": 0,
     "alerts": [
       {
-        "message": "Replenish Cash: Move £49,000 from growth funds",
+        "message": "Replenish Cash: Move £106,000 from growth funds",
         "severity": "info",
         "type": "cash-replenish"
       }
@@ -2098,7 +2098,7 @@
         "STATE": 0,
         "baseSalary": 59450,
         "confirmedSalary": 59450,
-        "cumInf": 2.37,
+        "cumInf": 3.95,
         "grossIncomeToDate": 0,
         "isTaxEfficientYear": true,
         "targetGross": 59450,

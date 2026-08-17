@@ -14,9 +14,15 @@
  * Pure. Evaluated once per month on the start-of-month growth-pot value vs the glidepath minimum.
  */
 
+import { DRAWDOWN_DEFAULTS } from '../constants.js';
+
 export const PROTECTION_DEFAULTS = {
   CONSECUTIVE_LIMIT: 3,   // consecutive cash draws (incl. the prospective current one) to enter
-  RECOVERY_BUFFER: 10000  // growth must exceed min by this to leave protection
+  // Growth must exceed min by this to leave protection. SINGLE SOURCE: the same
+  // DRAWDOWN_DEFAULTS.RECOVERY_BUFFER every saved Decision settings doc is stamped with —
+  // previously this was 10000 while saved settings carried 15000, so the Stress engine
+  // (which never received the user's value) ran a different protection rule.
+  RECOVERY_BUFFER: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER
 };
 
 /**

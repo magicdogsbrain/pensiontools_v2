@@ -27,8 +27,7 @@ export const TAX_DEFAULTS = {
 // ============================================================================
 export const INFLATION_DEFAULTS = {
   ASSUMED_CPI: 0.025,           // 2.5% default
-  OTHER_INCOME_CAP: 0.04,       // 4% cap on other pension CPI
-  STATE_PENSION_FLOOR: 0.025    // Minimum state pension increase
+  OTHER_INCOME_CAP: 0.04        // 4% cap on other pension CPI
 };
 
 // ISA modelled as a depleting pot (see design/settings-model.md).
@@ -64,47 +63,6 @@ export const SIMULATION_DEFAULTS = {
   PROTECTION_MULTIPLIER: 0.8,   // Draw multiplier in protection mode
   HODL_ENABLED: false,
   HODL_VALUE: 25000
-};
-
-// ============================================================================
-// BOND MODEL ALLOCATIONS
-// ============================================================================
-export const BOND_MODEL = {
-  // Normal regime allocation
-  NORMAL: {
-    LINKER: 0.15,     // Index-linked gilts
-    NOMINAL: 0.30,    // Nominal bonds
-    PROPERTY: 0.20,   // Property
-    COMMODITY: 0.10,  // Commodities
-    CASH: 0.10,       // Cash
-    EQUITY: 0.15      // Partial equity exposure
-  },
-  // High inflation regime (>4.5%)
-  HIGH_INFLATION: {
-    LINKER: 0.50,
-    NOMINAL: 0.10,
-    PROPERTY: 0.15,
-    COMMODITY: 0.15,
-    CASH: 0.05,
-    EQUITY: 0.05
-  },
-  // Deflation regime (<0%)
-  DEFLATION: {
-    LINKER: 0.05,
-    NOMINAL: 0.50,
-    PROPERTY: 0.10,
-    COMMODITY: 0.05,
-    CASH: 0.20,
-    EQUITY: 0.10
-  },
-  // Volatility parameters
-  VOLATILITY: {
-    LINKER: 0.03,
-    NOMINAL: 0.05,
-    PROPERTY: 0.08,
-    COMMODITY: 0.15,
-    CASH: 0.002
-  }
 };
 
 // ============================================================================

@@ -48,7 +48,11 @@ export function buildDecisionContext(config, trace, returns) {
       // cpi = trajectory inflation for the *next* index so decision cumInf matches the sim's
       // (sim multiplies inf[1..Y]; decision multiplies cpi[year 0..Y-1]).
       cpi: returns.inflation[year + 1] ?? 0.025,
-      confirmedSalary: config.baseSalary, // decision recomputes target = confirmedSalary*cumInf
+      // No confirmedSalary: the decision engine's UNCONFIRMED fallback (baseSalary × cumInf)
+      // mirrors the Stress engine's baseSalary × cumInf exactly. (Wizard-confirmed salaries are
+      // nominal-for-their-year since the double-uplift fix; setting one here would freeze the
+      // target and break parity by design, not by bug.)
+      confirmedSalary: null,
       pa: pi.pa, brl: pi.brl, hrl: pi.hrl, // sim's inflated bands baked in (decision uses static)
       other: pi.other,                     // sim's other income for the year
       isTaxEfficient: true

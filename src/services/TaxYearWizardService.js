@@ -243,12 +243,13 @@ export async function getWizardData(selectedMonth) {
   const existingConfig = await getTaxYearConfigAsync(taxYear);
   const allTaxYears = await getAllTaxYearsAsync();
 
-  // Get previous year's config for defaults
+  // Get previous year's config for defaults. NOTE: the year being SET UP usually isn't in
+  // allTaxYears yet, so indexOf(taxYear)-1 was -2 → null → the suggestion silently fell back to
+  // the plan base salary (losing the year-on-year confirmed-salary chain). Take the latest
+  // existing year strictly BEFORE this one instead.
   const sortedTaxYears = Object.keys(allTaxYears).sort();
-  const prevYearIndex = sortedTaxYears.indexOf(taxYear) - 1;
-  const prevYearConfig = prevYearIndex >= 0
-    ? allTaxYears[sortedTaxYears[prevYearIndex]]
-    : null;
+  const prevKey = sortedTaxYears.filter((k) => k < taxYear).pop() || null;
+  const prevYearConfig = prevKey ? allTaxYears[prevKey] : null;
 
   // Get state pension info
   const statePensionInfo = await getStatePensionForTaxYear(taxYear);

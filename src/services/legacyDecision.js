@@ -122,8 +122,14 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const remainingMonths = month >= 4 ? (16 - month) : (4 - month);
       const effectiveRemainingMonths = Math.max(1, remainingMonths);
 
-      // Use confirmed salary from wizard, or base salary with inflation
-      const target = confirmedSalary * cumInf;
+      // Target income. A WIZARD-CONFIRMED salary is nominal for its own tax year (the wizard's
+      // suggestion chain already compounds CPI/decline year on year), so it is used as-is; only
+      // the unconfirmed fallback (plan base salary) is inflated by cumulative CPI. Previously the
+      // engine multiplied confirmedSalary by cumInf too — a double-uplift that was masked by a
+      // wizard bug which reset the suggestion base to the plan salary each year.
+      const target = taxYearConfig.confirmedSalary
+        ? taxYearConfig.confirmedSalary
+        : settings.baseSalary * cumInf;
       const other = OTHER + STATE;
       const targetNet = grossToNet(target, PA, BRL, HRL);
 

@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BRHWA3x7.js"></script>
+  <script type="module" crossorigin src="./assets/main-DoXpskEW.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2142,6 +2142,20 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="dsUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
               </div>
               <div class="form-group" style="margin-top: 12px;">
@@ -2651,6 +2665,20 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="ssUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
               </div>
               <div class="form-group" style="margin-top: 12px;">

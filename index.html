@@ -2141,6 +2141,20 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="dsUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
               </div>
               <div class="form-group" style="margin-top: 12px;">
@@ -2650,6 +2664,20 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="ssUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
               </div>
               <div class="form-group" style="margin-top: 12px;">
@@ -3617,6 +3645,8 @@
         syncNetFromGross('ds');
         document.getElementById('dsIsaBalance').value = decisionSettings.isaBalance || 0;
         document.getElementById('dsAccessMethod').value = decisionSettings.accessMethod || 'drawdown';
+        document.getElementById('dsUfplsYears').value = decisionSettings.ufplsYears || '';
+        document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
         syncAccessButtons('ds');
         document.getElementById('dsSpendingProfile').value = decisionSettings.spendingProfile || 'flat';
         // State Pension (new fields)
@@ -3659,6 +3689,8 @@
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
         document.getElementById('ssAccessMethod').value = stressSettings.accessMethod || 'drawdown';
+        document.getElementById('ssUfplsYears').value = stressSettings.ufplsYears || '';
+        document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
         syncAccessButtons('ss');
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -6133,6 +6165,8 @@
       document.querySelectorAll("[onclick^=\"setAccessMethod('" + p + "'\"]").forEach((b) => {
         b.classList.toggle('active', b.dataset.access === v);
       });
+      const phase = document.getElementById(p + 'UfplsPhase');
+      if (phase) phase.style.display = v === 'ufpls' ? 'block' : 'none';
     };
     syncAccessButtons('ss');
     syncAccessButtons('ds');
@@ -6234,6 +6268,8 @@
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
         document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
+        document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
+        document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
         syncAccessButtons('ss');
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -6278,6 +6314,8 @@
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
+          ufplsYears: +document.getElementById('ssUfplsYears').value || null,
+          ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
           baseSalary: +document.getElementById('ssBaseSalary').value,
           equityMin: ssAlloc.equityMin,
           bondMin: ssAlloc.bondMin,
@@ -6412,6 +6450,8 @@
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
         document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
         document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
+        document.getElementById('dsUfplsYears').value = s.ufplsYears || '';
+        document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
         syncAccessButtons('ds');
 
         // Monthly Entry captures THIS MONTH's values — leave blank, not the plan's starting minimums.
@@ -7861,6 +7901,8 @@
         await saveDecisionSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           accessMethod: document.getElementById('dsAccessMethod').value || 'drawdown',
+          ufplsYears: +document.getElementById('dsUfplsYears').value || null,
+          ufplsThenPcls: document.getElementById('dsUfplsPcls').checked,
           equityMin: dsAlloc.equityMin,
           bondMin: dsAlloc.bondMin,
           cashTarget: dsAlloc.cashTarget,

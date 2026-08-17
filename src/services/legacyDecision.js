@@ -146,8 +146,20 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Allowance is exhausted, after which withdrawals revert to fully taxable.
       const LSA = 268275;
       const lifetimeTaxFreeUsed = history.reduce((sum, h) => sum + (h.taxFree || 0), 0);
-      const ufpls = (settings.accessMethod === 'ufpls') && lifetimeTaxFreeUsed < LSA;
+      // Phased access: settings.ufplsYears limits the UFPLS phase to the first N plan years
+      // (yearNum is 0-based from the 2026 plan epoch — the same clock the stress engine's
+      // `year` index runs on); blank/0 = UFPLS for the whole plan.
+      const inUfplsPhase = !settings.ufplsYears || yearNum < settings.ufplsYears;
+      const ufpls = (settings.accessMethod === 'ufpls') && inUfplsPhase && lifetimeTaxFreeUsed < LSA;
       const taxFreeF = ufpls ? 0.25 : 0;
+      // PCLS-at-switch: the decision tool ADVISES the real-world action rather than silently
+      // moving money the user actually holds. In the switch year (only — assume done after),
+      // suggest taking 25% of the remaining pot tax-free into the ISA, capped by remaining LSA.
+      let pclsSuggestion = 0;
+      if (settings.accessMethod === 'ufpls' && settings.ufplsThenPcls && settings.ufplsYears > 0
+          && yearNum === Math.floor(settings.ufplsYears) && lifetimeTaxFreeUsed < LSA) {
+        pclsSuggestion = Math.max(0, Math.min(0.25 * (equity + bond + cash), LSA - lifetimeTaxFreeUsed));
+      }
 
       // Mid-year start frame (wizard-configured partial first year): the year's target is
       // delivered over the REMAINING months, and income received before drawdown started
@@ -533,6 +545,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         taxFree: sipp * taxFreeF,          // UFPLS tax-free slice this month (0 for drawdown)
         accessMethod: ufpls ? 'ufpls' : 'drawdown',
         lsaRemaining: ufpls ? Math.max(0, LSA - lifetimeTaxFreeUsed) : null,
+        pclsSuggestion,                    // switch-year advice: take this much tax-free into the ISA (£0 = n/a)
 
         // Year-level tax efficiency
         isTaxEfficientYear,

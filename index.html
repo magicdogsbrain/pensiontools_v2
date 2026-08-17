@@ -8943,10 +8943,12 @@
       const startYear = startYearShort < 50 ? 2000 + startYearShort : 1900 + startYearShort;
       const month = `${startYear}-04`; // April of that tax year
 
-      // Set month selector and trigger decision
-      const monthSelect = document.getElementById('selectedMonth');
+      // Set month selector and trigger decision (bug fix: the input is #entryMonth — the old
+      // #selectedMonth id never existed here, so "Set Up <year>" left the month unchanged)
+      const monthSelect = document.getElementById('entryMonth');
       if (monthSelect) {
         monthSelect.value = month;
+        monthSelect.dispatchEvent(new Event('input'));
       }
 
       // Switch to decision tab

@@ -39,8 +39,8 @@ these better, it's a distraction.
 | # | Item | Job | Effort | Risk | Depends on | State |
 |---|------|-----|--------|------|-----------|-------|
 | 0 | **Unify the income/tax/withdrawal engine** (one engine both tools call) | A+B | M | Med | — | **Now (prerequisite)** |
-| 1 | **Tax-lever engine** — primitives done ✅; wiring into tools | B | M | Med (tax correctness) | 0 | Primitives done; wiring blocked on 0 |
-| 2 | **Net-budget income mode** (enter net £/month → back-solve draw mix) | B | M | Low | 1 | Next |
+| 1 | **Tax-lever engine** — primitives ✅; UFPLS/PCLS wired into BOTH tools 17 Aug 2026 (access method + phased access). Remaining: band-fill-and-recycle strategy | B | S | Med (tax correctness) | 0 | Mostly done |
+| 2 | ~~Net-budget income mode~~ | B | M | Low | 1 | **Done Aug 2026** |
 | 3 | **Person-scoped data model** (household = 1–2 people) | A+B | M | Med (touches data model) | — (fold into 1–2) | Next |
 | 3b | **Unified settings model** (one schema, two instances; ISA as a depleting pot; seed-from-Decision) — design in `design/settings-model.md` | A+B | L | Med | 0, 3 | Next |
 | 4 | **Bucket composition** (asset-class registry; user weights) | A+B | L | Med (assumptions) | — | Later |
@@ -100,11 +100,11 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
   as THE app URL in the privacy policy — drop the GitHub Pages framing (Cloudflare is
   the primary host; keep processors accurate). Update `compliance/PRIVACY_POLICY.md` +
   `public/privacy.html` together.
-- ⚠️ **HOLD deployments to pensiontools.uk** — live user test in progress (Aug 2026).
-  Commits/merges are fine; do not run the wrangler deploy until cleared.
-- **[2] Net-budget mode.** "Enter target gross salary" is backwards — people know
-  "£3,200 in the bank", not a gross figure. Add a second entry mode that takes a net
-  monthly target and back-solves the drawdown/ISA/UFPLS mix. Builds directly on [1].
+- ~~⚠️ HOLD deployments to pensiontools.uk~~ — hold LIFTED 16 Aug 2026; deploy after every
+  merge to main (Cloudflare does not auto-deploy).
+- ~~**[2] Net-budget mode.**~~ DONE Aug 2026 — the whole app is net-first now (budget
+  target flows into both tools; net⇄gross solved in the engines, incl. the UFPLS
+  bisection inverter).
 - **[3] Person-scoped data model.** Refactor scenario settings so pots, allowances,
   ISA, and State Pension date belong to a *person*; a scenario holds a household of
   1–2. Single-person behaviour must be byte-for-byte unchanged (parity tests). Do this
@@ -142,4 +142,4 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
 - **Tax figures** currently hardcode 2024/25 bands in `constants.js`; per-tax-year
   overrides already exist in the Decision Tool and should flow into the new levers.
 
-_Last updated: 2026-07 — Step 1 (tax-lever engine) in progress._
+_Last updated: 2026-08-17 — access method (drawdown/UFPLS) + phased access shipped to both tools; [1] reduced to band-fill-and-recycle; [2] done._

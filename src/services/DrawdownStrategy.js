@@ -42,18 +42,82 @@ export function planDrawdown({
   hrl,
   isaBalance = 0,
   strategy = ISA_STRATEGIES.TAX_EFFICIENT,
-  yearsUntilSp = 0
+  yearsUntilSp = 0,
+  // Pension access method: 0 = crystallised drawdown (tax-free cash already taken; every
+  // withdrawal fully taxable — the historical behaviour) or 0.25 = UFPLS (a quarter of each
+  // withdrawal is tax-free). The f=0 branch below is the ORIGINAL code, byte-identical, so
+  // every existing plan and golden fixture is untouched.
+  taxFreeFraction = 0
 }) {
+  const f = Math.max(0, Math.min(0.75, taxFreeFraction || 0));
+
+  if (f === 0) {
+    const targetNet = grossToNet(targetGross, pa, brl, hrl);
+
+    // Step 1: SIPP up to BRL (with fixed income), not exceeding the target.
+    const sippToBrl = Math.max(0, Math.min(brl, targetGross) - fixedIncome);
+    const netAtBrl = grossToNet(sippToBrl + fixedIncome, pa, brl, hrl);
+
+    // Step 2: net gap the ISA should fill.
+    const netGap = Math.max(0, targetNet - netAtBrl);
+
+    // ISA cap: Option A uncapped; Option B levels the pot across the pre-SP years.
+    const annualCap = (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0)
+      ? isaBalance / yearsUntilSp
+      : Infinity;
+    const isaDraw = Math.max(0, Math.min(netGap, Math.max(0, isaBalance), annualCap));
+    const remainingIsa = isaBalance - isaDraw;
+    const uncovered = netGap - isaDraw;
+
+    // Step 3: cover any remaining net gap with extra taxable SIPP above BRL.
+    let sippGross = sippToBrl;
+    if (uncovered > 0) {
+      const totalTaxable = netToGross(netAtBrl + uncovered, pa, brl, hrl);
+      sippGross = Math.max(sippToBrl, totalTaxable - fixedIncome);
+    }
+
+    const taxable = sippGross + fixedIncome;
+    const netFromTaxable = grossToNet(taxable, pa, brl, hrl);
+    return {
+      sippGross,
+      isaDraw,
+      remainingIsa,
+      taxable,
+      tax: taxable - netFromTaxable,
+      net: netFromTaxable + isaDraw, // == targetNet when the pots can cover it
+      taxFree: 0
+    };
+  }
+
+  // ---- UFPLS path (f > 0) --------------------------------------------------------------------
+  // A gross draw G contributes taxable (1-f)·G and tax-free f·G. The net delivered by taxable
+  // amount T (on top of fixed income F) is:
+  //   net(T) = T·f/(1-f) + grossToNet(F+T) - grossToNet(F)
+  // which is continuous and strictly increasing in T, so we invert by bisection.
   const targetNet = grossToNet(targetGross, pa, brl, hrl);
+  const netF = grossToNet(fixedIncome, pa, brl, hrl);
+  const netOfTaxable = (T) => T * f / (1 - f) + grossToNet(fixedIncome + T, pa, brl, hrl) - netF;
+  const solveTaxableForNet = (needNet) => {
+    if (needNet <= 0) return 0;
+    let lo = 0, hi = Math.max(1000, needNet * (1 - f) * 1.5);
+    while (netOfTaxable(hi) < needNet && hi < 1e12) hi *= 2;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      if (netOfTaxable(mid) < needNet) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
 
-  // Step 1: SIPP up to BRL (with fixed income), not exceeding the target.
-  const sippToBrl = Math.max(0, Math.min(brl, targetGross) - fixedIncome);
-  const netAtBrl = grossToNet(sippToBrl + fixedIncome, pa, brl, hrl);
+  // Step 1: SIPP whose TAXABLE part fills up to the BRL, clamped so net never overshoots the
+  // target (the tax-free quarter means less taxable is needed than in the drawdown case).
+  const bandTaxable = Math.max(0, brl - fixedIncome);
+  const taxableForTarget = solveTaxableForNet(Math.max(0, targetNet - netF));
+  const t1 = Math.min(bandTaxable, taxableForTarget);
+  const sippToBrl = t1 / (1 - f);
+  const netAtBrl = netF + netOfTaxable(t1);
 
-  // Step 2: net gap the ISA should fill.
+  // Step 2: net gap the ISA should fill (only exists when the band ran out first).
   const netGap = Math.max(0, targetNet - netAtBrl);
-
-  // ISA cap: Option A uncapped; Option B levels the pot across the pre-SP years.
   const annualCap = (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0)
     ? isaBalance / yearsUntilSp
     : Infinity;
@@ -61,14 +125,14 @@ export function planDrawdown({
   const remainingIsa = isaBalance - isaDraw;
   const uncovered = netGap - isaDraw;
 
-  // Step 3: cover any remaining net gap with extra taxable SIPP above BRL.
-  let sippGross = sippToBrl;
+  // Step 3: cover any remainder with extra SIPP above the band (higher-rate on its taxable part).
+  let taxableDrawn = t1;
   if (uncovered > 0) {
-    const totalTaxable = netToGross(netAtBrl + uncovered, pa, brl, hrl);
-    sippGross = Math.max(sippToBrl, totalTaxable - fixedIncome);
+    taxableDrawn = solveTaxableForNet(Math.max(0, targetNet - netF - isaDraw));
   }
+  const sippGross = taxableDrawn / (1 - f);
 
-  const taxable = sippGross + fixedIncome;
+  const taxable = taxableDrawn + fixedIncome;
   const netFromTaxable = grossToNet(taxable, pa, brl, hrl);
   return {
     sippGross,
@@ -76,6 +140,7 @@ export function planDrawdown({
     remainingIsa,
     taxable,
     tax: taxable - netFromTaxable,
-    net: netFromTaxable + isaDraw // == targetNet when the pots can cover it
+    net: netFromTaxable + sippGross * f + isaDraw,
+    taxFree: sippGross * f
   };
 }

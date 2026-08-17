@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BP7X2Vve.js"></script>
+  <script type="module" crossorigin src="./assets/main-BRHWA3x7.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2124,6 +2124,21 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
+              <div class="form-group" style="margin-top:12px;">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <input type="hidden" id="dsAccessMethod" value="drawdown">
+              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" class="risk-cards">
@@ -2613,6 +2628,21 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
+              <div class="form-group" style="margin-top:12px;">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <input type="hidden" id="ssAccessMethod" value="drawdown">
+              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">

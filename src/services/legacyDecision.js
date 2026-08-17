@@ -140,6 +140,15 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       let protectionInducedTaxEfficiency = false;
       let isaSavingsUsedThisMonth = 0;
 
+      // Pension access method (plan-defining, locked with the settings): 'drawdown' = tax-free
+      // cash already taken, every withdrawal fully taxable (f=0, the historical behaviour);
+      // 'ufpls' = a quarter of each withdrawal is tax-free (f=0.25) UNTIL the lifetime Lump Sum
+      // Allowance is exhausted, after which withdrawals revert to fully taxable.
+      const LSA = 268275;
+      const lifetimeTaxFreeUsed = history.reduce((sum, h) => sum + (h.taxFree || 0), 0);
+      const ufpls = (settings.accessMethod === 'ufpls') && lifetimeTaxFreeUsed < LSA;
+      const taxFreeF = ufpls ? 0.25 : 0;
+
       // Mid-year start frame (wizard-configured partial first year): the year's target is
       // delivered over the REMAINING months, and income received before drawdown started
       // (grossIncomeToDate) both reduces what the SIPP must provide AND consumes the year's
@@ -173,6 +182,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           // is what lets a replayed Monte-Carlo trajectory agree with the Decision Tool.
           const plan = planDrawdown({
             targetGross: target, fixedIncome: other + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
+            taxFreeFraction: taxFreeF,
             isaBalance,
             strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
             // yearsUntilSp only affects the maximiseLongevity ration cap. The Decision Tool has
@@ -189,7 +199,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
           } else {
             const brlHeadroom = Math.max(0, BRL - grossIncomeToDate - other);
-            const maxMonthlySippAtBrl = brlHeadroom / 12;
+            // headroom is TAXABLE capacity; under UFPLS a gross draw only counts (1-f) taxable
+            const maxMonthlySippAtBrl = (brlHeadroom / (1 - taxFreeF)) / 12;
             stdSipp = Math.min(monthlyTargetGross - monthlyFixedIncome, maxMonthlySippAtBrl);
           }
           const monthlyTargetNet = grossToNet(target, PA, BRL, HRL) / 12;
@@ -235,7 +246,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
           // Shared tax-boost decision (same module the Stress engine uses). The per-month cap
           // inside planTaxBoost is what stops the old end-of-tax-year "draw £17k this month" cram.
-          const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+          const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
           boostAmount = planTaxBoost({
             shortfall: protectionShortfall,
             standardMonthly: stdSipp,
@@ -285,7 +296,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             annualSippSoFar += h.sipp || 0;
           });
 
-          const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+          const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
 
           if (projectedAnnualTaxable < BRL) {
             // Protection has brought us below BRL - we can boost back up to BRL
@@ -330,7 +341,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
           if (protectionShortfall > 0) {
             // Check if we can boost while staying under BRL
-            const projectedAnnualTaxable = annualSippSoFar + sipp * effectiveRemainingMonths + other;
+            const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
             const brlHeadroom = BRL - projectedAnnualTaxable;
             const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
 
@@ -459,7 +470,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Annual taxable = total SIPP + Other + State Pension + income earned before drawdown
       // started (mid-year first year) — that income consumed personal allowance/band headroom,
       // so ignoring it under-taxes every drawn month.
-      const annualTaxable = totalAnnualSipp + OTHER + STATE + preStartIncome;
+      const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + OTHER + STATE + preStartIncome;
 
       // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.
       const annualTax = calculateTax(annualTaxable, PA, BRL, HRL);
@@ -519,6 +530,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         isaDraw: isa,
         totalMonthlyNet: monthlyNet,
         monthlyTax,   // the engine's per-month tax (partial-year aware) — decisionToHistory prefers this
+        taxFree: sipp * taxFreeF,          // UFPLS tax-free slice this month (0 for drawdown)
+        accessMethod: ufpls ? 'ufpls' : 'drawdown',
+        lsaRemaining: ufpls ? Math.max(0, LSA - lifetimeTaxFreeUsed) : null,
 
         // Year-level tax efficiency
         isTaxEfficientYear,

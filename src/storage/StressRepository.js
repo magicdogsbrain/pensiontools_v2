@@ -345,6 +345,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
     isaBalance: settings.isaBalance || 0,
     isaReturn: settings.isaReturn,
+    accessMethod: settings.accessMethod || 'drawdown',
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.

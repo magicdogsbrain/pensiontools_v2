@@ -72,6 +72,8 @@ export function simulate(config, returns, seed = 0) {
 
   // ISA pot (tax-free top-up; grows at the money-market rate, depletes as drawn)
   let isa = config.isaBalance || 0;
+  // UFPLS lifetime Lump Sum Allowance headroom (nominal, frozen). Irrelevant (0) for drawdown.
+  let lsaRemaining = config.accessMethod === 'ufpls' ? 268275 : 0;
   let hodlUsedMonth = null;
 
   // ISA stats tracking (for the stress-page ISA analytics)
@@ -217,7 +219,7 @@ export function simulate(config, returns, seed = 0) {
     else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
 
     // Calculate required draw (SIPP + ISA to hit the target via band management)
-    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa);
+    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa, lsaRemaining);
 
     // ISA analytics: capture start-of-year ISA balance, accumulate projected income tax (in
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
@@ -419,6 +421,7 @@ export function simulate(config, returns, seed = 0) {
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
     // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
     isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa));
+    if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (taxFreeMonthly || 0));
     if (isaDepletedMonth === null && startIsa > 0 && isa / cumInf < isaUsedUpFloor) isaDepletedMonth = month;
 
     // Ensure no negative values
@@ -612,7 +615,7 @@ function yearsUntilStatePension(config, year) {
  * (which under-drew the target and ignored the ISA).
  * @returns {{sippMonthly:number, isaMonthly:number}}
  */
-function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
+function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, lsaRemaining = 0) {
   // Adjust tax thresholds
   const pa = config.taxMode === 'frozen' ? config.pa : config.pa * cumInf;
   const brl = config.taxMode === 'frozen' ? config.brl : config.brl * cumInf;
@@ -648,18 +651,23 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0) {
 
   const fixed = other + statePension;
   const yearsUntilSp = yearsUntilStatePension(config, year);
+  // UFPLS: a quarter of each withdrawal is tax-free until the lifetime Lump Sum Allowance is
+  // used up (tracked by the caller in nominal £; the LSA is a frozen nominal figure).
+  const taxFreeFraction = (config.accessMethod === 'ufpls' && lsaRemaining > 0) ? 0.25 : 0;
   const plan = planDrawdown({
     targetGross: target,
     fixedIncome: fixed,
     pa, brl, hrl,
     isaBalance,
     strategy: config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY,
-    yearsUntilSp
+    yearsUntilSp,
+    taxFreeFraction
   });
 
   return {
     sippMonthly: plan.sippGross / 12,
     isaMonthly: plan.isaDraw / 12,
+    taxFreeMonthly: (plan.taxFree || 0) / 12,
     taxAnnual: plan.tax,                 // income tax the plan pays this year (nominal)
     higherRate: plan.taxable > brl + 1,  // SIPP forced above the basic-rate limit → 40% band
                                          // (inefficient drawdown: happens once the ISA can't cover the gap)

@@ -69,9 +69,11 @@ export function getDefaultStressSettings() {
     protectionMult: SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER,
     consecutiveLimit: DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
     disableProtection: false,
+    recoveryBuffer: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
     hodlEnabled: SIMULATION_DEFAULTS.HODL_ENABLED,
     hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
-    // ISA as a depleting pot (see design/settings-model.md). Not yet read by the engine.
+    // ISA as a depleting pot (see design/settings-model.md) — read by BOTH engines
+    // (SimulationEngine + legacyDecision via planDrawdown).
     isaBalance: 0,
     isaReturn: ISA_DEFAULTS.RETURN,
     isaMin: ISA_DEFAULTS.MIN,
@@ -96,7 +98,7 @@ export function getDefaultDecisionSettings() {
     spWeeklyAmount: 0,
     statePension: 0,
     statePensionYear: 0,
-    // ISA as a depleting pot (see design/settings-model.md). Not yet read by the engine.
+    // ISA as a depleting pot (see design/settings-model.md). read by both engines.
     isaBalance: 0,
     isaReturn: ISA_DEFAULTS.RETURN,
     isaMin: ISA_DEFAULTS.MIN,
@@ -132,6 +134,7 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     spWeeklyAmount: d.spWeeklyAmount ?? currentStress.spWeeklyAmount ?? 0,
     consecutiveLimit: d.consecutiveLimit,
     recoveryBuffer: d.recoveryBuffer,
+    disableProtection: d.disableProtection ?? currentStress.disableProtection ?? false,
     // protection unit: Decision percent → Stress multiplier (20 → 0.8)
     protectionMult: d.protectionFactor != null
       ? 1 - d.protectionFactor / 100
@@ -184,6 +187,7 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     spWeeklyAmount: s.spWeeklyAmount ?? currentDecision.spWeeklyAmount ?? 0,
     consecutiveLimit: s.consecutiveLimit ?? currentDecision.consecutiveLimit,
     recoveryBuffer: s.recoveryBuffer ?? currentDecision.recoveryBuffer,
+    disableProtection: s.disableProtection ?? currentDecision.disableProtection ?? false,
     // protection unit: Stress multiplier → Decision percent (0.8 → 20)
     protectionFactor: s.protectionMult != null
       ? Math.round((1 - s.protectionMult) * 100)

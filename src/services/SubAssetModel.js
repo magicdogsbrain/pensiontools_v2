@@ -1,5 +1,6 @@
 /**
- * Sub-Asset-Class Model — DATA + PURE HELPERS ONLY (NOT yet wired into any engine).
+ * Sub-Asset-Class Model — the asset-class registry (LIVE: read by SimulationEngine via
+ * SubAssetReturns for the bond and diversifier buckets, gated per-run on config.subAsset).
  * =============================================================================
  * Phase: asset-class sub-modelling. See docs/asset-class-research.md for the sourced
  * numbers and the modelling decision behind this file.
@@ -20,17 +21,11 @@
  * + an equity-linked credit-spread term for corporates). Long gilts crash in 2022 because the
  * 2022 inflation spike drives dYield up and their duration is large; short gilts barely move.
  *
- * This module is intentionally INERT: exported as data + pure functions, imported by nothing
- * in the engine yet. Wiring it in is a later, opt-in, golden-safe step gated on a config flag.
+ * Data + pure functions only; the live gate is per-run (config.subAsset, emitted by
+ * readAlloc/StressRepository when a plan uses own-funds tagging or a risk preset).
  */
 
-// -----------------------------------------------------------------------------
-// Feature flag — OFF. Nothing reads this yet; it exists so the later wiring can gate
-// on a single switch and keep the golden fixtures byte-identical when disabled.
-// -----------------------------------------------------------------------------
 import { DEFAULT_FUND_CATALOGUE } from './FundCatalogue.js';
-
-export const SUB_ASSET_ENABLED = false;
 
 // -----------------------------------------------------------------------------
 // The four buckets. Names Cautious/Balanced/Adventurous are preserved elsewhere;

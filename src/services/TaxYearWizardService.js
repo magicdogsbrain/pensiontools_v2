@@ -4,6 +4,7 @@
  */
 
 import { getTaxYear, getRemainingTaxYearMonths, parseMonth } from '../utils/DateUtils.js';
+import { DECISION_ASSUMED_CPI } from './InflationModel.js';
 import { spendingDeclineRateForYear } from './SpendingModel.js';
 import {
   getTaxYearConfigAsync,
@@ -82,11 +83,11 @@ export async function getPreviousYearCpi(taxYear) {
   // If there's a previous year, get its CPI
   if (currentIndex > 0) {
     const prevYear = sortedTaxYears[currentIndex - 1];
-    return allTaxYears[prevYear]?.cpi || 0.025;
+    return allTaxYears[prevYear]?.cpi || DECISION_ASSUMED_CPI;
   }
 
   // No previous year, use default
-  return 0.025;
+  return DECISION_ASSUMED_CPI;
 }
 
 /**
@@ -256,7 +257,7 @@ export async function getWizardData(selectedMonth) {
 
   // Suggest salary: uplift LAST year's confirmed salary (or the plan base in year 1) by last year's
   // CPI, netted by the spending decline for THIS plan year — mirrors the Stress tester's smile.
-  const prevCpi = prevYearConfig?.cpi || 0.025;
+  const prevCpi = prevYearConfig?.cpi || DECISION_ASSUMED_CPI;
   const spendingProfile = settings.spendingProfile || 'flat';
   // Plan year (0-based) for this tax year — same anchor as legacyDecision.getYearNum (26/27 = year 0).
   const planYear = Math.max(0, (2000 + (parseInt(taxYear.split('/')[0], 10) || 26)) - 2026);

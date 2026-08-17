@@ -60,36 +60,3 @@ export function createSimulationConfig(params = {}) {
   };
 }
 
-/**
- * Creates simulation config from stress settings
- * @param {object} stressSettings - Stress tester settings
- * @returns {object} SimulationConfig
- */
-export function fromStressSettings(stressSettings) {
-  return createSimulationConfig({
-    equityStart: stressSettings.equityMin,
-    bondStart: stressSettings.bondMin,
-    cashStart: stressSettings.cashTarget,
-    equityMin: stressSettings.equityMin,
-    bondMin: stressSettings.bondMin,
-    cashTarget: stressSettings.cashTarget,
-    years: stressSettings.duration,
-    duration: stressSettings.duration,
-    baseSalary: stressSettings.baseSalary,
-    other: stressSettings.other,
-    statePension: stressSettings.statePension,
-    statePensionYear: stressSettings.statePensionYear,
-    pa: stressSettings.pa,
-    brl: stressSettings.brl,
-    hrl: stressSettings.hrl,
-    taxMode: stressSettings.taxMode,
-    protectionMult: stressSettings.protectionMult,
-    consecutiveLimit: stressSettings.consecutiveLimit,
-    disableProtection: stressSettings.disableProtection,
-    hodlEnabled: stressSettings.hodlEnabled,
-    hodlValue: stressSettings.hodlValue,
-    // Diversifiers sleeve (opt-in). Absent → undefined → legacy 3-bucket engine path.
-    diversifierStart: stressSettings.diversifierStart,
-    subAsset: stressSettings.subAsset
-  });
-}

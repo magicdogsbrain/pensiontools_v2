@@ -3,6 +3,7 @@
  * Guides users through setting up a new tax year including ISA/Savings allocation
  */
 
+import { DECISION_ASSUMED_CPI } from '../../services/InflationModel.js';
 import {
   shouldShowWizard,
   getWizardData,
@@ -762,7 +763,7 @@ function saveCurrentInputs() {
   if (hrl) wizardInputs.hrl = parseFloat(hrl.value) || 125140;
 
   const cpi = document.getElementById('wizCPI');
-  if (cpi) wizardInputs.cpi = (parseFloat(cpi.value) || 4) / 100;
+  if (cpi) wizardInputs.cpi = (parseFloat(cpi.value) || DECISION_ASSUMED_CPI * 100) / 100;
 
   const salary = document.getElementById('wizSalary');
   if (salary) wizardInputs.confirmedSalary = parseFloat(salary.value) || 30000;

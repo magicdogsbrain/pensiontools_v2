@@ -6,13 +6,7 @@
  */
 
 // Services
-import {
-  calculateDecision,
-  calculateDecisionAsync,
-  saveDecision,
-  getDecisionSummary,
-  formatAdvice
-} from './services/DecisionService.js';
+import { saveDecision } from './services/DecisionService.js';
 
 import {
   runMonteCarlo,
@@ -197,31 +191,6 @@ function renderApp() {
 }
 
 /**
- * Calculates and displays a decision (async to ensure fresh Firebase data)
- * @param {object} params - Input parameters { date, equity, bond, cash, isaBalance }
- * @returns {Promise<object>} The calculated decision
- */
-export async function runDecision(params) {
-  try {
-    // Use async version to ensure fresh data from Firebase
-    const decision = await calculateDecisionAsync(params);
-    AppState.currentDecision = decision;
-
-    // Render to output container
-    const container = document.getElementById('decisionOutput');
-    if (container) {
-      renderDecisionPanel(decision, container);
-    }
-
-    return decision;
-  } catch (error) {
-    console.error('Decision calculation error:', error);
-    showError('Failed to calculate decision: ' + error.message);
-    return null;
-  }
-}
-
-/**
  * Saves the current decision to history
  */
 export function saveCurrentDecision() {
@@ -330,10 +299,7 @@ function showSuccess(message) {
 // Export everything for use in the HTML
 export {
   // Services
-  calculateDecision,
-  calculateDecisionAsync,
   saveDecision,
-  getDecisionSummary,
   runMonteCarlo,
   runHistorical,
   runScenario,

@@ -10,7 +10,7 @@
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
-import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
+import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
 import { tagPortfolio } from '../services/PortfolioTagger.js';
 import {
@@ -263,37 +263,7 @@ export async function resetStressSettings() {
  * @returns {object} State pension config {spStartYear, spWeeklyAmount, spFirstYearRatio}
  */
 function calculateSpConfigFromSettings(settings) {
-  // If no SP start date configured, return config that means no state pension
-  if (!settings.spStartDate || !settings.spWeeklyAmount) {
-    return null; // no date-based SP → caller falls back to legacy statePension fields
-  }
-
-  // Parse the SP start date
-  const spDate = parseStatePensionDate(settings.spStartDate);
-  if (!spDate) {
-    console.warn('Could not parse spStartDate:', settings.spStartDate);
-    return null;
-  }
-
-  // Calculate years until SP starts from now
-  const now = new Date();
-  const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
-  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear);
-
-  // The simulation year when SP starts (0-indexed)
-  const spStartYear = Math.floor(yearsUntilSp);
-
-  // Calculate ratio for first partial year
-  const daysInYear = 365;
-  const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
-  const daysRemaining = daysInYear - dayOfYear;
-  const firstYearRatio = daysRemaining / daysInYear;
-
-  return {
-    spStartYear: spStartYear,
-    spWeeklyAmount: settings.spWeeklyAmount,
-    spFirstYearRatio: firstYearRatio
-  };
+  return spSimConfigFromSettings(settings);
 }
 
 /**
@@ -337,7 +307,8 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     brl: settings.brl,
     hrl: settings.hrl,
     taxMode: settings.taxMode,
-    protectionMult: settings.protectionMult,
+    protectionMult: settings.protectionMult
+      ?? (settings.protectionFactor != null ? 1 - settings.protectionFactor / 100 : SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER),
     consecutiveLimit: settings.consecutiveLimit,
     disableProtection: settings.disableProtection,
     hodlEnabled: settings.hodlEnabled,
@@ -346,6 +317,10 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     isaBalance: settings.isaBalance || 0,
     isaReturn: settings.isaReturn,
     accessMethod: settings.accessMethod || 'drawdown',
+    // Protection knobs — pass the USER'S values through (previously recoveryBuffer was never
+    // emitted, so the engine always used its default regardless of settings). protectionMult
+    // falls back to the Decision-side protectionFactor (one unit, translated at this seam).
+    recoveryBuffer: settings.recoveryBuffer ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
     ufplsYears: settings.ufplsYears || null,
     ufplsThenPcls: !!settings.ufplsThenPcls,
     isaDrawdownStrategy: settings.isaDrawdownStrategy,

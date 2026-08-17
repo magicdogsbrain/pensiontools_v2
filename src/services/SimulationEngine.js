@@ -5,7 +5,7 @@
  * Matches PWA logic for accurate simulation results
  */
 
-import { EQUITY_RETURNS, INFLATION, BOND_MODEL, ISA_DEFAULTS } from '../constants.js';
+import { EQUITY_RETURNS, INFLATION, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';

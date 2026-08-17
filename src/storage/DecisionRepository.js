@@ -8,6 +8,7 @@
  */
 
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from '../constants.js';
+import { DECISION_ASSUMED_CPI } from '../services/InflationModel.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import {
@@ -235,7 +236,7 @@ function getDefaultTaxYearConfig() {
     hrl: TAX_DEFAULTS.HIGHER_RATE_LIMIT,
 
     // Previous year's CPI (for salary inflation)
-    cpi: 0.04,
+    cpi: DECISION_ASSUMED_CPI,   // assumption only — the wizard chains the user's entered CPI year-on-year
 
     // Other taxable income (annual)
     other: 0,
@@ -243,7 +244,6 @@ function getDefaultTaxYearConfig() {
     // ISA/Savings allocation for tax efficiency
     isaSavingsAllocation: 0,      // Total ISA/Savings available for this year
     isaSavingsUsed: 0,            // Cumulative used so far this year
-    isaContribution: 0,           // Money paid INTO the ISA this year (grows the pot; captured each April)
 
     // Tax efficiency mode
     isTaxEfficient: true,         // Year-level tax efficiency flag

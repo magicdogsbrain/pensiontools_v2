@@ -11,11 +11,11 @@
  */
 
 import { getTaxYear, parseMonth } from '../utils/DateUtils.js';
-import { DEFAULT_CPI } from './InflationModel.js';
+import { DECISION_ASSUMED_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
-import { assessProtection } from './ProtectionStrategy.js';
+import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
@@ -74,7 +74,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       let cumInf = 1;
       for (let i = 0; i < yearNum; i++) {
         const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
-        const yearCPI = (allTaxYears[yStr] || {}).cpi || DEFAULT_CPI; // was 0.04; unified to 2.5%
+        const yearCPI = (allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI; // entered CPI is authoritative; unentered assumes 4%
         cumInf *= 1 + yearCPI;
       }
 
@@ -108,14 +108,16 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         else break;
       }
 
-      // Shared protection decision (same module the Stress engine uses).
-      const inProtection = assessProtection({
+      // Shared protection decision (same module the Stress engine uses). disableProtection is
+      // honoured the same way the Stress engine honours it (previously decision-side had no off
+      // switch, so seeded plans could disagree about whether protection fired at all).
+      const inProtection = settings.disableProtection ? false : assessProtection({
         totalGrowth,
         minGrowth,
         consecCashDraws: consec,
         wasInProtection: priorHistory.length > 0 && priorHistory[priorHistory.length - 1].inProtection,
         consecutiveLimit: settings.consecutiveLimit || 3,
-        recoveryBuffer: settings.recoveryBuffer || 10000
+        recoveryBuffer: settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER
       });
 
       // Calculate remaining months in tax year
@@ -314,7 +316,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             // Protection has brought us below BRL - we can boost back up to BRL
             const brlHeadroom = BRL - projectedAnnualTaxable;
             const maxBoostPerMonth = brlHeadroom / effectiveRemainingMonths;
-            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
+            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);
 
             if (surplus > 0 && maxBoostPerMonth > 50) {
               boostAmount = Math.min(maxBoostPerMonth, surplus / effectiveRemainingMonths);
@@ -355,7 +357,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             // Check if we can boost while staying under BRL
             const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
             const brlHeadroom = BRL - projectedAnnualTaxable;
-            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || 10000);
+            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);
 
             if (brlHeadroom > 0 && surplus > 0) {
               const maxBoostFromBRL = brlHeadroom / effectiveRemainingMonths;

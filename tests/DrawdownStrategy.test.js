@@ -59,3 +59,60 @@ describe('planDrawdown — Option B (maximise longevity)', () => {
     expect(b.net).toBeCloseTo(a.net, 3);         // same target income
   });
 });
+
+describe('planDrawdown — UFPLS (taxFreeFraction = 0.25)', () => {
+  const f = 0.25;
+
+  it('taxFreeFraction 0 (or omitted) is byte-identical to the original drawdown path', () => {
+    const a = planDrawdown({ targetGross: 40000, fixedIncome: 0, ...bands, isaBalance: 50000 });
+    const b = planDrawdown({ targetGross: 40000, fixedIncome: 0, ...bands, isaBalance: 50000, taxFreeFraction: 0 });
+    expect(b).toEqual(a);
+    expect(a.taxFree).toBe(0);
+  });
+
+  it('hits the same target net with a SMALLER gross withdrawal (25% escapes tax)', () => {
+    const dd = planDrawdown({ targetGross: 40000, fixedIncome: 0, ...bands, isaBalance: 0 });
+    const uf = planDrawdown({ targetGross: 40000, fixedIncome: 0, ...bands, isaBalance: 0, taxFreeFraction: f });
+    expect(uf.net).toBeCloseTo(dd.net, 3);            // same net income delivered
+    expect(uf.sippGross).toBeLessThan(dd.sippGross);  // needs less gross to get there
+    expect(uf.tax).toBeLessThan(dd.tax);              // because a quarter is tax-free
+  });
+
+  it('tax-free element is exactly 25% of the gross withdrawal; taxable is the rest', () => {
+    const r = planDrawdown({ targetGross: 40000, fixedIncome: 0, ...bands, isaBalance: 0, taxFreeFraction: f });
+    expect(r.taxFree).toBeCloseTo(r.sippGross * f, 6);
+    expect(r.taxable).toBeCloseTo(r.sippGross * (1 - f), 6);
+  });
+
+  // Note: UFPLS is efficient enough that a £70k gross-equivalent target fits INSIDE the basic
+  // band (the tax-free quarter does a lot of work), so these band tests use a £110k target.
+  // `taxable` in the result is the TOTAL taxable position (SIPP taxable element + fixed income).
+
+  it('a modest target fits entirely in the basic band — no ISA needed even above the drawdown BRL point', () => {
+    const r = planDrawdown({ targetGross: 70000, fixedIncome: 0, ...bands, isaBalance: 100000, taxFreeFraction: f });
+    expect(r.taxable).toBeLessThanOrEqual(BRL + 1e-6);  // never crossed the band
+    expect(r.isaDraw).toBe(0);                          // …so the ISA was untouched
+    expect(r.net).toBeCloseTo(grossToNet(70000, PA, BRL, HRL), 3);
+  });
+
+  it('band management: taxable element fills to BRL, never past it while ISA remains', () => {
+    const r = planDrawdown({ targetGross: 110000, fixedIncome: 0, ...bands, isaBalance: 100000, taxFreeFraction: f });
+    expect(r.taxable).toBeCloseTo(BRL, 4);              // filled the band exactly
+    expect(r.net).toBeCloseTo(grossToNet(110000, PA, BRL, HRL), 3);
+    expect(r.isaDraw).toBeGreaterThan(0);               // ISA tops up beyond the band
+  });
+
+  it('fixed income (State Pension) consumes band room for the taxable element', () => {
+    const r = planDrawdown({ targetGross: 110000, fixedIncome: 12000, ...bands, isaBalance: 100000, taxFreeFraction: f });
+    expect(r.taxable).toBeCloseTo(BRL, 4);              // SIPP taxable + SP together fill the band
+    expect(r.sippGross * (1 - f)).toBeCloseTo(BRL - 12000, 4);
+    expect(r.net).toBeCloseTo(grossToNet(110000, PA, BRL, HRL), 3);
+  });
+
+  it('empty ISA: taxable pushes above BRL but the target net is still met', () => {
+    const r = planDrawdown({ targetGross: 110000, fixedIncome: 0, ...bands, isaBalance: 0, taxFreeFraction: f });
+    expect(r.taxable).toBeGreaterThan(BRL);
+    expect(r.net).toBeCloseTo(grossToNet(110000, PA, BRL, HRL), 3);
+    expect(r.taxFree).toBeCloseTo(r.sippGross * f, 4);
+  });
+});

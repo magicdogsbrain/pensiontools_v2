@@ -178,6 +178,8 @@ export function decisionToHistory(decision) {
 
     // NEW: Tax tracking (monthly, YTD, projected)
     taxPaidMonthly: monthlyTax,
+    taxFree: decision.taxFree || 0,          // UFPLS tax-free slice (drives lifetime LSA tracking)
+    accessMethod: decision.accessMethod || 'drawdown',
     taxPaidYTD: decision.taxPaidYTD || monthlyTax,
     taxProjectedAnnual: decision.taxProjectedAnnual || annualTax,
     taxSavedMonthly: decision.taxSavedMonthly || 0,

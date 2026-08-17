@@ -151,6 +151,7 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     glideEndgame: d.glideEndgame ?? null,
     equityGlideEnabled: d.equityGlideEnabled ?? false,
     spendingProfile: d.spendingProfile ?? currentStress.spendingProfile ?? 'flat',
+    accessMethod: d.accessMethod ?? currentStress.accessMethod ?? 'drawdown',
     // provenance for the drift banner / re-sync
     seededFrom: 'decision',
     seededAt,
@@ -196,6 +197,7 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     glideEndgame: s.glideEndgame ?? null,
     equityGlideEnabled: s.equityGlideEnabled ?? false,
     spendingProfile: s.spendingProfile ?? currentDecision.spendingProfile ?? 'flat',
+    accessMethod: s.accessMethod ?? currentDecision.accessMethod ?? 'drawdown',
     configured: true,   // a full copy IS a configuration — routing can go straight to the tool
     seededFrom: 'stress'
   };

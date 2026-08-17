@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CcGSpXv5.js"></script>
+  <script type="module" crossorigin src="./assets/main-DGiMsHOh.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2373,7 +2373,9 @@
             <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
           </div>
           <div class="card">
-            <h2>Monte Carlo Simulation</h2>
+            <h2>Monte Carlo Simulation
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
             <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
@@ -2394,7 +2396,9 @@
         <!-- Historical Sub-tab -->
         <div id="stress-historical" class="stress-subtab hidden">
           <div class="card">
-            <h2>Historical Sequence Analysis</h2>
+            <h2>Historical Sequence Analysis
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('hist')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
             <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
@@ -2415,7 +2419,9 @@
         <!-- Scenarios Sub-tab -->
         <div id="stress-scenarios" class="stress-subtab hidden">
           <div class="card">
-            <h2>Stress Scenarios</h2>
+            <h2>Stress Scenarios
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('scen')">What is this doing?</button>
+            </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
             <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">

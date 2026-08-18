@@ -323,6 +323,11 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     recoveryBuffer: settings.recoveryBuffer ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
     ufplsYears: settings.ufplsYears || null,
     ufplsThenPcls: !!settings.ufplsThenPcls,
+    bandFillRecycle: !!settings.bandFillRecycle,
+    targetSchedule: Array.isArray(settings.targetSchedule) ? settings.targetSchedule : null,
+    dbAmount: settings.dbAmount || 0,
+    dbStartYear: settings.dbStartYear || 0,
+    dbIndexation: settings.dbIndexation || 'lpi5',
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.

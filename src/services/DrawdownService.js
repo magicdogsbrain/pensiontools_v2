@@ -54,7 +54,10 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     // Declining-spending profile — shared spending smile (level 0-4, ~1%/yr decline 5-24, level after).
     // Same curve as SimulationEngine.spendingFactor and the Decision wizard.
     const spendFactor = spendingSmileFactor(year, settings.spendingProfile || 'flat');
-    const target = (settings.baseSalary || 0) * cumInf * spendFactor;
+    const scheduledTarget = Array.isArray(settings.targetSchedule) && settings.targetSchedule[year] != null
+      ? settings.targetSchedule[year]
+      : (settings.baseSalary || 0);
+    const target = scheduledTarget * cumInf * spendFactor;
 
     // Other pension: CPI-capped uplift (4%), matching the stress engine's cappedInflation.
     const other = (settings.other || 0) * Math.pow(1 + Math.min(assumedInflation, OTHER_INCOME_CAP), year);
@@ -62,7 +65,14 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     if (year >= spStartYear && spAnnualBase > 0) {
       statePension = spAnnualBase * (year === spStartYear ? spFirstYearRatio : 1) * cumInf;
     }
-    const fixed = other + statePension;
+    let dbPension = 0;
+    if (settings.dbAmount > 0 && year >= (settings.dbStartYear || 0)) {
+      const mode = settings.dbIndexation || 'lpi5';
+      if (mode === 'level') dbPension = settings.dbAmount;
+      else if (mode === 'cpi') dbPension = settings.dbAmount * cumInf;
+      else dbPension = settings.dbAmount * Math.pow(1 + Math.min(assumedInflation, 0.05), year);
+    }
+    const fixed = other + statePension + dbPension;
     const yearsUntilSp = Math.max(0, spStartYear === Infinity ? 0 : spStartYear - year);
 
     const inUfplsPhase = !settings.ufplsYears || year < settings.ufplsYears;

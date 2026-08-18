@@ -7,6 +7,7 @@
 
 // Services
 import { saveDecision } from './services/DecisionService.js';
+import { longevityAge } from './services/LongevityModel.js';
 
 import {
   runMonteCarlo,
@@ -66,6 +67,7 @@ import {
   PLSA_TIER_LABELS,
   plsaTierOf,
   summariseBudget,
+  targetScheduleFromBudget,
   annualNetAtAge,
   oneOffSchedule,
   grossUpAnnual,
@@ -358,6 +360,8 @@ export {
   PLSA_TIER_LABELS,
   plsaTierOf,
   summariseBudget,
+  longevityAge,
+  targetScheduleFromBudget,
   annualNetAtAge,
   oneOffSchedule,
   grossUpAnnual,

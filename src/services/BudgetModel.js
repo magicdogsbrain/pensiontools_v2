@@ -345,6 +345,33 @@ export function periodicAnnualAverage(budget, mineOnly = false) {
 }
 
 /**
+ * Per-plan-year net spending schedule (today's money), for the owner's share: recurring lines
+ * respect their from/to ages, and dated/recurring one-offs land in the exact year they occur —
+ * the un-flattened replacement for "evaluate at retirement age and smear the lumps".
+ * schedule[y] = net £ the plan must fund in plan year y (age = retirementAge + y).
+ * Note: single-shot one-offs (no everyYears) reach the plan ONLY through this schedule — the
+ * flat summariseBudget hand-off has always ignored them.
+ * @returns {number[]} length duration+1
+ */
+export function targetScheduleFromBudget(budget, duration) {
+  const retire = num(budget.retirementAge);
+  const lumps = oneOffSchedule(budget, retire, retire + duration);
+  const schedule = [];
+  for (let y = 0; y <= duration; y++) {
+    const age = retire + y;
+    let net = myAnnualNetAtAge(budget, age, 'all');
+    for (const l of lumps) {
+      if (l.age === age) {
+        const src = (budget.oneOffs || []).find((o) => o.label === l.label) || {};
+        net += l.amount * myShareFactor(src, budget);
+      }
+    }
+    schedule.push(net);
+  }
+  return schedule;
+}
+
+/**
  * Cached summary written on save + shown in the UI / used by the hand-off.
  * The headline plan need is the OWNER'S share (partner-paid costs excluded); household totals are also
  * returned so the UI can show the whole picture. With no partner sharing, mine == household.

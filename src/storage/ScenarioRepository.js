@@ -157,6 +157,7 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     accessMethod: d.accessMethod ?? currentStress.accessMethod ?? 'drawdown',
     ufplsYears: d.ufplsYears ?? currentStress.ufplsYears ?? null,
     ufplsThenPcls: d.ufplsThenPcls ?? currentStress.ufplsThenPcls ?? false,
+    bandFillRecycle: d.bandFillRecycle ?? currentStress.bandFillRecycle ?? false,
     // provenance for the drift banner / re-sync
     seededFrom: 'decision',
     seededAt,
@@ -206,6 +207,7 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     accessMethod: s.accessMethod ?? currentDecision.accessMethod ?? 'drawdown',
     ufplsYears: s.ufplsYears ?? currentDecision.ufplsYears ?? null,
     ufplsThenPcls: s.ufplsThenPcls ?? currentDecision.ufplsThenPcls ?? false,
+    bandFillRecycle: s.bandFillRecycle ?? currentDecision.bandFillRecycle ?? false,
     configured: true,   // a full copy IS a configuration — routing can go straight to the tool
     seededFrom: 'stress'
   };

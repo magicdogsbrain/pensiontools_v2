@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DCbsrUIQ.js"></script>
+  <script type="module" crossorigin src="./assets/main-C0SLGDQ5.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2157,6 +2157,16 @@
                   </p>
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -2636,6 +2646,24 @@
             <div class="form-group" style="margin-top: 16px;">
               <label>Duration (years)</label>
               <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                <span style="font-size:12px;color:var(--text-muted);">Suggest from longevity:</span>
+                <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
+                <select id="ssLongevitySex" style="max-width:110px;">
+                  <option value="m" selected>Male</option>
+                  <option value="f">Female</option>
+                </select>
+                <select id="ssLongevityPct" style="max-width:230px;">
+                  <option value="10" selected>1-in-10 chance of living beyond (cautious)</option>
+                  <option value="25">1-in-4 chance of living beyond</option>
+                  <option value="50">Average life expectancy</option>
+                </select>
+                <button type="button" onclick="applyLongevitySuggestion()">Use</button>
+              </div>
+              <p id="ssLongevityNote" style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                Planning to the average means a 50% chance of outliving the plan — a survival
+                percentile is safer. Approximate ONS-style cohort figures.
+              </p>
             </div>
 
             <div id="ssRiskMode">
@@ -2686,6 +2714,16 @@
                   </p>
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -2795,7 +2833,28 @@
                   <label>Other Income/Pension (£/yr)</label>
                   <input type="number" id="ssOther" value="0">
                 </div>
+                <div class="form-group">
+                  <label>Defined-Benefit Pension (£/yr, today's money)</label>
+                  <input type="number" id="ssDbAmount" value="0">
+                </div>
+                <div class="form-group">
+                  <label>DB Starts (plan year, 0 = now)</label>
+                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40">
+                </div>
+                <div class="form-group">
+                  <label>DB Increases</label>
+                  <select id="ssDbIndexation">
+                    <option value="lpi5" selected>CPI capped at 5% (typical LPI)</option>
+                    <option value="cpi">Full CPI</option>
+                    <option value="level">Level (no increases)</option>
+                  </select>
+                </div>
               </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                A final-salary / defined-benefit pension is a guaranteed income floor — the sims
+                draw less from your pots once it starts. In the Decision Tool, enter DB income you
+                actually receive in each tax year's "Other income" (it works on actuals).
+              </p>
             </div>
 
             <div class="settings-section">

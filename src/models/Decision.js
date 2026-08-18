@@ -179,6 +179,7 @@ export function decisionToHistory(decision) {
     // NEW: Tax tracking (monthly, YTD, projected)
     taxPaidMonthly: monthlyTax,
     taxFree: decision.taxFree || 0,          // UFPLS tax-free slice (drives lifetime LSA tracking)
+    recycleNet: decision.recycleNet || 0,    // band-fill net recycled to ISA (drives the £20k/yr cap)
     accessMethod: decision.accessMethod || 'drawdown',
     taxPaidYTD: decision.taxPaidYTD || monthlyTax,
     taxProjectedAnnual: decision.taxProjectedAnnual || annualTax,

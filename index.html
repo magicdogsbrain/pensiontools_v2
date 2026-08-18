@@ -1974,6 +1974,7 @@
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
+          <button class="tab" data-tab="accumulation">Accumulation</button>
         </nav>
       </div>
 
@@ -2951,6 +2952,71 @@
       </div>
 
       <!-- Budget Tab -->
+      <div id="accumulation-content" class="tab-content">
+        <div class="card">
+          <h2>Accumulation Planner <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— am I saving enough?</span></h2>
+          <p style="font-size:13px;color:var(--text-muted);">
+            Net-first, like everything here: say what you can spare from take-home pay and this
+            works out the gross pension purchase under your scheme's tax relief, projects the pot
+            to retirement (FCA low/mid/high rates, in today's money), and checks it against
+            <strong>your own budget-derived target</strong> — not a rule of thumb.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">About you</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" oninput="recalcAccumulation()"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Contributions</div>
+            <div class="form-grid">
+              <div class="form-group"><label>You pay (£/mo, from take-home)</label><input type="number" id="acNetMonthly" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>How relief works</label>
+                <select id="acScheme" onchange="recalcAccumulation()">
+                  <option value="ras" selected>Relief at source (most SIPPs / group schemes)</option>
+                  <option value="netpay">Net pay (deducted before tax)</option>
+                  <option value="salsac">Salary sacrifice (before tax &amp; NI)</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" oninput="recalcAccumulation()"></div>
+            </div>
+            <div id="acBreakdown" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Projection <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(today's money; FCA 2% / 5% / 8% nominal, CPI 2.5%)</span></div>
+            <div id="acWarnings"></div>
+            <div id="acProjection" style="overflow-x:auto;"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Am I on track?</div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
+              Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
+              Pension, access method) through the Monte Carlo to find the pot that gives
+              <strong>85% success</strong> — then compares your projection against it.
+            </p>
+            <button type="button" onclick="runOnTrackCheck()">Check against my plan's target</button>
+            <div id="acOnTrack" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="form-grid" style="margin-top:10px;">
+            <button type="button" onclick="saveAccumulationUI()">Save</button>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Not financial advice. Annual Allowance £60,000 (tapers above £200k income; £10,000
+            MPAA once flexible income has been taken); minimum pension age rises to 57 on
+            6 April 2028; salary-sacrifice NI relief capped at £2,000/yr from April 2029.
+          </p>
+        </div>
+      </div>
+
       <div id="budget-content" class="tab-content">
         <div class="card">
           <h2>Budget — your spending plan</h2>
@@ -3141,6 +3207,12 @@
       defaultBudget,
       evalAmountExpr,
       longevityAge,
+      contributionBreakdown,
+      contributionWarnings,
+      projectAccumulation,
+      requiredPotForSuccess,
+      getActiveAccumulation,
+      saveActiveAccumulation,
       targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
@@ -4562,6 +4634,7 @@
         // Load content if needed (async)
         if (tab.dataset.tab === 'stress') await loadStressSettings();
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
+        if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
       });
     });
 
@@ -6229,6 +6302,118 @@
       h += `<p style="margin-top:12px;font-size:13px;">Best coverage: <strong>${RISK_PRESETS[best.key].label}${best.tent === 'tent' ? ' + bond tent' : ''}</strong> at ${best.cov.toFixed(0)}%. Set it in Settings if you'd like it.</p>`;
       if (el) el.innerHTML = h;
     }
+
+    // ---- Accumulation tab -----------------------------------------------------------------
+    function readAccumulationInputs() {
+      return {
+        currentAge: +document.getElementById('acAge').value || 0,
+        retirementAge: +document.getElementById('acRetireAge').value || 0,
+        salary: +document.getElementById('acSalary').value || 0,
+        potNow: +document.getElementById('acPotNow').value || 0,
+        netMonthly: +document.getElementById('acNetMonthly').value || 0,
+        schemeType: document.getElementById('acScheme').value || 'ras',
+        employerMonthly: +document.getElementById('acEmployerMonthly').value || 0,
+        escalationPct: +document.getElementById('acEscalation').value || 0
+      };
+    }
+
+    window.loadAccumulationUI = async function () {
+      try {
+        const saved = await getActiveAccumulation();
+        const budget = await getBudgetAsync();
+        const set = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== 0) el.value = v; };
+        set('acAge', saved.currentAge ?? budget.currentAge);
+        set('acRetireAge', saved.retirementAge ?? budget.retirementAge);
+        set('acSalary', saved.salary);
+        set('acPotNow', saved.potNow);
+        set('acNetMonthly', saved.netMonthly);
+        if (saved.schemeType) document.getElementById('acScheme').value = saved.schemeType;
+        set('acEmployerMonthly', saved.employerMonthly);
+        if (saved.escalationPct) document.getElementById('acEscalation').value = saved.escalationPct;
+        recalcAccumulation();
+      } catch (e) { console.error('Accumulation load error:', e); }
+    };
+
+    window.saveAccumulationUI = async function () {
+      try {
+        await saveActiveAccumulation(readAccumulationInputs());
+        showToast('Accumulation plan saved', 'success');
+      } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
+    };
+
+    window.recalcAccumulation = async function () {
+      const a = readAccumulationInputs();
+      const bd = document.getElementById('acBreakdown');
+      const warnEl = document.getElementById('acWarnings');
+      const projEl = document.getElementById('acProjection');
+      if (!a.currentAge || !a.retirementAge || a.retirementAge <= a.currentAge) {
+        bd.innerHTML = ''; warnEl.innerHTML = ''; projEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Enter your ages to project.</p>';
+        return;
+      }
+      const b = contributionBreakdown(a);
+      bd.innerHTML = '<div class="alert alert-info">Each month: you pay <strong>' + gbp(a.netMonthly) + '</strong> → '
+        + '<strong>' + gbp(Math.round(b.grossMonthly)) + '</strong> goes into your pension'
+        + (b.reliefMonthly > 0.5 ? ' (incl. ' + gbp(Math.round(b.reliefMonthly)) + ' tax relief' + (b.niSavedMonthly > 0.5 ? ' + NI saving' : '') + ')' : '')
+        + (b.employerMonthly ? ' + <strong>' + gbp(b.employerMonthly) + '</strong> from your employer' : '')
+        + ' = <strong>' + gbp(Math.round(b.totalMonthly)) + '/mo</strong>. Each £1 invested costs you '
+        + (b.costPerPound * 100).toFixed(0) + 'p.'
+        + (b.hrClaimMonthly > 0.5 ? ' Plus ≈' + gbp(Math.round(b.hrClaimMonthly)) + '/mo you can claim back from HMRC.' : '')
+        + '</div>'
+        + b.notes.map((n) => '<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">' + n + '</p>').join('');
+
+      // MPAA cross-check from the Decision tool's own history
+      let mpaaTriggered = false;
+      try {
+        const hist = await getHistoryAsync();
+        mpaaTriggered = (hist || []).some((h) => (h.taxFree || 0) > 0);
+      } catch (e) { /* no history yet */ }
+
+      const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly });
+      const last = rows[rows.length - 1];
+      const warns = contributionWarnings({
+        annualGrossTotal: b.totalMonthly * 12, salary: a.salary, mpaaTriggered,
+        currentAge: a.currentAge, retirementAge: a.retirementAge, projectedPotHigh: last.potHigh
+      });
+      warnEl.innerHTML = warns.map((w) => '<div class="alert alert-' + (w.severity === 'danger' ? 'danger' : w.severity === 'warning' ? 'warning' : 'info') + '">' + w.message + '</div>').join('');
+
+      let html = '<table><thead><tr><th>Age</th><th>Cautious (2%)</th><th>Middle (5%)</th><th>Strong (8%)</th><th>Paid in</th></tr></thead><tbody>';
+      const step = rows.length > 12 ? 5 : 1;
+      for (let i = 0; i < rows.length; i += (i === 0 || i >= rows.length - step ? 1 : step)) {
+        const r = rows[i];
+        html += '<tr' + (i === rows.length - 1 ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + gbp(Math.round(r.potLow)) + '</td><td>' + gbp(Math.round(r.potMid)) + '</td><td>' + gbp(Math.round(r.potHigh)) + '</td><td>' + gbp(Math.round(r.contributedToDate)) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+      projEl.innerHTML = html;
+      window._acProjection = { rows, breakdown: b };
+    };
+
+    window.runOnTrackCheck = async function () {
+      const el = document.getElementById('acOnTrack');
+      const a = readAccumulationInputs();
+      if (!window._acProjection) { showToast('Enter your details first', 'warning'); return; }
+      el.innerHTML = '<p style="font-size:13px;">Searching for the pot that gives 85% success against your plan… (a few seconds)</p>';
+      await new Promise((r) => setTimeout(r, 30)); // let the message paint
+      try {
+        const baseConfig = createSimulationConfigFromSettings({}, await getStressSettingsAsync());
+        const { requiredPot } = requiredPotForSuccess(baseConfig, 0.85, 300);
+        const rows = window._acProjection.rows;
+        const last = rows[rows.length - 1];
+        const verdict = (pot) => pot >= requiredPot
+          ? '<span style="color:var(--success,#22c55e);font-weight:600;">on track ✓</span>'
+          : '<span style="color:var(--danger,#ef4444);font-weight:600;">short by ' + gbp(Math.round(requiredPot - pot)) + '</span>';
+        el.innerHTML = '<div class="alert alert-info">Your plan needs about <strong>' + gbp(Math.round(requiredPot))
+          + '</strong> at retirement (today\'s money) for 85% Monte-Carlo success against your budget-derived target.</div>'
+          + '<table><tbody>'
+          + '<tr><td>Cautious growth (2%)</td><td>' + gbp(Math.round(last.potLow)) + '</td><td>' + verdict(last.potLow) + '</td></tr>'
+          + '<tr><td>Middle growth (5%)</td><td>' + gbp(Math.round(last.potMid)) + '</td><td>' + verdict(last.potMid) + '</td></tr>'
+          + '<tr><td>Strong growth (8%)</td><td>' + gbp(Math.round(last.potHigh)) + '</td><td>' + verdict(last.potHigh) + '</td></tr>'
+          + '</tbody></table>'
+          + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Uses your current Stress-Tester settings (target, allocation, State Pension, access method) with the pot scaled. Set your budget and stress settings first for a meaningful answer.</p>';
+      } catch (e) {
+        console.error('On-track check error:', e);
+        el.innerHTML = '<div class="alert alert-warning">Could not run the check: ' + e.message + '</div>';
+      }
+    };
 
     // Longevity-based duration suggestion (stress settings).
     window.applyLongevitySuggestion = function () {

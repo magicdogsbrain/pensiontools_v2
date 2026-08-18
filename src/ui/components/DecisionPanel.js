@@ -119,6 +119,15 @@ export function buildDecisionHTML(decision) {
     html += '</div>';
   }
 
+  // Band-fill recycle (opt-in): part of the SIPP withdrawal is destined for the ISA, not spending
+  if (d.recycleNet > 0) {
+    html += '<div class="draw-row">';
+    html += `<span class="label">of which: recycle to ISA (band-fill)</span>`;
+    html += `<span class="value">${formatCurrency(d.recycleNet)}</span>`;
+    html += '</div>';
+    html += `<div class="alert alert-info" style="margin:6px 0;">💡 Your SIPP withdrawal above includes an extra ${formatCurrency(d.recycleGross)} to fill your basic-rate band. After 20% tax, contribute <strong>${formatCurrency(d.recycleNet)}</strong> of it to your ISA — it comes out tax-free later. (Counts toward your £20,000 ISA allowance.)</div>`;
+  }
+
   // Other income
   if (d.other > 0) {
     html += '<div class="draw-row muted">';

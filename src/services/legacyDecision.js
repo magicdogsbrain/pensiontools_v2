@@ -16,7 +16,7 @@ import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
-import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
+import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -274,105 +274,105 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           }
         }
       } else {
-        // TAX-INEFFICIENT MODE: Full SIPP draw to target, no ISA
-        const monthlyTargetGross = target / 12;
-        const monthlyFixedIncome = other / 12;
-
-        // Use expected monthly SIPP from tax year config if available (set by wizard)
+        // TAX-INEFFICIENT MODE: full SIPP draw to the target, no ISA — via the SAME shared
+        // planners as the efficient branch (planDrawdown with an empty ISA + planTaxBoost).
+        // Folding this (Aug 2026) fixed three latent divergences of the old hand-rolled copy:
+        // UFPLS was ignored (gross wasn't reduced by the tax-free quarter), the partial-year
+        // frame was ignored (always /12), and the boosts had no per-month anti-cram cap.
         let stdSipp;
         if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
           stdSipp = taxYearConfig.expectedMonthly.sipp.gross;
         } else {
-          // Fallback: calculate fresh (for older tax years without expectedMonthly)
-          stdSipp = Math.max(0, monthlyTargetGross - monthlyFixedIncome);
+          const plan = planDrawdown({
+            targetGross: target, fixedIncome: other + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
+            taxFreeFraction: taxFreeF, isaBalance: 0,
+            strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax', yearsUntilSp: 0
+          });
+          stdSipp = plan.sippGross / deliverMonths;
         }
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
-
         isa = 0; // No ISA in tax-inefficient mode
 
+        // This tax year's history scan (same shape as the efficient branch)
+        const taxYearStart = month >= 4 ? year : year - 1;
+        const thisTaxYearHistory = priorHistory.filter(h => {
+          const [hy, hm] = h.date.split('-').map(Number);
+          return (hm >= 4 ? hy : hy - 1) === taxYearStart;
+        });
+        let protectionShortfall = 0;
+        let annualSippSoFar = 0;
+        thisTaxYearHistory.forEach(h => {
+          annualSippSoFar += h.sipp || 0;
+          if (h.inProtection && h.stdSipp) protectionShortfall += (h.stdSipp - h.sipp);
+          if (h.boostAmount > 0) protectionShortfall -= h.boostAmount;
+        });
+
         if (inProtection) {
-          // Protection = reduce SIPP draw by protection factor
           const protectionFactor = (settings.protectionFactor || 20) / 100;
           sipp = stdSipp * (1 - protectionFactor);
           note = 'Protection';
 
-          // Check for protection-induced tax efficiency
-          // If protection has reduced projected annual taxable below BRL, we can boost to BRL
-          const taxYearStart = month >= 4 ? year : year - 1;
-          const thisTaxYearHistory = priorHistory.filter(h => {
-            const [hy, hm] = h.date.split('-').map(Number);
-            const hTaxYearStart = hm >= 4 ? hy : hy - 1;
-            return hTaxYearStart === taxYearStart;
-          });
-
-          let annualSippSoFar = 0;
-          thisTaxYearHistory.forEach(h => {
-            annualSippSoFar += h.sipp || 0;
-          });
-
+          // Protection-induced tax efficiency: the reduced draw may bring the projected annual
+          // taxable below the BRL — fill the freed headroom via the shared planner (shortfall =
+          // the whole headroom; planTaxBoost spreads it over the remaining months, funds it from
+          // growth surplus, and applies the per-month cap the old hand-rolled version lacked).
           const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
-
-          if (projectedAnnualTaxable < BRL) {
-            // Protection has brought us below BRL - we can boost back up to BRL
-            const brlHeadroom = BRL - projectedAnnualTaxable;
-            const maxBoostPerMonth = brlHeadroom / effectiveRemainingMonths;
-            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);
-
-            if (surplus > 0 && maxBoostPerMonth > 50) {
-              boostAmount = Math.min(maxBoostPerMonth, surplus / effectiveRemainingMonths);
-              if (boostAmount > 50) {
-                sipp += boostAmount;
-                protectionInducedTaxEfficiency = true;
-                note = 'Protection-Induced Efficiency';
-              }
-            }
+          const brlHeadroom = BRL - projectedAnnualTaxable;
+          boostAmount = planTaxBoost({
+            shortfall: brlHeadroom,
+            standardMonthly: stdSipp,
+            remainingMonths: effectiveRemainingMonths,
+            surplus: totalGrowth - minGrowth - BOOST_DEFAULTS.SURPLUS_BUFFER,
+            brlHeadroom
+          });
+          if (boostAmount > 0) {
+            sipp += boostAmount;
+            protectionInducedTaxEfficiency = true;
+            note = 'Protection-Induced Efficiency';
           }
         } else {
           sipp = stdSipp;
           note = 'Tax-Inefficient';
 
-          // TAX BOOST in tax-inefficient mode: If we had protection periods earlier,
-          // we may be able to catch up while staying under BRL
-          const taxYearStart = month >= 4 ? year : year - 1;
-          const thisTaxYearHistory = priorHistory.filter(h => {
-            const [hy, hm] = h.date.split('-').map(Number);
-            const hTaxYearStart = hm >= 4 ? hy : hy - 1;
-            return hTaxYearStart === taxYearStart;
+          // Catch-up after protection months — the same shared decision the efficient branch
+          // and the Stress engine use.
+          const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
+          boostAmount = planTaxBoost({
+            shortfall: protectionShortfall,
+            standardMonthly: stdSipp,
+            remainingMonths: effectiveRemainingMonths,
+            surplus: totalGrowth - minGrowth - BOOST_DEFAULTS.SURPLUS_BUFFER,
+            brlHeadroom: BRL - projectedAnnualTaxable
           });
-
-          let protectionShortfall = 0;
-          let annualSippSoFar = 0;
-
-          thisTaxYearHistory.forEach(h => {
-            annualSippSoFar += h.sipp || 0;
-            if (h.inProtection && h.stdSipp) {
-              protectionShortfall += (h.stdSipp - h.sipp);
-            }
-            if (h.boostAmount > 0) {
-              protectionShortfall -= h.boostAmount;
-            }
-          });
-
-          if (protectionShortfall > 0) {
-            // Check if we can boost while staying under BRL
-            const projectedAnnualTaxable = (annualSippSoFar + sipp * effectiveRemainingMonths) * (1 - taxFreeF) + other;
-            const brlHeadroom = BRL - projectedAnnualTaxable;
-            const surplus = totalGrowth - minGrowth - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);
-
-            if (brlHeadroom > 0 && surplus > 0) {
-              const maxBoostFromBRL = brlHeadroom / effectiveRemainingMonths;
-              const catchUpPerMonth = protectionShortfall / effectiveRemainingMonths;
-              const maxBoostFromSurplus = surplus / effectiveRemainingMonths;
-
-              boostAmount = Math.min(catchUpPerMonth, maxBoostFromBRL, maxBoostFromSurplus);
-
-              if (boostAmount > 50) {
-                sipp += boostAmount;
-                note = 'Tax Boost';
-              }
-            }
+          if (boostAmount > 0) {
+            sipp += boostAmount;
+            note = 'Tax Boost';
           }
         }
+      }
+
+      // Band-fill-and-recycle (opt-in, locked with the plan): with unused basic-rate headroom,
+      // draw extra SIPP up to the band and contribute the net to the ISA. Advised only while
+      // fully taxable (no UFPLS quarter in play) and not in protection. The extra draw is added
+      // to `sipp` BEFORE the tax section below, so all tax figures include it automatically.
+      let recycleGross = 0, recycleNet = 0;
+      if (settings.bandFillRecycle && taxFreeF === 0 && !inProtection) {
+        const tyStartR = month >= 4 ? year : year - 1;
+        const tyHistR = priorHistory.filter(h => {
+          const [hy, hm] = h.date.split('-').map(Number);
+          return (hm >= 4 ? hy : hy - 1) === tyStartR;
+        });
+        let sippSoFarR = 0, recycledSoFar = 0;
+        tyHistR.forEach(h => { sippSoFarR += h.sipp || 0; recycledSoFar += h.recycleNet || 0; });
+        const projectedTaxableR = sippSoFarR + sipp * effectiveRemainingMonths + other + preStartIncome;
+        const r = planBandFillRecycle({
+          brlHeadroom: BRL - projectedTaxableR,
+          remainingMonths: effectiveRemainingMonths,
+          isaAllowanceLeft: RECYCLE_DEFAULTS.ISA_ANNUAL_ALLOWANCE - recycledSoFar
+        });
+        recycleGross = r.gross;
+        recycleNet = r.net;
+        if (recycleGross > 0) sipp += recycleGross;
       }
 
       // Store stdSipp for future catch-up calculations
@@ -548,6 +548,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         accessMethod: ufpls ? 'ufpls' : 'drawdown',
         lsaRemaining: ufpls ? Math.max(0, LSA - lifetimeTaxFreeUsed) : null,
         pclsSuggestion,                    // switch-year advice: take this much tax-free into the ISA (£0 = n/a)
+        recycleGross,                      // band-fill: extra monthly SIPP gross included in sippDraw (£0 = off/none)
+        recycleNet,                        // band-fill: net of that to contribute to the ISA this month
 
         // Year-level tax efficiency
         isTaxEfficientYear,

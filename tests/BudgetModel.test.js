@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
+import { targetScheduleFromBudget,
   PLSA_2024,
   BUDGET_CATEGORIES,
   starterLines,
@@ -371,5 +371,38 @@ describe('BudgetModel — periodic averaging (recurring lumpy → monthly need)'
     expect(s.allInComfortableAnnual).toBe(27000); // 24000 recurring + 3000 averaged
     expect(s.allInComfortableMonthly).toBeCloseTo(2250, 6);
     expect(s.suggestedGrossAnnual).toBeGreaterThan(27000); // grossed up from all-in
+  });
+});
+
+describe('targetScheduleFromBudget', () => {
+  const budget = {
+    retirementAge: 60, currentAge: 58, endAge: 95,
+    lines: [
+      { label: 'Groceries', tier: 'essential', annual: 6000 },
+      { label: 'Car lease', tier: 'essential', annual: 3600, fromAge: 60, toAge: 62 }
+    ],
+    oneOffs: [
+      { label: 'New roof', amount: 15000, atAge: 70 },
+      { label: 'Car', amount: 20000, atAge: 65, everyYears: 8 }
+    ]
+  };
+
+  it('temporary lines end when they end; lumps land in their exact year', () => {
+    const sch = targetScheduleFromBudget(budget, 15);
+    expect(sch[0]).toBe(9600);           // groceries + lease at 60
+    expect(sch[2]).toBe(9600);           // lease's last year (toAge 62)
+    expect(sch[3]).toBe(6000);           // lease ended
+    expect(sch[10]).toBe(6000 + 15000);  // roof at age 70 (single-shot, was invisible to the flat hand-off)
+    expect(sch[5]).toBe(6000 + 20000);   // car at 65
+    expect(sch[13]).toBe(6000 + 20000);  // car again at 73 (every 8 years)
+  });
+
+  it('partner sharing applies the owner share to lines and one-offs', () => {
+    const shared = { ...budget, sharedWithPartner: true, mySharePct: 50,
+      lines: [{ label: 'Groceries', tier: 'essential', annual: 6000, paidBy: 'shared' }],
+      oneOffs: [{ label: 'New roof', amount: 15000, atAge: 70, paidBy: 'shared' }] };
+    const sch = targetScheduleFromBudget(shared, 15);
+    expect(sch[0]).toBe(3000);
+    expect(sch[10]).toBe(3000 + 7500);
   });
 });

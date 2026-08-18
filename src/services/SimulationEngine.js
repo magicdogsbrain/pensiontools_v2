@@ -13,7 +13,7 @@ import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
-import { planTaxBoost, BOOST_DEFAULTS } from './TaxBoostStrategy.js';
+import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 
@@ -242,7 +242,7 @@ export function simulate(config, returns, seed = 0) {
     }
 
     // Calculate required draw (SIPP + ISA to hit the target via band management)
-    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa, lsaRemaining);
+    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly, recycleGrossMonthly, recycleNetMonthly } = calculateMonthlyDraw(config, year, cumInf, yearlyInf, isa, lsaRemaining);
 
     // ISA analytics: capture start-of-year ISA balance, accumulate projected income tax (in
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
@@ -257,6 +257,15 @@ export function simulate(config, returns, seed = 0) {
     const standardMonthDraw = draw;
     let effectiveDraw = prot ? draw * config.protectionMult : draw;
     let monthDraw = effectiveDraw;
+    // Band-fill recycle executes only OUTSIDE protection months (conserve during a downturn;
+    // matches the Decision engine's advice gate). Extra gross leaves the SIPP pots with the
+    // normal draw; the net lands in the ISA below; the tax difference is real tax paid.
+    const recycleThisMonth = (!prot && recycleGrossMonthly > 0) ? recycleGrossMonthly : 0;
+    const recycleNetThisMonth = recycleThisMonth > 0 ? recycleNetMonthly : 0;
+    if (recycleThisMonth > 0) {
+      monthDraw += recycleThisMonth;
+      totalTaxReal += (recycleThisMonth - recycleNetThisMonth) / cumInf;
+    }
     // Protection reduces ONLY the SIPP draw — that's what pulls on the growth/cash pots that
     // are under stress in a downturn. The ISA top-up is a stable money-market fund, so it is
     // drawn at its full non-protected value (matches the Decision engine). Unifies finding (B).
@@ -443,7 +452,7 @@ export function simulate(config, returns, seed = 0) {
     // Deplete the ISA pot by this month's tax-free top-up (bounded by the balance).
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
     // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
-    isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa));
+    isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa)) + recycleNetThisMonth;
     if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (taxFreeMonthly || 0));
     if (isaDepletedMonth === null && startIsa > 0 && isa / cumInf < isaUsedUpFloor) isaDepletedMonth = month;
 
@@ -646,7 +655,14 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
   const hrl = config.taxMode === 'frozen' ? config.hrl : (config.hrl || 125140) * cumInf;
 
   // Target income
-  const target = config.baseSalary * cumInf * spendingFactor(config, year);
+  // Per-year target schedule (today's money, from the Budget tool's dated lines + one-offs):
+  // when present it replaces the flat baseSalary anchor for the year — temporary items end when
+  // they end, lumpy costs land in their year. The spending profile still applies on top (it is
+  // a separate, generic age-decline assumption the user opted into).
+  const scheduledTarget = Array.isArray(config.targetSchedule) && config.targetSchedule[year] != null
+    ? config.targetSchedule[year]
+    : config.baseSalary;
+  const target = scheduledTarget * cumInf * spendingFactor(config, year);
 
   // Other income with CPI cap (4%)
   const other = cappedInflation(config.other, yearlyInf);
@@ -673,7 +689,18 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
       : 0;
   }
 
-  const fixed = other + statePension;
+  // Defined-benefit pension floor: a guaranteed income stream from a chosen plan year.
+  // Indexation mirrors real schemes: 'lpi5' (CPI capped at 5%, the common LPI promise — default),
+  // 'cpi' (full CPI), or 'level' (no increases, so real value erodes with inflation).
+  let dbPension = 0;
+  if (config.dbAmount > 0 && year >= (config.dbStartYear || 0)) {
+    const mode = config.dbIndexation || 'lpi5';
+    if (mode === 'level') dbPension = config.dbAmount;
+    else if (mode === 'cpi') dbPension = config.dbAmount * cumInf;
+    else dbPension = cappedInflation(config.dbAmount, yearlyInf, 0.05); // lpi5
+  }
+
+  const fixed = other + statePension + dbPension;
   const yearsUntilSp = yearsUntilStatePension(config, year);
   // UFPLS: a quarter of each withdrawal is tax-free until the lifetime Lump Sum Allowance is
   // used up (tracked by the caller in nominal £; the LSA is a frozen nominal figure).
@@ -691,10 +718,27 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
     taxFreeFraction
   });
 
+  // Band-fill-and-recycle (opt-in): with unused basic-rate headroom, draw extra SIPP gross and
+  // route the net (after 20% tax) into the ISA. Only while fully taxable (taxFreeFraction 0 —
+  // the UFPLS quarter already beats recycling) — the caller additionally skips it in protection
+  // months. Spread over 12 months, net capped at the £20k/yr ISA allowance.
+  let recycleGrossMonthly = 0, recycleNetMonthly = 0;
+  if (config.bandFillRecycle && taxFreeFraction === 0) {
+    const r = planBandFillRecycle({
+      brlHeadroom: brl - plan.taxable,
+      remainingMonths: 12,
+      isaAllowanceLeft: RECYCLE_DEFAULTS.ISA_ANNUAL_ALLOWANCE
+    });
+    recycleGrossMonthly = r.gross;  // already monthly (remainingMonths = 12)
+    recycleNetMonthly = r.net;
+  }
+
   return {
     sippMonthly: plan.sippGross / 12,
     isaMonthly: plan.isaDraw / 12,
     taxFreeMonthly: (plan.taxFree || 0) / 12,
+    recycleGrossMonthly,
+    recycleNetMonthly,
     taxAnnual: plan.tax,                 // income tax the plan pays this year (nominal)
     higherRate: plan.taxable > brl + 1,  // SIPP forced above the basic-rate limit → 40% band
                                          // (inefficient drawdown: happens once the ISA can't cover the gap)

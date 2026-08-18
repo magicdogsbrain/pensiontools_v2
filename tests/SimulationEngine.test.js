@@ -421,3 +421,77 @@ describe('Phased access (UFPLS → optional PCLS → drawdown)', () => {
     expect(b.pclsTaken).toBe(0);
   });
 });
+
+describe('Band-fill-and-recycle (stress engine)', () => {
+  const flat = (years) => {
+    const eq = {}, inf = {};
+    for (let i = 0; i < years; i++) { eq[i] = 0.05; inf[i] = 0.025; }
+    return { equity: eq, inflation: inf };
+  };
+  const cfg = {
+    equityStart: 400000, bondStart: 250000, cashStart: 50000,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000,
+    duration: 35, years: 10, baseSalary: 25000, other: 0,
+    statePension: 0, statePensionYear: 99,
+    pa: 12570, brl: 50270, taxMode: 'inflates',
+    disableProtection: true, protectionMult: 0.8,
+    hodlEnabled: false, hodlValue: 0, isaBalance: 0
+  };
+
+  it('recycling grows the ISA and pays more tax now, off by default', () => {
+    const off = simulate(cfg, flat(10), 7);
+    const on = simulate({ ...cfg, bandFillRecycle: true }, flat(10), 7);
+    expect(off.finalIsa).toBe(0);
+    expect(on.finalIsa).toBeGreaterThan(50000);        // years of recycled net built an ISA
+    expect(on.totalTaxReal).toBeGreaterThan(off.totalTaxReal);  // 20% paid on the recycled gross
+    // Wealth is conserved up to the tax paid: SIPP+ISA on ≈ SIPP off − extra tax (same returns)
+    expect(on.final + on.finalIsa).toBeLessThan(off.final + off.finalIsa);
+  });
+
+  it('recycle is inert during a UFPLS phase (tax-free quarter beats recycling)', () => {
+    const a = simulate({ ...cfg, accessMethod: 'ufpls' }, flat(10), 7);
+    const b = simulate({ ...cfg, accessMethod: 'ufpls', bandFillRecycle: true }, flat(10), 7);
+    expect(b.final).toBe(a.final);
+    expect(b.finalIsa).toBe(a.finalIsa);
+  });
+
+  it('recycled net is capped by the £20k/yr ISA allowance', () => {
+    // Tiny target → huge headroom; without the cap the recycle would exceed £20k/yr net
+    const on = simulate({ ...cfg, baseSalary: 5000, bandFillRecycle: true }, flat(10), 7);
+    // 10 years × max £20k/yr net, plus money-market-ish growth: bounded well under gross headroom
+    expect(on.finalIsa).toBeLessThan(10 * 20000 * 1.35);
+    expect(on.finalIsa).toBeGreaterThan(10 * 20000 * 0.9);
+  });
+});
+
+describe('Defined-benefit pension floor', () => {
+  const flat = (years) => {
+    const eq = {}, inf = {};
+    for (let i = 0; i < years; i++) { eq[i] = 0.05; inf[i] = 0.025; }
+    return { equity: eq, inflation: inf };
+  };
+  const cfg = {
+    equityStart: 250000, bondStart: 150000, cashStart: 40000,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000,
+    duration: 35, years: 10, baseSalary: 30000, other: 0,
+    statePension: 0, statePensionYear: 99,
+    pa: 12570, brl: 50270, taxMode: 'inflates',
+    disableProtection: true, protectionMult: 0.8,
+    hodlEnabled: false, hodlValue: 0
+  };
+
+  it('a DB pension reduces SIPP draws — bigger final pot, less lifetime tax on the pots', () => {
+    const noDb = simulate(cfg, flat(10), 3);
+    const withDb = simulate({ ...cfg, dbAmount: 12000, dbStartYear: 0 }, flat(10), 3);
+    expect(withDb.final).toBeGreaterThan(noDb.final);
+  });
+
+  it('dbStartYear delays the floor; level indexation erodes vs lpi5', () => {
+    const late = simulate({ ...cfg, dbAmount: 12000, dbStartYear: 5 }, flat(10), 3);
+    const early = simulate({ ...cfg, dbAmount: 12000, dbStartYear: 0 }, flat(10), 3);
+    expect(early.final).toBeGreaterThan(late.final);
+    const lpi = simulate({ ...cfg, dbAmount: 12000, dbStartYear: 0, dbIndexation: 'lpi5' }, flat(10), 3);
+    const level = simulate({ ...cfg, dbAmount: 12000, dbStartYear: 0, dbIndexation: 'level' }, flat(10), 3);
+    expect(lpi.final).toBeGreaterThan(level.final);  // indexed DB covers more of the inflating target
+  });
+});

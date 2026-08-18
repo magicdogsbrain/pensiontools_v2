@@ -2156,6 +2156,16 @@
                   </p>
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -2635,6 +2645,24 @@
             <div class="form-group" style="margin-top: 16px;">
               <label>Duration (years)</label>
               <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                <span style="font-size:12px;color:var(--text-muted);">Suggest from longevity:</span>
+                <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
+                <select id="ssLongevitySex" style="max-width:110px;">
+                  <option value="m" selected>Male</option>
+                  <option value="f">Female</option>
+                </select>
+                <select id="ssLongevityPct" style="max-width:230px;">
+                  <option value="10" selected>1-in-10 chance of living beyond (cautious)</option>
+                  <option value="25">1-in-4 chance of living beyond</option>
+                  <option value="50">Average life expectancy</option>
+                </select>
+                <button type="button" onclick="applyLongevitySuggestion()">Use</button>
+              </div>
+              <p id="ssLongevityNote" style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                Planning to the average means a 50% chance of outliving the plan — a survival
+                percentile is safer. Approximate ONS-style cohort figures.
+              </p>
             </div>
 
             <div id="ssRiskMode">
@@ -2685,6 +2713,16 @@
                   </p>
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -2794,7 +2832,28 @@
                   <label>Other Income/Pension (£/yr)</label>
                   <input type="number" id="ssOther" value="0">
                 </div>
+                <div class="form-group">
+                  <label>Defined-Benefit Pension (£/yr, today's money)</label>
+                  <input type="number" id="ssDbAmount" value="0">
+                </div>
+                <div class="form-group">
+                  <label>DB Starts (plan year, 0 = now)</label>
+                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40">
+                </div>
+                <div class="form-group">
+                  <label>DB Increases</label>
+                  <select id="ssDbIndexation">
+                    <option value="lpi5" selected>CPI capped at 5% (typical LPI)</option>
+                    <option value="cpi">Full CPI</option>
+                    <option value="level">Level (no increases)</option>
+                  </select>
+                </div>
               </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                A final-salary / defined-benefit pension is a guaranteed income floor — the sims
+                draw less from your pots once it starts. In the Decision Tool, enter DB income you
+                actually receive in each tax year's "Other income" (it works on actuals).
+              </p>
             </div>
 
             <div class="settings-section">
@@ -3081,6 +3140,8 @@
       grossUpAnnual,
       defaultBudget,
       evalAmountExpr,
+      longevityAge,
+      targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
       DEFAULT_TAX_BANDS,
@@ -3655,6 +3716,7 @@
         document.getElementById('dsAccessMethod').value = decisionSettings.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = decisionSettings.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
+        document.getElementById('dsBandFillRecycle').checked = !!decisionSettings.bandFillRecycle;
         syncAccessButtons('ds');
         document.getElementById('dsSpendingProfile').value = decisionSettings.spendingProfile || 'flat';
         // State Pension (new fields)
@@ -3684,6 +3746,9 @@
         document.getElementById('ssHRL').value = stressSettings.hrl;
         document.getElementById('ssTaxMode').value = stressSettings.taxMode || 'inflates';
         document.getElementById('ssOther').value = stressSettings.other || 0;
+        document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
+        document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
+        document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = stressSettings.spStartDate || '';
         document.getElementById('ssSpWeeklyAmount').value = stressSettings.spWeeklyAmount || '';
@@ -3701,6 +3766,7 @@
         document.getElementById('ssAccessMethod').value = stressSettings.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = stressSettings.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
+        document.getElementById('ssBandFillRecycle').checked = !!stressSettings.bandFillRecycle;
         syncAccessButtons('ss');
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -6164,6 +6230,18 @@
       if (el) el.innerHTML = h;
     }
 
+    // Longevity-based duration suggestion (stress settings).
+    window.applyLongevitySuggestion = function () {
+      const age = +document.getElementById('ssLongevityAge').value;
+      if (!age) { showToast('Enter your current age first', 'warning'); return; }
+      const sex = document.getElementById('ssLongevitySex').value;
+      const pct = +document.getElementById('ssLongevityPct').value;
+      const targetAge = longevityAge(age, sex, pct);
+      document.getElementById('ssDuration').value = Math.max(1, targetAge - age);
+      document.getElementById('ssLongevityNote').textContent =
+        'Set to age ' + targetAge + ' (' + Math.max(1, targetAge - age) + ' years). Approximate ONS-style cohort figures — planning to the average means a 50% chance of outliving the plan.';
+    };
+
     // Access method (drawdown vs UFPLS) — part of the plan definition, locked with the settings.
     window.setAccessMethod = function (p, v) {
       const el = document.getElementById(p + 'AccessMethod');
@@ -6264,6 +6342,9 @@
         document.getElementById('ssHRL').value = s.hrl;
         document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
         document.getElementById('ssOther').value = s.other || 0;
+        document.getElementById('ssDbAmount').value = s.dbAmount || 0;
+        document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
+        document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = s.spStartDate || '';
         document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
@@ -6281,6 +6362,7 @@
         document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
+        document.getElementById('ssBandFillRecycle').checked = !!s.bandFillRecycle;
         syncAccessButtons('ss');
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
@@ -6322,11 +6404,20 @@
 
       showLoading('Saving settings...');
       try {
+        // Budget-derived per-year target schedule: keep it only while the target still matches
+        // its year-0 anchor — a manual target edit reverts the plan to a flat target (the user
+        // can re-apply from the Budget page to restore the shape).
+        const _curSS = await getStressSettingsAsync();
+        const _newBase = +document.getElementById('ssBaseSalary').value;
+        const _keepSchedule = Array.isArray(_curSS.targetSchedule)
+          && Math.abs(_newBase - (_curSS.targetSchedule[0] || 0)) < 1;
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
+          bandFillRecycle: document.getElementById('ssBandFillRecycle').checked,
+          targetSchedule: _keepSchedule ? _curSS.targetSchedule : null,
           baseSalary: +document.getElementById('ssBaseSalary').value,
           equityMin: ssAlloc.equityMin,
           bondMin: ssAlloc.bondMin,
@@ -6337,6 +6428,9 @@
           hrl: +document.getElementById('ssHRL').value,
           taxMode: document.getElementById('ssTaxMode').value,
           other: +document.getElementById('ssOther').value,
+          dbAmount: +document.getElementById('ssDbAmount').value || 0,
+          dbStartYear: +document.getElementById('ssDbStartYear').value || 0,
+          dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
           // State Pension (new fields)
           spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
@@ -6465,6 +6559,7 @@
         document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = s.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
+        document.getElementById('dsBandFillRecycle').checked = !!s.bandFillRecycle;
         syncAccessButtons('ds');
 
         // Monthly Entry captures THIS MONTH's values — leave blank, not the plan's starting minimums.
@@ -6985,7 +7080,14 @@
       try {
         // Stress settings are a sandbox (never plan-locked); the Decision target is part of the
         // locked plan definition, so it only updates when the plan is unlocked.
-        await saveStressSettings({ baseSalary: gross });
+        // Per-year schedule: dated budget lines + one-offs, grossed up per year — the stress
+        // engine follows the shape (car lease ends, roof lands in its year) instead of a flat
+        // average. baseSalary stays as the year-0 anchor for display and the Decision tool.
+        const stressNow = await getStressSettingsAsync();
+        const dur = stressNow.duration || 35;
+        const netSchedule = targetScheduleFromBudget(window._budget, dur);
+        const targetSchedule = netSchedule.map((n) => Math.round(grossUpAnnual(n + headM * 12)));
+        await saveStressSettings({ baseSalary: gross, targetSchedule });
         const locked = await planIsLocked();
         if (!locked) await saveDecisionSettings({ baseSalary: gross });
         // The stress settings screen shows the net-first field — refresh if it's loaded.
@@ -7916,6 +8018,7 @@
           accessMethod: document.getElementById('dsAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('dsUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('dsUfplsPcls').checked,
+          bandFillRecycle: document.getElementById('dsBandFillRecycle').checked,
           equityMin: dsAlloc.equityMin,
           bondMin: dsAlloc.bondMin,
           cashTarget: dsAlloc.cashTarget,

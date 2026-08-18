@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-C0SLGDQ5.js"></script>
+  <script type="module" crossorigin src="./assets/main-9tX9_NAX.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1975,6 +1975,7 @@
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
+          <button class="tab" data-tab="accumulation">Accumulation</button>
         </nav>
       </div>
 
@@ -2952,6 +2953,71 @@
       </div>
 
       <!-- Budget Tab -->
+      <div id="accumulation-content" class="tab-content">
+        <div class="card">
+          <h2>Accumulation Planner <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— am I saving enough?</span></h2>
+          <p style="font-size:13px;color:var(--text-muted);">
+            Net-first, like everything here: say what you can spare from take-home pay and this
+            works out the gross pension purchase under your scheme's tax relief, projects the pot
+            to retirement (FCA low/mid/high rates, in today's money), and checks it against
+            <strong>your own budget-derived target</strong> — not a rule of thumb.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">About you</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" oninput="recalcAccumulation()"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Contributions</div>
+            <div class="form-grid">
+              <div class="form-group"><label>You pay (£/mo, from take-home)</label><input type="number" id="acNetMonthly" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>How relief works</label>
+                <select id="acScheme" onchange="recalcAccumulation()">
+                  <option value="ras" selected>Relief at source (most SIPPs / group schemes)</option>
+                  <option value="netpay">Net pay (deducted before tax)</option>
+                  <option value="salsac">Salary sacrifice (before tax &amp; NI)</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" oninput="recalcAccumulation()"></div>
+            </div>
+            <div id="acBreakdown" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Projection <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(today's money; FCA 2% / 5% / 8% nominal, CPI 2.5%)</span></div>
+            <div id="acWarnings"></div>
+            <div id="acProjection" style="overflow-x:auto;"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">Am I on track?</div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
+              Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
+              Pension, access method) through the Monte Carlo to find the pot that gives
+              <strong>85% success</strong> — then compares your projection against it.
+            </p>
+            <button type="button" onclick="runOnTrackCheck()">Check against my plan's target</button>
+            <div id="acOnTrack" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="form-grid" style="margin-top:10px;">
+            <button type="button" onclick="saveAccumulationUI()">Save</button>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Not financial advice. Annual Allowance £60,000 (tapers above £200k income; £10,000
+            MPAA once flexible income has been taken); minimum pension age rises to 57 on
+            6 April 2028; salary-sacrifice NI relief capped at £2,000/yr from April 2029.
+          </p>
+        </div>
+      </div>
+
       <div id="budget-content" class="tab-content">
         <div class="card">
           <h2>Budget — your spending plan</h2>

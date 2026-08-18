@@ -8,6 +8,8 @@
 // Services
 import { saveDecision } from './services/DecisionService.js';
 import { longevityAge } from './services/LongevityModel.js';
+import { contributionBreakdown, contributionWarnings, projectAccumulation, requiredPotForSuccess } from './services/AccumulationEngine.js';
+import { getActiveAccumulation, saveActiveAccumulation } from './storage/ScenarioRepository.js';
 
 import {
   runMonteCarlo,
@@ -361,6 +363,12 @@ export {
   plsaTierOf,
   summariseBudget,
   longevityAge,
+  contributionBreakdown,
+  contributionWarnings,
+  projectAccumulation,
+  requiredPotForSuccess,
+  getActiveAccumulation,
+  saveActiveAccumulation,
   targetScheduleFromBudget,
   annualNetAtAge,
   oneOffSchedule,

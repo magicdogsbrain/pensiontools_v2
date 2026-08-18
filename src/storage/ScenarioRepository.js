@@ -569,6 +569,25 @@ export async function saveActiveBudget(budget) {
 }
 
 /**
+ * Accumulation tool settings on the active scenario (pre-retirement contributions projection).
+ */
+export async function getActiveAccumulation() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.accumulationTool?.settings || {};
+}
+
+/** Save accumulation settings to the active scenario. */
+export async function saveActiveAccumulation(settings) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { 'accumulationTool.settings': settings });
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.accumulationTool) cachedActiveScenario.accumulationTool = {};
+    cachedActiveScenario.accumulationTool.settings = settings;
+  }
+}
+
+/**
  * Get tax years from the active scenario
  * @returns {Promise<object>} Tax years object
  */

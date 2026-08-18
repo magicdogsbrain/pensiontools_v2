@@ -122,14 +122,20 @@ function renderOnboardingPage(userName, onStartWizard, opts = {}) {
           <p class="onboarding-tool-need"><strong>What you'll need:</strong> Current fund values, tax year details, and your spending need (take-home).</p>
         </div>
 
-        <!-- Future: Accumulation -->
-        <div class="onboarding-tool-section future">
+        <!-- Accumulation -->
+        <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
-            <span class="onboarding-tool-badge future">Coming Soon</span>
             <h2>Accumulation Planner</h2>
           </div>
           <p class="onboarding-tool-question">"Am I saving enough for retirement?"</p>
-          <p>A future tool for people still building their pension. Project how your contributions and investment growth could add up over time.</p>
+          <p>For the years BEFORE retirement: say what you can spare from take-home pay and it works
+          out the gross pension purchase under your scheme's tax relief (relief at source, net pay,
+          or salary sacrifice — including the NI saving), projects your pot at the FCA's low/middle/high
+          growth rates, and checks whether you're on track for <strong>your own budget-derived
+          target</strong> — with warnings for the £60,000 Annual Allowance, the £10,000 MPAA (spotted
+          automatically from your Decision-tool history), and the minimum-pension-age rise to 57.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone still contributing — including alongside a partner's drawdown plan.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Salary, what you can afford monthly, employer contribution, current pot value.</p>
         </div>
 
         <!-- Plans & the lock -->

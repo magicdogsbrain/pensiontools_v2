@@ -12,7 +12,7 @@ import {
   buildTaxYearConfig,
   calculateMonthlyBreakdown
 } from '../../services/TaxYearWizardService.js';
-import { saveTaxYearConfig } from '../../storage/DecisionRepository.js';
+import { saveTaxYearConfig, getTaxYearConfigAsync } from '../../storage/DecisionRepository.js';
 
 // Wizard state
 let wizardElement = null;
@@ -717,9 +717,14 @@ function handleAction(action) {
       renderWizard();
       break;
 
-    case 'finish':
-      finishWizard();
+    case 'finish': {
+      // Re-entry guard: a double-click (or queued clicks) must not run the save twice or leave
+      // duplicate dialogs behind. Disable the button for the duration of the save.
+      const btn = wizardElement?.querySelector('[data-action="finish"]');
+      if (btn) { if (btn.disabled) break; btn.disabled = true; btn.textContent = 'Saving…'; }
+      finishWizard().finally(() => { if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Save'; } });
       break;
+    }
   }
 }
 
@@ -818,8 +823,13 @@ async function finishWizard() {
   console.log(`Tax Year Wizard: Saving config for ${wizardContext.taxYear}`, config);
 
   try {
-    // Save to repository
+    // Save to repository, then VERIFY the write round-trips — a silently-lost tax year leaves
+    // the plan half-configured (decision calculates in-session but the year vanishes on reload).
     await saveTaxYearConfig(wizardContext.taxYear, config);
+    const check = await getTaxYearConfigAsync(wizardContext.taxYear);
+    if (!check || !check.yearSetupComplete) {
+      throw new Error('the saved tax year did not read back — please try Confirm again');
+    }
     console.log(`Tax Year Wizard: Successfully saved config for ${wizardContext.taxYear}`);
   } catch (error) {
     console.error(`Tax Year Wizard: Failed to save config for ${wizardContext.taxYear}`, error);

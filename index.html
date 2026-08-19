@@ -1969,11 +1969,16 @@
       </header>
 
       <!-- Tabs -->
+      <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid #6366f1; border-radius:10px; background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span id="nextStepText" style="flex:1; min-width:220px;"></span>
+        <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
+        <button type="button" onclick="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
+      </div>
       <div class="tabs-wrapper">
         <nav class="tabs">
-          <button class="tab active" data-tab="decision">Decision Tool</button>
-          <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
+          <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
           <button class="tab" data-tab="household">Household</button>
         </nav>
@@ -2125,50 +2130,6 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
-              <div class="form-group" style="margin-top:12px;">
-                <label>Your 25% tax-free cash</label>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
-                </div>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Do you intend to use your tax-free sum as part of your income, or keep it for
-                  something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
-                  <strong>kept separate</strong> models every withdrawal as fully taxable —
-                  the right choice if you’ve already taken your tax-free lump sum.
-                </p>
-                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
-                  (limiting future pension contributions) and are first taxed on an emergency
-                  basis (reclaimable from HMRC). Neither is modelled here.
-                </p>
-                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
-                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
-                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
-                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="dsUfplsPcls">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
-                  </label>
-                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
-                    remains is still available tax-free (up to your remaining £268,275 allowance).
-                    The stress tester moves it into the ISA automatically; the decision tool will
-                    remind you to do it when the year arrives.
-                  </p>
-                </div>
-                <input type="hidden" id="dsAccessMethod" value="drawdown">
-                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
-                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
-                </label>
-                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
-                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
-                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
-                  now so that money comes out tax-free later. Pauses during protection months and
-                  while UFPLS tax-free withdrawals are active.
-                </p>
-              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" class="risk-cards">
@@ -2265,6 +2226,54 @@
                 20 years, then holds — the same spending smile as the Stress tester. In those declining years the
                 April wizard nets the drop off the inflation uplift (e.g. CPI 2.5% − 1% = a 1.5% target rise).
               </p>
+            </div>
+
+            <div class="settings-section">
+              <div class="section-title">How you'll take this pension</div>
+<div class="form-group">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
+                  (limiting future pension contributions) and are first taxed on an emergency
+                  basis (reclaimable from HMRC). Neither is modelled here.
+                </p>
+                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="dsUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
+                <input type="hidden" id="dsAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
+              </div>
             </div>
 
             <div class="settings-section">
@@ -2556,6 +2565,54 @@
               </div>
             </div>
 
+            <div class="settings-section">
+              <div class="section-title">How you'll take this pension</div>
+<div class="form-group">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
+                  (limiting future pension contributions) and are first taxed on an emergency
+                  basis (reclaimable from HMRC). Neither is modelled here.
+                </p>
+                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="ssUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
+                <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
+              </div>
+            </div>
+
             <style>
               .itemise-link { font-size:12px; color:var(--primary,#6366f1); margin-left:8px; text-decoration:none; font-weight:normal; }
               .itemise-link:hover { text-decoration:underline; }
@@ -2682,50 +2739,6 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
-              <div class="form-group" style="margin-top:12px;">
-                <label>Your 25% tax-free cash</label>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
-                </div>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Do you intend to use your tax-free sum as part of your income, or keep it for
-                  something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
-                  <strong>kept separate</strong> models every withdrawal as fully taxable —
-                  the right choice if you’ve already taken your tax-free lump sum.
-                </p>
-                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
-                  (limiting future pension contributions) and are first taxed on an emergency
-                  basis (reclaimable from HMRC). Neither is modelled here.
-                </p>
-                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
-                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
-                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
-                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="ssUfplsPcls">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
-                  </label>
-                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
-                    remains is still available tax-free (up to your remaining £268,275 allowance).
-                    The stress tester moves it into the ISA automatically; the decision tool will
-                    remind you to do it when the year arrives.
-                  </p>
-                </div>
-                <input type="hidden" id="ssAccessMethod" value="drawdown">
-                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
-                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
-                </label>
-                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
-                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
-                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
-                  now so that money comes out tax-free later. Pauses during protection months and
-                  while UFPLS tax-free withdrawals are active.
-                </p>
-              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
@@ -3044,6 +3057,11 @@
                 </select>
               </div>
             </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
+              <input type="text" id="hhNewPlanName" placeholder="e.g. Wendy - plan 1" style="max-width:200px;">
+              <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" onclick="createPartnerPlan()">Create their plan &amp; switch to it</button>
+            </div>
             <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
@@ -3122,6 +3140,15 @@
                 Mark each line <strong>Me / Partner / Shared</strong>. Your plan only funds your share — costs your
                 partner covers (their shopping, their car) drop out of your target but still show in the household total.
               </p>
+              <details style="margin-top:8px;">
+                <summary style="font-size:13px; cursor:pointer;">Change who pays over time <span style="color:var(--text-muted);">(optional — e.g. "I pay 70% until her pension starts at 63, then 50/50")</span></summary>
+                <div id="budSplitPhases" style="margin-top:8px;"></div>
+                <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" onclick="addSplitPhase()">+ Add a change</button>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Each row: from the age given, your share of "Shared" costs becomes the new percentage.
+                  Before the first row, the percentage above applies. Your plan's per-year target follows this automatically.
+                </p>
+              </details>
             </div>
           </div>
 
@@ -3279,6 +3306,8 @@
       setHouseholdPartnerId,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
+      runSurvivorCheck,
+      allowanceNudge,
       targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
@@ -3747,6 +3776,7 @@
 
       // Determine which tab to show
       const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
+      updateNextStepBanner();
 
       // Activate the target tab
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -4703,6 +4733,7 @@
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
+        updateNextStepBanner();
       });
     });
 
@@ -6371,6 +6402,52 @@
       if (el) el.innerHTML = h;
     }
 
+    // ---- Next-step guide rail ---------------------------------------------------------------
+    // One sentence + one button, computed from actual plan state. Disappears once the journey
+    // (budget → target → stress → decision) is complete, and can be dismissed per plan.
+    window.updateNextStepBanner = async function () {
+      const banner = document.getElementById('nextStepBanner');
+      if (!banner) return;
+      try {
+        const scenarioId = await getActiveScenarioId();
+        if (!scenarioId || localStorage.getItem('nextStepDismissed:' + scenarioId)) { banner.style.display = 'none'; return; }
+        const [budget, stress, decision] = await Promise.all([
+          getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync()
+        ]);
+        const budgetDone = (budget.lines || []).some((l) => +l.annual > 0);
+        const targetApplied = stress.configured && (stress.baseSalary || 0) > 0;
+        const decisionDone = !!decision.configured;
+        let text = null, btn = null, act = null;
+        if (!budgetDone) {
+          text = 'Start here: walk through what retirement will actually cost — about 10 minutes, with typical UK figures when you\'re unsure.';
+          btn = 'Start the budget walk-through';
+          act = () => { switchToTab('budget'); setTimeout(() => openBudgetWizard(), 400); };
+        } else if (!targetApplied) {
+          const m = budget.derived?.allInComfortableMonthly;
+          text = 'Your budget adds up' + (m ? ' to about ' + gbp(Math.round(m)) + '/mo take-home' : '') + '. Make it your plan\'s target, then see if your pension can pay for it.';
+          btn = 'Set as my plan\'s target';
+          act = async () => { await applyBudgetToPlan(); updateNextStepBanner(); };
+        } else if (!decisionDone) {
+          text = 'Your target is set and the Stress Tester is ready — when the long-term picture looks right, set up the monthly Decision Tool (it tells you what to draw, from where, each month).';
+          btn = 'Open the Decision Tool';
+          act = () => switchToTab('decision');
+        }
+        if (!text) { banner.style.display = 'none'; return; }
+        document.getElementById('nextStepText').innerHTML = text;
+        const b = document.getElementById('nextStepBtn');
+        b.textContent = btn;
+        b.onclick = act;
+        banner.style.display = 'flex';
+      } catch (e) { banner.style.display = 'none'; }
+    };
+    window.dismissNextStep = async function () {
+      try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
+      document.getElementById('nextStepBanner').style.display = 'none';
+    };
+    window.switchToTab = function (name) {
+      document.querySelector('.tab[data-tab="' + name + '"]')?.click();
+    };
+
     // ---- Household tab (couples view) -------------------------------------------------------
     window.loadHouseholdUI = async function () {
       try {
@@ -6476,11 +6553,73 @@
             + 'Then come back and re-run this check.</p></div>';
         }
 
+        // ---- Allowance-filling nudge (display only — you choose, we model) ----
+        const nudge = allowanceNudge(ownSettings, partnerSettings, ownName, pName);
+        if (nudge.message) {
+          html += '<div class="settings-section"><div class="section-title">A tax thought</div>'
+            + '<div class="alert alert-info">💡 ' + nudge.message + ' You choose who funds what — this tool just shows the sums. (Adjust the budget\'s who-pays split, then re-run.)</div></div>';
+        }
+
+        // ---- Survivor one-shot stress (opt-in controls) ----
+        html += '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
+          + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits the other\'s remaining pots (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending.</p>'
+          + '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px;">'
+          + 'If <select id="hhWhoDies" style="max-width:170px;"><option value="A">' + ownName + '</option><option value="B">' + pName + '</option></select>'
+          + ' dies in year <input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:64px;">'
+          + ', survivor spends <input type="number" id="hhSurvivorPct" value="70" min="40" max="100" style="width:64px;">% of the joint budget'
+          + ', DB pensions continue at <input type="number" id="hhDbSurvivorPct" value="50" min="0" max="100" style="width:64px;">%'
+          + ' <button type="button" class="risk-btn" style="padding:5px 12px;" onclick="runSurvivorUI()">Run survivor check</button></div>'
+          + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>';
+
+        window._hhLast = { cfgA, cfgB, ownSettings, partnerSettings, ownName, pName };
         out.innerHTML = html;
       } catch (e) {
         console.error('Household check error:', e);
         out.innerHTML = '<div class="alert alert-warning">Could not run the household check: ' + e.message + '</div>';
       }
+    };
+
+    window.runSurvivorUI = async function () {
+      const box = document.getElementById('hhSurvivorResult');
+      const L = window._hhLast;
+      if (!L) return;
+      box.innerHTML = '<p style="font-size:13px;">Running the survivor\'s modified plan…</p>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const whoDies = document.getElementById('hhWhoDies').value;
+        const deathYear = +document.getElementById('hhDeathYear').value || 10;
+        const spendFraction = (+document.getElementById('hhSurvivorPct').value || 70) / 100;
+        const dbSurvivorPct = (+document.getElementById('hhDbSurvivorPct').value || 0) / 100;
+        const surv = whoDies === 'A'
+          ? { cfg: L.cfgB, set: L.partnerSettings, name: L.pName, dCfg: L.cfgA, dSet: L.ownSettings, dName: L.ownName }
+          : { cfg: L.cfgA, set: L.ownSettings, name: L.ownName, dCfg: L.cfgB, dSet: L.partnerSettings, dName: L.pName };
+        const r = runSurvivorCheck({
+          survivorCfg: surv.cfg, survivorSettings: surv.set,
+          deceasedCfg: surv.dCfg, deceasedSettings: surv.dSet,
+          deathYear, spendFraction, dbSurvivorPct, runs: 500
+        });
+        const cls = r.survivorSuccess >= 0.85 ? 'alert-success' : r.survivorSuccess >= 0.7 ? 'alert-warning' : 'alert-danger';
+        box.innerHTML = '<div class="alert ' + cls + '">If ' + surv.dName + ' dies in year ' + deathYear + ': <strong>' + surv.name
+          + '\'s plan still works in ' + (r.survivorSuccess * 100).toFixed(0) + '%</strong> of 500 futures — inheriting about '
+          + gbp(Math.round(r.inheritedPots + r.inheritedIsa)) + ' (median remaining pots), spending '
+          + gbp(Math.round(r.survivorAnnualAfter)) + '/yr from then on.</div>'
+          + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions assumed inherited tax-free (death before 75), ISA passed via the spouse allowance, median inheritance from ' + surv.dName + '\'s own simulations.</p>';
+      } catch (e) {
+        box.innerHTML = '<div class="alert alert-warning">Survivor check failed: ' + e.message + '</div>';
+      }
+    };
+
+    window.createPartnerPlan = async function () {
+      const name = (document.getElementById('hhNewPlanName').value || '').trim();
+      if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
+      try {
+        showLoading('Creating ' + name + '…');
+        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], {}, true);
+        showToast(name + ' created — fill in their Stress settings, then come back to Household and pick them.', 'success', 6000);
+        location.reload();
+      } catch (e) {
+        showToast('Could not create the plan: ' + e.message, 'error');
+      } finally { hideLoading(); }
     };
 
     // ---- Accumulation tab -----------------------------------------------------------------
@@ -6821,6 +6960,8 @@
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 });
         updateSetupBanners();
+        updateNextStepBanner();
+        updateNextStepBanner();
         showToast('Settings saved successfully', 'success');
       } catch (error) {
         console.error('Error saving stress settings:', error);
@@ -6978,6 +7119,7 @@
       document.getElementById('budShared').checked = !!window._budget.sharedWithPartner;
       document.getElementById('budSharePct').value = window._budget.mySharePct ?? 50;
       document.getElementById('budShareRow').style.display = window._budget.sharedWithPartner ? 'block' : 'none';
+      renderSplitPhases();
       renderBudgetLines();
       renderBudgetOneOffs();
       updateBudgetSummary();
@@ -7029,8 +7171,37 @@
     window.onBudgetSharedToggle = function () {
       window._budget.sharedWithPartner = document.getElementById('budShared').checked;
       document.getElementById('budShareRow').style.display = window._budget.sharedWithPartner ? 'block' : 'none';
+      renderSplitPhases();
       renderBudgetLines();
       renderBudgetOneOffs();
+      updateBudgetSummary();
+    };
+
+    window.renderSplitPhases = function () {
+      const box = document.getElementById('budSplitPhases');
+      if (!box) return;
+      const phases = window._budget.splitPhases || [];
+      box.innerHTML = phases.map((p, i) =>
+        '<div style="display:flex; align-items:center; gap:6px; margin-top:4px; font-size:13px;">From age '
+        + '<input type="number" min="40" max="100" value="' + (p.fromAge ?? '') + '" style="width:68px;" oninput="updateSplitPhase(' + i + ',\'fromAge\',this.value)"> my share becomes '
+        + '<input type="number" min="0" max="100" value="' + (p.mySharePct ?? '') + '" style="width:68px;" oninput="updateSplitPhase(' + i + ',\'mySharePct\',this.value)">% '
+        + '<button type="button" style="background:none;border:none;color:var(--text-muted);cursor:pointer;" title="Remove" onclick="removeSplitPhase(' + i + ')">✕</button></div>'
+      ).join('') || '<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">No changes yet — one split applies for the whole plan.</p>';
+    };
+    window.addSplitPhase = function () {
+      (window._budget.splitPhases = window._budget.splitPhases || []).push({ fromAge: '', mySharePct: '' });
+      renderSplitPhases();
+      updateBudgetSummary();
+    };
+    window.updateSplitPhase = function (i, k, v) {
+      if (window._budget.splitPhases && window._budget.splitPhases[i]) {
+        window._budget.splitPhases[i][k] = v === '' ? '' : +v;
+        updateBudgetSummary();
+      }
+    };
+    window.removeSplitPhase = function (i) {
+      window._budget.splitPhases.splice(i, 1);
+      renderSplitPhases();
       updateBudgetSummary();
     };
 
@@ -7460,6 +7631,7 @@
         if (ssGross) { ssGross.value = gross; syncNetFromGross('ss'); }
         const dsGross = document.getElementById('dsBaseSalary');
         if (dsGross && !locked) { dsGross.value = gross; syncNetFromGross('ds'); }
+        updateNextStepBanner();
         showToast('Target set: both tools now work to ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + ' — ' + gbp(gross) + '/yr gross' +
           (locked ? '. Stress only; the Decision plan is locked' : ''), 'success', 5000);
       } catch (e) {
@@ -8410,6 +8582,7 @@
           locked: true
         });
         updateSetupBanners();
+        updateNextStepBanner();
         showToast('Settings saved and locked. Create a new plan to use different settings.', 'success', 4000);
         // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).
         await refreshDecisionLock();

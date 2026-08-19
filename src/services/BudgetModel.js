@@ -258,17 +258,34 @@ export function annualNetAtAge(budget, age, tier = 'all') {
  * This keeps the plan single-person while letting a couple split who-pays-what: each person models
  * their own plan against their share of the household budget.
  */
-export function myShareFactor(item, budget) {
+export function myShareFactor(item, budget, age = null) {
   if (!budget || !budget.sharedWithPartner) return 1;
   const who = (item && item.paidBy) || 'me';
   if (who === 'partner') return 0;
   if (who === 'shared') {
     const own = item && item.mySharePct;
     const pct = (own != null && own !== '' && Number.isFinite(+own)) ? +own
-      : (Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50);
+      : budgetSharePctAtAge(budget, age);
     return Math.max(0, Math.min(1, pct / 100));
   }
   return 1;
+}
+
+/**
+ * Budget-wide "my share" percentage at a given age. A static split breaks when income shifts
+ * between partners over the years (e.g. "I carry 70% until Wendy's pension starts at 63, then
+ * 50/50"), so the budget may define optional phases: splitPhases: [{fromAge, mySharePct}].
+ * The phase with the highest fromAge ≤ age wins; ages before the first phase — and budgets
+ * with no phases — use the plain budget-wide mySharePct (today's behaviour, unchanged).
+ */
+export function budgetSharePctAtAge(budget, age = null) {
+  const base = Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50;
+  const phases = Array.isArray(budget.splitPhases)
+    ? budget.splitPhases.filter((p) => Number.isFinite(+p.fromAge) && Number.isFinite(+p.mySharePct))
+    : [];
+  if (age == null || phases.length === 0) return base;
+  const applicable = phases.filter((p) => +p.fromAge <= age).sort((a, b) => +a.fromAge - +b.fromAge).pop();
+  return applicable ? +applicable.mySharePct : base;
 }
 
 /** Annual expenditure the PLAN OWNER funds (household cost × their share of each line). */
@@ -276,7 +293,7 @@ export function myAnnualNetAtAge(budget, age, tier = 'all') {
   return (budget.lines || [])
     .filter((l) => tier === 'all' || l.tier === tier)
     .filter((l) => lineActiveAtAge(l, budget, age))
-    .reduce((sum, l) => sum + num(l.annual) * myShareFactor(l, budget), 0);
+    .reduce((sum, l) => sum + num(l.annual) * myShareFactor(l, budget, age), 0);
 }
 
 /** Essential (floor) annual spend at the start of retirement. */
@@ -340,7 +357,7 @@ export function periodicAnnualAverage(budget, mineOnly = false) {
     const amt = num(o.amount);
     const every = num(o.everyYears);
     if (!(every > 0 && amt)) return sum;
-    return sum + (amt / every) * (mineOnly ? myShareFactor(o, budget) : 1);
+    return sum + (amt / every) * (mineOnly ? myShareFactor(o, budget, num(budget.retirementAge)) : 1);
   }, 0);
 }
 
@@ -363,7 +380,7 @@ export function targetScheduleFromBudget(budget, duration) {
     for (const l of lumps) {
       if (l.age === age) {
         const src = (budget.oneOffs || []).find((o) => o.label === l.label) || {};
-        net += l.amount * myShareFactor(src, budget);
+        net += l.amount * myShareFactor(src, budget, age);
       }
     }
     schedule.push(net);

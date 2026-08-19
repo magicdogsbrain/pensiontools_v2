@@ -66,3 +66,59 @@ describe('householdIncomeTimeline', () => {
     expect(rows[2].needA).toBe(30000);                  // falls back to baseSalary
   });
 });
+
+import { runSurvivorCheck, allowanceNudge } from '../src/services/HouseholdService.js';
+
+describe('runSurvivorCheck', () => {
+  it('inheriting the partner pots makes the survivor MORE secure than their plan alone, despite higher spending', () => {
+    const survivorSet = { duration: 25, baseSalary: 20000, statePension: 12000, statePensionYear: 5 };
+    const deceasedSet = { duration: 25, baseSalary: 20000, statePension: 11000, statePensionYear: 5 };
+    const mk = (o={}) => ({ equityStart: 200000, bondStart: 120000, cashStart: 30000,
+      equityMin: 80000, bondMin: 60000, cashTarget: 20000, duration: 35, years: 25,
+      baseSalary: 20000, other: 0, statePension: 12000, statePensionYear: 5,
+      pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
+      protectionMult: 0.8, hodlEnabled: false, hodlValue: 0, isaBalance: 10000, ...o });
+    const r = runSurvivorCheck({
+      survivorCfg: mk(), survivorSettings: survivorSet,
+      deceasedCfg: mk({ statePension: 11000 }), deceasedSettings: deceasedSet,
+      deathYear: 8, spendFraction: 0.7, runs: 100
+    });
+    expect(r.inheritedPots).toBeGreaterThan(0);
+    expect(r.survivorSuccess).toBeGreaterThan(0.4);
+    // spending steps to 70% of joint at death year: (20000+20000)*0.7 = 28000 (flat profiles)
+    expect(r.survivorAnnualAfter).toBeCloseTo(28000, 0);
+  });
+
+  it('deceased DB continues at the survivor rate via extraIncomes', () => {
+    const base = { equityStart: 150000, bondStart: 100000, cashStart: 30000,
+      equityMin: 60000, bondMin: 50000, cashTarget: 20000, duration: 35, years: 20,
+      baseSalary: 22000, other: 0, statePension: 0, statePensionYear: 99,
+      pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
+      protectionMult: 0.8, hodlEnabled: false, hodlValue: 0 };
+    const args = {
+      survivorCfg: base, survivorSettings: { duration: 20, baseSalary: 22000 },
+      deceasedCfg: base, deceasedSettings: { duration: 20, baseSalary: 15000, dbAmount: 10000, dbStartYear: 0 },
+      deathYear: 5, spendFraction: 0.7, runs: 60
+    };
+    const withDb = runSurvivorCheck({ ...args, dbSurvivorPct: 0.5 });
+    const noDb = runSurvivorCheck({ ...args, dbSurvivorPct: 0 });
+    expect(withDb.survivorSuccess).toBeGreaterThanOrEqual(noDb.survivorSuccess);
+  });
+});
+
+describe('allowanceNudge', () => {
+  it('flags 40%-band spend on one side against unused 20% band on the other', () => {
+    const rich = { baseSalary: 70000, other: 0, statePensionYear: 99, statePension: 0, duration: 30 };
+    const modest = { baseSalary: 20000, other: 0, statePensionYear: 99, statePension: 0, duration: 30 };
+    const n = allowanceNudge(rich, modest, 'Chris', 'Wendy');
+    expect(n.overA).toBeGreaterThan(0);
+    expect(n.unusedB).toBeGreaterThan(0);
+    expect(n.message).toMatch(/Chris pays 40%/);
+    expect(n.message).toMatch(/Wendy/);
+  });
+
+  it('stays silent when both are inside their bands', () => {
+    const a = { baseSalary: 30000, duration: 30 }, b = { baseSalary: 25000, duration: 30 };
+    expect(allowanceNudge(a, b).message).toBeNull();
+  });
+});

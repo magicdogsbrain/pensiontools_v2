@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-QGS1l63s.js"></script>
+  <script type="module" crossorigin src="./assets/main-CIP3exnP.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1970,11 +1970,16 @@
       </header>
 
       <!-- Tabs -->
+      <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid #6366f1; border-radius:10px; background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span id="nextStepText" style="flex:1; min-width:220px;"></span>
+        <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
+        <button type="button" onclick="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
+      </div>
       <div class="tabs-wrapper">
         <nav class="tabs">
-          <button class="tab active" data-tab="decision">Decision Tool</button>
-          <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
+          <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
           <button class="tab" data-tab="household">Household</button>
         </nav>
@@ -2126,50 +2131,6 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
-              <div class="form-group" style="margin-top:12px;">
-                <label>Your 25% tax-free cash</label>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
-                </div>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Do you intend to use your tax-free sum as part of your income, or keep it for
-                  something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
-                  <strong>kept separate</strong> models every withdrawal as fully taxable —
-                  the right choice if you’ve already taken your tax-free lump sum.
-                </p>
-                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
-                  (limiting future pension contributions) and are first taxed on an emergency
-                  basis (reclaimable from HMRC). Neither is modelled here.
-                </p>
-                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
-                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
-                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
-                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="dsUfplsPcls">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
-                  </label>
-                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
-                    remains is still available tax-free (up to your remaining £268,275 allowance).
-                    The stress tester moves it into the ISA automatically; the decision tool will
-                    remind you to do it when the year arrives.
-                  </p>
-                </div>
-                <input type="hidden" id="dsAccessMethod" value="drawdown">
-                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
-                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
-                </label>
-                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
-                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
-                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
-                  now so that money comes out tax-free later. Pauses during protection months and
-                  while UFPLS tax-free withdrawals are active.
-                </p>
-              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" class="risk-cards">
@@ -2266,6 +2227,54 @@
                 20 years, then holds — the same spending smile as the Stress tester. In those declining years the
                 April wizard nets the drop off the inflation uplift (e.g. CPI 2.5% − 1% = a 1.5% target rise).
               </p>
+            </div>
+
+            <div class="settings-section">
+              <div class="section-title">How you'll take this pension</div>
+<div class="form-group">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
+                  (limiting future pension contributions) and are first taxed on an emergency
+                  basis (reclaimable from HMRC). Neither is modelled here.
+                </p>
+                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="dsUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
+                <input type="hidden" id="dsAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
+              </div>
             </div>
 
             <div class="settings-section">
@@ -2557,6 +2566,54 @@
               </div>
             </div>
 
+            <div class="settings-section">
+              <div class="section-title">How you'll take this pension</div>
+<div class="form-group">
+                <label>Your 25% tax-free cash</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Do you intend to use your tax-free sum as part of your income, or keep it for
+                  something else? <strong>Part of my income</strong> models a quarter of every
+                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  <strong>kept separate</strong> models every withdrawal as fully taxable —
+                  the right choice if you’ve already taken your tax-free lump sum.
+                </p>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
+                  (limiting future pension contributions) and are first taxed on an emergency
+                  basis (reclaimable from HMRC). Neither is modelled here.
+                </p>
+                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
+                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                    <input type="checkbox" id="ssUfplsPcls">
+                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                  </label>
+                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
+                    remains is still available tax-free (up to your remaining £268,275 allowance).
+                    The stress tester moves it into the ISA automatically; the decision tool will
+                    remind you to do it when the year arrives.
+                  </p>
+                </div>
+                <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
+                </label>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
+                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
+                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
+                  now so that money comes out tax-free later. Pauses during protection months and
+                  while UFPLS tax-free withdrawals are active.
+                </p>
+              </div>
+            </div>
+
             <style>
               .itemise-link { font-size:12px; color:var(--primary,#6366f1); margin-left:8px; text-decoration:none; font-weight:normal; }
               .itemise-link:hover { text-decoration:underline; }
@@ -2683,50 +2740,6 @@
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
                 tax-free bridge, drawn without tax and modelled with its own steady return.
               </p>
-              <div class="form-group" style="margin-top:12px;">
-                <label>Your 25% tax-free cash</label>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
-                </div>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Do you intend to use your tax-free sum as part of your income, or keep it for
-                  something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
-                  <strong>kept separate</strong> models every withdrawal as fully taxable —
-                  the right choice if you’ve already taken your tax-free lump sum.
-                </p>
-                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                  Note: real UFPLS payments trigger the £10,000 Money Purchase Annual Allowance
-                  (limiting future pension contributions) and are first taxed on an emergency
-                  basis (reclaimable from HMRC). Neither is modelled here.
-                </p>
-                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
-                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
-                  <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
-                  <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="ssUfplsPcls">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
-                  </label>
-                  <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
-                    UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
-                    remains is still available tax-free (up to your remaining £268,275 allowance).
-                    The stress tester moves it into the ISA automatically; the decision tool will
-                    remind you to do it when the year arrives.
-                  </p>
-                </div>
-                <input type="hidden" id="ssAccessMethod" value="drawdown">
-                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
-                  <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
-                </label>
-                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
-                  Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
-                  moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
-                  now so that money comes out tax-free later. Pauses during protection months and
-                  while UFPLS tax-free withdrawals are active.
-                </p>
-              </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
@@ -3045,6 +3058,11 @@
                 </select>
               </div>
             </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
+              <input type="text" id="hhNewPlanName" placeholder="e.g. Wendy - plan 1" style="max-width:200px;">
+              <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" onclick="createPartnerPlan()">Create their plan &amp; switch to it</button>
+            </div>
             <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
@@ -3123,6 +3141,15 @@
                 Mark each line <strong>Me / Partner / Shared</strong>. Your plan only funds your share — costs your
                 partner covers (their shopping, their car) drop out of your target but still show in the household total.
               </p>
+              <details style="margin-top:8px;">
+                <summary style="font-size:13px; cursor:pointer;">Change who pays over time <span style="color:var(--text-muted);">(optional — e.g. "I pay 70% until her pension starts at 63, then 50/50")</span></summary>
+                <div id="budSplitPhases" style="margin-top:8px;"></div>
+                <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" onclick="addSplitPhase()">+ Add a change</button>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
+                  Each row: from the age given, your share of "Shared" costs becomes the new percentage.
+                  Before the first row, the percentage above applies. Your plan's per-year target follows this automatically.
+                </p>
+              </details>
             </div>
           </div>
 

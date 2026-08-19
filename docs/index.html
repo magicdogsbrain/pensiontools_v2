@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-9tX9_NAX.js"></script>
+  <script type="module" crossorigin src="./assets/main-C_CfJGw2.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1976,6 +1976,7 @@
           <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
+          <button class="tab" data-tab="household">Household</button>
         </nav>
       </div>
 
@@ -3015,6 +3016,42 @@
             MPAA once flexible income has been taken); minimum pension age rises to 57 on
             6 April 2028; salary-sacrifice NI relief capped at £2,000/yr from April 2029.
           </p>
+        </div>
+      </div>
+
+      <div id="household-content" class="tab-content">
+        <div class="card">
+          <h2>Household <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— can we retire, together?</span></h2>
+          <p style="font-size:13px;color:var(--text-muted);">
+            UK pensions and tax are individual, so each of you keeps your own plan — but the
+            question is joint. This view runs <strong>both plans on the same market paths</strong>
+            (you both hold the same markets, so bad years hit you together) and shows the combined
+            picture. Your own plan's tabs are unchanged — this is an extra lens, not a replacement.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">The two plans</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>This plan (you)</label>
+                <input type="text" id="hhOwnPlan" disabled>
+              </div>
+              <div class="form-group">
+                <label>Partner's plan</label>
+                <select id="hhPartnerSelect" onchange="savePartnerSelection()">
+                  <option value="">— choose a plan —</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+              Your partner's plan is just another plan in this account — create one from the plan
+              menu (▾ at the top), fill in their settings in the Stress Tester, and pick it here.
+              The Budget tool's per-person split gives each plan its share of the household spending.
+            </p>
+            <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
+          </div>
+
+          <div id="hhResults"></div>
         </div>
       </div>
 

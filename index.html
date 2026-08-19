@@ -1975,6 +1975,7 @@
           <button class="tab" data-tab="stress">Stress Tester</button>
           <button class="tab" data-tab="budget">Budget</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
+          <button class="tab" data-tab="household">Household</button>
         </nav>
       </div>
 
@@ -3017,6 +3018,42 @@
         </div>
       </div>
 
+      <div id="household-content" class="tab-content">
+        <div class="card">
+          <h2>Household <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— can we retire, together?</span></h2>
+          <p style="font-size:13px;color:var(--text-muted);">
+            UK pensions and tax are individual, so each of you keeps your own plan — but the
+            question is joint. This view runs <strong>both plans on the same market paths</strong>
+            (you both hold the same markets, so bad years hit you together) and shows the combined
+            picture. Your own plan's tabs are unchanged — this is an extra lens, not a replacement.
+          </p>
+
+          <div class="settings-section">
+            <div class="section-title">The two plans</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>This plan (you)</label>
+                <input type="text" id="hhOwnPlan" disabled>
+              </div>
+              <div class="form-group">
+                <label>Partner's plan</label>
+                <select id="hhPartnerSelect" onchange="savePartnerSelection()">
+                  <option value="">— choose a plan —</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+              Your partner's plan is just another plan in this account — create one from the plan
+              menu (▾ at the top), fill in their settings in the Stress Tester, and pick it here.
+              The Budget tool's per-person split gives each plan its share of the household spending.
+            </p>
+            <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
+          </div>
+
+          <div id="hhResults"></div>
+        </div>
+      </div>
+
       <div id="budget-content" class="tab-content">
         <div class="card">
           <h2>Budget — your spending plan</h2>
@@ -3213,6 +3250,10 @@
       requiredPotForSuccess,
       getActiveAccumulation,
       saveActiveAccumulation,
+      getHouseholdPartnerId,
+      setHouseholdPartnerId,
+      runHouseholdMonteCarlo,
+      householdIncomeTimeline,
       targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
@@ -3227,6 +3268,7 @@
     import {
       invalidateScenarioCache,
       listScenariosAsync,
+      getActiveScenarioId,
       getActiveScenarioAsync,
       getActiveEnabledTools,
       switchScenario,
@@ -4635,6 +4677,7 @@
         if (tab.dataset.tab === 'stress') await loadStressSettings();
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
+        if (tab.dataset.tab === 'household') await loadHouseholdUI();
       });
     });
 
@@ -6302,6 +6345,92 @@
       h += `<p style="margin-top:12px;font-size:13px;">Best coverage: <strong>${RISK_PRESETS[best.key].label}${best.tent === 'tent' ? ' + bond tent' : ''}</strong> at ${best.cov.toFixed(0)}%. Set it in Settings if you'd like it.</p>`;
       if (el) el.innerHTML = h;
     }
+
+    // ---- Household tab (couples view) -------------------------------------------------------
+    window.loadHouseholdUI = async function () {
+      try {
+        const [scenarios, activeId, partnerId] = await Promise.all([
+          listScenariosAsync(), getActiveScenarioId(), getHouseholdPartnerId()
+        ]);
+        const own = scenarios.find((sc) => sc.id === activeId);
+        document.getElementById('hhOwnPlan').value = own?.planDetails?.name || 'Current plan';
+        const sel = document.getElementById('hhPartnerSelect');
+        sel.innerHTML = '<option value="">— choose a plan —</option>' + scenarios
+          .filter((sc) => sc.id !== activeId)
+          .map((sc) => '<option value="' + sc.id + '"' + (sc.id === partnerId ? ' selected' : '') + '>'
+            + (sc.planDetails?.name || sc.id) + '</option>').join('');
+      } catch (e) { console.error('Household load error:', e); }
+    };
+
+    window.savePartnerSelection = async function () {
+      try {
+        await setHouseholdPartnerId(document.getElementById('hhPartnerSelect').value || null);
+      } catch (e) { showToast('Could not save partner selection: ' + e.message, 'error'); }
+    };
+
+    window.runHouseholdCheck = async function () {
+      const out = document.getElementById('hhResults');
+      const partnerId = document.getElementById('hhPartnerSelect').value;
+      if (!partnerId) { showToast('Choose your partner\'s plan first', 'warning'); return; }
+      out.innerHTML = '<p style="font-size:13px;">Running both plans on the same 1,000 market paths…</p>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const [scenarios, ownSettings] = await Promise.all([listScenariosAsync(), getStressSettingsAsync()]);
+        const partner = scenarios.find((sc) => sc.id === partnerId);
+        const partnerSettings = partner?.stressTool?.settings;
+        if (!partnerSettings || !partnerSettings.configured) {
+          out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — open that plan, fill in its settings, then come back.</div>';
+          return;
+        }
+        const cfgA = createSimulationConfigFromSettings({}, ownSettings);
+        const cfgB = createSimulationConfigFromSettings({}, partnerSettings);
+        const r = runHouseholdMonteCarlo(cfgA, cfgB, 1000);
+        const ownName = document.getElementById('hhOwnPlan').value;
+        const pName = partner.planDetails?.name || 'Partner';
+
+        const pctFmt = (x) => (x * 100).toFixed(1) + '%';
+        let html = '<div class="settings-section"><div class="section-title">Will the money last — together?</div>';
+        html += '<div class="alert ' + (r.jointSuccess >= 0.85 ? 'alert-success' : r.jointSuccess >= 0.7 ? 'alert-warning' : 'alert-danger') + '">'
+          + 'Joint success: <strong>' + pctFmt(r.jointSuccess) + '</strong> of 1,000 shared-market futures had BOTH plans last their full term. '
+          + '(' + ownName + ' alone: ' + pctFmt(r.successA) + ' · ' + pName + ' alone: ' + pctFmt(r.successB) + ')</div>';
+        html += '<p style="font-size:12px;color:var(--text-muted);">Treating the two plans as independent would claim '
+          + pctFmt(r.independenceAssumed) + ' — but you hold the same markets, so bad sequences hit you both at once. The joint number above is the honest one.</p></div>';
+
+        // Household wealth fan
+        html += '<div class="settings-section"><div class="section-title">Household wealth over time <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(both pots + ISAs, today\'s money)</span></div>';
+        html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>Poor decade (p10)</th><th>Median</th><th>Strong (p90)</th></tr></thead><tbody>';
+        for (let y = 0; y < r.potFan.length; y += 5) {
+          const f = r.potFan[y];
+          html += '<tr><td>' + f.year + '</td><td>' + gbp(Math.round(f.p10)) + '</td><td>' + gbp(Math.round(f.p50)) + '</td><td>' + gbp(Math.round(f.p90)) + '</td></tr>';
+        }
+        html += '</tbody></table></div></div>';
+
+        // Income timeline
+        const rows = householdIncomeTimeline(ownSettings, partnerSettings);
+        html += '<div class="settings-section"><div class="section-title">Household income timeline <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(today\'s money, gross-equivalent per year)</span></div>';
+        const bridgeYears = rows.filter((row) => row.bridge).length;
+        if (bridgeYears > 0) {
+          html += '<div class="alert alert-info">Bridge: for the first <strong>' + bridgeYears + ' years</strong> at least one State Pension is not yet in payment — the pots carry more of the load in those years.</div>';
+        }
+        html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>Need (' + ownName + ')</th><th>Need (' + pName + ')</th><th>State Pensions</th><th>DB + other</th><th>From the pots</th></tr></thead><tbody>';
+        const marks = new Set([0]);
+        rows.forEach((row, i) => { if (i > 0 && (row.spA !== rows[i-1].spA || row.spB !== rows[i-1].spB || row.db !== rows[i-1].db || row.needB === 0 && rows[i-1].needB > 0 || row.needA === 0 && rows[i-1].needA > 0)) marks.add(i); });
+        for (let y = 0; y < rows.length; y += 5) marks.add(y);
+        [...marks].sort((a, b) => a - b).forEach((i) => {
+          const row = rows[i];
+          if (!row) return;
+          html += '<tr' + (row.bridge ? ' style="opacity:0.9;"' : '') + '><td>' + row.year + (row.bridge ? ' 🌉' : '') + '</td><td>' + gbp(Math.round(row.needA)) + '</td><td>' + gbp(Math.round(row.needB))
+            + '</td><td>' + gbp(Math.round(row.spA + row.spB)) + '</td><td>' + gbp(Math.round(row.db + row.other)) + '</td><td><strong>' + gbp(Math.round(row.drawNeed)) + '</strong></td></tr>';
+        });
+        html += '</tbody></table></div>'
+          + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Rows shown where something changes (a State Pension starts, a plan ends) plus every 5th year. 🌉 = bridge year.</p></div>';
+
+        out.innerHTML = html;
+      } catch (e) {
+        console.error('Household check error:', e);
+        out.innerHTML = '<div class="alert alert-warning">Could not run the household check: ' + e.message + '</div>';
+      }
+    };
 
     // ---- Accumulation tab -----------------------------------------------------------------
     function readAccumulationInputs() {

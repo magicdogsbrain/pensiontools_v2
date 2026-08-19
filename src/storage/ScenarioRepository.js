@@ -576,6 +576,26 @@ export async function getActiveAccumulation() {
   return scenario?.accumulationTool?.settings || {};
 }
 
+/**
+ * Household pairing: which OTHER scenario is the partner's plan (couples view).
+ * Stored on the active scenario; null = no partner selected.
+ */
+export async function getHouseholdPartnerId() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.household?.partnerScenarioId || null;
+}
+
+/** Persist the partner-plan selection on the active scenario. */
+export async function setHouseholdPartnerId(partnerScenarioId) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { 'household.partnerScenarioId': partnerScenarioId || null });
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.household) cachedActiveScenario.household = {};
+    cachedActiveScenario.household.partnerScenarioId = partnerScenarioId || null;
+  }
+}
+
 /** Save accumulation settings to the active scenario. */
 export async function saveActiveAccumulation(settings) {
   const scenario = await getActiveScenarioAsync();

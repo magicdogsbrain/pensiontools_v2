@@ -230,3 +230,30 @@ carry-forward calculator, taper edge cases, LISA modelling, DB accrual.
 _Compiled 17 Aug 2026 from a code audit (all claims file:line-verified at `679a8e3`) and
 sourced market/rules research. PLSA figures and Budget-2025 NI cap should be re-verified
 before hard-coding._
+
+---
+
+## Addendum (19 Aug 2026) — couples research & the Household view
+
+Research verdict (sources in session log): every serious tool converges on "one household
+plan, two tax-individuals" — per-person tax/pensions underneath, joint presentation on top.
+Guiide (couples = "most requested feature") shipped exactly two-linked-individual-plans;
+MoneyHelper has no partner input; only EvolveMyRetirement does mortality properly; no free
+UK tool has a survivor check. UK independent taxation legitimises per-person ENGINES, not
+per-person PRESENTATION: the walk-away moment is when a couple can't see "can WE retire?".
+Two per-person plans + budget split (our model) is the documented MSE workaround — viable
+but tolerated, not liked.
+
+**Shipped: Household tab (v1)** — partner plan = another scenario in the account, picked and
+persisted (scenario.household.partnerScenarioId). HouseholdService runs both plans on the
+SAME Monte-Carlo market paths (different idiosyncratic seeds): joint success = P(both plans
+survive), shown against each plan's own rate and the naive independence product (which
+misstates joint risk). Plus a household wealth fan (pots+ISAs, today's money, p10/50/90)
+and a deterministic income timeline (both SP steps, DB floors, other income, per-year draw
+need, bridge years flagged). Individual plan views unchanged.
+
+**Couples-ready remaining (in demand order):** time-varying budget split (a static % breaks
+when income shifts between partners); survivor one-shot stress ("X dies in year N: one SP
+gone, DB × survivor %, pots inherited, single budget") — cheap and unique among free UK
+tools; cross-partner allowance-filling NUDGE (not auto-optimisation — illustration, not
+advice).

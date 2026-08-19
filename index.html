@@ -4303,7 +4303,7 @@
           e.stopPropagation();
           const id = btn.dataset.id;
           const name = btn.dataset.name;
-          if (confirm(`Delete plan "${name}"? This cannot be undone.`)) {
+          if (await appConfirm(`Delete plan "${name}"? This cannot be undone.`)) {
             try {
               await deleteScenario(id);
               invalidateCache();
@@ -4624,7 +4624,7 @@
 
     // Reset button handler - wipes all data and shows wizard
     document.getElementById('resetBtn').addEventListener('click', async () => {
-      const confirmed = confirm(
+      const confirmed = await appConfirm(
         '⚠️ WARNING: This will permanently delete ALL your data including:\n\n' +
         '• All saved settings\n' +
         '• All decision history\n' +
@@ -4636,7 +4636,7 @@
       if (!confirmed) return;
 
       // Double-check
-      const doubleConfirmed = confirm(
+      const doubleConfirmed = await appConfirm(
         'Are you ABSOLUTELY sure?\n\n' +
         'Type OK to confirm deletion of all your data.'
       );
@@ -4670,7 +4670,7 @@
 
     // Delete account handler (GDPR right to erasure): purge Firestore data, then the auth account
     document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
-      const confirmed = confirm(
+      const confirmed = await appConfirm(
         '⚠️ DELETE YOUR ACCOUNT?\n\n' +
         'This permanently deletes your login AND all saved data:\n\n' +
         '• All plans and settings\n' +
@@ -4680,7 +4680,7 @@
       );
       if (!confirmed) return;
 
-      const doubleConfirmed = confirm(
+      const doubleConfirmed = await appConfirm(
         'FINAL WARNING\n\n' +
         'Your account and every piece of data will be gone forever.\n\n' +
         'Delete everything?'
@@ -4734,6 +4734,7 @@
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
         updateNextStepBanner();
+        updateSetupBanners();
       });
     });
 
@@ -4817,13 +4818,13 @@
     // most likely entered values in thousands (e.g. 250 meaning £250,000). Ask before proceeding
     // — a genuinely small or depleted set of pots can still confirm and continue. Returns true to
     // proceed, false to cancel. ISA is excluded (it can legitimately be small or zero).
-    function confirmFundsIfLow(equity, bond, cash) {
+    async function confirmFundsIfLow(equity, bond, cash) {
       const LOW = 10000;
       // Fire only for a probable thousands-typo: all three small but NOT all zero (an all-zero
       // set is a deliberate empty/depleted pot, never a units mistake, so don't nag about it).
       if (equity < LOW && bond < LOW && cash < LOW && (equity + bond + cash) > 0) {
         const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
-        return confirm(
+        return await appConfirm(
           `These fund values look low — Equity ${fmt(equity)}, Bond ${fmt(bond)}, Cash ${fmt(cash)}.\n\n` +
           'Enter absolute amounts in pounds, to the single pound (e.g. 250000, not 250).\n\n' +
           'Continue anyway?'
@@ -4853,7 +4854,7 @@
       }
 
       // Soft plausibility guard: values probably typed in thousands (250 meaning £250,000).
-      if (!confirmFundsIfLow(equity, bond, cash)) return;
+      if (!await confirmFundsIfLow(equity, bond, cash)) return;
 
       // Check if this month already has a history entry
       const existingHistory = await getHistoryAsync({ limit: 1000 });
@@ -6415,7 +6416,7 @@
           getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync()
         ]);
         const budgetDone = (budget.lines || []).some((l) => +l.annual > 0);
-        const targetApplied = stress.configured && (stress.baseSalary || 0) > 0;
+        const targetApplied = (stress.baseSalary || 0) > 0;
         const decisionDone = !!decision.configured;
         let text = null, btn = null, act = null;
         if (!budgetDone) {
@@ -6427,6 +6428,10 @@
           text = 'Your budget adds up' + (m ? ' to about ' + gbp(Math.round(m)) + '/mo take-home' : '') + '. Make it your plan\'s target, then see if your pension can pay for it.';
           btn = 'Set as my plan\'s target';
           act = async () => { await applyBudgetToPlan(); updateNextStepBanner(); };
+        } else if (!stress.configured) {
+          text = 'Target set. Now the big question: can your pension actually pay for it? Open the Stress Tester settings, tell it what you have, and run the simulation.';
+          btn = 'Open Stress Tester settings';
+          act = () => { switchToTab('stress'); setTimeout(() => { [...document.querySelectorAll('button')].filter((b) => /^Settings$/.test(b.textContent.trim()) && b.offsetParent).forEach((b) => b.click()); }, 400); };
         } else if (!decisionDone) {
           text = 'Your target is set and the Stress Tester is ready — when the long-term picture looks right, set up the monthly Decision Tool (it tells you what to draw, from where, each month).';
           btn = 'Open the Decision Tool';
@@ -6734,6 +6739,40 @@
       }
     };
 
+    // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
+    // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
+    window.appConfirm = function (message, opts = {}) {
+      return new Promise((resolve) => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--card,#1e293b);border:1px solid var(--border,#334155);border-radius:12px;max-width:440px;width:100%;padding:20px;';
+        const msg = document.createElement('p');
+        msg.style.cssText = 'white-space:pre-line;font-size:14px;line-height:1.55;margin:0 0 16px;';
+        msg.textContent = message;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+        const no = document.createElement('button');
+        no.textContent = opts.cancelLabel || 'Cancel';
+        no.className = 'risk-btn';
+        const yes = document.createElement('button');
+        yes.textContent = opts.okLabel || 'OK';
+        yes.className = 'risk-btn';
+        yes.style.cssText = opts.danger === false ? '' : 'border-color:#ef4444;color:#ef4444;';
+        const done = (v) => { ov.remove(); document.removeEventListener('keydown', onKey); resolve(v); };
+        const onKey = (e) => { if (e.key === 'Escape') done(false); };
+        no.onclick = () => done(false);
+        yes.onclick = () => done(true);
+        ov.onclick = (e) => { if (e.target === ov) done(false); };
+        document.addEventListener('keydown', onKey);
+        row.append(no, yes);
+        box.append(msg, row);
+        ov.append(box);
+        document.body.append(ov);
+        yes.focus();
+      });
+    };
+
     // Longevity-based duration suggestion (stress settings).
     window.applyLongevitySuggestion = function () {
       const age = +document.getElementById('ssLongevityAge').value;
@@ -6904,7 +6943,7 @@
       // Soft plausibility guard: the sims start from these Fund Minimums, so catch values
       // probably typed in thousands before saving.
       const ssAlloc = readAlloc('ss');
-      if (!confirmFundsIfLow(ssAlloc.equityMin, ssAlloc.bondMin, ssAlloc.cashTarget)) return;
+      if (!await confirmFundsIfLow(ssAlloc.equityMin, ssAlloc.bondMin, ssAlloc.cashTarget)) return;
 
       showLoading('Saving settings...');
       try {
@@ -7006,7 +7045,7 @@
         showToast('Please sign in first', 'error');
         return;
       }
-      if (!confirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
+      if (!await appConfirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
       showLoading('Copying from Decision...');
       try {
         const decision = await getDecisionSettingsAsync();
@@ -7025,7 +7064,7 @@
 
     // Reset stress settings
     window.resetStressSettingsUI = async function() {
-      if (!confirm('Reset all stress settings to defaults?')) return;
+      if (!await appConfirm('Reset all stress settings to defaults?')) return;
 
       showLoading('Resetting settings...');
       try {
@@ -7575,7 +7614,7 @@
 
     // Start over: fresh seeded categories, amounts blank. Horizon and partner-sharing are kept.
     window.resetBudgetUI = async function () {
-      if (!confirm('Reset the budget?\n\nAll amounts, sub-sheets and custom lines go back to a fresh start. Your ages and partner-sharing setting are kept.\n\nThis saves immediately and cannot be undone.')) return;
+      if (!await appConfirm('Reset the budget?\n\nAll amounts, sub-sheets and custom lines go back to a fresh start. Your ages and partner-sharing setting are kept.\n\nThis saves immediately and cannot be undone.')) return;
       window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
       window._budget.oneOffs = starterOneOffs().map((o) => ({ id: budId(), ...o }));
       renderBudgetLines();
@@ -8282,7 +8321,7 @@
       } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
     };
     window.adminRevertFunds = async function () {
-      if (!confirm('Remove the cloud fund-catalogue override and return to the shipped default list?')) return;
+      if (!await appConfirm('Remove the cloud fund-catalogue override and return to the shipped default list?')) return;
       try {
         await clearFundCatalogueOverride();
         _adminFunds = activeFundCatalogue().map((f) => ({ ...f }));
@@ -8308,7 +8347,7 @@
       } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
     };
     window.adminResetProfiles = async function () {
-      if (!confirm('Clear ALL category-model overrides and return to the shipped calibration?')) return;
+      if (!await appConfirm('Clear ALL category-model overrides and return to the shipped calibration?')) return;
       _adminProfiles = {};
       try { await saveProfileOverrides(null); renderAdminPanel(true); showToast('Shipped calibration restored.', 'success'); }
       catch (e) { showToast('Reset failed: ' + e.message, 'error'); }
@@ -8546,7 +8585,7 @@
 
       // Soft plausibility guard for the fund minimums.
       const dsAlloc = readAlloc('ds');
-      if (!confirmFundsIfLow(dsAlloc.equityMin, dsAlloc.bondMin, dsAlloc.cashTarget)) return;
+      if (!await confirmFundsIfLow(dsAlloc.equityMin, dsAlloc.bondMin, dsAlloc.cashTarget)) return;
 
       showLoading('Saving settings...');
       try {
@@ -8596,7 +8635,7 @@
 
     // Reset decision settings
     window.resetDecisionSettingsUI = async function() {
-      if (!confirm('Reset all decision settings to defaults?')) return;
+      if (!await appConfirm('Reset all decision settings to defaults?')) return;
 
       showLoading('Resetting settings...');
       try {
@@ -9195,7 +9234,7 @@
 
       if (isLatestInTaxYear) {
         // Simple delete - just this entry
-        if (!confirm(`Delete entry for ${dateLabel}?`)) return;
+        if (!await appConfirm(`Delete entry for ${dateLabel}?`)) return;
 
         showLoading('Deleting entry...');
         try {
@@ -9214,7 +9253,7 @@
         const entriesToDelete = sortedTaxYearHistory.slice(entryIndex);
         const lastDate = formatHistoryTabDate(entriesToDelete[entriesToDelete.length - 1].date);
 
-        if (!confirm(`This will delete ${entriesToDelete.length} entries from ${dateLabel} to ${lastDate} in tax year ${taxYear}.\n\nContinue?`)) return;
+        if (!await appConfirm(`This will delete ${entriesToDelete.length} entries from ${dateLabel} to ${lastDate} in tax year ${taxYear}.\n\nContinue?`)) return;
 
         showLoading(`Deleting ${entriesToDelete.length} entries...`);
         try {
@@ -9246,7 +9285,7 @@
         return;
       }
 
-      if (!confirm(`Delete all ${taxYearHistory.length} history entries for tax year ${taxYear}?`)) return;
+      if (!await appConfirm(`Delete all ${taxYearHistory.length} history entries for tax year ${taxYear}?`)) return;
 
       showLoading(`Deleting tax year ${taxYear}...`);
       try {
@@ -9282,8 +9321,8 @@
 
     // Delete all history entries
     window.deleteAllHistory = async function() {
-      if (!confirm('Delete ALL history entries? This cannot be undone.')) return;
-      if (!confirm('Are you ABSOLUTELY sure? All decision history will be permanently deleted.')) return;
+      if (!await appConfirm('Delete ALL history entries? This cannot be undone.')) return;
+      if (!await appConfirm('Are you ABSOLUTELY sure? All decision history will be permanently deleted.')) return;
 
       if (!isLoggedIn()) {
         showToast('Please sign in to delete entries', 'error');
@@ -9730,7 +9769,7 @@
 
     // Reconfigure a tax year
     window.reconfigureTaxYear = async function(taxYear) {
-      if (!confirm(`This will allow you to reconfigure tax year ${taxYear}. The setup wizard will be triggered when you next calculate a decision for this year. Continue?`)) {
+      if (!await appConfirm(`This will allow you to reconfigure tax year ${taxYear}. The setup wizard will be triggered when you next calculate a decision for this year. Continue?`)) {
         return;
       }
 
@@ -9761,7 +9800,7 @@
 
     // Delete tax year
     window.deleteTaxYear = async function(ty) {
-      if (!confirm('Delete tax year ' + ty + '? This will remove all configuration for this year.')) return;
+      if (!await appConfirm('Delete tax year ' + ty + '? This will remove all configuration for this year.')) return;
       try {
         // Get all tax years, remove this one, save
         const db = await loadDecisionDBAsync();

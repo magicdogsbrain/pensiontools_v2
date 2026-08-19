@@ -1913,7 +1913,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-C_CfJGw2.js"></script>
+  <script type="module" crossorigin src="./assets/main-QGS1l63s.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3021,13 +3021,15 @@
 
       <div id="household-content" class="tab-content">
         <div class="card">
-          <h2>Household <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— can we retire, together?</span></h2>
-          <p style="font-size:13px;color:var(--text-muted);">
-            UK pensions and tax are individual, so each of you keeps your own plan — but the
-            question is joint. This view runs <strong>both plans on the same market paths</strong>
-            (you both hold the same markets, so bad years hit you together) and shows the combined
-            picture. Your own plan's tabs are unchanged — this is an extra lens, not a replacement.
-          </p>
+          <h2>Household <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— will the money last for <em>both</em> of you?</span></h2>
+
+          <div class="alert alert-info" style="margin-bottom:12px;">
+            Your Stress Tester answers "will <strong>my</strong> money last?". If you're a couple,
+            that's only half the question: your incomes start in different years, your pensions are
+            different sizes, and you share the spending. <strong>This tab joins your two plans
+            together</strong> and answers the question neither can answer alone —
+            <em>can we retire, together, and when is the money tight?</em>
+          </div>
 
           <div class="settings-section">
             <div class="section-title">The two plans</div>
@@ -3043,15 +3045,38 @@
                 </select>
               </div>
             </div>
-            <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-              Your partner's plan is just another plan in this account — create one from the plan
-              menu (▾ at the top), fill in their settings in the Stress Tester, and pick it here.
-              The Budget tool's per-person split gives each plan its share of the household spending.
-            </p>
             <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
-          <div id="hhResults"></div>
+          <div id="hhResults">
+            <div class="settings-section">
+              <div class="section-title">How it works</div>
+              <ol style="font-size:13px; line-height:1.7; margin:6px 0 0 18px; padding:0;">
+                <li><strong>Your plan is already set up</strong> — budget, pots, State Pension, all of it.</li>
+                <li><strong>Give your partner a plan of their own.</strong> Open the plan menu (▾ at the top),
+                    create a plan in their name, and fill in <em>their</em> Stress Tester settings — their pots,
+                    their State Pension date, and their share of the household budget (the Budget tool's
+                    per-person split gives you each side's number).</li>
+                <li><strong>Pick their plan above and run the check.</strong></li>
+              </ol>
+              <p style="font-size:13px; margin-top:12px;">You'll get three things you can't see from either plan alone:</p>
+              <ul style="font-size:13px; line-height:1.7; margin:6px 0 0 18px; padding:0;">
+                <li><strong>One answer:</strong> the percentage of 1,000 possible market futures in which the money
+                    lasted for <em>both</em> of you — run through the <em>same</em> markets, because a crash hits
+                    you both in the same year.</li>
+                <li><strong>One timeline:</strong> year by year, what the household needs, when each State Pension
+                    starts, and how much has to come out of the pots — including the tight
+                    "bridge" years before your State Pensions arrive.</li>
+                <li><strong>One number for what's left:</strong> your combined pots over time, in today's money,
+                    if markets are poor, typical, or strong.</li>
+              </ul>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:12px;">
+                Why two plans and not one joint plan? UK pensions, ISAs and tax are strictly individual —
+                two personal allowances, two State Pensions, two sets of pots. Keeping a plan each gets the
+                tax right; this tab puts the answers side by side. Your own plan's tabs are unchanged.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

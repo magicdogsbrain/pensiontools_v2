@@ -495,3 +495,44 @@ describe('Defined-benefit pension floor', () => {
     expect(lpi.final).toBeGreaterThan(level.final);  // indexed DB covers more of the inflating target
   });
 });
+
+describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
+  const flat = (years) => {
+    const eq = {}, inf = {};
+    for (let i = 0; i < years; i++) { eq[i] = 0.05; inf[i] = 0.025; }
+    return { equity: eq, inflation: inf };
+  };
+  const cfg = {
+    equityStart: 250000, bondStart: 150000, cashStart: 40000,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000,
+    duration: 35, years: 10, baseSalary: 28000, other: 0,
+    statePension: 0, statePensionYear: 99,
+    pa: 12570, brl: 50270, taxMode: 'inflates',
+    disableProtection: true, protectionMult: 0.8,
+    hodlEnabled: false, hodlValue: 0
+  };
+
+  it('extraIncomes behaves like a delayed DB floor: draws fall from its start year', () => {
+    const base = simulate(cfg, flat(10), 11);
+    const withInc = simulate({ ...cfg, extraIncomes: [{ startYear: 4, annual: 8000 }] }, flat(10), 11);
+    expect(withInc.final).toBeGreaterThan(base.final);
+    const fromStart = simulate({ ...cfg, extraIncomes: [{ startYear: 0, annual: 8000 }] }, flat(10), 11);
+    expect(fromStart.final).toBeGreaterThan(withInc.final);
+  });
+
+  it('a windfall at year N lifts the pot from that year; toIsa routes it to the ISA', () => {
+    const base = simulate(cfg, flat(10), 11);
+    const w = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
+    expect(w.final).toBeGreaterThan(base.final + 60000);   // most of it survives to the end
+    expect(w.potByYear[2]).toBeCloseTo(base.potByYear[2], 4);  // untouched before year 3
+    const wi = simulate({ ...cfg, isaBalance: 0, windfalls: [{ year: 3, amount: 50000, toIsa: true }] }, flat(10), 11);
+    expect(wi.finalIsa).toBeGreaterThan(0);
+  });
+
+  it('absent both fields, behaviour is unchanged (golden safety)', () => {
+    const a = simulate(cfg, flat(10), 11);
+    const b = simulate({ ...cfg, extraIncomes: [], windfalls: [] }, flat(10), 11);
+    expect(b.final).toBe(a.final);
+    expect(b.totalTaxReal).toBe(a.totalTaxReal);
+  });
+});

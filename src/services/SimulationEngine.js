@@ -223,6 +223,24 @@ export function simulate(config, returns, seed = 0) {
     if (prot) { protMonths++; curStreak++; }
     else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
 
+    // Windfalls ({year, amount, toIsa?}): money arriving at the start of a plan year — an
+    // inheritance, a downsizing, or (survivor stress) the deceased partner's pots. Nominal £
+    // at that year; ISA-bound windfalls go to the ISA pot, otherwise spread across the SIPP
+    // pots in their current proportions (all-empty pots → cash). Fires once per run per entry
+    // (year+month guard — config is shared across MC runs and must not be mutated).
+    if (Array.isArray(config.windfalls) && monthInYear === 0) {
+      for (const w of config.windfalls) {
+        if (w.year === year && w.amount > 0) {
+          if (w.toIsa) { isa += w.amount; continue; }
+          const tot = equity + bond + cash;
+          if (tot <= 0) { cash += w.amount; continue; }
+          equity += w.amount * (equity / tot);
+          bond += w.amount * (bond / tot);
+          cash += w.amount * (cash / tot);
+        }
+      }
+    }
+
     // Phased-access switch event: in the first month after the UFPLS phase ends, optionally take
     // 25% of the remaining (still-uncrystallised) SIPP as a tax-free lump sum into the ISA, capped
     // by the remaining LSA. Trimmed proportionally across the SIPP pots (HODL, a deliberately
@@ -700,7 +718,20 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
     else dbPension = cappedInflation(config.dbAmount, yearlyInf, 0.05); // lpi5
   }
 
-  const fixed = other + statePension + dbPension;
+  // Generalised extra income floors ({startYear, annual, indexation}) — same semantics as the
+  // DB pension (which could fold into this list); used e.g. by the survivor stress to add a
+  // deceased partner's DB at its survivor rate from the year of death.
+  let extraIncome = 0;
+  for (const inc of config.extraIncomes || []) {
+    if (inc.annual > 0 && year >= (inc.startYear || 0)) {
+      const mode = inc.indexation || 'lpi5';
+      if (mode === 'level') extraIncome += inc.annual;
+      else if (mode === 'cpi') extraIncome += inc.annual * cumInf;
+      else extraIncome += cappedInflation(inc.annual, yearlyInf, 0.05);
+    }
+  }
+
+  const fixed = other + statePension + dbPension + extraIncome;
   const yearsUntilSp = yearsUntilStatePension(config, year);
   // UFPLS: a quarter of each withdrawal is tax-free until the lifetime Lump Sum Allowance is
   // used up (tracked by the caller in nominal £; the LSA is a frozen nominal figure).

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { targetScheduleFromBudget,
+import { budgetSharePctAtAge, targetScheduleFromBudget,
   PLSA_2024,
   BUDGET_CATEGORIES,
   starterLines,
@@ -404,5 +404,37 @@ describe('targetScheduleFromBudget', () => {
     const sch = targetScheduleFromBudget(shared, 15);
     expect(sch[0]).toBe(3000);
     expect(sch[10]).toBe(3000 + 7500);
+  });
+});
+
+describe('splitPhases — time-varying budget split', () => {
+  const budget = {
+    retirementAge: 60, currentAge: 58, endAge: 95,
+    sharedWithPartner: true, mySharePct: 70,
+    splitPhases: [{ fromAge: 63, mySharePct: 50 }, { fromAge: 75, mySharePct: 40 }],
+    lines: [{ label: 'Everything', tier: 'essential', annual: 10000, paidBy: 'shared' }],
+    oneOffs: []
+  };
+
+  it('phase with the highest fromAge ≤ age wins; before the first phase the base % applies', () => {
+    expect(budgetSharePctAtAge(budget, 60)).toBe(70);   // base until 63
+    expect(budgetSharePctAtAge(budget, 63)).toBe(50);
+    expect(budgetSharePctAtAge(budget, 74)).toBe(50);
+    expect(budgetSharePctAtAge(budget, 75)).toBe(40);
+    expect(budgetSharePctAtAge(budget, null)).toBe(70); // no age context = base
+  });
+
+  it('flows through the per-year target schedule ("I carry 70% until her pension starts")', () => {
+    const sch = targetScheduleFromBudget(budget, 20);
+    expect(sch[0]).toBe(7000);    // age 60: 70%
+    expect(sch[3]).toBe(5000);    // age 63: 50%
+    expect(sch[15]).toBe(4000);   // age 75: 40%
+  });
+
+  it('per-item mySharePct still beats the phases; budgets without phases are unchanged', () => {
+    const withItemPct = { ...budget, lines: [{ ...budget.lines[0], mySharePct: 100 }] };
+    expect(targetScheduleFromBudget(withItemPct, 5)[4]).toBe(10000);
+    const noPhases = { ...budget, splitPhases: undefined };
+    expect(targetScheduleFromBudget(noPhases, 5)[4]).toBe(7000);
   });
 });

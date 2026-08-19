@@ -113,3 +113,116 @@ export function householdIncomeTimeline(setA, setB, labelYears = null) {
   }
   return rows;
 }
+
+/**
+ * Survivor one-shot stress: "if one of you dies in year N, is the survivor still OK?"
+ * No free UK tool offers this. Mechanics — everything reuses the standard engine:
+ *  1. The deceased's REMAINING wealth at year N is taken from their own Monte Carlo
+ *     (median pots + ISA at that year — their genuinely simulated depletion, not a guess),
+ *     converted to nominal at 2.5%/yr, and injected into the survivor's simulation as a
+ *     windfall at year N (pension pots pass tax-free before 75; ISA via APS — simplified
+ *     to a like-for-like transfer, noted in the UI).
+ *  2. The survivor's spending steps at year N from their own share to a fraction of the
+ *     former HOUSEHOLD spending (default 70% — two can live cheaper than twice one).
+ *  3. The deceased's DB pension continues at its survivor rate via extraIncomes.
+ * Then one standard Monte Carlo of the survivor's modified plan.
+ */
+export function runSurvivorCheck({
+  survivorCfg, survivorSettings, deceasedCfg, deceasedSettings,
+  deathYear, spendFraction = 0.7, dbSurvivorPct = 0.5, runs = 500
+}) {
+  // Deceased's median remaining wealth at the year of death (today's money → nominal)
+  const potVals = [], isaVals = [];
+  const horizon = Math.max(deathYear + 1, deceasedCfg.years);
+  for (let i = 0; i < runs; i++) {
+    const r = simulate(deceasedCfg, monteCarloReturns({ years: horizon }, i), i + 900000);
+    const idx = Math.min(deathYear, (r.potByYear || []).length - 1);
+    potVals.push((r.potByYear && r.potByYear[idx]) || 0);
+    isaVals.push((r.isaByYear && r.isaByYear[idx]) || 0);
+  }
+  const median = (a) => { const s2 = [...a].sort((x, y) => x - y); return s2[Math.floor(s2.length / 2)]; };
+  const toNominal = Math.pow(1.025, deathYear);
+  const inheritedPots = median(potVals) * toNominal;
+  const inheritedIsa = median(isaVals) * toNominal;
+
+  // Survivor spending: their own plan until year N, then a fraction of the joint spending.
+  // The spending profile is BAKED into this schedule, so the constructed config runs 'flat'
+  // (otherwise the engine would apply the profile twice).
+  const dur = survivorSettings.duration || 35;
+  const durDeceased = deceasedSettings.duration || 35;
+  const schedule = [];
+  for (let y = 0; y <= dur; y++) {
+    const own = targetForYear(survivorSettings, y);
+    if (y < deathYear) schedule.push(own);
+    else schedule.push((own + (y <= durDeceased ? targetForYear(deceasedSettings, y) : 0)) * spendFraction);
+  }
+
+  const extraIncomes = [...(survivorCfg.extraIncomes || [])];
+  if (deceasedSettings.dbAmount > 0 && dbSurvivorPct > 0) {
+    extraIncomes.push({
+      startYear: Math.max(deathYear, deceasedSettings.dbStartYear || 0),
+      annual: deceasedSettings.dbAmount * dbSurvivorPct,
+      indexation: deceasedSettings.dbIndexation || 'lpi5'
+    });
+  }
+
+  const cfg = {
+    ...survivorCfg,
+    targetSchedule: schedule,
+    spendingProfile: 'flat',
+    windfalls: [
+      ...(survivorCfg.windfalls || []),
+      { year: deathYear, amount: inheritedPots },
+      { year: deathYear, amount: inheritedIsa, toIsa: true }
+    ].filter((w) => w.amount > 0),
+    extraIncomes
+  };
+
+  let ok = 0;
+  for (let i = 0; i < runs; i++) {
+    if (!simulate(cfg, monteCarloReturns({ years: cfg.years }, i), i + 700000).failed) ok++;
+  }
+  return {
+    survivorSuccess: ok / runs,
+    inheritedPots,
+    inheritedIsa,
+    survivorAnnualAfter: schedule[Math.min(deathYear, dur)]
+  };
+}
+
+/**
+ * Allowance-filling nudge: each plan's year-0 taxable position vs its basic-rate limit.
+ * Display-only — "you choose, we model": if one partner pays 40% while the other has unused
+ * 20% band, shifting who funds spending saves the rate difference on the shifted slice.
+ */
+export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner') {
+  const brl = 50270;
+  const pos = (set) => {
+    const sp = spFor(set);
+    const fixed = (sp.startYear <= 0 ? sp.annual : 0) + (set.other || 0)
+      + (set.dbAmount > 0 && (set.dbStartYear || 0) <= 0 ? set.dbAmount : 0);
+    const target = targetForYear(set, 0);
+    const f = set.accessMethod === 'ufpls' ? 0.25 : 0;
+    // Approximate taxable position: fixed income + the taxable share of the SIPP draw
+    const sippGross = Math.max(0, target - fixed);
+    return { taxable: fixed + sippGross * (1 - f), target };
+  };
+  const a = pos(setA), b = pos(setB);
+  const unusedA = Math.max(0, brl - a.taxable);
+  const unusedB = Math.max(0, brl - b.taxable);
+  const overA = Math.max(0, a.taxable - brl);
+  const overB = Math.max(0, b.taxable - brl);
+  let message = null;
+  if (overA > 0 && unusedB > 1000) {
+    const shift = Math.min(overA, unusedB);
+    message = nameA + ' pays 40% tax on about £' + Math.round(overA).toLocaleString() + '/yr while ' + nameB
+      + ' has £' + Math.round(unusedB).toLocaleString() + ' of unused 20% band. Funding £' + Math.round(shift).toLocaleString()
+      + ' more of the spending from ' + nameB + '’s pots could save ~£' + Math.round(shift * 0.2).toLocaleString() + '/yr.';
+  } else if (overB > 0 && unusedA > 1000) {
+    const shift = Math.min(overB, unusedA);
+    message = nameB + ' pays 40% tax on about £' + Math.round(overB).toLocaleString() + '/yr while ' + nameA
+      + ' has £' + Math.round(unusedA).toLocaleString() + ' of unused 20% band. Funding £' + Math.round(shift).toLocaleString()
+      + ' more of the spending from ' + nameA + '’s pots could save ~£' + Math.round(shift * 0.2).toLocaleString() + '/yr.';
+  }
+  return { unusedA, unusedB, overA, overB, message };
+}

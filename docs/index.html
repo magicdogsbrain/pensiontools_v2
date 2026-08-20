@@ -12,6 +12,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
+      --accent: #6366f1;       /* interactive chips / selection (indigo) — single source */
+      --radius: 12px;
+      --radius-sm: 8px;
       --bg: #0f0f1a;
       --card: #1a1a2e;
       --card-alt: #252540;
@@ -23,6 +26,14 @@
       --warning: #f0c674;
       --danger: #f85149;
       --info: #7eb8da;
+    }
+
+    /* Utilities — use these instead of repeating inline styles */
+    .hint { font-size: 12px; color: var(--text-muted); }
+    .row-flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row-flex input, .row-flex select { margin: 0; }
+    @media (hover: none) and (pointer: coarse) {
+      .row-flex input, .row-flex select { min-height: 44px; }
     }
 
     * {
@@ -392,7 +403,7 @@
     #decision-decisionsettings input:disabled,
     #decision-decisionsettings select:disabled,
     #decision-decisionsettings button:disabled { opacity: 0.55; cursor: not-allowed; }
-    .settings-section > .section-title {
+    .section-title {
       margin: 0 0 12px;
       font-size: 14px;
       font-weight: 600;
@@ -401,7 +412,7 @@
       align-items: center;
       gap: 8px;
     }
-    .settings-section > .section-hint {
+    .section-hint {
       font-size: 12px;
       color: var(--text-muted);
       margin: -6px 0 12px;
@@ -548,6 +559,9 @@
       .grid-2, .grid-3, .grid-4, .grid-5 {
         grid-template-columns: 1fr;
       }
+      .form-grid { grid-template-columns: 1fr; }
+      /* Inputs given desktop max-widths should fill their (now single) column */
+      .form-group input[style*="max-width"], .form-group select[style*="max-width"] { max-width: 100% !important; }
     }
 
     /* Mobile-first responsive styles */
@@ -705,12 +719,25 @@
         font-size: 11px;
       }
 
-      /* Buttons - full width on mobile */
+      /* Buttons - full width on mobile — EXCEPT inline controls, where a full-width button
+         explodes a compact row into a stack (budget row toggles, chips, table buttons). */
       button {
         width: 100%;
         padding: 14px 20px;
         font-size: 15px;
       }
+      .bud-row button, .row-flex button, .risk-btn, .budwiz-chip, .alloc-mode-btn,
+      .risk-card, td button, .paidby-select ~ button, .bud-oneoff button {
+        width: auto;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      /* Budget rows: identical wrap points on every row — line 1 label, line 2 amount
+         cluster, line 3 the meta controls — so stacked rows still read as columns. */
+      .bud-row .bud-label { flex: 1 1 100% !important; min-width: 0 !important; }
+      .bud-row .bud-amt { flex: 1 1 58% !important; }
+      .bud-row input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
+      .bud-row select { flex: 0 1 auto; }
 
       /* Button groups - stack vertically on mobile */
       .button-row {
@@ -1913,7 +1940,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CYE_71-A.js"></script>
+  <script type="module" crossorigin src="./assets/main-DbhH0iVV.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -1970,7 +1997,7 @@
       </header>
 
       <!-- Tabs -->
-      <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid #6366f1; border-radius:10px; background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
         <button type="button" onclick="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
@@ -2231,8 +2258,8 @@
 
             <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
-<div class="form-group">
-                <label>Your 25% tax-free cash</label>
+<div>
+                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
                   <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
@@ -2249,11 +2276,11 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
-                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="dsUfplsPcls">
+                    <input type="checkbox" id="dsUfplsPcls" style="width:auto;">
                     <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
                   </label>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
@@ -2568,8 +2595,8 @@
 
             <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
-<div class="form-group">
-                <label>Your 25% tax-free cash</label>
+<div>
+                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
                   <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
@@ -2586,11 +2613,11 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
-                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border,#334155); border-radius:8px;">
+                <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
-                    <input type="checkbox" id="ssUfplsPcls">
+                    <input type="checkbox" id="ssUfplsPcls" style="width:auto;">
                     <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
                   </label>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
@@ -2629,8 +2656,13 @@
                 background: var(--card-alt);
                 color: var(--text);
                 border: 1px solid var(--border);
-                border-radius: 6px;
-                padding: 5px 14px;
+                border-radius: var(--radius-sm);
+                padding: 8px 12px;   /* was 5px — visibly shorter than every other tab's fields */
+                min-height: 36px;
+                box-sizing: border-box;
+              }
+              #budget-content .bud-row button, #budget-content .bud-oneoff button {
+                min-height: 36px;    /* controls in a row share one height */
               }
               /* Keep the budget's dynamic row inputs compact so the flex layout stays tidy. */
               #budEssentialRows input, #budDiscretionaryRows input, #budOneOffRows input,
@@ -2705,8 +2737,8 @@
             <div class="form-group" style="margin-top: 16px;">
               <label>Duration (years)</label>
               <input type="number" id="ssDuration" value="35" style="max-width:220px;">
-              <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
-                <span style="font-size:12px;color:var(--text-muted);">Suggest from longevity:</span>
+              <div class="row-flex" style="margin-top:8px;">
+                <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
                 <select id="ssLongevitySex" style="max-width:110px;">
                   <option value="m" selected>Male</option>
@@ -3021,7 +3053,7 @@
             <div id="acOnTrack" style="margin-top:10px;"></div>
           </div>
 
-          <div class="form-grid" style="margin-top:10px;">
+          <div class="button-row" style="margin-top:10px;">
             <button type="button" onclick="saveAccumulationUI()">Save</button>
           </div>
           <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
@@ -3178,6 +3210,9 @@
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
             <button type="button" onclick="openBudgetWizard()">Guided walk-through</button>
             <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
+            <button type="button" class="risk-btn" onclick="exportBudgetCsv()" title="Download the whole budget as a spreadsheet-friendly CSV (opens cleanly in Google Sheets / Excel)">Export CSV</button>
+            <button type="button" class="risk-btn" onclick="document.getElementById('budImportFile').click()" title="Import a budget CSV (the exported layout — edit it in Google Sheets, download as CSV, import here)">Import CSV</button>
+            <input type="file" id="budImportFile" accept=".csv,text/csv" style="display:none;" onchange="importBudgetCsvFile(this)">
             <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
           </div>
 

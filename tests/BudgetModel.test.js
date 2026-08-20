@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { budgetSharePctAtAge, targetScheduleFromBudget,
+import { parseBudgetCsv, budgetToCsv, budgetSharePctAtAge, targetScheduleFromBudget,
   PLSA_2024,
   BUDGET_CATEGORIES,
   starterLines,
@@ -436,5 +436,62 @@ describe('splitPhases — time-varying budget split', () => {
     expect(targetScheduleFromBudget(withItemPct, 5)[4]).toBe(10000);
     const noPhases = { ...budget, splitPhases: undefined };
     expect(targetScheduleFromBudget(noPhases, 5)[4]).toBe(7000);
+  });
+});
+
+describe('budget CSV import/export round-trip', () => {
+  const budget = {
+    currentAge: 58, retirementAge: 60, endAge: 95,
+    sharedWithPartner: true, mySharePct: 70, plsaTier: 'comfortable',
+    targetHeadroomMonthly: 200,
+    splitPhases: [{ fromAge: 63, mySharePct: 50 }],
+    lines: [
+      { label: 'Groceries', tier: 'essential', annual: 6000, period: 'mo', paidBy: 'shared', hint: 'weekly shop' },
+      { label: 'Streaming, "TV" & film', tier: 'discretionary', annual: 480, period: 'yr', paidBy: 'me',
+        breakdown: [{ label: 'Netflix', amount: 18, period: 'mo' }, { label: 'Licence', amount: 174.5, period: 'yr' }] },
+      { label: 'Car lease', tier: 'essential', annual: 3600, period: 'yr', paidBy: 'partner', fromAge: 60, toAge: 62 }
+    ],
+    oneOffs: [
+      { label: 'New roof', tier: 'essential', amount: 15000, atAge: 70, paidBy: 'shared', mySharePct: 60 },
+      { label: 'Car', tier: 'essential', amount: 20000, atAge: 65, everyYears: 8 }
+    ]
+  };
+
+  it('round-trips: export → parse reproduces settings, lines, sub-items and one-offs', () => {
+    const csv = budgetToCsv(budget);
+    expect(csv.charCodeAt(0)).toBe(0xFEFF);               // BOM for Sheets/Excel
+    const r = parseBudgetCsv(csv);
+    expect(r.warnings).toEqual([]);
+    expect(r.settings.currentAge).toBe(58);
+    expect(r.settings.sharedWithPartner).toBe(true);
+    expect(r.settings.mySharePct).toBe(70);
+    expect(r.settings.plsaTier).toBe('comfortable');
+    expect(r.settings.targetHeadroomMonthly).toBe(200);
+    expect(r.settings.splitPhases).toEqual([{ fromAge: 63, mySharePct: 50 }]);
+    expect(r.lines).toHaveLength(3);
+    expect(r.lines[0]).toMatchObject({ label: 'Groceries', tier: 'essential', annual: 6000, period: 'mo', paidBy: 'shared' });
+    // Sub-items drive the parent: 18*12 + 174.5 = 390.5
+    expect(r.lines[1].breakdown).toHaveLength(2);
+    expect(r.lines[1].annual).toBeCloseTo(390.5, 2);
+    expect(r.lines[1].label).toBe('Streaming, "TV" & film'); // commas + quotes survive
+    expect(r.lines[2]).toMatchObject({ fromAge: 60, toAge: 62, paidBy: 'partner' });
+    expect(r.oneOffs[0]).toMatchObject({ label: 'New roof', amount: 15000, atAge: 70, paidBy: 'shared', mySharePct: 60 });
+    expect(r.oneOffs[1]).toMatchObject({ everyYears: 8 });
+  });
+
+  it('imports hand-edited sheets: expressions, calendar-year ages, junk rows warn not crash', () => {
+    const csv = ['Type,Section,Item,Amount,Period,Paid by,My share %,From age,To age,At age,Every N years,Notes',
+      'Setting,,Current age,58,,,,,,,,',
+      'Sub-item,,True orphan,10,mo,,,,,,,',                     // no Item above → warned, skipped
+      'Item,Essential,Utilities,=150*12,yr,me,,,,,,',
+      'Item,Essential,Bridge years,"1,200",mo,me,,2031,,,,',    // calendar year + comma number
+      'Banana,,What,,,,,,,,,'].join('\n');
+    const r = parseBudgetCsv(csv);
+    expect(r.lines[0].annual).toBe(1800);
+    expect(r.lines[1].fromAge).toBe(58 + (2031 - new Date().getFullYear()));
+    expect(r.lines[1].annual).toBe(14400);
+    expect(r.warnings).toHaveLength(2);                          // orphan sub-item + Banana row
+    expect(r.warnings.some((w) => /unknown Type/.test(w))).toBe(true);
+    expect(r.warnings.some((w) => /no Item above/.test(w))).toBe(true);
   });
 });

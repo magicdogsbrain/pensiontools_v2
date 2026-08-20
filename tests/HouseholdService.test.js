@@ -122,3 +122,23 @@ describe('allowanceNudge', () => {
     expect(allowanceNudge(a, b).message).toBeNull();
   });
 });
+
+describe('allowanceNudge respects the real withdrawal policy', () => {
+  it('a large ISA bridge means NO higher-rate tax and NO bogus nudge', () => {
+    // £70k gross-equivalent target but a big ISA: planDrawdown caps SIPP at the BRL and the
+    // ISA covers the rest tax-free — taxable stays at the band, so nothing to flag.
+    const bigIsa = { baseSalary: 70000, isaBalance: 500000, duration: 30 };
+    const modest = { baseSalary: 20000, duration: 30 };
+    const n = allowanceNudge(bigIsa, modest, 'Chris', 'Wendy');
+    expect(n.overA).toBeLessThanOrEqual(1);   // taxable ≤ BRL (numerical dust only)
+    expect(n.message).toBeNull();
+  });
+
+  it('without an ISA the higher-rate spend is real and still flagged', () => {
+    const rich = { baseSalary: 70000, duration: 30 };
+    const modest = { baseSalary: 20000, duration: 30 };
+    const n = allowanceNudge(rich, modest, 'Chris', 'Wendy');
+    expect(n.overA).toBeGreaterThan(15000);
+    expect(n.message).toMatch(/Chris pays 40%/);
+  });
+});

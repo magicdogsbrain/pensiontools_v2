@@ -14,6 +14,7 @@
  */
 
 import { simulate, monteCarloReturns } from './SimulationEngine.js';
+import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 
@@ -196,22 +197,34 @@ export function runSurvivorCheck({
  * 20% band, shifting who funds spending saves the rate difference on the shifted slice.
  */
 export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner') {
-  const brl = 50270;
+  // Year-0 taxable position from the REAL withdrawal policy (planDrawdown): the SIPP fills to
+  // the basic-rate limit and the ISA tops up the rest tax-free, so a large-ISA plan with a
+  // big target still pays no 40% tax — the old naive "target − fixed = taxable" version
+  // claimed higher-rate tax that was never actually paid.
   const pos = (set) => {
     const sp = spFor(set);
     const fixed = (sp.startYear <= 0 ? sp.annual : 0) + (set.other || 0)
       + (set.dbAmount > 0 && (set.dbStartYear || 0) <= 0 ? set.dbAmount : 0);
     const target = targetForYear(set, 0);
-    const f = set.accessMethod === 'ufpls' ? 0.25 : 0;
-    // Approximate taxable position: fixed income + the taxable share of the SIPP draw
-    const sippGross = Math.max(0, target - fixed);
-    return { taxable: fixed + sippGross * (1 - f), target };
+    const f = (set.accessMethod === 'ufpls' && (!set.ufplsYears || set.ufplsYears > 0)) ? 0.25 : 0;
+    const plan = planDrawdown({
+      targetGross: target,
+      fixedIncome: fixed,
+      pa: set.pa ?? 12570,
+      brl: set.brl ?? 50270,
+      hrl: set.hrl ?? 125140,
+      isaBalance: set.isaBalance || 0,
+      strategy: set.isaDrawdownStrategy,
+      yearsUntilSp: 0,
+      taxFreeFraction: f
+    });
+    return { taxable: plan.taxable, target, brl: set.brl ?? 50270 };
   };
   const a = pos(setA), b = pos(setB);
-  const unusedA = Math.max(0, brl - a.taxable);
-  const unusedB = Math.max(0, brl - b.taxable);
-  const overA = Math.max(0, a.taxable - brl);
-  const overB = Math.max(0, b.taxable - brl);
+  const unusedA = Math.max(0, a.brl - a.taxable);
+  const unusedB = Math.max(0, b.brl - b.taxable);
+  const overA = Math.max(0, a.taxable - a.brl);
+  const overB = Math.max(0, b.taxable - b.brl);
   let message = null;
   if (overA > 0 && unusedB > 1000) {
     const shift = Math.min(overA, unusedB);

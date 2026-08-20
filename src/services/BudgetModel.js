@@ -487,3 +487,186 @@ export function defaultBudget(currentAge = 45, retirementAge = 60, endAge = 100)
     oneOffs: []
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Spreadsheet import/export (Google-Sheets friendly CSV).
+//
+// ONE file, ONE table — designed to open cleanly in Google Sheets / Excel (UTF-8 BOM so £
+// survives) and to round-trip back. Columns:
+//   Type, Section, Item, Amount, Period, Paid by, My share %, From age, To age,
+//   At age, Every N years, Notes
+// Row types:
+//   Setting  — ages, sharing, PLSA tier, headroom, split-phase changes
+//   Item     — a budget line (Section = Essential/Discretionary; Amount as displayed mo/yr)
+//   Sub-item — a breakdown row belonging to the Item ABOVE it
+//   One-off  — lumpy cost (Amount absolute; At age; Every N years blank = one-time)
+// ---------------------------------------------------------------------------------------------
+
+const CSV_HEADER = ['Type', 'Section', 'Item', 'Amount', 'Period', 'Paid by', 'My share %',
+  'From age', 'To age', 'At age', 'Every N years', 'Notes'];
+
+function csvEsc(v) {
+  v = (v == null ? '' : String(v));
+  return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+
+/** Serialise a budget to CSV text (with BOM). Pure; ids/derived are not exported. */
+export function budgetToCsv(budget) {
+  const rows = [CSV_HEADER];
+  const S = (item, amount, notes) => rows.push(['Setting', '', item, amount ?? '', '', '', '', '', '', '', '', notes || '']);
+  S('Current age', budget.currentAge);
+  S('Retirement age', budget.retirementAge);
+  S('Plan to age', budget.endAge);
+  S('Shared with partner', budget.sharedWithPartner ? 'yes' : 'no');
+  S('My share %', budget.mySharePct ?? 50);
+  S('PLSA tier', budget.plsaTier || 'moderate');
+  if (budget.targetHeadroomMonthly) S('Headroom £/mo', budget.targetHeadroomMonthly);
+  for (const p of budget.splitPhases || []) {
+    if (p && p.fromAge !== '' && p.fromAge != null) {
+      rows.push(['Setting', '', 'Split change', p.mySharePct ?? '', '', '', '', p.fromAge, '', '', '', 'from this age my share becomes Amount %']);
+    }
+  }
+  for (const l of budget.lines || []) {
+    const period = l.period || 'yr';
+    const shown = l.annual == null ? '' : (period === 'mo' ? Math.round(l.annual / 12 * 100) / 100 : l.annual);
+    rows.push(['Item', l.tier === 'discretionary' ? 'Discretionary' : 'Essential', l.label || '',
+      shown, period, l.paidBy || 'me', l.mySharePct ?? '', l.fromAge ?? '', l.toAge ?? '', '', '', l.hint || '']);
+    for (const b of l.breakdown || []) {
+      if (!b || (!b.label && b.amount == null)) continue;
+      rows.push(['Sub-item', '', b.label || '', b.amount ?? '', b.period || 'mo', '', '', '', '', '', '', '']);
+    }
+  }
+  for (const o of budget.oneOffs || []) {
+    rows.push(['One-off', o.tier === 'discretionary' ? 'Discretionary' : 'Essential', o.label || '',
+      o.amount ?? '', '', o.paidBy || 'me', o.mySharePct ?? '', '', '', o.atAge ?? '', o.everyYears ?? '', o.hint || '']);
+  }
+  return '﻿' + rows.map((r) => r.map(csvEsc).join(',')).join('\r\n');
+}
+
+/** Minimal CSV parser (quotes, embedded commas/newlines). Returns array of string arrays. */
+function parseCsvText(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  const src = String(text || '').replace(/^﻿/, '');
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (inQ) {
+      if (c === '"') {
+        if (src[i + 1] === '"') { cell += '"'; i++; } else inQ = false;
+      } else cell += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && src[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some((x) => x !== '')) rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  row.push(cell);
+  if (row.some((x) => x !== '')) rows.push(row);
+  return rows;
+}
+
+/** Age laundering: values > 1000 are calendar years → convert using currentAge (mirror of the UI). */
+function launderAge(v, currentAge) {
+  const n = evalAmountExpr(v);
+  if (n == null) return null;
+  if (n > 1000 && currentAge) return Math.round(currentAge + (n - new Date().getFullYear()));
+  return n;
+}
+
+/**
+ * Parse a budget CSV back into {settings, lines, oneOffs, warnings}. Pure & tolerant:
+ * header matching is case/space-insensitive, unknown row types are skipped with a warning,
+ * amounts go through evalAmountExpr (so "=200*12" and "1,200" both work).
+ * ids are NOT assigned here — the caller assigns fresh UI ids.
+ */
+export function parseBudgetCsv(text) {
+  const warnings = [];
+  const raw = parseCsvText(text);
+  if (!raw.length) return { settings: {}, lines: [], oneOffs: [], warnings: ['Empty file'] };
+
+  const norm = (h) => String(h || '').toLowerCase().replace(/[^a-z%£/]/g, '');
+  const headerIdx = {};
+  raw[0].forEach((h, i) => { headerIdx[norm(h)] = i; });
+  const col = (row, name) => {
+    const i = headerIdx[norm(name)];
+    return i == null ? '' : (row[i] ?? '').trim();
+  };
+  if (headerIdx[norm('Type')] == null || headerIdx[norm('Item')] == null) {
+    return { settings: {}, lines: [], oneOffs: [], warnings: ['Header row not recognised — expected the exported column layout (Type, Section, Item, …)'] };
+  }
+
+  const settings = {};
+  const splitPhases = [];
+  const lines = [];
+  const oneOffs = [];
+  let lastLine = null;
+
+  for (let r = 1; r < raw.length; r++) {
+    const row = raw[r];
+    const type = norm(col(row, 'Type'));
+    const item = col(row, 'Item');
+    const amountRaw = col(row, 'Amount');
+    const amount = evalAmountExpr(amountRaw);
+    const period = /mo/i.test(col(row, 'Period')) ? 'mo' : 'yr';
+    const paidBy = { me: 'me', partner: 'partner', shared: 'shared' }[norm(col(row, 'Paid by'))] || 'me';
+    const sharePct = evalAmountExpr(col(row, 'My share %'));
+
+    if (type === 'setting') {
+      const key = norm(item);
+      if (key === 'currentage') settings.currentAge = amount;
+      else if (key === 'retirementage') settings.retirementAge = amount;
+      else if (key === 'plantoage') settings.endAge = amount;
+      else if (key === 'sharedwithpartner') settings.sharedWithPartner = /^(y|true|1)/i.test(amountRaw || col(row, 'Notes')) || /^(y|true|1)/i.test(amountRaw);
+      else if (key === 'myshare%') settings.mySharePct = amount;
+      else if (key === 'plsatier') settings.plsaTier = (amountRaw || '').toLowerCase() || undefined;
+      else if (key === 'headroom£/mo' || key === 'headroommo') settings.targetHeadroomMonthly = amount;
+      else if (key === 'splitchange') {
+        const fromAge = launderAge(col(row, 'From age'), settings.currentAge);
+        if (fromAge != null && amount != null) splitPhases.push({ fromAge, mySharePct: amount });
+        else warnings.push('Row ' + (r + 1) + ': split change needs From age and Amount (%)');
+      } else warnings.push('Row ' + (r + 1) + ': unknown setting "' + item + '" skipped');
+    } else if (type === 'item') {
+      const tier = /disc/i.test(col(row, 'Section')) ? 'discretionary' : 'essential';
+      lastLine = {
+        label: item, tier, period,
+        annual: amount == null ? null : (period === 'mo' ? Math.round(amount * 12 * 100) / 100 : amount),
+        paidBy,
+        mySharePct: sharePct ?? null,
+        fromAge: launderAge(col(row, 'From age'), settings.currentAge),
+        toAge: launderAge(col(row, 'To age'), settings.currentAge),
+        hint: col(row, 'Notes') || '',
+        breakdown: []
+      };
+      lines.push(lastLine);
+    } else if (type === 'subitem') {
+      if (!lastLine) { warnings.push('Row ' + (r + 1) + ': sub-item with no Item above it — skipped'); continue; }
+      lastLine.breakdown.push({ label: item, amount, period });
+    } else if (type === 'oneoff') {
+      oneOffs.push({
+        label: item,
+        tier: /disc/i.test(col(row, 'Section')) ? 'discretionary' : 'essential',
+        amount,
+        atAge: launderAge(col(row, 'At age'), settings.currentAge),
+        everyYears: evalAmountExpr(col(row, 'Every N years')),
+        paidBy,
+        mySharePct: sharePct ?? null,
+        hint: col(row, 'Notes') || ''
+      });
+    } else if (type) {
+      warnings.push('Row ' + (r + 1) + ': unknown Type "' + col(row, 'Type') + '" skipped');
+    }
+  }
+
+  // Sub-item totals drive the parent (same rule the UI applies): recompute annual where present
+  for (const l of lines) {
+    if (l.breakdown.length && l.breakdown.some((b) => +b.amount)) {
+      l.annual = breakdownAnnual(l.breakdown);
+    }
+    if (!l.breakdown.length) delete l.breakdown;
+  }
+  if (splitPhases.length) settings.splitPhases = splitPhases;
+  return { settings, lines, oneOffs, warnings };
+}

@@ -76,6 +76,9 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      flex-wrap: wrap;      /* never force horizontal page overflow */
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .user-info {
@@ -84,6 +87,7 @@
       gap: 12px;
       font-size: 14px;
       color: var(--text-muted);
+      flex-wrap: wrap;
     }
 
     .user-email {
@@ -736,7 +740,7 @@
          cluster, line 3 the meta controls — so stacked rows still read as columns. */
       .bud-row .bud-label { flex: 1 1 100% !important; min-width: 0 !important; }
       .bud-row .bud-amt { flex: 1 1 58% !important; }
-      .bud-row input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
+      .bud-row > input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
       .bud-row select { flex: 0 1 auto; }
 
       /* Button groups - stack vertically on mobile */
@@ -1940,7 +1944,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DbhH0iVV.js"></script>
+  <script type="module" crossorigin src="./assets/main-ClEYT5GW.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->

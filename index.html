@@ -76,6 +76,9 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      flex-wrap: wrap;      /* never force horizontal page overflow */
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .user-info {
@@ -84,6 +87,7 @@
       gap: 12px;
       font-size: 14px;
       color: var(--text-muted);
+      flex-wrap: wrap;
     }
 
     .user-email {
@@ -736,7 +740,7 @@
          cluster, line 3 the meta controls — so stacked rows still read as columns. */
       .bud-row .bud-label { flex: 1 1 100% !important; min-width: 0 !important; }
       .bud-row .bud-amt { flex: 1 1 58% !important; }
-      .bud-row input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
+      .bud-row > input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
       .bud-row select { flex: 0 1 auto; }
 
       /* Button groups - stack vertically on mobile */
@@ -7300,6 +7304,44 @@
       updateBudgetSummary();
     };
 
+    // Age-banding on the MAIN grid, same opt-in rule as the wizard: every cost runs the whole
+    // retirement unless the user opens the ⏱ range. Values equal to the plan's own start/end
+    // (a legacy of earlier versions that stored the defaults explicitly) count as "whole
+    // retirement" too — no more naked "56  90" boxes on every row.
+    function budLineIsBanded(line) {
+      const defFrom = +window._budget.retirementAge, defTo = +window._budget.endAge;
+      const explicit = (v, d) => v != null && v !== '' && +v !== d;
+      return line._bandOpen || explicit(line.fromAge, defFrom) || explicit(line.toAge, defTo);
+    }
+
+    function budLineAgesHtml(line) {
+      if (!budLineIsBanded(line)) {
+        return '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Only for some years? Set when this cost starts and stops — e.g. a car lease with 3 years left. Blank = the whole retirement." onclick="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>';
+      }
+      return '<span class="row-flex" style="gap:4px; flex-wrap:nowrap;">' +
+        '<span class="hint">age</span>' +
+        '<input type="number" placeholder="' + (window._budget.retirementAge ?? 'from') + '" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
+        '<span class="hint">to</span>' +
+        '<input type="number" placeholder="' + (window._budget.endAge ?? 'to') + '" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
+        '<button type="button" class="risk-btn active" style="padding:4px 8px;" title="Back to: applies for the whole retirement" onclick="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>' +
+        '</span>';
+    }
+
+    window.budMainBandToggle = function (id) {
+      const line = window._budget.lines.find((l) => l.id === id);
+      if (!line) return;
+      if (budLineIsBanded(line)) {
+        line._bandOpen = false;
+        line.fromAge = null;
+        line.toAge = null;
+        budTouch();
+      } else {
+        line._bandOpen = true;
+      }
+      renderBudgetLines();
+      updateBudgetSummary();
+    };
+
     function budgetLineRowHtml(line) {
       const hint = line.hint
         ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(line.hint) + '</div>'
@@ -7322,8 +7364,7 @@
           '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:4px 8px; flex:0 0 auto;" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'updateBudgetLine') : '') +
-        '<input type="number" placeholder="from age" title="From age (blank = retirement). For temporary costs — e.g. a car lease with 3 years left — set when it starts and stops." value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 84px;">' +
-        '<input type="number" placeholder="to age" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 84px;">' +
+        budLineAgesHtml(line) +
         dup +
         '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
         (line.breakdownOpen ? '<div style="flex-basis:100%;">' + budBreakPanelHtml('bm', line) + '</div>' : '') +

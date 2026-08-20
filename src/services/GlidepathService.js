@@ -192,10 +192,17 @@ export { cumulativeInflation as calculateCumulativeInflation, cappedInflation as
 export function generateGlidepathSchedule(settings, assumedInflation = INFLATION_DEFAULTS.ASSUMED_CPI) {
   const schedule = [];
 
-  // Bond tent: when enabled, re-split the growth floor each year by the same rising-equity glide the
-  // engine uses, so this schedule reflects the equity share RISING over the early years then holding —
-  // not the flat entered split. Cash is left alone. Off → unchanged (the original depleting floors).
-  const glide = settings.equityGlideEnabled ? equityGlideFromRisk(settings.equityMin, settings.bondMin) : null;
+  // Bond tent: when enabled, re-split the growth floor each year by the SAME glide the engine
+  // uses — tentGlideForSettings resolves tagged-fund plans to the start-anchored glide, exactly
+  // as StressRepository does for the simulation, so this table matches what actually runs.
+  const glide = settings.equityGlideEnabled ? tentGlideForSettings(settings) : null;
+
+  // The 4th bucket and the emergency reserve are part of the plan's pot too. Both are held
+  // flat by the engine (diversifiers as a crisis reserve, HODL behind the glass), so they
+  // appear as constant columns — but leaving them OUT (the old behaviour) made a tagged
+  // portfolio's total look £480K short and inflated the shares% to 83% when it is 50%.
+  const diversifier = settings.diversifierStart || 0;
+  const hodl = settings.hodlEnabled ? (settings.hodlValue || 0) : 0;
 
   for (let year = 0; year <= settings.duration; year++) {
     const cumInf = Math.pow(1 + assumedInflation, year);
@@ -215,7 +222,13 @@ export function generateGlidepathSchedule(settings, assumedInflation = INFLATION
       equityMin,
       bondMin,
       cashTarget: values.cash,
-      totalMin: equityMin + bondMin + values.cash
+      diversifier,
+      hodl,
+      // Equity share of the WHOLE pot (incl. diversifiers), not just equity+bond+cash
+      equityShareOfPot: (equityMin + bondMin + values.cash + diversifier) > 0
+        ? equityMin / (equityMin + bondMin + values.cash + diversifier)
+        : 0,
+      totalMin: equityMin + bondMin + values.cash + diversifier + hodl
     });
   }
 

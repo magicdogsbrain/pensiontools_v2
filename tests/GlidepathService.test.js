@@ -250,3 +250,26 @@ describe('GlidepathService', () => {
     });
   });
 });
+
+describe('generateGlidepathSchedule — 4-bucket pot (tagged portfolios)', () => {
+  it('includes diversifiers and HODL in the total; shares% is of the WHOLE pot', () => {
+    // The user-reported case: £1.2M tagged portfolio, £480K in CGT/PNL (diversifiers)
+    const settings = {
+      equityMin: 600000, bondMin: 0, cashTarget: 120000,
+      diversifierStart: 480000, hodlEnabled: false, duration: 30
+    };
+    const sch = generateGlidepathSchedule(settings, 0.025);
+    expect(sch[0].diversifier).toBe(480000);
+    expect(sch[0].totalMin).toBeCloseTo(1200000, 0);          // was 720000 before the fix
+    expect(Math.round(sch[0].equityShareOfPot * 100)).toBe(50); // was 83%
+  });
+
+  it('HODL appears when enabled; plans without the 4th bucket are unchanged', () => {
+    const withHodl = generateGlidepathSchedule({ equityMin: 100000, bondMin: 50000, cashTarget: 20000, hodlEnabled: true, hodlValue: 30000, duration: 10 }, 0.025);
+    expect(withHodl[0].hodl).toBe(30000);
+    expect(withHodl[0].totalMin).toBeCloseTo(200000, 0);
+    const plain = generateGlidepathSchedule({ equityMin: 100000, bondMin: 50000, cashTarget: 20000, duration: 10 }, 0.025);
+    expect(plain[0].diversifier).toBe(0);
+    expect(plain[0].totalMin).toBeCloseTo(170000, 0);
+  });
+});

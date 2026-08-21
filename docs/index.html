@@ -43,6 +43,50 @@
       font-size: 14px;
     }
     .row-flex input[type="checkbox"] { padding: 0; background: none; border: none; }
+
+    /* ---- Budget grid: every row shares ONE column template, so columns genuinely align. ---- */
+    .bud-grid .bud-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 1fr) 225px 215px 84px;
+      gap: 6px 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .bud-grid--shared .bud-row {
+      grid-template-columns: minmax(140px, 1fr) 225px 118px 215px 84px;
+    }
+    .bud-grid .bud-row.bud-head {
+      margin-bottom: 2px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+    .bud-grid .bud-label input { width: 100%; box-sizing: border-box; }
+    .bud-grid .bud-amt { display: flex; gap: 4px; align-items: center; min-width: 0; }
+    .bud-grid .bud-amt input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; }
+    .bud-grid .bud-paidby select { width: 100%; box-sizing: border-box; }
+    .bud-grid .bud-ages { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+    .bud-grid .bud-ages input { width: 58px; flex: 0 0 auto; box-sizing: border-box; }
+    .bud-grid .bud-actions { display: flex; gap: 4px; justify-content: flex-end; }
+    .bud-grid .bud-break { grid-column: 1 / -1; }
+    .bud-grid input, .bud-grid select, .bud-grid .bud-row button {
+      min-height: 34px;
+      box-sizing: border-box;
+    }
+    .bud-grid .bud-row button { padding: 4px 9px; width: auto; }
+    @media (max-width: 640px) {
+      .bud-grid .bud-row, .bud-grid--shared .bud-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .bud-grid .bud-label { grid-column: 1 / -1; }
+      .bud-grid .bud-amt { grid-column: 1 / -1; }   /* amount gets the full row — never a sliver */
+      .bud-grid .bud-row.bud-head { display: none; }
+      .bud-grid .bud-actions { justify-content: flex-end; }
+      /* Section titles: stack the muted hint under the heading instead of wrapping beside it */
+      .section-title { display: block; }
+      .section-title span { display: block; margin-top: 2px; }
+    }
     @media (hover: none) and (pointer: coarse) {
       .row-flex input, .row-flex select { min-height: 44px; }
     }
@@ -747,12 +791,7 @@
         padding: 8px 12px;
         font-size: 13px;
       }
-      /* Budget rows: identical wrap points on every row — line 1 label, line 2 amount
-         cluster, line 3 the meta controls — so stacked rows still read as columns. */
-      .bud-row .bud-label { flex: 1 1 100% !important; min-width: 0 !important; }
-      .bud-row .bud-amt { flex: 1 1 58% !important; }
-      .bud-row > input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
-      .bud-row select { flex: 0 1 auto; }
+      /* (budget rows are a real grid now — rules live with .bud-grid below) */
 
       /* Button groups - stack vertically on mobile */
       .button-row {
@@ -1955,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-B17vDPSv.js"></script>
+  <script type="module" crossorigin src="./assets/main-E2aRr_1F.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2192,10 +2231,14 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds'); renderModelPortfolio('ds')">
                   <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
               </div>
+              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ds')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="dsModelPortfolio" style="margin-top:8px;"></div>
+              </details>
             </div>
 
             <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
@@ -2812,13 +2855,17 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
                   <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
                 </p>
               </div>
+              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ss')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
+              </details>
             </div>
 
             <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->

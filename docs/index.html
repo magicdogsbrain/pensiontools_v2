@@ -1955,7 +1955,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BHmNVE0N.js"></script>
+  <script type="module" crossorigin src="./assets/main-B17vDPSv.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2264,6 +2264,11 @@
                   </select>
                 </div>
               </div>
+              <p id="dsScheduleSpendNote" class="hint" style="display:none; margin:6px 0 0; color: var(--warning);">
+                Your budget's per-year schedule also drives the tax-year wizard's suggestions. If the
+                budget already winds costs down with age, choose <strong>Level for life</strong> —
+                "Declining" would count the slowdown twice.
+              </p>
               <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">
                 Locked with the plan. "Declining" is level for the first 5 years, then drifts down ~1%/yr for
                 20 years, then holds — the same spending smile as the Stress tester. In those declining years the
@@ -3014,6 +3019,11 @@
                 </select>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Real spending typically falls through retirement (Blanchett's "spending smile"). "Declining" holds spending level for the first 5 years, drifts down ~1%/yr for the next 20, then holds (a ~18% real fall in mid-retirement — gentler than a straight-line drop). Flat is the pessimistic default. Late-life care costs are not auto-added.
+                </p>
+                <p id="ssScheduleSpendNote" class="hint" style="display:none; margin:6px 0 0; color: var(--warning);">
+                  This plan follows your budget's per-year schedule. If that budget already winds
+                  costs down with age (ended leases, holidays stopping, support ending), choose
+                  <strong>Level for life</strong> — "Declining" would count the slowdown twice.
                 </p>
               </div>
             </div>

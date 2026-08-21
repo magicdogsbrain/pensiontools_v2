@@ -8,6 +8,7 @@
 // Services
 import { saveDecision } from './services/DecisionService.js';
 import { longevityAge } from './services/LongevityModel.js';
+import { modelPortfolio } from './services/ModelPortfolios.js';
 import { contributionBreakdown, contributionWarnings, projectAccumulation, requiredPotForSuccess } from './services/AccumulationEngine.js';
 import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId, getActivePlanOfRecord, saveActivePlanOfRecord } from './storage/ScenarioRepository.js';
 import { runHouseholdMonteCarlo, householdIncomeTimeline, runSurvivorCheck, allowanceNudge, runCareCheck } from './services/HouseholdService.js';
@@ -368,6 +369,7 @@ export {
   budgetToCsv,
   parseBudgetCsv,
   longevityAge,
+  modelPortfolio,
   contributionBreakdown,
   contributionWarnings,
   projectAccumulation,

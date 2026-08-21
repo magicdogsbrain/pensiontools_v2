@@ -43,6 +43,50 @@
       font-size: 14px;
     }
     .row-flex input[type="checkbox"] { padding: 0; background: none; border: none; }
+
+    /* ---- Budget grid: every row shares ONE column template, so columns genuinely align. ---- */
+    .bud-grid .bud-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 1fr) 225px 215px 84px;
+      gap: 6px 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .bud-grid--shared .bud-row {
+      grid-template-columns: minmax(140px, 1fr) 225px 118px 215px 84px;
+    }
+    .bud-grid .bud-row.bud-head {
+      margin-bottom: 2px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+    .bud-grid .bud-label input { width: 100%; box-sizing: border-box; }
+    .bud-grid .bud-amt { display: flex; gap: 4px; align-items: center; min-width: 0; }
+    .bud-grid .bud-amt input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; }
+    .bud-grid .bud-paidby select { width: 100%; box-sizing: border-box; }
+    .bud-grid .bud-ages { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+    .bud-grid .bud-ages input { width: 58px; flex: 0 0 auto; box-sizing: border-box; }
+    .bud-grid .bud-actions { display: flex; gap: 4px; justify-content: flex-end; }
+    .bud-grid .bud-break { grid-column: 1 / -1; }
+    .bud-grid input, .bud-grid select, .bud-grid .bud-row button {
+      min-height: 34px;
+      box-sizing: border-box;
+    }
+    .bud-grid .bud-row button { padding: 4px 9px; width: auto; }
+    @media (max-width: 640px) {
+      .bud-grid .bud-row, .bud-grid--shared .bud-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .bud-grid .bud-label { grid-column: 1 / -1; }
+      .bud-grid .bud-amt { grid-column: 1 / -1; }   /* amount gets the full row — never a sliver */
+      .bud-grid .bud-row.bud-head { display: none; }
+      .bud-grid .bud-actions { justify-content: flex-end; }
+      /* Section titles: stack the muted hint under the heading instead of wrapping beside it */
+      .section-title { display: block; }
+      .section-title span { display: block; margin-top: 2px; }
+    }
     @media (hover: none) and (pointer: coarse) {
       .row-flex input, .row-flex select { min-height: 44px; }
     }
@@ -747,12 +791,7 @@
         padding: 8px 12px;
         font-size: 13px;
       }
-      /* Budget rows: identical wrap points on every row — line 1 label, line 2 amount
-         cluster, line 3 the meta controls — so stacked rows still read as columns. */
-      .bud-row .bud-label { flex: 1 1 100% !important; min-width: 0 !important; }
-      .bud-row .bud-amt { flex: 1 1 58% !important; }
-      .bud-row > input[type="number"] { flex: 1 1 64px !important; min-width: 64px; }
-      .bud-row select { flex: 0 1 auto; }
+      /* (budget rows are a real grid now — rules live with .bud-grid below) */
 
       /* Button groups - stack vertically on mobile */
       .button-row {
@@ -2191,10 +2230,14 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds'); renderModelPortfolio('ds')">
                   <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
               </div>
+              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ds')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="dsModelPortfolio" style="margin-top:8px;"></div>
+              </details>
             </div>
 
             <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
@@ -2811,13 +2854,17 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
                   <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
                 </p>
               </div>
+              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ss')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
+              </details>
             </div>
 
             <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
@@ -3371,6 +3418,7 @@
       budgetToCsv,
       parseBudgetCsv,
       longevityAge,
+      modelPortfolio,
       contributionBreakdown,
       contributionWarnings,
       projectAccumulation,
@@ -5841,6 +5889,24 @@
       }
       return best;
     }
+    window.renderModelPortfolio = function (p) {
+      const box = document.getElementById(p + 'ModelPortfolio');
+      if (!box) return;
+      const activeCard = document.querySelector('#' + p + 'Risks .risk-card.active');
+      const risk = activeCard ? activeCard.dataset.risk : 'balanced';
+      const div = !!document.getElementById(p + 'Diversifiers')?.checked;
+      const tent = !!document.getElementById(p + 'EquityGlide')?.checked;
+      const mp = modelPortfolio(risk, { diversifiers: div });
+      let html = '<div class="table-scroll-container"><table><thead><tr><th>Example fund</th><th>Job in the mix</th><th>%</th></tr></thead><tbody>';
+      for (const r of mp.rows) {
+        html += '<tr><td><strong>' + r.ticker + '</strong> <span class="hint">' + r.name + '</span></td><td style="font-size:13px;">' + r.job + '</td><td style="font-weight:600;">' + r.pct + '%</td></tr>';
+      }
+      html += '</tbody></table></div>';
+      if (tent) html += '<p class="hint" style="margin:6px 0 0;">Bond tent is ON: the shares/bonds SPLIT shifts over the years — the instruments stay the same, you would just hold different amounts of each.</p>';
+      html += '<p class="hint" style="margin:6px 0 0;">' + mp.note + '</p>';
+      box.innerHTML = html;
+    };
+
     window.updateAllocDisplay = function(p) {
       const preset = activePreset(p);
       const eq = Math.round(preset.equity * 100), bd = Math.round(preset.bond * 100), csh = Math.round(preset.cash * 100);
@@ -5944,6 +6010,7 @@
       delete window._customAlloc[p];   // choosing a risk level reverts a from-funds custom allocation
       document.querySelectorAll('#' + p + 'Risks .risk-card').forEach(b => b.classList.toggle('active', b.dataset.risk === key));
       updateAllocDisplay(p);
+      renderModelPortfolio(p);
     };
     // Switch between "risk level" and "my funds" allocation modes.
     window.setAllocMode = function(p, mode) {
@@ -7475,64 +7542,88 @@
 
     function budgetLineRowHtml(line) {
       const hint = line.hint
-        ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(line.hint) + '</div>'
+        ? '<div class="hint" style="margin-top:2px;line-height:1.3;font-size:11px;">' + budEsc(line.hint) + '</div>'
         : '';
       const period = line.period || 'yr';
       const shown = line.annual == null ? '' : (period === 'mo' ? Math.round(line.annual / 12) : line.annual);
       const typ = typicalMonthlyFor(line.label, window._budget);
       const ph = typ != null ? ('≈' + (period === 'mo' ? typ : typ * 12)) : 'Amount';
       const dup = window._budget.sharedWithPartner
-        ? '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Add a copy for your partner (e.g. their car)" onclick="duplicateBudgetLine(\'' + line.id + '\')">⧉</button>'
+        ? '<button type="button" class="risk-btn" title="Add a copy for your partner (e.g. their car)" onclick="duplicateBudgetLine(\'' + line.id + '\')">⧉</button>'
         : '';
-      return '<div class="bud-row" data-id="' + line.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
-        '<div class="bud-label" style="flex:1 1 200px; min-width:170px;">' +
-          '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">' +
+      return '<div class="bud-row" data-id="' + line.id + '">' +
+        '<div class="bud-label">' +
+          '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)">' +
           hint +
         '</div>' +
-        '<div class="bud-amt" style="display:flex; gap:4px; flex:0 0 186px; align-items:center;">' +
-          '<input type="text" inputmode="decimal" id="bm-amt-' + line.id + '" placeholder="' + ph + '" title="Amount in today\'s money — sums welcome: 11.99+8.99 or =4×52/12' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" onchange="updateBudgetAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
-          '<button type="button" class="risk-btn" style="padding:4px 8px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
-          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:4px 8px; flex:0 0 auto;" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
+        '<div class="bud-amt">' +
+          '<input type="text" inputmode="decimal" id="bm-amt-' + line.id + '" placeholder="' + ph + '" title="Amount in today\'s money — sums welcome: 11.99+8.99 or =4×52/12' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" onchange="updateBudgetAmount(\'' + line.id + '\',this.value,this)">' +
+          '<button type="button" class="risk-btn" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
+          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
-        (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'updateBudgetLine') : '') +
-        budLineAgesHtml(line) +
-        dup +
-        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
-        (line.breakdownOpen ? '<div style="flex-basis:100%;">' + budBreakPanelHtml('bm', line) + '</div>' : '') +
+        (window._budget.sharedWithPartner ? '<span class="bud-paidby">' + paidBySelectHtml(line, 'updateBudgetLine') + '</span>' : '') +
+        '<span class="bud-ages">' + budLineAgesHtml(line) + '</span>' +
+        '<span class="bud-actions">' + dup +
+          '<button type="button" class="risk-btn" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
+        '</span>' +
+        (line.breakdownOpen ? '<div class="bud-break">' + budBreakPanelHtml('bm', line) + '</div>' : '') +
         '</div>';
+    }
+
+    function budHeaderRow(oneOff) {
+      const shared = window._budget.sharedWithPartner;
+      return '<div class="bud-row bud-head' + (oneOff ? ' bud-row--oneoff' : '') + '">'
+        + '<span>What</span><span>' + (oneOff ? 'Cost (£)' : 'Amount') + '</span>'
+        + (shared ? '<span>Who pays</span>' : '')
+        + '<span>' + (oneOff ? 'When' : 'Years it applies') + '</span><span></span></div>';
     }
 
     function renderBudgetLines() {
       const ess = window._budget.lines.filter((l) => l.tier === 'essential');
       const dis = window._budget.lines.filter((l) => l.tier === 'discretionary');
-      document.getElementById('budEssentialRows').innerHTML = ess.map(budgetLineRowHtml).join('') ||
-        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No essentials yet — add housing, bills, food, transport…</p>';
-      document.getElementById('budDiscretionaryRows').innerHTML = dis.map(budgetLineRowHtml).join('') ||
-        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No lifestyle spending yet — holidays, hobbies, eating out…</p>';
+      const shared = window._budget.sharedWithPartner;
+      for (const id of ['budEssentialRows', 'budDiscretionaryRows', 'budOneOffRows']) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('bud-grid'); el.classList.toggle('bud-grid--shared', shared); }
+      }
+      document.getElementById('budEssentialRows').innerHTML = (ess.length ? budHeaderRow(false) : '') + ess.map(budgetLineRowHtml).join('') ||
+        '<p class="hint" style="margin:0 0 8px;">No essentials yet — add housing, bills, food, transport…</p>';
+      document.getElementById('budDiscretionaryRows').innerHTML = (dis.length ? budHeaderRow(false) : '') + dis.map(budgetLineRowHtml).join('') ||
+        '<p class="hint" style="margin:0 0 8px;">No lifestyle spending yet — holidays, hobbies, eating out…</p>';
       renderBudgetSuggestions();
     }
 
     function budgetOneOffRowHtml(o) {
       const hint = o.hint
-        ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3;">' + budEsc(o.hint) + '</div>'
+        ? '<div class="hint" style="margin-top:2px;line-height:1.3;font-size:11px;">' + budEsc(o.hint) + '</div>'
         : '';
-      return '<div class="bud-row" data-id="' + o.id + '" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:10px;">' +
-        '<div class="bud-label" style="flex:1 1 170px; min-width:150px;">' +
-          '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)" style="width:100%;">' +
+      return '<div class="bud-row bud-row--oneoff" data-id="' + o.id + '">' +
+        '<div class="bud-label">' +
+          '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)">' +
           hint +
         '</div>' +
-        '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)" style="flex:0 0 120px;">' +
-        (window._budget.sharedWithPartner ? paidBySelectHtml(o, 'updateBudgetOneOff') : '') +
-        '<input type="number" placeholder="at age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
-        '<input type="number" placeholder="every N yrs" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 110px;">' +
-        (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Add a copy for your partner" onclick="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
-        '<button type="button" class="risk-btn" style="padding:4px 10px;" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
+        '<div class="bud-amt">' +
+          '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)">' +
+        '</div>' +
+        (window._budget.sharedWithPartner ? '<span class="bud-paidby">' + paidBySelectHtml(o, 'updateBudgetOneOff') + '</span>' : '') +
+        '<span class="bud-ages">' +
+          '<span class="hint">at</span><input type="number" placeholder="age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)">' +
+          '<span class="hint">every</span><input type="number" placeholder="once" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)"><span class="hint">yrs</span>' +
+        '</span>' +
+        '<span class="bud-actions">' +
+        (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" title="Add a copy for your partner" onclick="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
+          '<button type="button" class="risk-btn" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
+        '</span>' +
         '</div>';
     }
 
     function renderBudgetOneOffs() {
-      document.getElementById('budOneOffRows').innerHTML = window._budget.oneOffs.map(budgetOneOffRowHtml).join('') ||
-        '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">No one-off costs yet — a car every ~8 years, a new roof, a milestone trip…</p>';
+      const oo = window._budget.oneOffs;
+      const el = document.getElementById('budOneOffRows');
+      el.classList.add('bud-grid');
+      el.classList.toggle('bud-grid--shared', !!window._budget.sharedWithPartner);
+      el.innerHTML = (oo.length ? budHeaderRow(true) : '') + oo.map(budgetOneOffRowHtml).join('') ||
+        '<p class="hint" style="margin:0 0 8px;">No one-off costs yet — a car every ~8 years, a new roof, a milestone trip…</p>';
     }
 
     // Completeness nudge: chips for common categories the user hasn't added (incl. any they removed).

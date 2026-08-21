@@ -221,7 +221,10 @@ function renderCpiAndSalary() {
   // CPI, netted by the real-spending decline when the plan declines — mirrors the Stress tester.
   const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
   const declineRate = wizardContext.declineRate || 0;
-  const suggestedSalary = Math.round(base * (1 + currentCpi - declineRate));
+  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule';
+  const suggestedSalary = fromSchedule
+    ? Math.round(wizardContext.suggestedSalary)
+    : Math.round(base * (1 + currentCpi - declineRate));
   const declining = declineRate > 0;
   const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
 
@@ -239,9 +242,16 @@ function renderCpiAndSalary() {
       </div>
 
       <div class="wizard-info-box" id="salaryInfoBox">
-        ${declining
-          ? `<p>Your plan uses <strong>declining spending</strong> (~${(declineRate * 100).toFixed(0)}%/yr real). Last year's salary rises with <span id="cpiDisplay">${cpiPercent}</span>% CPI less that decline — a net <strong><span id="netUpliftDisplay">${netUpliftPct}</span>%</strong> — to:</p>`
-          : `<p>Based on <span id="cpiDisplay">${cpiPercent}</span>% inflation, your target salary should be:<span id="netUpliftDisplay" hidden>${netUpliftPct}</span></p>`}
+        ${fromSchedule
+          ? `<p><strong>From your budget's plan for this year</strong> — the per-year schedule you set
+             from the Budget tool (temporary costs end when they end, one-offs land in their year),
+             uplifted to this year's money:</p>`
+          : ''}
+        ${fromSchedule
+          ? `<span id="cpiDisplay" hidden>${cpiPercent}</span><span id="netUpliftDisplay" hidden>${netUpliftPct}</span>`
+          : declining
+            ? `<p>Your plan uses <strong>declining spending</strong> (~${(declineRate * 100).toFixed(0)}%/yr real). Last year's salary rises with <span id="cpiDisplay">${cpiPercent}</span>% CPI less that decline — a net <strong><span id="netUpliftDisplay">${netUpliftPct}</span>%</strong> — to:</p>`
+            : `<p>Based on <span id="cpiDisplay">${cpiPercent}</span>% inflation, your target salary should be:<span id="netUpliftDisplay" hidden>${netUpliftPct}</span></p>`}
         <p style="font-size: 24px; color: var(--primary); margin: 12px 0;">£<span id="suggestedSalaryDisplay">${suggestedSalary.toLocaleString()}</span></p>
         <p>per year (gross)</p>
       </div>
@@ -650,6 +660,9 @@ function attachListeners() {
 
   // Setup CPI change handler for dynamic salary update
   window._updateWizardSalary = function() {
+    // Budget-schedule suggestions don't depend on this year's CPI entry (the schedule is
+    // uplifted by PRIOR years' CPI only) — don't clobber them with the chain recompute.
+    if (wizardContext && wizardContext.suggestionSource === 'budget-schedule') return;
     const cpiInput = document.getElementById('wizCPI');
     const salaryInput = document.getElementById('wizSalary');
     const cpiDisplay = document.getElementById('cpiDisplay');

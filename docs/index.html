@@ -1944,7 +1944,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-ClEYT5GW.js"></script>
+  <script type="module" crossorigin src="./assets/main-BT3m8n12.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2380,6 +2380,7 @@
         <!-- History Sub-tab -->
         <div id="decision-history" class="decision-subtab hidden">
           <div class="history-full-page">
+            <div id="planVsActual"></div>
             <!-- History header with actions -->
             <div class="history-header">
               <div class="history-year-selector">
@@ -2906,6 +2907,18 @@
                 draw less from your pots once it starts. In the Decision Tool, enter DB income you
                 actually receive in each tax year's "Other income" (it works on actuals).
               </p>
+              <div style="margin-top:14px;">
+                <div class="section-title" style="font-size:13px;">Income streams &amp; lump sums <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(part-time work, rent that ends, an inheritance, downsizing)</span></div>
+                <div id="ssExtraIncomes"></div>
+                <div class="row-flex" style="margin-top:6px;">
+                  <button type="button" class="risk-btn" onclick="addExtraIncome()">+ Income for some years</button>
+                  <button type="button" class="risk-btn" onclick="addWindfall()">+ One-off lump sum</button>
+                </div>
+                <p class="hint" style="margin:6px 0 0;">
+                  Amounts in today's money. Years are plan years (0 = now). Income streams are taxable
+                  and fill your bands like other income; lump sums land in your pots (or ISA) in that year.
+                </p>
+              </div>
             </div>
 
             <div class="settings-section">

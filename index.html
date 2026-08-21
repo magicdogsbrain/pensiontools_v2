@@ -2379,6 +2379,7 @@
         <!-- History Sub-tab -->
         <div id="decision-history" class="decision-subtab hidden">
           <div class="history-full-page">
+            <div id="planVsActual"></div>
             <!-- History header with actions -->
             <div class="history-header">
               <div class="history-year-selector">
@@ -2905,6 +2906,18 @@
                 draw less from your pots once it starts. In the Decision Tool, enter DB income you
                 actually receive in each tax year's "Other income" (it works on actuals).
               </p>
+              <div style="margin-top:14px;">
+                <div class="section-title" style="font-size:13px;">Income streams &amp; lump sums <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(part-time work, rent that ends, an inheritance, downsizing)</span></div>
+                <div id="ssExtraIncomes"></div>
+                <div class="row-flex" style="margin-top:6px;">
+                  <button type="button" class="risk-btn" onclick="addExtraIncome()">+ Income for some years</button>
+                  <button type="button" class="risk-btn" onclick="addWindfall()">+ One-off lump sum</button>
+                </div>
+                <p class="hint" style="margin:6px 0 0;">
+                  Amounts in today's money. Years are plan years (0 = now). Income streams are taxable
+                  and fill your bands like other income; lump sums land in your pots (or ISA) in that year.
+                </p>
+              </div>
             </div>
 
             <div class="settings-section">
@@ -3345,10 +3358,13 @@
       saveActiveAccumulation,
       getHouseholdPartnerId,
       setHouseholdPartnerId,
+      getActivePlanOfRecord,
+      saveActivePlanOfRecord,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
       runSurvivorCheck,
       allowanceNudge,
+      runCareCheck,
       targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
@@ -3959,6 +3975,9 @@
         document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
+        window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
+        window._ssWindfalls = Array.isArray(stressSettings.windfalls) ? JSON.parse(JSON.stringify(stressSettings.windfalls)) : [];
+        renderExtraIncomes();
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = stressSettings.spStartDate || '';
         document.getElementById('ssSpWeeklyAmount').value = stressSettings.spWeeklyAmount || '';
@@ -6508,6 +6527,42 @@
       document.querySelector('.tab[data-tab="' + name + '"]')?.click();
     };
 
+    // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------
+    window.renderExtraIncomes = function (settings) {
+      const box = document.getElementById('ssExtraIncomes');
+      if (!box) return;
+      const inc = window._ssExtraIncomes || [];
+      const wf = window._ssWindfalls || [];
+      let html = '';
+      inc.forEach((r, i) => {
+        html += '<div class="row-flex" style="margin-top:6px;">'
+          + '<input type="text" placeholder="e.g. Part-time work" value="' + budEsc(r.label || '') + '" oninput="updExtraIncome(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">£/yr</span><input type="number" value="' + (r.annual ?? '') + '" oninput="updExtraIncome(' + i + ',\'annual\',this.value)" style="width:100px;">'
+          + '<span class="hint">years</span><input type="number" placeholder="0" min="0" value="' + (r.startYear ?? '') + '" oninput="updExtraIncome(' + i + ',\'startYear\',this.value)" style="width:64px;">'
+          + '<span class="hint">to</span><input type="number" placeholder="∞" min="0" value="' + (r.endYear ?? '') + '" oninput="updExtraIncome(' + i + ',\'endYear\',this.value)" style="width:64px;">'
+          + '<select onchange="updExtraIncome(' + i + ',\'indexation\',this.value)" style="width:140px;">'
+          + '<option value="lpi5"' + ((r.indexation || 'lpi5') === 'lpi5' ? ' selected' : '') + '>CPI capped 5%</option>'
+          + '<option value="cpi"' + (r.indexation === 'cpi' ? ' selected' : '') + '>Full CPI</option>'
+          + '<option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Level</option></select>'
+          + '<button type="button" class="risk-btn" title="Remove" onclick="rmExtraIncome(' + i + ')">✕</button></div>';
+      });
+      wf.forEach((r, i) => {
+        html += '<div class="row-flex" style="margin-top:6px;">'
+          + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" oninput="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" oninput="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" oninput="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa ? ' checked' : '') + ' onchange="updWindfall(' + i + ',\'toIsa\',this.checked)">to ISA</label>'
+          + '<button type="button" class="risk-btn" title="Remove" onclick="rmWindfall(' + i + ')">✕</button></div>';
+      });
+      box.innerHTML = html || '<p class="hint" style="margin:4px 0 0;">None yet — everything comes from the pots, State Pension and DB above.</p>';
+    };
+    window.addExtraIncome = function () { (window._ssExtraIncomes = window._ssExtraIncomes || []).push({ indexation: 'lpi5' }); renderExtraIncomes(); };
+    window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
+    window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
+    window.rmExtraIncome = function (i) { window._ssExtraIncomes.splice(i, 1); renderExtraIncomes(); };
+    window.updWindfall = function (i, k, v) { if (window._ssWindfalls?.[i]) window._ssWindfalls[i][k] = k === 'label' ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v); };
+    window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
+
     // ---- Household tab (couples view) -------------------------------------------------------
     window.loadHouseholdUI = async function () {
       try {
@@ -6631,6 +6686,17 @@
           + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" onclick="runSurvivorUI()">Run survivor check</button></div>'
           + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>';
 
+        // ---- Long-term care one-shot stress ----
+        html += '<div class="settings-section"><div class="section-title">What if one of you needs care?</div>'
+          + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) and re-runs both plans. It models the cost only — never local-authority means-testing.</p>'
+          + '<div class="row-flex" style="font-size:13px;">'
+          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who needs care<select id="hhCareWho" style="min-width:150px;"><option value="A">' + ownName + '</option><option value="B">' + pName + '</option></select></label>'
+          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From year<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
+          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="3" min="1" max="15" style="width:80px;"></label>'
+          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£/yr, today)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
+          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" onclick="runCareUI()">Run care check</button></div>'
+          + '<div id="hhCareResult" style="margin-top:8px;"></div></div>';
+
         window._hhLast = { cfgA, cfgB, ownSettings, partnerSettings, ownName, pName };
         out.innerHTML = html;
       } catch (e) {
@@ -6666,6 +6732,29 @@
           + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions assumed inherited tax-free (death before 75), ISA passed via the spouse allowance, median inheritance from ' + surv.dName + '\'s own simulations.</p>';
       } catch (e) {
         box.innerHTML = '<div class="alert alert-warning">Survivor check failed: ' + e.message + '</div>';
+      }
+    };
+
+    window.runCareUI = async function () {
+      const box = document.getElementById('hhCareResult');
+      const L = window._hhLast;
+      if (!L) return;
+      box.innerHTML = '<p style="font-size:13px;">Re-running both plans with the care years included…</p>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const who = document.getElementById('hhCareWho').value;
+        const startYear = +document.getElementById('hhCareStart').value || 15;
+        const years = +document.getElementById('hhCareYears').value || 3;
+        const annualCost = +document.getElementById('hhCareCost').value || 90000;
+        const r = runCareCheck({ cfgA: L.cfgA, cfgB: L.cfgB, setA: L.ownSettings, setB: L.partnerSettings, who, startYear, years, annualCost, runs: 500 });
+        const name = who === 'A' ? L.ownName : L.pName;
+        const cls = r.careJoint >= 0.85 ? 'alert-success' : r.careJoint >= 0.7 ? 'alert-warning' : 'alert-danger';
+        box.innerHTML = '<div class="alert ' + cls + '">With ' + name + ' needing care from year ' + startYear + ' for ' + years
+          + ' years (' + gbp(r.totalCareCost) + ' total in today\'s money): the money lasts for both of you in <strong>'
+          + (r.careJoint * 100).toFixed(0) + '%</strong> of 500 futures — versus ' + (r.baselineJoint * 100).toFixed(0) + '% without care.</div>'
+          + '<p class="hint">A stress check, not advice. Cost added in full on top of normal spending; no means-testing modelled.</p>';
+      } catch (e) {
+        box.innerHTML = '<div class="alert alert-warning">Care check failed: ' + e.message + '</div>';
       }
     };
 
@@ -6943,6 +7032,9 @@
         document.getElementById('ssDbAmount').value = s.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
+        window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
+        window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
+        renderExtraIncomes();
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = s.spStartDate || '';
         document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
@@ -7029,6 +7121,8 @@
           dbAmount: +document.getElementById('ssDbAmount').value || 0,
           dbStartYear: +document.getElementById('ssDbStartYear').value || 0,
           dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
+          extraIncomes: (window._ssExtraIncomes || []).filter((r) => r.annual > 0),
+          windfalls: (window._ssWindfalls || []).filter((r) => r.amount > 0 && r.year != null),
           // State Pension (new fields)
           spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
@@ -8783,6 +8877,22 @@
           // Saving IS committing the plan definition → lock it. New settings need a new plan.
           locked: true
         });
+        // Plan of record: freeze the projection this lock implies — the yardstick history is
+        // measured against. Deterministic, at the decision-side assumed CPI (4% for unentered
+        // years — slightly pessimistic by design). Recomputed on every save-and-lock.
+        try {
+          const locked = await getDecisionSettingsAsync();
+          const assumedCpi = 0.04;
+          await saveActivePlanOfRecord({
+            savedAt: new Date().toISOString(),
+            assumedCpi,
+            baseSalary: locked.baseSalary,
+            drawdown: generateDrawdownSchedule({ ...locked, taxMode: locked.taxMode || 'inflates', pa: locked.pa || 12570, brl: locked.brl || 50270, hrl: locked.hrl || 125140 }, locked.duration || 35, assumedCpi)
+              .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
+            glidepath: generateGlidepathSchedule(locked, assumedCpi)
+              .map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
+          });
+        } catch (e) { console.warn('Plan-of-record snapshot failed (non-fatal):', e); }
         updateSetupBanners();
         updateNextStepBanner();
         showToast('Settings saved and locked. Create a new plan to use different settings.', 'success', 4000);
@@ -8923,6 +9033,46 @@
     let selectedHistoryYear = 'all';
 
     // Render history with full-page tabbed view
+    // Plan vs actual: measure the saved history against the projection FROZEN when the plan was
+    // locked (the plan of record). The monthly tool keeps using actuals — this is the yardstick.
+    async function renderPlanVsActual(history) {
+      const box = document.getElementById('planVsActual');
+      if (!box) return;
+      try {
+        const por = await getActivePlanOfRecord();
+        if (!por || !history || !history.length) { box.innerHTML = ''; return; }
+        const byYear = {};
+        for (const h of history) {
+          const y = h.yearNum ?? 0;
+          (byYear[y] = byYear[y] || []).push(h);
+        }
+        let rows = '';
+        for (const y of Object.keys(byYear).map(Number).sort((a, b) => a - b)) {
+          const plan = por.drawdown[y];
+          if (!plan) continue;
+          const recs = byYear[y];
+          const actAvgSipp = recs.reduce((t, h) => t + (h.sipp || 0), 0) / recs.length;
+          const actTax = recs.reduce((t, h) => t + (h.taxPaidMonthly || h.monthlyTax || 0), 0);
+          const lastIsaVal = recs[recs.length - 1].isaBalance ?? null;
+          const planMonthly = plan.sippDraw / 12;
+          const drawDelta = actAvgSipp - planMonthly;
+          const fmtD = (d) => (d >= 0 ? '+' : '−') + gbp(Math.round(Math.abs(d)));
+          rows += '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo)</span></td>'
+            + '<td>' + gbp(Math.round(planMonthly)) + '/mo</td>'
+            + '<td>' + gbp(Math.round(actAvgSipp)) + '/mo <span class="hint">(' + fmtD(drawDelta) + ')</span></td>'
+            + '<td>' + gbp(Math.round(plan.tax)) + '</td>'
+            + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>'
+            + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
+        }
+        if (!rows) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
+          + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + new Date(por.savedAt).toLocaleDateString() + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'
+          + '<div class="table-scroll-container"><table><thead><tr><th>Plan year</th><th>Planned draw</th><th>Actual draw</th><th>Planned tax/yr</th><th>Actual tax pace</th><th>Planned ISA left</th></tr></thead><tbody>'
+          + rows + '</tbody></table></div>'
+          + '<p class="hint" style="margin-top:6px;">The plan of record never moves — that\'s its job. Your monthly recommendations always use your real fund values and entered CPI.</p></div>';
+      } catch (e) { box.innerHTML = ''; }
+    }
+
     async function renderHistory() {
       const tabsContainer = document.getElementById('historyTabs');
       const detailContainer = document.getElementById('historyDetail');
@@ -8935,6 +9085,7 @@
       tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
 
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
+      renderPlanVsActual(allHistoryData);
 
       // Hide delete buttons if no entries
       if (deleteAllBtn) {

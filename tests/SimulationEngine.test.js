@@ -536,3 +536,28 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
     expect(b.totalTaxReal).toBe(a.totalTaxReal);
   });
 });
+
+describe('extraIncomes endYear (lumpy income)', () => {
+  const flat = (years) => {
+    const eq = {}, inf = {};
+    for (let i = 0; i < years; i++) { eq[i] = 0.05; inf[i] = 0.025; }
+    return { equity: eq, inflation: inf };
+  };
+  const cfg = {
+    equityStart: 250000, bondStart: 150000, cashStart: 40000,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000,
+    duration: 35, years: 10, baseSalary: 28000, other: 0,
+    statePension: 0, statePensionYear: 99,
+    pa: 12570, brl: 50270, taxMode: 'inflates',
+    disableProtection: true, protectionMult: 0.8,
+    hodlEnabled: false, hodlValue: 0
+  };
+
+  it('a bounded stream (part-time work years 0-4) helps less than an open-ended one', () => {
+    const bounded = simulate({ ...cfg, extraIncomes: [{ startYear: 0, endYear: 4, annual: 8000 }] }, flat(10), 13);
+    const open = simulate({ ...cfg, extraIncomes: [{ startYear: 0, annual: 8000 }] }, flat(10), 13);
+    const none = simulate(cfg, flat(10), 13);
+    expect(bounded.final).toBeGreaterThan(none.final);
+    expect(open.final).toBeGreaterThan(bounded.final);
+  });
+});

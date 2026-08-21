@@ -5831,7 +5831,7 @@ This typically indicates that your device does not have a healthy Internet conne
           top: 50%;
           transform: translateY(-50%);
           pointer-events: none;
-          color: inherit;
+          color: var(--text);   /* NOT inherit: inside a muted .hint label the overlay went grey */
           font-size: inherit;
           font-family: inherit;
           background: transparent;

@@ -239,3 +239,45 @@ export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner') {
   }
   return { unusedA, unusedB, overA, overB, message };
 }
+
+/**
+ * Long-term-care one-shot stress: "if one of you needs care from year N for M years at £X/yr
+ * (today's money), while the other keeps living normally — do the plans hold?"
+ * Deliberately conservative: the care cost is ADDED to that person's plan in full (no offset
+ * for reduced normal spending), and we model the COST only — never local-authority
+ * means-testing, which is benefits advice. Runs both plans on the same market paths and
+ * reports the joint result next to the no-care baseline.
+ */
+export function runCareCheck({ cfgA, cfgB, setA, setB, who = 'A', startYear = 10, years = 3, annualCost = 90000, runs = 500 }) {
+  const bake = (set, addCare) => {
+    const dur = set.duration || 35;
+    const schedule = [];
+    for (let y = 0; y <= dur; y++) {
+      let t = targetForYear(set, y);
+      if (addCare && y >= startYear && y < startYear + years) t += annualCost;
+      schedule.push(t);
+    }
+    return schedule;
+  };
+  const mk = (cfg, set, addCare) => ({ ...cfg, targetSchedule: bake(set, addCare), spendingProfile: 'flat' });
+
+  const run = (a, b) => {
+    const yearsMax = Math.max(a.years, b.years);
+    let both = 0;
+    for (let i = 0; i < runs; i++) {
+      const returns = monteCarloReturns({ years: yearsMax }, i);
+      const ra = simulate(a, returns, i);
+      const rb = simulate(b, returns, i + 500000);
+      if (!ra.failed && !rb.failed) both++;
+    }
+    return both / runs;
+  };
+
+  const baseA = mk(cfgA, setA, false), baseB = mk(cfgB, setB, false);
+  const careA = mk(cfgA, setA, who === 'A'), careB = mk(cfgB, setB, who === 'B');
+  return {
+    baselineJoint: run(baseA, baseB),
+    careJoint: run(careA, careB),
+    totalCareCost: annualCost * years
+  };
+}

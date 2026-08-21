@@ -723,7 +723,7 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
   // deceased partner's DB at its survivor rate from the year of death.
   let extraIncome = 0;
   for (const inc of config.extraIncomes || []) {
-    if (inc.annual > 0 && year >= (inc.startYear || 0)) {
+    if (inc.annual > 0 && year >= (inc.startYear || 0) && (inc.endYear == null || year <= inc.endYear)) {
       const mode = inc.indexation || 'lpi5';
       if (mode === 'level') extraIncome += inc.annual;
       else if (mode === 'cpi') extraIncome += inc.annual * cumInf;

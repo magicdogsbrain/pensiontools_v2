@@ -72,7 +72,16 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       else if (mode === 'cpi') dbPension = settings.dbAmount * cumInf;
       else dbPension = settings.dbAmount * Math.pow(1 + Math.min(assumedInflation, 0.05), year);
     }
-    const fixed = other + statePension + dbPension;
+    let extraIncome = 0;
+    for (const inc of settings.extraIncomes || []) {
+      if (inc.annual > 0 && year >= (inc.startYear || 0) && (inc.endYear == null || year <= inc.endYear)) {
+        const mode = inc.indexation || 'lpi5';
+        if (mode === 'level') extraIncome += inc.annual;
+        else if (mode === 'cpi') extraIncome += inc.annual * cumInf;
+        else extraIncome += inc.annual * Math.pow(1 + Math.min(assumedInflation, 0.05), year);
+      }
+    }
+    const fixed = other + statePension + dbPension + extraIncome;
     const yearsUntilSp = Math.max(0, spStartYear === Infinity ? 0 : spStartYear - year);
 
     const inUfplsPhase = !settings.ufplsYears || year < settings.ufplsYears;

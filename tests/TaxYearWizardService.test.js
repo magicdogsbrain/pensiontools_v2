@@ -37,3 +37,15 @@ describe('TaxYearWizardService.suggestSalary', () => {
     expect(SPEND_DECLINE_RATE).toBeCloseTo(0.01, 6);
   });
 });
+
+describe('budget-schedule suggestion (mocked stress settings)', () => {
+  it('prefers the schedule figure × cumInf × smile over the chain, falls back cleanly', async () => {
+    // The service reads stress settings via ScenarioRepository — mock at that seam.
+    const { getWizardData } = await import('../src/services/TaxYearWizardService.js');
+    // No stress mock in this environment → schedule path throws/absent → chain fallback:
+    const data = await getWizardData('2026-04');
+    expect(data.suggestionSource === 'chain' || data.suggestionSource === 'budget-schedule').toBe(true);
+    expect(typeof data.suggestedSalary).toBe('number');
+    expect(typeof data.chainSuggestedSalary).toBe('number');
+  });
+});

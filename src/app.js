@@ -9,8 +9,8 @@
 import { saveDecision } from './services/DecisionService.js';
 import { longevityAge } from './services/LongevityModel.js';
 import { contributionBreakdown, contributionWarnings, projectAccumulation, requiredPotForSuccess } from './services/AccumulationEngine.js';
-import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId } from './storage/ScenarioRepository.js';
-import { runHouseholdMonteCarlo, householdIncomeTimeline, runSurvivorCheck, allowanceNudge } from './services/HouseholdService.js';
+import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId, getActivePlanOfRecord, saveActivePlanOfRecord } from './storage/ScenarioRepository.js';
+import { runHouseholdMonteCarlo, householdIncomeTimeline, runSurvivorCheck, allowanceNudge, runCareCheck } from './services/HouseholdService.js';
 
 import {
   runMonteCarlo,
@@ -376,10 +376,13 @@ export {
   saveActiveAccumulation,
   getHouseholdPartnerId,
   setHouseholdPartnerId,
+  getActivePlanOfRecord,
+  saveActivePlanOfRecord,
   runHouseholdMonteCarlo,
   householdIncomeTimeline,
   runSurvivorCheck,
   allowanceNudge,
+  runCareCheck,
   targetScheduleFromBudget,
   annualNetAtAge,
   oneOffSchedule,

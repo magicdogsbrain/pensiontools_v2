@@ -577,6 +577,26 @@ export async function getActiveAccumulation() {
 }
 
 /**
+ * Plan of record: the drawdown + glidepath projection frozen at the moment the Decision plan
+ * was locked — a yardstick that doesn't move. Stored OUTSIDE decisionTool.settings so it never
+ * participates in the settings checksum (adding it there would orphan saved decisions).
+ */
+export async function getActivePlanOfRecord() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.decisionTool?.planOfRecord || null;
+}
+
+export async function saveActivePlanOfRecord(planOfRecord) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { 'decisionTool.planOfRecord': planOfRecord });
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
+    cachedActiveScenario.decisionTool.planOfRecord = planOfRecord;
+  }
+}
+
+/**
  * Household pairing: which OTHER scenario is the partner's plan (couples view).
  * Stored on the active scenario; null = no partner selected.
  */

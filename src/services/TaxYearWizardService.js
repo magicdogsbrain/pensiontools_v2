@@ -5,7 +5,7 @@
 
 import { getTaxYear, getRemainingTaxYearMonths, parseMonth } from '../utils/DateUtils.js';
 import { DECISION_ASSUMED_CPI } from './InflationModel.js';
-import { spendingDeclineRateForYear } from './SpendingModel.js';
+import { spendingDeclineRateForYear, spendingSmileFactor } from './SpendingModel.js';
 import {
   getTaxYearConfigAsync,
   getDecisionSettingsAsync,
@@ -13,6 +13,7 @@ import {
   getStatePensionForTaxYear,
   isYearSetupComplete
 } from '../storage/DecisionRepository.js';
+import { getActiveStressSettings } from '../storage/ScenarioRepository.js';
 
 /**
  * Checks if the Tax Year Setup Wizard should be shown
@@ -263,7 +264,31 @@ export async function getWizardData(selectedMonth) {
   const planYear = Math.max(0, (2000 + (parseInt(taxYear.split('/')[0], 10) || 26)) - 2026);
   const declineRate = spendingDeclineRateForYear(planYear, spendingProfile);
   const suggestionBase = (prevYearConfig && prevYearConfig.confirmedSalary) || settings.baseSalary;
-  const suggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
+  const chainSuggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
+
+  // BUDGET-SCHEDULE suggestion (preferred when available): "Set as my plan's target" saves a
+  // per-year schedule (today's money, gross) built from the budget's dated lines and one-offs —
+  // a car lease ending at 62 leaves the target in that exact year. The old chain (last year's
+  // salary × CPI − decline) can't know that. Uplift the year's scheduled figure to nominal with
+  // the SAME cpi chain the decision engine compounds (entered CPI per year, 4% assumption for
+  // unentered years), and apply the spending profile the stress engine applies on top.
+  let scheduleSuggestedSalary = null;
+  try {
+    const stress = await getActiveStressSettings();
+    const sched = Array.isArray(stress?.targetSchedule) ? stress.targetSchedule : null;
+    if (sched && sched[planYear] != null) {
+      let cumInf = 1;
+      for (let i = 0; i < planYear; i++) {
+        const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
+        cumInf *= 1 + ((allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI);
+      }
+      const smile = spendingSmileFactor(planYear, settings.spendingProfile || 'flat');
+      scheduleSuggestedSalary = Math.round(sched[planYear] * cumInf * smile);
+    }
+  } catch (e) { /* no stress settings / no schedule — chain fallback below */ }
+
+  const suggestedSalary = scheduleSuggestedSalary ?? chainSuggestedSalary;
+  const suggestionSource = scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
 
   return {
     taxYear,
@@ -279,6 +304,10 @@ export async function getWizardData(selectedMonth) {
     spendingProfile,
     declineRate,
     suggestedSalary,
+    // Where the suggestion came from: the budget's per-year plan for this year, or the
+    // CPI-uplift chain fallback (also carried so the UI can show both).
+    suggestionSource,
+    chainSuggestedSalary,
 
     // Previous year defaults
     defaults: {

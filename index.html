@@ -2077,6 +2077,7 @@
 
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
+          <div id="dsStrategyPanel" style="display:none; margin-bottom:14px;"></div>
           <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
             <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
             spending need and State Pension — and they're still the defaults, so any answer would be
@@ -2527,6 +2528,7 @@
           </div>
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
+            <div id="strategyRunResults"></div>
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
             </h2>
@@ -2829,6 +2831,69 @@
                 #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
               }
             </style>
+            <div class="settings-section" style="border-color: var(--accent);">
+              <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
+              <div class="row-flex" id="ssStrategyPick">
+                <button type="button" class="risk-btn" data-strat="pots-and-valves" onclick="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
+                <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" onclick="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+                <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
+              </div>
+              <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
+
+              <div id="ssLrParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Base IL-gilt ladder (years of income bought up front)</label>
+                    <input type="number" id="lrLadderYears" value="15" min="1" max="30" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Income to bolt on (£/yr, gross)</label>
+                    <input type="number" id="lrDraw" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Trigger</label>
+                    <select id="lrTriggerMode" onchange="refreshStrategyCosts()">
+                      <option value="band" selected>Band — sells only 20%+ above the glide path</option>
+                      <option value="calendar">Calendar — reviews every 5 years</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Band threshold (× glide path)</label>
+                    <input type="number" id="lrBand" value="1.2" min="1.05" max="2" step="0.05" oninput="refreshStrategyCosts()">
+                  </div>
+                </div>
+                <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
+              </div>
+
+              <div id="ssFfParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Essentials to floor (£/yr — the bills, by contract)</label>
+                    <input type="number" id="ffEssentials" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Floor paid to age</label>
+                    <select id="ffHorizon" onchange="refreshStrategyCosts()">
+                      <option value="92" selected>92</option><option value="95">95</option><option value="100">100</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Flex sleeve rate (%/yr of sleeve, reset annually)</label>
+                    <input type="number" id="ffRate" value="4" min="3" max="5" step="0.25" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Ratchet (booms feed the floor)</label>
+                    <select id="ffRatchet" onchange="refreshStrategyCosts()">
+                      <option value="off" selected>Off — pure design</option>
+                      <option value="extend">On — extend the floor past the horizon</option>
+                      <option value="raise">On — raise the floor amounts</option>
+                    </select>
+                  </div>
+                </div>
+                <p id="ffCostLine" class="hint" style="margin:8px 0 0;"></p>
+              </div>
+            </div>
+
             <div class="settings-section">
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
@@ -3477,6 +3542,8 @@
       runCompare,
       cannedDecade,
       orderSheet,
+      runLadderWindows as runLadderWindowsX,
+      runFlexWindows as runFlexWindowsX,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
       runSurvivorCheck,
@@ -4096,6 +4163,7 @@
         document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
+        applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', stressSettings.strategyParams || {});
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(stressSettings.windfalls) ? JSON.parse(JSON.stringify(stressSettings.windfalls)) : [];
@@ -4913,6 +4981,7 @@
         // Load content if needed (async)
         if (tab.dataset.tab === 'stress') { await loadStressSettings(); updateStrategyNote(); }
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
+        if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
         updateNextStepBanner();
@@ -5158,10 +5227,79 @@
     }
 
     // Monte Carlo simulation
+    // Non-P&V strategies: the Run button runs THAT strategy's own windows engine on the plan's
+    // parameters — the stress tester genuinely tests the strategy you configured.
+    async function runStrategyWindowsUI(settings) {
+      const resultsEl = document.getElementById('mcResults') || document.querySelector('#stress-montecarlo .card:last-child');
+      const box = document.createElement('div');
+      const params = settings.strategyParams || {};
+      const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
+      const pot = alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
+      const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
+      const dur = Math.min(settings.duration || 35, 35);
+      let html = '';
+      if (settings.strategyId === 'ladder-and-ratchet') {
+        const yrs = params.ladderYears || 15;
+        const draw = params.drawAnnual || settings.baseSalary || 0;
+        const drawNet = (k) => Math.max(0, draw - (k > 10 ? spAnnual : 0));
+        let cost = 0; for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
+        const E0 = pot - cost;
+        if (E0 <= 0) { html = '<div class="alert alert-danger">Ladder not affordable: base ladder costs ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Reduce the bolted income or the ladder years in Settings.</div>'; }
+        else {
+          const trig = params.triggerMode === 'calendar'
+            ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(yrs / 5) }, (_, i) => (i + 1) * 60) }
+            : { mode: 'band', b: params.bandThreshold || 1.2 };
+          const r = runLadderWindowsX({ E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
+            draw, profile: { type: 'phases', phases: [{ fromYear: 0, amount: draw }] }, trigger: trig,
+            END: dur * 12, realYield: 0.023, glideRate: 0.05, startAge: 57 });
+          const st = r.stats;
+          html = '<div class="card"><h2>Ladder &amp; Ratchet — your parameters, 150 years of markets</h2>'
+            + '<div class="alert ' + (st.survivalPct === 100 ? 'alert-success' : st.survivalPct >= 95 ? 'alert-warning' : 'alert-danger') + '">'
+            + '<strong>' + gbp(draw) + '/yr bolted on to age ' + (57 + yrs) + ' by contract</strong> — the ratchet then locked a median '
+            + Math.round(st.securedMedian) + ' more years (fully secured to the horizon in ' + st.fullySecuredPct.toFixed(0) + '% of histories). '
+            + 'Sleeve survived to the horizon in <strong>' + st.survivalPct.toFixed(1) + '%</strong> of ' + r.meta.fullN + ' historical windows.</div>'
+            + '<div class="table-scroll-container"><table><tbody>'
+            + '<tr><td>Base ladder cost (order sheet in Strategies tab)</td><td>' + gbp(Math.round(cost)) + '</td></tr>'
+            + '<tr><td>Equity sleeve at the ladder end (median / worst)</td><td>' + gbp(Math.round(st.sleeveMedian)) + ' / ' + gbp(Math.round(st.sleeveWorst)) + '</td></tr>'
+            + '<tr><td>Never-triggered histories (sleeve just rode)</td><td>' + st.neverPct.toFixed(0) + '%</td></tr>'
+            + '<tr><td>Typically left at the horizon</td><td>' + gbp(Math.round(st.terminalMedian)) + '</td></tr>'
+            + '</tbody></table></div></div>';
+        }
+      }
+      if (settings.strategyId === 'floor-and-flex') {
+        const ess = params.essentialsAnnual || Math.round((settings.baseSalary || 0) * 0.55);
+        const horizon = params.horizonAge || 92;
+        const years = Math.max(1, horizon - 57);
+        let cost = 0; for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+        const E0 = pot - cost;
+        if (E0 <= 0) { html = '<div class="alert alert-danger">Floor not affordable: essentials to ' + horizon + ' cost ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Lower the essentials or the horizon in Settings.</div>'; }
+        else {
+          const r = runFlexWindowsX({ E0, rate: params.sleeveRate || 0.04, END: Math.min(years, dur) * 12 });
+          const st = r.stats;
+          html = '<div class="card"><h2>Floor &amp; Flex — your parameters, 150 years of markets</h2>'
+            + '<div class="alert alert-success"><strong>Essentials of ' + gbp(ess) + '/yr are paid to ' + horizon + ' by contract — in every history, by construction.</strong> '
+            + 'Treats start at ' + gbp(Math.round(st.year1D)) + '/yr and flex with the market.</div>'
+            + '<div class="table-scroll-container"><table><tbody>'
+            + '<tr><td>Floor cost (bought up front)</td><td>' + gbp(Math.round(cost)) + '</td></tr>'
+            + '<tr><td>Worst treat-year per history (median / 1-in-10 / worst)</td><td>' + gbp(Math.round(st.worstMedian)) + ' / ' + gbp(Math.round(st.worstP10)) + ' / ' + gbp(Math.round(st.worstMin)) + '</td></tr>'
+            + '<tr><td>Share of all years with treats under £10k</td><td>' + st.shareYearsUnder(10000).toFixed(1) + '%</td></tr>'
+            + '<tr><td>Typically left at the horizon</td><td>' + gbp(Math.round(st.terminalMedian)) + '</td></tr>'
+            + '</tbody></table></div>'
+            + '<p class="hint">The flex sleeve cannot run out (percentage-of-pot draws); the honest risk is lean years, shown above.</p></div>';
+        }
+      }
+      const target = document.getElementById('strategyRunResults');
+      if (target) target.innerHTML = html;
+    }
+
     window.runMonteCarloUI = async function() {
       // Starting balances come from Settings (createSimulationConfigFromSettings defaults
       // equityStart/bondStart/cashStart from equityMin/bondMin/cashTarget). Only Years is per-run.
       const s = await getStressSettingsAsync();
+      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+        await runStrategyWindowsUI(s);
+        return;
+      }
       const config = { years: parseInt(document.getElementById('mcYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
@@ -6675,6 +6813,184 @@
       document.querySelector('.tab[data-tab="' + name + '"]')?.click();
     };
 
+    // ---- Decision tool: monthly guidance for ladder strategies ------------------------------
+    // When the plan's locked strategy is Ladder & Ratchet or Floor & Flex, the monthly question
+    // isn't "which pot pays" — it's "the rung pays; is the sleeve above its line, and should a
+    // boom lock more on?" This panel answers THAT, from the same trigger maths the sims run.
+    window.renderDecisionStrategyPanel = async function () {
+      const el = document.getElementById('dsStrategyPanel');
+      if (!el) return;
+      try {
+        const st = await getActiveStrategy();
+        const settings = await getStressSettingsAsync();
+        if (!st.id || st.id === 'pots-and-valves') { el.style.display = 'none'; return; }
+        const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
+        const now = new Date();
+        const planYear = Math.max(0, (now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1) - 2026);
+        const tMonths = Math.max(1, Math.round((now - new Date(2026, 3, 1)) / (30.44 * 24 * 3600 * 1000)));
+        const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
+        let html = '';
+        if (st.id === 'ladder-and-ratchet') {
+          const draw = params.drawAnnual || settings.baseSalary || 0;
+          const yrs = params.ladderYears || 15;
+          const rungNet = Math.max(0, draw - (planYear + 1 > 10 ? spAnnual : 0));
+          html = '<div class="settings-section" style="border-color:var(--accent);">'
+            + '<div class="section-title">Ladder &amp; Ratchet — this month</div>'
+            + '<p style="font-size:14px;">Year ' + (planYear + 1) + ' of your plan: <strong>' + gbp(Math.round(rungNet)) + '</strong> of income is paid by this year\'s maturing rung'
+            + (planYear + 1 <= yrs ? ' (base ladder — bought and banked).' : ' (a ratcheted rung, if secured — check your history).')
+            + (spAnnual && planYear + 1 > 10 ? ' The State Pension tops it back up to ' + gbp(draw) + '.' : '') + '</p>'
+            + '<div class="row-flex"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Equity sleeve value today (£)'
+            + '<input type="number" id="lrSleeveNow" style="width:150px;"></label>'
+            + '<button type="button" class="risk-btn" style="align-self:flex-end;" onclick="checkLadderTrigger()">Check the trigger</button></div>'
+            + '<div id="lrTriggerResult" style="margin-top:8px;"></div></div>';
+        }
+        if (st.id === 'floor-and-flex') {
+          const ess = params.essentialsAnnual || 0;
+          const essNet = Math.max(0, ess - (planYear + 1 > 10 ? spAnnual : 0));
+          const rate = params.sleeveRate || 0.04;
+          html = '<div class="settings-section" style="border-color:var(--accent);">'
+            + '<div class="section-title">Floor &amp; Flex — this month</div>'
+            + '<p style="font-size:14px;">The floor pays your essentials: <strong>' + gbp(Math.round(essNet)) + '</strong>/yr from this year\'s rung'
+            + (spAnnual && planYear + 1 > 10 ? ' (+ State Pension to ' + gbp(ess) + ')' : '') + '. The bills never notice the market.</p>'
+            + '<div class="row-flex"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Flex sleeve value today (£)'
+            + '<input type="number" id="ffSleeveNow" style="width:150px;"></label>'
+            + '<button type="button" class="risk-btn" style="align-self:flex-end;" onclick="checkFlexDraw(' + rate + ')">This year\'s treats</button></div>'
+            + '<div id="ffDrawResult" style="margin-top:8px;"></div></div>';
+        }
+        el.innerHTML = html;
+        el.style.display = html ? 'block' : 'none';
+        window._lrCtx = { params, settings, tMonths, planYear };
+      } catch (e) { el.style.display = 'none'; }
+    };
+
+    window.checkLadderTrigger = function () {
+      const V = +document.getElementById('lrSleeveNow').value || 0;
+      const box = document.getElementById('lrTriggerResult');
+      const { params, settings, tMonths } = window._lrCtx || {};
+      if (!V) { box.innerHTML = '<p class="hint">Enter your sleeve value first.</p>'; return; }
+      // E0 = the sleeve the plan started with: pot minus the base ladder cost at lock
+      const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
+      const pot = alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
+      const draw = params.drawAnnual || settings.baseSalary || 0;
+      const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
+      let cost = 0; for (let k = 1; k <= (params.ladderYears || 15); k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+      const E0 = Math.max(1, pot - cost);
+      const b = params.bandThreshold || 1.2;
+      const G = E0 * Math.pow(1.05, tMonths / 12);
+      const surplus = Math.max(0, V - G);
+      const nextRungYear = (params.ladderYears || 15) + 1;   // conservative: next unsecured year
+      const rungCost = Math.max(0, draw - (nextRungYear > 10 ? spAnnual : 0)) * Math.pow(1.023, -(nextRungYear - tMonths / 12));
+      if (V >= b * G) {
+        const lockable = Math.floor(surplus / Math.max(1, rungCost));
+        box.innerHTML = '<div class="alert alert-success"><strong>Trigger! Sleeve ' + gbp(V) + ' is above the band (' + gbp(Math.round(b * G)) + ').</strong> '
+          + 'The surplus above the path (' + gbp(Math.round(surplus)) + ') could lock ≈ <strong>' + lockable + ' more year' + (lockable === 1 ? '' : 's') + '</strong> of income'
+          + ' — or it is ' + gbp(Math.round(surplus)) + ' of spendable money this year. Your call; the order sheet is in Stress → Strategies.</div>';
+      } else {
+        box.innerHTML = '<div class="alert alert-info">No action: sleeve ' + gbp(V) + ' vs glide path ' + gbp(Math.round(G)) + ' (band at ' + gbp(Math.round(b * G)) + '). '
+          + (surplus > 0 ? 'Spendable surplus above the path: ' + gbp(Math.round(surplus)) + '.' : 'Below the path — the plan expected this in ' + '' + 'some histories; the banked rungs still pay.') + '</div>';
+      }
+    };
+
+    window.checkFlexDraw = function (rate) {
+      const V = +document.getElementById('ffSleeveNow').value || 0;
+      const box = document.getElementById('ffDrawResult');
+      if (!V) { box.innerHTML = '<p class="hint">Enter your sleeve value first.</p>'; return; }
+      box.innerHTML = '<div class="alert alert-info">This plan-year\'s treats: <strong>' + gbp(Math.round(V * rate)) + '</strong> ('
+        + (rate * 100).toFixed(1) + '% of ' + gbp(V) + '), i.e. ' + gbp(Math.round(V * rate / 12)) + '/mo. Reset again next April at the same rate on the new value.</div>';
+    };
+
+    // ---- Strategy selection IN SETTINGS (the funds live here, so the strategy does too) -----
+    const STRATEGY_BLURBS = {
+      'pots-and-valves': 'Your allocation below IS this strategy: the pots, their floors and the risk level are its dials. Rules decide which pot pays each month.',
+      'ladder-and-ratchet': 'Buys your income up front as an index-linked gilt ladder; the REST rides in the equity sleeve (the allocation below applies to the sleeve). Booms lock more years on.',
+      'floor-and-flex': 'Buys the BILLS by contract to a chosen age; everything else is the flex sleeve paying the treats (the allocation below applies to the sleeve).'
+    };
+    window._ssStrategy = 'pots-and-valves';
+
+    window.pickStrategy = function (id) {
+      window._ssStrategy = id;
+      document.querySelectorAll('#ssStrategyPick .risk-btn').forEach((b) => b.classList.toggle('active', b.dataset.strat === id));
+      document.getElementById('ssStrategyBlurb').textContent = STRATEGY_BLURBS[id] || '';
+      document.getElementById('ssLrParams').style.display = id === 'ladder-and-ratchet' ? 'block' : 'none';
+      document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
+      refreshStrategyCosts();
+    };
+
+    // Live affordability: ladder/floor cost vs the pot, computed from the REAL pricing curve.
+    window.refreshStrategyCosts = function () {
+      try {
+        const alloc = readAlloc('ss');
+        const pot = (alloc.equityMin || 0) + (alloc.bondMin || 0) + (alloc.cashTarget || 0) + (alloc.diversifierStart || 0)
+          + (+document.getElementById('ssIsaBalance')?.value || 0);
+        const spWeekly = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
+        const spAnnual = spWeekly * 52;
+        const target = +document.getElementById('ssBaseSalary')?.value || 0;
+        if (window._ssStrategy === 'ladder-and-ratchet') {
+          const yrs = +document.getElementById('lrLadderYears').value || 15;
+          const draw = +document.getElementById('lrDraw').value || target;
+          if (!document.getElementById('lrDraw').value && target) document.getElementById('lrDraw').value = target;
+          // SP offsets rungs after its start (rough: from year 10 unless a date says otherwise)
+          let cost = 0;
+          for (let k = 1; k <= yrs; k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+          const sleeve = pot - cost;
+          document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(pot))
+            + ' → equity sleeve <strong>' + gbp(Math.round(Math.max(0, sleeve))) + '</strong>. '
+            + (sleeve > 0 ? 'Rungs priced on the IL-gilt curve (flat 2.3% real); see the order sheet in Strategies.' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
+        }
+        if (window._ssStrategy === 'floor-and-flex') {
+          const ess = +document.getElementById('ffEssentials').value || Math.round(target * 0.55);
+          if (!document.getElementById('ffEssentials').value && target) document.getElementById('ffEssentials').value = Math.round(target * 0.55);
+          const horizon = +document.getElementById('ffHorizon').value || 92;
+          const years = Math.max(1, horizon - 57);
+          let cost = 0;
+          for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+          const sleeve = pot - cost;
+          const rate = (+document.getElementById('ffRate').value || 4) / 100;
+          document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> → flex sleeve <strong>'
+            + gbp(Math.round(Math.max(0, sleeve))) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(Math.max(0, sleeve) * rate)) + '</strong>. '
+            + 'Every £1k/yr of essentials ≈ £24k of floor. '
+            + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this essentials level.</span>');
+        }
+      } catch (e) { /* fields not ready */ }
+    };
+
+    function readStrategyParams() {
+      if (window._ssStrategy === 'ladder-and-ratchet') {
+        return {
+          ladderYears: +document.getElementById('lrLadderYears').value || 15,
+          drawAnnual: +document.getElementById('lrDraw').value || 0,
+          triggerMode: document.getElementById('lrTriggerMode').value,
+          bandThreshold: +document.getElementById('lrBand').value || 1.2
+        };
+      }
+      if (window._ssStrategy === 'floor-and-flex') {
+        return {
+          essentialsAnnual: +document.getElementById('ffEssentials').value || 0,
+          horizonAge: +document.getElementById('ffHorizon').value || 92,
+          sleeveRate: (+document.getElementById('ffRate').value || 4) / 100,
+          ratchet: document.getElementById('ffRatchet').value
+        };
+      }
+      return {};
+    }
+
+    window.applyStrategyToUI = function (id, params) {
+      pickStrategy(id || 'pots-and-valves');
+      if (id === 'ladder-and-ratchet' && params) {
+        if (params.ladderYears) document.getElementById('lrLadderYears').value = params.ladderYears;
+        if (params.drawAnnual) document.getElementById('lrDraw').value = params.drawAnnual;
+        if (params.triggerMode) document.getElementById('lrTriggerMode').value = params.triggerMode;
+        if (params.bandThreshold) document.getElementById('lrBand').value = params.bandThreshold;
+      }
+      if (id === 'floor-and-flex' && params) {
+        if (params.essentialsAnnual) document.getElementById('ffEssentials').value = params.essentialsAnnual;
+        if (params.horizonAge) document.getElementById('ffHorizon').value = params.horizonAge;
+        if (params.sleeveRate) document.getElementById('ffRate').value = params.sleeveRate * 100;
+        if (params.ratchet) document.getElementById('ffRatchet').value = params.ratchet;
+      }
+      refreshStrategyCosts();
+    };
+
     // ---- Strategies tab (Phases D+E): learn, compare on identical markets, lock -------------
     const STRATEGY_STORY = {
       'pots-and-valves': {
@@ -7360,6 +7676,7 @@
         document.getElementById('ssDbAmount').value = s.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
+        applyStrategyToUI(s.strategyId || 'pots-and-valves', s.strategyParams || {});
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
@@ -7430,8 +7747,11 @@
         const _newBase = +document.getElementById('ssBaseSalary').value;
         const _keepSchedule = Array.isArray(_curSS.targetSchedule)
           && Math.abs(_newBase - (_curSS.targetSchedule[0] || 0)) < 1;
+        await setActiveStrategy(window._ssStrategy || 'pots-and-valves', readStrategyParams());
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
+          strategyId: window._ssStrategy || 'pots-and-valves',
+          strategyParams: readStrategyParams(),
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,

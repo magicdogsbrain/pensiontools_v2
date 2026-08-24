@@ -1994,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-Cscvz_hY.js"></script>
+  <script type="module" crossorigin src="./assets/main-BNKPj3bY.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2078,6 +2078,7 @@
 
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
+          <div id="dsStrategyPanel" style="display:none; margin-bottom:14px;"></div>
           <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
             <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
             spending need and State Pension — and they're still the defaults, so any answer would be
@@ -2528,6 +2529,7 @@
           </div>
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
+            <div id="strategyRunResults"></div>
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
             </h2>
@@ -2830,6 +2832,69 @@
                 #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
               }
             </style>
+            <div class="settings-section" style="border-color: var(--accent);">
+              <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
+              <div class="row-flex" id="ssStrategyPick">
+                <button type="button" class="risk-btn" data-strat="pots-and-valves" onclick="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
+                <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" onclick="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+                <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
+              </div>
+              <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
+
+              <div id="ssLrParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Base IL-gilt ladder (years of income bought up front)</label>
+                    <input type="number" id="lrLadderYears" value="15" min="1" max="30" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Income to bolt on (£/yr, gross)</label>
+                    <input type="number" id="lrDraw" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Trigger</label>
+                    <select id="lrTriggerMode" onchange="refreshStrategyCosts()">
+                      <option value="band" selected>Band — sells only 20%+ above the glide path</option>
+                      <option value="calendar">Calendar — reviews every 5 years</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Band threshold (× glide path)</label>
+                    <input type="number" id="lrBand" value="1.2" min="1.05" max="2" step="0.05" oninput="refreshStrategyCosts()">
+                  </div>
+                </div>
+                <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
+              </div>
+
+              <div id="ssFfParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Essentials to floor (£/yr — the bills, by contract)</label>
+                    <input type="number" id="ffEssentials" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Floor paid to age</label>
+                    <select id="ffHorizon" onchange="refreshStrategyCosts()">
+                      <option value="92" selected>92</option><option value="95">95</option><option value="100">100</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Flex sleeve rate (%/yr of sleeve, reset annually)</label>
+                    <input type="number" id="ffRate" value="4" min="3" max="5" step="0.25" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Ratchet (booms feed the floor)</label>
+                    <select id="ffRatchet" onchange="refreshStrategyCosts()">
+                      <option value="off" selected>Off — pure design</option>
+                      <option value="extend">On — extend the floor past the horizon</option>
+                      <option value="raise">On — raise the floor amounts</option>
+                    </select>
+                  </div>
+                </div>
+                <p id="ffCostLine" class="hint" style="margin:8px 0 0;"></p>
+              </div>
+            </div>
+
             <div class="settings-section">
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>

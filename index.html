@@ -2638,7 +2638,7 @@
             <div class="settings-section">
               <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same 150 years of markets for all three)</span></div>
               <div class="row-flex">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials (£/yr of your target that MUST be covered)
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr — drives Floor &amp; Flex only (its floor size)
                   <input type="number" id="cmpEssentials" style="width:130px;"></label>
                 <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
               </div>
@@ -5348,13 +5348,17 @@
         }
       }
       const target = document.getElementById(targetId);
-      if (target) target.innerHTML = (target.innerHTML || '') + html;
+      if (!target) return;
+      if (targetId === 'strategyRunResults') target.innerHTML = html;
+      else target.innerHTML = (target.innerHTML || '') + html;
     }
 
     window.runMonteCarloUI = async function() {
       // Starting balances come from Settings (createSimulationConfigFromSettings defaults
       // equityStart/bondStart/cashStart from equityMin/bondMin/cashTarget). Only Years is per-run.
       const s = await getStressSettingsAsync();
+      const srBox = document.getElementById('strategyRunResults');
+      if (srBox) srBox.innerHTML = '';                       // never leave a stale strategy card
       if (s.strategyId && s.strategyId !== 'pots-and-valves') {
         await runStrategyWindowsUI(s);
         return;
@@ -5390,6 +5394,7 @@
         await runStrategyWindowsUI(s, 'histResults');
         return;
       }
+      { const hb = document.getElementById('histResults'); if (hb && /Ladder & Ratchet|Floor & Flex/.test(hb.innerHTML)) hb.innerHTML = ''; }
       const config = { years: parseInt(document.getElementById('histYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
@@ -7068,6 +7073,11 @@
       // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS
       // mechanics — hide the Pots & Valves machinery instead of letting the two fight.
       for (const sec of pnvOnlySections()) sec.style.display = isLadder ? 'none' : '';
+      // Switching strategy invalidates any run cards from the previous one — clear them.
+      for (const rid of ['strategyRunResults', 'histResults', 'scenResults']) {
+        const el = document.getElementById(rid);
+        if (el && /Ladder & Ratchet|Floor & Flex|ladder-and-ratchet|floor-and-flex/.test(el.innerHTML)) el.innerHTML = '';
+      }
       // Offer the safe path for "I modelled with pots; now model a ratchet future":
       const offer = document.getElementById('stratCopyOffer');
       if (offer) offer.style.display = isLadder ? 'block' : 'none';
@@ -7315,11 +7325,21 @@
         const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + fn(r.strategies[id].table) + '</td>').join('') + '</tr>';
         html += row('Worst 12 months you’d have lived', (t) => gbp(Math.round(t.worst12Min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12Median)) + ')</span>');
         html += row('Income guaranteed to age', (t) => t.guaranteedToAge);
-        html += row('Chance of running out', (t) => t.ruinPct.toFixed(1) + '%');
+        html += '<tr><td>Chance of running out</td>' + cols.map((id) => {
+          const t = r.strategies[id].table;
+          if (id === 'floor-and-flex') {
+            return '<td>0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span></td>';
+          }
+          return '<td>' + t.ruinPct.toFixed(1) + '% <span class="hint">history</span> · ' + (t.ruinPctMc ?? t.ruinPct).toFixed(1) + '% <span class="hint">Monte Carlo</span></td>';
+        }).join('') + '</tr>';
         html += row('Typically left at the horizon', (t) => gbp(Math.round(t.terminalMedian)));
         html += '</tbody></table></div>';
         if (!r.configs.lrAffordable) html += '<p class="hint" style="color:var(--warning);">Ladder &amp; Ratchet: your pot cannot fund the base ladder at this target — not affordable as configured.</p>';
         if (!r.configs.ffAffordable) html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex: your pot cannot fund the essentials floor to the horizon — not affordable as configured.</p>';
+        if (r.strategies['floor-and-flex'] && r.strategies['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
+          html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex at these essentials: the floor consumes almost the whole pot — treats start at just '
+            + gbp(Math.round(r.strategies['floor-and-flex'].signature.year1Flex)) + '/yr. The 0% running-out figure is real, but this is a bare-bills retirement in bad markets.</p>';
+        }
         html += '<p class="hint" style="margin-top:6px;">All three ran the SAME historical windows (Shiller 1871–2023, real terms) and the same income need. '
           + 'Pots &amp; Valves runs your actual plan settings; Ladder &amp; Ratchet banks ' + (r.configs.lr ? r.configs.lr.ladderYears : '—') + ' years up front (cost ' + gbp(Math.round(r.configs.baseLadderCost || 0)) + '); '
           + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at 4%.</p>';

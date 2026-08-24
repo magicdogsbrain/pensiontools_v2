@@ -10,7 +10,7 @@ import { saveDecision } from './services/DecisionService.js';
 import { longevityAge } from './services/LongevityModel.js';
 import { modelPortfolio } from './services/ModelPortfolios.js';
 import { contributionBreakdown, contributionWarnings, projectAccumulation, requiredPotForSuccess } from './services/AccumulationEngine.js';
-import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId, getActivePlanOfRecord, saveActivePlanOfRecord } from './storage/ScenarioRepository.js';
+import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId, getActivePlanOfRecord, saveActivePlanOfRecord, getActiveStrategy, setActiveStrategy } from './storage/ScenarioRepository.js';
 import { runHouseholdMonteCarlo, householdIncomeTimeline, runSurvivorCheck, allowanceNudge, runCareCheck } from './services/HouseholdService.js';
 
 import {
@@ -19,7 +19,9 @@ import {
 } from './services/SimulationEngine.js';
 // Phase B (strategy brief §3): tools obtain their engine from the STRATEGY REGISTRY, keyed by
 // the plan's locked strategy — never from the engine modules directly.
-import { getStrategy, ENGINE_VERSION } from './strategies/registry.js';
+import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
+import { runCompare, cannedDecade } from './strategies/compareRunner.js';
+import { orderSheet } from './services/LinkerUniverse.js';
 
 import {
   generateDrawdownSchedule
@@ -377,6 +379,12 @@ export {
   setHouseholdPartnerId,
   getActivePlanOfRecord,
   saveActivePlanOfRecord,
+  getActiveStrategy,
+  setActiveStrategy,
+  listStrategies,
+  runCompare,
+  cannedDecade,
+  orderSheet,
   getStrategy,
   ENGINE_VERSION,
   runHouseholdMonteCarlo,

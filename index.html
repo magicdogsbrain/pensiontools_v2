@@ -2513,6 +2513,7 @@
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
+          <button class="sub-tab" data-stresstab="strategies">Strategies</button>
           <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
         </div>
 
@@ -2525,6 +2526,7 @@
             <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
           </div>
           <div class="card">
+            <div id="mcStrategyNote" style="display:none;"></div>
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
             </h2>
@@ -2606,6 +2608,43 @@
         </div>
 
         <!-- Glidepath Sub-tab -->
+        <div id="stress-strategies" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Strategies <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— three honest ways to turn a pot into an income</span></h2>
+            <p style="font-size:13px;color:var(--text-muted);">
+              The tool never crowns a strategy — it teaches trade-offs and lets you choose. Every
+              comparison below runs on <strong>identical markets</strong>: the same 150 years of
+              historical windows, your numbers, all three strategies side by side.
+            </p>
+
+            <div class="settings-section">
+              <div class="section-title">What matters most to you? <span class="hint" style="font-weight:normal;">(a starting point, not advice — skippable)</span></div>
+              <div class="row-flex">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Certainty ↔ upside
+                  <select id="orientCertainty"><option value="certainty">Certainty</option><option value="mixed" selected>A bit of both</option><option value="upside">Upside</option></select></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Level ↔ flexible income
+                  <select id="orientLevel"><option value="level">Level</option><option value="mixed" selected>A bit of both</option><option value="flex">Flexible</option></select></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Set-and-forget ↔ hands-on
+                  <select id="orientHands"><option value="forget">Set and forget</option><option value="mixed" selected>A bit of both</option><option value="hands">Hands-on</option></select></label>
+                <button type="button" class="risk-btn" style="align-self:flex-end;" onclick="orientStrategies()">Suggest a starting point</button>
+              </div>
+              <p id="orientResult" class="hint" style="margin:8px 0 0;"></p>
+            </div>
+
+            <div id="strategyCards"></div>
+
+            <div class="settings-section">
+              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same 150 years of markets for all three)</span></div>
+              <div class="row-flex">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials (£/yr of your target that MUST be covered)
+                  <input type="number" id="cmpEssentials" style="width:130px;"></label>
+                <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
+              </div>
+              <div id="compareResults" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+
         <div id="stress-glidepath" class="stress-subtab hidden">
           <div class="card">
             <h2>Glidepath Visualization</h2>
@@ -3432,6 +3471,12 @@
       getActivePlanOfRecord,
       saveActivePlanOfRecord,
       ENGINE_VERSION,
+      getActiveStrategy,
+      setActiveStrategy,
+      listStrategies,
+      runCompare,
+      cannedDecade,
+      orderSheet,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
       runSurvivorCheck,
@@ -3473,7 +3518,8 @@
     import {
       initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
       listFundSuggestions, submitFundSuggestion, deleteFundSuggestion,
-      saveFundCatalogueOverride, clearFundCatalogueOverride, saveProfileOverrides, activeProfileOverrides
+      saveFundCatalogueOverride, clearFundCatalogueOverride, saveProfileOverrides, activeProfileOverrides,
+      saveLinkersOverride
     } from './src/firebase/AdminConfigService.js';
     import { SUB_ASSET_PROFILE_DEFAULTS, TUNABLE_PROFILE_FIELDS } from './src/services/SubAssetModel.js';
 
@@ -4899,6 +4945,8 @@
         window.__hideHelpTip && window.__hideHelpTip();
         document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
         document.getElementById(`stress-${tab.dataset.stresstab}`).classList.remove('hidden');
+        if (tab.dataset.stresstab === 'strategies') loadStrategiesUI();
+        if (tab.dataset.stresstab === 'montecarlo') updateStrategyNote();
 
         // Only reload settings when explicitly switching to settings tab
         // Don't overwrite test inputs - user may have entered custom values to test
@@ -6620,6 +6668,165 @@
     };
     window.switchToTab = function (name) {
       document.querySelector('.tab[data-tab="' + name + '"]')?.click();
+    };
+
+    // ---- Strategies tab (Phases D+E): learn, compare on identical markets, lock -------------
+    const STRATEGY_STORY = {
+      'pots-and-valves': {
+        shines: ['You want one flexible pot and monthly guidance', 'Markets are kind more often than not', 'You value upside over certainty'],
+        story: ['Your money sits in pots, each with a floor.', 'Each month, the pot that can best afford it pays you.', 'In bad markets, the safe pots take over.', 'In good markets, the pots refill and floors are restored.']
+      },
+      'ladder-and-ratchet': {
+        shines: ['You want your income bolted on for years ahead', 'You would sleep better with dates, not odds', 'You still want booms to buy MORE certainty'],
+        story: ['Your income for the years ahead is bought and banked.', 'The rest rides the market, aiming above a line.', 'Rise above the line, and more years get locked.', 'Never boom? The banked years still pay regardless.']
+      },
+      'floor-and-flex': {
+        shines: ['Your essentials are non-negotiable; treats can flex', 'You can name your bills number honestly', 'You want zero chance the basics fail'],
+        story: ['The bills are bought up front, to an age you choose.', 'A second pot pays for everything fun.', 'Good years, bigger treats. Bad years, smaller ones.', 'The bills never notice either way.']
+      }
+    };
+
+    window.renderStrategyCards = async function () {
+      const box = document.getElementById('strategyCards');
+      if (!box) return;
+      const current = await getActiveStrategy();
+      box.innerHTML = listStrategies().map((st) => {
+        const d = st.describe();
+        const extra = STRATEGY_STORY[st.id] || { shines: [], story: [] };
+        const locked = current.id === st.id;
+        return '<div class="settings-section" style="border-color:' + (locked ? 'var(--accent)' : 'var(--border)') + ';">'
+          + '<div class="section-title">' + d.name + (locked ? ' <span style="color:var(--accent);font-size:12px;">— locked for this plan</span>' : '') + '</div>'
+          + '<p style="font-size:14px;margin:0 0 6px;"><strong>' + d.promise + '</strong></p>'
+          + '<ol style="font-size:13px;margin:6px 0 6px 18px;padding:0;">' + extra.story.map((c) => '<li>' + c + '</li>').join('') + '</ol>'
+          + '<p class="hint" style="margin:6px 0;">When it shines: ' + extra.shines.join(' · ') + '</p>'
+          + '<p style="font-size:13px;color:var(--warning);margin:6px 0;">How it fails: ' + d.failure + '</p>'
+          + '<details><summary class="hint" style="cursor:pointer;">Under the bonnet</summary>'
+          + '<p class="hint" style="margin:6px 0 0;">' + d.components.join(' · ') + (d.sensitivity ? ' · ' + d.sensitivity : '') + '</p></details>'
+          + (locked ? '' : '<button type="button" class="risk-btn" style="margin-top:8px;" onclick="lockStrategy(\'' + st.id + '\')">Choose &amp; lock ' + d.name + '</button>')
+          + '</div>';
+      }).join('');
+    };
+
+    window.orientStrategies = function () {
+      const c = document.getElementById('orientCertainty').value;
+      const l = document.getElementById('orientLevel').value;
+      const h = document.getElementById('orientHands').value;
+      const score = { 'pots-and-valves': 0, 'ladder-and-ratchet': 0, 'floor-and-flex': 0 };
+      if (c === 'certainty') { score['ladder-and-ratchet'] += 2; score['floor-and-flex'] += 1; }
+      if (c === 'upside') { score['pots-and-valves'] += 2; }
+      if (l === 'level') { score['ladder-and-ratchet'] += 2; }
+      if (l === 'flex') { score['floor-and-flex'] += 2; score['pots-and-valves'] += 1; }
+      if (h === 'forget') { score['floor-and-flex'] += 1; score['ladder-and-ratchet'] += 1; }
+      if (h === 'hands') { score['pots-and-valves'] += 2; }
+      const order = Object.entries(score).sort((a, b) => b[1] - a[1]);
+      const names = { 'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex' };
+      document.getElementById('orientResult').textContent =
+        'Closest to what you said you wanted: start with ' + names[order[0][0]] + ', then read ' + names[order[1][0]] + '. A starting point, not advice — read all three.';
+    };
+
+    window.runStrategyCompare = async function () {
+      const box = document.getElementById('compareResults');
+      box.innerHTML = '<p style="font-size:13px;">Running all three strategies over every historical window…</p>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const settings = await getStressSettingsAsync();
+        const cfg = createSimulationConfigFromSettings({}, settings);
+        const pot = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0);
+        const target = settings.baseSalary || 0;
+        const essentials = +document.getElementById('cmpEssentials').value || Math.round(target * 0.55);
+        const spWeekly = settings.spWeeklyAmount || 0;
+        const spAnnual = spWeekly ? spWeekly * 52 : (settings.statePension || 0);
+        const spStartYear = cfg.spStartYear ?? settings.statePensionYear ?? 99;
+        const p = {
+          pot, isa: cfg.isaBalance || 0, targetAnnual: target, essentialsAnnual: essentials,
+          durationYears: Math.min(settings.duration || 35, 35), startAge: 57,
+          spAnnual, spStartYear, stride: 2,
+          pnvCfg: { ...cfg, isaReturn: 0, startAge: 57 }
+        };
+        const r = runCompare(p);
+        const names = { 'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex' };
+        const cols = Object.keys(r.strategies);
+        let html = '<div class="table-scroll-container"><table><thead><tr><th></th>'
+          + cols.map((id) => '<th>' + names[id] + '</th>').join('') + '</tr></thead><tbody>';
+        const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + fn(r.strategies[id].table) + '</td>').join('') + '</tr>';
+        html += row('Worst 12 months you’d have lived', (t) => gbp(Math.round(t.worst12Min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12Median)) + ')</span>');
+        html += row('Income guaranteed to age', (t) => t.guaranteedToAge);
+        html += row('Chance of running out', (t) => t.ruinPct.toFixed(1) + '%');
+        html += row('Typically left at the horizon', (t) => gbp(Math.round(t.terminalMedian)));
+        html += '</tbody></table></div>';
+        if (!r.configs.lrAffordable) html += '<p class="hint" style="color:var(--warning);">Ladder &amp; Ratchet: your pot cannot fund the base ladder at this target — not affordable as configured.</p>';
+        if (!r.configs.ffAffordable) html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex: your pot cannot fund the essentials floor to the horizon — not affordable as configured.</p>';
+        html += '<p class="hint" style="margin-top:6px;">All three ran the SAME historical windows (Shiller 1871–2023, real terms) and the same income need. '
+          + 'Pots &amp; Valves runs your actual plan settings; Ladder &amp; Ratchet banks ' + (r.configs.lr ? r.configs.lr.ladderYears : '—') + ' years up front (cost ' + gbp(Math.round(r.configs.baseLadderCost || 0)) + '); '
+          + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at 4%.</p>';
+
+        // Order sheet at t=0 for the base ladder (§6) with the linker staleness banner
+        if (r.configs.lr) {
+          const rungYears = Array.from({ length: r.configs.lr.ladderYears }, (_, i) => i + 1);
+          const sheet = orderSheet({ rungYears, drawForYear: r.configs.lr.drawNetOfSp, startYear: new Date().getFullYear(), realYield: 0.023 });
+          html += '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Order sheet — the base ladder as real gilts (t=0)</summary>';
+          if (sheet.stale) html += '<p class="hint" style="color:var(--warning);">Linker data is a bundled snapshot (' + sheet.generated_at.slice(0, 10) + ') — costs use the flat curve. Admin can refresh via CSV import.</p>';
+          html += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Gilt(s)</th><th>Face (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
+          for (const row of sheet.rows) {
+            html += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year — bracketed)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
+          }
+          html += '</tbody></table></div><p class="hint">' + sheet.priced + '</p></details>';
+        }
+
+        // Canned decades — one famous bust, one famous boom
+        html += '<div class="section-title" style="margin-top:14px;font-size:13px;">Two real decades, same money</div>';
+        const dec = (y, label) => {
+          const c = cannedDecade(p, y, 1);
+          const cell = (id) => {
+            const d = c[id];
+            if (!d) return '—';
+            if (id === 'pots-and-valves') return d.failed ? 'ran out at ' + Math.round(d.failAge) : 'lasted · ' + gbp(Math.round(d.terminal)) + ' left';
+            if (id === 'ladder-and-ratchet') return (d.secured ? 'ratcheted +' + d.secured + ' yrs' : 'never triggered') + (d.survived === false ? ' · sleeve failed' : '');
+            return 'worst treats ' + gbp(Math.round(d.worstYearFlex)) + '/yr';
+          };
+          return '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id) + '</td>').join('') + '</tr>';
+        };
+        html += '<div class="table-scroll-container"><table><tbody>' + dec(1966, 'Start 1966 (the long bust)') + dec(1985, 'Start 1985 (the long boom)') + '</tbody></table></div>';
+        box.innerHTML = html;
+      } catch (e) {
+        console.error('Compare error:', e);
+        box.innerHTML = '<div class="alert alert-warning">Could not run the comparison: ' + e.message + '</div>';
+      }
+    };
+
+    window.lockStrategy = async function (id) {
+      const st = getStrategy(id);
+      const d = st.describe();
+      const ok = await appConfirm(
+        'Lock ' + d.name + ' for this plan?\n\nHow it fails: ' + d.failure + '\n\nThe choice is recorded with today’s engine version. To try another strategy later, duplicate the plan — comparisons never change a locked plan.',
+        { okLabel: 'Lock it in', danger: false });
+      if (!ok) return;
+      try {
+        await setActiveStrategy(id, {});
+        showToast(d.name + ' locked for this plan.', 'success');
+        renderStrategyCards();
+        updateStrategyNote();
+      } catch (e) { showToast('Could not lock: ' + e.message, 'error'); }
+    };
+
+    window.updateStrategyNote = async function () {
+      const el = document.getElementById('mcStrategyNote');
+      if (!el) return;
+      try {
+        const st = await getActiveStrategy();
+        if (st.id && st.id !== 'pots-and-valves') {
+          const d = getStrategy(st.id).describe();
+          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. The Monte Carlo below simulates the Pots &amp; Valves engine — your strategy’s own numbers are in the <strong>Strategies</strong> tab.</div>';
+          el.style.display = 'block';
+        } else { el.style.display = 'none'; }
+      } catch (e) { el.style.display = 'none'; }
+    };
+
+    window.loadStrategiesUI = async function () {
+      renderStrategyCards();
+      const settings = await getStressSettingsAsync();
+      const ess = document.getElementById('cmpEssentials');
+      if (ess && !ess.value) ess.value = Math.round((settings.baseSalary || 40000) * 0.55);
     };
 
     // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------
@@ -8692,6 +8899,16 @@
     };
 
     window.adminSetTab = function (t) { _adminTab = t; renderAdminPanel(true); };
+    window.adminSaveLinkers = async function () {
+      const txt = (document.getElementById('adminLinkersCsv').value || '').trim();
+      const rows = txt.split('\n').map((l) => l.split(',').map((x) => x.trim())).filter((r) => r.length >= 3);
+      if (!rows.length) { showToast('Paste CSV rows first (name,coupon,maturity,lag)', 'warning'); return; }
+      try {
+        const n = await saveLinkersOverride(rows.map((r) => ({ name: r[0], coupon: +r[1], maturity: +r[2], lag: +r[3] || 3 })));
+        document.getElementById('adminLinkersStatus').textContent = n + ' gilts published ✓';
+        showToast('Linker universe updated (' + n + ' gilts)', 'success');
+      } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
+    };
 
     function adminSubClassSelect(i, selected) {
       const groups = subClassOptionsByBucket();
@@ -8792,6 +9009,15 @@
           '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Name</th><th style="text-align:left;">Category (model)</th><th></th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table></div>';
       }
+      if (_adminTab === 'linkers') {
+        return '<div style="padding:4px 2px;">'
+          + '<p class="hint">Index-linked gilt universe (Appendix C). Paste CSV rows: <code>name,coupon,maturity,lag</code>. '
+          + 'Saving replaces the bundled snapshot for all users and refreshes the staleness clock. The DMO gilts-in-issue page is the source of truth.</p>'
+          + '<textarea id="adminLinkersCsv" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;" placeholder="0⅛% IL Treasury Gilt 2036,0.125,2036,3"></textarea>'
+          + '<div class="row-flex" style="margin-top:8px;">'
+          + '<button type="button" onclick="adminSaveLinkers()">Import &amp; publish</button>'
+          + '<span class="hint" id="adminLinkersStatus"></span></div></div>';
+      }
       if (_adminTab === 'categories') {
         const fields = ['nominalReturn', 'yield', 'vol', 'eqCorr', 'duration', 'inflationBeta', 'creditBeta', 'idioVol'];
         const rows = Object.entries(SUB_ASSET_PROFILE_DEFAULTS).map(([key, def]) => {
@@ -8835,7 +9061,7 @@
         '<div class="budwiz-shell">' +
           '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="display:flex; gap:8px; align-items:center;"><strong>\u2699 Administration</strong>' +
-            tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + '</div>' +
+            tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + tabBtn('linkers', 'Linkers') + '</div>' +
             '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="closeAdminPanel()">&times;</button>' +
           '</div>' +
           '<div class="budwiz-body">' + adminBodyHtml() + '</div>' +

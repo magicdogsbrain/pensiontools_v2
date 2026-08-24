@@ -22,6 +22,7 @@ import { getCurrentUser } from './AuthService.js';
 import { DEFAULT_FUND_CATALOGUE } from '../services/FundCatalogue.js';
 import { setTypicalTiersOverride } from '../services/BudgetModel.js';
 import { applySubAssetOverrides } from '../services/SubAssetModel.js';
+import { setLinkersOverride } from '../services/LinkerUniverse.js';
 
 let _catalogue = DEFAULT_FUND_CATALOGUE;
 let _profileOverrides = null;
@@ -71,11 +72,16 @@ export async function initAdminConfig() {
     _isAdmin = false;
   }
   try {
-    const [fundsSnap, profSnap, typSnap] = await Promise.all([
+    const [fundsSnap, profSnap, typSnap, linkSnap] = await Promise.all([
       getDoc(doc(db, 'admin', 'fundCatalogue')),
       getDoc(doc(db, 'admin', 'subAssetProfiles')),
-      getDoc(doc(db, 'admin', 'typicalAmounts'))
+      getDoc(doc(db, 'admin', 'typicalAmounts')),
+      getDoc(doc(db, 'admin', 'linkers'))
     ]);
+    if (linkSnap.exists() && Array.isArray(linkSnap.data().gilts)) {
+      setLinkersOverride(linkSnap.data());
+      console.log('AdminConfig: linker-universe override active (' + linkSnap.data().gilts.length + ' gilts)');
+    }
     if (fundsSnap.exists()) {
       const funds = fundsSnap.data().funds;
       if (Array.isArray(funds) && funds.length && funds.every((f) => f.ticker && f.subClass)) {
@@ -112,6 +118,16 @@ export async function saveFundCatalogueOverride(funds) {
   await setDoc(doc(db, 'admin', 'fundCatalogue'), { funds: clean, updatedAt: serverTimestamp() });
   _catalogue = Object.freeze([...clean].sort((a, b) => a.ticker.localeCompare(b.ticker)));
   return _catalogue.length;
+}
+
+/** Save the linker-universe override (admin CSV import) and apply it live. */
+export async function saveLinkersOverride(gilts) {
+  const clean = (gilts || []).filter((g) => g.name && g.maturity)
+    .map((g) => ({ name: String(g.name), coupon: +g.coupon || 0, maturity: +g.maturity, lag: +g.lag || 3 }));
+  const payload = { generated_at: new Date().toISOString(), gilts: clean, updatedAt: serverTimestamp() };
+  await setDoc(doc(db, 'admin', 'linkers'), payload);
+  setLinkersOverride(payload);
+  return clean.length;
 }
 
 /** Remove the catalogue override; the shipped default list becomes live again. */

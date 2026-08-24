@@ -1994,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BpWyZPNm.js"></script>
+  <script type="module" crossorigin src="./assets/main-Bm67iy6g.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2514,6 +2514,7 @@
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
+          <button class="sub-tab" data-stresstab="strategies">Strategies</button>
           <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
         </div>
 
@@ -2526,6 +2527,7 @@
             <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
           </div>
           <div class="card">
+            <div id="mcStrategyNote" style="display:none;"></div>
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
             </h2>
@@ -2607,6 +2609,43 @@
         </div>
 
         <!-- Glidepath Sub-tab -->
+        <div id="stress-strategies" class="stress-subtab hidden">
+          <div class="card">
+            <h2>Strategies <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— three honest ways to turn a pot into an income</span></h2>
+            <p style="font-size:13px;color:var(--text-muted);">
+              The tool never crowns a strategy — it teaches trade-offs and lets you choose. Every
+              comparison below runs on <strong>identical markets</strong>: the same 150 years of
+              historical windows, your numbers, all three strategies side by side.
+            </p>
+
+            <div class="settings-section">
+              <div class="section-title">What matters most to you? <span class="hint" style="font-weight:normal;">(a starting point, not advice — skippable)</span></div>
+              <div class="row-flex">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Certainty ↔ upside
+                  <select id="orientCertainty"><option value="certainty">Certainty</option><option value="mixed" selected>A bit of both</option><option value="upside">Upside</option></select></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Level ↔ flexible income
+                  <select id="orientLevel"><option value="level">Level</option><option value="mixed" selected>A bit of both</option><option value="flex">Flexible</option></select></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Set-and-forget ↔ hands-on
+                  <select id="orientHands"><option value="forget">Set and forget</option><option value="mixed" selected>A bit of both</option><option value="hands">Hands-on</option></select></label>
+                <button type="button" class="risk-btn" style="align-self:flex-end;" onclick="orientStrategies()">Suggest a starting point</button>
+              </div>
+              <p id="orientResult" class="hint" style="margin:8px 0 0;"></p>
+            </div>
+
+            <div id="strategyCards"></div>
+
+            <div class="settings-section">
+              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same 150 years of markets for all three)</span></div>
+              <div class="row-flex">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials (£/yr of your target that MUST be covered)
+                  <input type="number" id="cmpEssentials" style="width:130px;"></label>
+                <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
+              </div>
+              <div id="compareResults" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+
         <div id="stress-glidepath" class="stress-subtab hidden">
           <div class="card">
             <h2>Glidepath Visualization</h2>

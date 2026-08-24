@@ -74,7 +74,19 @@ flowchart TD
 3. "In bad markets, the safe pots take over." ⚠️ true, **and** income is cut (contradiction 2)
 4. "In good markets, the pots refill and floors are restored." ✅ read as "pots recover to above their glidepath floors" — cash refills; growth pots recover by market growth (see 3)
 
-## Coded behaviour that contradicts the user's mental model
+## Phase A audit findings — final status: NO open contradictions
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | Floors decline over the plan | RETRACTED — the floor is the glidepath; decline is the definition |
+| 2 | Protection cuts income 20% at once | FIXED — staged G-K cuts (10% first year), disclosed in settings |
+| 3 | Refill advice-only in Decision, auto in Stress, different numbers | FIXED — one shared engine, identical figures |
+| 4 | All-or-nothing valves | FIXED — G-K mixed cascade (also fixed the stranded-bucket bug) |
+| 5 | Different spill orders per tool | FIXED — one overweight-ranked order in the shared module |
+| 6 | Stress tax year = plan year, not 6 April | DISCLOSED assumption — cross-validated equivalent; dissolves in the PlanContext refactor |
+| 7 | ISA outside the valves | DISCLOSED design — stated in the UI ("kept separate — the tax-free bridge") |
+
+### The original audit notes (historical record)
 
 1. ~~Floors are ramps to zero~~ **RETRACTED — not a contradiction.** The floor IS the
    glidepath: a time-indexed minimum ("with N years to go, still hold at least X"), so its

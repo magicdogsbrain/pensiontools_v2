@@ -69,16 +69,19 @@ flowchart TD
 
 ## Storyboard (the four fixed captions) — and where the code disagrees
 
-1. "Your money sits in pots, each with a floor." ✅ (but see contradiction 1)
+1. "Your money sits in pots, each with a floor." ✅ — the floor is the glidepath value for that year
 2. "Each month, the pot that can best afford it pays you." ✅ broadly
 3. "In bad markets, the safe pots take over." ⚠️ true, **and** income is cut (contradiction 2)
-4. "In good markets, the pots refill and floors are restored." ❌ (contradictions 1 & 3)
+4. "In good markets, the pots refill and floors are restored." ✅ read as "pots recover to above their glidepath floors" — cash refills; growth pots recover by market growth (see 3)
 
 ## Coded behaviour that contradicts the user's mental model
 
-1. **Floors are not floors — they are ramps to zero.** Every floor except cash depletes
-   linearly to £0 over the plan by design. Nothing "restores" a floor; caption 4 is wrong as
-   worded for this engine.
+1. ~~Floors are ramps to zero~~ **RETRACTED — not a contradiction.** The floor IS the
+   glidepath: a time-indexed minimum ("with N years to go, still hold at least X"), so its
+   decline over the plan is the definition, not a defect. Caption 4's "floors are restored"
+   correctly means the pots recover to ABOVE their glidepath floors (the protection-exit
+   condition), not that floor levels are rebuilt. Phase E copy may still want to spell that
+   out for nervous readers ("the pots climb back above their floors").
 2. **Protection cuts your income, not just the source.** In protection the draw is multiplied
    by 0.8 — spending falls 20% in bad markets. Users reading "the safe pots take over" expect
    constant income from a different pot. (The tax boost later repays the shortfall, but only
@@ -119,9 +122,9 @@ Morningstar bucket maintenance; Estrada IESE; Vanguard dynamic spending; Income 
   Portfolio Management Rule ("sell what held its value") rather than a hardcoded order. Both
   engines now also count the SAME cash-streak (any non-Growth month) for protection triggers.
 
-Contradiction (1) — floors that deplete by design — is a DESIGN choice, kept and to be fixed in
-COPY: the Phase E storyboard caption must say "the cash pot refills" rather than "floors are
-restored". (6) and (7) are documented in the assumption register below.
+Contradiction (1) was RETRACTED on review: the floor is the glidepath by definition, so its
+decline is the design working, and "floors are restored" correctly describes pots recovering
+to above their glidepath floors. (6) and (7) are documented in the assumption register below.
 
 _Phase A review complete; standards research applied. Strategy-interface work (Phase B) not yet started._
 

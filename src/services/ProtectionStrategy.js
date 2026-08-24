@@ -57,3 +57,18 @@ export function assessProtection({
 
   return inProtection;
 }
+
+/**
+ * Protection income multiplier with a Guyton-Klinger-aligned first step: published guardrail
+ * practice cuts ~10% first (G-K's decision rule; risk-based guardrails cut even less) and only
+ * deepens if stress persists — a single immediate 20% cut is double the standard. The user's
+ * configured multiplier remains the DEEP cut; the first ESCALATE_MONTHS of a protection
+ * episode apply half that cut (e.g. deep 0.8 → first-step 0.9).
+ */
+export const PROTECTION_ESCALATE_MONTHS = 12;
+
+export function protectionMultForStreak(protStreakMonths, deepMult) {
+  const dm = deepMult ?? 0.8;
+  if (protStreakMonths < PROTECTION_ESCALATE_MONTHS) return 1 - (1 - dm) / 2;
+  return dm;
+}

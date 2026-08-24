@@ -98,4 +98,36 @@ flowchart TD
 7. **The ISA is a separate engine.** It grows at its own rate (or tagged mix), pays the net
    gap tax-free, and never participates in floors, protection, or valves.
 
-_Stop point: Phase A review. Nothing below Phase B has been started._
+## Resolutions implemented (research-backed, Aug 2026)
+
+Contradictions 2–5 were resolved by implementing the published industry standard (sources:
+Guyton-Klinger FPA 2006; Kitces on buckets-vs-rebalancing & risk-based guardrails; Benz/
+Morningstar bucket maintenance; Estrada IESE; Vanguard dynamic spending; Income Lab):
+
+- **(2) Staged income cuts** — a single 20% cut is double the G-K norm. `protectionMultForStreak`
+  now applies HALF the configured cut for the first 12 months of a protection episode, the full
+  cut only under persistent stress. "Repayment" framing renamed to restoration/catch-up (the
+  Tax Boost already worked this way).
+- **(3) One rules engine** — `WithdrawalSourcing.planSourcing` is shared: the stress tester
+  EXECUTES it, the Decision tool RECOMMENDS the identical numbers (incl. the cash-refill figure,
+  previously advice-only with different thresholds). Cash-only refill KEPT — Evensky/Benz
+  standard; growth pots are never auto-refilled.
+- **(4) Mixed/partial draws** — the G-K funding cascade replaces all-or-nothing valves: growth
+  surplus part-funds, the remainder cascades. This also fixed the pinned "stranded bucket" bug.
+- **(5) One spill order, overweight-ranked** — cash first, then the sleeve most overweight vs
+  its target (diversifiers vs flat start, bonds/equity vs floors), HODL strictly last — G-K's
+  Portfolio Management Rule ("sell what held its value") rather than a hardcoded order. Both
+  engines now also count the SAME cash-streak (any non-Growth month) for protection triggers.
+
+Contradiction (1) — floors that deplete by design — is a DESIGN choice, kept and to be fixed in
+COPY: the Phase E storyboard caption must say "the cash pot refills" rather than "floors are
+restored". (6) and (7) are documented in the assumption register below.
+
+_Phase A review complete; standards research applied. Strategy-interface work (Phase B) not yet started._
+
+## Assumption register (resolutions for contradictions 6 & 7 — documented, not changed)
+
+| # | Assumption | Status & rationale |
+|---|---|---|
+| 6 | Stress-tester tax years align to plan years, not 6 April | KEPT. Cross-validation pins decision-vs-stress parity on identical trajectories; aligning to 6 April would complicate the sim for no accuracy gain at annual granularity. Revisit in the PlanContext refactor. |
+| 7 | The ISA sits outside floors/protection/valves | KEPT — deliberate design. The ISA is the tax-free bridge: a stable pot drawn by the tax planner (`planDrawdown`), not a market pot the valves manage. It is included in wealth reporting and can be modelled at the tagged asset mix (`isaMix`). |

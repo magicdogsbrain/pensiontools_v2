@@ -15,8 +15,9 @@ import { DECISION_ASSUMED_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
-import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
+import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
+import { planSourcing } from './WithdrawalSourcing.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -104,7 +105,17 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
       // Count consecutive Cash draws from history
       for (let i = priorHistory.length - 1; i >= 0; i--) {
-        if (priorHistory[i].source === 'Cash') consec++;
+        // Any non-Growth month counts toward the streak (Cash, Mixed, Diversifier…) — the SAME
+        // rule the stress engine applies, so both engines see identical protection triggers.
+        if (priorHistory[i].source && priorHistory[i].source !== 'Growth') consec++;
+        else break;
+      }
+
+      // Trailing protection streak (consecutive most-recent records in protection) — drives the
+      // Guyton-Klinger-aligned escalating cut: half-depth for the first year of an episode.
+      let protStreak = 0;
+      for (let i = priorHistory.length - 1; i >= 0; i--) {
+        if (priorHistory[i].inProtection) protStreak++;
         else break;
       }
 
@@ -228,8 +239,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
         if (inProtection) {
           // Protection = reduce SIPP draw by protection factor
-          const protectionFactor = (settings.protectionFactor || 20) / 100;
-          sipp = stdSipp * (1 - protectionFactor);
+          const deepMult = 1 - (settings.protectionFactor || 20) / 100;
+          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult);
           isa = isaToUse;
           note = 'Protection';
         } else {
@@ -308,8 +319,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         });
 
         if (inProtection) {
-          const protectionFactor = (settings.protectionFactor || 20) / 100;
-          sipp = stdSipp * (1 - protectionFactor);
+          const deepMult = 1 - (settings.protectionFactor || 20) / 100;
+          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult);
           note = 'Protection';
 
           // Protection-induced tax efficiency: the reduced draw may bring the projected annual
@@ -383,41 +394,29 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // downturn BEFORE the depressed growth pots — the same rule the Stress engine uses. Absent/0 →
       // every branch below is byte-identical to the 3-bucket behaviour (golden-safe).
       const diversifier = deps.diversifier || 0;
-      let source, reason, dEquity = 0, dBond = 0, dCash = 0, dDiversifier = 0, warn = '';
 
-      if (!inProtection && totalGrowth >= minGrowth + sipp) {
-        source = 'Growth';
-        const pS = Math.max(0, equity - adjEquity);
-        const cS = Math.max(0, bond - adjBond);
-        const tot = pS + cS;
-        if (tot > 0) {
-          dEquity = sipp * pS / tot;
-          dBond = sipp * cS / tot;
-          reason = 'Healthy';
-        } else {
-          source = 'Cash';
-          dCash = sipp;
-          reason = 'At min';
-        }
-      } else {
-        source = 'Cash';
-        reason = inProtection ? 'Protection' : 'Below min';
-        if (diversifier > 0) {
-          // Draw available cash, then top the shortfall up from the diversifier reserve (sell the
-          // risen hedge) before eating into depressed growth. Warn only if BOTH are exhausted.
-          dCash = Math.min(cash, sipp);
-          let rem = sipp - dCash;
-          if (rem > 0) {
-            dDiversifier = Math.min(diversifier, rem);
-            rem -= dDiversifier;
-            source = dCash > 0 ? 'Cash + Diversifier' : 'Diversifier';
-          }
-          if (rem > 0) warn = 'Cash low!';
-        } else {
-          dCash = sipp;
-          if (cash < sipp) warn = 'Cash low!';
-        }
-      }
+      // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
+      // Identical module and numbers to the Stress engine — one rules engine, two surfaces:
+      // the sim EXECUTES this plan; here it becomes the month's recommendation.
+      const sourcing = planSourcing({
+        draw: sipp,
+        equity, bond, cash,
+        diversifier, diversifierTarget: deps.diversifierTarget || diversifier || 0,
+        hodl: 0,
+        eqMin: adjEquity, bdMin: adjBond, csTarget: adjCash,
+        inProtection
+      });
+      const source = sourcing.source;
+      const reason = sourcing.reason;
+      const dEquity = sourcing.fromEquity;
+      const dBond = sourcing.fromBond;
+      const dCash = sourcing.fromCash;
+      const dDiversifier = sourcing.fromDiversifier;
+      // Warn when the month needed to eat into pots BELOW their floors (or genuinely ran out):
+      // the cascade will sell depressed sleeves rather than fail, but the user must know.
+      const dippedBelowFloors = (sourcing.fromEquity + sourcing.fromBond > 1e-9)
+        && (inProtection || totalGrowth < minGrowth + sipp);
+      const warn = (sourcing.shortfall > 1e-6 || dippedBelowFloors) ? 'Cash low!' : '';
 
       // Rebalancing check
       let rebal = '';
@@ -431,17 +430,12 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         if (mv >= 5000) rebal = `Move £${mv.toLocaleString()} Bond→Equity`;
       }
 
-      // Cash replenishment suggestion
+      // Cash replenishment advice — the module's own figure, so the recommendation matches what
+      // the stress tester actually executes (rounded to £1k for readability; ≥£1k to show).
       let cashReplenish = '';
-      const cashShortfall = adjCash - cash;
-      if (cashShortfall > 5000 && source === 'Growth' && !inProtection) {
-        const excess = totalGrowth - minGrowth - sipp;
-        if (excess > 10000) {
-          const repAmount = Math.floor(Math.min(cashShortfall * 0.3, excess * 0.5) / 1000) * 1000;
-          if (repAmount >= 5000) {
-            cashReplenish = `Replenish Cash: Move £${repAmount.toLocaleString()} from growth funds`;
-          }
-        }
+      const repAmount = Math.floor((sourcing.replenish || 0) / 1000) * 1000;
+      if (repAmount >= 1000) {
+        cashReplenish = `Replenish Cash: Move £${repAmount.toLocaleString()} from growth funds`;
       }
 
       // Build alerts array

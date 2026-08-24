@@ -316,6 +316,11 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
     isaBalance: settings.isaBalance || 0,
     isaReturn: settings.isaReturn,
+    // Tax bands from settings (previously only supplied by UI call-site overrides — configs
+    // built without overrides had pa/brl/hrl undefined, which NaN'd every draw).
+    pa: settings.pa ?? 12570,
+    brl: settings.brl ?? 50270,
+    hrl: settings.hrl ?? 125140,
     accessMethod: settings.accessMethod || 'drawdown',
     // Protection knobs — pass the USER'S values through (previously recoveryBuffer was never
     // emitted, so the engine always used its default regardless of settings). protectionMult

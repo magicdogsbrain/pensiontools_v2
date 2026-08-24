@@ -28,7 +28,17 @@ export function runLadderWindows(cfg) {
   const drawForYear = (k) => cfg.profile
     ? profileTargetForYear(cfg.profile, k - 1, cfg.draw)
     : cfg.draw;
-  const price = flatYieldPricer(drawForYear, cfg.realYield ?? LADDER_DEFAULTS.realYield);
+  // Phase G extensions — ALL default off; goldens pin the off path:
+  //  yieldVol: stochastic real yields for rung pricing, AR(1) around the flat anchor
+  //    (y_t = y* + phi(y_{t-1} − y*) + sigma·eps, deterministic per-window seed);
+  //  txCostBps: transaction costs on every rung purchase (added to cost);
+  //  triggersContinueInDecumulation: band checks keep running in stage 2.
+  const ry0 = cfg.realYield ?? LADDER_DEFAULTS.realYield;
+  const txMult = 1 + (cfg.txCostBps || 0) / 10000;
+  let priceBase = flatYieldPricer(drawForYear, ry0);
+  const price = (k, t, yOverride) => (yOverride != null
+    ? drawForYear(k) * Math.pow(1 + yOverride, -(k - t / 12))
+    : priceBase(k, t)) * txMult;
   const gp = cfg.glideRate ?? LADDER_DEFAULTS.glideRate;
   const startAge = cfg.startAge ?? LADDER_DEFAULTS.startAge;
 
@@ -40,9 +50,22 @@ export function runLadderWindows(cfg) {
   };
 
   for (let s = 0; s < stage1N; s++) {
+    // Stochastic yield path for this window (deterministic in s — reproducible)
+    let yPath = null;
+    if (cfg.yieldVol > 0) {
+      yPath = new Array(cfg.END + 1);
+      let y = ry0;
+      let seed = (s * 2654435761) >>> 0;
+      const rnd = () => { seed = (1103515245 * seed + 12345) >>> 0; return (seed / 4294967296) - 0.5; };
+      for (let t = 0; t <= cfg.END; t++) {
+        yPath[t] = y;
+        y = ry0 + 0.97 * (y - ry0) + cfg.yieldVol * rnd();
+      }
+    }
+    const priceAt = yPath ? (k, t) => price(k, t, yPath[t]) : price;
     const s1 = cfg.trigger.mode === 'band'
-      ? stage1Band({ rtr, s, E0: cfg.E0, L: cfg.L, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: price, b: cfg.trigger.b ?? LADDER_DEFAULTS.bandThreshold, gp })
-      : stage1Calendar({ rtr, s, E0: cfg.E0, reviews: cfg.trigger.reviews, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: price, gp });
+      ? stage1Band({ rtr, s, E0: cfg.E0, L: cfg.L, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, b: cfg.trigger.b ?? LADDER_DEFAULTS.bandThreshold, gp })
+      : stage1Calendar({ rtr, s, E0: cfg.E0, reviews: cfg.trigger.reviews, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, gp });
     // Calendar reviews may end before the ladder does (Config B: last review yr 20, ladder
     // 23y) — grow the sleeve from the last review to the ladder end before anything reads it.
     let sleeveAtL = s1.V;
@@ -63,7 +86,34 @@ export function runLadderWindows(cfg) {
       holdMultiple: rtr[s + cfg.L] / rtr[s]
     };
     if (s < fullN) {
-      const s2 = stage2({ rtr, s, V0: sleeveAtL, L: cfg.L, ladderYears: cfg.ladderYears, secured: s1.secured, drawForYear, END: cfg.END, startAge });
+      let s2;
+      if (cfg.triggersContinueInDecumulation && cfg.trigger.mode === 'band') {
+        // Band checks continue in stage 2: any surplus above the (continuing) glide path still
+        // buys remaining rungs, which push the sleeve-draw start later.
+        let V = sleeveAtL, sec = s1.secured, nxt = cfg.firstRung + s1.secured;
+        let survived = true, failAge = null;
+        for (let m = cfg.L; m < cfg.END; m++) {
+          V *= rtr[s + m + 1] / rtr[s + m];
+          const t = m + 1;
+          const G = cfg.E0 * Math.pow(1 + gp, t / 12);
+          if (V >= (cfg.trigger.b ?? 1.2) * G && nxt <= cfg.maxRung) {
+            let ex = V - G;
+            while (nxt <= cfg.maxRung) {
+              const c = priceAt(nxt, t);
+              if (ex >= c) { ex -= c; V -= c; sec += 1; nxt += 1; } else break;
+            }
+          }
+          if (m >= (cfg.ladderYears + sec) * 12) {
+            V -= drawForYear(Math.floor(m / 12) + 1) / 12;
+            if (V <= 0) { survived = false; failAge = startAge + m / 12; V = 0; break; }
+          }
+        }
+        s2 = { survived, failAge, terminal: V };
+        w.secured = sec;
+      } else {
+        s2 = stage2({ rtr, s, V0: sleeveAtL, L: cfg.L, ladderYears: cfg.ladderYears, secured: s1.secured, drawForYear, END: cfg.END, startAge,
+          spendFlex: cfg.spendFlex });
+      }
       w.survived = s2.survived;
       w.failAge = s2.failAge;
       w.terminal = s2.terminal;

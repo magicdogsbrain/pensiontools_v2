@@ -617,6 +617,21 @@ export async function saveActivePlanOfRecord(planOfRecord) {
   }
 }
 
+/** Lock a strategy choice onto the active plan (Phase E). Explicit act; never silent. */
+export async function setActiveStrategy(id, params = {}) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const block = { id, params, lockedAt: new Date().toISOString(), engineVersion: ENGINE_VERSION };
+  await saveScenario(scenario.id, { strategy: block });
+  if (cachedActiveScenario) cachedActiveScenario.strategy = block;
+  return block;
+}
+
+export async function getActiveStrategy() {
+  const scenario = await getActiveScenarioAsync();
+  return (scenario && scenario.strategy) || defaultStrategyBlock();
+}
+
 /**
  * Household pairing: which OTHER scenario is the partner's plan (couples view).
  * Stored on the active scenario; null = no partner selected.

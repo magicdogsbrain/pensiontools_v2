@@ -90,8 +90,15 @@ export function runFlexWindows(cfg) {
       }
     };
 
+    let annuitySwapDone = false;
     for (let m = 0; m < cfg.END; m++) {
       V *= rtr[s + m + 1] / rtr[s + m];
+      // Phase G late-life annuity swap (opt-in): at swapAge, spend swapCost from the sleeve to
+      // buy the true lifelong tail past the floor horizon (linkers run out ~2073, so this is
+      // the honest answer to "lifelong"). Modelled as a one-off sleeve deduction.
+      if (cfg.annuitySwap && !annuitySwapDone && m === (cfg.annuitySwap.atYear ?? 20) * 12) {
+        if (V > cfg.annuitySwap.cost) { V -= cfg.annuitySwap.cost; annuitySwapDone = true; }
+      }
       V -= d / 12;
       const t = m + 1;
       if (R && R.mode === 'band') fireRatchet(t);
@@ -109,7 +116,8 @@ export function runFlexWindows(cfg) {
       yearsUnder: (thr) => dByYear.filter((x) => x < thr).length,
       extendYears,
       uplift,
-      upliftSpent
+      upliftSpent,
+      annuitySwapDone
     });
   }
 

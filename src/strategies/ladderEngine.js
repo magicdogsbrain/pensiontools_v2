@@ -102,13 +102,21 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
  * pays the draw monthly. Returns survival, failure age (57 + m/12 per the reference), terminal.
  * `drawForYear` sizes the post-ladder draw to the profile (flat DRAW in the goldens).
  */
-export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, startAge = 57 }) {
+export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, startAge = 57, spendFlex = null }) {
   let V = V0;
   const dstart = (ladderYears + secured) * 12;
   for (let m = L; m < END; m++) {
     V *= rtr[s + m + 1] / rtr[s + m];
     if (m >= dstart) {
-      V -= drawForYear(Math.floor(m / 12) + 1) / 12;
+      let d = drawForYear(Math.floor(m / 12) + 1);
+      // Phase G spending-flex overlay (opt-in): a simple guardrail on the post-ladder sleeve —
+      // cut the draw by cutPct while the sleeve is below `floorMult` × the remaining need.
+      if (spendFlex && spendFlex.cutPct > 0) {
+        const yearsLeft = (END - m) / 12;
+        const remainingNeed = d * yearsLeft;
+        if (V < (spendFlex.floorMult ?? 1) * remainingNeed) d *= (1 - spendFlex.cutPct);
+      }
+      V -= d / 12;
       if (V <= 0) return { survived: false, failAge: startAge + m / 12, terminal: 0 };
     }
   }

@@ -2839,6 +2839,17 @@
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
+              <div style="margin-top:12px;">
+                <div class="section-title" style="font-size:13px;">Income shape <span class="hint" style="font-weight:normal;">— level, or stepped with age (go-go / go-slow / no-go)</span></div>
+                <div class="row-flex">
+                  <button type="button" class="risk-btn" id="shapeLevelBtn" onclick="setIncomeShape('level')">Level for the whole plan</button>
+                  <button type="button" class="risk-btn" id="shapeStepBtn" onclick="setIncomeShape('phases')">Stepped by age</button>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Your age now
+                    <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" oninput="renderIncomeSteps()"></label>
+                </div>
+                <div id="incomeStepsEditor" style="display:none; margin-top:8px;"></div>
+                <p id="incomeShapeNote" class="hint" style="margin:6px 0 0;"></p>
+              </div>
               <div id="stratCopyOffer" style="display:none; margin-top:8px;">
                 <button type="button" class="risk-btn" onclick="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>
                 <span class="hint">— your current plan stays exactly as it is; the copy carries your pot totals over.</span>
@@ -4191,6 +4202,9 @@
         document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', stressSettings.strategyParams || {});
+        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : [];
+        if (stressSettings.shapeAgeNow) document.getElementById('shapeAgeNow').value = stressSettings.shapeAgeNow;
+        setIncomeShape(stressSettings.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(stressSettings.windfalls) ? JSON.parse(JSON.stringify(stressSettings.windfalls)) : [];
@@ -5270,7 +5284,14 @@
       if (settings.strategyId === 'ladder-and-ratchet') {
         const yrs = params.ladderYears || 15;
         const draw = params.drawAnnual || settings.baseSalary || 0;
-        const drawNet = (k) => Math.max(0, draw - (k > 10 ? spAnnual : 0));
+        const ageNow = settings.shapeAgeNow || 57;
+        const stepAmt = (k) => {
+          if (settings.incomeShape !== 'phases' || !Array.isArray(settings.incomeSteps) || !settings.incomeSteps.length) return draw;
+          const age = ageNow + k - 1;
+          const st = settings.incomeSteps.filter((x) => +x.fromAge <= age).sort((a, b) => +a.fromAge - +b.fromAge).pop();
+          return st ? +st.amount : draw;
+        };
+        const drawNet = (k) => Math.max(0, stepAmt(k) - (k > 10 ? spAnnual : 0));
         let cost = 0; for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
         const E0 = pot - cost;
         if (E0 <= 0) { html = '<div class="alert alert-danger">Ladder not affordable: base ladder costs ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Reduce the bolted income or the ladder years in Settings.</div>'; }
@@ -5278,8 +5299,11 @@
           const trig = params.triggerMode === 'calendar'
             ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(yrs / 5) }, (_, i) => (i + 1) * 60) }
             : { mode: 'band', b: params.bandThreshold || 1.2 };
+          const phases = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
+            ? settings.incomeSteps.map((x) => ({ fromYear: Math.max(0, (+x.fromAge || ageNow) - ageNow), amount: +x.amount }))
+            : [{ fromYear: 0, amount: draw }];
           const r = runLadderWindowsX({ E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
-            draw, profile: { type: 'phases', phases: [{ fromYear: 0, amount: draw }] }, trigger: trig,
+            draw, profile: { type: 'phases', phases }, trigger: trig,
             END: dur * 12, realYield: 0.023, glideRate: 0.05, startAge: 57 });
           const st = r.stats;
           html = '<div class="card"><h2>Ladder &amp; Ratchet — your parameters, 150 years of markets</h2>'
@@ -6842,6 +6866,73 @@
       document.querySelector('.tab[data-tab="' + name + '"]')?.click();
     };
 
+    // ---- Income shape (engine-level profile, §4a): level or stepped-by-age ------------------
+    // "£60k until 72, £50k until 80, then £40k" becomes phases; on save it compiles to the
+    // per-year targetSchedule EVERY consumer already reads (P&V engine, wizard suggestions,
+    // household timeline, drawdown tabs) and sizes the ladder's rungs per year.
+    window._ssIncomeShape = 'level';
+    window._ssIncomeSteps = [];
+
+    window.setIncomeShape = function (mode) {
+      window._ssIncomeShape = mode;
+      document.getElementById('shapeLevelBtn').classList.toggle('active', mode === 'level');
+      document.getElementById('shapeStepBtn').classList.toggle('active', mode === 'phases');
+      document.getElementById('incomeStepsEditor').style.display = mode === 'phases' ? 'block' : 'none';
+      if (mode === 'phases' && !window._ssIncomeSteps.length) {
+        const base = +document.getElementById('ssBaseSalary')?.value || 40000;
+        const age = +document.getElementById('shapeAgeNow').value || 57;
+        window._ssIncomeSteps = [{ fromAge: age, amount: base }];
+      }
+      renderIncomeSteps();
+      document.getElementById('incomeShapeNote').textContent = mode === 'phases'
+        ? 'Stepped income replaces the flat target (and any budget-derived schedule) when you save. The spending profile below should usually be "Level for life" — the steps ARE your decline.'
+        : '';
+    };
+
+    window.renderIncomeSteps = function () {
+      const box = document.getElementById('incomeStepsEditor');
+      if (!box || window._ssIncomeShape !== 'phases') return;
+      const steps = window._ssIncomeSteps;
+      steps.sort((a, b) => (+a.fromAge || 0) - (+b.fromAge || 0));
+      box.innerHTML = steps.map((st, i) =>
+        '<div class="row-flex" style="margin-top:4px;">'
+        + '<span class="hint">' + (i === 0 ? 'From now (age' : 'From age') + '</span>'
+        + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled' : '') + ' oninput="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
+        + (i === 0 ? '<span class="hint">)</span>' : '')
+        + '<span class="hint">take</span>'
+        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" oninput="updIncomeStep(' + i + ',\'amount\',this.value)">'
+        + '<span class="hint">£/yr gross</span>'
+        + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" onclick="rmIncomeStep(' + i + ')">✕</button>' : '')
+        + '</div>').join('')
+        + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" onclick="addIncomeStep()">+ Add a step</button>'
+        + '<p class="hint" style="margin:6px 0 0;">e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80.</p>';
+      refreshStrategyCosts();
+    };
+    window.addIncomeStep = function () {
+      const last = window._ssIncomeSteps[window._ssIncomeSteps.length - 1] || { fromAge: 57, amount: 40000 };
+      window._ssIncomeSteps.push({ fromAge: (+last.fromAge || 57) + 10, amount: Math.max(0, (+last.amount || 40000) - 10000) });
+      renderIncomeSteps();
+    };
+    window.updIncomeStep = function (i, k, v) {
+      if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = v === '' ? '' : +v; refreshStrategyCosts(); }
+    };
+    window.rmIncomeStep = function (i) { window._ssIncomeSteps.splice(i, 1); renderIncomeSteps(); };
+
+    /** £/yr the shape wants at plan year y (age = ageNow + y). Falls back to the flat target. */
+    window.shapeAmountAtYear = function (y, flatTarget) {
+      if (window._ssIncomeShape !== 'phases' || !window._ssIncomeSteps.length) return flatTarget;
+      const age = (+document.getElementById('shapeAgeNow')?.value || 57) + y;
+      const applicable = window._ssIncomeSteps
+        .filter((st) => Number.isFinite(+st.fromAge) && +st.fromAge <= age && Number.isFinite(+st.amount))
+        .sort((a, b) => +a.fromAge - +b.fromAge).pop();
+      return applicable ? +applicable.amount : flatTarget;
+    };
+
+    function compiledTargetSchedule(duration, flatTarget) {
+      if (window._ssIncomeShape !== 'phases' || !window._ssIncomeSteps.length) return null;
+      return Array.from({ length: (duration || 35) + 1 }, (_, y) => shapeAmountAtYear(y, flatTarget));
+    }
+
     // ---- Decision tool: monthly guidance for ladder strategies ------------------------------
     // When the plan's locked strategy is Ladder & Ratchet or Floor & Flex, the monthly question
     // isn't "which pot pays" — it's "the rung pays; is the sleeve above its line, and should a
@@ -7015,7 +7106,7 @@
           const sipp = +document.getElementById('stratSipp')?.value || pot;
           const isaV = +document.getElementById('stratIsa')?.value || 0;
           const totalPot = sipp + isaV;
-          const drawNet = (k) => Math.max(0, draw - (k > 10 ? spAnnual : 0));
+          const drawNet = (k) => Math.max(0, shapeAmountAtYear(k - 1, draw) - (k > 10 ? spAnnual : 0));
           let cost = 0;
           for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
           const sleeve = totalPot - cost;
@@ -7798,6 +7889,9 @@
         document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         applyStrategyToUI(s.strategyId || 'pots-and-valves', s.strategyParams || {});
+        window._ssIncomeSteps = Array.isArray(s.incomeSteps) ? JSON.parse(JSON.stringify(s.incomeSteps)) : [];
+        if (s.shapeAgeNow) document.getElementById('shapeAgeNow').value = s.shapeAgeNow;
+        setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
@@ -7873,6 +7967,12 @@
           configured: true,  // user has been through Settings — routing can go straight to the tool
           strategyId: window._ssStrategy || 'pots-and-valves',
           strategyParams: readStrategyParams(),
+          incomeShape: window._ssIncomeShape,
+          incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
+          shapeAgeNow: +document.getElementById('shapeAgeNow').value || 57,
+          ...(compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase)
+            ? { targetSchedule: compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase) }
+            : {}),
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,

@@ -21,7 +21,7 @@
  *   exceeds £1,073,100.
  */
 
-import { runMonteCarlo } from './SimulationEngine.js';
+import { getStrategy } from '../strategies/registry.js';
 
 export const ACCUMULATION_RULES = {
   ANNUAL_ALLOWANCE: 60000,
@@ -173,7 +173,7 @@ export function requiredPotForSuccess(baseConfig, successTarget = 0.85, runs = 3
       bondMin: (baseConfig.bondMin || 0) * (basePot > 0 ? pot / basePot : 1),
       cashTarget: (baseConfig.cashTarget || 0) * (basePot > 0 ? pot / basePot : 1)
     };
-    const results = runMonteCarlo(cfg, runs);
+    const results = getStrategy(cfg.strategyId).engine.runMonteCarlo(cfg, runs);
     return results.filter((r) => !r.failed).length / results.length;
   };
   let lo = 10000, hi = 5000000;

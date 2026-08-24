@@ -318,6 +318,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     isaReturn: settings.isaReturn,
     // Tax bands from settings (previously only supplied by UI call-site overrides — configs
     // built without overrides had pa/brl/hrl undefined, which NaN'd every draw).
+    strategyId: settings.strategyId || 'pots-and-valves',
     pa: settings.pa ?? 12570,
     brl: settings.brl ?? 50270,
     hrl: settings.hrl ?? 125140,

@@ -22,7 +22,7 @@ import {
 import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
 import { orderSheet } from './services/LinkerUniverse.js';
-import { runLadderWindows } from './strategies/LadderAndRatchet.js';
+import { runLadderWindows, runLadderMonteCarlo } from './strategies/LadderAndRatchet.js';
 import { runFlexWindows } from './strategies/FloorAndFlex.js';
 
 import {
@@ -388,6 +388,7 @@ export {
   cannedDecade,
   orderSheet,
   runLadderWindows,
+  runLadderMonteCarlo,
   runFlexWindows,
   getStrategy,
   ENGINE_VERSION,

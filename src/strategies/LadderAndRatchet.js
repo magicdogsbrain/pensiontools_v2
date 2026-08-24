@@ -8,7 +8,7 @@
  * always reported separately.
  */
 
-import { getRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION } from './version.js';
 
@@ -23,27 +23,43 @@ export const LADDER_DEFAULTS = {
  *  trigger: {mode:'band', b} | {mode:'calendar', reviews:[months]},
  *  END (months), realYield, glideRate, startAge
  */
+/**
+ * Monte Carlo run: N block-bootstrapped synthetic paths through the same stage1/stage2 core.
+ * Returns the same stats shape as runLadderWindows plus a survival confidence half-width
+ * (95%, displayed per Appendix D — never hidden).
+ */
+export function runLadderMonteCarlo(cfg, runs = 1000) {
+  const paths = [];
+  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(i * 12345 + 7, cfg.END));
+  const sub = runLadderCore(cfg, paths, paths.map(() => 0));
+  const p = (sub.stats.survivalPct ?? 100) / 100;
+  sub.stats.survivalHalfWidthPp = 196 * Math.sqrt(Math.max(0, p * (1 - p)) / runs) / 2 * 2 / 2; // 1.96·√(p(1−p)/n) in pp
+  sub.stats.survivalHalfWidthPp = +(1.96 * Math.sqrt(Math.max(0, p * (1 - p)) / runs) * 100).toFixed(2);
+  sub.meta.mode = 'montecarlo';
+  sub.meta.runs = runs;
+  return sub;
+}
+
 export function runLadderWindows(cfg) {
   const rtr = getRtr();
+  const stage1N = rtr.length - cfg.L;          // windows with the full ladder period available
+  const fullN = rtr.length - cfg.END;          // windows that can run to the horizon
+  return runLadderCoreHistorical(cfg, rtr, stage1N, fullN);
+}
+
+function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
   const drawForYear = (k) => cfg.profile
     ? profileTargetForYear(cfg.profile, k - 1, cfg.draw)
     : cfg.draw;
-  // Phase G extensions — ALL default off; goldens pin the off path:
-  //  yieldVol: stochastic real yields for rung pricing, AR(1) around the flat anchor
-  //    (y_t = y* + phi(y_{t-1} − y*) + sigma·eps, deterministic per-window seed);
-  //  txCostBps: transaction costs on every rung purchase (added to cost);
-  //  triggersContinueInDecumulation: band checks keep running in stage 2.
+  // Phase G extensions — ALL default off; goldens pin the off path (see tests).
   const ry0 = cfg.realYield ?? LADDER_DEFAULTS.realYield;
   const txMult = 1 + (cfg.txCostBps || 0) / 10000;
-  let priceBase = flatYieldPricer(drawForYear, ry0);
+  const priceBase = flatYieldPricer(drawForYear, ry0);
   const price = (k, t, yOverride) => (yOverride != null
     ? drawForYear(k) * Math.pow(1 + yOverride, -(k - t / 12))
     : priceBase(k, t)) * txMult;
   const gp = cfg.glideRate ?? LADDER_DEFAULTS.glideRate;
   const startAge = cfg.startAge ?? LADDER_DEFAULTS.startAge;
-
-  const stage1N = rtr.length - cfg.L;          // windows with the full ladder period available
-  const fullN = rtr.length - cfg.END;          // windows that can run to the horizon
   const out = {
     meta: { ...dataMeta(), stage1N, fullN, engineVersion: ENGINE_VERSION },
     windows: []
@@ -127,6 +143,8 @@ export function runLadderWindows(cfg) {
   return out;
 }
 
+function statsFromWindows(windows, fullN, cfg) { return ladderStats(windows, fullN, cfg); }
+
 function ladderStats(windows, fullN, cfg) {
   const n = windows.length;
   const secured = windows.map((w) => w.secured);
@@ -159,6 +177,17 @@ function ladderStats(windows, fullN, cfg) {
       100 * windows.filter((w) => (w.fires || []).some((f) => f.t === t && f.fired)).length / n);
   }
   return stats;
+}
+
+function runLadderCore(cfg, paths) {
+  // Each synthetic path is its own tiny "history" of exactly END months; run window s=0 on it.
+  const out = { meta: { stage1N: paths.length, fullN: paths.length }, windows: [] };
+  for (const rtr of paths) {
+    const sub = runLadderCoreHistorical(cfg, rtr, 1, 1);
+    out.windows.push(sub.windows[0]);
+  }
+  out.stats = out.windows.length ? statsFromWindows(out.windows, out.windows.length, cfg) : null;
+  return out;
 }
 
 export function windowFor(year, month) {

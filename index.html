@@ -3585,6 +3585,7 @@
       cannedDecade,
       orderSheet,
       runLadderWindows as runLadderWindowsX,
+      runLadderMonteCarlo as runLadderMonteCarloX,
       runFlexWindows as runFlexWindowsX,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
@@ -5274,9 +5275,7 @@
     // Monte Carlo simulation
     // Non-P&V strategies: the Run button runs THAT strategy's own windows engine on the plan's
     // parameters — the stress tester genuinely tests the strategy you configured.
-    async function runStrategyWindowsUI(settings) {
-      const resultsEl = document.getElementById('mcResults') || document.querySelector('#stress-montecarlo .card:last-child');
-      const box = document.createElement('div');
+    async function runStrategyWindowsUI(settings, targetId = 'strategyRunResults') {
       const params = settings.strategyParams || {};
       const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
       const params0 = settings.strategyParams || {};
@@ -5306,15 +5305,18 @@
           const phases = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
             ? settings.incomeSteps.map((x) => ({ fromYear: Math.max(0, (+x.fromAge || ageNow) - ageNow), amount: +x.amount }))
             : [{ fromYear: 0, amount: draw }];
-          const r = runLadderWindowsX({ E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
+          const lcfg = { E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
             draw, profile: { type: 'phases', phases }, trigger: trig,
-            END: dur * 12, realYield: 0.023, glideRate: 0.05, startAge: 57 });
+            END: dur * 12, realYield: 0.023, glideRate: 0.05, startAge: 57 };
+          const r = runLadderWindowsX(lcfg);
+          const mc = runLadderMonteCarloX(lcfg, 1000);
           const st = r.stats;
           html = '<div class="card"><h2>Ladder &amp; Ratchet — your parameters, 150 years of markets</h2>'
             + '<div class="alert ' + (st.survivalPct === 100 ? 'alert-success' : st.survivalPct >= 95 ? 'alert-warning' : 'alert-danger') + '">'
             + '<strong>' + gbp(draw) + '/yr bolted on to age ' + (57 + yrs) + ' by contract</strong> — the ratchet then locked a median '
             + Math.round(st.securedMedian) + ' more years (fully secured to the horizon in ' + st.fullySecuredPct.toFixed(0) + '% of histories). '
-            + 'Sleeve survived to the horizon in <strong>' + st.survivalPct.toFixed(1) + '%</strong> of ' + r.meta.fullN + ' historical windows.</div>'
+            + 'Sleeve survived to the horizon in <strong>' + st.survivalPct.toFixed(1) + '%</strong> of ' + r.meta.fullN + ' historical windows, and in '
+            + '<strong>' + mc.stats.survivalPct.toFixed(1) + '% ± ' + mc.stats.survivalHalfWidthPp + 'pp</strong> of 1,000 Monte-Carlo futures (block-bootstrapped from the same history).</div>'
             + '<div class="table-scroll-container"><table><tbody>'
             + '<tr><td>Base ladder cost (order sheet in Strategies tab)</td><td>' + gbp(Math.round(cost)) + '</td></tr>'
             + '<tr><td>Equity sleeve at the ladder end (median / worst)</td><td>' + gbp(Math.round(st.sleeveMedian)) + ' / ' + gbp(Math.round(st.sleeveWorst)) + '</td></tr>'
@@ -5345,8 +5347,8 @@
             + '<p class="hint">The flex sleeve cannot run out (percentage-of-pot draws); the honest risk is lean years, shown above.</p></div>';
         }
       }
-      const target = document.getElementById('strategyRunResults');
-      if (target) target.innerHTML = html;
+      const target = document.getElementById(targetId);
+      if (target) target.innerHTML = (target.innerHTML || '') + html;
     }
 
     window.runMonteCarloUI = async function() {
@@ -5381,6 +5383,13 @@
     window.runHistoricalUI = async function() {
       // Starting balances come from Settings; only Years is per-run.
       const s = await getStressSettingsAsync();
+      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+        // Historical IS the ladder strategies' native mode — run it and say so, instead of
+        // crashing into an engine method they don't have.
+        document.getElementById('histResults').innerHTML = '<div class="alert alert-info">This plan runs <strong>' + s.strategyId + '</strong> — its results ARE historical (every 150-year market window). Shown below.</div>';
+        await runStrategyWindowsUI(s, 'histResults');
+        return;
+      }
       const config = { years: parseInt(document.getElementById('histYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
@@ -5404,7 +5413,11 @@
     // Scenarios simulation
     window.runScenariosUI = async function() {
       // Starting balances + duration both come from Settings (empty overrides).
-      await getStressSettingsAsync();
+      const sSet = await getStressSettingsAsync();
+      if (sSet.strategyId && sSet.strategyId !== 'pots-and-valves') {
+        document.getElementById('scenResults').innerHTML = '<div class="alert alert-info">Named scenarios (2022, the 1970s, 2008…) are built into the ladder strategies\' historical run — every crisis since 1871 is one of its windows, and the famous vintages (1929, 1966, 2000, 2008) are called out in <strong>Strategies → Two real decades</strong>. Run the Monte Carlo or Historical tab for this plan\'s numbers.</div>';
+        return;
+      }
       const config = {};
 
       document.getElementById('scenResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running scenarios...</div>';

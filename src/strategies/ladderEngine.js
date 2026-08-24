@@ -30,6 +30,32 @@ export function getRtr() {
   return _rtr;
 }
 
+/**
+ * Monte Carlo path: a synthetic real total-return index built by CIRCULAR BLOCK BOOTSTRAP of
+ * the historical monthly returns — random consecutive ~5-year blocks stitched together, so
+ * regimes (a sustained 70s-style stretch) survive resampling, exactly as the nominal engine's
+ * year-level bootstrap does. Deterministic per seed.
+ * @returns {number[]} index of length months+1 starting at 1
+ */
+export function bootstrapRtr(seed, months, blockMonths = 60, data) {
+  const hist = data || getRtr();
+  const H = hist.length - 1;
+  // Small deterministic LCG (no Math.random — reproducibility per Appendix D)
+  let st = (seed * 2654435761 + 1) >>> 0;
+  const rnd = () => { st = (1103515245 * st + 12345) >>> 0; return st / 4294967296; };
+  const out = new Array(months + 1);
+  out[0] = 1;
+  let m = 0;
+  while (m < months) {
+    const start = Math.floor(rnd() * H);
+    for (let b = 0; b < blockMonths && m < months; b++, m++) {
+      const i = (start + b) % H;                     // circular wrap
+      out[m + 1] = out[m] * (hist[i + 1] / hist[i]);
+    }
+  }
+  return out;
+}
+
 /** Month index in the bundled series for a calendar year-month, or -1. */
 export function monthIndexFor(year, month) {
   const [sy, sm] = shiller.start.split('-').map(Number);

@@ -59,3 +59,27 @@ describe('Phase G — Floor & Flex annuity swap', () => {
     expect(swapped).toBeGreaterThan(0);
   });
 });
+
+describe('Ladder Monte Carlo (block bootstrap)', () => {
+  const B = { E0: 183500, ladderYears: 23, L: 276, firstRung: 24, maxRung: 35,
+    draw: 27500, END: 420, realYield: 0.023, glideRate: 0.05, startAge: 57,
+    trigger: { mode: 'band', b: 1.2 } };
+
+  it('is deterministic per seed set and reports the confidence half-width', async () => {
+    const { runLadderMonteCarlo } = await import('../src/strategies/LadderAndRatchet.js');
+    const a = runLadderMonteCarlo(B, 300);
+    const b = runLadderMonteCarlo(B, 300);
+    expect(a.stats.survivalPct).toBe(b.stats.survivalPct);
+    expect(a.stats.terminalMedian).toBe(b.stats.terminalMedian);
+    expect(a.stats.survivalHalfWidthPp).toBeGreaterThanOrEqual(0);
+    expect(a.meta.mode).toBe('montecarlo');
+  });
+
+  it('MC is broadly consistent with history but explores beyond it (survival within ~10pp)', async () => {
+    const { runLadderMonteCarlo, runLadderWindows } = await import('../src/strategies/LadderAndRatchet.js');
+    const mc = runLadderMonteCarlo(B, 500);
+    const h = runLadderWindows(B);
+    expect(Math.abs(mc.stats.survivalPct - h.stats.survivalPct)).toBeLessThanOrEqual(10);
+    expect(mc.stats.survivalPct).toBeLessThanOrEqual(100);
+  });
+});

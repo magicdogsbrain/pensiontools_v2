@@ -2839,6 +2839,10 @@
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
+              <div id="stratCopyOffer" style="display:none; margin-top:8px;">
+                <button type="button" class="risk-btn" onclick="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>
+                <span class="hint">— your current plan stays exactly as it is; the copy carries your pot totals over.</span>
+              </div>
 
               <div id="ssLrParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                 <div class="form-grid">
@@ -2862,7 +2866,19 @@
                     <input type="number" id="lrBand" value="1.2" min="1.05" max="2" step="0.05" oninput="refreshStrategyCosts()">
                   </div>
                 </div>
+                <div class="form-grid" style="margin-top:8px;">
+                  <div class="form-group">
+                    <label>Total in your SIPP (£)</label>
+                    <input type="number" id="stratSipp" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Total in your ISA (£)</label>
+                    <input type="number" id="stratIsa" oninput="refreshStrategyCosts()">
+                  </div>
+                </div>
                 <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
+                <div id="lrGiltTable" style="margin-top:8px;"></div>
+                <p class="hint" style="margin:8px 0 0;">The ladder is built from <strong>index-linked</strong> gilts so the income keeps its real value — conventional gilts are cheaper but lose inflation protection. Your remaining sleeve stays in world equities (e.g. VWRP). "Use my own funds" tagging is a Pots &amp; Valves feature — the ladder decides its own holdings.</p>
               </div>
 
               <div id="ssFfParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
@@ -2890,7 +2906,18 @@
                     </select>
                   </div>
                 </div>
+                <div class="form-grid" style="margin-top:8px;">
+                  <div class="form-group">
+                    <label>Total in your SIPP (£)</label>
+                    <input type="number" id="stratSippFf" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group">
+                    <label>Total in your ISA (£)</label>
+                    <input type="number" id="stratIsaFf" oninput="refreshStrategyCosts()">
+                  </div>
+                </div>
                 <p id="ffCostLine" class="hint" style="margin:8px 0 0;"></p>
+                <div id="ffGiltTable" style="margin-top:8px;"></div>
               </div>
             </div>
 
@@ -5234,7 +5261,9 @@
       const box = document.createElement('div');
       const params = settings.strategyParams || {};
       const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
-      const pot = alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
+      const params0 = settings.strategyParams || {};
+      const pot = (params0.sippTotal || 0) + (params0.isaTotal || 0)
+        || alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
       const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
       const dur = Math.min(settings.duration || 35, 35);
       let html = '';
@@ -6870,7 +6899,8 @@
       if (!V) { box.innerHTML = '<p class="hint">Enter your sleeve value first.</p>'; return; }
       // E0 = the sleeve the plan started with: pot minus the base ladder cost at lock
       const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
-      const pot = alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
+      const pot = (params.sippTotal || 0) + (params.isaTotal || 0)
+        || alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
       const draw = params.drawAnnual || settings.baseSalary || 0;
       const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
       let cost = 0; for (let k = 1; k <= (params.ladderYears || 15); k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
@@ -6907,13 +6937,65 @@
     };
     window._ssStrategy = 'pots-and-valves';
 
+    // Sections that only make sense for Pots & Valves (its pots, its valves, its tax draw).
+    function pnvOnlySections() {
+      const anchors = ['ssModeRisk', 'ssRecoveryBuffer', 'ssHodlEnabled', 'ssAccessMethod'];
+      return anchors
+        .map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .map((el) => el.closest('.settings-section'))
+        .filter((sec, i, arr) => sec && arr.indexOf(sec) === i);
+    }
+
     window.pickStrategy = function (id) {
       window._ssStrategy = id;
       document.querySelectorAll('#ssStrategyPick .risk-btn').forEach((b) => b.classList.toggle('active', b.dataset.strat === id));
       document.getElementById('ssStrategyBlurb').textContent = STRATEGY_BLURBS[id] || '';
+      const isLadder = id === 'ladder-and-ratchet' || id === 'floor-and-flex';
       document.getElementById('ssLrParams').style.display = id === 'ladder-and-ratchet' ? 'block' : 'none';
       document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
+      // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS
+      // mechanics — hide the Pots & Valves machinery instead of letting the two fight.
+      for (const sec of pnvOnlySections()) sec.style.display = isLadder ? 'none' : '';
+      // Offer the safe path for "I modelled with pots; now model a ratchet future":
+      const offer = document.getElementById('stratCopyOffer');
+      if (offer) offer.style.display = isLadder ? 'block' : 'none';
+      // Seed the pot inputs from the P&V allocation the first time
+      if (isLadder) {
+        try {
+          const alloc = readAlloc('ss');
+          const potNow = (alloc.equityMin || 0) + (alloc.bondMin || 0) + (alloc.cashTarget || 0) + (alloc.diversifierStart || 0);
+          const isaNow = +document.getElementById('ssIsaBalance')?.value || 0;
+          for (const [sid, iid] of id === 'ladder-and-ratchet' ? [['stratSipp', 'stratIsa']] : [['stratSippFf', 'stratIsaFf']]) {
+            const se = document.getElementById(sid), ie = document.getElementById(iid);
+            if (se && !se.value && potNow) se.value = potNow;
+            if (ie && !ie.value && isaNow) ie.value = isaNow;
+          }
+        } catch (e) { /* fields not ready */ }
+      }
       refreshStrategyCosts();
+    };
+
+    window.tryStrategyInCopy = async function () {
+      const id = window._ssStrategy;
+      const names = { 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex' };
+      try {
+        const scenarios = await listScenariosAsync();
+        const activeId = await getActiveScenarioId();
+        const cur = scenarios.find((sc) => sc.id === activeId);
+        const newName = ((cur?.planDetails?.name || 'Plan') + ' — ' + (names[id] || 'copy')).slice(0, 40);
+        const ok = await appConfirm('Create "' + newName + '" as a copy of this plan and switch to it?\n\nYour current plan stays exactly as it is. The copy starts on ' + (names[id] || id) + ' with your pot totals carried over.', { okLabel: 'Create the copy', danger: false });
+        if (!ok) return;
+        showLoading('Copying plan…');
+        const copy = await duplicateScenario(activeId, newName);
+        await switchScenario(copy?.id || copy);
+        await setActiveStrategy(id, readStrategyParams());
+        await saveStressSettings({ strategyId: id, strategyParams: readStrategyParams() });
+        showToast(newName + ' created — this copy models ' + (names[id] || id) + '; your original plan is untouched.', 'success', 6000);
+        location.reload();
+      } catch (e) {
+        showToast('Could not create the copy: ' + e.message, 'error');
+      } finally { hideLoading(); }
     };
 
     // Live affordability: ladder/floor cost vs the pot, computed from the REAL pricing curve.
@@ -6929,27 +7011,58 @@
           const yrs = +document.getElementById('lrLadderYears').value || 15;
           const draw = +document.getElementById('lrDraw').value || target;
           if (!document.getElementById('lrDraw').value && target) document.getElementById('lrDraw').value = target;
-          // SP offsets rungs after its start (rough: from year 10 unless a date says otherwise)
+          // THE SIPP TOTAL FEEDS THE LADDER: the direct inputs are the source of truth here.
+          const sipp = +document.getElementById('stratSipp')?.value || pot;
+          const isaV = +document.getElementById('stratIsa')?.value || 0;
+          const totalPot = sipp + isaV;
+          const drawNet = (k) => Math.max(0, draw - (k > 10 ? spAnnual : 0));
           let cost = 0;
-          for (let k = 1; k <= yrs; k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
-          const sleeve = pot - cost;
-          document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(pot))
+          for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
+          const sleeve = totalPot - cost;
+          document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot))
             + ' → equity sleeve <strong>' + gbp(Math.round(Math.max(0, sleeve))) + '</strong>. '
-            + (sleeve > 0 ? 'Rungs priced on the IL-gilt curve (flat 2.3% real); see the order sheet in Strategies.' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
+            + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
+          // The ladder LOOKS UP the actual gilts (index-linked universe; gap years bracketed)
+          try {
+            const sheet = orderSheet({ rungYears: Array.from({ length: yrs }, (_, i) => i + 1), drawForYear: drawNet, startYear: new Date().getFullYear(), realYield: 0.023 });
+            let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Income (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
+            for (const row of sheet.rows) {
+              gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
+            }
+            gt += '</tbody></table></div>';
+            if (sheet.stale) gt += '<p class="hint" style="color:var(--warning);">Gilt list is a bundled snapshot (' + sheet.generated_at.slice(0, 10) + '); costs use the flat 2.3% real curve.</p>';
+            document.getElementById('lrGiltTable').innerHTML = gt;
+          } catch (e) { document.getElementById('lrGiltTable').innerHTML = ''; }
         }
         if (window._ssStrategy === 'floor-and-flex') {
           const ess = +document.getElementById('ffEssentials').value || Math.round(target * 0.55);
           if (!document.getElementById('ffEssentials').value && target) document.getElementById('ffEssentials').value = Math.round(target * 0.55);
           const horizon = +document.getElementById('ffHorizon').value || 92;
           const years = Math.max(1, horizon - 57);
+          const sipp = +document.getElementById('stratSippFf')?.value || pot;
+          const isaV = +document.getElementById('stratIsaFf')?.value || 0;
+          const totalPot = sipp + isaV;
+          const essNet = (k) => Math.max(0, ess - (k > 10 ? spAnnual : 0));
           let cost = 0;
-          for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
-          const sleeve = pot - cost;
+          for (let k = 1; k <= years; k++) cost += essNet(k) * Math.pow(1.023, -k);
+          const sleeve = totalPot - cost;
           const rate = (+document.getElementById('ffRate').value || 4) / 100;
-          document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> → flex sleeve <strong>'
+          document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot)) + ' → flex sleeve <strong>'
             + gbp(Math.round(Math.max(0, sleeve))) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(Math.max(0, sleeve) * rate)) + '</strong>. '
             + 'Every £1k/yr of essentials ≈ £24k of floor. '
             + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this essentials level.</span>');
+          try {
+            const step = Math.max(1, Math.floor(years / 12));
+            const rungYears = [];
+            for (let k = 1; k <= years; k += (k < 3 ? 1 : step)) rungYears.push(k);
+            const sheet = orderSheet({ rungYears, drawForYear: essNet, startYear: new Date().getFullYear(), realYield: 0.023 });
+            let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Essentials (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
+            for (const row of sheet.rows) {
+              gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
+            }
+            gt += '</tbody></table></div><p class="hint">Sampled years shown; every year to ' + horizon + ' is bought.</p>';
+            document.getElementById('ffGiltTable').innerHTML = gt;
+          } catch (e) { document.getElementById('ffGiltTable').innerHTML = ''; }
         }
       } catch (e) { /* fields not ready */ }
     };
@@ -6960,7 +7073,9 @@
           ladderYears: +document.getElementById('lrLadderYears').value || 15,
           drawAnnual: +document.getElementById('lrDraw').value || 0,
           triggerMode: document.getElementById('lrTriggerMode').value,
-          bandThreshold: +document.getElementById('lrBand').value || 1.2
+          bandThreshold: +document.getElementById('lrBand').value || 1.2,
+          sippTotal: +document.getElementById('stratSipp').value || 0,
+          isaTotal: +document.getElementById('stratIsa').value || 0
         };
       }
       if (window._ssStrategy === 'floor-and-flex') {
@@ -6968,7 +7083,9 @@
           essentialsAnnual: +document.getElementById('ffEssentials').value || 0,
           horizonAge: +document.getElementById('ffHorizon').value || 92,
           sleeveRate: (+document.getElementById('ffRate').value || 4) / 100,
-          ratchet: document.getElementById('ffRatchet').value
+          ratchet: document.getElementById('ffRatchet').value,
+          sippTotal: +document.getElementById('stratSippFf').value || 0,
+          isaTotal: +document.getElementById('stratIsaFf').value || 0
         };
       }
       return {};
@@ -6977,12 +7094,16 @@
     window.applyStrategyToUI = function (id, params) {
       pickStrategy(id || 'pots-and-valves');
       if (id === 'ladder-and-ratchet' && params) {
+        if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
+        if (params.isaTotal) document.getElementById('stratIsa').value = params.isaTotal;
         if (params.ladderYears) document.getElementById('lrLadderYears').value = params.ladderYears;
         if (params.drawAnnual) document.getElementById('lrDraw').value = params.drawAnnual;
         if (params.triggerMode) document.getElementById('lrTriggerMode').value = params.triggerMode;
         if (params.bandThreshold) document.getElementById('lrBand').value = params.bandThreshold;
       }
       if (id === 'floor-and-flex' && params) {
+        if (params.sippTotal) document.getElementById('stratSippFf').value = params.sippTotal;
+        if (params.isaTotal) document.getElementById('stratIsaFf').value = params.isaTotal;
         if (params.essentialsAnnual) document.getElementById('ffEssentials').value = params.essentialsAnnual;
         if (params.horizonAge) document.getElementById('ffHorizon').value = params.horizonAge;
         if (params.sleeveRate) document.getElementById('ffRate').value = params.sleeveRate * 100;

@@ -16,8 +16,11 @@ import {
   simulate, runMonteCarlo, runHistorical, runScenario, monteCarloReturns, simulateTraced
 } from '../services/SimulationEngine.js';
 import { resolveIncomeProfile, profileTargetForYear } from '../services/IncomeProfile.js';
+import { ENGINE_VERSION as _EV } from './version.js';
+import { LadderAndRatchet } from './LadderAndRatchet.js';
+import { FloorAndFlex } from './FloorAndFlex.js';
 
-export const ENGINE_VERSION = '6.1.0'; // bump when any strategy's semantics change
+export { ENGINE_VERSION } from './version.js';
 
 export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex' };
 
@@ -30,7 +33,7 @@ const PotsAndValves = {
   describe() {
     return {
       id: this.id, name: this.name, promise: this.promise, failure: this.failure,
-      engineVersion: ENGINE_VERSION,
+      engineVersion: _EV,
       components: ['glidepath floors', 'shared withdrawal cascade (WithdrawalSourcing)',
         'staged guardrail protection (ProtectionStrategy)', 'tax-band drawdown (DrawdownStrategy)',
         'tax-boost restoration (TaxBoostStrategy)', 'income profile (IncomeProfile)'],
@@ -41,7 +44,11 @@ const PotsAndValves = {
   engine: { simulate, runMonteCarlo, runHistorical, runScenario, monteCarloReturns, simulateTraced }
 };
 
-const REGISTRY = { [PotsAndValves.id]: PotsAndValves };
+const REGISTRY = {
+  [PotsAndValves.id]: PotsAndValves,
+  [LadderAndRatchet.id]: LadderAndRatchet,
+  [FloorAndFlex.id]: FloorAndFlex
+};
 
 /** The strategy for a plan (default + migration target: pots-and-valves). */
 export function getStrategy(id) {

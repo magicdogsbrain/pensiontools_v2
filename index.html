@@ -2513,7 +2513,7 @@
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
-          <button class="sub-tab" data-stresstab="strategies">Strategies</button>
+          <button class="sub-tab" data-stresstab="strategies" id="strategiesSubTab">Strategies <span id="strategiesNewDot" style="display:none;background:var(--accent);color:#fff;font-size:10px;border-radius:8px;padding:1px 6px;vertical-align:middle;">NEW</span></button>
           <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
         </div>
 
@@ -4911,7 +4911,7 @@
         document.getElementById(`${tab.dataset.tab}-content`).classList.add('active');
 
         // Load content if needed (async)
-        if (tab.dataset.tab === 'stress') await loadStressSettings();
+        if (tab.dataset.tab === 'stress') { await loadStressSettings(); updateStrategyNote(); }
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
@@ -4945,7 +4945,12 @@
         window.__hideHelpTip && window.__hideHelpTip();
         document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
         document.getElementById(`stress-${tab.dataset.stresstab}`).classList.remove('hidden');
-        if (tab.dataset.stresstab === 'strategies') loadStrategiesUI();
+        if (tab.dataset.stresstab === 'strategies') {
+          loadStrategiesUI();
+          localStorage.setItem('strategiesSeen', '1');
+          const dot = document.getElementById('strategiesNewDot');
+          if (dot) dot.style.display = 'none';
+        }
         if (tab.dataset.stresstab === 'montecarlo') updateStrategyNote();
 
         // Only reload settings when explicitly switching to settings tab
@@ -6812,8 +6817,16 @@
     window.updateStrategyNote = async function () {
       const el = document.getElementById('mcStrategyNote');
       if (!el) return;
+      // First-run pointer: the strategy chooser is easy to miss as a sub-tab.
+      const dot = document.getElementById('strategiesNewDot');
+      if (dot && !localStorage.getItem('strategiesSeen')) dot.style.display = 'inline-block';
       try {
         const st = await getActiveStrategy();
+        if (!localStorage.getItem('strategiesSeen') && (!st.id || st.id === 'pots-and-valves')) {
+          el.innerHTML = '<div class="alert alert-info"><strong>New:</strong> compare three ways to turn your pot into an income — Pots &amp; Valves (this simulator), Ladder &amp; Ratchet, and Floor &amp; Flex — on your own numbers over 150 years of markets, and lock one to your plan. <button type="button" class="risk-btn" style="padding:4px 12px;margin-left:8px;" onclick="document.getElementById(\'strategiesSubTab\').click()">Open Strategies</button></div>';
+          el.style.display = 'block';
+          return;
+        }
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
           el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. The Monte Carlo below simulates the Pots &amp; Valves engine — your strategy’s own numbers are in the <strong>Strategies</strong> tab.</div>';

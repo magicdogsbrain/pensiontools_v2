@@ -3431,6 +3431,7 @@
       setHouseholdPartnerId,
       getActivePlanOfRecord,
       saveActivePlanOfRecord,
+      ENGINE_VERSION,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
       runSurvivorCheck,
@@ -3463,8 +3464,10 @@
       seedDecisionFromStress
     } from './src/storage/ScenarioRepository.js';
 
-    // Import simulation engine for direct access in optimization
-    import { runMonteCarlo, runHistorical, simulate, monteCarloReturns } from './src/services/SimulationEngine.js';
+    // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
+    // no tool reaches around the interface). The optimiser runs the plan's own strategy.
+    import { getStrategy } from './src/strategies/registry.js';
+    const { runMonteCarlo, runHistorical, simulate, monteCarloReturns } = getStrategy('pots-and-valves').engine;
     import { tagPortfolio, allocationFromTags } from './src/services/PortfolioTagger.js';
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
@@ -9024,6 +9027,7 @@
           const assumedCpi = 0.04;
           await saveActivePlanOfRecord({
             savedAt: new Date().toISOString(),
+            engineVersion: ENGINE_VERSION,
             assumedCpi,
             baseSalary: locked.baseSalary,
             drawdown: generateDrawdownSchedule({ ...locked, taxMode: locked.taxMode || 'inflates', pa: locked.pa || 12570, brl: locked.brl || 50270, hrl: locked.hrl || 125140 }, locked.duration || 35, assumedCpi)

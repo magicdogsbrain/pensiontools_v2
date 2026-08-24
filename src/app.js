@@ -14,12 +14,12 @@ import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, s
 import { runHouseholdMonteCarlo, householdIncomeTimeline, runSurvivorCheck, allowanceNudge, runCareCheck } from './services/HouseholdService.js';
 
 import {
-  runMonteCarlo,
-  runHistorical,
-  runScenario,
   analyzeResults,
   optimizeAllocation
 } from './services/SimulationEngine.js';
+// Phase B (strategy brief §3): tools obtain their engine from the STRATEGY REGISTRY, keyed by
+// the plan's locked strategy — never from the engine modules directly.
+import { getStrategy, ENGINE_VERSION } from './strategies/registry.js';
 
 import {
   generateDrawdownSchedule
@@ -226,7 +226,7 @@ export function saveCurrentDecision() {
  */
 export function runMonteCarloSimulation(overrides = {}, preloadedSettings = null) {
   const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
-  const results = runMonteCarlo(config);
+  const results = getStrategy(config.strategyId).engine.runMonteCarlo(config);
   const stats = analyzeResults(results);
 
   return { results, stats, config };
@@ -239,7 +239,7 @@ export function runMonteCarloSimulation(overrides = {}, preloadedSettings = null
  */
 export function runHistoricalSimulation(overrides = {}, preloadedSettings = null) {
   const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
-  const results = runHistorical(config);
+  const results = getStrategy(config.strategyId).engine.runHistorical(config);
   const stats = analyzeResults(results);
 
   return { results, stats, config };
@@ -256,7 +256,7 @@ export function runAllScenarios(overrides = {}) {
   for (const [key, scenario] of Object.entries(SCENARIOS)) {
     results[key] = {
       ...scenario,
-      result: runScenario(config, scenario)
+      result: getStrategy(config.strategyId).engine.runScenario(config, scenario)
     };
   }
 
@@ -308,9 +308,6 @@ function showSuccess(message) {
 export {
   // Services
   saveDecision,
-  runMonteCarlo,
-  runHistorical,
-  runScenario,
   analyzeResults,
   generateDrawdownSchedule,
   generateGlidepathSchedule,
@@ -380,6 +377,8 @@ export {
   setHouseholdPartnerId,
   getActivePlanOfRecord,
   saveActivePlanOfRecord,
+  getStrategy,
+  ENGINE_VERSION,
   runHouseholdMonteCarlo,
   householdIncomeTimeline,
   runSurvivorCheck,

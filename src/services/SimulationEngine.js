@@ -345,7 +345,7 @@ export function simulate(config, returns, seed = 0) {
       }
       isa *= monthly(isaAnnual);
     } else {
-      isa = applyIsaGrowthMonthly(isa, config.isaReturn || ISA_DEFAULTS.RETURN);
+      isa = applyIsaGrowthMonthly(isa, config.isaReturn ?? ISA_DEFAULTS.RETURN); // ?? not ||: an explicit 0% must mean 0% (caught by the conservation test)
     }
 
     // HODL fund return (Ruffer-style absolute return)

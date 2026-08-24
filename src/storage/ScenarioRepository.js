@@ -12,6 +12,7 @@
  * Requires user to be logged in - no local storage fallback.
  */
 
+import { ENGINE_VERSION } from '../strategies/registry.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import {
   loadAllScenarios,
@@ -234,11 +235,30 @@ export function getDefaultBudget() {
  * @param {string[]} enabledTools - Enabled tools array
  * @returns {object} Default scenario
  */
+export function defaultStrategyBlock(lockedAt = new Date().toISOString()) {
+  return { id: 'pots-and-valves', params: {}, lockedAt, engineVersion: ENGINE_VERSION };
+}
+
+/**
+ * Phase B migration: scenarios created before the strategy schema get the incumbent strategy
+ * stamped, lockedAt = migration time (per the brief). In-memory always; persisted with the
+ * scenario's next save — no forced write storm on load.
+ */
+export function ensureStrategyBlock(scenario) {
+  if (scenario && !scenario.strategy) {
+    scenario.strategy = defaultStrategyBlock();
+  }
+  return scenario;
+}
+
 export function getDefaultScenario(name = 'My Plan', description = '', enabledTools = ['stress', 'decision']) {
   return {
     planDetails: { name, description },
     enabledTools,
     isActive: true,
+    // Phase B (strategy brief §3): every plan locks exactly one strategy. New plans start on
+    // the incumbent; changing strategy is an explicit unlock/clone, never a silent edit.
+    strategy: defaultStrategyBlock(),
     decisionTool: {
       settings: getDefaultDecisionSettings(),
       history: [],
@@ -272,6 +292,7 @@ export async function listScenariosAsync() {
 
   try {
     const scenarios = await loadAllScenarios();
+    scenarios.forEach(ensureStrategyBlock);
     cachedScenarios = scenarios;
     return scenarios;
   } catch (error) {

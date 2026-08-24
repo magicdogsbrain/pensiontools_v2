@@ -13,7 +13,9 @@
  * different funds).
  */
 
-import { simulate, monteCarloReturns } from './SimulationEngine.js';
+import { getStrategy } from '../strategies/registry.js';
+// Phase B: the household view runs each plan's OWN locked strategy from the registry.
+const eng = (cfg) => getStrategy(cfg?.strategyId).engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
@@ -30,10 +32,10 @@ export function runHouseholdMonteCarlo(configA, configB, runs = 1000) {
   const perYear = Array.from({ length: yearsMax + 1 }, () => []);
 
   for (let i = 0; i < runs; i++) {
-    const returns = monteCarloReturns({ years: yearsMax }, i);
+    const returns = eng(configA).monteCarloReturns({ years: yearsMax }, i);
     // Same yearly market path; different in-sim seeds so idiosyncratic residuals differ.
-    const ra = simulate(configA, returns, i);
-    const rb = simulate(configB, returns, i + 500000);
+    const ra = eng(configA).simulate(configA, returns, i);
+    const rb = eng(configB).simulate(configB, returns, i + 500000);
     if (!ra.failed) okA++;
     if (!rb.failed) okB++;
     if (!ra.failed && !rb.failed) both++;
@@ -136,7 +138,7 @@ export function runSurvivorCheck({
   const potVals = [], isaVals = [];
   const horizon = Math.max(deathYear + 1, deceasedCfg.years);
   for (let i = 0; i < runs; i++) {
-    const r = simulate(deceasedCfg, monteCarloReturns({ years: horizon }, i), i + 900000);
+    const r = eng(deceasedCfg).simulate(deceasedCfg, eng(deceasedCfg).monteCarloReturns({ years: horizon }, i), i + 900000);
     const idx = Math.min(deathYear, (r.potByYear || []).length - 1);
     potVals.push((r.potByYear && r.potByYear[idx]) || 0);
     isaVals.push((r.isaByYear && r.isaByYear[idx]) || 0);
@@ -181,7 +183,7 @@ export function runSurvivorCheck({
 
   let ok = 0;
   for (let i = 0; i < runs; i++) {
-    if (!simulate(cfg, monteCarloReturns({ years: cfg.years }, i), i + 700000).failed) ok++;
+    if (!eng(cfg).simulate(cfg, eng(cfg).monteCarloReturns({ years: cfg.years }, i), i + 700000).failed) ok++;
   }
   return {
     survivorSuccess: ok / runs,
@@ -265,9 +267,9 @@ export function runCareCheck({ cfgA, cfgB, setA, setB, who = 'A', startYear = 10
     const yearsMax = Math.max(a.years, b.years);
     let both = 0;
     for (let i = 0; i < runs; i++) {
-      const returns = monteCarloReturns({ years: yearsMax }, i);
-      const ra = simulate(a, returns, i);
-      const rb = simulate(b, returns, i + 500000);
+      const returns = eng(a).monteCarloReturns({ years: yearsMax }, i);
+      const ra = eng(a).simulate(a, returns, i);
+      const rb = eng(b).simulate(b, returns, i + 500000);
       if (!ra.failed && !rb.failed) both++;
     }
     return both / runs;

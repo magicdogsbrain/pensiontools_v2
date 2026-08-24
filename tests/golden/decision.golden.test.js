@@ -40,10 +40,13 @@ describe('golden-master: live decision engine', () => {
     expect(f.calculationDetails.taxInfo.annualTax).toBeGreaterThan(crude); // proper taxes more
   });
 
-  it('BUG pinned: stranded bucket — draw forced to Cash despite equity surplus', () => {
+  it('FIXED: stranded bucket — the shared cascade now draws the equity surplus', () => {
+    // Previously the all-or-nothing valve forced this month to Cash despite an equity surplus
+    // (the pinned "stranded bucket" bug). The shared WithdrawalSourcing cascade fixed it.
     const f = fixtures['stranded-bucket (equity surplus but net gate forces Cash)'];
-    expect(f.source).toBe('Cash');
-    expect(f.drawFromEquity).toBe(0);
+    expect(f.source).toBe('Growth');
+    expect(f.drawFromEquity).toBeGreaterThan(0);
+    expect(f.drawFromCash).toBe(0);
   });
 
   it('State Pension is included in fixed income when receiving', () => {
@@ -57,9 +60,12 @@ describe('golden-master: live decision engine', () => {
     expect(fixtures['wizard expectedMonthly path / efficient (primary stdSipp source)'].sippDraw).toBe(3200);
   });
 
-  it('cash-low warning fires when the Cash draw exceeds available cash', () => {
+  it('cash-low warning fires when the cascade must sell below the floors', () => {
+    // cash=0: the G-K cascade sells the overweight sleeve (bonds here) rather than failing,
+    // and the low-cash warning tells the user their reserve is gone.
     const f = fixtures['cash-low warning (source Cash, cash=0)'];
-    expect(f.source).toBe('Cash');
+    expect(f.source).toBe('Bond');
+    expect(f.drawFromBond).toBeGreaterThan(0);
     expect(f.alerts.some((a) => a.type === 'low-cash' && a.severity === 'danger')).toBe(true);
   });
 

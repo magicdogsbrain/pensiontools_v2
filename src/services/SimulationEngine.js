@@ -12,8 +12,9 @@ import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
-import { assessProtection, PROTECTION_DEFAULTS } from './ProtectionStrategy.js';
+import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
+import { planSourcing } from './WithdrawalSourcing.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 
@@ -273,7 +274,11 @@ export function simulate(config, returns, seed = 0) {
 
     const draw = sippMonthly;
     const standardMonthDraw = draw;
-    let effectiveDraw = prot ? draw * config.protectionMult : draw;
+    // G-K-aligned escalation: the first year of a protection episode cuts half as deep as the
+    // configured multiplier; only persistent stress reaches the full cut (research: a single
+    // 20% cut is double the published guardrail norm).
+    const protMult = prot ? protectionMultForStreak(Math.max(0, curStreak - 1), config.protectionMult) : 1;
+    let effectiveDraw = prot ? draw * protMult : draw;
     let monthDraw = effectiveDraw;
     // Band-fill recycle executes only OUTSIDE protection months (conserve during a downturn;
     // matches the Decision engine's advice gate). Extra gross leaves the SIPP pots with the
@@ -402,66 +407,48 @@ export function simulate(config, returns, seed = 0) {
       traceRow.boostAmount = boostAmount > 50 ? boostAmount : 0;
     }
 
-    let source = 'Growth';
+    // A non-finite draw means a broken config (e.g. missing tax bands) — fail loudly instead
+    // of letting NaN silently poison every pot (or, worse, read as a masked 'failure').
+    if (!Number.isFinite(monthDraw)) {
+      failed = true;
+      failMonth = month;
+      break;
+    }
 
-    // Execute withdrawal
-    if (!prot && totalGrowth >= minGrowth + monthDraw) {
-      // Draw from growth funds proportionally
-      const eqSurplus = Math.max(0, equity - eqMin);
-      const bdSurplus = Math.max(0, bond - bdMin);
-      const totalSurplus = eqSurplus + bdSurplus;
-
-      if (totalSurplus > 0) {
-        equity -= monthDraw * eqSurplus / totalSurplus;
-        bond -= monthDraw * bdSurplus / totalSurplus;
-        source = 'Growth';
-
-        // Cash replenishment: rebuild cash from growth surplus
-        if (cash < csTarget) {
-          const excess = totalGrowth - minGrowth - monthDraw;
-          if (excess > 5000) {
-            const rep = Math.min((csTarget - cash) * 0.3, excess * 0.5);
-            equity -= rep * eqSurplus / totalSurplus;
-            bond -= rep * bdSurplus / totalSurplus;
-            cash += rep;
-          }
-        }
-      } else {
-        cash -= monthDraw;
-        source = 'Cash';
-      }
-    } else {
-      // In protection or unhealthy - draw from cash
-      if (cash >= monthDraw) {
-        cash -= monthDraw;
-        source = 'Cash';
-      } else {
-        const rem = monthDraw - cash;
-        cash = 0;
-        if (diversifier > rem) {
-          // Sell the crisis hedge FIRST — it's the sleeve that tends to have held up or risen in
-          // the downturn, so drawing it preserves the depressed bonds/equity for the recovery.
-          diversifier -= rem;
-          divUsed += rem;
-          source = 'Diversifier';
-        } else if (bond > rem) {
-          bond -= rem;
-          source = 'Bond';
-        } else if (equity > rem) {
-          equity -= rem;
-          source = 'Equity';
-        } else if (hodl > rem) {
-          // BREAK GLASS: Use HODL emergency reserve
-          hodl -= rem;
-          hodlUsed += rem;
-          if (hodlUsedMonth === null) hodlUsedMonth = month;
-          source = 'HODL';
-        } else {
-          failed = true;
-          failMonth = month;
-        }
+    // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
+    // Same module the Decision tool advises from — one engine, two surfaces.
+    const sourcing = planSourcing({
+      draw: monthDraw,
+      equity, bond, cash,
+      diversifier, diversifierTarget: config.diversifierStart || 0,
+      hodl,
+      eqMin, bdMin, csTarget,
+      inProtection: prot
+    });
+    equity -= sourcing.fromEquity;
+    bond -= sourcing.fromBond;
+    cash -= sourcing.fromCash;
+    if (sourcing.fromDiversifier > 0) { diversifier -= sourcing.fromDiversifier; divUsed += sourcing.fromDiversifier; }
+    if (sourcing.fromHodl > 0) {
+      hodl -= sourcing.fromHodl;
+      hodlUsed += sourcing.fromHodl;
+      if (hodlUsedMonth === null) hodlUsedMonth = month;
+    }
+    if (sourcing.shortfall > 1e-6) {
+      failed = true;
+      failMonth = month;
+    }
+    if (sourcing.replenish > 0) {
+      // Refill cash from growth surplus, proportionally from the overweight growth pots
+      const eqS = Math.max(0, equity - eqMin), bdS = Math.max(0, bond - bdMin);
+      const tot = eqS + bdS;
+      if (tot > 0) {
+        equity -= sourcing.replenish * eqS / tot;
+        bond -= sourcing.replenish * bdS / tot;
+        cash += sourcing.replenish;
       }
     }
+    const source = sourcing.source;
 
     // Track consecutive non-growth (cash-side) draws for next month's protection assessment,
     // matching the Decision engine's trailing-Cash count (Growth resets, anything else counts).

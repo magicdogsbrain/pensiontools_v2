@@ -2861,9 +2861,13 @@
                     <label>Base IL-gilt ladder (years of income bought up front)</label>
                     <input type="number" id="lrLadderYears" value="15" min="1" max="30" oninput="refreshStrategyCosts()">
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" id="lrDrawGroup">
                     <label>Income to bolt on (£/yr, gross)</label>
                     <input type="number" id="lrDraw" oninput="refreshStrategyCosts()">
+                  </div>
+                  <div class="form-group" id="lrDrawStepped" style="display:none;">
+                    <label>Income bolted on</label>
+                    <p id="lrDrawSteppedText" style="font-size:13px; margin:6px 0 0;"></p>
                   </div>
                   <div class="form-group">
                     <label>Trigger</label>
@@ -6883,6 +6887,9 @@
         const age = +document.getElementById('shapeAgeNow').value || 57;
         window._ssIncomeSteps = [{ fromAge: age, amount: base }];
       }
+      const dg = document.getElementById('lrDrawGroup'), dsx = document.getElementById('lrDrawStepped');
+      if (dg) dg.style.display = mode === 'phases' ? 'none' : '';
+      if (dsx) dsx.style.display = mode === 'phases' ? 'block' : 'none';
       renderIncomeSteps();
       document.getElementById('incomeShapeNote').textContent = mode === 'phases'
         ? 'Stepped income replaces the flat target (and any budget-derived schedule) when you save. The spending profile below should usually be "Level for life" — the steps ARE your decline.'
@@ -7110,6 +7117,17 @@
           let cost = 0;
           for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
           const sleeve = totalPot - cost;
+          if (window._ssIncomeShape === 'phases') {
+            const ageNow = +document.getElementById('shapeAgeNow').value || 57;
+            const parts = [];
+            for (let k = 1; k <= yrs; k++) {
+              const amt = shapeAmountAtYear(k - 1, draw);
+              if (!parts.length || parts[parts.length - 1].amt !== amt) parts.push({ amt, from: ageNow + k - 1 });
+            }
+            const txt = parts.map((p, i) => gbp(p.amt) + (i < parts.length - 1 ? ' to ' + (parts[i + 1].from - 1) : ' from ' + p.from)).join(' → ');
+            const el = document.getElementById('lrDrawSteppedText');
+            if (el) el.innerHTML = 'Your stepped income, per year: <strong>' + txt + '</strong> — each rung is sized (and priced) to its own year.';
+          }
           document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot))
             + ' → equity sleeve <strong>' + gbp(Math.round(Math.max(0, sleeve))) + '</strong>. '
             + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');

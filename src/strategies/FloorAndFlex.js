@@ -10,7 +10,7 @@
  * floor_and_flex); the ratchet is property-tested.
  */
 
-import { getRtr, pct, dataMeta } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, pct, dataMeta } from './ladderEngine.js';
 import { ENGINE_VERSION } from './version.js';
 
 /** Deterministic floor cost at flat real yield: Σ P(k) × (1+y)^-k over years 1..horizon. */
@@ -38,9 +38,21 @@ export function floorCost({ drawForYear, years, realYield }) {
  *               target:'extend'|'raise', horizonYears?, floorDrawForYear?, raiseTargetForYear?,
  *               maxExtendYears? } }
  */
+export function runFlexMonteCarlo(cfg, runs = 500) {
+  const paths = [];
+  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(i * 7919 + 3, cfg.END));
+  const r = runFlexCore(cfg, paths, true);
+  r.meta.mode = 'montecarlo';
+  return r;
+}
+
 export function runFlexWindows(cfg) {
-  const rtr = getRtr();
-  const n = rtr.length - cfg.END;
+  return runFlexCore(cfg, null, false);
+}
+
+function runFlexCore(cfg, mcPaths, isMc) {
+  const rtr = isMc ? null : getRtr();
+  const n = isMc ? mcPaths.length : (getRtr().length - cfg.END);
   const rate = cfg.rate ?? 0.04;
   const out = { meta: { ...dataMeta(), n, engineVersion: ENGINE_VERSION }, windows: [] };
   const R = cfg.ratchet;
@@ -48,6 +60,8 @@ export function runFlexWindows(cfg) {
   const price = (k, t) => Math.pow(1 + ry, -(k - t / 12));
 
   for (let s = 0; s < n; s++) {
+    const series = isMc ? mcPaths[s] : rtr;
+    const off = isMc ? 0 : s;
     let V = cfg.E0;
     let d = rate * cfg.E0;
     const clamp = (x) => Math.min(cfg.flexMax ?? Infinity, Math.max(cfg.flexMin ?? 0, x));
@@ -92,7 +106,7 @@ export function runFlexWindows(cfg) {
 
     let annuitySwapDone = false;
     for (let m = 0; m < cfg.END; m++) {
-      V *= rtr[s + m + 1] / rtr[s + m];
+      V *= series[off + m + 1] / series[off + m];
       // Phase G late-life annuity swap (opt-in): at swapAge, spend swapCost from the sleeve to
       // buy the true lifelong tail past the floor horizon (linkers run out ~2073, so this is
       // the honest answer to "lifelong"). Modelled as a one-off sleeve deduction.

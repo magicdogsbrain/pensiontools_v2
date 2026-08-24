@@ -13,10 +13,10 @@
  * from market income (the solid-vs-translucent law).
  */
 
-import { getRtr, pct } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, pct } from './ladderEngine.js';
 import { getStrategy } from './registry.js';
-import { runLadderWindows } from './LadderAndRatchet.js';
-import { runFlexWindows, floorCost } from './FloorAndFlex.js';
+import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
+import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 
 /** Annualised real returns for one window (planYears entries). */
@@ -68,6 +68,23 @@ export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
   return { n: windows.length, windows };
 }
 
+/** P&V Monte Carlo on block-bootstrapped REAL paths — the beyond-history lens the compare
+ *  must show next to the historical one (history alone reads as "never fails" at modest
+ *  withdrawal rates; the bootstrap constructs worse sequences than history served). */
+export function runPnvMonteCarlo(cfg, { END, runs = 400 } = {}) {
+  const planYears = Math.round(END / 12);
+  const eng = getStrategy('pots-and-valves').engine;
+  let failedN = 0;
+  for (let i = 0; i < runs; i++) {
+    const path = bootstrapRtr(i * 31337 + 11, END);
+    const eq = {}, inf = {};
+    for (let y = 0; y < planYears; y++) { eq[y] = path[12 * (y + 1)] / path[12 * y] - 1; inf[y] = 1e-9; }
+    const r = eng.simulate({ ...cfg, years: planYears, taxMode: 'frozen' }, { equity: eq, inflation: inf }, i);
+    if (r.failed) failedN++;
+  }
+  return { runs, ruinPct: 100 * failedN / runs };
+}
+
 /**
  * Derive per-strategy default configurations from the plan's own numbers (real terms).
  * @param {object} p { pot, isa, targetAnnual, essentialsAnnual, durationYears, startAge,
@@ -115,12 +132,14 @@ export function runCompare(p) {
   const pnv = runPnvWindows(p.pnvCfg, { END: configs.END, stride: p.stride || 1 });
   const pnvTerms = pnv.windows.map((w) => w.terminal);
   const pnvWorst = pnv.windows.map((w) => w.worst12);
+  const pnvMc = runPnvMonteCarlo(p.pnvCfg, { END: configs.END, runs: p.mcRuns || 400 });
   out.strategies['pots-and-valves'] = {
     table: {
       worst12Median: pct(pnvWorst, 0.5),
       worst12Min: Math.min(...pnvWorst),
       guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)})` : 'None — market-dependent',
       ruinPct: 100 * pnv.windows.filter((w) => w.failed).length / pnv.n,
+      ruinPctMc: pnvMc.ruinPct,
       terminalMedian: pct(pnvTerms, 0.5)
     },
     signature: { protMonthsMedian: pct(pnv.windows.map((w) => w.protMonths), 0.5) },
@@ -138,6 +157,7 @@ export function runCompare(p) {
         worst12Min: lrFull.every((w) => w.survived) ? p.targetAnnual : 0,
         guaranteedToAge: `${p.startAge + guaranteedYears} by contract; median ratchets to ${p.startAge + guaranteedYears + medianSecured}`,
         ruinPct: 100 * lrFull.filter((w) => w.survived === false).length / lrFull.length,
+        ruinPctMc: (() => { const mc = runLadderMonteCarlo(configs.lr, p.mcRuns || 400); return 100 - (mc.stats.survivalPct ?? 100); })(),
         terminalMedian: lr.stats.terminalMedian
       },
       signature: {
@@ -156,6 +176,7 @@ export function runCompare(p) {
         worst12Min: p.essentialsAnnual + ff.stats.worstMin,
         guaranteedToAge: `${configs.ff.horizonAge} by contract (essentials)`,
         ruinPct: 0,   // essentials survival is 100% by construction; the flex sleeve cannot deplete
+        ruinPctMc: 0, // structurally: %-of-pot draws cannot exhaust the sleeve on ANY path
         terminalMedian: ff.stats.terminalMedian
       },
       signature: {

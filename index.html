@@ -3584,6 +3584,10 @@
       runCompare,
       cannedDecade,
       orderSheet,
+      realYieldForYear,
+      loadLiveGilts,
+      dataProvenance,
+      activeLinkers,
       runLadderWindows as runLadderWindowsX,
       runLadderMonteCarlo as runLadderMonteCarloX,
       runFlexWindows as runFlexWindowsX,
@@ -3648,6 +3652,9 @@
     // Expose for optimization
     window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };
     window._constants = { EQUITY_RETURNS, INFLATION };
+    // Nightly gilt closing prices (public/data/gilts.json) → real-yield curve for the ladder
+    // strategies. Fire-and-forget; the bundled snapshot serves until it lands or if it fails.
+    loadLiveGilts().then((d) => { if (d) window.refreshStrategyCosts?.(); });
     window._mathUtils = { seededRng };
 
     // Import landing page
@@ -5295,7 +5302,7 @@
           return st ? +st.amount : draw;
         };
         const drawNet = (k) => Math.max(0, stepAmt(k) - (k > 10 ? spAnnual : 0));
-        let cost = 0; for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
+        let cost = 0; for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1 + realYieldForYear(k), -k);
         const E0 = pot - cost;
         if (E0 <= 0) { html = '<div class="alert alert-danger">Ladder not affordable: base ladder costs ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Reduce the bolted income or the ladder years in Settings.</div>'; }
         else {
@@ -5307,7 +5314,7 @@
             : [{ fromYear: 0, amount: draw }];
           const lcfg = { E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
             draw, profile: { type: 'phases', phases }, trigger: trig,
-            END: dur * 12, realYield: 0.023, glideRate: 0.05, startAge: 57 };
+            END: dur * 12, realYield: 0.023, yieldForYear: realYieldForYear, glideRate: 0.05, startAge: 57 };
           const r = runLadderWindowsX(lcfg);
           const mc = runLadderMonteCarloX(lcfg, 1000);
           const st = r.stats;
@@ -5329,7 +5336,7 @@
         const ess = params.essentialsAnnual || Math.round((settings.baseSalary || 0) * 0.55);
         const horizon = params.horizonAge || 92;
         const years = Math.max(1, horizon - 57);
-        let cost = 0; for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+        let cost = 0; for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(k), -k);
         const E0 = pot - cost;
         if (E0 <= 0) { html = '<div class="alert alert-danger">Floor not affordable: essentials to ' + horizon + ' cost ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Lower the essentials or the horizon in Settings.</div>'; }
         else {
@@ -7019,13 +7026,13 @@
         || alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
       const draw = params.drawAnnual || settings.baseSalary || 0;
       const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
-      let cost = 0; for (let k = 1; k <= (params.ladderYears || 15); k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1.023, -k);
+      let cost = 0; for (let k = 1; k <= (params.ladderYears || 15); k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(k), -k);
       const E0 = Math.max(1, pot - cost);
       const b = params.bandThreshold || 1.2;
       const G = E0 * Math.pow(1.05, tMonths / 12);
       const surplus = Math.max(0, V - G);
       const nextRungYear = (params.ladderYears || 15) + 1;   // conservative: next unsecured year
-      const rungCost = Math.max(0, draw - (nextRungYear > 10 ? spAnnual : 0)) * Math.pow(1.023, -(nextRungYear - tMonths / 12));
+      const rungCost = Math.max(0, draw - (nextRungYear > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(nextRungYear), -(nextRungYear - tMonths / 12));
       if (V >= b * G) {
         const lockable = Math.floor(surplus / Math.max(1, rungCost));
         box.innerHTML = '<div class="alert alert-success"><strong>Trigger! Sleeve ' + gbp(V) + ' is above the band (' + gbp(Math.round(b * G)) + ').</strong> '
@@ -7138,7 +7145,7 @@
           const totalPot = sipp + isaV;
           const drawNet = (k) => Math.max(0, shapeAmountAtYear(k - 1, draw) - (k > 10 ? spAnnual : 0));
           let cost = 0;
-          for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1.023, -k);
+          for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1 + realYieldForYear(k), -k);
           const sleeve = totalPot - cost;
           if (window._ssIncomeShape === 'phases') {
             const ageNow = +document.getElementById('shapeAgeNow').value || 57;
@@ -7156,7 +7163,7 @@
             + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
           // The ladder LOOKS UP the actual gilts (index-linked universe; gap years bracketed)
           try {
-            const sheet = orderSheet({ rungYears: Array.from({ length: yrs }, (_, i) => i + 1), drawForYear: drawNet, startYear: new Date().getFullYear(), realYield: 0.023 });
+            const sheet = orderSheet({ rungYears: Array.from({ length: yrs }, (_, i) => i + 1), drawForYear: drawNet, startYear: new Date().getFullYear() });
             let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Income (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
             for (const row of sheet.rows) {
               gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
@@ -7176,7 +7183,7 @@
           const totalPot = sipp + isaV;
           const essNet = (k) => Math.max(0, ess - (k > 10 ? spAnnual : 0));
           let cost = 0;
-          for (let k = 1; k <= years; k++) cost += essNet(k) * Math.pow(1.023, -k);
+          for (let k = 1; k <= years; k++) cost += essNet(k) * Math.pow(1 + realYieldForYear(k), -k);
           const sleeve = totalPot - cost;
           const rate = (+document.getElementById('ffRate').value || 4) / 100;
           document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot)) + ' → flex sleeve <strong>'
@@ -7187,7 +7194,7 @@
             const step = Math.max(1, Math.floor(years / 12));
             const rungYears = [];
             for (let k = 1; k <= years; k += (k < 3 ? 1 : step)) rungYears.push(k);
-            const sheet = orderSheet({ rungYears, drawForYear: essNet, startYear: new Date().getFullYear(), realYield: 0.023 });
+            const sheet = orderSheet({ rungYears, drawForYear: essNet, startYear: new Date().getFullYear() });
             let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Essentials (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
             for (const row of sheet.rows) {
               gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
@@ -7315,7 +7322,8 @@
           pot, isa: cfg.isaBalance || 0, targetAnnual: target, essentialsAnnual: essentials,
           durationYears: Math.min(settings.duration || 35, 35), startAge: 57,
           spAnnual, spStartYear, stride: 2,
-          pnvCfg: { ...cfg, isaReturn: 0, startAge: 57 }
+          pnvCfg: { ...cfg, isaReturn: 0, startAge: 57 },
+          yieldForYear: realYieldForYear
         };
         const r = runCompare(p);
         const names = { 'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex' };
@@ -7347,7 +7355,7 @@
         // Order sheet at t=0 for the base ladder (§6) with the linker staleness banner
         if (r.configs.lr) {
           const rungYears = Array.from({ length: r.configs.lr.ladderYears }, (_, i) => i + 1);
-          const sheet = orderSheet({ rungYears, drawForYear: r.configs.lr.drawNetOfSp, startYear: new Date().getFullYear(), realYield: 0.023 });
+          const sheet = orderSheet({ rungYears, drawForYear: r.configs.lr.drawNetOfSp, startYear: new Date().getFullYear() });
           html += '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Order sheet — the base ladder as real gilts (t=0)</summary>';
           if (sheet.stale) html += '<p class="hint" style="color:var(--warning);">Linker data is a bundled snapshot (' + sheet.generated_at.slice(0, 10) + ') — costs use the flat curve. Admin can refresh via CSV import.</p>';
           html += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Gilt(s)</th><th>Face (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
@@ -9617,7 +9625,7 @@
       if (_adminTab === 'linkers') {
         return '<div style="padding:4px 2px;">'
           + '<p class="hint">Index-linked gilt universe (Appendix C). Paste CSV rows: <code>name,coupon,maturity,lag</code>. '
-          + 'Saving replaces the bundled snapshot for all users and refreshes the staleness clock. The DMO gilts-in-issue page is the source of truth.</p>'
+          + 'Saving overrides the nightly DMO/Tradeweb file (public/data/gilts.json) for all users. Rows without prices fall back to a flat 2.3% real yield — prefer fixing the nightly job.</p>'
           + '<textarea id="adminLinkersCsv" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;" placeholder="0⅛% IL Treasury Gilt 2036,0.125,2036,3"></textarea>'
           + '<div class="row-flex" style="margin-top:8px;">'
           + '<button type="button" onclick="adminSaveLinkers()">Import &amp; publish</button>'

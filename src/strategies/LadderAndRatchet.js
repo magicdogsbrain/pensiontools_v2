@@ -8,7 +8,7 @@
  * always reported separately.
  */
 
-import { getRtr, bootstrapRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, curvePricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION } from './version.js';
 
@@ -54,7 +54,8 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
   // Phase G extensions — ALL default off; goldens pin the off path (see tests).
   const ry0 = cfg.realYield ?? LADDER_DEFAULTS.realYield;
   const txMult = 1 + (cfg.txCostBps || 0) / 10000;
-  const priceBase = flatYieldPricer(drawForYear, ry0);
+  // Curve-priced when the cfg carries yieldForYear (live linker curve); flat otherwise (goldens).
+  const priceBase = cfg.yieldForYear ? curvePricer(drawForYear, cfg.yieldForYear) : flatYieldPricer(drawForYear, ry0);
   const price = (k, t, yOverride) => (yOverride != null
     ? drawForYear(k) * Math.pow(1 + yOverride, -(k - t / 12))
     : priceBase(k, t)) * txMult;

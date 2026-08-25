@@ -93,13 +93,14 @@ export function runPnvMonteCarlo(cfg, { END, runs = 400 } = {}) {
 export function deriveCompareConfigs(p) {
   const END = p.durationYears * 12;
   const realYield = 0.023;
+  const yf = p.yieldForYear || (() => realYield);   // live linker curve when the caller has one
   const total = p.pot + (p.isa || 0);
 
   // Ladder & Ratchet: base ladder covers up to 15 years (or half the plan when shorter);
   // ratchet rungs run from there to the horizon. Post-SP rungs are net of the State Pension.
   const ladderYears = Math.min(15, Math.floor(p.durationYears / 2));
   const drawNet = (k) => Math.max(0, p.targetAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
-  const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + realYield, -k); return c; })();
+  const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
   const lrE0 = total - baseLadderCost;
   const lr = lrE0 > 0 ? {
     E0: lrE0, ladderYears, L: ladderYears * 12,
@@ -107,16 +108,16 @@ export function deriveCompareConfigs(p) {
     draw: p.targetAnnual,
     profile: { type: 'phases', phases: [{ fromYear: 0, amount: p.targetAnnual }] },
     trigger: { mode: 'band', b: 1.2 },
-    END, realYield, glideRate: 0.05, startAge: p.startAge,
+    END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
     baseLadderCost, drawNetOfSp: drawNet
   } : null;
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
   const floorDraw = (k) => Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
-  const ffFloorCost = floorCost({ drawForYear: floorDraw, years: p.durationYears, realYield });
+  const ffFloorCost = floorCost({ drawForYear: floorDraw, years: p.durationYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;
   const ff = ffE0 > 0 ? {
-    E0: ffE0, rate: 0.04, END, floorCost: ffFloorCost, floorDraw,
+    E0: ffE0, rate: 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
     horizonAge: p.startAge + p.durationYears
   } : null;
 

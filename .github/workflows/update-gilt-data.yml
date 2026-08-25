@@ -1,0 +1,33 @@
+name: update-gilt-data
+
+# Refresh public/data/gilts.json (+ docs/ copy, + bundled snapshot) from the DMO gilts-in-issue
+# report and Tradeweb FTSE closing prices (T+1, via LateGenXer's published CSV).
+on:
+  schedule:
+    - cron: '30 6 * * TUE-SAT'   # after the T+1 prices land (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-gilt-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/fetch-gilt-data.mjs
+      - name: Commit if changed
+        run: |
+          git config user.name "pensiontools-data-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add public/data/gilts.json docs/data/gilts.json src/data/giltsSnapshot.js
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "Gilt data: nightly refresh ($(date -u +%F))"
+          git push

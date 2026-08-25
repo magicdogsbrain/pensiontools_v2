@@ -71,6 +71,11 @@ export function dataMeta() {
 export const flatYieldPricer = (drawForYear, ry) => (k, tMonths) =>
   drawForYear(k) * Math.pow(1 + ry, -(k - tMonths / 12));
 
+/** Rung price on a real-yield CURVE: yieldForYear(k) is the yield for a rung k plan-years out
+ *  (LinkerUniverse.realYieldForYear from closing prices). Same discounting, term-specific rate. */
+export const curvePricer = (drawForYear, yieldForYear) => (k, tMonths) =>
+  drawForYear(k) * Math.pow(1 + yieldForYear(k), -(k - tMonths / 12));
+
 /**
  * Stage 1, band mode (Appendix A stage1_band): monthly check; fires when V ≥ b×G(t); skims the
  * excess above the path into whole sequential rungs.

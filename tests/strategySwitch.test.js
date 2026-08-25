@@ -155,7 +155,8 @@ describe('stepped income (60k to 72, 50k to 80, 40k after) reaches every strateg
     incomeSteps: [{ fromAge: 57, amount: 60000 }, { fromAge: 73, amount: 50000 }, { fromAge: 80, amount: 40000 }] };
   it('compiles a per-year schedule when the saved one is missing, and the P&V worst year is a 40k year', () => {
     const cfg = createSimulationConfigFromSettings({}, stepped);
-    expect(cfg.targetSchedule).toBeNull();                       // what an old save left behind
+    expect(cfg.targetSchedule.length).toBe(36);                 // compiled from the steps at the config seam (old saves have no schedule)
+    expect(cfg.targetSchedule[23]).toBe(40000);
     const p = planFromSettings(stepped, cfg, { yieldForYear: realYieldForYear });
     expect(p.targetSchedule.length).toBe(36);
     expect(p.targetSchedule[0]).toBe(60000);

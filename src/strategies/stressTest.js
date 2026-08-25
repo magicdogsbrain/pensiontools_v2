@@ -17,6 +17,7 @@ import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
+import { scheduleFromSteps } from '../storage/StressRepository.js';
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex'
@@ -52,15 +53,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   const durationYears = Math.min(settings.duration || cfg.duration || 35, 35);
   // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
   // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat.
-  let targetSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : null;
-  if (!targetSchedule && settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length) {
-    const ageNow = settings.shapeAgeNow || startAge;
-    const steps = settings.incomeSteps.filter((x) => Number.isFinite(+x.fromAge) && +x.amount > 0).sort((a, b) => +a.fromAge - +b.fromAge);
-    targetSchedule = Array.from({ length: durationYears + 1 }, (_, y) => {
-      const st = steps.filter((x) => +x.fromAge <= ageNow + y).pop();
-      return st ? +st.amount : target;
-    });
-  }
+  const targetSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : scheduleFromSteps(settings, startAge);
   return {
     pot, isa, targetAnnual: target,
     essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),

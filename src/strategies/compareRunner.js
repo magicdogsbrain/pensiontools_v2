@@ -102,14 +102,20 @@ export function deriveCompareConfigs(p) {
   const prm = p.params || {};
   const ladderYears = Math.max(1, Math.min(prm.ladderYears || Math.min(15, Math.floor(p.durationYears / 2)), p.durationYears - 1));
   const ladderDraw = prm.drawAnnual > 0 ? prm.drawAnnual : p.targetAnnual;
-  const drawNet = (k) => Math.max(0, ladderDraw - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  // Per-year income for plan-year k (1-based): the stepped/budget schedule when present, else flat.
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const amountAt = (k) => (sched ? (sched[Math.min(k - 1, sched.length - 1)] ?? ladderDraw) : ladderDraw);
+  const minDraw = Math.min(...Array.from({ length: p.durationYears }, (_, i) => amountAt(i + 1)));
+  const drawNet = (k) => Math.max(0, amountAt(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
   const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
   const lrE0 = total - baseLadderCost;
   const lr = lrE0 > 0 ? {
     E0: lrE0, ladderYears, L: ladderYears * 12,
     firstRung: ladderYears + 1, maxRung: p.durationYears,
-    draw: ladderDraw,
-    profile: { type: 'phases', phases: [{ fromYear: 0, amount: ladderDraw }] },
+    draw: ladderDraw, minDraw,
+    profile: sched
+      ? { type: 'schedule', values: sched }
+      : { type: 'phases', phases: [{ fromYear: 0, amount: ladderDraw }] },
     trigger: prm.triggerMode === 'calendar'
       ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(ladderYears / 5) }, (_, i) => (i + 1) * 60) }
       : { mode: 'band', b: prm.bandThreshold || 1.2 },

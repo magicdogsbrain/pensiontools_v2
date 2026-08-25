@@ -5297,7 +5297,7 @@
       const sheet = orderSheet({ rungYears, drawForYear, startYear: new Date().getFullYear() });
       let h = '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Example ladder — how rungs like these could be priced from gilts in issue (illustration only)</summary>';
       h += '<div class="alert alert-warning" style="margin:8px 0;font-size:12px;"><strong>Illustration, not advice.</strong> ' + budEsc(sheet.notice)
-        + ' Indicative closing prices as of <strong>' + budEsc(sheet.as_of || '—') + '</strong> (' + budEsc(sheet.source || '') + '). '
+        + ' Rungs are priced on the <strong>' + budEsc(sheet.priced) + '</strong>; the gilt prices shown are delayed exchange prices as of ' + budEsc(sheet.as_of || '—') + ' (' + budEsc(sheet.source || '') + '). '
         + (sheet.stale ? 'This data is more than 48 hours old. ' : '') + 'A ladder is not necessarily the best strategy; ' + budEsc(caption || '') + '</div>';
       h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Nearest index-linked gilt(s)</th><th>Clean price</th><th>Real yield</th><th>Face (£/yr, today\'s money)</th><th>Indicative cost</th></tr></thead><tbody>';
       for (const row of sheet.rows) {
@@ -5351,7 +5351,7 @@
         const yrsF = Math.min(r.signature.horizonAge - p.startAge, p.durationYears, 45);
         h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
       }
-      h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan with today\'s tax bands frozen in real terms.' : 'Ladder rungs are priced on the real-yield curve from the latest gilt closing prices.') + '</p>';
+      h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan with today\'s tax bands frozen in real terms.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
       h += '</div>';
       return h;
     }

@@ -1,17 +1,446 @@
 {
- "generated_at": "2026-08-25T11:59:54.521Z",
+ "generated_at": "2026-08-25T12:35:23.961Z",
  "as_of": "2026-08-24",
+ "curve_as_of": "2026-08-21",
+ "curve_source": "Bank of England GLC real spot curve",
  "sources": {
   "issued": "UK DMO gilts in issue (D1A)",
-  "prices": "Tradeweb FTSE gilt closing prices (via LateGenXer mirror; free for non-commercial use, T+1)"
+  "curve": "Bank of England daily real spot yield curve (open data, via LateGenXer mirror)",
+  "prices": "delayed London Stock Exchange prices (via LateGenXer mirror) — illustration only"
  },
  "notice": "Indicative closing prices and derived yields for illustration only. Not a recommendation to buy or sell any gilt.",
  "counts": {
   "gilts": 104,
   "priced": 104,
-  "realCurve": 32
+  "realCurve": 106
  },
  "realCurve": [
+  {
+   "years": 2.083333,
+   "yield": 0.00175
+  },
+  {
+   "years": 2.166667,
+   "yield": 0.00209
+  },
+  {
+   "years": 2.25,
+   "yield": 0.00243
+  },
+  {
+   "years": 2.333333,
+   "yield": 0.00275
+  },
+  {
+   "years": 2.416667,
+   "yield": 0.00306
+  },
+  {
+   "years": 2.5,
+   "yield": 0.00337
+  },
+  {
+   "years": 2.583333,
+   "yield": 0.00366
+  },
+  {
+   "years": 2.666667,
+   "yield": 0.00395
+  },
+  {
+   "years": 2.75,
+   "yield": 0.00424
+  },
+  {
+   "years": 2.833333,
+   "yield": 0.00451
+  },
+  {
+   "years": 2.916667,
+   "yield": 0.00478
+  },
+  {
+   "years": 3,
+   "yield": 0.00505
+  },
+  {
+   "years": 3.083333,
+   "yield": 0.00531
+  },
+  {
+   "years": 3.166667,
+   "yield": 0.00556
+  },
+  {
+   "years": 3.25,
+   "yield": 0.00581
+  },
+  {
+   "years": 3.333333,
+   "yield": 0.00606
+  },
+  {
+   "years": 3.416667,
+   "yield": 0.0063
+  },
+  {
+   "years": 3.5,
+   "yield": 0.00654
+  },
+  {
+   "years": 3.583333,
+   "yield": 0.00678
+  },
+  {
+   "years": 3.666667,
+   "yield": 0.00701
+  },
+  {
+   "years": 3.75,
+   "yield": 0.00723
+  },
+  {
+   "years": 3.833333,
+   "yield": 0.00746
+  },
+  {
+   "years": 3.916667,
+   "yield": 0.00768
+  },
+  {
+   "years": 4,
+   "yield": 0.0079
+  },
+  {
+   "years": 4.083333,
+   "yield": 0.00811
+  },
+  {
+   "years": 4.166667,
+   "yield": 0.00833
+  },
+  {
+   "years": 4.25,
+   "yield": 0.00854
+  },
+  {
+   "years": 4.333333,
+   "yield": 0.00874
+  },
+  {
+   "years": 4.416667,
+   "yield": 0.00895
+  },
+  {
+   "years": 4.5,
+   "yield": 0.00915
+  },
+  {
+   "years": 4.583333,
+   "yield": 0.00935
+  },
+  {
+   "years": 4.666667,
+   "yield": 0.00955
+  },
+  {
+   "years": 4.75,
+   "yield": 0.00975
+  },
+  {
+   "years": 4.833333,
+   "yield": 0.00994
+  },
+  {
+   "years": 4.916667,
+   "yield": 0.01013
+  },
+  {
+   "years": 5,
+   "yield": 0.01032
+  },
+  {
+   "years": 5.5,
+   "yield": 0.01141
+  },
+  {
+   "years": 6,
+   "yield": 0.01243
+  },
+  {
+   "years": 6.5,
+   "yield": 0.01338
+  },
+  {
+   "years": 7,
+   "yield": 0.01428
+  },
+  {
+   "years": 7.5,
+   "yield": 0.01512
+  },
+  {
+   "years": 8,
+   "yield": 0.0159
+  },
+  {
+   "years": 8.5,
+   "yield": 0.01664
+  },
+  {
+   "years": 9,
+   "yield": 0.01734
+  },
+  {
+   "years": 9.5,
+   "yield": 0.01799
+  },
+  {
+   "years": 10,
+   "yield": 0.0186
+  },
+  {
+   "years": 10.5,
+   "yield": 0.01918
+  },
+  {
+   "years": 11,
+   "yield": 0.01972
+  },
+  {
+   "years": 11.5,
+   "yield": 0.02022
+  },
+  {
+   "years": 12,
+   "yield": 0.0207
+  },
+  {
+   "years": 12.5,
+   "yield": 0.02114
+  },
+  {
+   "years": 13,
+   "yield": 0.02156
+  },
+  {
+   "years": 13.5,
+   "yield": 0.02195
+  },
+  {
+   "years": 14,
+   "yield": 0.02232
+  },
+  {
+   "years": 14.5,
+   "yield": 0.02266
+  },
+  {
+   "years": 15,
+   "yield": 0.02297
+  },
+  {
+   "years": 15.5,
+   "yield": 0.02327
+  },
+  {
+   "years": 16,
+   "yield": 0.02354
+  },
+  {
+   "years": 16.5,
+   "yield": 0.0238
+  },
+  {
+   "years": 17,
+   "yield": 0.02403
+  },
+  {
+   "years": 17.5,
+   "yield": 0.02425
+  },
+  {
+   "years": 18,
+   "yield": 0.02445
+  },
+  {
+   "years": 18.5,
+   "yield": 0.02463
+  },
+  {
+   "years": 19,
+   "yield": 0.02479
+  },
+  {
+   "years": 19.5,
+   "yield": 0.02494
+  },
+  {
+   "years": 20,
+   "yield": 0.02507
+  },
+  {
+   "years": 20.5,
+   "yield": 0.02519
+  },
+  {
+   "years": 21,
+   "yield": 0.0253
+  },
+  {
+   "years": 21.5,
+   "yield": 0.02539
+  },
+  {
+   "years": 22,
+   "yield": 0.02547
+  },
+  {
+   "years": 22.5,
+   "yield": 0.02553
+  },
+  {
+   "years": 23,
+   "yield": 0.02559
+  },
+  {
+   "years": 23.5,
+   "yield": 0.02563
+  },
+  {
+   "years": 24,
+   "yield": 0.02566
+  },
+  {
+   "years": 24.5,
+   "yield": 0.02568
+  },
+  {
+   "years": 25,
+   "yield": 0.02569
+  },
+  {
+   "years": 25.5,
+   "yield": 0.0257
+  },
+  {
+   "years": 26,
+   "yield": 0.02569
+  },
+  {
+   "years": 26.5,
+   "yield": 0.02567
+  },
+  {
+   "years": 27,
+   "yield": 0.02564
+  },
+  {
+   "years": 27.5,
+   "yield": 0.02561
+  },
+  {
+   "years": 28,
+   "yield": 0.02556
+  },
+  {
+   "years": 28.5,
+   "yield": 0.02551
+  },
+  {
+   "years": 29,
+   "yield": 0.02545
+  },
+  {
+   "years": 29.5,
+   "yield": 0.02539
+  },
+  {
+   "years": 30,
+   "yield": 0.02532
+  },
+  {
+   "years": 30.5,
+   "yield": 0.02524
+  },
+  {
+   "years": 31,
+   "yield": 0.02515
+  },
+  {
+   "years": 31.5,
+   "yield": 0.02506
+  },
+  {
+   "years": 32,
+   "yield": 0.02496
+  },
+  {
+   "years": 32.5,
+   "yield": 0.02485
+  },
+  {
+   "years": 33,
+   "yield": 0.02475
+  },
+  {
+   "years": 33.5,
+   "yield": 0.02463
+  },
+  {
+   "years": 34,
+   "yield": 0.02451
+  },
+  {
+   "years": 34.5,
+   "yield": 0.02438
+  },
+  {
+   "years": 35,
+   "yield": 0.02425
+  },
+  {
+   "years": 35.5,
+   "yield": 0.02412
+  },
+  {
+   "years": 36,
+   "yield": 0.02398
+  },
+  {
+   "years": 36.5,
+   "yield": 0.02384
+  },
+  {
+   "years": 37,
+   "yield": 0.02369
+  },
+  {
+   "years": 37.5,
+   "yield": 0.02354
+  },
+  {
+   "years": 38,
+   "yield": 0.02338
+  },
+  {
+   "years": 38.5,
+   "yield": 0.02322
+  },
+  {
+   "years": 39,
+   "yield": 0.02306
+  },
+  {
+   "years": 39.5,
+   "yield": 0.02289
+  },
+  {
+   "years": 40,
+   "yield": 0.02272
+  }
+ ],
+ "giltRealCurve": [
   {
    "years": 1.25,
    "yield": 0.00109,
@@ -523,6 +952,930 @@
    "years": 47.16,
    "yield": 0.05405,
    "isin": "GB00BLBDX619"
+  }
+ ],
+ "boeNominalCurve": [
+  {
+   "years": 0.5,
+   "yield": 0.04004
+  },
+  {
+   "years": 0.583333,
+   "yield": 0.04032
+  },
+  {
+   "years": 0.666667,
+   "yield": 0.04058
+  },
+  {
+   "years": 0.75,
+   "yield": 0.0408
+  },
+  {
+   "years": 0.833333,
+   "yield": 0.04101
+  },
+  {
+   "years": 0.916667,
+   "yield": 0.04119
+  },
+  {
+   "years": 1,
+   "yield": 0.04135
+  },
+  {
+   "years": 1.083333,
+   "yield": 0.04151
+  },
+  {
+   "years": 1.166667,
+   "yield": 0.04165
+  },
+  {
+   "years": 1.25,
+   "yield": 0.04178
+  },
+  {
+   "years": 1.333333,
+   "yield": 0.04191
+  },
+  {
+   "years": 1.416667,
+   "yield": 0.04202
+  },
+  {
+   "years": 1.5,
+   "yield": 0.04213
+  },
+  {
+   "years": 1.583333,
+   "yield": 0.04224
+  },
+  {
+   "years": 1.666667,
+   "yield": 0.04234
+  },
+  {
+   "years": 1.75,
+   "yield": 0.04244
+  },
+  {
+   "years": 1.833333,
+   "yield": 0.04253
+  },
+  {
+   "years": 1.916667,
+   "yield": 0.04262
+  },
+  {
+   "years": 2,
+   "yield": 0.04271
+  },
+  {
+   "years": 2.083333,
+   "yield": 0.04279
+  },
+  {
+   "years": 2.166667,
+   "yield": 0.04288
+  },
+  {
+   "years": 2.25,
+   "yield": 0.04296
+  },
+  {
+   "years": 2.333333,
+   "yield": 0.04304
+  },
+  {
+   "years": 2.416667,
+   "yield": 0.04312
+  },
+  {
+   "years": 2.5,
+   "yield": 0.0432
+  },
+  {
+   "years": 2.583333,
+   "yield": 0.04328
+  },
+  {
+   "years": 2.666667,
+   "yield": 0.04335
+  },
+  {
+   "years": 2.75,
+   "yield": 0.04343
+  },
+  {
+   "years": 2.833333,
+   "yield": 0.04351
+  },
+  {
+   "years": 2.916667,
+   "yield": 0.04358
+  },
+  {
+   "years": 3,
+   "yield": 0.04366
+  },
+  {
+   "years": 3.083333,
+   "yield": 0.04374
+  },
+  {
+   "years": 3.166667,
+   "yield": 0.04381
+  },
+  {
+   "years": 3.25,
+   "yield": 0.04389
+  },
+  {
+   "years": 3.333333,
+   "yield": 0.04397
+  },
+  {
+   "years": 3.416667,
+   "yield": 0.04404
+  },
+  {
+   "years": 3.5,
+   "yield": 0.04412
+  },
+  {
+   "years": 3.583333,
+   "yield": 0.0442
+  },
+  {
+   "years": 3.666667,
+   "yield": 0.04428
+  },
+  {
+   "years": 3.75,
+   "yield": 0.04436
+  },
+  {
+   "years": 3.833333,
+   "yield": 0.04444
+  },
+  {
+   "years": 3.916667,
+   "yield": 0.04452
+  },
+  {
+   "years": 4,
+   "yield": 0.0446
+  },
+  {
+   "years": 4.083333,
+   "yield": 0.04468
+  },
+  {
+   "years": 4.166667,
+   "yield": 0.04476
+  },
+  {
+   "years": 4.25,
+   "yield": 0.04484
+  },
+  {
+   "years": 4.333333,
+   "yield": 0.04493
+  },
+  {
+   "years": 4.416667,
+   "yield": 0.04501
+  },
+  {
+   "years": 4.5,
+   "yield": 0.0451
+  },
+  {
+   "years": 4.583333,
+   "yield": 0.04518
+  },
+  {
+   "years": 4.666667,
+   "yield": 0.04527
+  },
+  {
+   "years": 4.75,
+   "yield": 0.04535
+  },
+  {
+   "years": 4.833333,
+   "yield": 0.04544
+  },
+  {
+   "years": 4.916667,
+   "yield": 0.04553
+  },
+  {
+   "years": 5,
+   "yield": 0.04562
+  },
+  {
+   "years": 5.5,
+   "yield": 0.04616
+  },
+  {
+   "years": 6,
+   "yield": 0.04673
+  },
+  {
+   "years": 6.5,
+   "yield": 0.0473
+  },
+  {
+   "years": 7,
+   "yield": 0.04789
+  },
+  {
+   "years": 7.5,
+   "yield": 0.04848
+  },
+  {
+   "years": 8,
+   "yield": 0.04906
+  },
+  {
+   "years": 8.5,
+   "yield": 0.04965
+  },
+  {
+   "years": 9,
+   "yield": 0.05022
+  },
+  {
+   "years": 9.5,
+   "yield": 0.05079
+  },
+  {
+   "years": 10,
+   "yield": 0.05134
+  },
+  {
+   "years": 10.5,
+   "yield": 0.05188
+  },
+  {
+   "years": 11,
+   "yield": 0.0524
+  },
+  {
+   "years": 11.5,
+   "yield": 0.0529
+  },
+  {
+   "years": 12,
+   "yield": 0.05339
+  },
+  {
+   "years": 12.5,
+   "yield": 0.05385
+  },
+  {
+   "years": 13,
+   "yield": 0.0543
+  },
+  {
+   "years": 13.5,
+   "yield": 0.05472
+  },
+  {
+   "years": 14,
+   "yield": 0.05513
+  },
+  {
+   "years": 14.5,
+   "yield": 0.05551
+  },
+  {
+   "years": 15,
+   "yield": 0.05588
+  },
+  {
+   "years": 15.5,
+   "yield": 0.05622
+  },
+  {
+   "years": 16,
+   "yield": 0.05654
+  },
+  {
+   "years": 16.5,
+   "yield": 0.05684
+  },
+  {
+   "years": 17,
+   "yield": 0.05712
+  },
+  {
+   "years": 17.5,
+   "yield": 0.05739
+  },
+  {
+   "years": 18,
+   "yield": 0.05763
+  },
+  {
+   "years": 18.5,
+   "yield": 0.05785
+  },
+  {
+   "years": 19,
+   "yield": 0.05806
+  },
+  {
+   "years": 19.5,
+   "yield": 0.05825
+  },
+  {
+   "years": 20,
+   "yield": 0.05843
+  },
+  {
+   "years": 20.5,
+   "yield": 0.05859
+  },
+  {
+   "years": 21,
+   "yield": 0.05874
+  },
+  {
+   "years": 21.5,
+   "yield": 0.05887
+  },
+  {
+   "years": 22,
+   "yield": 0.05899
+  },
+  {
+   "years": 22.5,
+   "yield": 0.0591
+  },
+  {
+   "years": 23,
+   "yield": 0.0592
+  },
+  {
+   "years": 23.5,
+   "yield": 0.05928
+  },
+  {
+   "years": 24,
+   "yield": 0.05935
+  },
+  {
+   "years": 24.5,
+   "yield": 0.05941
+  },
+  {
+   "years": 25,
+   "yield": 0.05946
+  },
+  {
+   "years": 25.5,
+   "yield": 0.0595
+  },
+  {
+   "years": 26,
+   "yield": 0.05953
+  },
+  {
+   "years": 26.5,
+   "yield": 0.05955
+  },
+  {
+   "years": 27,
+   "yield": 0.05956
+  },
+  {
+   "years": 27.5,
+   "yield": 0.05955
+  },
+  {
+   "years": 28,
+   "yield": 0.05954
+  },
+  {
+   "years": 28.5,
+   "yield": 0.05952
+  },
+  {
+   "years": 29,
+   "yield": 0.05948
+  },
+  {
+   "years": 29.5,
+   "yield": 0.05944
+  },
+  {
+   "years": 30,
+   "yield": 0.05938
+  },
+  {
+   "years": 30.5,
+   "yield": 0.05931
+  },
+  {
+   "years": 31,
+   "yield": 0.05924
+  },
+  {
+   "years": 31.5,
+   "yield": 0.05915
+  },
+  {
+   "years": 32,
+   "yield": 0.05906
+  },
+  {
+   "years": 32.5,
+   "yield": 0.05895
+  },
+  {
+   "years": 33,
+   "yield": 0.05884
+  },
+  {
+   "years": 33.5,
+   "yield": 0.05871
+  },
+  {
+   "years": 34,
+   "yield": 0.05858
+  },
+  {
+   "years": 34.5,
+   "yield": 0.05844
+  },
+  {
+   "years": 35,
+   "yield": 0.05828
+  },
+  {
+   "years": 35.5,
+   "yield": 0.05812
+  },
+  {
+   "years": 36,
+   "yield": 0.05796
+  },
+  {
+   "years": 36.5,
+   "yield": 0.05778
+  },
+  {
+   "years": 37,
+   "yield": 0.05759
+  },
+  {
+   "years": 37.5,
+   "yield": 0.0574
+  },
+  {
+   "years": 38,
+   "yield": 0.0572
+  },
+  {
+   "years": 38.5,
+   "yield": 0.05699
+  },
+  {
+   "years": 39,
+   "yield": 0.05677
+  },
+  {
+   "years": 39.5,
+   "yield": 0.05654
+  }
+ ],
+ "boeInflationCurve": [
+  {
+   "years": 2.083333,
+   "yield": 0.04105
+  },
+  {
+   "years": 2.166667,
+   "yield": 0.04078
+  },
+  {
+   "years": 2.25,
+   "yield": 0.04053
+  },
+  {
+   "years": 2.333333,
+   "yield": 0.04029
+  },
+  {
+   "years": 2.416667,
+   "yield": 0.04006
+  },
+  {
+   "years": 2.5,
+   "yield": 0.03983
+  },
+  {
+   "years": 2.583333,
+   "yield": 0.03961
+  },
+  {
+   "years": 2.666667,
+   "yield": 0.0394
+  },
+  {
+   "years": 2.75,
+   "yield": 0.03919
+  },
+  {
+   "years": 2.833333,
+   "yield": 0.03899
+  },
+  {
+   "years": 2.916667,
+   "yield": 0.0388
+  },
+  {
+   "years": 3,
+   "yield": 0.03861
+  },
+  {
+   "years": 3.083333,
+   "yield": 0.03843
+  },
+  {
+   "years": 3.166667,
+   "yield": 0.03825
+  },
+  {
+   "years": 3.25,
+   "yield": 0.03808
+  },
+  {
+   "years": 3.333333,
+   "yield": 0.03791
+  },
+  {
+   "years": 3.416667,
+   "yield": 0.03774
+  },
+  {
+   "years": 3.5,
+   "yield": 0.03758
+  },
+  {
+   "years": 3.583333,
+   "yield": 0.03743
+  },
+  {
+   "years": 3.666667,
+   "yield": 0.03727
+  },
+  {
+   "years": 3.75,
+   "yield": 0.03712
+  },
+  {
+   "years": 3.833333,
+   "yield": 0.03698
+  },
+  {
+   "years": 3.916667,
+   "yield": 0.03684
+  },
+  {
+   "years": 4,
+   "yield": 0.0367
+  },
+  {
+   "years": 4.083333,
+   "yield": 0.03657
+  },
+  {
+   "years": 4.166667,
+   "yield": 0.03644
+  },
+  {
+   "years": 4.25,
+   "yield": 0.03631
+  },
+  {
+   "years": 4.333333,
+   "yield": 0.03618
+  },
+  {
+   "years": 4.416667,
+   "yield": 0.03606
+  },
+  {
+   "years": 4.5,
+   "yield": 0.03594
+  },
+  {
+   "years": 4.583333,
+   "yield": 0.03583
+  },
+  {
+   "years": 4.666667,
+   "yield": 0.03572
+  },
+  {
+   "years": 4.75,
+   "yield": 0.03561
+  },
+  {
+   "years": 4.833333,
+   "yield": 0.0355
+  },
+  {
+   "years": 4.916667,
+   "yield": 0.0354
+  },
+  {
+   "years": 5,
+   "yield": 0.0353
+  },
+  {
+   "years": 5.5,
+   "yield": 0.03475
+  },
+  {
+   "years": 6,
+   "yield": 0.0343
+  },
+  {
+   "years": 6.5,
+   "yield": 0.03392
+  },
+  {
+   "years": 7,
+   "yield": 0.03361
+  },
+  {
+   "years": 7.5,
+   "yield": 0.03336
+  },
+  {
+   "years": 8,
+   "yield": 0.03316
+  },
+  {
+   "years": 8.5,
+   "yield": 0.033
+  },
+  {
+   "years": 9,
+   "yield": 0.03289
+  },
+  {
+   "years": 9.5,
+   "yield": 0.0328
+  },
+  {
+   "years": 10,
+   "yield": 0.03274
+  },
+  {
+   "years": 10.5,
+   "yield": 0.0327
+  },
+  {
+   "years": 11,
+   "yield": 0.03268
+  },
+  {
+   "years": 11.5,
+   "yield": 0.03268
+  },
+  {
+   "years": 12,
+   "yield": 0.03269
+  },
+  {
+   "years": 12.5,
+   "yield": 0.03271
+  },
+  {
+   "years": 13,
+   "yield": 0.03274
+  },
+  {
+   "years": 13.5,
+   "yield": 0.03277
+  },
+  {
+   "years": 14,
+   "yield": 0.03281
+  },
+  {
+   "years": 14.5,
+   "yield": 0.03286
+  },
+  {
+   "years": 15,
+   "yield": 0.0329
+  },
+  {
+   "years": 15.5,
+   "yield": 0.03295
+  },
+  {
+   "years": 16,
+   "yield": 0.033
+  },
+  {
+   "years": 16.5,
+   "yield": 0.03304
+  },
+  {
+   "years": 17,
+   "yield": 0.03309
+  },
+  {
+   "years": 17.5,
+   "yield": 0.03314
+  },
+  {
+   "years": 18,
+   "yield": 0.03318
+  },
+  {
+   "years": 18.5,
+   "yield": 0.03323
+  },
+  {
+   "years": 19,
+   "yield": 0.03327
+  },
+  {
+   "years": 19.5,
+   "yield": 0.03331
+  },
+  {
+   "years": 20,
+   "yield": 0.03336
+  },
+  {
+   "years": 20.5,
+   "yield": 0.0334
+  },
+  {
+   "years": 21,
+   "yield": 0.03344
+  },
+  {
+   "years": 21.5,
+   "yield": 0.03348
+  },
+  {
+   "years": 22,
+   "yield": 0.03352
+  },
+  {
+   "years": 22.5,
+   "yield": 0.03357
+  },
+  {
+   "years": 23,
+   "yield": 0.03361
+  },
+  {
+   "years": 23.5,
+   "yield": 0.03365
+  },
+  {
+   "years": 24,
+   "yield": 0.03369
+  },
+  {
+   "years": 24.5,
+   "yield": 0.03373
+  },
+  {
+   "years": 25,
+   "yield": 0.03377
+  },
+  {
+   "years": 25.5,
+   "yield": 0.03381
+  },
+  {
+   "years": 26,
+   "yield": 0.03385
+  },
+  {
+   "years": 26.5,
+   "yield": 0.03388
+  },
+  {
+   "years": 27,
+   "yield": 0.03392
+  },
+  {
+   "years": 27.5,
+   "yield": 0.03395
+  },
+  {
+   "years": 28,
+   "yield": 0.03398
+  },
+  {
+   "years": 28.5,
+   "yield": 0.034
+  },
+  {
+   "years": 29,
+   "yield": 0.03403
+  },
+  {
+   "years": 29.5,
+   "yield": 0.03405
+  },
+  {
+   "years": 30,
+   "yield": 0.03406
+  },
+  {
+   "years": 30.5,
+   "yield": 0.03408
+  },
+  {
+   "years": 31,
+   "yield": 0.03409
+  },
+  {
+   "years": 31.5,
+   "yield": 0.0341
+  },
+  {
+   "years": 32,
+   "yield": 0.0341
+  },
+  {
+   "years": 32.5,
+   "yield": 0.0341
+  },
+  {
+   "years": 33,
+   "yield": 0.03409
+  },
+  {
+   "years": 33.5,
+   "yield": 0.03408
+  },
+  {
+   "years": 34,
+   "yield": 0.03407
+  },
+  {
+   "years": 34.5,
+   "yield": 0.03405
+  },
+  {
+   "years": 35,
+   "yield": 0.03403
+  },
+  {
+   "years": 35.5,
+   "yield": 0.034
+  },
+  {
+   "years": 36,
+   "yield": 0.03398
+  },
+  {
+   "years": 36.5,
+   "yield": 0.03394
+  },
+  {
+   "years": 37,
+   "yield": 0.0339
+  },
+  {
+   "years": 37.5,
+   "yield": 0.03386
+  },
+  {
+   "years": 38,
+   "yield": 0.03381
+  },
+  {
+   "years": 38.5,
+   "yield": 0.03376
+  },
+  {
+   "years": 39,
+   "yield": 0.03371
+  },
+  {
+   "years": 39.5,
+   "yield": 0.03365
+  },
+  {
+   "years": 40,
+   "yield": 0.03359
   }
  ],
  "gilts": [

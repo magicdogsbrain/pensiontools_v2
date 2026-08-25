@@ -1994,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CdpJ2wGO.js"></script>
+  <script type="module" crossorigin src="./assets/main-D-dai_Dk.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2637,11 +2637,34 @@
             <div id="strategyCards"></div>
 
             <div class="settings-section">
-              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same 150 years of markets for all three)</span></div>
-              <div class="row-flex">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr — drives Floor &amp; Flex only (its floor size)
-                  <input type="number" id="cmpEssentials" style="width:130px;"></label>
+              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same plan, same 150 years of markets for all three)</span></div>
+              <p class="hint" style="margin:0 0 8px;">Each strategy's own dials, pre-filled from your Settings. Changing them here changes the <em>comparison only</em> — your saved plan is untouched (use Settings to change the plan). Turn Pots &amp; Valves' spending cuts off to compare on a level footing: it is the only strategy allowed to pay you less in a bad run.</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Pots &amp; Valves</div>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cmpPvProt"> Spending cuts in bad runs (protection)</label>
+                  <div class="row-flex" style="margin-top:6px;">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cut %<input type="number" id="cmpPvCut" min="0" max="60" step="5" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cash draws before it cuts<input type="number" id="cmpPvLimit" min="1" max="24" style="width:80px;"></label>
+                  </div></div>
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Ladder &amp; Ratchet</div>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Ladder years<input type="number" id="cmpLrYears" min="1" max="34" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bolted £/yr (year 1)<input type="number" id="cmpLrDraw" step="1000" style="width:110px;"></label>
+                  </div>
+                  <div class="row-flex" style="margin-top:6px;">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Trigger<select id="cmpLrTrig" style="width:110px;"><option value="band">Band</option><option value="calendar">Calendar</option></select></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Band ×<input type="number" id="cmpLrBand" min="1.05" max="2" step="0.05" style="width:80px;"></label>
+                  </div></div>
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor &amp; Flex</div>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr (the floor)<input type="number" id="cmpEssentials" step="1000" style="width:110px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Floor to age<input type="number" id="cmpFfHorizon" min="60" max="105" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sleeve %<input type="number" id="cmpFfRate" min="1" max="10" step="0.5" style="width:80px;"></label>
+                  </div></div>
+              </div>
+              <div class="row-flex" style="margin-top:10px;">
                 <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
+                <button type="button" class="risk-btn" onclick="resetCompareDials()">Reset to my Settings</button>
               </div>
               <div id="compareResults" style="margin-top:10px;"></div>
             </div>

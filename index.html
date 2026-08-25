@@ -2636,11 +2636,34 @@
             <div id="strategyCards"></div>
 
             <div class="settings-section">
-              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same 150 years of markets for all three)</span></div>
-              <div class="row-flex">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr — drives Floor &amp; Flex only (its floor size)
-                  <input type="number" id="cmpEssentials" style="width:130px;"></label>
+              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same plan, same 150 years of markets for all three)</span></div>
+              <p class="hint" style="margin:0 0 8px;">Each strategy's own dials, pre-filled from your Settings. Changing them here changes the <em>comparison only</em> — your saved plan is untouched (use Settings to change the plan). Turn Pots &amp; Valves' spending cuts off to compare on a level footing: it is the only strategy allowed to pay you less in a bad run.</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Pots &amp; Valves</div>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cmpPvProt"> Spending cuts in bad runs (protection)</label>
+                  <div class="row-flex" style="margin-top:6px;">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cut %<input type="number" id="cmpPvCut" min="0" max="60" step="5" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cash draws before it cuts<input type="number" id="cmpPvLimit" min="1" max="24" style="width:80px;"></label>
+                  </div></div>
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Ladder &amp; Ratchet</div>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Ladder years<input type="number" id="cmpLrYears" min="1" max="34" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bolted £/yr (year 1)<input type="number" id="cmpLrDraw" step="1000" style="width:110px;"></label>
+                  </div>
+                  <div class="row-flex" style="margin-top:6px;">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Trigger<select id="cmpLrTrig" style="width:110px;"><option value="band">Band</option><option value="calendar">Calendar</option></select></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Band ×<input type="number" id="cmpLrBand" min="1.05" max="2" step="0.05" style="width:80px;"></label>
+                  </div></div>
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor &amp; Flex</div>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr (the floor)<input type="number" id="cmpEssentials" step="1000" style="width:110px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Floor to age<input type="number" id="cmpFfHorizon" min="60" max="105" style="width:80px;"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sleeve %<input type="number" id="cmpFfRate" min="1" max="10" step="0.5" style="width:80px;"></label>
+                  </div></div>
+              </div>
+              <div class="row-flex" style="margin-top:10px;">
                 <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
+                <button type="button" class="risk-btn" onclick="resetCompareDials()">Reset to my Settings</button>
               </div>
               <div id="compareResults" style="margin-top:10px;"></div>
             </div>
@@ -7335,15 +7358,15 @@
       box.innerHTML = '<div class="loading"><div class="spinner"></div>Running all three strategies over every historical window and 1,000 futures each…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const settings = await getStressSettingsAsync();
-        const essentials = +document.getElementById('cmpEssentials').value || undefined;
-        const p = strategyPlanFor(settings, essentials);
+        const saved = await getStressSettingsAsync();
+        const settings = compareOverrides(saved);
+        const p = strategyPlanFor(settings);
         const r = stressTestAll(p);
         const cols = Object.keys(r.strategies);
         const S = r.strategies;
         const target = p.targetAnnual;
         let html = '<div class="table-scroll-container"><table><thead><tr><th></th>'
-          + cols.map((id) => '<th>' + budEsc(S[id].name) + (settings.strategyId === id ? ' <span class="hint">(locked)</span>' : '') + '</th>').join('') + '</tr></thead><tbody>';
+          + cols.map((id) => '<th>' + budEsc(S[id].name) + (saved.strategyId === id ? ' <span class="hint">(locked)</span>' : '') + '</th>').join('') + '</tr></thead><tbody>';
         const cell = (id, fn) => S[id].affordable ? fn(S[id]) : '<span class="hint">not affordable</span>';
         const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id, fn) + '</td>').join('') + '</tr>';
         html += row('Worst 12 months you\'d have lived', (t) => gbp(Math.round(t.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12.median)) + ')</span>');
@@ -7352,6 +7375,9 @@
           ? '0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span>'
           : t.ruin.hist.toFixed(1) + '% <span class="hint">history</span> · ' + t.ruin.mc.toFixed(1) + '% <span class="hint">Monte Carlo</span>');
         html += row('Left at the horizon (1-in-10 bad / middle / 1-in-10 good)', (t) => gbp(Math.round(t.terminal.p10)) + ' / ' + gbp(Math.round(t.terminal.p50)) + ' / ' + gbp(Math.round(t.terminal.p90)));
+        html += row('Allowed to pay you less?', (t) => t.strategyId === 'pots-and-valves'
+          ? (settings.disableProtection ? 'No — cuts switched off for this comparison' : 'Yes — up to ' + Math.round((1 - settings.protectionMult) * 100) + '% cuts; median ' + Math.round((t.signature.protMonthsMedian || 0) / 12) + ' years on reduced income in history')
+          : t.strategyId === 'ladder-and-ratchet' ? 'No — the bolted income is paid in full until the sleeve is empty' : 'Treats flex; the bills never do');
         html += '</tbody></table></div>';
         for (const id of cols) if (!S[id].affordable) html += '<p class="hint" style="color:var(--warning);">' + budEsc(S[id].name) + ': ' + budEsc(S[id].reason) + '.</p>';
         if (S['floor-and-flex'].affordable && S['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
@@ -7451,12 +7477,49 @@
       out.innerHTML = h;
     };
 
+    // Compare dials: pre-filled from Settings; read back as an OVERRIDDEN settings clone so the compare
+    // runs through the very same planFromSettings → stressTestStrategy path as a saved plan would.
+    window.resetCompareDials = async function () {
+      const s = await getStressSettingsAsync();
+      const prm = s.strategyParams || {};
+      const set = (id, v) => { const el = document.getElementById(id); if (el) { if (el.type === 'checkbox') el.checked = !!v; else el.value = v; } };
+      set('cmpPvProt', !s.disableProtection);
+      set('cmpPvCut', Math.round((1 - (s.protectionMult ?? 0.8)) * 100));
+      set('cmpPvLimit', s.consecutiveLimit ?? 3);
+      const dur = Math.min(s.duration || 35, 35);
+      set('cmpLrYears', prm.ladderYears || Math.min(15, Math.floor(dur / 2)));
+      set('cmpLrDraw', prm.drawAnnual || s.baseSalary || 0);
+      set('cmpLrTrig', prm.triggerMode || 'band');
+      set('cmpLrBand', prm.bandThreshold || 1.2);
+      set('cmpEssentials', prm.essentialsAnnual || Math.round((s.baseSalary || 40000) * 0.55));
+      set('cmpFfHorizon', prm.horizonAge || Math.min(92, 57 + dur));
+      set('cmpFfRate', ((prm.sleeveRate || 0.04) * 100));
+    };
+    function compareOverrides(s) {
+      const v = (id) => +document.getElementById(id)?.value;
+      const prot = document.getElementById('cmpPvProt')?.checked;
+      return {
+        ...s,
+        disableProtection: !prot,
+        protectionMult: Math.max(0.4, Math.min(1, 1 - (v('cmpPvCut') || 0) / 100)),
+        consecutiveLimit: v('cmpPvLimit') || s.consecutiveLimit || 3,
+        strategyParams: {
+          ...(s.strategyParams || {}),
+          ladderYears: v('cmpLrYears') || undefined,
+          drawAnnual: v('cmpLrDraw') || undefined,
+          triggerMode: document.getElementById('cmpLrTrig')?.value || 'band',
+          bandThreshold: v('cmpLrBand') || 1.2,
+          essentialsAnnual: v('cmpEssentials') || undefined,
+          horizonAge: v('cmpFfHorizon') || undefined,
+          sleeveRate: (v('cmpFfRate') || 4) / 100
+        }
+      };
+    }
     window.loadStrategiesUI = async function () {
       renderStrategyCards();
       renderGiltLadderExplainer();
-      const settings = await getStressSettingsAsync();
       const ess = document.getElementById('cmpEssentials');
-      if (ess && !ess.value) ess.value = Math.round((settings.baseSalary || 40000) * 0.55);
+      if (ess && !ess.value) await resetCompareDials();
     };
 
     // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------

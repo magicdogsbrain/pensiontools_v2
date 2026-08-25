@@ -174,7 +174,7 @@ export const FloorAndFlex = {
         'flex sleeve (% of pot, annual reset, optional £ collars)',
         'optional ratchet via the shared trigger discipline', 'real-terms historical windows (Shiller)'],
       usesTrigger: true,
-      sensitivity: 'at 2.3% real, every £1k/yr of essentials ≈ £24k of floor cost'
+      sensitivity: 'every £1k/yr of essentials costs roughly £20-25k of floor at recent real yields (priced live on the BoE curve)'
     };
   },
   engine: { runWindows: runFlexWindows, floorCost }

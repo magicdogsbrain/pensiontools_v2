@@ -2916,7 +2916,7 @@
                 </div>
                 <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
                 <div id="lrGiltTable" style="margin-top:8px;"></div>
-                <p class="hint" style="margin:8px 0 0;">The ladder is built from <strong>index-linked</strong> gilts so the income keeps its real value — conventional gilts are cheaper but lose inflation protection. Your remaining sleeve stays in world equities (e.g. VWRP). "Use my own funds" tagging is a Pots &amp; Valves feature — the ladder decides its own holdings.</p>
+                <p class="hint" style="margin:8px 0 0;">The ladder is modelled with <strong>index-linked</strong> gilts so the income keeps its real value (conventional gilts are cheaper but lose inflation protection); the sleeve is modelled as a broad equity holding. The gilts named in the illustration are simply the nearest maturities in issue — not a selection. "Use my own funds" tagging is a Pots &amp; Valves feature.</p>
               </div>
 
               <div id="ssFfParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
@@ -7202,16 +7202,9 @@
           document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot))
             + ' → equity sleeve <strong>' + gbp(Math.round(Math.max(0, sleeve))) + '</strong>. '
             + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
-          // The ladder LOOKS UP the actual gilts (index-linked universe; gap years bracketed)
+          // Illustrative ladder (same shared renderer as the stress cards: provenance + not-advice notice)
           try {
-            const sheet = orderSheet({ rungYears: Array.from({ length: yrs }, (_, i) => i + 1), drawForYear: drawNet, startYear: new Date().getFullYear() });
-            let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Income (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
-            for (const row of sheet.rows) {
-              gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
-            }
-            gt += '</tbody></table></div>';
-            if (sheet.stale) gt += '<p class="hint" style="color:var(--warning);">Gilt list is a bundled snapshot (' + sheet.generated_at.slice(0, 10) + '); costs use the flat 2.3% real curve.</p>';
-            document.getElementById('lrGiltTable').innerHTML = gt;
+            document.getElementById('lrGiltTable').innerHTML = exampleLadderHtml(Array.from({ length: yrs }, (_, i) => i + 1), drawNet, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
           } catch (e) { document.getElementById('lrGiltTable').innerHTML = ''; }
         }
         if (window._ssStrategy === 'floor-and-flex') {
@@ -7229,19 +7222,10 @@
           const rate = (+document.getElementById('ffRate').value || 4) / 100;
           document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot)) + ' → flex sleeve <strong>'
             + gbp(Math.round(Math.max(0, sleeve))) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(Math.max(0, sleeve) * rate)) + '</strong>. '
-            + 'Every £1k/yr of essentials ≈ £24k of floor. '
+            + 'Every £1k/yr of essentials ≈ ' + gbp(Math.round(Array.from({ length: years }, (_, i) => Math.pow(1 + realYieldForYear(i + 1), -(i + 1))).reduce((x, y) => x + y, 0) * 1000)) + ' of floor at today\'s real yields. '
             + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this essentials level.</span>');
           try {
-            const step = Math.max(1, Math.floor(years / 12));
-            const rungYears = [];
-            for (let k = 1; k <= years; k += (k < 3 ? 1 : step)) rungYears.push(k);
-            const sheet = orderSheet({ rungYears, drawForYear: essNet, startYear: new Date().getFullYear() });
-            let gt = '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Index-linked gilt</th><th>Essentials (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
-            for (const row of sheet.rows) {
-              gt += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
-            }
-            gt += '</tbody></table></div><p class="hint">Sampled years shown; every year to ' + horizon + ' is bought.</p>';
-            document.getElementById('ffGiltTable').innerHTML = gt;
+            document.getElementById('ffGiltTable').innerHTML = exampleLadderHtml(Array.from({ length: Math.min(years, 45) }, (_, i) => i + 1), essNet, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
           } catch (e) { document.getElementById('ffGiltTable').innerHTML = ''; }
         }
       } catch (e) { /* fields not ready */ }
@@ -9671,7 +9655,7 @@
       if (_adminTab === 'linkers') {
         return '<div style="padding:4px 2px;">'
           + '<p class="hint">Index-linked gilt universe (Appendix C). Paste CSV rows: <code>name,coupon,maturity,lag</code>. '
-          + 'Saving overrides the nightly DMO/Tradeweb file (public/data/gilts.json) for all users. Rows without prices fall back to a flat 2.3% real yield — prefer fixing the nightly job.</p>'
+          + 'Saving overrides the nightly DMO/BoE file (public/data/gilts.json) for all users. A bare CSV has no curve, so rungs fall back to a flat 2.3% real yield — prefer fixing the nightly job.</p>'
           + '<textarea id="adminLinkersCsv" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;" placeholder="0⅛% IL Treasury Gilt 2036,0.125,2036,3"></textarea>'
           + '<div class="row-flex" style="margin-top:8px;">'
           + '<button type="button" onclick="adminSaveLinkers()">Import &amp; publish</button>'

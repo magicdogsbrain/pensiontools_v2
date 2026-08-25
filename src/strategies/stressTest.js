@@ -16,6 +16,7 @@ import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { deriveCompareConfigs } from './compareRunner.js';
+import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex'
@@ -77,8 +78,18 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   const eng = getStrategy('pots-and-valves').engine;
   const r = eng.simulate({ ...cfg, years: planYears, taxMode: 'frozen', trace: true }, returns, seed);
   const t = r.trace || [];
-  const inc = t.map((row) => (row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0)
-    + ((row.planInputs && row.planInputs.fixed) || 0) / 12);
+  // Income on a GROSS-EQUIVALENT basis so it is comparable with the £ target and with the ladder
+  // strategies (whose draw is the gross target): SIPP draws are gross; ISA top-ups are net, so
+  // they are grossed up at the plan's own average rate for the year (target ÷ net-of-target).
+  // Previously ISA £ were added at net value, which read a full-income month as a shortfall.
+  const inc = t.map((row) => {
+    const pi = row.planInputs || {};
+    const taxableYr = ((row.effectiveSipp || 0) + (pi.fixed || 0) / 12) * 12;
+    const isaYr = (row.effectiveIsa ?? row.isaMonthly ?? 0) * 12;
+    if (!(pi.pa > 0)) return (taxableYr + isaYr) / 12;
+    const netYr = grossToNet(taxableYr, pi.pa, pi.brl, pi.hrl) + isaYr;   // what lands in the bank
+    return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12;                 // the gross it is worth
+  });
   let worst12 = Infinity, run = 0;
   for (let i = 0; i < inc.length; i++) {
     run += inc[i];

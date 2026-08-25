@@ -135,3 +135,16 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
     expect(Math.abs(a - b) / b).toBeLessThan(0.25);   // same order of magnitude — sanity
   });
 });
+
+describe('worst-12-months is measured on a gross-equivalent basis', () => {
+  it('with spending cuts off, a surviving ISA-funded plan lives on its full target; with cuts on, exactly the cut SIPP + grossed-up ISA', () => {
+    const settings = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], baseSalary: 60000, equityMin: 800000, bondMin: 400000, cashTarget: 100000, isaBalance: 200000 };
+    const off = lockedPlanStress({ ...settings, disableProtection: true }, 'pots-and-valves');
+    expect(off.worst12.median).toBeCloseTo(60000, -1);       // full gross target every year
+    const on = lockedPlanStress(settings, 'pots-and-valves');
+    // A 20% cut applies to the SIPP draw only; the ISA top-up (grossed up) is untouched, so the
+    // worst year sits between 80% and 100% of the target — never below the cut.
+    expect(on.worst12.min).toBeGreaterThanOrEqual(0.78 * 60000);   // ≈20% (band effects at the margin)
+    expect(on.worst12.min).toBeLessThan(60000);
+  });
+});

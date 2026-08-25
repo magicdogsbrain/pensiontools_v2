@@ -55,7 +55,7 @@ describe('LinkerUniverse (Appendix C semantics, live-data edition)', () => {
     expect(live.rows[1].calYear).toBe(2043);
     expect(live.rows[1].mode).toBe('bracket');
     expect(live.rows[0].estCost).toBe(Math.round(20000 * Math.pow(1 + realYieldForYear(10), -10)));
-    expect(live.priced).toMatch(/closing prices as of \d{4}-\d{2}-\d{2}/);
+    expect(live.priced).toMatch(/Bank of England GLC real spot curve as of \d{4}-\d{2}-\d{2}/);
     expect(live.notice).toMatch(/Not a recommendation/);
     expect(live.rows[0].giltDetails[0].cleanPrice).toBeGreaterThan(0);
     const flat = orderSheet({ rungYears: [10], drawForYear: () => 20000, startYear: 2026, realYield: 0.023 });

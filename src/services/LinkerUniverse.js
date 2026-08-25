@@ -7,8 +7,9 @@
  * gilts-in-issue report and Tradeweb FTSE closing prices (T+1). `src/data/giltsSnapshot.js` is
  * the bundled copy for offline/tests; `loadLiveGilts()` swaps in the fetched file at runtime; an
  * admin override (Firestore admin/linkers) sits above both. For 3-month-lag linkers the quoted
- * clean price is a real price, so the solved YTM is the real yield — that curve replaces the old
- * flat 2.3% assumption. Everything shown from it is labelled indicative, never a recommendation.
+ * clean price is a real price, so a solved YTM is a real yield — but the curve that PRICES the
+ * rungs is the Bank of England's daily real spot curve (realCurve in the file), with the per-gilt
+ * YTMs as the fallback. That replaces the old flat 2.3% assumption. Everything shown from it is labelled indicative, never a recommendation.
  */
 
 import snapshot from '../data/giltsSnapshot.js';
@@ -41,6 +42,8 @@ function normalise(data) {
   return {
     generated_at: data.generated_at,
     as_of: data.as_of || (data.generated_at || '').slice(0, 10),
+    curve_as_of: data.curve_as_of || data.as_of || null,
+    curve_source: data.curve_source || (data.realCurve ? 'real yields from gilt prices' : 'flat assumption'),
     source: data.source || (data.sources ? `${data.sources.issued}; ${data.sources.prices}` : 'unknown'),
     notice: data.notice || 'Indicative figures for illustration only. Not a recommendation to buy or sell any gilt.',
     gilts, realCurve
@@ -79,7 +82,7 @@ export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
 export function dataProvenance() {
   const a = activeLinkers();
   return {
-    as_of: a.as_of, generated_at: a.generated_at, source: a.source, notice: a.notice,
+    as_of: a.as_of, curve_as_of: a.curve_as_of, curve_source: a.curve_source, generated_at: a.generated_at, source: a.source, notice: a.notice,
     stale: isStale(), hasCurve: a.realCurve.length > 0, curvePoints: a.realCurve.length
   };
 }
@@ -158,7 +161,7 @@ export function orderSheet({ rungYears, drawForYear, startYear, realYield, yield
     total: rows.reduce((s, r) => s + r.estCost, 0),
     priced: flat
       ? 'flat real yield ' + (realYield * 100).toFixed(1) + '%'
-      : (prov.hasCurve ? 'real yields from closing prices as of ' + prov.as_of : 'flat real yield ' + (FLAT_REAL_YIELD_FALLBACK * 100).toFixed(1) + '% (no price data)'),
+      : (prov.hasCurve ? 'real yields from the ' + prov.curve_source + ' as of ' + prov.curve_as_of : 'flat real yield ' + (FLAT_REAL_YIELD_FALLBACK * 100).toFixed(1) + '% (no curve data)'),
     generated_at: prov.generated_at,
     as_of: prov.as_of,
     source: prov.source,

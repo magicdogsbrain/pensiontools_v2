@@ -4,8 +4,11 @@
  *
  * Sources (all public):
  *  - Gilts in issue: UK Debt Management Office D1A report (XML). Fallback: LateGenXer's mirror.
- *  - Closing prices: Tradeweb FTSE gilt closing prices — free for non-commercial use, T+1 —
- *    via LateGenXer's published CSV (the Tradeweb export needs a browser login).
+ *  - Real-yield CURVE (what prices the ladders): the Bank of England's daily GLC REAL SPOT curve
+ *    (open data, 0.5-40y). Source zip: bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/
+ *    latest-yield-curve-data.zip (xlsx inside — needs an xlsx parser); consumed here via LateGenXer's
+ *    CSV mirror of exactly that file. Fallback when unreachable: the per-gilt YTM curve below.
+ *  - Per-gilt prices (illustration table only): delayed LSE prices via LateGenXer's published CSV.
  *
  * For 3-month-lag index-linked gilts the quoted clean price is a REAL price per £100 nominal,
  * so a yield-to-maturity solved on the real cash flows IS the real yield. That real-yield curve
@@ -20,6 +23,8 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 const DMO_URL = 'https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A';
 const DMO_MIRROR = 'https://lategenxer.github.io/finance/dmo-D1A.xml';
 const PRICES_URL = 'https://lategenxer.github.io/finance/gilts-closing-prices.csv';
+const BOE_CURVE_URL = 'https://lategenxer.github.io/finance/boe-yield-curves.csv';
+const BOE_DIRECT = 'https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/latest-yield-curve-data.zip';
 
 async function fetchText(url, ms = 30000) {
   const ctl = new AbortController();
@@ -93,7 +98,25 @@ export function ytmFromClean(cleanPrice, couponPct, maturityIso, asOfIso) {
   return +((lo + hi) / 2).toFixed(5);
 }
 
-export function buildDataset({ dmo, prices, now = new Date() }) {
+/** Parse the BoE curve CSV mirror: Years,Nominal_Spot,Real_Spot,Inflation_Spot,OIS_Spot,Date (percent). */
+export function parseBoeCurve(csv) {
+  const lines = csv.trim().split(/\r?\n/);
+  const head = lines[0].split(',');
+  const iY = head.indexOf('Years'), iR = head.indexOf('Real_Spot'), iN = head.indexOf('Nominal_Spot'), iI = head.indexOf('Inflation_Spot'), iD = head.indexOf('Date');
+  const real = [], nominal = [], inflation = [];
+  let date = null;
+  for (const l of lines.slice(1)) {
+    const c = l.split(',');
+    const y = +c[iY];
+    if (iD >= 0 && c[iD]) date = c[iD];
+    if (c[iR]) real.push({ years: y, yield: +(+c[iR] / 100).toFixed(5) });
+    if (c[iN]) nominal.push({ years: y, yield: +(+c[iN] / 100).toFixed(5) });
+    if (c[iI]) inflation.push({ years: y, yield: +(+c[iI] / 100).toFixed(5) });
+  }
+  return { date, real, nominal, inflation };
+}
+
+export function buildDataset({ dmo, prices, boe = null, now = new Date() }) {
   const asOf = prices.date || dmo[0]?.dmoDate || now.toISOString().slice(0, 10);
   const gilts = dmo.map((g) => {
     const p = prices.byIsin[g.isin];
@@ -102,35 +125,43 @@ export function buildDataset({ dmo, prices, now = new Date() }) {
     return { ...g, tidm: p ? p.tidm : null, cleanPrice, yield: y, yieldKind: g.type === 'conventional' ? 'nominal' : 'real' };
   }).sort((a, b) => a.maturity.localeCompare(b.maturity));
   const yearsTo = (iso) => (Date.parse(iso) - Date.parse(asOf)) / (365.25 * 864e5);
-  const realCurve = gilts.filter((g) => g.type === 'il3' && g.yield != null)
+  const giltRealCurve = gilts.filter((g) => g.type === 'il3' && g.yield != null)
     .map((g) => ({ years: +yearsTo(g.maturity).toFixed(2), yield: g.yield, isin: g.isin }));
+  const boeOk = boe && boe.real && boe.real.length > 10;
+  const realCurve = boeOk ? boe.real : giltRealCurve;
   const nominalCurve = gilts.filter((g) => g.type === 'conventional' && g.yield != null)
     .map((g) => ({ years: +yearsTo(g.maturity).toFixed(2), yield: g.yield, isin: g.isin }));
   return {
     generated_at: now.toISOString(),
     as_of: asOf,
+    curve_as_of: boeOk ? boe.date : asOf,
+    curve_source: boeOk ? 'Bank of England GLC real spot curve' : 'real YTM solved from index-linked gilt prices (BoE curve unavailable)',
     sources: {
       issued: 'UK DMO gilts in issue (D1A)',
-      prices: 'Tradeweb FTSE gilt closing prices (via LateGenXer mirror; free for non-commercial use, T+1)'
+      curve: boeOk ? 'Bank of England daily real spot yield curve (open data, via LateGenXer mirror)' : 'derived from gilt prices',
+      prices: 'delayed London Stock Exchange prices (via LateGenXer mirror) — illustration only'
     },
     notice: 'Indicative closing prices and derived yields for illustration only. Not a recommendation to buy or sell any gilt.',
     counts: { gilts: gilts.length, priced: gilts.filter((g) => g.cleanPrice != null).length, realCurve: realCurve.length },
-    realCurve, nominalCurve, gilts
+    realCurve, giltRealCurve, nominalCurve, boeNominalCurve: boeOk ? boe.nominal : [], boeInflationCurve: boeOk ? boe.inflation : [], gilts
   };
 }
 
 async function main() {
-  let xml;
-  try { xml = await fetchText(DMO_URL); } catch (e) { console.warn('DMO direct failed, using mirror:', e.message); xml = await fetchText(DMO_MIRROR); }
-  const dmo = parseDmo(xml);
+  let dmo = [];
+  try { dmo = parseDmo(await fetchText(DMO_URL)); } catch (e) { console.warn('DMO direct failed:', e.message); }
+  if (dmo.length < 50) { console.warn('DMO direct returned ' + dmo.length + ' gilts — using mirror'); dmo = parseDmo(await fetchText(DMO_MIRROR)); }
+  if (dmo.length < 50) throw new Error('gilt universe unavailable (' + dmo.length + ' rows) — keeping the previous file');
   const prices = parsePrices(await fetchText(PRICES_URL));
-  const data = buildDataset({ dmo, prices });
+  let boe = null;
+  try { boe = parseBoeCurve(await fetchText(BOE_CURVE_URL)); } catch (e) { console.warn('BoE curve mirror failed (falling back to gilt-price curve):', e.message); }
+  const data = buildDataset({ dmo, prices, boe });
   const json = JSON.stringify(data, null, 1);
   for (const dir of ['public/data', 'docs/data']) { mkdirSync(dir, { recursive: true }); writeFileSync(`${dir}/gilts.json`, json); }
   writeFileSync('src/data/giltsSnapshot.js',
     '// GENERATED by scripts/fetch-gilt-data.mjs — bundled fallback when public/data/gilts.json cannot be fetched.\n'
     + '// Do not hand-edit.\nexport default ' + json + ';\n');
-  console.log(`gilts ${data.counts.gilts}, priced ${data.counts.priced}, real curve ${data.counts.realCurve} pts, as of ${data.as_of}`);
+  console.log(`gilts ${data.counts.gilts}, priced ${data.counts.priced}, real curve ${data.counts.realCurve} pts (${data.curve_source}, ${data.curve_as_of}), prices as of ${data.as_of}`);
   console.log('real curve:', data.realCurve.map((p) => `${p.years}y ${(p.yield * 100).toFixed(2)}%`).join(' | '));
 }
 

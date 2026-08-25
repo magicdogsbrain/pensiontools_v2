@@ -50,18 +50,29 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
   const spStartYear = cfg.spStartYear ?? cfg.statePensionYear ?? settings.statePensionYear ?? 99;
   const durationYears = Math.min(settings.duration || cfg.duration || 35, 35);
+  // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
+  // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat.
+  let targetSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : null;
+  if (!targetSchedule && settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length) {
+    const ageNow = settings.shapeAgeNow || startAge;
+    const steps = settings.incomeSteps.filter((x) => Number.isFinite(+x.fromAge) && +x.amount > 0).sort((a, b) => +a.fromAge - +b.fromAge);
+    targetSchedule = Array.from({ length: durationYears + 1 }, (_, y) => {
+      const st = steps.filter((x) => +x.fromAge <= ageNow + y).pop();
+      return st ? +st.amount : target;
+    });
+  }
   return {
     pot, isa, targetAnnual: target,
     essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),
     durationYears, startAge, spAnnual, spStartYear,
     incomeShape: settings.incomeShape, incomeSteps: settings.incomeSteps, shapeAgeNow: settings.shapeAgeNow,
-    targetSchedule: Array.isArray(cfg.targetSchedule) ? cfg.targetSchedule : null,
+    targetSchedule,
     params: {
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate
     },
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
-    pnvCfg: { ...cfg, isaReturn: 0, startAge },
+    pnvCfg: { ...cfg, isaReturn: 0, startAge, targetSchedule },
     yieldForYear
   };
 }
@@ -167,7 +178,7 @@ function ladderTest(p, configs) {
     affordable: true,
     ruin: { hist: 100 * hist.filter((w) => w.survived === false).length / hist.length, mc: 100 - (mc.stats.survivalPct ?? 100) },
     ruinMcHalfWidthPp: mc.stats.survivalHalfWidthPp,
-    worst12: { min: hist.every((w) => w.survived) ? p.targetAnnual : 0, median: p.targetAnnual },
+    worst12: { min: hist.every((w) => w.survived) ? lr.minDraw : 0, median: lr.minDraw },
     guaranteedToAge: `${p.startAge + lr.ladderYears} by contract; median ratchets to ${p.startAge + lr.ladderYears + h.stats.securedMedian}`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },

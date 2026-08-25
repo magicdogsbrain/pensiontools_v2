@@ -8051,6 +8051,9 @@
         const _newBase = +document.getElementById('ssBaseSalary').value;
         const _keepSchedule = Array.isArray(_curSS.targetSchedule)
           && Math.abs(_newBase - (_curSS.targetSchedule[0] || 0)) < 1;
+        // Stepped income compiles to the canonical per-year schedule the engine reads. It must WIN over
+        // the budget-schedule keep/clear logic below (a later duplicate key used to null it out).
+        const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
         await setActiveStrategy(window._ssStrategy || 'pots-and-valves', readStrategyParams());
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
@@ -8059,14 +8062,11 @@
           incomeShape: window._ssIncomeShape,
           incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
           shapeAgeNow: +document.getElementById('shapeAgeNow').value || 57,
-          ...(compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase)
-            ? { targetSchedule: compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase) }
-            : {}),
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
           bandFillRecycle: document.getElementById('ssBandFillRecycle').checked,
-          targetSchedule: _keepSchedule ? _curSS.targetSchedule : null,
+          targetSchedule: _stepSchedule || (_keepSchedule ? _curSS.targetSchedule : null),
           baseSalary: +document.getElementById('ssBaseSalary').value,
           equityMin: ssAlloc.equityMin,
           bondMin: ssAlloc.bondMin,

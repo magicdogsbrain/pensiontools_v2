@@ -148,3 +148,34 @@ describe('worst-12-months is measured on a gross-equivalent basis', () => {
     expect(on.worst12.min).toBeLessThan(60000);
   });
 });
+
+describe('stepped income (60k to 72, 50k to 80, 40k after) reaches every strategy', () => {
+  const stepped = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], equityMin: 720000, bondMin: 360000, cashTarget: 120000, isaBalance: 60000,
+    baseSalary: 60000, duration: 35, incomeShape: 'phases', shapeAgeNow: 57,
+    incomeSteps: [{ fromAge: 57, amount: 60000 }, { fromAge: 73, amount: 50000 }, { fromAge: 80, amount: 40000 }] };
+  it('compiles a per-year schedule when the saved one is missing, and the P&V worst year is a 40k year', () => {
+    const cfg = createSimulationConfigFromSettings({}, stepped);
+    expect(cfg.targetSchedule).toBeNull();                       // what an old save left behind
+    const p = planFromSettings(stepped, cfg, { yieldForYear: realYieldForYear });
+    expect(p.targetSchedule.length).toBe(36);
+    expect(p.targetSchedule[0]).toBe(60000);
+    expect(p.targetSchedule[16]).toBe(50000);                    // age 73
+    expect(p.targetSchedule[23]).toBe(40000);                    // age 80
+    const pv = stressTestStrategy('pots-and-valves', { ...p, ...FAST, pnvCfg: { ...p.pnvCfg, disableProtection: true } });
+    expect(pv.worst12.median).toBeCloseTo(40000, -2);
+    expect(pv.cones.income.p50[5]).toBeCloseTo(60000, -2);
+    expect(pv.cones.income.p50[30]).toBeCloseTo(40000, -2);
+  });
+  it('the ladder rungs are sized to the steps: cheaper base ladder than flat, worst-12 = lowest bolted year', () => {
+    const cfg = createSimulationConfigFromSettings({}, stepped);
+    const p = { ...planFromSettings(stepped, cfg, { yieldForYear: realYieldForYear }), ...FAST };
+    const flat = { ...p, targetSchedule: null, pnvCfg: { ...p.pnvCfg, targetSchedule: null } };
+    const a = stressTestAll(p), b = stressTestAll(flat);
+    expect(a.configs.lr.profile.type).toBe('schedule');
+    expect(a.configs.baseLadderCost).toBe(b.configs.baseLadderCost);   // first 15 years are all 60k either way
+    expect(a.strategies['ladder-and-ratchet'].worst12.median).toBe(40000);
+    expect(b.strategies['ladder-and-ratchet'].worst12.median).toBe(60000);
+    expect(a.strategies['ladder-and-ratchet'].ruin.mc).toBeLessThan(b.strategies['ladder-and-ratchet'].ruin.mc);
+    expect(a.strategies['ladder-and-ratchet'].cones.income.p50[30]).toBeCloseTo(40000, -2);
+  });
+});

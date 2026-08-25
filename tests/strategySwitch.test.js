@@ -222,3 +222,34 @@ describe('the compare no longer flatters Pots & Valves', () => {
     expect(cmp.ruin.mc).toBeGreaterThan(tabRuin * 0.5);
   });
 });
+
+describe('Floor to an age, then decide (5th strategy)', () => {
+  const stepped = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], equityMin: 720000, bondMin: 360000, cashTarget: 120000, isaBalance: 60000,
+    baseSalary: 60000, duration: 35, incomeShape: 'phases', shapeAgeNow: 57,
+    incomeSteps: [{ fromAge: 57, amount: 60000 }, { fromAge: 73, amount: 50000 }, { fromAge: 80, amount: 40000 }] };
+  it('agrees across surfaces; contract to 80 (no spread), decision after; never runs out, can be cut', () => {
+    const { all } = compareTab(stepped);
+    const fa = all.strategies['floor-to-age'];
+    expect(fa.affordable).toBe(true);
+    expect(strip(lockedPlanStress(stepped, 'floor-to-age'))).toEqual(strip(fa));
+    expect(all.configs.fa.floorToAge).toBe(80);
+    expect(all.configs.faFloorCost).toBeLessThan(all.configs.fsFloorCost);
+    expect(fa.cones.income.p10[10]).toBe(fa.cones.income.p90[10]);         // by contract before 80
+    expect(fa.cones.income.p50[10]).toBeCloseTo(60000, -2);
+    expect(fa.cones.income.p90[30]).toBeGreaterThanOrEqual(fa.cones.income.p10[30]);
+    expect(fa.cones.income.p90[30]).toBeCloseTo(40000, -2);               // at best, the schedule itself
+    expect(fa.ruin.mc).toBeGreaterThanOrEqual(0); expect(fa.ruin.mc).toBeLessThan(40);
+    expect(fa.ruinLabel).toMatch(/cut after 80/);
+    expect(fa.failAges).toEqual([]);
+    expect(fa.cones.wealth.p50[0]).toBeCloseTo(1260000, -3);
+    expect(fa.signature.canBuy[0].amount).toBe(40000);
+    expect(fa.signature.canBuy[0].mc).toBeGreaterThan(50);
+  });
+  it('the age dial moves the cost and the decision point', () => {
+    const at75 = { ...stepped, strategyParams: { floorToAge: 75 } };
+    const a = compareTab(at75).all;
+    expect(a.configs.fa.floorToAge).toBe(75);
+    expect(a.configs.faFloorCost).toBeLessThan(compareTab(stepped).all.configs.faFloorCost);
+    expect(a.strategies['floor-to-age'].guaranteedToAge).toMatch(/^75 by contract/);
+  });
+});

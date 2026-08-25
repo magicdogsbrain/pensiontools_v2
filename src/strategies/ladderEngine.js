@@ -56,6 +56,48 @@ export function bootstrapRtr(seed, months, blockMonths = 60, data) {
   return out;
 }
 
+/** Monthly CPI series aligned with getRtr() (same rows). */
+export function getCpi(data = shiller) { return data.CPI; }
+
+/**
+ * PAIRED block bootstrap: the same random blocks applied to the real TR index AND the CPI index,
+ * so a synthetic future carries its own inflation history (a 1970s block brings 1970s inflation).
+ * Lets the nominal engines (Pots & Valves) run on exactly the market the ladders see.
+ * Same LCG and block draw as bootstrapRtr for a given seed; bootstrapRtr itself is untouched.
+ * @returns {{rtr:number[], cpi:number[]}} both length months+1, both starting at 1
+ */
+export function bootstrapPaths(seed, months, blockMonths = 60, data) {
+  const hist = (data && data.rtr) || getRtr();
+  const cpiH = (data && data.cpi) || getCpi();
+  const H = hist.length - 1;
+  let st = (seed * 2654435761 + 1) >>> 0;
+  const rnd = () => { st = (1103515245 * st + 12345) >>> 0; return st / 4294967296; };
+  const rtr = new Array(months + 1), cpi = new Array(months + 1);
+  rtr[0] = 1; cpi[0] = 1;
+  let m = 0;
+  while (m < months) {
+    const start = Math.floor(rnd() * H);
+    for (let b = 0; b < blockMonths && m < months; b++, m++) {
+      const i = (start + b) % H;
+      rtr[m + 1] = rtr[m] * (hist[i + 1] / hist[i]);
+      cpi[m + 1] = cpi[m] * (cpiH[i + 1] / cpiH[i]);
+    }
+  }
+  return { rtr, cpi };
+}
+
+/** Annual NOMINAL equity returns + inflation for the P&V engine from a (real TR, CPI) path pair. */
+export function annualNominal(rtr, cpi, off, planYears) {
+  const equity = {}, inflation = {};
+  for (let y = 0; y < planYears; y++) {
+    const realR = rtr[off + 12 * (y + 1)] / rtr[off + 12 * y];
+    const infl = cpi[off + 12 * (y + 1)] / cpi[off + 12 * y];
+    equity[y] = realR * infl - 1;
+    inflation[y] = infl - 1;
+  }
+  return { equity, inflation };
+}
+
 /** Month index in the bundled series for a calendar year-month, or -1. */
 export function monthIndexFor(year, month) {
   const [sy, sm] = shiller.start.split('-').map(Number);

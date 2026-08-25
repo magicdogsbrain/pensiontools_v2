@@ -180,3 +180,30 @@ describe('stepped income (60k to 72, 50k to 80, 40k after) reaches every strateg
     expect(a.strategies['ladder-and-ratchet'].cones.income.p50[30]).toBeCloseTo(40000, -2);
   });
 });
+
+describe('Floor the schedule (4th strategy): the whole income profile bought by contract', () => {
+  const stepped = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], equityMin: 720000, bondMin: 360000, cashTarget: 120000, isaBalance: 60000,
+    baseSalary: 60000, duration: 35, incomeShape: 'phases', shapeAgeNow: 57,
+    incomeSteps: [{ fromAge: 57, amount: 60000 }, { fromAge: 73, amount: 50000 }, { fromAge: 80, amount: 40000 }] };
+  it('is in the compare and agrees with the locked-plan run; 0% ruin; worst-12 = lowest step; costs more than the essentials floor', () => {
+    const { all } = compareTab(stepped);
+    const fs = all.strategies['floor-the-schedule'];
+    expect(fs.affordable).toBe(true);
+    expect(strip(lockedPlanStress(stepped, 'floor-the-schedule'))).toEqual(strip(fs));
+    expect(fs.ruin).toEqual({ hist: 0, mc: 0 });
+    expect(fs.worst12).toEqual({ min: 40000, median: 40000 });
+    expect(all.configs.fsFloorCost).toBeGreaterThan(all.configs.ffFloorCost);
+    expect(all.configs.fsFloorCost).toBeGreaterThan(all.configs.baseLadderCost);
+    expect(fs.cones.wealth.p50[0]).toBeCloseTo(1260000, -3);
+    expect(fs.cones.income.p50[5]).toBeCloseTo(60000, -2);
+    expect(fs.cones.income.p50[30]).toBeCloseTo(40000, -2);
+    expect(fs.cones.income.p10[30]).toBe(fs.cones.income.p90[30]);   // by contract: no spread
+    expect(fs.signature.sleeveAtEnd.p50).toBeGreaterThan(fs.signature.sleeveE0);
+  });
+  it('is honestly unaffordable when the schedule costs more than the pot', () => {
+    const poor = { ...stepped, equityMin: 300000, bondMin: 150000, cashTarget: 50000, isaBalance: 0 };
+    const r = lockedPlanStress(poor, 'floor-the-schedule');
+    expect(r.affordable).toBe(false);
+    expect(r.reason).toMatch(/costs/);
+  });
+});

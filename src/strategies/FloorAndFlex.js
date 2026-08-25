@@ -179,3 +179,29 @@ export const FloorAndFlex = {
   },
   engine: { runWindows: runFlexWindows, floorCost }
 };
+
+/**
+ * Floor the schedule — the user's OWN income profile (e.g. £60k to 72, £50k to 80, £40k after), net
+ * of the State Pension, bought as index-linked rungs to the plan horizon. No treats decision: the
+ * rungs ARE the income, years in advance; the remainder is an untouched reserve/upside sleeve
+ * reviewed once a year. Same engine as Floor & Flex with rate 0.
+ */
+export const FloorTheSchedule = {
+  id: 'floor-the-schedule',
+  name: 'Floor the schedule',
+  promise: 'Your whole income plan, year by year, bought up front. Nothing to decide each month.',
+  failure: 'It costs most of the pot; the reserve grows, but the plan itself can never grow — and selling rungs early can lose money.',
+  granularity: 'windows',
+  describe() {
+    return {
+      id: this.id, name: this.name, promise: this.promise, failure: this.failure,
+      engineVersion: ENGINE_VERSION,
+      components: ['index-linked rungs sized to the income schedule, net of State Pension, to the horizon',
+        'untouched reserve sleeve (equities) — once-a-year review against a glide line',
+        'optional: spend excess on rungs beyond the horizon or on raising later years', 'real-terms historical windows (Shiller)'],
+      usesTrigger: false,
+      sensitivity: 'the cost is the whole schedule discounted on the BoE real curve — every £1k/yr for 35 years ≈ £27k'
+    };
+  },
+  engine: { runWindows: runFlexWindows, floorCost }
+};

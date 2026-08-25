@@ -1994,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BliYTy6a.js"></script>
+  <script type="module" crossorigin src="./assets/main-CG8h1A9T.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2644,6 +2644,29 @@
                 <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
               </div>
               <div id="compareResults" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="settings-section" id="giltLadderExplainer">
+              <div class="section-title">What a gilt ladder is — and what one costs today <span class="hint" style="font-weight:normal;">(a worked example, not linked to your plan)</span></div>
+              <div class="alert alert-warning" style="font-size:13px;">
+                <strong>What this is.</strong> A calculator that prices a maths problem from public data: “how much would it cost, at today’s Bank of England yield curve, to have gilts mature and pay £X every year for N years?” It uses the live list of gilts in issue (Debt Management Office) and delayed exchange prices for illustration.<br>
+                <strong>What it is not.</strong> It does not know whether a ladder suits you, which gilt you should buy, or how it interacts with your tax position; it is not a recommendation and not financial advice. A bond ladder is not necessarily the best strategy for anyone — the three strategies above are the honest comparison. Figures ignore dealing costs, bid–offer spreads, accrued interest, whole-unit rounding and the tax treatment of coupons. If in doubt, take regulated advice.
+              </div>
+              <div class="row-flex" style="margin-top:8px;align-items:flex-end;">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">£ per year (today’s money)<input type="number" id="glxAmount" value="10000" step="1000" style="width:120px;" oninput="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Number of years<input type="number" id="glxYears" value="10" min="1" max="40" style="width:90px;" oninput="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Gilt type<select id="glxKind" style="width:230px;" onchange="renderGiltLadderExplainer()"><option value="real">Index-linked (keeps pace with RPI/CPIH)</option><option value="nominal">Conventional (fixed £, inflation not covered)</option></select></label>
+              </div>
+              <div id="glxOut" style="margin-top:10px;"></div>
+              <details style="margin-top:8px;"><summary class="hint" style="cursor:pointer;">How a ladder works, in four lines</summary>
+                <ol style="font-size:13px;margin:6px 0 6px 18px;">
+                  <li>You buy one gilt maturing in each year you want income. When it matures the government repays the face value — that year’s money.</li>
+                  <li>Index-linked gilts repay face value uplifted by inflation, so a real ladder pays a constant amount in today’s money; conventional gilts repay a fixed £ amount.</li>
+                  <li>The cost today of £1 in year <em>k</em> is £1 ÷ (1 + yield)<sup>k</sup>; the yield curve says what the market charges for each year. Long years are cheap when real yields are high.</li>
+                  <li>Nothing about a gilt ladder is guaranteed except the cash flows if held to maturity: prices move daily, and selling early can lose money.</li>
+                </ol>
+                <p class="hint">Further reading: the <a href="https://www.dmo.gov.uk/responsibilities/gilt-market/about-gilts/" target="_blank" rel="noopener">DMO’s About gilts</a>, Monevator’s <a href="https://monevator.com/should-you-build-an-index-linked-gilt-ladder/" target="_blank" rel="noopener">Should you build an index-linked gilt ladder?</a>, and LateGenXer’s <a href="https://lategenxer.streamlit.app/Gilt_Ladder" target="_blank" rel="noopener">Gilt Ladder Builder</a> (whose approach this example follows).</p>
+              </details>
             </div>
           </div>
         </div>

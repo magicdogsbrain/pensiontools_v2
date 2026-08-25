@@ -11,7 +11,7 @@
  *   plus a strategy-specific `signature` and the derived config used.
  */
 
-import { getRtr, bootstrapRtr, pct, curvePricer, flatYieldPricer } from './ladderEngine.js';
+import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYieldPricer } from './ladderEngine.js';
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
@@ -65,22 +65,21 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate
     },
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
-    pnvCfg: { ...cfg, isaReturn: 0, startAge, targetSchedule },
+    pnvCfg: { ...cfg, startAge, targetSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now
     yieldForYear
   };
 }
 
-/** Annual real returns for one window / one bootstrapped path, in the P&V engine's shape. */
-function annualReal(path, off, planYears) {
-  const eq = {}, inf = {};
-  for (let y = 0; y < planYears; y++) { eq[y] = path[off + 12 * (y + 1)] / path[off + 12 * y] - 1; inf[y] = 1e-9; }
-  return { equity: eq, inflation: inf };
-}
-
-/** One P&V run in today's money with the per-year wealth + income series extracted. */
+/**
+ * One P&V run on a NOMINAL path (real equity history × that window's own inflation), exactly as the
+ * Monte Carlo tab runs it — tax bands, cash and bond models all see real inflation — with the
+ * outputs converted to today's money. (An earlier version fed the engine inflation≈0 and frozen
+ * bands, which let the nominal bond/cash models read as REAL returns and flattered P&V by
+ * several points of ruin.)
+ */
 function pnvRun(cfg, returns, seed, planYears, startAge) {
   const eng = getStrategy('pots-and-valves').engine;
-  const r = eng.simulate({ ...cfg, years: planYears, taxMode: 'frozen', trace: true }, returns, seed);
+  const r = eng.simulate({ ...cfg, years: planYears, trace: true }, returns, seed);
   const t = r.trace || [];
   // Income on a GROSS-EQUIVALENT basis so it is comparable with the £ target and with the ladder
   // strategies (whose draw is the gross target): SIPP draws are gross; ISA top-ups are net, so
@@ -92,7 +91,7 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
     const isaYr = (row.effectiveIsa ?? row.isaMonthly ?? 0) * 12;
     if (!(pi.pa > 0)) return (taxableYr + isaYr) / 12;
     const netYr = grossToNet(taxableYr, pi.pa, pi.brl, pi.hrl) + isaYr;   // what lands in the bank
-    return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12;                 // the gross it is worth
+    return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12 / (row.cumInf || 1);   // gross-equivalent, today's money
   });
   let worst12 = Infinity, run = 0;
   for (let i = 0; i < inc.length; i++) {
@@ -107,20 +106,20 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   const wealth = (r.potByYear || []).map((v, y) => (v == null ? 0 : v) + (r.isaByYear && r.isaByYear[y] != null ? r.isaByYear[y] : 0));
   return {
     failed: r.failed, failAge: r.failed ? startAge + r.failMonth / 12 : null,
-    terminal: r.failed ? 0 : (r.finalEquity + r.finalBond + r.finalCash + r.finalDiversifier + r.finalIsa),
+    terminal: r.failed ? 0 : (r.finalReal + (r.finalIsa || 0) / (r.cumInflation || 1)),   // today's money
     worst12, protMonths: r.protMonths, wealthByYear: wealth, incomeByYear
   };
 }
 
 function pnvTest(p, configs) {
-  const rtr = getRtr();
+  const rtr = getRtr(), cpi = getCpi();
   const planYears = p.durationYears;
   const END = configs.END;
   const hist = [];
-  for (let s = 0; s < rtr.length - END; s += (p.stride || 1)) hist.push({ s, ...pnvRun(p.pnvCfg, annualReal(rtr, s, planYears), s, planYears, p.startAge) });
+  for (let s = 0; s < rtr.length - END; s += (p.stride || 1)) hist.push({ s, ...pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge) });
   const mc = [];
   const runs = p.mcRuns || 400;
-  for (let i = 0; i < runs; i++) mc.push(pnvRun(p.pnvCfg, annualReal(bootstrapRtr(i * 31337 + 11, END), 0, planYears), i, planYears, p.startAge));
+  for (let i = 0; i < runs; i++) { const path = bootstrapPaths(i * 31337 + 11, END); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
   const terms = mc.map((w) => w.terminal);
   return {
     affordable: true,

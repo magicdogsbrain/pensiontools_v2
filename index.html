@@ -5410,7 +5410,7 @@
         const yrsF = Math.min(r.signature.horizonAge - p.startAge, p.durationYears, 45);
         h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
       }
-      h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan with today\'s tax bands frozen in real terms.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
+      h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan run exactly as the Monte Carlo tab runs it — each history\'s own inflation, your tax mode, your cash and bond models — with the results shown in today\'s money.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
       h += '</div>';
       return h;
     }
@@ -7404,7 +7404,7 @@
           html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex at these essentials: the floor consumes almost the whole pot — treats start at just '
             + gbp(Math.round(S['floor-and-flex'].signature.year1Flex)) + '/yr. The 0% running-out figure is real, but this is a bare-bills retirement in bad markets.</p>';
         }
-        html += '<p class="hint" style="margin-top:6px;">All three ran the SAME plan on the SAME markets (Shiller 1871–2023, real terms; every window plus 1,000 bootstrapped futures each) and the same income need. '
+        html += '<p class="hint" style="margin-top:6px;">All strategies ran the SAME plan on the SAME markets (Shiller 1871–2023: every window plus 1,000 bootstrapped futures each, each carrying its own inflation) and the same income need; results in today\'s money. '
           + 'Pots &amp; Valves runs your actual plan settings; Ladder &amp; Ratchet banks ' + (r.configs.lr ? r.configs.lr.ladderYears : '—') + ' years up front (cost ' + gbp(Math.round(r.configs.baseLadderCost || 0)) + '); '
           + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at ' + ((r.configs.ff ? r.configs.ff.rate : 0.04) * 100).toFixed(1) + '%. '
           + 'Lock any of them in Settings and the Monte Carlo tab shows exactly these numbers with the full cones.</p>';

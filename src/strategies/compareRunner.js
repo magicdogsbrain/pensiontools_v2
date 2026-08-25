@@ -13,43 +13,34 @@
  * from market income (the solid-vs-translucent law).
  */
 
-import { getRtr, bootstrapRtr, pct } from './ladderEngine.js';
+import { getRtr, getCpi, bootstrapPaths, annualNominal, pct } from './ladderEngine.js';
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { stressTestAll } from './stressTest.js';
 
-/** Annualised real returns for one window (planYears entries). */
-function windowAnnualReturns(rtr, s, planYears) {
-  const eq = {}, inf = {};
-  for (let y = 0; y < planYears; y++) {
-    eq[y] = rtr[s + 12 * (y + 1)] / rtr[s + 12 * y] - 1;
-    inf[y] = 1e-9;   // real terms: inflation is epsilon (0 reads as unset)
-  }
-  return { equity: eq, inflation: inf };
-}
 
 /**
  * Pots & Valves over the same historical windows, in today's money.
  * cfg: the plan's REAL config (pots, floors, target, SP...) with taxMode 'frozen'.
  */
 export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
-  const rtr = getRtr();
+  const rtr = getRtr(), cpi = getCpi();
   const planYears = Math.round(END / 12);
   const n = rtr.length - END;
   const eng = getStrategy('pots-and-valves').engine;
   const windows = [];
   for (let s = 0; s < n; s += stride) {
-    const returns = windowAnnualReturns(rtr, s, planYears);
-    const r = eng.simulate({ ...cfg, years: planYears, taxMode: 'frozen', trace: true }, returns, s);
+    const returns = annualNominal(rtr, cpi, s, planYears);   // nominal: real history × its own inflation
+    const r = eng.simulate({ ...cfg, years: planYears, trace: true }, returns, s);
     // Worst rolling-12-month income from the trace (SIPP + ISA + fixed floors), then drop it.
     let worst12 = Infinity;
     const t = r.trace || [];
     if (t.length >= 12) {
       let run = 0;
-      const inc = t.map((row) => (row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0)
-        + ((row.planInputs && row.planInputs.fixed) || 0) / 12);
+      const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0)
+        + ((row.planInputs && row.planInputs.fixed) || 0) / 12) / (row.cumInf || 1));
       for (let i = 0; i < inc.length; i++) {
         run += inc[i];
         if (i >= 12) run -= inc[i - 12];
@@ -61,7 +52,7 @@ export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
       s,
       failed: r.failed,
       failAge: r.failed ? (cfg.startAge ?? 57) + r.failMonth / 12 : null,
-      terminal: r.failed ? 0 : (r.finalEquity + r.finalBond + r.finalCash + r.finalDiversifier + r.finalIsa),
+      terminal: r.failed ? 0 : (r.finalReal + (r.finalIsa || 0) / (r.cumInflation || 1)),
       worst12,
       protMonths: r.protMonths
     });
@@ -77,10 +68,8 @@ export function runPnvMonteCarlo(cfg, { END, runs = 400 } = {}) {
   const eng = getStrategy('pots-and-valves').engine;
   let failedN = 0;
   for (let i = 0; i < runs; i++) {
-    const path = bootstrapRtr(i * 31337 + 11, END);
-    const eq = {}, inf = {};
-    for (let y = 0; y < planYears; y++) { eq[y] = path[12 * (y + 1)] / path[12 * y] - 1; inf[y] = 1e-9; }
-    const r = eng.simulate({ ...cfg, years: planYears, taxMode: 'frozen' }, { equity: eq, inflation: inf }, i);
+    const path = bootstrapPaths(i * 31337 + 11, END);
+    const r = eng.simulate({ ...cfg, years: planYears }, annualNominal(path.rtr, path.cpi, 0, planYears), i);
     if (r.failed) failedN++;
   }
   return { runs, ruinPct: 100 * failedN / runs };

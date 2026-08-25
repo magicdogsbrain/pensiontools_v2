@@ -12,6 +12,7 @@ import { createSimulationConfigFromSettings } from '../src/storage/StressReposit
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES } from '../src/strategies/stressTest.js';
 import { runCompare } from '../src/strategies/compareRunner.js';
 import { realYieldForYear } from '../src/services/LinkerUniverse.js';
+import { simulate, monteCarloReturns } from '../src/services/SimulationEngine.js';
 
 const base = {
   duration: 30, other: 0, pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates',
@@ -144,7 +145,7 @@ describe('worst-12-months is measured on a gross-equivalent basis', () => {
     const on = lockedPlanStress(settings, 'pots-and-valves');
     // A 20% cut applies to the SIPP draw only; the ISA top-up (grossed up) is untouched, so the
     // worst year sits between 80% and 100% of the target — never below the cut.
-    expect(on.worst12.min).toBeGreaterThanOrEqual(0.78 * 60000);   // ≈20% (band effects at the margin)
+    expect(on.worst12.min).toBeGreaterThanOrEqual(0.75 * 60000);   // ≈20% cut (band effects + monthly deflation at the margin)
     expect(on.worst12.min).toBeLessThan(60000);
   });
 });
@@ -205,5 +206,19 @@ describe('Floor the schedule (4th strategy): the whole income profile bought by 
     const r = lockedPlanStress(poor, 'floor-the-schedule');
     expect(r.affordable).toBe(false);
     expect(r.reason).toMatch(/costs/);
+  });
+});
+
+describe('the compare no longer flatters Pots & Valves', () => {
+  it('compare P&V Monte-Carlo ruin is within a few points of the Stress-tab engine on the same plan (was ~0% vs ~18%)', () => {
+    const settings = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], baseSalary: 60000, equityMin: 600000, bondMin: 480000, cashTarget: 120000, isaBalance: 60000, duration: 35, disableProtection: true };
+    const cfg = createSimulationConfigFromSettings({}, settings);
+    let f = 0; const N = 600;
+    for (let i = 0; i < N; i++) if (simulate(cfg, monteCarloReturns(cfg, i), i).failed) f++;
+    const tabRuin = 100 * f / N;
+    const cmp = lockedPlanStress(settings, 'pots-and-valves');
+    expect(tabRuin).toBeGreaterThan(8);                                  // a genuinely marginal plan
+    expect(Math.abs(cmp.ruin.mc - tabRuin)).toBeLessThan(7);
+    expect(cmp.ruin.mc).toBeGreaterThan(tabRuin * 0.5);
   });
 });

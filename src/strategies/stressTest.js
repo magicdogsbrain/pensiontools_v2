@@ -20,7 +20,7 @@ import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../storage/StressRepository.js';
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule'
+  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide'
 };
 
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
@@ -62,7 +62,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     targetSchedule,
     params: {
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
-      bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate
+      bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
+      floorToAge: params.floorToAge
     },
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     pnvCfg: { ...cfg, startAge, targetSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now
@@ -256,9 +257,67 @@ function scheduleFloorTest(p, configs) {
   };
 }
 
+function floorToAgeTest(p, configs) {
+  const c = configs.fa;
+  if (!c) return { affordable: false, reason: `buying the schedule to ${configs.fa ? c.floorToAge : (p.params?.floorToAge || 80)} costs ${Math.round(configs.faFloorCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  const N = p.durationYears, A = c.A;
+  const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
+  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  // AT age A the reserve buys the rest of the schedule if it can; else the level income it can buy.
+  const decide = (w) => {
+    const sA = w.sleeveByYear[A] ?? 0;
+    const full = sA >= c.restCostFull;
+    const level = full ? null : sA / c.annuityFactor;                    // £/yr net of SP, level, to the horizon
+    const leftover = full ? sA - c.restCostFull : 0;
+    const wealth = [], income = [];
+    for (let y = 0; y <= N; y++) {
+      if (y <= A) {
+        wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, A, c.floorDraw, pricer));
+        income.push(c.floorDraw(y + 1) + spAt(y));
+      } else {
+        const grow = (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, sA);
+        const rungsPv = full
+          ? (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += Math.max(0, c.amountAt(k) - (k > (p.spStartYear ?? Infinity) ? p.spAnnual : 0)) * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })()
+          : (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += level * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })();
+        wealth.push(leftover * grow + rungsPv);
+        income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y));
+      }
+    }
+    return { sA, full, level, leftover, wealth, income, worst: Math.min(...income) };
+  };
+  const hE = h.windows.map(decide), mcE = mc.windows.map(decide);
+  const pctCut = (arr) => 100 * arr.filter((e) => !e.full).length / arr.length;
+  const sAt = (arr) => { const v = arr.map((e) => e.sA); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const canBuy = (amount) => { const cost = c.restCost(() => amount); return { amount, cost, hist: 100 * hE.filter((e) => e.sA >= cost).length / hE.length, mc: 100 * mcE.filter((e) => e.sA >= cost).length / mcE.length }; };
+  const lowest = Math.min(...Array.from({ length: N - A }, (_, i) => c.amountAt(A + 1 + i)));
+  const terms = mcE.map((e) => e.wealth[N]);
+  return {
+    affordable: true,
+    // Never runs out: the reserve always buys SOMETHING at A. 'ruin' here = the plan is CUT after A.
+    ruin: { hist: pctCut(hE), mc: pctCut(mcE) },
+    ruinLabel: 'chance the plan is cut after ' + c.floorToAge + ' (it never runs out — the reserve buys a smaller income)',
+    worst12: { min: Math.min(...hE.map((e) => e.worst)), median: pct(hE.map((e) => e.worst), 0.5) },
+    guaranteedToAge: `${c.floorToAge} by contract; the rest decided at ${c.floorToAge} with a known price`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
+    failAges: [],
+    signature: {
+      floorToAge: c.floorToAge, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / (p.pot + (p.isa || 0)),
+      sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull,
+      canBuy: [canBuy(c.amountAt(A + 1)), canBuy(lowest)].filter((x, i, a) => i === 0 || x.amount !== a[0].amount),
+      levelIfCut: { p10: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.1) || null, p50: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.5) || null },
+      rule: `Nothing to decide until ${c.floorToAge}. At ${c.floorToAge}: price the remaining years on that day's real-yield curve (or an RPI annuity quote); buy the schedule if the reserve covers it, otherwise the level income it does cover.`
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Reserve + unpaid rungs to ' + c.floorToAge + ' (after ' + c.floorToAge + ': what the reserve bought + what is left), today\'s money'
+  };
+}
+
 /** Stress-test ONE strategy on the plan. */
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };

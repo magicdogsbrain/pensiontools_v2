@@ -2660,6 +2660,9 @@
                     <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Floor to age<input type="number" id="cmpFfHorizon" min="60" max="105" style="width:80px;"></label>
                     <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sleeve %<input type="number" id="cmpFfRate" min="1" max="10" step="0.5" style="width:80px;"></label>
                   </div></div>
+                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor to an age, then decide</div>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="cmpFtaAge" min="60" max="95" style="width:80px;"></label>
+                  <p class="hint" style="margin:6px 0 0;">Floor the schedule uses your income shape and the plan horizon; nothing to dial.</p></div>
               </div>
               <div class="row-flex" style="margin-top:10px;">
                 <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
@@ -2884,6 +2887,7 @@
                 <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" onclick="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" onclick="pickStrategy('floor-the-schedule')">Floor the schedule</button>
+                <button type="button" class="risk-btn" data-strat="floor-to-age" onclick="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
               <div style="margin-top:12px;">
@@ -5361,7 +5365,8 @@
     }
     function strategyResultCard(r, p, opts = {}) {
       if (!r.affordable) {
-        const fix = r.strategyId === 'floor-the-schedule'
+        const fix = r.strategyId === 'floor-to-age' ? 'Lower the age the schedule is bought to, or step the income down with age in Settings.'
+          : r.strategyId === 'floor-the-schedule'
           ? 'A flat income for life costs more than a stepped one — set your income shape to step down with age in Settings (e.g. £60k to 72, £50k to 80, £40k after), or shorten the horizon.'
           : r.strategyId === 'floor-and-flex' ? 'Lower the essentials or the floor-to age.' : 'Reduce the bolted income or the ladder years.';
         return '<div class="card"><h2>' + budEsc(r.name) + '</h2><div class="alert alert-danger">Not affordable as configured: ' + budEsc(r.reason || '') + '. ' + fix + '</div></div>';
@@ -5377,6 +5382,14 @@
         head = '<strong>' + gbp(p.targetAnnual) + '/yr bolted on to age ' + (p.startAge + r.signature.ladderYears) + ' by contract</strong> (' + r.signature.ladderYears + ' rungs, ' + gbp(Math.round(r.signature.baseLadderCost)) + '). '
           + 'The ratchet then locked a median ' + Math.round(r.signature.securedMedian) + ' more years in history (' + Math.round(r.signature.securedMedianMc) + ' in the futures; fully secured to the horizon in ' + r.signature.fullySecuredPct.toFixed(0) + '% of histories). '
           + 'The sleeve ran out before the horizon in <strong>' + ruinMc.toFixed(1) + '% ± ' + (r.ruinMcHalfWidthPp ?? 0) + 'pp of ' + r.n.mc.toLocaleString() + ' futures</strong> and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' histories.';
+      } else if (r.strategyId === 'floor-to-age') {
+        const sg = r.signature;
+        const cb = sg.canBuy.map((x) => gbp(Math.round(x.amount)) + '/yr to the horizon (' + gbp(Math.round(x.cost)) + ' at ' + sg.floorToAge + '): <strong>' + x.mc.toFixed(0) + '%</strong> of futures, ' + x.hist.toFixed(0) + '% of histories').join('; ');
+        head = '<strong>Your income is bought by contract to ' + sg.floorToAge + '</strong> — ' + gbp(Math.round(sg.floorCost)) + ', ' + Math.round(sg.shareOfPot * 100) + '% of the pot; the ' + gbp(Math.round(sg.sleeveE0)) + ' reserve rides untouched in world equities until then. '
+          + 'At ' + sg.floorToAge + ' the reserve is worth a median ' + gbp(Math.round(sg.sleeveAtA.p50)) + ' (1-in-10 bad: ' + gbp(Math.round(sg.sleeveAtA.p10)) + '; 1-in-10 good: ' + gbp(Math.round(sg.sleeveAtA.p90)) + '). '
+          + 'Chance it can then buy ' + cb + '. '
+          + 'If it falls short, the later years are bought at a lower level — median ' + (sg.levelIfCut.p50 ? gbp(Math.round(sg.levelIfCut.p50)) : '—') + '/yr in those futures. Nothing runs out; the plan can only be cut after ' + sg.floorToAge + '.'
+          + '<br><strong>The only rule:</strong> ' + budEsc(sg.rule);
       } else if (r.strategyId === 'floor-the-schedule') {
         const sg = r.signature;
         head = '<strong>Your whole income schedule is bought by contract to ' + sg.horizonAge + '</strong> — cost ' + gbp(Math.round(sg.floorCost)) + ', ' + Math.round(sg.shareOfPot * 100) + '% of the pot, on today\'s real yields; every year pays in every history and every future, by construction. '
@@ -5394,7 +5407,7 @@
       const fa = r.failAges || [];
       const faTxt = fa.length ? 'Of the futures that failed, half did so before age ' + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : 'No simulated future ran out.';
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
-        + '<tr><td>Chance of running out</td><td>' + ruinH.toFixed(1) + '% <span class="hint">history</span> · ' + ruinMc.toFixed(1) + '% <span class="hint">Monte Carlo</span></td></tr>'
+        + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + ruinH.toFixed(1) + '% <span class="hint">history</span> · ' + ruinMc.toFixed(1) + '% <span class="hint">Monte Carlo</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
         + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
         + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
         + '<tr><td>Left at the horizon (1-in-10 bad / middle / 1-in-10 good)</td><td>' + gbp(Math.round(r.terminal.p10)) + ' / ' + gbp(Math.round(r.terminal.p50)) + ' / ' + gbp(Math.round(r.terminal.p90)) + '</td></tr>'
@@ -5402,6 +5415,9 @@
         + '</tbody></table></div>';
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
         h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
+      }
+      if (r.strategyId === 'floor-to-age' && r.configs.fa) {
+        h += exampleLadderHtml(Array.from({ length: r.configs.fa.A }, (_, i) => i + 1), r.configs.fa.floorDraw, 'this is the schedule to ' + r.configs.fa.floorToAge + ', one rung per year, net of your State Pension.');
       }
       if (r.strategyId === 'floor-the-schedule' && r.configs.fs) {
         h += exampleLadderHtml(Array.from({ length: p.durationYears }, (_, i) => i + 1), r.configs.fs.floorDraw, 'this is the whole schedule, one rung per year, net of your State Pension — the shopping list this strategy implies.');
@@ -7134,7 +7150,8 @@
       'pots-and-valves': 'Your allocation below IS this strategy: the pots, their floors and the risk level are its dials. Rules decide which pot pays each month.',
       'ladder-and-ratchet': 'Buys your income up front as an index-linked gilt ladder; the REST rides in the equity sleeve (the allocation below applies to the sleeve). Booms lock more years on.',
       'floor-and-flex': 'Buys the BILLS by contract to a chosen age; everything else is the flex sleeve paying the treats (the allocation below applies to the sleeve).',
-      'floor-the-schedule': 'Buys your WHOLE income schedule (net of State Pension) by contract to the horizon; the remainder is an untouched reserve in shares. Nothing to decide month to month.'
+      'floor-the-schedule': 'Buys your WHOLE income schedule (net of State Pension) by contract to the horizon; the remainder is an untouched reserve in shares. Nothing to decide month to month.',
+      'floor-to-age': 'Buys your income schedule by contract up to a chosen age (default 80); the rest sits untouched in world equities and decides the later years AT that age, at a known price.'
     };
     window._ssStrategy = 'pots-and-valves';
 
@@ -7152,7 +7169,7 @@
       window._ssStrategy = id;
       document.querySelectorAll('#ssStrategyPick .risk-btn').forEach((b) => b.classList.toggle('active', b.dataset.strat === id));
       document.getElementById('ssStrategyBlurb').textContent = STRATEGY_BLURBS[id] || '';
-      const isLadder = id === 'ladder-and-ratchet' || id === 'floor-and-flex' || id === 'floor-the-schedule';
+      const isLadder = id === 'ladder-and-ratchet' || id === 'floor-and-flex' || id === 'floor-the-schedule' || id === 'floor-to-age';
       document.getElementById('ssLrParams').style.display = id === 'ladder-and-ratchet' ? 'block' : 'none';
       document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
       // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS
@@ -7184,7 +7201,7 @@
 
     window.tryStrategyInCopy = async function () {
       const id = window._ssStrategy;
-      const names = { 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule' };
+      const names = { 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age' };
       try {
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId();
@@ -7323,6 +7340,10 @@
         shines: ['You want your income bolted on for years ahead', 'You would sleep better with dates, not odds', 'You still want booms to buy MORE certainty'],
         story: ['Your income for the years ahead is bought and banked.', 'The rest rides the market, aiming above a line.', 'Rise above the line, and more years get locked.', 'Never boom? The banked years still pay regardless.']
       },
+      'floor-to-age': {
+        shines: ['You want the next couple of decades certain and are happy to decide the rest later', 'You would rather turn market risk into a known price at 80 than carry it to 92', 'You keep the option of an annuity without buying one now'],
+        story: ['Every year of your income plan up to a chosen age is bought today as an index-linked gilt.', 'The rest sits untouched in world equities. Nothing to decide until that age.', 'At that age you know the reserve, your health and the price of the remaining years.', 'Buy them (rungs or an annuity) if the reserve covers it — otherwise buy the income it does cover.']
+      },
       'floor-the-schedule': {
         shines: ['You have written your income plan down, year by year, and mean it', 'You want nothing to decide each month', 'You would rather hold a reserve than chase upside'],
         story: ['Every year of your income plan is bought today as an index-linked gilt maturing that year.', 'Each year one matures: that is the money. No decision.', 'What is left over sits untouched in shares as a reserve.', 'Once a year, if the reserve has run far ahead, it buys more years or bigger later years.']
@@ -7389,7 +7410,9 @@
         const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id, fn) + '</td>').join('') + '</tr>';
         html += row('Worst 12 months you\'d have lived', (t) => gbp(Math.round(t.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12.median)) + ')</span>');
         html += row('Income guaranteed to age', (t) => budEsc(t.guaranteedToAge));
-        html += row('Chance of running out', (t) => t.strategyId === 'floor-the-schedule'
+        html += row('Chance of running out', (t) => t.strategyId === 'floor-to-age'
+          ? t.ruin.mc.toFixed(1) + '% <span class="hint">chance the plan is CUT after ' + t.signature.floorToAge + ' (' + t.ruin.hist.toFixed(1) + '% in history). It never runs out — the reserve buys a smaller income.</span>'
+          : t.strategyId === 'floor-the-schedule'
           ? '0% — every year of the schedule is bought as gilts up front. <span class="hint">The risk is the price: most of the pot, and no growth in the plan itself.</span>'
           : t.strategyId === 'floor-and-flex'
           ? '0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span>'
@@ -7397,7 +7420,7 @@
         html += row('Left at the horizon (1-in-10 bad / middle / 1-in-10 good)', (t) => gbp(Math.round(t.terminal.p10)) + ' / ' + gbp(Math.round(t.terminal.p50)) + ' / ' + gbp(Math.round(t.terminal.p90)));
         html += row('Allowed to pay you less?', (t) => t.strategyId === 'pots-and-valves'
           ? (settings.disableProtection ? 'No — cuts switched off for this comparison' : 'Yes — up to ' + Math.round((1 - settings.protectionMult) * 100) + '% cuts; median ' + Math.round((t.signature.protMonthsMedian || 0) / 12) + ' years on reduced income in history')
-          : t.strategyId === 'ladder-and-ratchet' ? 'No — the bolted income is paid in full until the sleeve is empty' : t.strategyId === 'floor-the-schedule' ? 'No — the schedule is bought; only the reserve moves' : 'Treats flex; the bills never do');
+          : t.strategyId === 'ladder-and-ratchet' ? 'No — the bolted income is paid in full until the sleeve is empty' : t.strategyId === 'floor-the-schedule' ? 'No — the schedule is bought; only the reserve moves' : t.strategyId === 'floor-to-age' ? 'Only after ' + t.signature.floorToAge + ', and only if the reserve cannot buy the rest' : 'Treats flex; the bills never do');
         html += '</tbody></table></div>';
         for (const id of cols) if (!S[id].affordable) html += '<p class="hint" style="color:var(--warning);">' + budEsc(S[id].name) + ': ' + budEsc(S[id].reason) + '.</p>';
         if (S['floor-and-flex'].affordable && S['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
@@ -7514,6 +7537,7 @@
       set('cmpEssentials', prm.essentialsAnnual || Math.round((s.baseSalary || 40000) * 0.55));
       set('cmpFfHorizon', prm.horizonAge || Math.min(92, 57 + dur));
       set('cmpFfRate', ((prm.sleeveRate || 0.04) * 100));
+      set('cmpFtaAge', prm.floorToAge || 80);
     };
     function compareOverrides(s) {
       const v = (id) => +document.getElementById(id)?.value;
@@ -7531,7 +7555,8 @@
           bandThreshold: v('cmpLrBand') || 1.2,
           essentialsAnnual: v('cmpEssentials') || undefined,
           horizonAge: v('cmpFfHorizon') || undefined,
-          sleeveRate: (v('cmpFfRate') || 4) / 100
+          sleeveRate: (v('cmpFfRate') || 4) / 100,
+          floorToAge: v('cmpFtaAge') || 80
         }
       };
     }

@@ -130,7 +130,22 @@ export function deriveCompareConfigs(p) {
     horizonAge: p.startAge + p.durationYears, amountAt, minDraw
   } : null;
 
-  return { END, lr, ff, fs: fsc, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
+  // Floor to an age, then decide: schedule bought to age A; the reserve decides the rest AT A.
+  const floorToAge = Math.max(p.startAge + 1, Math.min(prm.floorToAge || 80, p.startAge + p.durationYears - 1));
+  const A = floorToAge - p.startAge;
+  const faCost = floorCost({ drawForYear: drawNet, years: A, realYield, yieldForYear: p.yieldForYear });
+  const faE0 = total - faCost;
+  // Cost AT age A (today's money) of buying years A+1..N at the schedule, and the annuity factor
+  // for a level £1/yr over the same years — both priced on the curve by years-from-A.
+  const restCost = (amountFn) => { let c = 0; for (let k = A + 1; k <= p.durationYears; k++) c += Math.max(0, amountFn(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0)) * Math.pow(1 + yf(k - A), -(k - A)); return c; };
+  let annuityFactor = 0; for (let k = A + 1; k <= p.durationYears; k++) annuityFactor += Math.pow(1 + yf(k - A), -(k - A));
+  const fa = faE0 > 0 ? {
+    E0: faE0, rate: 0, END, floorCost: faCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    floorToAge, A, amountAt, restCost, restCostFull: restCost(amountAt), annuityFactor,
+    minDrawToA: Math.min(...Array.from({ length: A }, (_, i) => amountAt(i + 1)))
+  } : null;
+
+  return { END, lr, ff, fs: fsc, fa, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
 }
 
 /** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */

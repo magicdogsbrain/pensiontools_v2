@@ -205,3 +205,30 @@ export const FloorTheSchedule = {
   },
   engine: { runWindows: runFlexWindows, floorCost }
 };
+
+/**
+ * Floor to an age, then decide — the schedule bought by contract up to a chosen age (default 80);
+ * the rest of the pot sits untouched in world equities. AT that age the reserve buys the remaining
+ * schedule if it can (rungs or an annuity); if it cannot, it buys the level income it CAN afford.
+ * So the plan never runs out — it can only be cut after that age, and the size of that cut is the
+ * honest risk. Same engine as Floor & Flex with rate 0.
+ */
+export const FloorToAge = {
+  id: 'floor-to-age',
+  name: 'Floor to an age, then decide',
+  promise: 'Your income bought by contract to an age you choose. The rest rides in world equities until then.',
+  failure: 'If the reserve arrives small at that age, the later years are bought at a lower level — a cut, not a cliff.',
+  granularity: 'windows',
+  describe() {
+    return {
+      id: this.id, name: this.name, promise: this.promise, failure: this.failure,
+      engineVersion: ENGINE_VERSION,
+      components: ['index-linked rungs sized to the income schedule, net of State Pension, to the chosen age',
+        'untouched reserve sleeve (world equities) to that age', 'at that age: buy the remaining schedule (rungs or annuity) if affordable, else the level income the reserve can buy',
+        'real-terms historical windows (Shiller, world-adjusted)'],
+      usesTrigger: false,
+      sensitivity: 'the decision is deferred, not avoided: the age is where market risk turns into a known price'
+    };
+  },
+  engine: { runWindows: runFlexWindows, floorCost }
+};

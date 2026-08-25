@@ -59,7 +59,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate
     },
-    stride: 2, mcRuns: 400,
+    stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     pnvCfg: { ...cfg, isaReturn: 0, startAge },
     yieldForYear
   };

@@ -2532,7 +2532,7 @@
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
             </h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
+            <p id="mcBlurb" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 scenarios using randomly sampled historical returns (1928-2024).</p>
             <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div class="form-grid">
               <div class="form-group">
@@ -3583,6 +3583,10 @@
       listStrategies,
       runCompare,
       cannedDecade,
+      stressTestStrategy,
+      stressTestAll,
+      planFromSettings,
+      STRATEGY_NAMES,
       orderSheet,
       realYieldForYear,
       loadLiveGilts,
@@ -5282,82 +5286,92 @@
     // Monte Carlo simulation
     // Non-P&V strategies: the Run button runs THAT strategy's own windows engine on the plan's
     // parameters — the stress tester genuinely tests the strategy you configured.
+    // ---- Shared strategy stress-test card (Stress tab when locked, Strategies compare) ----
+    // ONE renderer for ONE result shape (stressTestStrategy) — whatever strategy the plan is
+    // switched to, the cones and the headline are drawn from the same numbers the compare shows.
+    function strategyPlanFor(settings, essentialsOverride) {
+      const cfg = createSimulationConfigFromSettings({}, settings);
+      return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual: essentialsOverride });
+    }
+    function exampleLadderHtml(rungYears, drawForYear, caption) {
+      const sheet = orderSheet({ rungYears, drawForYear, startYear: new Date().getFullYear() });
+      let h = '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Example ladder — how rungs like these could be priced from gilts in issue (illustration only)</summary>';
+      h += '<div class="alert alert-warning" style="margin:8px 0;font-size:12px;"><strong>Illustration, not advice.</strong> ' + budEsc(sheet.notice)
+        + ' Indicative closing prices as of <strong>' + budEsc(sheet.as_of || '—') + '</strong> (' + budEsc(sheet.source || '') + '). '
+        + (sheet.stale ? 'This data is more than 48 hours old. ' : '') + 'A ladder is not necessarily the best strategy; ' + budEsc(caption || '') + '</div>';
+      h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Nearest index-linked gilt(s)</th><th>Clean price</th><th>Real yield</th><th>Face (£/yr, today\'s money)</th><th>Indicative cost</th></tr></thead><tbody>';
+      for (const row of sheet.rows) {
+        const g = row.giltDetails || [];
+        h += '<tr><td>' + row.calYear + '</td><td>' + g.map((x) => budEsc(x.name) + (x.tidm ? ' <span class="hint">' + budEsc(x.tidm) + '</span>' : '')).join(' + ')
+          + (row.mode === 'bracket' ? ' <span class="hint">(gap year — bracketed)</span>' : row.mode === 'beyond' ? ' <span class="hint">(beyond the last linker)</span>' : '') + '</td>'
+          + '<td>' + g.map((x) => (x.cleanPrice != null ? x.cleanPrice.toFixed(2) : '—') + (x.lag === 8 ? ' <span class="hint" title="Old-style 8-month-lag stock: quoted price includes the inflation uplift, so no real yield is derived from it">(8-mo lag, uplifted)</span>' : '')).join(' / ') + '</td>'
+          + '<td>' + (row.realYield * 100).toFixed(2) + '%</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
+      }
+      h += '<tr><td colspan="5"><strong>Total indicative cost</strong></td><td><strong>' + gbp(sheet.total) + '</strong></td></tr>';
+      h += '</tbody></table></div><p class="hint">' + budEsc(sheet.priced) + '. Costs discount each year\'s need at that year\'s real yield; a real purchase would pay accrued interest, dealing costs and a spread, and would need whole units.</p></details>';
+      return h;
+    }
+    function strategyResultCard(r, p, opts = {}) {
+      if (!r.affordable) {
+        return '<div class="card"><h2>' + budEsc(r.name) + '</h2><div class="alert alert-danger">Not affordable as configured: ' + budEsc(r.reason || '') + '. Reduce the bolted income, the years, or the essentials in Settings.</div></div>';
+      }
+      const yrsN = p.durationYears;
+      const ruinMc = r.ruin.mc, ruinH = r.ruin.hist;
+      const tone = ruinMc <= 5 ? 'alert-success' : ruinMc <= 15 ? 'alert-warning' : 'alert-danger';
+      let head;
+      if (r.strategyId === 'pots-and-valves') {
+        head = '<strong>Ran out of money in ' + ruinMc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
+          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + budEsc(r.guaranteedToAge) + '.';
+      } else if (r.strategyId === 'ladder-and-ratchet') {
+        head = '<strong>' + gbp(p.targetAnnual) + '/yr bolted on to age ' + (p.startAge + r.signature.ladderYears) + ' by contract</strong> (' + r.signature.ladderYears + ' rungs, ' + gbp(Math.round(r.signature.baseLadderCost)) + '). '
+          + 'The ratchet then locked a median ' + Math.round(r.signature.securedMedian) + ' more years in history (' + Math.round(r.signature.securedMedianMc) + ' in the futures; fully secured to the horizon in ' + r.signature.fullySecuredPct.toFixed(0) + '% of histories). '
+          + 'The sleeve ran out before the horizon in <strong>' + ruinMc.toFixed(1) + '% ± ' + (r.ruinMcHalfWidthPp ?? 0) + 'pp of ' + r.n.mc.toLocaleString() + ' futures</strong> and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' histories.';
+      } else {
+        head = '<strong>Essentials of ' + gbp(p.essentialsAnnual) + '/yr are paid to ' + r.signature.horizonAge + ' by contract</strong> (floor cost ' + gbp(Math.round(r.signature.floorCost)) + ') — in every history and every future, by construction. '
+          + 'Treats start at ' + gbp(Math.round(r.signature.year1Flex)) + '/yr and flex with the market; the worst treat-year was ' + gbp(Math.round(r.signature.worstFlexMedian)) + ' in the median history and ' + gbp(Math.round(r.signature.worstFlexP10)) + ' in a 1-in-10 bad one. The honest risk is lean years, not running out.';
+      }
+      let h = '<div class="card">' + (opts.compact ? '<div class="section-title">' : '<h2>') + budEsc(r.name) + (opts.compact ? '</div>' : ' — your plan, stress-tested</h2>');
+      h += '<div class="alert ' + tone + '">' + head + '</div>';
+      const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p>' + fanChartSvg(band) + '</div>';
+      h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
+      h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
+      const fa = r.failAges || [];
+      const faTxt = fa.length ? 'Of the futures that failed, half did so before age ' + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : 'No simulated future ran out.';
+      h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
+        + '<tr><td>Chance of running out</td><td>' + ruinH.toFixed(1) + '% <span class="hint">history</span> · ' + ruinMc.toFixed(1) + '% <span class="hint">Monte Carlo</span></td></tr>'
+        + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
+        + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
+        + '<tr><td>Left at the horizon (1-in-10 bad / middle / 1-in-10 good)</td><td>' + gbp(Math.round(r.terminal.p10)) + ' / ' + gbp(Math.round(r.terminal.p50)) + ' / ' + gbp(Math.round(r.terminal.p90)) + '</td></tr>'
+        + '<tr><td>When it failed</td><td>' + faTxt + '</td></tr>'
+        + '</tbody></table></div>';
+      if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
+        h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
+      }
+      if (r.strategyId === 'floor-and-flex' && r.configs.ff) {
+        const yrsF = Math.min(r.signature.horizonAge - p.startAge, p.durationYears, 45);
+        h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
+      }
+      h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan with today\'s tax bands frozen in real terms.' : 'Ladder rungs are priced on the real-yield curve from the latest gilt closing prices.') + '</p>';
+      h += '</div>';
+      return h;
+    }
+
     async function runStrategyWindowsUI(settings, targetId = 'strategyRunResults') {
-      const params = settings.strategyParams || {};
-      const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
-      const params0 = settings.strategyParams || {};
-      const pot = (params0.sippTotal || 0) + (params0.isaTotal || 0)
-        || alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
-      const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
-      const dur = Math.min(settings.duration || 35, 35);
-      let html = '';
-      if (settings.strategyId === 'ladder-and-ratchet') {
-        const yrs = params.ladderYears || 15;
-        const draw = params.drawAnnual || settings.baseSalary || 0;
-        const ageNow = settings.shapeAgeNow || 57;
-        const stepAmt = (k) => {
-          if (settings.incomeShape !== 'phases' || !Array.isArray(settings.incomeSteps) || !settings.incomeSteps.length) return draw;
-          const age = ageNow + k - 1;
-          const st = settings.incomeSteps.filter((x) => +x.fromAge <= age).sort((a, b) => +a.fromAge - +b.fromAge).pop();
-          return st ? +st.amount : draw;
-        };
-        const drawNet = (k) => Math.max(0, stepAmt(k) - (k > 10 ? spAnnual : 0));
-        let cost = 0; for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1 + realYieldForYear(k), -k);
-        const E0 = pot - cost;
-        if (E0 <= 0) { html = '<div class="alert alert-danger">Ladder not affordable: base ladder costs ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Reduce the bolted income or the ladder years in Settings.</div>'; }
-        else {
-          const trig = params.triggerMode === 'calendar'
-            ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(yrs / 5) }, (_, i) => (i + 1) * 60) }
-            : { mode: 'band', b: params.bandThreshold || 1.2 };
-          const phases = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
-            ? settings.incomeSteps.map((x) => ({ fromYear: Math.max(0, (+x.fromAge || ageNow) - ageNow), amount: +x.amount }))
-            : [{ fromYear: 0, amount: draw }];
-          const lcfg = { E0, ladderYears: yrs, L: yrs * 12, firstRung: yrs + 1, maxRung: dur,
-            draw, profile: { type: 'phases', phases }, trigger: trig,
-            END: dur * 12, realYield: 0.023, yieldForYear: realYieldForYear, glideRate: 0.05, startAge: 57 };
-          const r = runLadderWindowsX(lcfg);
-          const mc = runLadderMonteCarloX(lcfg, 1000);
-          const st = r.stats;
-          html = '<div class="card"><h2>Ladder &amp; Ratchet — your parameters, 150 years of markets</h2>'
-            + '<div class="alert ' + (st.survivalPct === 100 ? 'alert-success' : st.survivalPct >= 95 ? 'alert-warning' : 'alert-danger') + '">'
-            + '<strong>' + gbp(draw) + '/yr bolted on to age ' + (57 + yrs) + ' by contract</strong> — the ratchet then locked a median '
-            + Math.round(st.securedMedian) + ' more years (fully secured to the horizon in ' + st.fullySecuredPct.toFixed(0) + '% of histories). '
-            + 'Sleeve survived to the horizon in <strong>' + st.survivalPct.toFixed(1) + '%</strong> of ' + r.meta.fullN + ' historical windows, and in '
-            + '<strong>' + mc.stats.survivalPct.toFixed(1) + '% ± ' + mc.stats.survivalHalfWidthPp + 'pp</strong> of 1,000 Monte-Carlo futures (block-bootstrapped from the same history).</div>'
-            + '<div class="table-scroll-container"><table><tbody>'
-            + '<tr><td>Base ladder cost (order sheet in Strategies tab)</td><td>' + gbp(Math.round(cost)) + '</td></tr>'
-            + '<tr><td>Equity sleeve at the ladder end (median / worst)</td><td>' + gbp(Math.round(st.sleeveMedian)) + ' / ' + gbp(Math.round(st.sleeveWorst)) + '</td></tr>'
-            + '<tr><td>Never-triggered histories (sleeve just rode)</td><td>' + st.neverPct.toFixed(0) + '%</td></tr>'
-            + '<tr><td>Typically left at the horizon</td><td>' + gbp(Math.round(st.terminalMedian)) + '</td></tr>'
-            + '</tbody></table></div></div>';
-        }
-      }
-      if (settings.strategyId === 'floor-and-flex') {
-        const ess = params.essentialsAnnual || Math.round((settings.baseSalary || 0) * 0.55);
-        const horizon = params.horizonAge || 92;
-        const years = Math.max(1, horizon - 57);
-        let cost = 0; for (let k = 1; k <= years; k++) cost += Math.max(0, ess - (k > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(k), -k);
-        const E0 = pot - cost;
-        if (E0 <= 0) { html = '<div class="alert alert-danger">Floor not affordable: essentials to ' + horizon + ' cost ' + gbp(Math.round(cost)) + ' of your ' + gbp(Math.round(pot)) + '. Lower the essentials or the horizon in Settings.</div>'; }
-        else {
-          const r = runFlexWindowsX({ E0, rate: params.sleeveRate || 0.04, END: Math.min(years, dur) * 12 });
-          const st = r.stats;
-          html = '<div class="card"><h2>Floor &amp; Flex — your parameters, 150 years of markets</h2>'
-            + '<div class="alert alert-success"><strong>Essentials of ' + gbp(ess) + '/yr are paid to ' + horizon + ' by contract — in every history, by construction.</strong> '
-            + 'Treats start at ' + gbp(Math.round(st.year1D)) + '/yr and flex with the market.</div>'
-            + '<div class="table-scroll-container"><table><tbody>'
-            + '<tr><td>Floor cost (bought up front)</td><td>' + gbp(Math.round(cost)) + '</td></tr>'
-            + '<tr><td>Worst treat-year per history (median / 1-in-10 / worst)</td><td>' + gbp(Math.round(st.worstMedian)) + ' / ' + gbp(Math.round(st.worstP10)) + ' / ' + gbp(Math.round(st.worstMin)) + '</td></tr>'
-            + '<tr><td>Share of all years with treats under £10k</td><td>' + st.shareYearsUnder(10000).toFixed(1) + '%</td></tr>'
-            + '<tr><td>Typically left at the horizon</td><td>' + gbp(Math.round(st.terminalMedian)) + '</td></tr>'
-            + '</tbody></table></div>'
-            + '<p class="hint">The flex sleeve cannot run out (percentage-of-pot draws); the honest risk is lean years, shown above.</p></div>';
-        }
-      }
       const target = document.getElementById(targetId);
       if (!target) return;
-      if (targetId === 'strategyRunResults') target.innerHTML = html;
-      else target.innerHTML = (target.innerHTML || '') + html;
+      target.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[settings.strategyId] || settings.strategyId) + ' over every history and 1,000 futures…</div>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
+        const r = stressTestStrategy(settings.strategyId, p);
+        window._latestStrategyStress = r;
+        const html = strategyResultCard(r, p);
+        if (targetId === 'strategyRunResults') target.innerHTML = html;
+        else target.innerHTML = (target.innerHTML || '') + html;
+      } catch (e) {
+        console.error('Strategy stress error:', e);
+        target.innerHTML = '<div class="alert alert-danger">Could not run the strategy: ' + budEsc(e.message) + '</div>';
+      }
     }
 
     window.runMonteCarloUI = async function() {
@@ -5366,10 +5380,13 @@
       const s = await getStressSettingsAsync();
       const srBox = document.getElementById('strategyRunResults');
       if (srBox) srBox.innerHTML = '';                       // never leave a stale strategy card
+      const blurb = document.getElementById('mcBlurb');
       if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+        if (blurb) blurb.style.display = 'none';
         await runStrategyWindowsUI(s);
         return;
       }
+      if (blurb) blurb.style.display = '';
       const config = { years: parseInt(document.getElementById('mcYears').value) || s.duration };
 
       // Clear previous optimisation — it's tied to the old stress test results
@@ -7307,82 +7324,59 @@
 
     window.runStrategyCompare = async function () {
       const box = document.getElementById('compareResults');
-      box.innerHTML = '<p style="font-size:13px;">Running all three strategies over every historical window…</p>';
+      box.innerHTML = '<div class="loading"><div class="spinner"></div>Running all three strategies over every historical window and 1,000 futures each…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
         const settings = await getStressSettingsAsync();
-        const cfg = createSimulationConfigFromSettings({}, settings);
-        const pot = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0);
-        const target = settings.baseSalary || 0;
-        const essentials = +document.getElementById('cmpEssentials').value || Math.round(target * 0.55);
-        const spWeekly = settings.spWeeklyAmount || 0;
-        const spAnnual = spWeekly ? spWeekly * 52 : (settings.statePension || 0);
-        const spStartYear = cfg.spStartYear ?? settings.statePensionYear ?? 99;
-        const p = {
-          pot, isa: cfg.isaBalance || 0, targetAnnual: target, essentialsAnnual: essentials,
-          durationYears: Math.min(settings.duration || 35, 35), startAge: 57,
-          spAnnual, spStartYear, stride: 2,
-          pnvCfg: { ...cfg, isaReturn: 0, startAge: 57 },
-          yieldForYear: realYieldForYear
-        };
-        const r = runCompare(p);
-        const names = { 'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex' };
+        const essentials = +document.getElementById('cmpEssentials').value || undefined;
+        const p = strategyPlanFor(settings, essentials);
+        const r = stressTestAll(p);
         const cols = Object.keys(r.strategies);
+        const S = r.strategies;
+        const target = p.targetAnnual;
         let html = '<div class="table-scroll-container"><table><thead><tr><th></th>'
-          + cols.map((id) => '<th>' + names[id] + '</th>').join('') + '</tr></thead><tbody>';
-        const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + fn(r.strategies[id].table) + '</td>').join('') + '</tr>';
-        html += row('Worst 12 months you’d have lived', (t) => gbp(Math.round(t.worst12Min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12Median)) + ')</span>');
-        html += row('Income guaranteed to age', (t) => t.guaranteedToAge);
-        html += '<tr><td>Chance of running out</td>' + cols.map((id) => {
-          const t = r.strategies[id].table;
-          if (id === 'floor-and-flex') {
-            return '<td>0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span></td>';
-          }
-          return '<td>' + t.ruinPct.toFixed(1) + '% <span class="hint">history</span> · ' + (t.ruinPctMc ?? t.ruinPct).toFixed(1) + '% <span class="hint">Monte Carlo</span></td>';
-        }).join('') + '</tr>';
-        html += row('Typically left at the horizon', (t) => gbp(Math.round(t.terminalMedian)));
+          + cols.map((id) => '<th>' + budEsc(S[id].name) + (settings.strategyId === id ? ' <span class="hint">(locked)</span>' : '') + '</th>').join('') + '</tr></thead><tbody>';
+        const cell = (id, fn) => S[id].affordable ? fn(S[id]) : '<span class="hint">not affordable</span>';
+        const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id, fn) + '</td>').join('') + '</tr>';
+        html += row('Worst 12 months you\'d have lived', (t) => gbp(Math.round(t.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12.median)) + ')</span>');
+        html += row('Income guaranteed to age', (t) => budEsc(t.guaranteedToAge));
+        html += row('Chance of running out', (t) => t.strategyId === 'floor-and-flex'
+          ? '0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span>'
+          : t.ruin.hist.toFixed(1) + '% <span class="hint">history</span> · ' + t.ruin.mc.toFixed(1) + '% <span class="hint">Monte Carlo</span>');
+        html += row('Left at the horizon (1-in-10 bad / middle / 1-in-10 good)', (t) => gbp(Math.round(t.terminal.p10)) + ' / ' + gbp(Math.round(t.terminal.p50)) + ' / ' + gbp(Math.round(t.terminal.p90)));
         html += '</tbody></table></div>';
-        if (!r.configs.lrAffordable) html += '<p class="hint" style="color:var(--warning);">Ladder &amp; Ratchet: your pot cannot fund the base ladder at this target — not affordable as configured.</p>';
-        if (!r.configs.ffAffordable) html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex: your pot cannot fund the essentials floor to the horizon — not affordable as configured.</p>';
-        if (r.strategies['floor-and-flex'] && r.strategies['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
+        for (const id of cols) if (!S[id].affordable) html += '<p class="hint" style="color:var(--warning);">' + budEsc(S[id].name) + ': ' + budEsc(S[id].reason) + '.</p>';
+        if (S['floor-and-flex'].affordable && S['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
           html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex at these essentials: the floor consumes almost the whole pot — treats start at just '
-            + gbp(Math.round(r.strategies['floor-and-flex'].signature.year1Flex)) + '/yr. The 0% running-out figure is real, but this is a bare-bills retirement in bad markets.</p>';
+            + gbp(Math.round(S['floor-and-flex'].signature.year1Flex)) + '/yr. The 0% running-out figure is real, but this is a bare-bills retirement in bad markets.</p>';
         }
-        html += '<p class="hint" style="margin-top:6px;">All three ran the SAME historical windows (Shiller 1871–2023, real terms) and the same income need. '
+        html += '<p class="hint" style="margin-top:6px;">All three ran the SAME plan on the SAME markets (Shiller 1871–2023, real terms; every window plus 1,000 bootstrapped futures each) and the same income need. '
           + 'Pots &amp; Valves runs your actual plan settings; Ladder &amp; Ratchet banks ' + (r.configs.lr ? r.configs.lr.ladderYears : '—') + ' years up front (cost ' + gbp(Math.round(r.configs.baseLadderCost || 0)) + '); '
-          + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at 4%.</p>';
-
-        // Order sheet at t=0 for the base ladder (§6) with the linker staleness banner
-        if (r.configs.lr) {
-          const rungYears = Array.from({ length: r.configs.lr.ladderYears }, (_, i) => i + 1);
-          const sheet = orderSheet({ rungYears, drawForYear: r.configs.lr.drawNetOfSp, startYear: new Date().getFullYear() });
-          html += '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Order sheet — the base ladder as real gilts (t=0)</summary>';
-          if (sheet.stale) html += '<p class="hint" style="color:var(--warning);">Linker data is a bundled snapshot (' + sheet.generated_at.slice(0, 10) + ') — costs use the flat curve. Admin can refresh via CSV import.</p>';
-          html += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Gilt(s)</th><th>Face (£/yr)</th><th>Est. cost</th></tr></thead><tbody>';
-          for (const row of sheet.rows) {
-            html += '<tr><td>' + row.calYear + '</td><td>' + row.gilts.join(' + ') + (row.mode === 'bracket' ? ' <span class="hint">(gap year — bracketed)</span>' : '') + '</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
-          }
-          html += '</tbody></table></div><p class="hint">' + sheet.priced + '</p></details>';
-        }
-
+          + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at ' + ((r.configs.ff ? r.configs.ff.rate : 0.04) * 100).toFixed(1) + '%. '
+          + 'Lock any of them in Settings and the Monte Carlo tab shows exactly these numbers with the full cones.</p>';
+        // The three cones side by side — same plan, same futures, same scale of honesty
+        html += '<div class="section-title" style="margin-top:14px;">Cones of uncertainty — the same plan under each strategy</div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;">';
+        for (const id of cols) html += strategyResultCard(S[id], p, { compact: true });
+        html += '</div>';
         // Canned decades — one famous bust, one famous boom
         html += '<div class="section-title" style="margin-top:14px;font-size:13px;">Two real decades, same money</div>';
         const dec = (y, label) => {
           const c = cannedDecade(p, y, 1);
-          const cell = (id) => {
+          const cellD = (id) => {
             const d = c[id];
             if (!d) return '—';
             if (id === 'pots-and-valves') return d.failed ? 'ran out at ' + Math.round(d.failAge) : 'lasted · ' + gbp(Math.round(d.terminal)) + ' left';
             if (id === 'ladder-and-ratchet') return (d.secured ? 'ratcheted +' + d.secured + ' yrs' : 'never triggered') + (d.survived === false ? ' · sleeve failed' : '');
             return 'worst treats ' + gbp(Math.round(d.worstYearFlex)) + '/yr';
           };
-          return '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id) + '</td>').join('') + '</tr>';
+          return '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cellD(id) + '</td>').join('') + '</tr>';
         };
         html += '<div class="table-scroll-container"><table><tbody>' + dec(1966, 'Start 1966 (the long bust)') + dec(1985, 'Start 1985 (the long boom)') + '</tbody></table></div>';
         box.innerHTML = html;
       } catch (e) {
         console.error('Compare error:', e);
-        box.innerHTML = '<div class="alert alert-warning">Could not run the comparison: ' + e.message + '</div>';
+        box.innerHTML = '<div class="alert alert-warning">Could not run the comparison: ' + budEsc(e.message) + '</div>';
       }
     };
 
@@ -7416,7 +7410,7 @@
         }
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
-          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. The Monte Carlo below simulates the Pots &amp; Valves engine — your strategy’s own numbers are in the <strong>Strategies</strong> tab.</div>';
+          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine — every real ' + '35-year history and 1,000 bootstrapped futures — and draws its cones of uncertainty. The same numbers appear in the <strong>Strategies</strong> compare.</div>';
           el.style.display = 'block';
         } else { el.style.display = 'none'; }
       } catch (e) { el.style.display = 'none'; }

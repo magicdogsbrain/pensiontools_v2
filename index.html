@@ -2644,6 +2644,29 @@
               </div>
               <div id="compareResults" style="margin-top:10px;"></div>
             </div>
+
+            <div class="settings-section" id="giltLadderExplainer">
+              <div class="section-title">What a gilt ladder is — and what one costs today <span class="hint" style="font-weight:normal;">(a worked example, not linked to your plan)</span></div>
+              <div class="alert alert-warning" style="font-size:13px;">
+                <strong>What this is.</strong> A calculator that prices a maths problem from public data: “how much would it cost, at today’s Bank of England yield curve, to have gilts mature and pay £X every year for N years?” It uses the live list of gilts in issue (Debt Management Office) and delayed exchange prices for illustration.<br>
+                <strong>What it is not.</strong> It does not know whether a ladder suits you, which gilt you should buy, or how it interacts with your tax position; it is not a recommendation and not financial advice. A bond ladder is not necessarily the best strategy for anyone — the three strategies above are the honest comparison. Figures ignore dealing costs, bid–offer spreads, accrued interest, whole-unit rounding and the tax treatment of coupons. If in doubt, take regulated advice.
+              </div>
+              <div class="row-flex" style="margin-top:8px;align-items:flex-end;">
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">£ per year (today’s money)<input type="number" id="glxAmount" value="10000" step="1000" style="width:120px;" oninput="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Number of years<input type="number" id="glxYears" value="10" min="1" max="40" style="width:90px;" oninput="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Gilt type<select id="glxKind" style="width:230px;" onchange="renderGiltLadderExplainer()"><option value="real">Index-linked (keeps pace with RPI/CPIH)</option><option value="nominal">Conventional (fixed £, inflation not covered)</option></select></label>
+              </div>
+              <div id="glxOut" style="margin-top:10px;"></div>
+              <details style="margin-top:8px;"><summary class="hint" style="cursor:pointer;">How a ladder works, in four lines</summary>
+                <ol style="font-size:13px;margin:6px 0 6px 18px;">
+                  <li>You buy one gilt maturing in each year you want income. When it matures the government repays the face value — that year’s money.</li>
+                  <li>Index-linked gilts repay face value uplifted by inflation, so a real ladder pays a constant amount in today’s money; conventional gilts repay a fixed £ amount.</li>
+                  <li>The cost today of £1 in year <em>k</em> is £1 ÷ (1 + yield)<sup>k</sup>; the yield curve says what the market charges for each year. Long years are cheap when real yields are high.</li>
+                  <li>Nothing about a gilt ladder is guaranteed except the cash flows if held to maturity: prices move daily, and selling early can lose money.</li>
+                </ol>
+                <p class="hint">Further reading: the <a href="https://www.dmo.gov.uk/responsibilities/gilt-market/about-gilts/" target="_blank" rel="noopener">DMO’s About gilts</a>, Monevator’s <a href="https://monevator.com/should-you-build-an-index-linked-gilt-ladder/" target="_blank" rel="noopener">Should you build an index-linked gilt ladder?</a>, and LateGenXer’s <a href="https://lategenxer.streamlit.app/Gilt_Ladder" target="_blank" rel="noopener">Gilt Ladder Builder</a> (whose approach this example follows).</p>
+              </details>
+            </div>
           </div>
         </div>
 
@@ -3589,6 +3612,7 @@
       STRATEGY_NAMES,
       orderSheet,
       realYieldForYear,
+      nominalYieldForYear,
       loadLiveGilts,
       dataProvenance,
       activeLinkers,
@@ -7416,8 +7440,36 @@
       } catch (e) { el.style.display = 'none'; }
     };
 
+    // ---- Gilt ladder explainer: a generic worked example priced from public data; never the user's plan ----
+    window.renderGiltLadderExplainer = function () {
+      const out = document.getElementById('glxOut');
+      if (!out) return;
+      const amount = Math.max(0, +document.getElementById('glxAmount').value || 0);
+      const years = Math.max(1, Math.min(40, +document.getElementById('glxYears').value || 10));
+      const kind = document.getElementById('glxKind').value === 'nominal' ? 'nominal' : 'real';
+      const sheet = orderSheet({ rungYears: Array.from({ length: years }, (_, i) => i + 1), drawForYear: () => amount, startYear: new Date().getFullYear(), kind });
+      const total = sheet.total;
+      const avgY = years ? sheet.rows.reduce((a, r) => a + r.realYield, 0) / years : 0;
+      let h = '<div class="alert alert-info" style="font-size:13px;"><strong>Example:</strong> ' + gbp(amount) + ' a year for ' + years + ' years would cost about <strong>' + gbp(total) + '</strong> today'
+        + ' — ' + (total > 0 ? (100 * amount / total).toFixed(2) : '0') + '% of the outlay per year, at an average ' + (kind === 'real' ? 'real' : 'nominal') + ' yield of ' + (avgY * 100).toFixed(2) + '% across the rungs. '
+        + (kind === 'real' ? 'Because these are index-linked, each year’s ' + gbp(amount) + ' is in today’s money.' : 'Because these are conventional gilts, each year’s ' + gbp(amount) + ' is a fixed sum — inflation erodes it.')
+        + ' Priced on the <strong>' + budEsc(sheet.priced) + '</strong>; gilt prices shown are delayed exchange prices as of ' + budEsc(sheet.as_of || '—') + '.' + (sheet.stale ? ' <em>This data is more than 48 hours old.</em>' : '') + '</div>';
+      h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Nearest gilt maturing that year</th><th>Clean price</th><th>' + (kind === 'real' ? 'Real' : 'Nominal') + ' yield used</th><th>Face (£)</th><th>Indicative cost</th></tr></thead><tbody>';
+      for (const row of sheet.rows) {
+        const g = row.giltDetails || [];
+        h += '<tr><td>' + row.calYear + '</td><td>' + g.map((x) => budEsc(x.name) + (x.tidm ? ' <span class="hint">' + budEsc(x.tidm) + '</span>' : '')).join(' + ')
+          + (row.mode === 'bracket' ? ' <span class="hint">(no gilt matures that year — bracketed by the nearest two)</span>' : row.mode === 'beyond' ? ' <span class="hint">(beyond the last gilt in issue)</span>' : '') + '</td>'
+          + '<td>' + g.map((x) => (x.cleanPrice != null ? x.cleanPrice.toFixed(2) : '—') + (x.lag === 8 ? ' <span class="hint">(8-mo lag, uplifted)</span>' : '')).join(' / ') + '</td>'
+          + '<td>' + (row.realYield * 100).toFixed(2) + '%</td><td>' + gbp(row.face) + '</td><td>' + gbp(row.estCost) + '</td></tr>';
+      }
+      h += '<tr><td colspan="5"><strong>Total indicative cost</strong></td><td><strong>' + gbp(total) + '</strong></td></tr></tbody></table></div>';
+      h += '<p class="hint">Each rung is priced as face ÷ (1 + that year’s yield)<sup>years</sup> on the Bank of England spot curve — the market’s price for £1 in that year — not on the individual gilt’s price. A real purchase would use whole units of the specific gilt, pay its dirty price (accrued interest' + (kind === 'real' ? ' and inflation uplift' : '') + '), dealing costs and a spread; the named gilt is only the nearest maturity, not a selection.</p>';
+      out.innerHTML = h;
+    };
+
     window.loadStrategiesUI = async function () {
       renderStrategyCards();
+      renderGiltLadderExplainer();
       const settings = await getStressSettingsAsync();
       const ess = document.getElementById('cmpEssentials');
       if (ess && !ess.value) ess.value = Math.round((settings.baseSalary || 40000) * 0.55);

@@ -19,9 +19,7 @@ export const FLAT_REAL_YIELD_FALLBACK = 0.023;
 /** Normalise any dataset shape (fetched JSON, bundled snapshot, admin CSV rows) to one form. */
 function normalise(data) {
   if (!data) return null;
-  const gilts = (data.gilts || [])
-    .filter((g) => g.type ? g.type !== 'conventional' : true)
-    .map((g) => {
+  const mapGilt = (g) => {
       const maturityYear = typeof g.maturity === 'number' ? g.maturity : +String(g.maturity).slice(0, 4);
       return {
         name: g.name,
@@ -32,9 +30,16 @@ function normalise(data) {
         maturityDate: typeof g.maturity === 'string' ? g.maturity : null,
         lag: g.lag ?? (g.type === 'il8' ? 8 : 3),
         cleanPrice: g.cleanPrice ?? null,
-        realYield: g.yield ?? g.realYield ?? null
+        realYield: g.type === 'conventional' ? null : (g.yield ?? g.realYield ?? null),
+        nominalYield: g.type === 'conventional' ? (g.yield ?? null) : null,
+        type: g.type || 'il3'
       };
-    });
+  };
+  const all = (data.gilts || []).map(mapGilt);
+  const gilts = all.filter((g) => g.type !== 'conventional');
+  const conventionals = all.filter((g) => g.type === 'conventional');
+  const nominalCurve = (data.boeNominalCurve && data.boeNominalCurve.length ? data.boeNominalCurve : (data.nominalCurve || []))
+    .filter((p) => Number.isFinite(p.years) && Number.isFinite(p.yield)).sort((a, b) => a.years - b.years);
   const realCurve = (data.realCurve || gilts.filter((g) => g.realYield != null && g.lag === 3)
     .map((g) => ({ years: g.maturity - new Date().getFullYear(), yield: g.realYield })))
     .filter((p) => Number.isFinite(p.years) && Number.isFinite(p.yield))
@@ -46,7 +51,7 @@ function normalise(data) {
     curve_source: data.curve_source || (data.realCurve ? 'real yields from gilt prices' : 'flat assumption'),
     source: data.source || (data.sources ? `${data.sources.issued}; ${data.sources.prices}` : 'unknown'),
     notice: data.notice || 'Indicative figures for illustration only. Not a recommendation to buy or sell any gilt.',
-    gilts, realCurve
+    gilts, conventionals, realCurve, nominalCurve
   };
 }
 
@@ -105,6 +110,18 @@ export function realYieldForYear(k) {
   return c[c.length - 1].yield;
 }
 
+/** Nominal (conventional-gilt) yield k years out — BoE nominal spot curve; flat beyond its ends. */
+export function nominalYieldForYear(k) {
+  const c = activeLinkers().nominalCurve || [];
+  if (!c.length) return 0.045;
+  if (k <= c[0].years) return c[0].yield;
+  if (k >= c[c.length - 1].years) return c[c.length - 1].yield;
+  for (let i = 1; i < c.length; i++) {
+    if (k <= c[i].years) { const a = c[i - 1], b = c[i]; return a.yield + (b.yield - a.yield) * (k - a.years) / (b.years - a.years); }
+  }
+  return c[c.length - 1].yield;
+}
+
 /** Duration-weighted-ish summary yield for one number in prose (10-year point). */
 export function headlineRealYield() { return realYieldForYear(10); }
 
@@ -121,8 +138,8 @@ export function coverage() {
  * BRACKETING pair (nearest before + nearest after) — the doubled-second-slice treatment for
  * gap years (§4c). Beyond the last linker (~2073) nothing insures the year: return the last.
  */
-export function giltsForYear(year) {
-  const gilts = activeLinkers().gilts;
+export function giltsForYear(year, kind = 'real') {
+  const gilts = kind === 'nominal' ? (activeLinkers().conventionals || []) : activeLinkers().gilts;
   const exact = gilts.filter((g) => g.maturity === year);
   if (exact.length) return { mode: 'exact', gilts: exact };
   const before = gilts.filter((g) => g.maturity < year).sort((a, b) => b.maturity - a.maturity)[0];
@@ -137,18 +154,18 @@ export function giltsForYear(year) {
  * unless a flat `realYield` is forced (tests / what-if).
  * @param {object} p { rungYears: [planYear...], drawForYear, startYear (calendar), realYield?, yieldForYear? }
  */
-export function orderSheet({ rungYears, drawForYear, startYear, realYield, yieldForYear }) {
-  const yf = yieldForYear || (realYield != null ? () => realYield : realYieldForYear);
+export function orderSheet({ rungYears, drawForYear, startYear, realYield, yieldForYear, kind = 'real' }) {
+  const yf = yieldForYear || (realYield != null ? () => realYield : (kind === 'nominal' ? nominalYieldForYear : realYieldForYear));
   const prov = dataProvenance();
   const rows = rungYears.map((k) => {
     const calYear = startYear + k;
-    const pick = giltsForYear(calYear);
+    const pick = giltsForYear(calYear, kind);
     const y = yf(k);
     const cost = drawForYear(k) * Math.pow(1 + y, -k);
     return {
       planYear: k, calYear,
       gilts: pick.gilts.map((g) => g.name),
-      giltDetails: pick.gilts.map((g) => ({ name: g.name, tidm: g.tidm, cleanPrice: g.cleanPrice, realYield: g.realYield, lag: g.lag })),
+      giltDetails: pick.gilts.map((g) => ({ name: g.name, tidm: g.tidm, cleanPrice: g.cleanPrice, realYield: g.realYield, nominalYield: g.nominalYield, lag: g.lag, type: g.type })),
       mode: pick.mode,
       face: Math.round(drawForYear(k)),
       realYield: y,
@@ -161,11 +178,14 @@ export function orderSheet({ rungYears, drawForYear, startYear, realYield, yield
     total: rows.reduce((s, r) => s + r.estCost, 0),
     priced: flat
       ? 'flat real yield ' + (realYield * 100).toFixed(1) + '%'
-      : (prov.hasCurve ? 'real yields from the ' + prov.curve_source + ' as of ' + prov.curve_as_of : 'flat real yield ' + (FLAT_REAL_YIELD_FALLBACK * 100).toFixed(1) + '% (no curve data)'),
+      : kind === 'nominal'
+        ? ((activeLinkers().nominalCurve || []).length ? 'Bank of England nominal spot curve as of ' + prov.curve_as_of : 'flat nominal yield 4.5% (no curve data)')
+        : (prov.hasCurve ? 'real yields from the ' + prov.curve_source + ' as of ' + prov.curve_as_of : 'flat real yield ' + (FLAT_REAL_YIELD_FALLBACK * 100).toFixed(1) + '% (no curve data)'),
     generated_at: prov.generated_at,
     as_of: prov.as_of,
     source: prov.source,
     notice: prov.notice,
-    stale: prov.stale
+    stale: prov.stale,
+    kind
   };
 }

@@ -88,3 +88,26 @@ describe('LinkerUniverse (Appendix C semantics, live-data edition)', () => {
     expect(dataProvenance().source).toMatch(/DMO/);
   });
 });
+
+import { nominalYieldForYear } from '../src/services/LinkerUniverse.js';
+describe('gilt ladder explainer data (generic, not the plan)', () => {
+  it('carries conventional gilts and the BoE nominal curve; nominal > real across the curve', () => {
+    const a = activeLinkers();
+    expect(a.conventionals.length).toBeGreaterThan(40);
+    expect(a.nominalCurve.length).toBeGreaterThan(50);
+    for (const k of [1, 5, 10, 20, 30]) {
+      expect(nominalYieldForYear(k)).toBeGreaterThan(realYieldForYear(k));
+      expect(nominalYieldForYear(k)).toBeLessThan(0.08);
+    }
+  });
+  it('a nominal order sheet picks conventional gilts and prices on the nominal curve', () => {
+    const sheet = orderSheet({ rungYears: [1, 2, 3, 10], drawForYear: () => 10000, startYear: 2026, kind: 'nominal' });
+    expect(sheet.kind).toBe('nominal');
+    expect(sheet.priced).toMatch(/nominal spot curve/);
+    for (const r of sheet.rows) expect(r.giltDetails.every((g) => g.type === 'conventional')).toBe(true);
+    expect(sheet.rows[3].estCost).toBe(Math.round(10000 * Math.pow(1 + nominalYieldForYear(10), -10)));
+    expect(sheet.total).toBeLessThan(40000);
+    const real = orderSheet({ rungYears: [1, 2, 3, 10], drawForYear: () => 10000, startYear: 2026 });
+    expect(real.total).toBeGreaterThan(sheet.total);   // real income costs more than fixed £
+  });
+});

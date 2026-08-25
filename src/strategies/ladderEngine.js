@@ -84,6 +84,7 @@ export const curvePricer = (drawForYear, yieldForYear) => (k, tMonths) =>
 export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b = 1.2, gp = 0.05 }) {
   let V = E0, nxt = firstRung, sec = 0, sells = 0;
   const trades = [];
+  const vByYear = [E0];   // sleeve value at each plan-year boundary (cone of uncertainty)
   for (let t = 1; t <= L; t++) {
     V *= rtr[s + t] / rtr[s + t - 1];
     const G = E0 * Math.pow(1 + gp, t / 12);
@@ -96,8 +97,9 @@ export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b 
       }
       if (bought) { sells += 1; trades.push({ t, bought }); }
     }
+    if (t % 12 === 0) vByYear[t / 12] = V;
   }
-  return { V, secured: sec, sellEvents: sells, trades };
+  return { V, secured: sec, sellEvents: sells, trades, vByYear };
 }
 
 /**
@@ -108,7 +110,8 @@ export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b 
 export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceForYear, gp = 0.05 }) {
   let V = E0, last = 0, nxt = firstRung, sec = 0;
   const trades = [];
-  const fires = [];   // a review FIRES when V > G — distinct from managing to buy a rung
+  const fires = [];
+  const vByYear = [E0];   // filled at review points only (calendar mode grows between reviews)   // a review FIRES when V > G — distinct from managing to buy a rung
   for (const t of reviews) {
     V *= rtr[s + t] / rtr[s + last];
     last = t;
@@ -124,8 +127,9 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
       }
       if (bought) trades.push({ t, bought });
     }
+    if (t % 12 === 0) vByYear[t / 12] = V;
   }
-  return { V, secured: sec, lastReview: last, trades, fires };
+  return { V, secured: sec, lastReview: last, trades, fires, vByYear };
 }
 
 /**
@@ -136,6 +140,7 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
 export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, startAge = 57, spendFlex = null }) {
   let V = V0;
   const dstart = (ladderYears + secured) * 12;
+  const vByYear = {};   // year index → sleeve value at that boundary (L/12 .. END/12)
   for (let m = L; m < END; m++) {
     V *= rtr[s + m + 1] / rtr[s + m];
     if (m >= dstart) {
@@ -148,10 +153,14 @@ export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, 
         if (V < (spendFlex.floorMult ?? 1) * remainingNeed) d *= (1 - spendFlex.cutPct);
       }
       V -= d / 12;
-      if (V <= 0) return { survived: false, failAge: startAge + m / 12, terminal: 0 };
+      if (V <= 0) {
+        for (let y = Math.floor((m + 1) / 12); y <= END / 12; y++) vByYear[y] = 0;
+        return { survived: false, failAge: startAge + m / 12, terminal: 0, vByYear };
+      }
     }
+    if ((m + 1) % 12 === 0) vByYear[(m + 1) / 12] = V;
   }
-  return { survived: true, failAge: null, terminal: V };
+  return { survived: true, failAge: null, terminal: V, vByYear };
 }
 
 /** Percentile helper on a copy. */

@@ -434,6 +434,19 @@ export function simulate(config, returns, seed = 0) {
       hodlUsed += sourcing.fromHodl;
       if (hodlUsedMonth === null) hodlUsedMonth = month;
     }
+    // The SIPP pots could not meet the draw. Before calling that failure, the ISA pays the
+    // shortfall (tax-free, so it needs only the NET of what the SIPP would have delivered).
+    // Previously the run was marked failed with money still in the ISA — a plan with £600k
+    // of ISA 'ran out' the month its SIPP did. Only when the ISA is empty too has it failed.
+    let isaRescue = 0;
+    if (sourcing.shortfall > 1e-6 && isa > 0) {
+      const grossYear = sippMonthly * 12;
+      const netFactor = grossYear > 0 && taxAnnual > 0 ? Math.max(0.55, 1 - taxAnnual / grossYear) : 1;
+      const netShort = sourcing.shortfall * netFactor;
+      isaRescue = Math.min(isa, netShort);
+      sourcing.shortfall = Math.max(0, sourcing.shortfall - isaRescue / netFactor);
+      if (traceRow) { traceRow.isaRescue = isaRescue; traceRow.effectiveIsa = isaDrawThisMonth + isaRescue; traceRow.effectiveSipp = Math.max(0, traceRow.effectiveSipp - isaRescue / netFactor); }
+    }
     if (sourcing.shortfall > 1e-6) {
       failed = true;
       failMonth = month;
@@ -457,7 +470,7 @@ export function simulate(config, returns, seed = 0) {
     // Deplete the ISA pot by this month's tax-free top-up (bounded by the balance).
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP
     // pots bear the full load — a plan only survives on real, finite ISA, never phantom.
-    isa = Math.max(0, isa - Math.min(isaDrawThisMonth, isa)) + recycleNetThisMonth;
+    isa = Math.max(0, isa - Math.min(isaDrawThisMonth + isaRescue, isa)) + recycleNetThisMonth;
     if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (taxFreeMonthly || 0));
     if (isaDepletedMonth === null && startIsa > 0 && isa / cumInf < isaUsedUpFloor) isaDepletedMonth = month;
 

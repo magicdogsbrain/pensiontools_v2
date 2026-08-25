@@ -18,11 +18,11 @@ import {
 import { resolveIncomeProfile, profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION as _EV } from './version.js';
 import { LadderAndRatchet } from './LadderAndRatchet.js';
-import { FloorAndFlex } from './FloorAndFlex.js';
+import { FloorAndFlex, FloorTheSchedule } from './FloorAndFlex.js';
 
 export { ENGINE_VERSION } from './version.js';
 
-export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex' };
+export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule' };
 
 const PotsAndValves = {
   id: STRATEGY_IDS.POTS_AND_VALVES,
@@ -47,7 +47,8 @@ const PotsAndValves = {
 const REGISTRY = {
   [PotsAndValves.id]: PotsAndValves,
   [LadderAndRatchet.id]: LadderAndRatchet,
-  [FloorAndFlex.id]: FloorAndFlex
+  [FloorAndFlex.id]: FloorAndFlex,
+  [FloorTheSchedule.id]: FloorTheSchedule
 };
 
 /** The strategy for a plan (default + migration target: pots-and-valves). */

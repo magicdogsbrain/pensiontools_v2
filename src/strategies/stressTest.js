@@ -20,7 +20,7 @@ import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../storage/StressRepository.js';
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex'
+  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule'
 };
 
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
@@ -221,9 +221,45 @@ function flexTest(p, configs) {
   };
 }
 
+function scheduleFloorTest(p, configs) {
+  const c = configs.fs;
+  if (!c) return { affordable: false, reason: `buying the whole schedule costs ${Math.round(configs.fsFloorCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  const planYears = p.durationYears;
+  const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  const enrich = (w) => {
+    const wealth = [], income = [];
+    for (let y = 0; y <= planYears; y++) {
+      wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, planYears, c.floorDraw, pricer));
+      income.push(c.floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0));   // = the schedule, by contract
+    }
+    return { wealth, income };
+  };
+  const mcE = mc.windows.map(enrich);
+  const terms = mc.windows.map((w) => w.terminal);
+  const sleeveAt = (y) => { const v = mc.windows.map((w) => w.sleeveByYear[Math.min(y, planYears)] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  return {
+    affordable: true,
+    ruin: { hist: 0, mc: 0 },   // every year of the schedule is bought; the sleeve is never drawn
+    worst12: { min: c.minDraw, median: c.minDraw },
+    guaranteedToAge: `${c.horizonAge} by contract (the whole schedule)`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    failAges: [],
+    signature: {
+      floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / (p.pot + (p.isa || 0)),
+      sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge,
+      rule: 'Once a year: if the reserve is more than double its glide line (starting value x 1.05^years), spend the excess on rungs beyond the horizon or on raising the later years; otherwise leave it.'
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Reserve sleeve + unpaid schedule rungs, today\'s money'
+  };
+}
+
 /** Stress-test ONE strategy on the plan. */
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };

@@ -133,7 +133,15 @@ export function deriveCompareConfigs(p) {
     horizonAge: p.startAge + ffYears
   } : null;
 
-  return { END, lr, ff, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, baseLadderCost, ffFloorCost };
+  // Floor the schedule: the whole income profile (net of SP) to the horizon; the rest is an untouched reserve.
+  const fsCost = floorCost({ drawForYear: drawNet, years: p.durationYears, realYield, yieldForYear: p.yieldForYear });
+  const fsE0 = total - fsCost;
+  const fsc = fsE0 > 0 ? {
+    E0: fsE0, rate: 0, END, floorCost: fsCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    horizonAge: p.startAge + p.durationYears, amountAt, minDraw
+  } : null;
+
+  return { END, lr, ff, fs: fsc, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
 }
 
 /** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */

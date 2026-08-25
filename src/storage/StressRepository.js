@@ -272,6 +272,24 @@ function calculateSpConfigFromSettings(settings) {
  * @param {object} preloadedSettings - Optional pre-loaded settings (to avoid cache issues)
  * @returns {object} Simulation config
  */
+/**
+ * Stepped income ("£60k until 72, £50k until 80, then £40k") compiled to the per-year targetSchedule
+ * every engine reads. The saved schedule wins; steps are the fallback for plans saved before the
+ * schedule was persisted correctly. Returns null when the plan is flat.
+ */
+export function scheduleFromSteps(settings, startAge = 57) {
+  if (Array.isArray(settings.targetSchedule) && settings.targetSchedule.length) return settings.targetSchedule;
+  if (settings.incomeShape !== 'phases' || !Array.isArray(settings.incomeSteps) || !settings.incomeSteps.length) return null;
+  const ageNow = settings.shapeAgeNow || startAge;
+  const steps = settings.incomeSteps.filter((x) => Number.isFinite(+x.fromAge) && +x.amount > 0).sort((a, b) => +a.fromAge - +b.fromAge);
+  if (!steps.length) return null;
+  const years = Math.max(1, settings.duration || 35);
+  return Array.from({ length: years + 1 }, (_, y) => {
+    const st = steps.filter((x) => +x.fromAge <= ageNow + y).pop();
+    return st ? +st.amount : (settings.baseSalary || 0);
+  });
+}
+
 export function createSimulationConfigFromSettings(overrides = {}, preloadedSettings = null) {
   const settings = preloadedSettings || getStressSettings();
 
@@ -330,7 +348,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     ufplsYears: settings.ufplsYears || null,
     ufplsThenPcls: !!settings.ufplsThenPcls,
     bandFillRecycle: !!settings.bandFillRecycle,
-    targetSchedule: Array.isArray(settings.targetSchedule) ? settings.targetSchedule : null,
+    targetSchedule: scheduleFromSteps(settings),
     dbAmount: settings.dbAmount || 0,
     dbStartYear: settings.dbStartYear || 0,
     dbIndexation: settings.dbIndexation || 'lpi5',

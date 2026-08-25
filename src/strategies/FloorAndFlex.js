@@ -70,6 +70,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
     const clamp = (x) => Math.min(cfg.flexMax ?? Infinity, Math.max(cfg.flexMin ?? 0, x));
     d = clamp(d);
     const dByYear = [d];
+    const sleeveByYear = [cfg.E0];
     let extendYears = 0;
     let upliftSpent = 0;
     const uplift = {};   // year k -> £ uplift bought (raise mode)
@@ -121,6 +122,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
       if (R && R.mode === 'band') fireRatchet(t);
       if (R && R.mode === 'calendar' && (R.reviews || []).includes(t)) fireRatchet(t);
       if ((m + 1) % 12 === 0) {
+        sleeveByYear[(m + 1) / 12] = V;
         d = clamp(rate * V);
         if (m + 1 < cfg.END) dByYear.push(d);
       }
@@ -129,6 +131,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
       s,
       terminal: V,
       dByYear,
+      sleeveByYear,
       worstYearD: Math.min(...dByYear),
       yearsUnder: (thr) => dByYear.filter((x) => x < thr).length,
       extendYears,

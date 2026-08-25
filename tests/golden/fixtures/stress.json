@@ -813,9 +813,9 @@
     },
     "base + £200k ISA (should beat base)": {
       "mc": {
-        "failCount": 1,
+        "failCount": 0,
         "finalValue": {
-          "min": 206348.19,
+          "min": 0,
           "p10": 1058348.38,
           "p25": 1827480.43,
           "p5": 606562.61,
@@ -831,21 +831,21 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 18.98,
-          "avgMonths": 28.12,
-          "maxConsecutive": 310,
-          "maxMonths": 341,
+          "avgConsecutive": 19.02,
+          "avgMonths": 28.17,
+          "maxConsecutive": 320,
+          "maxMonths": 351,
           "p50Months": 10,
           "p90Months": 88,
           "p95Months": 108,
           "pctWithProtection": 58,
           "runsWithProtection": 116
         },
-        "successCount": 199,
-        "successRate": 99.5,
+        "successCount": 200,
+        "successRate": 100,
         "survival": {
           "max": 30,
-          "min": 29.08,
+          "min": 30,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -903,9 +903,9 @@
     },
     "base + £200k ISA / maximise longevity": {
       "mc": {
-        "failCount": 1,
+        "failCount": 0,
         "finalValue": {
-          "min": 206348.19,
+          "min": 0,
           "p10": 1058348.38,
           "p25": 1827480.43,
           "p5": 606562.61,
@@ -921,21 +921,21 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 18.98,
-          "avgMonths": 28.12,
-          "maxConsecutive": 310,
-          "maxMonths": 341,
+          "avgConsecutive": 19.02,
+          "avgMonths": 28.17,
+          "maxConsecutive": 320,
+          "maxMonths": 351,
           "p50Months": 10,
           "p90Months": 88,
           "p95Months": 108,
           "pctWithProtection": 58,
           "runsWithProtection": 116
         },
-        "successCount": 199,
-        "successRate": 99.5,
+        "successCount": 200,
+        "successRate": 100,
         "survival": {
           "max": 30,
-          "min": 29.08,
+          "min": 30,
           "p10": 30,
           "p25": 30,
           "p5": 30,

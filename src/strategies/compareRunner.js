@@ -18,6 +18,7 @@ import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
+import { stressTestAll } from './stressTest.js';
 
 /** Annualised real returns for one window (planYears entries). */
 function windowAnnualReturns(rtr, s, planYears) {
@@ -98,93 +99,49 @@ export function deriveCompareConfigs(p) {
 
   // Ladder & Ratchet: base ladder covers up to 15 years (or half the plan when shorter);
   // ratchet rungs run from there to the horizon. Post-SP rungs are net of the State Pension.
-  const ladderYears = Math.min(15, Math.floor(p.durationYears / 2));
-  const drawNet = (k) => Math.max(0, p.targetAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  const prm = p.params || {};
+  const ladderYears = Math.max(1, Math.min(prm.ladderYears || Math.min(15, Math.floor(p.durationYears / 2)), p.durationYears - 1));
+  const ladderDraw = prm.drawAnnual > 0 ? prm.drawAnnual : p.targetAnnual;
+  const drawNet = (k) => Math.max(0, ladderDraw - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
   const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
   const lrE0 = total - baseLadderCost;
   const lr = lrE0 > 0 ? {
     E0: lrE0, ladderYears, L: ladderYears * 12,
     firstRung: ladderYears + 1, maxRung: p.durationYears,
-    draw: p.targetAnnual,
-    profile: { type: 'phases', phases: [{ fromYear: 0, amount: p.targetAnnual }] },
-    trigger: { mode: 'band', b: 1.2 },
+    draw: ladderDraw,
+    profile: { type: 'phases', phases: [{ fromYear: 0, amount: ladderDraw }] },
+    trigger: prm.triggerMode === 'calendar'
+      ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(ladderYears / 5) }, (_, i) => (i + 1) * 60) }
+      : { mode: 'band', b: prm.bandThreshold || 1.2 },
     END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
     baseLadderCost, drawNetOfSp: drawNet
   } : null;
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
   const floorDraw = (k) => Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
-  const ffFloorCost = floorCost({ drawForYear: floorDraw, years: p.durationYears, realYield, yieldForYear: p.yieldForYear });
+  const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
+  const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;
   const ff = ffE0 > 0 ? {
-    E0: ffE0, rate: 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
-    horizonAge: p.startAge + p.durationYears
+    E0: ffE0, rate: prm.sleeveRate || 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
+    horizonAge: p.startAge + ffYears
   } : null;
 
   return { END, lr, ff, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, baseLadderCost, ffFloorCost };
 }
 
-/** Run the full N-way compare. Heavy (~seconds); cache by config hash upstream. */
+/** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */
 export function runCompare(p) {
-  const configs = deriveCompareConfigs(p);
-  const out = { configs, strategies: {} };
-
-  // Pots & Valves on the same windows
-  const pnv = runPnvWindows(p.pnvCfg, { END: configs.END, stride: p.stride || 1 });
-  const pnvTerms = pnv.windows.map((w) => w.terminal);
-  const pnvWorst = pnv.windows.map((w) => w.worst12);
-  const pnvMc = runPnvMonteCarlo(p.pnvCfg, { END: configs.END, runs: p.mcRuns || 400 });
-  out.strategies['pots-and-valves'] = {
-    table: {
-      worst12Median: pct(pnvWorst, 0.5),
-      worst12Min: Math.min(...pnvWorst),
-      guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)})` : 'None — market-dependent',
-      ruinPct: 100 * pnv.windows.filter((w) => w.failed).length / pnv.n,
-      ruinPctMc: pnvMc.ruinPct,
-      terminalMedian: pct(pnvTerms, 0.5)
-    },
-    signature: { protMonthsMedian: pct(pnv.windows.map((w) => w.protMonths), 0.5) },
-    n: pnv.n
-  };
-
-  if (configs.lr) {
-    const lr = runLadderWindows(configs.lr);
-    const lrFull = lr.windows.slice(0, lr.meta.fullN);
-    const guaranteedYears = configs.lr.ladderYears; // contractual minimum, every window
-    const medianSecured = lr.stats.securedMedian;
-    out.strategies['ladder-and-ratchet'] = {
+  const all = stressTestAll(p);
+  const out = { configs: all.configs, strategies: {} };
+  for (const [id, r] of Object.entries(all.strategies)) {
+    if (!r.affordable) continue;
+    out.strategies[id] = {
       table: {
-        worst12Median: p.targetAnnual,   // the draw is bolted on until sleeve failure
-        worst12Min: lrFull.every((w) => w.survived) ? p.targetAnnual : 0,
-        guaranteedToAge: `${p.startAge + guaranteedYears} by contract; median ratchets to ${p.startAge + guaranteedYears + medianSecured}`,
-        ruinPct: 100 * lrFull.filter((w) => w.survived === false).length / lrFull.length,
-        ruinPctMc: (() => { const mc = runLadderMonteCarlo(configs.lr, p.mcRuns || 400); return 100 - (mc.stats.survivalPct ?? 100); })(),
-        terminalMedian: lr.stats.terminalMedian
+        worst12Median: r.worst12.median, worst12Min: r.worst12.min, guaranteedToAge: r.guaranteedToAge,
+        ruinPct: r.ruin.hist, ruinPctMc: r.ruin.mc, terminalMedian: r.terminal.p50
       },
-      signature: {
-        neverPct: lr.stats.neverPct, fullySecuredPct: lr.stats.fullySecuredPct,
-        securedMedian: medianSecured, sellEventsMedian: lr.stats.sellEventsMedian
-      },
-      n: lrFull.length
-    };
-  }
-
-  if (configs.ff) {
-    const ff = runFlexWindows(configs.ff);
-    out.strategies['floor-and-flex'] = {
-      table: {
-        worst12Median: p.essentialsAnnual + ff.stats.worstMedian,
-        worst12Min: p.essentialsAnnual + ff.stats.worstMin,
-        guaranteedToAge: `${configs.ff.horizonAge} by contract (essentials)`,
-        ruinPct: 0,   // essentials survival is 100% by construction; the flex sleeve cannot deplete
-        ruinPctMc: 0, // structurally: %-of-pot draws cannot exhaust the sleeve on ANY path
-        terminalMedian: ff.stats.terminalMedian
-      },
-      signature: {
-        year1Flex: ff.stats.year1D, worstFlexMedian: ff.stats.worstMedian,
-        worstFlexP10: ff.stats.worstP10, shareLeanYears: ff.stats.shareYearsUnder(10000)
-      },
-      n: ff.stats.n
+      signature: r.signature, cones: r.cones, n: r.n.hist, full: r
     };
   }
   return out;

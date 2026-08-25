@@ -21,6 +21,7 @@ import {
 // the plan's locked strategy — never from the engine modules directly.
 import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
+import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES } from './strategies/stressTest.js';
 import { orderSheet, realYieldForYear, loadLiveGilts, dataProvenance, activeLinkers } from './services/LinkerUniverse.js';
 import { runLadderWindows, runLadderMonteCarlo } from './strategies/LadderAndRatchet.js';
 import { runFlexWindows } from './strategies/FloorAndFlex.js';
@@ -387,6 +388,10 @@ export {
   runCompare,
   cannedDecade,
   orderSheet,
+  stressTestStrategy,
+  stressTestAll,
+  planFromSettings,
+  STRATEGY_NAMES,
   realYieldForYear,
   loadLiveGilts,
   dataProvenance,

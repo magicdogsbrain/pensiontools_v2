@@ -100,8 +100,11 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
       // review that couldn't afford a whole rung still counts as triggered — the brief quotes
       // never ≈20% vs secured-zero ≈22% as DIFFERENT numbers).
       neverTriggered: cfg.trigger.mode === 'band' ? (s1.sellEvents === 0) : !(s1.fires || []).some((f) => f.fired),
-      holdMultiple: rtr[s + cfg.L] / rtr[s]
+      holdMultiple: rtr[s + cfg.L] / rtr[s],
+      sleeveByYear: (s1.vByYear || []).slice()   // stage-1 years; stage 2 appends below
     };
+    // Calendar mode only records at reviews: fill the ladder-end boundary from the grown sleeve.
+    w.sleeveByYear[cfg.L / 12] = sleeveAtL;
     if (s < fullN) {
       let s2;
       if (cfg.triggersContinueInDecumulation && cfg.trigger.mode === 'band') {
@@ -111,6 +114,7 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
         let survived = true, failAge = null;
         for (let m = cfg.L; m < cfg.END; m++) {
           V *= rtr[s + m + 1] / rtr[s + m];
+          if ((m + 1) % 12 === 0) w.sleeveByYear[(m + 1) / 12] = V;
           const t = m + 1;
           const G = cfg.E0 * Math.pow(1 + gp, t / 12);
           if (V >= (cfg.trigger.b ?? 1.2) * G && nxt <= cfg.maxRung) {
@@ -122,7 +126,7 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
           }
           if (m >= (cfg.ladderYears + sec) * 12) {
             V -= drawForYear(Math.floor(m / 12) + 1) / 12;
-            if (V <= 0) { survived = false; failAge = startAge + m / 12; V = 0; break; }
+            if (V <= 0) { survived = false; failAge = startAge + m / 12; V = 0; for (let y = Math.floor((m + 1) / 12); y <= cfg.END / 12; y++) w.sleeveByYear[y] = 0; break; }
           }
         }
         s2 = { survived, failAge, terminal: V };
@@ -134,6 +138,7 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
       w.survived = s2.survived;
       w.failAge = s2.failAge;
       w.terminal = s2.terminal;
+      if (s2.vByYear) for (const [y, v] of Object.entries(s2.vByYear)) w.sleeveByYear[+y] = v;
     }
     out.windows.push(w);
   }

@@ -147,11 +147,11 @@ import { runCareCheck } from '../src/services/HouseholdService.js';
 
 describe('runCareCheck', () => {
   const mk = () => ({ equityStart: 350000, bondStart: 250000, cashStart: 60000,
-    equityMin: 100000, bondMin: 80000, cashTarget: 30000, duration: 35, years: 25,
-    baseSalary: 22000, other: 0, statePension: 12000, statePensionYear: 5,
+    equityMin: 100000, bondMin: 80000, cashTarget: 30000, duration: 35, years: 30,
+    baseSalary: 34000, other: 0, statePension: 12000, statePensionYear: 5,
     pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
     protectionMult: 0.8, hodlEnabled: false, hodlValue: 0, isaBalance: 20000 });
-  const set = { duration: 25, baseSalary: 22000, statePension: 12000, statePensionYear: 5 };
+  const set = { duration: 30, baseSalary: 34000, statePension: 12000, statePensionYear: 5 };
 
   it('care years reduce joint success; a heavier burden hurts more', () => {
     const care = runCareCheck({ cfgA: mk(), cfgB: mk(), setA: set, setB: set, who: 'A', startYear: 5, years: 3, annualCost: 90000, runs: 80 });

@@ -109,3 +109,14 @@ failures.
    (Barclays), roughly 1.5–2 pp below the S&P. A UK-history lens would lower every number by a
    few points and is the honest "pessimistic" setting for a UK user; it needs a licensed or
    open UK annual series and is not yet built.
+
+## 7. Addendum (25 Aug 2026, later): WORLD equity, not US — applied, not optional
+
+A world-tracker holder (VWRL/VWRP/PACW) should not be modelled on US returns. The UBS/Credit
+Suisse Global Investment Returns Yearbook 2024 gives 1900–2023 real returns of **US 6.6%/yr,
+World 5.0%/yr, UK 5.3%/yr**. The app now applies the 1.5 pp/yr gap everywhere, as data, not as a
+setting: `EQUITY_RETURNS` = Damodaran S&P total return × (1 − 0.015) − 1 per year (8.29% nominal /
+5.09% real), and the ladder engines' Shiller real index is haircut monthly inside `getRtr()`.
+The brief's golden sets A/B/C pin the raw reference maths and opt out explicitly. Engine on this
+basis (Trinity conventions, 60/40): 4%/30y 82%, 5%/30y 59%, 6%/30y 39%, 3%/40y 89% — about ten
+points below the published US figures, by design; `tests/calibration.test.js` pins those bands.

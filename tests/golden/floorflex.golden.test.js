@@ -2,7 +2,12 @@
  * Golden set C (strategy brief Appendix B) — Floor & Flex. The floor cost is DETERMINISTIC
  * (assert to the pound); sleeve statistics carry the brief's ±3% tolerance.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { setEquityHaircut, WORLD_EQUITY_HAIRCUT } from '../../src/strategies/ladderEngine.js';
+// The brief's golden sets pin the RAW Shiller reference maths; the app itself runs world-adjusted.
+// Set at module level: the describe bodies below compute their windows at collection time.
+setEquityHaircut(0);
+afterAll(() => setEquityHaircut(WORLD_EQUITY_HAIRCUT));
 import { floorCost, runFlexWindows } from '../../src/strategies/FloorAndFlex.js';
 import { profileTargetForYear } from '../../src/services/IncomeProfile.js';
 

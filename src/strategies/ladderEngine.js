@@ -24,9 +24,25 @@ export function realTrIndex(data = shiller) {
   return rtr;
 }
 
-let _rtr = null;
+/**
+ * WORLD equity, not US. The only 150-year monthly history is the S&P; a world tracker (VWRL/PACW)
+ * holder should not be modelled on it unadjusted. UBS/Credit Suisse Global Investment Returns
+ * Yearbook 2024, 1900-2023 real returns: US 6.6%/yr, World 5.0%/yr. The app's equity series is the
+ * S&P history LESS this gap, applied monthly — not a setting. Goldens for the brief's reference
+ * implementation opt out with setEquityHaircut(0) (they pin the raw Shiller maths).
+ */
+export const WORLD_EQUITY_HAIRCUT = 0.015;
+let _haircut = WORLD_EQUITY_HAIRCUT;
+let _rtr = null, _rtrHaircut = null;
+export function setEquityHaircut(h) { _haircut = h; _rtr = null; }
+export function getEquityHaircut() { return _haircut; }
 export function getRtr() {
-  if (!_rtr) _rtr = realTrIndex();
+  if (!_rtr || _rtrHaircut !== _haircut) {
+    const raw = realTrIndex();
+    const f = Math.pow(1 - _haircut, 1 / 12);
+    _rtr = raw.map((v, i) => v * Math.pow(f, i));
+    _rtrHaircut = _haircut;
+  }
   return _rtr;
 }
 

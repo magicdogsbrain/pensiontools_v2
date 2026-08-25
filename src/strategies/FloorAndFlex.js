@@ -13,10 +13,12 @@
 import { getRtr, bootstrapRtr, pct, dataMeta } from './ladderEngine.js';
 import { ENGINE_VERSION } from './version.js';
 
-/** Deterministic floor cost at flat real yield: Σ P(k) × (1+y)^-k over years 1..horizon. */
-export function floorCost({ drawForYear, years, realYield }) {
+/** Deterministic floor cost: Σ P(k) × (1+y_k)^-k over years 1..horizon — y_k from the real-yield
+ *  curve when yieldForYear is given, else the flat realYield. */
+export function floorCost({ drawForYear, years, realYield, yieldForYear }) {
+  const yf = yieldForYear || (() => realYield);
   let c = 0;
-  for (let k = 1; k <= years; k++) c += drawForYear(k) * Math.pow(1 + realYield, -k);
+  for (let k = 1; k <= years; k++) c += drawForYear(k) * Math.pow(1 + yf(k), -k);
   return c;
 }
 
@@ -57,7 +59,8 @@ function runFlexCore(cfg, mcPaths, isMc) {
   const out = { meta: { ...dataMeta(), n, engineVersion: ENGINE_VERSION }, windows: [] };
   const R = cfg.ratchet;
   const ry = R?.realYield ?? 0.023;
-  const price = (k, t) => Math.pow(1 + ry, -(k - t / 12));
+  const yf = (R && R.yieldForYear) || cfg.yieldForYear || (() => ry);
+  const price = (k, t) => Math.pow(1 + yf(k), -(k - t / 12));
 
   for (let s = 0; s < n; s++) {
     const series = isMc ? mcPaths[s] : rtr;

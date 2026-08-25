@@ -1,64 +1,109 @@
 /**
  * Linker universe (strategy brief Appendix C) — the index-linked gilt list that turns abstract
- * "rungs" into an order sheet a user could hand a broker.
+ * "rungs" into an illustrative ladder, plus the REAL-YIELD CURVE the ladder strategies price
+ * rungs from.
  *
- * Data policy, per the brief: a BUNDLED SNAPSHOT is the fallback; a manual CSV import (admin)
- * is the refresh path; a staleness banner shows when the data is old; retail sites are never
- * scraped. A nightly job (Tradeweb EOD / BoE real spot curve) needs server hosting this static
- * app doesn't have — documented here, wired the day hosting exists. Prices absent → rungs are
- * priced on the flat real-yield curve (engine default 2.3%), stated on the sheet.
- *
- * SNAPSHOT: the UK IL gilt universe as publicly listed (illustrative; refresh via admin CSV).
- * Old-style 8-month-lag stocks (e.g. 4⅛% IL 2030) carry lag: 8; post-2005 issues lag: 3.
- * Gap years are DERIVED from the data, never hard-coded.
+ * Data: `public/data/gilts.json`, rebuilt nightly by scripts/fetch-gilt-data.mjs from the DMO
+ * gilts-in-issue report and Tradeweb FTSE closing prices (T+1). `src/data/giltsSnapshot.js` is
+ * the bundled copy for offline/tests; `loadLiveGilts()` swaps in the fetched file at runtime; an
+ * admin override (Firestore admin/linkers) sits above both. For 3-month-lag linkers the quoted
+ * clean price is a real price, so the solved YTM is the real yield — that curve replaces the old
+ * flat 2.3% assumption. Everything shown from it is labelled indicative, never a recommendation.
  */
 
-export const BUNDLED_LINKERS = {
-  generated_at: '2026-01-15T00:00:00Z',
-  source: 'bundled snapshot (illustrative universe; refresh via admin CSV import)',
-  gilts: [
-    { name: '0⅛% IL Treasury Gilt 2026', coupon: 0.125, maturity: 2026, lag: 3 },
-    { name: '1¼% IL Treasury Gilt 2027', coupon: 1.25, maturity: 2027, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2028', coupon: 0.125, maturity: 2028, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2029', coupon: 0.125, maturity: 2029, lag: 3 },
-    { name: '4⅛% IL Treasury Stock 2030', coupon: 4.125, maturity: 2030, lag: 8 },
-    { name: '0⅛% IL Treasury Gilt 2031', coupon: 0.125, maturity: 2031, lag: 3 },
-    { name: '1¼% IL Treasury Gilt 2032', coupon: 1.25, maturity: 2032, lag: 3 },
-    { name: '0¾% IL Treasury Gilt 2033', coupon: 0.75, maturity: 2033, lag: 3 },
-    { name: '0¾% IL Treasury Gilt 2034', coupon: 0.75, maturity: 2034, lag: 3 },
-    { name: '2% IL Treasury Stock 2035', coupon: 2.0, maturity: 2035, lag: 8 },
-    { name: '0⅛% IL Treasury Gilt 2036', coupon: 0.125, maturity: 2036, lag: 3 },
-    { name: '1⅛% IL Treasury Gilt 2037', coupon: 1.125, maturity: 2037, lag: 3 },
-    { name: '0⅝% IL Treasury Gilt 2039', coupon: 0.625, maturity: 2039, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2041', coupon: 0.125, maturity: 2041, lag: 3 },
-    { name: '0⅝% IL Treasury Gilt 2042', coupon: 0.625, maturity: 2042, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2044', coupon: 0.125, maturity: 2044, lag: 3 },
-    { name: '0⅝% IL Treasury Gilt 2045', coupon: 0.625, maturity: 2045, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2046', coupon: 0.125, maturity: 2046, lag: 3 },
-    { name: '0¾% IL Treasury Gilt 2047', coupon: 0.75, maturity: 2047, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2048', coupon: 0.125, maturity: 2048, lag: 3 },
-    { name: '0½% IL Treasury Gilt 2050', coupon: 0.5, maturity: 2050, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2051', coupon: 0.125, maturity: 2051, lag: 3 },
-    { name: '0¼% IL Treasury Gilt 2052', coupon: 0.25, maturity: 2052, lag: 3 },
-    { name: '1¼% IL Treasury Stock 2055', coupon: 1.25, maturity: 2055, lag: 8 },
-    { name: '0⅛% IL Treasury Gilt 2056', coupon: 0.125, maturity: 2056, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2058', coupon: 0.125, maturity: 2058, lag: 3 },
-    { name: '0⅜% IL Treasury Gilt 2062', coupon: 0.375, maturity: 2062, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2065', coupon: 0.125, maturity: 2065, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2068', coupon: 0.125, maturity: 2068, lag: 3 },
-    { name: '0⅛% IL Treasury Gilt 2073', coupon: 0.125, maturity: 2073, lag: 3 }
-  ]
-};
+import snapshot from '../data/giltsSnapshot.js';
 
-let _override = null;
+export const FLAT_REAL_YIELD_FALLBACK = 0.023;
+
+/** Normalise any dataset shape (fetched JSON, bundled snapshot, admin CSV rows) to one form. */
+function normalise(data) {
+  if (!data) return null;
+  const gilts = (data.gilts || [])
+    .filter((g) => g.type ? g.type !== 'conventional' : true)
+    .map((g) => {
+      const maturityYear = typeof g.maturity === 'number' ? g.maturity : +String(g.maturity).slice(0, 4);
+      return {
+        name: g.name,
+        isin: g.isin || null,
+        tidm: g.tidm || null,
+        coupon: +g.coupon,
+        maturity: maturityYear,
+        maturityDate: typeof g.maturity === 'string' ? g.maturity : null,
+        lag: g.lag ?? (g.type === 'il8' ? 8 : 3),
+        cleanPrice: g.cleanPrice ?? null,
+        realYield: g.yield ?? g.realYield ?? null
+      };
+    });
+  const realCurve = (data.realCurve || gilts.filter((g) => g.realYield != null && g.lag === 3)
+    .map((g) => ({ years: g.maturity - new Date().getFullYear(), yield: g.realYield })))
+    .filter((p) => Number.isFinite(p.years) && Number.isFinite(p.yield))
+    .sort((a, b) => a.years - b.years);
+  return {
+    generated_at: data.generated_at,
+    as_of: data.as_of || (data.generated_at || '').slice(0, 10),
+    source: data.source || (data.sources ? `${data.sources.issued}; ${data.sources.prices}` : 'unknown'),
+    notice: data.notice || 'Indicative figures for illustration only. Not a recommendation to buy or sell any gilt.',
+    gilts, realCurve
+  };
+}
+
+const BUNDLED = normalise(snapshot);
+export const BUNDLED_LINKERS = BUNDLED;
+
+let _override = null;   // admin-published
+let _live = null;       // fetched at runtime
+
 /** Admin CSV import applies here (persisted via AdminConfigService admin/linkers). */
-export function setLinkersOverride(data) { _override = data && data.gilts ? data : null; }
-export function activeLinkers() { return _override || BUNDLED_LINKERS; }
+export function setLinkersOverride(data) { _override = data && data.gilts ? normalise(data) : null; }
+export function setLiveGilts(data) { _live = data && data.gilts ? normalise(data) : null; }
+export function activeLinkers() { return _override || _live || BUNDLED; }
+
+/** Fetch the nightly file (same origin, relative to the app) — silent fallback to the snapshot. */
+export async function loadLiveGilts(url = './data/gilts.json', fetchImpl = globalThis.fetch) {
+  if (!fetchImpl) return null;
+  try {
+    const r = await fetchImpl(url, { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (Date.parse(data.generated_at || 0) >= Date.parse(BUNDLED.generated_at || 0)) setLiveGilts(data);
+    return activeLinkers();
+  } catch (e) { return null; }
+}
 
 export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
   const gen = Date.parse(activeLinkers().generated_at || 0);
   return (nowMs - gen) > maxAgeHours * 3600 * 1000;
 }
+
+/** Provenance line for the UI: what the numbers are priced from and when. */
+export function dataProvenance() {
+  const a = activeLinkers();
+  return {
+    as_of: a.as_of, generated_at: a.generated_at, source: a.source, notice: a.notice,
+    stale: isStale(), hasCurve: a.realCurve.length > 0, curvePoints: a.realCurve.length
+  };
+}
+
+/**
+ * Real yield for a rung `k` years out, linearly interpolated on the closing-price curve and
+ * held flat beyond its ends. With no curve at all (bare CSV override) → the 2.3% fallback.
+ */
+export function realYieldForYear(k) {
+  const c = activeLinkers().realCurve;
+  if (!c.length) return FLAT_REAL_YIELD_FALLBACK;
+  if (k <= c[0].years) return c[0].yield;
+  if (k >= c[c.length - 1].years) return c[c.length - 1].yield;
+  for (let i = 1; i < c.length; i++) {
+    if (k <= c[i].years) {
+      const a = c[i - 1], b = c[i];
+      return a.yield + (b.yield - a.yield) * (k - a.years) / (b.years - a.years);
+    }
+  }
+  return c[c.length - 1].yield;
+}
+
+/** Duration-weighted-ish summary yield for one number in prose (10-year point). */
+export function headlineRealYield() { return realYieldForYear(10); }
 
 /** Maturity years present, and the gap years DERIVED from them across the span. */
 export function coverage() {
@@ -84,27 +129,40 @@ export function giltsForYear(year) {
 }
 
 /**
- * Order sheet at a point in time (§6): per rung — calendar year, gilt(s) with gap bracketing,
- * estimated real cost on the flat curve (prices absent from the snapshot ⇒ flat-curve note).
- * @param {object} p { rungYears: [planYear...], drawForYear, startYear (calendar), realYield }
+ * Illustrative ladder at a point in time (§6): per rung — calendar year, gilt(s) with gap
+ * bracketing, the real yield used and the indicative cost. Priced on the closing-price curve
+ * unless a flat `realYield` is forced (tests / what-if).
+ * @param {object} p { rungYears: [planYear...], drawForYear, startYear (calendar), realYield?, yieldForYear? }
  */
-export function orderSheet({ rungYears, drawForYear, startYear, realYield = 0.023 }) {
+export function orderSheet({ rungYears, drawForYear, startYear, realYield, yieldForYear }) {
+  const yf = yieldForYear || (realYield != null ? () => realYield : realYieldForYear);
+  const prov = dataProvenance();
   const rows = rungYears.map((k) => {
     const calYear = startYear + k;
     const pick = giltsForYear(calYear);
-    const cost = drawForYear(k) * Math.pow(1 + realYield, -k);
+    const y = yf(k);
+    const cost = drawForYear(k) * Math.pow(1 + y, -k);
     return {
       planYear: k, calYear,
       gilts: pick.gilts.map((g) => g.name),
+      giltDetails: pick.gilts.map((g) => ({ name: g.name, tidm: g.tidm, cleanPrice: g.cleanPrice, realYield: g.realYield, lag: g.lag })),
       mode: pick.mode,
       face: Math.round(drawForYear(k)),
+      realYield: y,
       estCost: Math.round(cost)
     };
   });
+  const flat = realYield != null && !yieldForYear;
   return {
     rows,
-    priced: 'flat real yield ' + (realYield * 100).toFixed(1) + '% (no live prices in snapshot)',
-    generated_at: activeLinkers().generated_at,
-    stale: isStale()
+    total: rows.reduce((s, r) => s + r.estCost, 0),
+    priced: flat
+      ? 'flat real yield ' + (realYield * 100).toFixed(1) + '%'
+      : (prov.hasCurve ? 'real yields from closing prices as of ' + prov.as_of : 'flat real yield ' + (FLAT_REAL_YIELD_FALLBACK * 100).toFixed(1) + '% (no price data)'),
+    generated_at: prov.generated_at,
+    as_of: prov.as_of,
+    source: prov.source,
+    notice: prov.notice,
+    stale: prov.stale
   };
 }

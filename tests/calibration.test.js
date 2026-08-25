@@ -21,35 +21,44 @@ const mcSuccess = (cfg, runs = 600) => { let f = 0; for (let i = 0; i < runs; i+
 const histSuccess = (cfg) => { const r = runHistorical(cfg); return 100 * (1 - r.filter((x) => x.failed).length / r.length); };
 
 describe('market data is real market data', () => {
-  it('S&P 500 total return 1928-2024 compounds at ~10% nominal / ~6.7% real (Damodaran; the old table said 5.7%)', () => {
+  it('WORLD equity 1928-2024 = S&P total return (Damodaran, ~9.9% nominal) less the 1.5pp Yearbook US-vs-World gap → ~8.3% nominal / ~5.1% real', () => {
     const ys = Object.keys(EQUITY_RETURNS);
     expect(ys.length).toBe(97);
     let g = 1, gr = 1;
     for (const y of ys) { g *= 1 + EQUITY_RETURNS[y]; gr *= (1 + EQUITY_RETURNS[y]) / (1 + INFLATION[y]); }
-    expect(g ** (1 / ys.length) - 1).toBeGreaterThan(0.095);
-    expect(g ** (1 / ys.length) - 1).toBeLessThan(0.105);
-    expect(gr ** (1 / ys.length) - 1).toBeGreaterThan(0.062);
-    // spot years that the old table got badly wrong
-    expect(EQUITY_RETURNS[1950]).toBeCloseTo(0.308, 2);
-    expect(EQUITY_RETURNS[2022]).toBeCloseTo(-0.180, 2);
-    expect(EQUITY_RETURNS[2008]).toBeCloseTo(-0.366, 2);
+    expect(g ** (1 / ys.length) - 1).toBeGreaterThan(0.078);
+    expect(g ** (1 / ys.length) - 1).toBeLessThan(0.088);
+    expect(gr ** (1 / ys.length) - 1).toBeGreaterThan(0.046);
+    expect(gr ** (1 / ys.length) - 1).toBeLessThan(0.056);
+    // spot years: published S&P figure × (1 − 0.015) − 1 (the old table had 17.9%, −8.8%, −33.6%)
+    expect(EQUITY_RETURNS[1950]).toBeCloseTo(1.308 * 0.985 - 1, 2);
+    expect(EQUITY_RETURNS[2022]).toBeCloseTo(0.820 * 0.985 - 1, 2);
+    expect(EQUITY_RETURNS[2008]).toBeCloseTo(0.634 * 0.985 - 1, 2);
   });
 });
 
-describe('engine sits inside the published Trinity/Bengen bands (slightly pessimistic end)', () => {
-  it('4% over 30 years, 60/40: 88-100%', () => {
-    expect(mcSuccess(trinity(0.04, 30))).toBeGreaterThan(88);
-    expect(histSuccess(trinity(0.04, 30))).toBeGreaterThan(90);
+// Published (US-data) Trinity/Bengen figures: 4%/30y ≈95-100%, 5%/30y ≈70-80%, 6%/30y ≈50-60%, 3%/40y ≈100%.
+// On WORLD equity (1.5pp/yr less) plus the engine's cautious bond/cash models the same plans sit
+// ~10 points lower — deliberately. The bands below pin THAT relationship, not the US numbers.
+describe('engine on world equity: ~10 points below the published US Trinity/Bengen figures, still ordered', () => {
+  it('4% over 30 years, 60/40: 76-92% (US-published 95-100%)', () => {
+    const mc = mcSuccess(trinity(0.04, 30));
+    expect(mc).toBeGreaterThan(76); expect(mc).toBeLessThan(92);
+    expect(histSuccess(trinity(0.04, 30))).toBeGreaterThan(70);
   });
-  it('5% over 30 years, 60/40: 65-85%', () => {
+  it('5% over 30 years, 60/40: 50-72%', () => {
     const mc = mcSuccess(trinity(0.05, 30));
-    expect(mc).toBeGreaterThan(65); expect(mc).toBeLessThan(85);
+    expect(mc).toBeGreaterThan(50); expect(mc).toBeLessThan(72);
   });
-  it('6% over 30 years, 60/40: 45-70% — the engine must still fail a reckless plan', () => {
+  it('6% over 30 years, 60/40: 28-52% — a reckless plan must fail more often than not', () => {
     const mc = mcSuccess(trinity(0.06, 30));
-    expect(mc).toBeGreaterThan(45); expect(mc).toBeLessThan(70);
+    expect(mc).toBeGreaterThan(28); expect(mc).toBeLessThan(52);
   });
-  it('3% over 40 years is essentially safe', () => {
-    expect(mcSuccess(trinity(0.03, 40))).toBeGreaterThan(94);
+  it('3% over 40 years is still very safe (>84%)', () => {
+    expect(mcSuccess(trinity(0.03, 40))).toBeGreaterThan(84);
+  });
+  it('ordering: 3% > 4% > 5% > 6%', () => {
+    const a = mcSuccess(trinity(0.03, 30), 300), b = mcSuccess(trinity(0.04, 30), 300), c = mcSuccess(trinity(0.05, 30), 300), d = mcSuccess(trinity(0.06, 30), 300);
+    expect(a).toBeGreaterThan(b); expect(b).toBeGreaterThan(c); expect(c).toBeGreaterThan(d);
   });
 });

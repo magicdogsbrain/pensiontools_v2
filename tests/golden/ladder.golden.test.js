@@ -3,7 +3,12 @@
  * Shiller vintage (1871-01..2023-06). Tolerances per the brief: ±2pp on percentages, ±3% on
  * £ statistics. The 23y hold multiples already matched exactly (4.19/2.12/1.26).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { setEquityHaircut, WORLD_EQUITY_HAIRCUT } from '../../src/strategies/ladderEngine.js';
+// The brief's golden sets pin the RAW Shiller reference maths; the app itself runs world-adjusted.
+// Set at module level: the describe bodies below compute their windows at collection time.
+setEquityHaircut(0);
+afterAll(() => setEquityHaircut(WORLD_EQUITY_HAIRCUT));
 import { runLadderWindows, windowFor } from '../../src/strategies/LadderAndRatchet.js';
 
 const near = (x, target, tolPct) => Math.abs(x - target) <= Math.abs(target) * tolPct / 100;

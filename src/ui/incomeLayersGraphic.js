@@ -71,9 +71,9 @@ export function incomeLayersRows(r, p) {
       case 'ladder-and-ratchet': contract = y < (sig.ladderYears || 0) ? Math.min(netNeed, sig.minDraw || p.params?.drawAnnual || netNeed) : 0; break;
       default: contract = 0;
     }
-    const total50 = p50[y] ?? 0;
-    const market = Math.max(0, total50 - s - contract);
-    rows.push({ age: p.startAge + y, sp: s, other: o, contract, market, need, p10: (p10[y] ?? 0) + o });
+    const total50 = p50[y] ?? 0;   // the engines' income series now includes SP + other income
+    const market = Math.max(0, total50 - s - o - contract);
+    rows.push({ age: p.startAge + y, sp: s, other: o, contract, market, need, p10: p10[y] ?? 0 });
   }
   return rows;
 }

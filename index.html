@@ -4083,6 +4083,11 @@
             input.style.color = '';
           }
         });
+        // Scroll-wheel / spinner / arrow-key changes can land while the input is NOT the active
+        // element (e.g. wheel over an unfocused box, or after blur) — refresh the overlay on every
+        // value change so the number shown always matches the value in the box.
+        input.addEventListener('change', updateOverlay);
+        input.addEventListener('wheel', () => setTimeout(updateOverlay, 0), { passive: true });
 
         // Insert overlay
         wrapper.appendChild(overlay);

@@ -2573,7 +2573,7 @@
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
-              <button id="optimiseBtnMC" onclick="runCompareStrategiesUI('MC')" class="secondary">Compare strategies</button>
+              <button id="optimiseBtnMC" onclick="runCompareStrategiesUI('MC')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
             </div>
           </div>
           <div id="mcResults"></div>
@@ -2596,7 +2596,7 @@
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button onclick="runHistoricalUI()">Run Historical Analysis</button>
-              <button id="optimiseBtnHist" onclick="runCompareStrategiesUI('Hist')" class="secondary">Compare strategies</button>
+              <button id="optimiseBtnHist" onclick="runCompareStrategiesUI('Hist')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
             </div>
           </div>
           <div id="histResults"></div>
@@ -5468,6 +5468,7 @@
       h += '<div class="alert ' + tone + '">' + head + '</div>';
       const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
       h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
+      if (r.samples && r.samples.wealth && r.samples.wealth.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">The same futures, one line each</div><p class="hint" style="margin:0 0 4px;">A sample of the bootstrapped futures the cone is made from — one line per possible life. Red lines ran out; the white line is the middle outcome.</p><div class="machine-scroll">' + spaghettiSvg(r.samples.wealth, r.cones.wealth.p50) + '</div></div>';
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
       const fa = r.failAges || [];
       const faTxt = fa.length ? 'Of the futures that failed, half did so before age ' + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : 'No simulated future ran out.';
@@ -6069,6 +6070,35 @@
         w, h);
     }
     // A percentile FAN: p10-p90 (light) + p25-p75 (darker) bands with the p50 line. Honest outcome range.
+    // Spaghetti: a sample of individual futures (one thin line each), red where that future hit £0.
+    function spaghettiSvg(paths, median) {
+      const w = 680, h = 250, padL = 60, padR = 14, padT = 14, padB = 28;
+      const n = paths && paths.length ? paths[0].length : 0;
+      if (n < 2) return '';
+      const maxY = Math.max(1, ...paths.map((pth) => Math.max(...pth)));
+      const x = (i) => padL + (i / (n - 1)) * (w - padL - padR);
+      const y = (v) => (h - padB) - (Math.max(0, v) / maxY) * (h - padT - padB);
+      const line = (a) => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const yTicks = [0, maxY / 4, maxY / 2, 3 * maxY / 4, maxY];
+      const xTicks = [0, Math.floor((n - 1) / 2), n - 1];
+      const busted = paths.filter((pth) => pth[n - 1] <= 0).length;
+      return _svgFrame(
+        yTicks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".4"/><text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${_gbp(t)}</text>`).join('')
+        + paths.map((pth) => `<polyline points="${line(pth)}" fill="none" stroke="${pth[n - 1] <= 0 ? '#ef4444' : '#60a5fa'}" stroke-width="1" opacity="${pth[n - 1] <= 0 ? .7 : .35}"/>`).join('')
+        + (median ? `<polyline points="${line(median)}" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/>` : '')
+        + `<text x="${w - padR}" y="${padT + 10}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${paths.length} of the futures shown · ${busted} ran out (red)</text>`
+        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
+        w, h);
+    }
+
+    function spaghettiSample(results, nY, n = 80) {
+      const step = Math.max(1, Math.floor(results.length / n)), out = [];
+      for (let i = 0; i < results.length && out.length < n; i += step) {
+        const r = results[i];
+        out.push(Array.from({ length: nY }, (_, y) => ((r.potByYear && r.potByYear[y] != null) ? r.potByYear[y] : 0) + ((r.isaByYear && r.isaByYear[y] != null) ? r.isaByYear[y] : 0)));
+      }
+      return out;
+    }
     function fanChartSvg(band) {
       const w = 680, h = 250, padL = 60, padR = 14, padT = 14, padB = 28, n = band.p50.length;
       if (n < 2) return '';
@@ -6198,6 +6228,9 @@
           <h3 style="margin:8px 0 4px;">How your pot changes over time (today's money)</h3>
           <div class="chart-caption">The blue line is the middle outcome; the darker band is the middle half of futures, the lighter band the 10th–90th. Futures that ran out count as £0, so a sinking band means real risk. Hover any point for the figures.</div>
           ${fanChartSvg(stats.chartData.potBand)}
+          ${isMC ? `<h3 style="margin:22px 0 4px;">The same futures, one line each</h3>
+          <div class="chart-caption">A sample of the simulated futures the cone above is made from — every line is one possible life. Red lines are futures where the money ran out; the white line is the middle outcome.</div>
+          ${spaghettiSvg(spaghettiSample(results, stats.chartData.years), stats.chartData.potBand.p50)}` : ''}
 
           <h3 style="margin:22px 0 4px;">Chance your plan is still going, year by year</h3>
           <div class="chart-caption">Share of futures in which the money hasn't run out yet — starts at 100% and dips where plans tend to fail. A late dip means most shortfalls happen late.</div>
@@ -6940,6 +6973,13 @@
       if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running six strategies…</div>';
 
       const s = JSON.parse(JSON.stringify(await getStressSettingsAsync()));
+      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+        // This grid is Pots & Valves' three risk levels × bond tent. It has nothing to say about a
+        // ladder or floor strategy — send the user to the six-strategy compare instead.
+        if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all six strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+        if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; }
+        return;
+      }
       const yearsEl = document.getElementById(testType === 'MC' ? 'mcYears' : 'histYears');
       const years = parseInt(yearsEl && yearsEl.value) || s.duration;
       const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
@@ -6978,7 +7018,7 @@
         }
       }
       renderCompareGrid(resultsDiv, grid, order);
-      if (btn) { btn.disabled = false; btn.textContent = 'Compare strategies'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; }
     };
     function renderCompareGrid(el, grid, order) {
       let best = { cov: -1, key: null, tent: null };
@@ -7501,6 +7541,8 @@
       if (!el) return;
       try {
         const st = await getActiveStrategy();
+        const isPnv = !st.id || st.id === 'pots-and-valves';
+        ['optimiseBtnMC', 'optimiseBtnHist'].forEach((id) => { const b = document.getElementById(id); if (b) b.style.display = isPnv ? '' : 'none'; });
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
           el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';

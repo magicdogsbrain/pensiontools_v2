@@ -53,6 +53,21 @@ export function coneOf(seriesList, years) {
   return out;
 }
 
+/** Real-terms per-year other income and extra need from the lumpy settings (approximate indexation). */
+export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
+  const otherIncomeByYear = [], extraNeedByYear = [];
+  const real = (amount, mode, y) => mode === 'level' ? amount / Math.pow(1 + assumedCpi, y) : amount;   // cpi & lpi5 ≈ level in real terms
+  for (let y = 0; y <= years; y++) {
+    let inc = (cfg.other || settings.other || 0);
+    if ((cfg.dbAmount || 0) > 0 && y >= (cfg.dbStartYear || 0)) inc += real(cfg.dbAmount, cfg.dbIndexation || 'lpi5', y);
+    for (const s of cfg.extraIncomes || []) if (s.annual > 0 && y >= (s.startYear || 0) && (s.endYear == null || y <= s.endYear)) inc += real(s.annual, s.indexation || 'lpi5', y);
+    let need = 0;
+    for (const w of cfg.extraWithdrawals || []) { if (!(w.amount > 0) || w.year == null) continue; const runs = Math.max(1, w.years || 1); if (y >= w.year && y < w.year + runs) need += real(w.amount, w.indexation || 'cpi', y); }
+    otherIncomeByYear.push(inc); extraNeedByYear.push(need);
+  }
+  return { otherIncomeByYear, extraNeedByYear };
+}
+
 /**
  * The plan every strategy is judged on, built ONCE from the app's stress settings + the P&V
  * simulation config (createSimulationConfigFromSettings). Honours the strategy parameters the
@@ -72,9 +87,17 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   const durationYears = Math.min(settings.duration || cfg.duration || 35, 35);
   // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
   // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat.
-  const targetSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : scheduleFromSteps(settings, startAge);
+  const rawSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : scheduleFromSteps(settings, startAge);
+  // Other income (DB pension, income streams, 'other') and extra withdrawals (one-off spends), in
+  // today's money, per plan year. The P&V engine handles these itself (pnvCfg keeps the raw
+  // schedule); the ladder/floor strategies buy the NET need: target + extras − other income.
+  const { otherIncomeByYear, extraNeedByYear } = lumpyByYear(settings, cfg, durationYears);
+  const hasLumpy = otherIncomeByYear.some((v) => v > 0) || extraNeedByYear.some((v) => v > 0);
+  const needByYear = Array.from({ length: durationYears + 1 }, (_, y) => (rawSchedule ? (rawSchedule[Math.min(y, rawSchedule.length - 1)] ?? target) : target) + extraNeedByYear[y]);
+  const targetSchedule = hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
   return {
     pot, isa, targetAnnual: target,
+    otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule,
     essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),
     durationYears, startAge, spAnnual, spStartYear,
     incomeShape: settings.incomeShape, incomeSteps: settings.incomeSteps, shapeAgeNow: settings.shapeAgeNow,
@@ -88,7 +111,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
-    pnvCfg: { ...cfg, startAge, targetSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now
+    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear
   };
 }

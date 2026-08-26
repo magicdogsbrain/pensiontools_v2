@@ -647,6 +647,16 @@ function equityBondRho(inf, eqReturn) {
 // 'declining' uses the shared spending smile (level years 0-4, ~1%/yr decline years 5-24, level after
 // — see SpendingModel). Both engines consume the SAME curve so Stress and Decision agree. Opt-in, so
 // the conservative flat profile stays the default.
+export function extraWithdrawalFor(config, year, cumInf = 1) {
+  let t = 0;
+  for (const w of config.extraWithdrawals || []) {
+    if (!(w.amount > 0) || w.year == null) continue;
+    const runs = Math.max(1, w.years || 1);
+    if (year >= w.year && year < w.year + runs) t += (w.indexation === 'level') ? w.amount : w.amount * cumInf;
+  }
+  return t;
+}
+
 function spendingFactor(config, year) {
   return spendingSmileFactor(year, config.spendingProfile || 'flat');
 }
@@ -680,7 +690,10 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
   const scheduledTarget = Array.isArray(config.targetSchedule) && config.targetSchedule[year] != null
     ? config.targetSchedule[year]
     : config.baseSalary;
-  const target = scheduledTarget * cumInf * spendingFactor(config, year);
+  // Extra withdrawals ({year, amount, years?, indexation?}): a one-off or a run of years of extra
+  // gross spending on top of the target — a car, a roof, a wedding. Today's money by default
+  // (inflation-adjusted); 'level' = fixed nominal £. Drawn like any other income need (taxable).
+  const target = scheduledTarget * cumInf * spendingFactor(config, year) + extraWithdrawalFor(config, year, cumInf);
 
   // Other income with CPI cap (4%)
   const other = cappedInflation(config.other, yearlyInf);

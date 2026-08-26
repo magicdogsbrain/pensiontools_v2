@@ -28,6 +28,9 @@ export const STRATEGY_NAMES = {
 /** p10/p50/p90 band of one per-window series (array index = plan year). */
 function bandOf(windows, pick, years) { return Array.from({ length: years + 1 }, (_, y) => { const v = windows.map((w) => pick(w, y) ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; }); }
 
+/** The money a bought strategy may spend: SIPP + ISA, unless the ISA is held aside (policy 'hold'). */
+const availablePot = (p) => p.pot + (p.isaHold ? 0 : (p.isa || 0));
+
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
 export function coneOf(seriesList, years) {
   const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
@@ -156,7 +159,7 @@ function ladderPvAt(y, lastRung, drawForYear, pricer) {
 
 function ladderTest(p, configs) {
   const lr = configs.lr;
-  if (!lr) return { affordable: false, reason: `the base ladder costs £${Math.round(configs.baseLadderCost).toLocaleString()} — £${Math.round(configs.baseLadderCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.baseLadderCost - (p.pot + (p.isa || 0)) };
+  if (!lr) return { affordable: false, reason: `the base ladder costs £${Math.round(configs.baseLadderCost).toLocaleString()} — £${Math.round(configs.baseLadderCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.baseLadderCost - availablePot(p) };
   const planYears = p.durationYears;
   const drawForYear = lr.drawNetOfSp;
   const pricer = lr.yieldForYear ? curvePricer(drawForYear, lr.yieldForYear) : flatYieldPricer(drawForYear, lr.realYield);
@@ -204,7 +207,7 @@ function ladderTest(p, configs) {
 
 function flexTest(p, configs) {
   const ff = configs.ff;
-  if (!ff) return { affordable: false, reason: `the essentials floor costs £${Math.round(configs.ffFloorCost).toLocaleString()} — £${Math.round(configs.ffFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.ffFloorCost - (p.pot + (p.isa || 0)) };
+  if (!ff) return { affordable: false, reason: `the essentials floor costs £${Math.round(configs.ffFloorCost).toLocaleString()} — £${Math.round(configs.ffFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.ffFloorCost - availablePot(p) };
   const planYears = p.durationYears;
   const floorDraw = ff.floorDraw;
   const pricer = ff.yieldForYear ? curvePricer(floorDraw, ff.yieldForYear) : flatYieldPricer(floorDraw, 0.023);
@@ -243,7 +246,7 @@ function flexTest(p, configs) {
 
 function scheduleFloorTest(p, configs) {
   const c = configs.fs;
-  if (!c) return { affordable: false, reason: `buying the whole schedule costs £${Math.round(configs.fsFloorCost).toLocaleString()} — £${Math.round(configs.fsFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.fsFloorCost - (p.pot + (p.isa || 0)) };
+  if (!c) return { affordable: false, reason: `buying the whole schedule costs £${Math.round(configs.fsFloorCost).toLocaleString()} — £${Math.round(configs.fsFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.fsFloorCost - availablePot(p) };
   const planYears = p.durationYears;
   const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
   const h = runFlexWindows(c);
@@ -269,7 +272,7 @@ function scheduleFloorTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
     failAges: [],
     signature: {
-      floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / (p.pot + (p.isa || 0)),
+      floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / availablePot(p),
       sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge, reserveCone,
       amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 })),
       rule: 'Once a year: if the reserve is more than double its glide line (starting value x 1.05^years), spend the excess on rungs beyond the horizon or on raising the later years; otherwise leave it.'
@@ -281,7 +284,7 @@ function scheduleFloorTest(p, configs) {
 
 function floorToAgeTest(p, configs) {
   const c = configs.fa;
-  if (!c) return { affordable: false, reason: `buying the schedule to ${p.params?.floorToAge || 80} costs £${Math.round(configs.faFloorCost).toLocaleString()} — £${Math.round(configs.faFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.faFloorCost - (p.pot + (p.isa || 0)) };
+  if (!c) return { affordable: false, reason: `buying the schedule to ${p.params?.floorToAge || 80} costs £${Math.round(configs.faFloorCost).toLocaleString()} — £${Math.round(configs.faFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.faFloorCost - availablePot(p) };
   const N = p.durationYears, A = c.A;
   const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
@@ -327,7 +330,7 @@ function floorToAgeTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
     failAges: [],
     signature: {
-      floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / (p.pot + (p.isa || 0)),
+      floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / availablePot(p),
       sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull, reserveCone,
       amountsByAge: Array.from({ length: N }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spAt(k) })),
       canBuy: [canBuy(c.amountAt(A + 1)), canBuy(lowest)].filter((x, i, a) => i === 0 || x.amount !== a[0].amount),
@@ -345,7 +348,7 @@ function fullGiltTest(p, configs) {
   const amountAtAge = (age) => { const k = age - p.startAge; return sched ? (sched[Math.min(k, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual; };
   const firstTaxYear = p.firstTaxYear || new Date().getFullYear() + 1;
   const plan = buildGiltLadder({
-    pot: p.pot + (p.isaHold ? 0 : (p.isa || 0)), startAge: p.startAge, durationYears: N, amountAtAge,
+    pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0
   });

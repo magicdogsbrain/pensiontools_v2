@@ -39,3 +39,15 @@ describe('protection year: the tax figure projects the remaining months at the c
     }
   });
 });
+
+
+describe('tax saved is on the same basis as the tax paid', () => {
+  it('Sep start, £60k target with a £250k ISA: saving per month = (tax on 7×£5,000 − tax on 7×£4,189) / 7', async () => {
+    const s3 = { ...settings, baseSalary: 60000, isaBalance: 250000 };
+    const r = await calcDecisionPWA('2026-09', 450000, 360000, 90000, { settings: s3, history: [], allTaxYears: { '26/27': ty({ confirmedSalary: 60000, expectedMonthly: { sipp: { gross: 4189 } } }) }, spInfo: { amount: 0, isReceiving: false }, isaBalance: 250000 });
+    expect(r.sippDraw).toBeCloseTo(50270 / 12, 0);
+    const ineff = Math.max(0, 35000 - 12570) * 0.2;            // 7 × £5,000, all within the basic band
+    const eff = Math.max(0, r.sippDraw * 7 - 12570) * 0.2;
+    expect(r.taxSavedMonthly).toBeCloseTo((ineff - eff) / 7, 0);   // ≈ £162, not £673
+  });
+});

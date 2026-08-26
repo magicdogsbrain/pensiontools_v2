@@ -510,9 +510,13 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const taxProjectedAnnual = annualTax;
 
       // Calculate tax saved vs inefficient scenario
-      const inefficientMonthlyTaxable = (target / 12); // Full target draw
-      const inefficientAnnualTax = calculateTax(inefficientMonthlyTaxable * 12, PA, BRL, HRL);
-      const taxSavedMonthly = Math.max(0, (inefficientAnnualTax / 12) - (annualTax / 12));
+      // Same basis as the actual: the months actually drawn this tax year (a September start is a
+      // 7-month year), plus pre-start income and other taxable income, less what pre-start income
+      // owes on its own. Comparing a full-year inefficient figure with a partial-year actual
+      // roughly doubled the "saving" in a mid-year first year (persona test B32).
+      const inefficientTaxable = (target / 12) * deliverMonths + OTHER + STATE + preStartIncome;
+      const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - calculateTax(preStartIncome, PA, BRL, HRL);
+      const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - calculateTax(preStartIncome, PA, BRL, HRL))) / deliverMonths);
 
       // Calculate cumulative ISA used including this month
       const cumulativeIsaSavingsUsed = isaSavingsUsedSoFar + isaSavingsUsedThisMonth;

@@ -9,7 +9,9 @@
  * @returns {function} Random number generator (returns 0-1)
  */
 export function seededRng(seed) {
-  let s = seed;
+  // sin(0) = 0 would make a zero seed return 0 forever (run #0 of every Monte Carlo drew the same
+  // 1928 block for 35 years and produced a £1bn "future"). Nudge it off the fixed point.
+  let s = seed === 0 ? 0.5 : seed;
   return function() {
     s = Math.sin(s) * 10000;
     return s - Math.floor(s);

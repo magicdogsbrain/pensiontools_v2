@@ -2493,10 +2493,10 @@
             </div>
 
             <!-- Month tabs for selected year -->
+            <div id="historyStaleNote"></div>
             <div class="history-tabs-container">
               <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
-              <div id="historyStaleNote"></div>
-              <div class="history-tabs" id="historyTabs">
+                            <div class="history-tabs" id="historyTabs">
                 <!-- Month tabs rendered dynamically -->
               </div>
               <button class="history-scroll-btn right" onclick="scrollHistoryTabs('right')">›</button>
@@ -10550,8 +10550,9 @@
       banner.style.display = 'flex';
       banner.className = 'lock-banner';
       const what = dep ? [dep.entriesUnderCurrent ? dep.entriesUnderCurrent + ' monthly entr' + (dep.entriesUnderCurrent === 1 ? 'y' : 'ies') : '', dep.taxYearsSetUp.length ? dep.taxYearsSetUp.length + ' tax year' + (dep.taxYearsSetUp.length === 1 ? '' : 's') : ''].filter(Boolean).join(' and ') : '';
+      const verb = dep && (dep.entriesUnderCurrent + dep.taxYearsSetUp.length) === 1 ? 'was' : 'were';
       banner.innerHTML =
-        '<span>🔒 <strong>These settings are locked</strong> because ' + (what ? what + ' were recorded against them' : 'entries have been recorded against them') + '. You can unlock and edit — the consequences are explained first.</span>' +
+        '<span>🔒 <strong>These settings are locked</strong> because ' + (what ? what + ' ' + verb + ' recorded against them' : 'entries have been recorded against them') + '. You can unlock and edit — the consequences are explained first.</span>' +
         '<button type="button" onclick="unlockDecisionSettings()">Unlock to edit…</button>';
       setDecisionSettingsEnabled(false);
       saveBtn.textContent = '🔒 Locked';

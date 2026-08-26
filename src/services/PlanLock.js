@@ -40,8 +40,12 @@ export async function planDependents() {
   ]);
   const cur = decisionSettingsChecksum(settings);
   const list = Array.isArray(hist) ? hist : [];
-  const under = list.filter((h) => h.settingsChecksum === undefined || h.settingsChecksum === cur);
-  const previous = list.filter((h) => h.settingsChecksum !== undefined && h.settingsChecksum !== cur);
+  // Entries can only be "under previous settings" once the plan has been unlocked and re-saved.
+  // Until then every entry belongs to these settings (older stamps used an order-sensitive hash).
+  const everUnlocked = (settings.unlockCount || 0) > 0;
+  const isPrev = (h) => everUnlocked && h.settingsChecksum !== undefined && h.settingsChecksum !== cur;
+  const under = list.filter((h) => !isPrev(h));
+  const previous = list.filter(isPrev);
   const dates = under.map((h) => h.date).sort();
   const setupYears = Object.entries(taxYears || {}).filter(([, ty]) => ty && ty.yearSetupComplete).map(([k]) => k).sort();
   return {

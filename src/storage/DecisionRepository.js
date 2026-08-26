@@ -191,12 +191,20 @@ export function generateDecisionChecksum(db) {
  * @param {object} settings - Decision settings
  * @returns {string} Stable checksum
  */
+function stableSort(v) {
+  if (Array.isArray(v)) return v.map(stableSort);
+  if (v && typeof v === 'object') return Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = stableSort(v[k]); return o; }, {});
+  return v;
+}
+
 export function decisionSettingsChecksum(settings) {
   if (!settings) return '';
   // Lock bookkeeping is volatile: it must never move the checksum (an unlock alone would otherwise
   // mark every entry as "under previous settings").
   const { locked, lockedAt, lockedBy, unlockedAt, unlockCount, ...planDefining } = settings;
-  return simpleHash(planDefining);
+  // Key-order independent: Firestore hands objects back with keys in a different order from the
+  // in-memory object they were saved from, and JSON.stringify would hash them differently.
+  return simpleHash(stableSort(planDefining));
 }
 
 /**

@@ -252,7 +252,8 @@ function flexTest(p, configs) {
   const enrich = (w) => {
     const wealth = [], income = [];
     for (let y = 0; y <= planYears; y++) {
-      wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, planYears, floorDraw, pricer));
+      // Unpaid rungs are valued only to the floor's horizon (what was actually bought), never to the plan end.
+      wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, Math.min(planYears, (ff.horizonAge || (p.startAge + planYears)) - p.startAge), floorDraw, pricer));
       income.push(floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0));
     }
     return { wealth, income };

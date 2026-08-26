@@ -216,8 +216,11 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             // years-until-SP from the SP start date — see tests/crossval/replay.test.js "KNOWN GAP".
             yearsUntilSp: 0
           });
-          stdSipp = plan.sippGross / deliverMonths;
-          isaToUse = plan.isaDraw / deliverMonths;
+          // Monthly NEED, not the annual target crammed into the remaining months: a September start
+          // draws 1/12 of the year's target each month (the no-ISA path already did this); the tax
+          // below is then worked out on the months actually drawn.
+          stdSipp = plan.sippGross / 12;
+          isaToUse = plan.isaDraw / 12;
         } else {
           // Legacy per-tax-year ISA allocation path (unchanged when no ISA balance is set).
           if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
@@ -299,7 +302,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
             taxFreeFraction: taxFreeF, isaBalance: 0,
             strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax', yearsUntilSp: 0
           });
-          stdSipp = plan.sippGross / deliverMonths;
+          stdSipp = plan.sippGross / 12;   // monthly need (see the efficient branch)
         }
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
         isa = 0; // No ISA in tax-inefficient mode

@@ -360,7 +360,11 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   const spDate = parseStatePensionDate(settings.spStartDate);
   if (!spDate) return null;
   const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
-  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear);
+  // Plan year 0 is the income-start age (retirement). For someone still working, that is
+  // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
+  // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
+  const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - settings.currentAge) : 0;
+  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
   const spStartYear = Math.floor(yearsUntilSp);
   const daysInYear = 365;
   const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));

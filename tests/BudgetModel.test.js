@@ -170,7 +170,7 @@ describe('BudgetModel — starter categories', () => {
 
 describe('BudgetModel — typical amounts (PLSA-tier anchored)', () => {
   it('defaults to the Moderate tier and picks couple vs single by the sharing flag', () => {
-    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(115);
+    expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(156);   // 115 × PLSA calibration (Moderate chips sum to £31,300/yr)
     expect(typicalMonthlyFor('Council tax', { sharedWithPartner: true })).toBe(170);
     expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(470);
   });
@@ -192,7 +192,7 @@ describe('BudgetModel — typical amounts (PLSA-tier anchored)', () => {
   });
 
   it('an unknown tier string falls back to Moderate', () => {
-    expect(typicalMonthlyFor('Council tax', { plsaTier: 'banana' })).toBe(115);
+    expect(typicalMonthlyFor('Council tax', { plsaTier: 'banana' })).toBe(156);
     expect(plsaTierOf({ plsaTier: 'comfortable' })).toBe('comfortable');
     expect(plsaTierOf({})).toBe('moderate');
   });
@@ -344,9 +344,9 @@ describe('BudgetModel — breakdown sub-sheet (breakdownAnnual)', () => {
 describe('BudgetModel — typical sanity flag', () => {
   const b = { sharedWithPartner: false };
   it('flags implausibly low and high amounts against the tier typicals', () => {
-    // Groceries typical single (Moderate) = £300/mo = £3,600/yr
+    // Groceries typical single (Moderate) = £300/mo × 1.353 calibration ≈ £406/mo = £4,872/yr
     expect(typicalSanityFlag('Groceries & household', 900, b)).toBe('low');     // ≤35%
-    expect(typicalSanityFlag('Groceries & household', 12000, b)).toBe('high');  // ≥300%
+    expect(typicalSanityFlag('Groceries & household', 16000, b)).toBe('high');  // ≥300% of the calibrated £4,872
     expect(typicalSanityFlag('Groceries & household', 3600, b)).toBeNull();     // plausible
   });
   it('stays silent with no typical figure or no amount', () => {

@@ -198,13 +198,34 @@ export function plsaTierOf(budget) {
  * Typical MONTHLY spend for a category at the budget's chosen PLSA tier, single vs couple by the
  * sharing flag. Returns null when no figure exists; 0 is meaningful (e.g. Minimum assumes no car).
  */
+/**
+ * The per-line typicals were sized by category; summed they land 15–27% under the PLSA year the
+ * tier is named after (single: £12.5k / £23.1k / £33.9k vs PLSA £14.4k / £31.3k / £43.1k), so
+ * "Comfortable" chips produced a Moderate budget. Scale each tier so the chips SUM to the PLSA
+ * figure (couple factors from the couple sums). Computed once from the table, so an admin
+ * override re-calibrates itself.
+ */
+function tierScale(table, tier, key) {
+  const cache = (tierScale._c = tierScale._c || new Map());
+  const id = (table === TYPICAL_TIERS ? 'base' : 'override') + ':' + tier + ':' + key;
+  if (cache.has(id)) return cache.get(id);
+  let sum = 0;
+  for (const v of Object.values(table)) { const x = v && v[tier]; if (x && typeof x === 'object' && x[key] != null) sum += x[key]; }
+  const target = (PLSA_2024[key === 'c' ? 'couple' : 'single'][tier] || 0) / 12;
+  const f = sum > 0 && target > 0 ? target / sum : 1;
+  cache.set(id, f);
+  return f;
+}
+
 export function typicalMonthlyFor(label, budget) {
   const table = _tiersOverride || TYPICAL_TIERS;
   const entry = table[(label || '').trim()];
   if (!entry) return null;
-  const tier = entry[plsaTierOf(budget)];
+  const tierName = plsaTierOf(budget);
+  const tier = entry[tierName];
   if (!tier) return null;
-  return (budget && budget.sharedWithPartner) ? tier.c : tier.s;
+  const key = (budget && budget.sharedWithPartner) ? 'c' : 's';
+  return Math.round(tier[key] * tierScale(table, tierName, key));
 }
 
 /** Starter expenditure lines (blank amounts) seeded into a fresh budget so categories are self-explanatory. */

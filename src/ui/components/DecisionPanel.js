@@ -210,7 +210,7 @@ export function buildDecisionHTML(decision) {
 
   // Alerts
   // Contract strategies: the P&V cash/rebalance alerts do not apply (nothing is sold from pots).
-  const topAlerts = (d.alerts || []).filter((a) => !(d.strategyOverlay && d.strategyOverlay.hidePots && (a.type === 'low-cash' || a.type === 'rebalance')));
+  const topAlerts = (d.alerts || []).filter((a) => !(d.strategyOverlay && d.strategyOverlay.hidePots && (a.type === 'low-cash' || a.type === 'rebalance' || a.type === 'cash-replenish')));
   if (topAlerts.length > 0) {
     html += '<div class="alerts">';
     for (const alert of topAlerts) {

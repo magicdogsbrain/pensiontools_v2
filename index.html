@@ -8770,6 +8770,7 @@
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         if (s.shapeAgeNow) document.getElementById('shapeAgeNow').value = s.shapeAgeNow;
+        else { try { const b = await getBudgetAsync(); const a0 = Math.max(+b?.retirementAge || 0, +b?.currentAge || 0); if (a0) document.getElementById('shapeAgeNow').value = a0; } catch (e) { /* keep default */ } }
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -9711,7 +9712,8 @@
         // go-slow / no-go steps are the user's to draw (Stress Settings → Your income shape); the
         // budget's age bands and one-offs are not turned into a schedule any more.
         const stressNow = await getStressSettingsAsync();
-        const ageNow = stressNow.shapeAgeNow || +window._budget.retirementAge || 57;
+        // Income starts at retirement — or NOW if already retired (year 0 is today for a retiree).
+        const ageNow = stressNow.shapeAgeNow || Math.max(+window._budget.retirementAge || 0, +window._budget.currentAge || 0) || 57;
         const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? JSON.parse(JSON.stringify(stressNow.incomeSteps)) : [];
         if (steps.length) steps[0] = { fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
         const dur = stressNow.duration || 35;

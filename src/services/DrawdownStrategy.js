@@ -62,8 +62,8 @@ export function planDrawdown({
     const netGap = Math.max(0, targetNet - netAtBrl);
 
     // ISA cap: Option A uncapped; Option B levels the pot across the pre-SP years.
-    const annualCap = (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0)
-      ? isaBalance / yearsUntilSp
+    const annualCap = strategy === ISA_STRATEGIES.HOLD ? 0
+      : (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0) ? isaBalance / yearsUntilSp
       : Infinity;
     const isaDraw = Math.max(0, Math.min(netGap, Math.max(0, isaBalance), annualCap));
     const remainingIsa = isaBalance - isaDraw;
@@ -118,8 +118,8 @@ export function planDrawdown({
 
   // Step 2: net gap the ISA should fill (only exists when the band ran out first).
   const netGap = Math.max(0, targetNet - netAtBrl);
-  const annualCap = (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0)
-    ? isaBalance / yearsUntilSp
+  const annualCap = strategy === ISA_STRATEGIES.HOLD ? 0
+    : (strategy === ISA_STRATEGIES.LONGEVITY && yearsUntilSp > 0) ? isaBalance / yearsUntilSp
     : Infinity;
   const isaDraw = Math.max(0, Math.min(netGap, Math.max(0, isaBalance), annualCap));
   const remainingIsa = isaBalance - isaDraw;

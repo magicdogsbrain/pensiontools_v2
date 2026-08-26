@@ -11,13 +11,18 @@
  *   - Option B `maximiseLongevity`: cap the draw so the pot lasts — level it across the
  *     remaining pre-State-Pension months (the biggest-gap window); once SP has started it
  *     is uncapped, because SP takes up the slack.
+ *   - Option C `hold`: never draw the ISA for income, even when that means paying higher-rate
+ *     tax on SIPP withdrawals — the ISA is a separate pot the user is keeping dry (e.g. equity
+ *     upside outside a fully-guaranteed gilt plan). The engines still let it rescue a plan
+ *     whose SIPP has actually run out, rather than declare failure with money in the ISA.
  *
  * Pure and engine-agnostic: both the Decision Tool and the Stress Tester call these.
  */
 
 export const ISA_STRATEGIES = {
   TAX_EFFICIENT: 'minimiseEarlyTax',
-  LONGEVITY: 'maximiseLongevity'
+  LONGEVITY: 'maximiseLongevity',
+  HOLD: 'hold'
 };
 
 /**
@@ -30,6 +35,7 @@ export const ISA_STRATEGIES = {
  * @returns {number} cap (Infinity when uncapped)
  */
 export function strategyMonthlyCap(strategy, { isaBalance, monthsUntilSp }) {
+  if (strategy === ISA_STRATEGIES.HOLD) return 0;               // Option C: never for income
   if (strategy !== ISA_STRATEGIES.LONGEVITY) return Infinity; // Option A: uncapped
   if (monthsUntilSp == null || monthsUntilSp <= 0) return Infinity; // SP started: uncapped
   return isaBalance / monthsUntilSp; // level the pot across the pre-SP bridge window

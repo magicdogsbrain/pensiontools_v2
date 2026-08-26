@@ -35,7 +35,7 @@ export const ISA_DEFAULTS = {
   RETURN: 0.03,                        // money-market nominal growth (deliberately modest/conservative);
                                        //   the stress engine may instead grow ISA at the cash rate.
   MIN: 0,                              // ISA glidepath baseline (0 = deplete fully by `duration`)
-  DRAWDOWN_STRATEGY: 'minimiseEarlyTax', // 'minimiseEarlyTax' | 'maximiseLongevity'
+  DRAWDOWN_STRATEGY: 'minimiseEarlyTax', // 'minimiseEarlyTax' | 'maximiseLongevity' | 'hold' (never draw for income)
   CONTRIBUTION: 0                      // default annual ISA contribution
 };
 

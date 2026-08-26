@@ -116,3 +116,24 @@ describe('planDrawdown — UFPLS (taxFreeFraction = 0.25)', () => {
     expect(r.taxFree).toBeCloseTo(r.sippGross * f, 4);
   });
 });
+
+import { planDrawdown as planDD } from '../src/services/DrawdownStrategy.js';
+import { ISA_STRATEGIES as S } from '../src/services/IsaDrawdown.js';
+describe('planDrawdown — Option C (hold: keep the ISA powder dry)', () => {
+  const bands = { pa: 12570, brl: 50270, hrl: 125140 };
+  it('never draws the ISA for income, even above the basic-rate limit: SIPP pays it all and the target net is still met', () => {
+    const r = planDD({ targetGross: 80000, fixedIncome: 0, ...bands, isaBalance: 300000, strategy: S.HOLD, yearsUntilSp: 10 });
+    expect(r.isaDraw).toBe(0);
+    expect(r.remainingIsa).toBe(300000);
+    expect(r.sippGross).toBeCloseTo(80000, 0);
+    const a = planDD({ targetGross: 80000, fixedIncome: 0, ...bands, isaBalance: 300000, strategy: S.TAX_EFFICIENT, yearsUntilSp: 10 });
+    expect(a.isaDraw).toBeGreaterThan(0);
+    expect(r.tax).toBeGreaterThan(a.tax);           // the price of keeping it dry
+    expect(r.net).toBeCloseTo(a.net, 0);            // same money in the bank
+  });
+  it('UFPLS path honours hold too', () => {
+    const r = planDD({ targetGross: 80000, fixedIncome: 0, ...bands, isaBalance: 300000, strategy: S.HOLD, taxFreeFraction: 0.25 });
+    expect(r.isaDraw).toBe(0);
+    expect(r.remainingIsa).toBe(300000);
+  });
+});

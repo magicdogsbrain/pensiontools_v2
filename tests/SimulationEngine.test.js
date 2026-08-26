@@ -561,3 +561,22 @@ describe('extraIncomes endYear (lumpy income)', () => {
     expect(open.final).toBeGreaterThan(bounded.final);
   });
 });
+
+import { simulate as simHold, monteCarloReturns as mcrHold } from '../src/services/SimulationEngine.js';
+describe('ISA policy "hold" in the stress engine', () => {
+  const cfg = { equityStart: 600000, bondStart: 300000, cashStart: 100000, equityMin: 0, bondMin: 0, cashTarget: 0,
+    years: 30, duration: 30, baseSalary: 70000, other: 0, spStartYear: 10, spWeeklyAmount: 240, spFirstYearRatio: 1,
+    pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates', protectionMult: 0.8, consecutiveLimit: 3, disableProtection: true,
+    hodlEnabled: false, isaBalance: 200000, isaReturn: 0.03, accessMethod: 'drawdown', recoveryBuffer: 15000, spendingProfile: 'flat',
+    extraIncomes: [], windfalls: [], targetSchedule: null, dbAmount: 0 };
+  it('the ISA is untouched while the SIPP can pay, and only steps in when the SIPP has actually run out', () => {
+    const hold = simHold({ ...cfg, isaDrawdownStrategy: 'hold', trace: true }, mcrHold(cfg, 3), 3);
+    const rows = hold.trace;
+    const firstRescue = rows.findIndex((r) => (r.isaRescue || 0) > 0);
+    const before = rows.slice(0, firstRescue < 0 ? rows.length : firstRescue);
+    expect(before.every((r) => (r.effectiveIsa || 0) === 0)).toBe(true);          // no income draws from the ISA
+    const a = simHold({ ...cfg, isaDrawdownStrategy: 'minimiseEarlyTax' }, mcrHold(cfg, 3), 3);
+    expect(hold.totalTaxReal).toBeGreaterThan(a.totalTaxReal);                     // higher-rate tax paid instead
+    if (!hold.failed) expect(hold.finalIsa).toBeGreaterThan(cfg.isaBalance);       // ISA grew untouched
+  });
+});

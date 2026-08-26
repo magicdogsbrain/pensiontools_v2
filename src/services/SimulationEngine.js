@@ -277,7 +277,7 @@ export function simulate(config, returns, seed = 0) {
     // G-K-aligned escalation: the first year of a protection episode cuts half as deep as the
     // configured multiplier; only persistent stress reaches the full cut (research: a single
     // 20% cut is double the published guardrail norm).
-    const protMult = prot ? protectionMultForStreak(Math.max(0, curStreak - 1), config.protectionMult) : 1;
+    const protMult = prot ? protectionMultForStreak(Math.max(0, curStreak - 1), config.protectionMult, config.protectionEscalateMonths) : 1;
     let effectiveDraw = prot ? draw * protMult : draw;
     let monthDraw = effectiveDraw;
     // Band-fill recycle executes only OUTSIDE protection months (conserve during a downturn;

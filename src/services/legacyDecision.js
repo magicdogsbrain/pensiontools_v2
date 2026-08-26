@@ -243,7 +243,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         if (inProtection) {
           // Protection = reduce SIPP draw by protection factor
           const deepMult = 1 - (settings.protectionFactor || 20) / 100;
-          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult);
+          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult, settings.protectionEscalateMonths);
           isa = isaToUse;
           note = 'Protection';
         } else {
@@ -323,7 +323,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
         if (inProtection) {
           const deepMult = 1 - (settings.protectionFactor || 20) / 100;
-          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult);
+          sipp = stdSipp * protectionMultForStreak(protStreak, deepMult, settings.protectionEscalateMonths);
           note = 'Protection';
 
           // Protection-induced tax efficiency: the reduced draw may bring the projected annual

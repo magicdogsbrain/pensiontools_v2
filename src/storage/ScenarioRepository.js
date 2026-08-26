@@ -137,6 +137,7 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     recoveryBuffer: d.recoveryBuffer,
     disableProtection: d.disableProtection ?? currentStress.disableProtection ?? false,
     // protection unit: Decision percent → Stress multiplier (20 → 0.8)
+    protectionEscalateMonths: d.protectionEscalateMonths ?? currentStress.protectionEscalateMonths ?? 12,
     protectionMult: d.protectionFactor != null
       ? 1 - d.protectionFactor / 100
       : (currentStress.protectionMult ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER),
@@ -191,6 +192,7 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     recoveryBuffer: s.recoveryBuffer ?? currentDecision.recoveryBuffer,
     disableProtection: s.disableProtection ?? currentDecision.disableProtection ?? false,
     // protection unit: Stress multiplier → Decision percent (0.8 → 20)
+    protectionEscalateMonths: s.protectionEscalateMonths ?? currentDecision.protectionEscalateMonths ?? 12,
     protectionFactor: s.protectionMult != null
       ? Math.round((1 - s.protectionMult) * 100)
       : currentDecision.protectionFactor,

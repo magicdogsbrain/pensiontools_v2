@@ -2446,6 +2446,10 @@
                   <input type="number" id="dsRecoveryBuffer" value="15000">
                 </div>
                 <div class="form-group">
+                  <label>First-stage months (half the cut)</label>
+                  <input type="number" id="dsProtEscalate" value="12" min="0" max="60">
+                </div>
+                <div class="form-group">
                   <label>Cash Draws Before Protection</label>
                   <input type="number" id="dsConsecutiveLimit" value="3">
                 </div>
@@ -2456,7 +2460,7 @@
                   </label>
                 </div>
               </div>
-              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): the first year of a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
+              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
               <div class="alert alert-info" style="margin-top: 12px;">
                 <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
               </div>
@@ -2592,6 +2596,8 @@
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
+              <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
+              <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
             </div>
             <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
               <button type="button" onclick="runTryStrategyUI()">Run this what-if</button>
@@ -3256,6 +3262,10 @@
                   <label>Recovery Buffer (£)</label>
                   <input type="number" id="ssRecoveryBuffer" value="15000">
                 </div>
+                <div class="form-group">
+                  <label>First-stage months (half the cut)</label>
+                  <input type="number" id="ssProtEscalate" value="12" min="0" max="60">
+                </div>
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
                   <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
                     <input type="checkbox" id="ssDisableProtection" style="width: auto; margin-right: 8px;">
@@ -3263,7 +3273,7 @@
                   </label>
                 </div>
               </div>
-              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): the first year of a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
+              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
             </div>
 
             <div class="settings-section">
@@ -4337,6 +4347,7 @@
         updateSpAnnualDisplay('ds');
         document.getElementById('dsProtectionFactor').value = decisionSettings.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = decisionSettings.recoveryBuffer || 15000;
+        { const e = document.getElementById('dsProtEscalate'); if (e) e.value = decisionSettings.protectionEscalateMonths ?? 12; }
         document.getElementById('dsDisableProtection').checked = decisionSettings.disableProtection || false;
         document.getElementById('dsConsecutiveLimit').value = decisionSettings.consecutiveLimit || 3;
 
@@ -4379,6 +4390,7 @@
         document.getElementById('ssProtectionMult').value = stressSettings.protectionMult || 0.8;
         document.getElementById('ssDisableProtection').checked = stressSettings.disableProtection || false;
         document.getElementById('ssRecoveryBuffer').value = stressSettings.recoveryBuffer || 15000;
+        { const e = document.getElementById('ssProtEscalate'); if (e) e.value = stressSettings.protectionEscalateMonths ?? 12; }
         document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = stressSettings.spendingProfile || 'flat';
@@ -5593,6 +5605,7 @@
       document.getElementById('tryIncome').value = Math.round(s.baseSalary || 0);
       document.getElementById('tryYears').value = s.duration || 35;
       document.getElementById('tryCuts').value = '';
+      document.getElementById('tryCutPct').value = ''; document.getElementById('tryCutEsc').value = '';
       document.getElementById('tryResults').innerHTML = '';
       document.getElementById('tryUseBtn').style.display = 'none';
       refreshNumberOverlays();
@@ -5613,6 +5626,8 @@
       if (document.getElementById('tryIncomeMode').value === 'flat') { c.baseSalary = +document.getElementById('tryIncome').value || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
       c.duration = Math.max(5, Math.min(35, +document.getElementById('tryYears').value || 35));
       const cuts = document.getElementById('tryCuts').value; if (cuts) c.disableProtection = cuts === 'off';
+      const cp = document.getElementById('tryCutPct').value; if (cp !== '') c.protectionMult = 1 - (+cp) / 100;
+      const ce = document.getElementById('tryCutEsc').value; if (ce !== '') c.protectionEscalateMonths = Math.max(0, +ce);
       return c;
     }
     window.runTryStrategyUI = async function () {
@@ -8806,6 +8821,7 @@
         document.getElementById('ssProtectionMult').value = s.protectionMult || 0.8;
         document.getElementById('ssDisableProtection').checked = s.disableProtection || false;
         document.getElementById('ssRecoveryBuffer').value = s.recoveryBuffer || 15000;
+        { const e = document.getElementById('ssProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
         document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
         document.getElementById('ssSpendingProfile').value = s.spendingProfile || 'flat';
@@ -8914,6 +8930,7 @@
           spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
           consecutiveLimit: +document.getElementById('ssConsecutiveLimit').value,
           protectionMult: +document.getElementById('ssProtectionMult').value,
+          protectionEscalateMonths: Math.max(0, +document.getElementById('ssProtEscalate')?.value ?? 12),
           disableProtection: document.getElementById('ssDisableProtection').checked,
           recoveryBuffer: +document.getElementById('ssRecoveryBuffer').value || 15000,
           hodlEnabled: document.getElementById('ssHodlEnabled').checked,
@@ -9036,6 +9053,7 @@
         document.getElementById('dsSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
+        { const e = document.getElementById('dsProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
         document.getElementById('dsDisableProtection').checked = s.disableProtection || false;
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
         document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
@@ -10713,6 +10731,7 @@
           spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,
           protectionFactor: +document.getElementById('dsProtectionFactor').value,
+          protectionEscalateMonths: Math.max(0, +document.getElementById('dsProtEscalate')?.value ?? 12),
           recoveryBuffer: +document.getElementById('dsRecoveryBuffer').value,
           disableProtection: document.getElementById('dsDisableProtection').checked,
           consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value,

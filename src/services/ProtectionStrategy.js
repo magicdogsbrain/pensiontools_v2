@@ -67,8 +67,9 @@ export function assessProtection({
  */
 export const PROTECTION_ESCALATE_MONTHS = 12;
 
-export function protectionMultForStreak(protStreakMonths, deepMult) {
+export function protectionMultForStreak(protStreakMonths, deepMult, escalateMonths = PROTECTION_ESCALATE_MONTHS) {
   const dm = deepMult ?? 0.8;
-  if (protStreakMonths < PROTECTION_ESCALATE_MONTHS) return 1 - (1 - dm) / 2;
+  const esc = Number.isFinite(+escalateMonths) ? Math.max(0, +escalateMonths) : PROTECTION_ESCALATE_MONTHS;
+  if (protStreakMonths < esc) return 1 - (1 - dm) / 2;   // first stage: half the cut (0 months = straight to the deep cut)
   return dm;
 }

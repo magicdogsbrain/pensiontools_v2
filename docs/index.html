@@ -2016,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-FBbtzKlw.js"></script>
+  <script type="module" crossorigin src="./assets/main-DyctYDJF.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2447,6 +2447,10 @@
                   <input type="number" id="dsRecoveryBuffer" value="15000">
                 </div>
                 <div class="form-group">
+                  <label>First-stage months (half the cut)</label>
+                  <input type="number" id="dsProtEscalate" value="12" min="0" max="60">
+                </div>
+                <div class="form-group">
                   <label>Cash Draws Before Protection</label>
                   <input type="number" id="dsConsecutiveLimit" value="3">
                 </div>
@@ -2457,7 +2461,7 @@
                   </label>
                 </div>
               </div>
-              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): the first year of a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
+              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
               <div class="alert alert-info" style="margin-top: 12px;">
                 <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
               </div>
@@ -2593,6 +2597,8 @@
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
+              <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
+              <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
             </div>
             <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
               <button type="button" onclick="runTryStrategyUI()">Run this what-if</button>
@@ -3257,6 +3263,10 @@
                   <label>Recovery Buffer (£)</label>
                   <input type="number" id="ssRecoveryBuffer" value="15000">
                 </div>
+                <div class="form-group">
+                  <label>First-stage months (half the cut)</label>
+                  <input type="number" id="ssProtEscalate" value="12" min="0" max="60">
+                </div>
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
                   <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
                     <input type="checkbox" id="ssDisableProtection" style="width: auto; margin-right: 8px;">
@@ -3264,7 +3274,7 @@
                   </label>
                 </div>
               </div>
-              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): the first year of a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
+              <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
             </div>
 
             <div class="settings-section">

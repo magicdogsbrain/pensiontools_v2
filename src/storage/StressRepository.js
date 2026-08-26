@@ -325,7 +325,8 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     brl: settings.brl,
     hrl: settings.hrl,
     taxMode: settings.taxMode,
-    protectionMult: settings.protectionMult
+    protectionMult: settings.protectionMult,
+    protectionEscalateMonths: settings.protectionEscalateMonths ?? 12
       ?? (settings.protectionFactor != null ? 1 - settings.protectionFactor / 100 : SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER),
     consecutiveLimit: settings.consecutiveLimit,
     disableProtection: settings.disableProtection,

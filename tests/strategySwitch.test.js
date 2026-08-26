@@ -253,3 +253,32 @@ describe('Floor to an age, then decide (5th strategy)', () => {
     expect(a.strategies['floor-to-age'].guaranteedToAge).toMatch(/^75 by contract/);
   });
 });
+
+describe('Full index-linked gilt ladder (6th strategy) through the shared stress test', () => {
+  const stepped = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], equityMin: 900000, bondMin: 400000, cashTarget: 100000, isaBalance: 0,
+    baseSalary: 60000, duration: 35, incomeShape: 'phases', shapeAgeNow: 57, firstTaxYear: 2027,
+    incomeSteps: [{ fromAge: 57, amount: 60000 }, { fromAge: 73, amount: 50000 }, { fromAge: 80, amount: 40000 }],
+    strategyParams: { cashYears: 2, bridgeCash: 0 } };
+  it('agrees across surfaces; 0% ruin; flat cones; wealth starts at the pot; an order sheet with nominals', () => {
+    const { all } = compareTab(stepped);
+    const g = all.strategies['full-il-gilt'];
+    expect(strip(lockedPlanStress(stepped, 'full-il-gilt'))).toEqual(strip(g));
+    expect(g.affordable).toBe(true);
+    expect(g.ruin).toEqual({ hist: 0, mc: 0 });
+    expect(g.cones.income.p10).toEqual(g.cones.income.p90);
+    expect(g.cones.income.p50[3]).toBe(60000);
+    expect(g.cones.income.p50[30]).toBe(40000);
+    expect(g.cones.wealth.p50[0]).toBeCloseTo(1400000, -3);
+    expect(g.plan.orders.length).toBeGreaterThan(15);
+    expect(g.plan.orders.every((o) => o.sedol && o.sedol.length === 7)).toBe(true);
+    expect(g.plan.orders.filter((o) => o.nominal).length).toBeGreaterThan(15);
+    expect(g.signature.cashYears).toBe(2);
+  });
+  it('the cash-years dial changes the split but not the total by much', () => {
+    const a = compareTab({ ...stepped, strategyParams: { cashYears: 5 } }).all.strategies['full-il-gilt'];
+    const b = compareTab(stepped).all.strategies['full-il-gilt'];
+    expect(a.signature.cashYears).toBe(5);
+    expect(a.signature.cash).toBeGreaterThan(b.signature.cash);
+    expect(Math.abs(a.signature.total - b.signature.total) / b.signature.total).toBeLessThan(0.03);
+  });
+});

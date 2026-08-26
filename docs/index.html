@@ -1994,7 +1994,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DvJ7OCHg.js"></script>
+  <script type="module" crossorigin src="./assets/main-Cs-y4wvJ.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2672,6 +2672,7 @@
                   </div></div>
                 <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor to an age, then decide</div>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="cmpFtaAge" min="60" max="95" style="width:80px;"></label>
+                  <div class="row-flex" style="margin-top:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Full gilt ladder: cash years first<input type="number" id="cmpGiltCash" min="0" max="10" style="width:80px;"></label><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash (£)<input type="number" id="cmpGiltBridge" min="0" step="1000" style="width:110px;"></label></div>
                   <p class="hint" style="margin:6px 0 0;">Floor the schedule uses your income shape and the plan horizon; nothing to dial.</p></div>
               </div>
               <div class="row-flex" style="margin-top:10px;">
@@ -2898,6 +2899,17 @@
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" onclick="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" onclick="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
+                <button type="button" class="risk-btn" data-strat="full-il-gilt" onclick="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
+              </div>
+              <div id="ssGiltParams" style="display:none;margin-top:8px;">
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" oninput="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" oninput="refreshStrategyCosts()"></label>
+                </div>
+                <p class="hint" style="margin:6px 0 0;">Uses your income shape (Settings above), your State Pension date, and the latest gilt prices and index ratios. Run Monte Carlo or the Strategies compare for the full order sheet.</p>
+                <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
+              </div>
+              <div style="display:none;">
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
               <div style="margin-top:12px;">

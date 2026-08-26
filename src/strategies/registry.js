@@ -18,11 +18,11 @@ import {
 import { resolveIncomeProfile, profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION as _EV } from './version.js';
 import { LadderAndRatchet } from './LadderAndRatchet.js';
-import { FloorAndFlex, FloorTheSchedule, FloorToAge } from './FloorAndFlex.js';
+import { FloorAndFlex, FloorTheSchedule, FloorToAge, FullGiltLadder } from './FloorAndFlex.js';
 
 export { ENGINE_VERSION } from './version.js';
 
-export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age' };
+export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age', FULL_IL_GILT: 'full-il-gilt' };
 
 const PotsAndValves = {
   id: STRATEGY_IDS.POTS_AND_VALVES,
@@ -49,7 +49,8 @@ const REGISTRY = {
   [LadderAndRatchet.id]: LadderAndRatchet,
   [FloorAndFlex.id]: FloorAndFlex,
   [FloorTheSchedule.id]: FloorTheSchedule,
-  [FloorToAge.id]: FloorToAge
+  [FloorToAge.id]: FloorToAge,
+  [FullGiltLadder.id]: FullGiltLadder
 };
 
 /** The strategy for a plan (default + migration target: pots-and-valves). */

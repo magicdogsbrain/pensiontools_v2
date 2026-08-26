@@ -32,6 +32,8 @@ function normalise(data) {
         cleanPrice: g.cleanPrice ?? null,
         realYield: g.type === 'conventional' ? null : (g.yield ?? g.realYield ?? null),
         nominalYield: g.type === 'conventional' ? (g.yield ?? null) : null,
+        indexRatio: g.indexRatio ?? null,
+        maturityDateIso: typeof g.maturity === 'string' ? g.maturity : null,
         type: g.type || 'il3'
       };
   };
@@ -49,6 +51,7 @@ function normalise(data) {
     as_of: data.as_of || (data.generated_at || '').slice(0, 10),
     curve_as_of: data.curve_as_of || data.as_of || null,
     curve_source: data.curve_source || (data.realCurve ? 'real yields from gilt prices' : 'flat assumption'),
+    index_ratio_settlement: data.index_ratio_settlement || null,
     source: data.source || (data.sources ? `${data.sources.issued}; ${data.sources.prices}` : 'unknown'),
     notice: data.notice || 'Indicative figures for illustration only. Not a recommendation to buy or sell any gilt.',
     gilts, conventionals, realCurve, nominalCurve

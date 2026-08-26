@@ -18,9 +18,11 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../storage/StressRepository.js';
+import { buildGiltLadder } from './GiltLadderPlan.js';
+import { activeLinkers } from '../services/LinkerUniverse.js';
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide'
+  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder'
 };
 
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
@@ -63,8 +65,10 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     params: {
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
-      floorToAge: params.floorToAge
+      floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash
     },
+    spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
+    firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     pnvCfg: { ...cfg, startAge, targetSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now
     yieldForYear
@@ -315,9 +319,44 @@ function floorToAgeTest(p, configs) {
   };
 }
 
+function fullGiltTest(p, configs) {
+  const N = p.durationYears;
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const amountAtAge = (age) => { const k = age - p.startAge; return sched ? (sched[Math.min(k, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual; };
+  const firstTaxYear = p.firstTaxYear || new Date().getFullYear() + 1;
+  const plan = buildGiltLadder({
+    pot: p.pot + (p.isa || 0), startAge: p.startAge, durationYears: N, amountAtAge,
+    spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatio ?? 1,
+    firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0
+  });
+  if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };
+  // Deterministic: income = the schedule; wealth = unpaid rungs at cost (+ spare) — no market exposure.
+  const income = [], wealth = [];
+  const costByYear = {}; for (const o of plan.orders) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
+  for (let y = 0; y <= N; y++) {
+    const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)));
+    let w = plan.spare; for (const yr of plan.years) if (yr.Y >= firstTaxYear + y) w += yr.from === 'cash' ? yr.need : (costByYear[yr.Y] || 0);
+    wealth.push(w);
+  }
+  const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });
+  const minInc = Math.min(...income.slice(0, N));
+  return {
+    affordable: true, plan,
+    ruin: { hist: 0, mc: 0 },
+    worst12: { min: minInc, median: minInc },
+    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    terminal: { p10: plan.spare, p50: plan.spare, p90: plan.spare, histMedian: plan.spare },
+    cones: { wealth: flat(wealth), income: flat(income) },
+    failAges: [],
+    signature: { cash: plan.cash, giltsCost: plan.giltsCost, total: plan.total, spare: plan.spare, orders: plan.orders.length, doubleDrops: plan.orders.filter((o) => o.taxYears.length > 1).length, firstTaxYear, cashYears: plan.cashYears.length },
+    n: { hist: 1, mc: 1 },
+    wealthLabel: "Unpaid rungs at cost + cash, today's money (no market exposure)"
+  };
+}
+
 /** Stress-test ONE strategy on the plan. */
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };

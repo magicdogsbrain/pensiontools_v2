@@ -24,6 +24,10 @@ const DMO_URL = 'https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A';
 const DMO_MIRROR = 'https://lategenxer.github.io/finance/dmo-D1A.xml';
 const PRICES_URL = 'https://lategenxer.github.io/finance/gilts-closing-prices.csv';
 const BOE_CURVE_URL = 'https://lategenxer.github.io/finance/boe-yield-curves.csv';
+// Base RPI per index-linked gilt (from the DMO prospectuses, collated by LateGenXer) + the ONS RPI
+// series → INDEX RATIOS, so the app can turn a today's-money income into a nominal to buy.
+const DMO_ISSUED_CSV = 'https://raw.githubusercontent.com/LateGenXer/finance/main/data/dmo_issued.csv';
+const RPI_URL = 'https://lategenxer.github.io/finance/rpi-series.csv';
 const BOE_DIRECT = 'https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/latest-yield-curve-data.zip';
 
 async function fetchText(url, ms = 30000) {
@@ -116,13 +120,40 @@ export function parseBoeCurve(csv) {
   return { date, real, nominal, inflation };
 }
 
-export function buildDataset({ dmo, prices, boe = null, now = new Date() }) {
+/** Base RPI per ISIN from LateGenXer's DMO-issued CSV (BASE_RPI_87 column; blank for conventionals). */
+export function parseBaseRpi(csv) {
+  const out = {};
+  for (const l of csv.trim().split(/\r?\n/).slice(1)) { const c = l.split(','); if (c[4]) out[c[0]] = +c[4]; }
+  return out;
+}
+/** ONS RPI series ("YYYY MON","value" rows) → { 'YYYY-MM': value }. */
+export function parseRpiSeries(csv) {
+  const M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const out = {};
+  for (const l of csv.split(/\r?\n/)) { const m = l.match(/^"(\d{4}) ([A-Z]{3})","([\d.]+)"/); if (m) out[m[1] + '-' + String(M.indexOf(m[2]) + 1).padStart(2, '0')] = +m[3]; }
+  return out;
+}
+/** DMO 3-month-lag reference RPI for a settlement date (yldeqns.pdf): RPI(m-3) + (d-1)/D × (RPI(m-2) − RPI(m-3)). */
+export function referenceRpi(iso, rpi) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const key = (yy, mm) => { while (mm < 1) { mm += 12; yy--; } return yy + '-' + String(mm).padStart(2, '0'); };
+  const a = rpi[key(y, m - 3)], b = rpi[key(y, m - 2)];
+  if (a == null || b == null) return null;
+  const D = new Date(y, m, 0).getDate();
+  return a + (d - 1) / D * (b - a);
+}
+
+export function buildDataset({ dmo, prices, boe = null, baseRpi = {}, rpi = {}, now = new Date() }) {
   const asOf = prices.date || dmo[0]?.dmoDate || now.toISOString().slice(0, 10);
+  // Index ratios for T+1 settlement (verified against the DMO's D10C report to 5 d.p.).
+  const settle = new Date(now.getTime() + 864e5).toISOString().slice(0, 10);
+  const refRpi = referenceRpi(settle, rpi);
   const gilts = dmo.map((g) => {
     const p = prices.byIsin[g.isin];
     const cleanPrice = p ? p.price : null;
     const y = cleanPrice != null && g.type !== 'il8' ? ytmFromClean(cleanPrice, g.coupon, g.maturity, asOf) : null;
-    return { ...g, tidm: p ? p.tidm : null, cleanPrice, yield: y, yieldKind: g.type === 'conventional' ? 'nominal' : 'real' };
+    const indexRatio = g.type === 'il3' && baseRpi[g.isin] && refRpi ? +(refRpi / baseRpi[g.isin]).toFixed(5) : null;
+    return { ...g, tidm: p ? p.tidm : null, cleanPrice, yield: y, yieldKind: g.type === 'conventional' ? 'nominal' : 'real', baseRpi: baseRpi[g.isin] ?? null, indexRatio };
   }).sort((a, b) => a.maturity.localeCompare(b.maturity));
   const yearsTo = (iso) => (Date.parse(iso) - Date.parse(asOf)) / (365.25 * 864e5);
   const giltRealCurve = gilts.filter((g) => g.type === 'il3' && g.yield != null)
@@ -134,12 +165,15 @@ export function buildDataset({ dmo, prices, boe = null, now = new Date() }) {
   return {
     generated_at: now.toISOString(),
     as_of: asOf,
+    index_ratio_settlement: refRpi ? settle : null,
+    reference_rpi: refRpi ? +refRpi.toFixed(5) : null,
     curve_as_of: boeOk ? boe.date : asOf,
     curve_source: boeOk ? 'Bank of England GLC real spot curve' : 'real YTM solved from index-linked gilt prices (BoE curve unavailable)',
     sources: {
       issued: 'UK DMO gilts in issue (D1A)',
       curve: boeOk ? 'Bank of England daily real spot yield curve (open data, via LateGenXer mirror)' : 'derived from gilt prices',
-      prices: 'delayed London Stock Exchange prices (via LateGenXer mirror) — illustration only'
+      prices: 'delayed London Stock Exchange prices (via LateGenXer mirror) — illustration only',
+      indexRatios: 'DMO base RPI per gilt + ONS RPI (3-month lag formula), for T+1 settlement'
     },
     notice: 'Indicative closing prices and derived yields for illustration only. Not a recommendation to buy or sell any gilt.',
     counts: { gilts: gilts.length, priced: gilts.filter((g) => g.cleanPrice != null).length, realCurve: realCurve.length },
@@ -155,12 +189,15 @@ async function main() {
   const prices = parsePrices(await fetchText(PRICES_URL));
   let boe = null;
   try { boe = parseBoeCurve(await fetchText(BOE_CURVE_URL)); } catch (e) { console.warn('BoE curve mirror failed (falling back to gilt-price curve):', e.message); }
-  const data = buildDataset({ dmo, prices, boe });
+  let baseRpi = {}, rpi = {};
+  try { baseRpi = parseBaseRpi(await fetchText(DMO_ISSUED_CSV)); rpi = parseRpiSeries(await fetchText(RPI_URL)); } catch (e) { console.warn('base RPI / RPI series unavailable (no index ratios this run):', e.message); }
+  const data = buildDataset({ dmo, prices, boe, baseRpi, rpi });
   const json = JSON.stringify(data, null, 1);
   for (const dir of ['public/data', 'docs/data']) { mkdirSync(dir, { recursive: true }); writeFileSync(`${dir}/gilts.json`, json); }
   writeFileSync('src/data/giltsSnapshot.js',
     '// GENERATED by scripts/fetch-gilt-data.mjs — bundled fallback when public/data/gilts.json cannot be fetched.\n'
     + '// Do not hand-edit.\nexport default ' + json + ';\n');
+  console.log('index ratios for ' + data.gilts.filter((g) => g.indexRatio).length + ' linkers, settlement ' + data.index_ratio_settlement + ', ref RPI ' + data.reference_rpi);
   console.log(`gilts ${data.counts.gilts}, priced ${data.counts.priced}, real curve ${data.counts.realCurve} pts (${data.curve_source}, ${data.curve_as_of}), prices as of ${data.as_of}`);
   console.log('real curve:', data.realCurve.map((p) => `${p.years}y ${(p.yield * 100).toFixed(2)}%`).join(' | '));
 }

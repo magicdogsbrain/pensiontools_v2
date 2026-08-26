@@ -300,3 +300,20 @@ describe('a held ISA never funds rungs or floors', () => {
     expect(held.configs.fs.E0).toBeCloseTo(open.configs.fs.E0 - 200000, -2);
   });
 });
+
+describe('requiredPotForStrategy — the accumulation yardstick follows the locked strategy', () => {
+  it('a contract strategy needs exactly its price; a market strategy needs less than a flat ladder would', async () => {
+    const { requiredPotForStrategy } = await import('../src/strategies/stressTest.js');
+    const settings = PERSONAS['four-percent 500k, £20k, no SP'];
+    const cfg = createSimulationConfigFromSettings({}, settings);
+    const p = planFromSettings(settings, cfg, { yieldForYear: realYieldForYear });
+    const gilt = requiredPotForStrategy('full-il-gilt', p, 0.85, { mcRuns: 60, stride: 12 });
+    const r = stressTestStrategy('full-il-gilt', { ...p, pot: gilt.requiredPot });
+    expect(r.affordable).toBe(true);
+    expect(gilt.requiredPot).toBeGreaterThan(20000 * 20);   // 30 years of £20k on a positive real yield (~1–2%)
+    expect(gilt.requiredPot).toBeLessThan(20000 * 32);
+    const pnv = requiredPotForStrategy('pots-and-valves', p, 0.85, { mcRuns: 60, stride: 12 });
+    expect(pnv.requiredPot).toBeGreaterThan(0);
+    expect(pnv.requiredPot).toBeLessThan(gilt.requiredPot);
+  }, 60000);
+});

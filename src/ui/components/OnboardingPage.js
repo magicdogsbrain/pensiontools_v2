@@ -104,10 +104,28 @@ function renderOnboardingPage(userName, onStartWizard, opts = {}) {
           <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your pension fund values (or your actual funds — you can tag real holdings), what you want to spend (take-home — one tap if you've done the Budget), and your State Pension forecast.</p>
         </div>
 
-        <!-- Tool: Decision Tool -->
+        <!-- Tool: Strategies -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
             <span class="onboarding-tool-badge">Tool 3</span>
+            <h2>Strategies</h2>
+          </div>
+          <p class="onboarding-tool-question">"How should the money actually be run?"</p>
+          <p>Six ways to turn a pot into an income, each explained as a machine and stress-tested on <em>your</em> plan on the same footing:</p>
+          <ul>
+            <li><strong>Pots &amp; Valves</strong> — the classic invested drawdown with cash buffers and a spending brake</li>
+            <li><strong>Ladder &amp; Ratchet</strong>, <strong>Floor &amp; Flex</strong>, <strong>Floor the schedule</strong>, <strong>Floor to an age</strong> — index-linked gilts buy some or all of the income by contract; the rest stays invested</li>
+            <li><strong>Full index-linked gilt ladder</strong> — every year bought today; nothing left to the market</li>
+          </ul>
+          <p>Lock one in and the Stress Tester, Scenarios and Decision Tool all follow it. Example gilt ladders are priced from live public data — illustrations, not advice.</p>
+          <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone who wants certainty about part of their income, or wants to see what a bad decade would do to each approach before choosing.</p>
+          <p class="onboarding-tool-need"><strong>What you'll need:</strong> Your Stress-Tester plan (pot, income shape, State Pension).</p>
+        </div>
+
+        <!-- Tool: Decision Tool -->
+        <div class="onboarding-tool-section">
+          <div class="onboarding-tool-header">
+            <span class="onboarding-tool-badge">Tool 4</span>
             <h2>Monthly Decision Tool</h2>
           </div>
           <p class="onboarding-tool-question">"Where should I take money from this month?"</p>
@@ -125,14 +143,16 @@ function renderOnboardingPage(userName, onStartWizard, opts = {}) {
         <!-- Accumulation -->
         <div class="onboarding-tool-section">
           <div class="onboarding-tool-header">
+            <span class="onboarding-tool-badge">Tool 5 · before retirement</span>
             <h2>Accumulation Planner</h2>
           </div>
           <p class="onboarding-tool-question">"Am I saving enough for retirement?"</p>
           <p>For the years BEFORE retirement: say what you can spare from take-home pay and it works
           out the gross pension purchase under your scheme's tax relief (relief at source, net pay,
           or salary sacrifice — including the NI saving), projects your pot at the FCA's low/middle/high
-          growth rates, and checks whether you're on track for <strong>your own budget-derived
-          target</strong> — with warnings for the £60,000 Annual Allowance, the £10,000 MPAA (spotted
+          growth rates, and checks whether you're on track for <strong>your own plan</strong> — the pot
+          your chosen strategy needs (a gilt ladder's price, or 85% Monte-Carlo success for an invested
+          drawdown) — with warnings for the £60,000 Annual Allowance, the £10,000 MPAA (spotted
           automatically from your Decision-tool history), and the minimum-pension-age rise to 57.</p>
           <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone still contributing — including alongside a partner's drawdown plan.</p>
           <p class="onboarding-tool-need"><strong>What you'll need:</strong> Salary, what you can afford monthly, employer contribution, current pot value.</p>

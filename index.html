@@ -3788,6 +3788,8 @@
 
     // Expose for optimization
     window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };
+    // Read-only debug hooks (no writes): lets a console inspect what the plan lock sees.
+    window._ptDebug = { getDecisionSettingsAsync, getHistoryAsync, decisionSettingsChecksum, planDependents };
     window._constants = { EQUITY_RETURNS, INFLATION };
     // Nightly gilt closing prices (public/data/gilts.json) → real-yield curve for the ladder
     // strategies. Fire-and-forget; the bundled snapshot serves until it lands or if it fails.

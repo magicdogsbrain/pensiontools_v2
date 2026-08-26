@@ -2559,6 +2559,7 @@
           </div>
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
+            <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
             <div id="strategyRunResults"></div>
             <h2>Monte Carlo Simulation
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
@@ -3321,6 +3322,7 @@
             <button type="button" class="strat-nav-item" data-page="full-il-gilt" onclick="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
             <div class="strat-nav-group">Background</div>
             <button type="button" class="strat-nav-item" data-page="gilts" onclick="showStrategyPage('gilts')">Gilt ladders explained</button>
+            <button type="button" class="strat-nav-item" data-page="assumptions" onclick="showStrategyPage('assumptions')">Assumptions &amp; data</button>
           </nav>
           <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -3766,7 +3768,10 @@
     import { SUB_ASSET_PROFILE_DEFAULTS, TUNABLE_PROFILE_FIELDS } from './src/services/SubAssetModel.js';
 
     // Import constants for optimization
-    import { EQUITY_RETURNS, INFLATION } from './src/constants.js';
+    import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from './src/constants.js';
+    import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
+    import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
+    import { LADDER_DEFAULTS } from './src/strategies/GiltLadderPlan.js';
 
     // Import math utils for optimization
     import { seededRng } from './src/utils/MathUtils.js';
@@ -7764,6 +7769,78 @@
     window._stratFrame = 4;
     window._stratDials = {};
     window.loadStrategiesPage = async function () { await showStrategyPage(window._stratPage || 'overview'); };
+
+    // ---- Assumptions & data: every number the engines rest on, in one place, computed from the
+    // same tables the engines read (never a hand-typed copy that can drift).
+    function assumptionsPageHtml() {
+      const yrs = Object.keys(EQUITY_RETURNS).map(Number).sort((a, b) => a - b);
+      const geo = (vals) => Math.pow(vals.reduce((a, v) => a * (1 + v), 1), 1 / vals.length) - 1;
+      const nomG = geo(yrs.map((y) => EQUITY_RETURNS[y]));
+      const realG = geo(yrs.map((y) => (1 + EQUITY_RETURNS[y]) / (1 + (INFLATION[y] ?? 0.025)) - 1));
+      const infG = geo(yrs.map((y) => INFLATION[y] ?? 0.025));
+      const worst = yrs.reduce((m, y) => (EQUITY_RETURNS[y] < EQUITY_RETURNS[m] ? y : m), yrs[0]);
+      const best = yrs.reduce((m, y) => (EQUITY_RETURNS[y] > EQUITY_RETURNS[m] ? y : m), yrs[0]);
+      const pc = (v, d = 1) => (v * 100).toFixed(d) + '%';
+      let prov = null; try { prov = dataProvenance(); } catch (e) { /* no gilt data */ }
+      const curve = [1, 2, 3, 5, 10, 15, 20, 25, 30].map((k) => { let r = null; try { r = realYieldForYear(k); } catch (e) { /* */ } let n = null; try { n = nominalYieldForYear(k); } catch (e) { /* */ } return { k, r, n }; });
+      const row = (k, v, note) => '<tr><td style="white-space:nowrap;">' + k + '</td><td>' + v + '</td><td class="hint">' + (note || '') + '</td></tr>';
+      const table = (rows) => '<div class="table-wrap"><table><tbody>' + rows.join('') + '</tbody></table></div>';
+      let h = '<div class="card"><h2>Assumptions &amp; data</h2><p class="hint">Everything below is read from the same tables the engines use, so what you see here is what the numbers rest on. App v' + budEsc(VERSION) + ', engine ' + budEsc(ENGINE_VERSION) + '. Nothing here is advice; it is a description of a model.</p>';
+
+      h += '<div class="section-title">1 · Equity returns</div>' + table([
+        row('Series', 'Calendar-year S&amp;P 500 total return (dividends reinvested), ' + yrs[0] + '–' + yrs[yrs.length - 1] + ' (' + yrs.length + ' years)', 'Aswath Damodaran, NYU Stern — <a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html" target="_blank" rel="noopener">histretSP</a>. Committed with provenance in <code>src/data/damodaranReturns.json</code>.'),
+        row('World adjustment', '−1.5 percentage points a year, applied to every year', 'UBS/Credit Suisse Global Investment Returns Yearbook 2024: US equities 6.6% real vs World 5.0% real, 1900–2023. A global-tracker holder is not modelled on US returns — the winner\'s history.'),
+        row('Result (geometric mean)', pc(nomG, 2) + ' nominal · ' + pc(realG, 2) + ' real', 'Worst year ' + worst + ' (' + pc(EQUITY_RETURNS[worst]) + '), best ' + best + ' (' + pc(EQUITY_RETURNS[best]) + ').'),
+        row('Ladder &amp; floor engines', 'Shiller monthly S&amp;P price, dividend and CPI, January 1871 onward (1,830 months), the same −1.5pp/yr haircut applied monthly', 'Robert Shiller, <a href="http://www.econ.yale.edu/~shiller/data.htm" target="_blank" rel="noopener">Irrational Exuberance data</a>. Gives 150 years of rolling windows for the ladder strategies.'),
+        row('Not modelled', 'Fund charges, platform fees, currency, UK-only equity history', 'Barclays Equity Gilt Study: UK equities ≈5% real long-run — close to the world figure, not the US one.')
+      ]);
+
+      h += '<div class="section-title">2 · Inflation</div>' + table([
+        row('Series', 'US CPI, calendar years ' + yrs[0] + '–' + yrs[yrs.length - 1] + ' (Shiller)', 'Geometric mean ' + pc(infG, 2) + '. Used as the price index the pension has to keep up with; UK RPI/CPI history is similar in shape, worse in the 1970s.'),
+        row('Monte Carlo inflation', 'Travels with the equity block it came from', 'A 1970s block brings 1970s inflation; a 2010s block brings 2010s inflation. Bonds and cash then see a coherent regime, not random inflation.'),
+        row('Decision tool', pc(DECISION_ASSUMED_CPI ?? 0.04, 1) + ' a year for tax years you have not entered', 'Deliberately pessimistic. Years you have set up use the CPI you entered.'),
+        row('Gilt ladder pricing', 'Index-linked gilts pay RPI (CPIH from February 2030) with the DMO 3-month lag', 'Your own inflation (care, energy, services) may run above the index; nothing here protects against that.')
+      ]);
+
+      h += '<div class="section-title">3 · How the futures are made</div>' + table([
+        row('Monte Carlo', SIMULATION_DEFAULTS.MONTE_CARLO_RUNS.toLocaleString() + ' futures, circular block bootstrap, ' + (MC_BLOCK_YEARS || 5) + '-year blocks', 'Random consecutive 5-year stretches of real history are stitched together, so booms, busts and inflation regimes survive intact. Independent yearly draws would understate sequence risk.'),
+        row('Historical', 'Every rolling start year ' + yrs[0] + '–' + (yrs[yrs.length - 1]) + ' (Pots &amp; Valves); every start month since 1871 (ladders)', 'Overlapping windows: 150 years is really only about 10 independent 15-year draws. Treat the tail as indicative, not a probability.'),
+        row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by <code>tests/calibration.test.js</code>; 5%/30y ≈59%, 6%/30y ≈39%.'),
+        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years, then history resumes. For contract strategies only the inflation path matters.')
+      ]);
+
+      h += '<div class="section-title">4 · Bonds, cash and the ISA (Pots &amp; Valves)</div>' + table([
+        row('"Bonds" pot', 'A blended sleeve: 15% index-linked, 30% nominal gilts, 20% property, 10% commodities, 10% cash, 15% equity beta; shifts toward linkers when last year\'s inflation > 4.5%', 'A model of a diversified "steadier" fund, not a gilt index. Nominal gilts lose when inflation exceeds 4%; the equity–bond correlation turns positive in inflation shocks (2022).'),
+        row('Cash', 'Nominal return = max(0, last year\'s inflation − 1%)', 'Cash lags inflation and never goes negative in nominal terms — FCA-style real return of about −1%.'),
+        row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs.'),
+        row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' consecutive cash draws; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
+      ]);
+
+      h += '<div class="section-title">5 · Gilt ladders and live data</div>' + table([
+        row('Gilts in issue', prov ? 'DMO list, generated ' + budEsc(String(prov.generated_at || '').slice(0, 10)) : 'not loaded', 'UK Debt Management Office D1A. Only 3-month-lag index-linked gilts are used for ladders; old-style 8-month-lag stocks are excluded.'),
+        row('Prices', prov ? 'Delayed exchange closes as of ' + budEsc(prov.as_of || '—') + (prov.stale ? ' — <strong>more than 48 hours old</strong>' : '') : '—', budEsc(prov?.source || '') + ' Refreshed nightly by a scheduled job; a stale flag is shown when it fails.'),
+        row('Real yield curve', prov && prov.hasCurve ? 'Bank of England real spot curve as of ' + budEsc(prov.curve_as_of || '—') + ' (' + prov.curvePoints + ' points)' : 'fallback flat 2.3%', 'Every rung is priced at its own maturity\'s real yield — never a flat guess. Future rungs (ratchet reviews) are priced on today\'s curve at their then-maturity, which is optimistic if short real yields stay low.'),
+        row('Today\'s curve', curve.map((c) => c.k + 'y ' + (c.r == null ? '—' : pc(c.r, 2))).join(' · '), 'Real (RPI-linked). Nominal: ' + curve.filter((c) => c.n != null).map((c) => c.k + 'y ' + pc(c.n, 2)).join(' · ')),
+        row('Order-sheet costs', 'Nominal = pays ÷ index ratio, rounded up to £100; bid–offer 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £' + LADDER_DEFAULTS.dealFee + ' a trade', 'Index ratios from the DMO formula (base RPI, 3-month lag), verified to 5 decimal places against DMO publications.'),
+        row('Not advice', 'Every ladder shown is an illustration priced from public data', 'Whether to buy anything, and which gilts, is your decision or your adviser\'s.')
+      ]);
+
+      h += '<div class="section-title">6 · Tax</div>' + table([
+        row('Bands', 'Personal allowance ' + gbp(TAX_DEFAULTS.PERSONAL_ALLOWANCE) + ', basic-rate limit ' + gbp(TAX_DEFAULTS.BASIC_RATE_LIMIT) + ', higher-rate limit ' + gbp(TAX_DEFAULTS.HIGHER_RATE_LIMIT) + '; PA tapers above ' + gbp(TAX_DEFAULTS.PA_TAPER_THRESHOLD), 'Rates 20/40/45%. Frozen (default) or inflating thresholds — your choice in Settings. Scottish bands not modelled.'),
+        row('Pension access', 'Flexi-access drawdown or UFPLS (25% tax-free per withdrawal), PCLS option', 'Minimum pension age 57 from April 2028; MPAA £10,000 warning in the Accumulation planner.'),
+        row('Not modelled', 'GIA / capital gains, dividend allowance, National Insurance in retirement, tax on the estate', 'The ISA is tax-free; everything else is treated as pension income.')
+      ]);
+
+      h += '<div class="section-title">7 · Known limits</div><ul style="font-size:13px;line-height:1.55;margin:0 0 0 18px;">'
+        + '<li>Single person. No partner, no survivor scenario, no second tax allowance.</li>'
+        + '<li>No general investment account, property, or defined-benefit pension (use Other Income).</li>'
+        + '<li>Budget one-offs are averaged into the target, not placed in a specific year.</li>'
+        + '<li>Historical data is US equity with a world haircut — Japan from 1989 or UK-only 1965–1980 would look worse.</li>'
+        + '<li>Zero spending flexibility in the comparisons unless you switch cuts on — pessimistic on purpose.</li>'
+        + '</ul>';
+      h += '<p class="hint" style="margin-top:14px;">Source code and data files: <a href="https://github.com/magicdogsbrain/pensiontools_v2" target="_blank" rel="noopener">github.com/magicdogsbrain/pensiontools_v2</a> — the data build scripts are <code>scripts/build-market-data.mjs</code> and <code>scripts/fetch-gilt-data.mjs</code>; the audit is <code>research/market-data-audit-aug-2026.md</code>.</p>';
+      return h + '</div>';
+    }
     window.showStrategyPage = async function (id) {
       window._stratPage = id;
       document.querySelectorAll('#stratNav .strat-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.page === id));
@@ -7772,6 +7849,7 @@
       await new Promise((r) => setTimeout(r, 20));
       try {
         if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
+        else if (id === 'assumptions') box.innerHTML = assumptionsPageHtml();
         else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltExplainerSource')?.firstElementChild; if (src) { const c = src.cloneNode(true); c.querySelectorAll('.number-format-overlay').forEach((o) => o.remove()); c.querySelectorAll('input[type="number"]').forEach((i) => { delete i.dataset.formatted; i.style.color = ''; }); document.getElementById('glxHost').appendChild(c); } renderGiltLadderExplainer(); }
         else if (id === 'full-il-gilt') box.innerHTML = await fullGiltPageHtml();
         else if (id === 'floor-to-age') box.innerHTML = await floorToAgePageHtml();

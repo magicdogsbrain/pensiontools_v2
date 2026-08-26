@@ -43,6 +43,8 @@ describe('incomeLayersRows / incomeLayersSvg', () => {
     expect(rows[0].sp).toBe(0); expect(rows[10].sp).toBe(11500);
     expect(rows[1].other).toBe(0); expect(rows[2].other).toBe(5000);
     expect(rows[5].contract).toBeGreaterThan(0);
+    // after SP starts the rung pays the balance: stack (sp + other + contract) == the need
+    expect(rows[12].sp + rows[12].other + rows[12].contract).toBeCloseTo(rows[12].need, 0);
     expect(rows.every((x) => x.market < 1)).toBe(true);
     const svg = incomeLayersSvg({ rows });
     expect(svg).toContain('<svg'); expect(svg).toContain('State Pension'); expect(svg).toContain('By contract');

@@ -64,7 +64,7 @@ export function incomeLayersRows(r, p) {
     const netNeed = Math.max(0, need - s - o);
     let contract = 0;
     switch (r.strategyId) {
-      case 'full-il-gilt': contract = r.plan?.years?.[y] ? r.plan.years[y].gross : (r.affordable ? netNeed : 0); break;
+      case 'full-il-gilt': contract = r.plan?.years?.[y] ? r.plan.years[y].need : (r.affordable ? netNeed : 0); break;   // .need = what the rung pays (gross − SP)
       case 'floor-the-schedule': contract = netNeed; break;
       case 'floor-to-age': contract = y < ((sig.floorToAge || 80) - p.startAge) ? netNeed : 0; break;
       case 'floor-and-flex': contract = Math.max(0, (p.essentialsAnnual || 0) - s - o); break;

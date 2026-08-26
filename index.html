@@ -6253,6 +6253,7 @@
     // Spaghetti: a sample of individual futures (one thin line each), red where that future hit £0.
     function spaghettiSvg(paths, median) {
       const w = 680, h = 250, padL = 60, padR = 14, padT = 14, padB = 28;
+      const _gbp = (v) => v >= 1e6 ? '£' + (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + 'M' : '£' + Math.round(v / 1000) + 'k';
       const n = paths && paths.length ? paths[0].length : 0;
       if (n < 2) return '';
       const maxY = Math.max(1, ...paths.map((pth) => Math.max(...pth)));

@@ -57,7 +57,12 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const scheduledTarget = Array.isArray(settings.targetSchedule) && settings.targetSchedule[year] != null
       ? settings.targetSchedule[year]
       : (settings.baseSalary || 0);
-    const target = scheduledTarget * cumInf * spendFactor;
+    let target = scheduledTarget * cumInf * spendFactor;
+    for (const w of settings.extraWithdrawals || []) {
+      if (!(w.amount > 0) || w.year == null) continue;
+      const runs = Math.max(1, w.years || 1);
+      if (year >= w.year && year < w.year + runs) target += (w.indexation === 'level') ? w.amount : w.amount * cumInf;
+    }
 
     // Other pension: CPI-capped uplift (4%), matching the stress engine's cappedInflation.
     const other = (settings.other || 0) * Math.pow(1 + Math.min(assumedInflation, OTHER_INCOME_CAP), year);

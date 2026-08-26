@@ -355,6 +355,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Lumpy income (user-defined): income streams with start/end years + one-off lump sums.
     extraIncomes: Array.isArray(settings.extraIncomes) ? settings.extraIncomes : [],
     windfalls: Array.isArray(settings.windfalls) ? settings.windfalls : [],
+    extraWithdrawals: Array.isArray(settings.extraWithdrawals) ? settings.extraWithdrawals : [],
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down
     // with age — Blanchett's spending smile). See SimulationEngine.spendingFactor.

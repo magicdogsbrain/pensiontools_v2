@@ -3200,10 +3200,13 @@
                 <div class="row-flex" style="margin-top:6px;">
                   <button type="button" class="risk-btn" onclick="addExtraIncome()">+ Income for some years</button>
                   <button type="button" class="risk-btn" onclick="addWindfall()">+ One-off lump sum</button>
+                  <button type="button" class="risk-btn" onclick="addExtraWithdrawal()">+ Extra spend (a car, a roof, a wedding)</button>
                 </div>
                 <p class="hint" style="margin:6px 0 0;">
                   Amounts in today's money. Years are plan years (0 = now). Income streams are taxable
-                  and fill your bands like other income; lump sums land in your pots (or ISA) in that year.
+                  and fill your bands like other income; lump sums land in your pots (or ISA) in that year;
+                  extra spends are drawn on top of your income shape in that year (gross, so taxed like income)
+                  and every strategy has to fund them — a gilt ladder buys a bigger rung for that year.
                 </p>
               </div>
             </div>
@@ -3698,6 +3701,7 @@
       stackedConesSvg,
       STRATEGY_COLORS,
       incomeSmallMultiplesSvg,
+      incomeLayersSvg, incomeLayersRows,
       riskBarsSvg,
       leftBarsSvg,
       incomeStaircaseSvg,
@@ -4362,6 +4366,7 @@
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(stressSettings.windfalls) ? JSON.parse(JSON.stringify(stressSettings.windfalls)) : [];
+        window._ssExtraWithdrawals = Array.isArray(stressSettings.extraWithdrawals) ? JSON.parse(JSON.stringify(stressSettings.extraWithdrawals)) : [];
         renderExtraIncomes();
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = stressSettings.spStartDate || '';
@@ -5508,6 +5513,7 @@
       const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
       h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
       if (r.samples && r.samples.wealth && r.samples.wealth.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">The same futures, one line each</div><p class="hint" style="margin:0 0 4px;">A sample of the bootstrapped futures the cone is made from — one line per possible life. Red lines ran out; the white line is the middle outcome.</p><div class="machine-scroll">' + spaghettiSvg(r.samples.wealth, r.cones.wealth.p50) + '</div></div>';
+      try { const rows = incomeLayersRows(r, p); if (rows.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">What pays you, year by year</div><p class="hint" style="margin:0 0 4px;">Stacked by source, today\'s money: State Pension, other income (DB pension, streams), income bought by contract, and what the median future adds from the market. Dashed = your need (income shape plus any one-off spends); red = the 1-in-10 bad future\'s total.</p><div class="machine-scroll">' + incomeLayersSvg({ rows }) + '</div></div>'; } catch (e) { console.warn('income layers', e); }
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
       const fa = r.failAges || [];
       const faTxt = fa.length ? 'Of the futures that failed, half did so before age ' + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : 'No simulated future ran out.';
@@ -8203,9 +8209,21 @@
           + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa ? ' checked' : '') + ' onchange="updWindfall(' + i + ',\'toIsa\',this.checked)">to ISA</label>'
           + '<button type="button" class="risk-btn" title="Remove" onclick="rmWindfall(' + i + ')">✕</button></div>';
       });
+      (window._ssExtraWithdrawals || []).forEach((r, i) => {
+        html += '<div class="row-flex" style="margin-top:6px;">'
+          + '<input type="text" placeholder="e.g. New car" value="' + budEsc(r.label || '') + '" oninput="updExtraWithdrawal(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">spend £</span><input type="number" value="' + (r.amount ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'amount\',this.value)" style="width:100px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<span class="hint">for</span><input type="number" min="1" placeholder="1" value="' + (r.years ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'years\',this.value)" style="width:54px;"><span class="hint">yr(s)</span>'
+          + '<select onchange="updExtraWithdrawal(' + i + ',\'indexation\',this.value)" style="width:150px;"><option value="cpi"' + ((r.indexation || 'cpi') === 'cpi' ? ' selected' : '') + '>Today\'s money</option><option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Fixed £ (nominal)</option></select>'
+          + '<button type="button" class="risk-btn" title="Remove" onclick="rmExtraWithdrawal(' + i + ')">✕</button></div>';
+      });
       box.innerHTML = html || '<p class="hint" style="margin:4px 0 0;">None yet — everything comes from the pots, State Pension and DB above.</p>';
     };
     window.addExtraIncome = function () { (window._ssExtraIncomes = window._ssExtraIncomes || []).push({ indexation: 'lpi5' }); renderExtraIncomes(); };
+    window.addExtraWithdrawal = function () { (window._ssExtraWithdrawals = window._ssExtraWithdrawals || []).push({ indexation: 'cpi', years: 1 }); renderExtraIncomes(); };
+    window.updExtraWithdrawal = function (i, k, v) { if (window._ssExtraWithdrawals?.[i]) window._ssExtraWithdrawals[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
+    window.rmExtraWithdrawal = function (i) { window._ssExtraWithdrawals.splice(i, 1); renderExtraIncomes(); };
     window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
     window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
     window.rmExtraIncome = function (i) { window._ssExtraIncomes.splice(i, 1); renderExtraIncomes(); };
@@ -8714,6 +8732,7 @@
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
         window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
+        window._ssExtraWithdrawals = Array.isArray(s.extraWithdrawals) ? JSON.parse(JSON.stringify(s.extraWithdrawals)) : [];
         renderExtraIncomes();
         // State Pension (new fields)
         document.getElementById('ssSpStartDate').value = s.spStartDate || '';
@@ -8813,6 +8832,7 @@
           dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
           extraIncomes: (window._ssExtraIncomes || []).filter((r) => r.annual > 0),
           windfalls: (window._ssWindfalls || []).filter((r) => r.amount > 0 && r.year != null),
+          extraWithdrawals: (window._ssExtraWithdrawals || []).filter((r) => r.amount > 0 && r.year != null),
           // State Pension (new fields)
           spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,

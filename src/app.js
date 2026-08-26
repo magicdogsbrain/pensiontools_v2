@@ -25,6 +25,7 @@ import { planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlan
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy } from './strategies/stressTest.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
+import { incomeLayersSvg, incomeLayersRows } from './ui/incomeLayersGraphic.js';
 import { stackedConesSvg, STRATEGY_COLORS, incomeSmallMultiplesSvg, riskBarsSvg, leftBarsSvg } from './ui/comparisonGraphic.js';
 import { incomeStaircaseSvg, suggestSteps, amountAtAge as shapeAmountAtAge } from './ui/incomeShapeGraphic.js';
 import { ladderRatchetSvg, floorFlexSvg, floorScheduleSvg, potsValvesSvg, LR_FRAMES, FF_FRAMES, FS_FRAMES, PV_FRAMES } from './ui/strategyMachines.js';
@@ -414,6 +415,7 @@ export {
   stackedConesSvg,
   STRATEGY_COLORS,
   incomeSmallMultiplesSvg,
+  incomeLayersSvg, incomeLayersRows,
   riskBarsSvg,
   leftBarsSvg,
   incomeStaircaseSvg,

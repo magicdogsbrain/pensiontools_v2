@@ -390,6 +390,22 @@
       color: var(--bg);
     }
 
+    .strat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+    .strat-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 2px; }
+    .strat-nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 10px 8px 4px; }
+    .strat-nav-item { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: var(--radius, 8px); font-size: 13px; width: 100%; cursor: pointer; }
+    .strat-nav-item:hover { background: rgba(96,165,250,.08); }
+    .strat-nav-item.active { background: rgba(96,165,250,.14); border-color: rgba(96,165,250,.35); font-weight: 600; }
+    .strat-block { margin-top: 18px; }
+    .strat-block > .section-title { font-size: 15px; margin-bottom: 6px; }
+    .stepper { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .stepper .dots { display: flex; gap: 6px; }
+    .stepper .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 0; padding: 0; cursor: pointer; }
+    .stepper .dot.active { background: #60a5fa; }
+    .stepper p { margin: 0; font-size: 13px; flex: 1 1 320px; }
+    .sw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .sw-grid ul { margin: 6px 0 0 18px; padding: 0; font-size: 13px; }
+    @media (max-width: 760px) { .strat-layout { grid-template-columns: 1fr; } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; } }
     .tab-content {
       display: none;
     }
@@ -1994,7 +2010,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-Cs-y4wvJ.js"></script>
+  <script type="module" crossorigin src="./assets/main-Dyl324tq.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2060,6 +2076,7 @@
         <nav class="tabs">
           <button class="tab" data-tab="budget">Budget</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab" data-tab="strategies">Strategies</button>
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
           <button class="tab" data-tab="household">Household</button>
@@ -3313,6 +3330,24 @@
       </div>
 
       <!-- Budget Tab -->
+      <div id="strategies-content" class="tab-content">
+        <div class="strat-layout">
+          <nav class="strat-nav" id="stratNav" aria-label="Strategies">
+            <button type="button" class="strat-nav-item" data-page="overview" onclick="showStrategyPage('overview')">Overview</button>
+            <div class="strat-nav-group">Six ways to turn a pot into an income</div>
+            <button type="button" class="strat-nav-item" data-page="pots-and-valves" onclick="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
+            <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" onclick="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+            <button type="button" class="strat-nav-item" data-page="floor-and-flex" onclick="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
+            <button type="button" class="strat-nav-item" data-page="floor-the-schedule" onclick="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
+            <button type="button" class="strat-nav-item" data-page="floor-to-age" onclick="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
+            <button type="button" class="strat-nav-item" data-page="full-il-gilt" onclick="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
+            <div class="strat-nav-group">Background</div>
+            <button type="button" class="strat-nav-item" data-page="gilts" onclick="showStrategyPage('gilts')">Gilt ladders explained</button>
+          </nav>
+          <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
       <div id="accumulation-content" class="tab-content">
         <div class="card">
           <h2>Accumulation Planner <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— am I saving enough?</span></h2>

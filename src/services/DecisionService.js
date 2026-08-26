@@ -42,6 +42,9 @@ export async function saveDecision(decision) {
   // Save the history record (this will overwrite if same date exists)
   await addHistoryRecord(historyRecord);
 
+  // The first record locks the plan (settings are now depended on). Never on Save.
+  try { await lockPlanIfNeeded('first monthly entry'); } catch (e) { console.warn('Auto-lock failed (non-fatal):', e); }
+
   // Recalculate ISA/Savings usage from all history records for this tax year
   // This ensures accuracy whether it's a new record or an overwrite
   if (decision.taxYear) {

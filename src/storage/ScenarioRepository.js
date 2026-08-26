@@ -405,7 +405,7 @@ export async function switchScenario(scenarioId) {
  * @param {string} newName - Name for the copy
  * @returns {Promise<string>} New scenario ID
  */
-export async function duplicateScenario(scenarioId, newName) {
+export async function duplicateScenario(scenarioId, newName, { carryHistory = true } = {}) {
   if (!isFirebaseAvailable()) {
     throw new Error('Must be logged in to duplicate scenarios');
   }
@@ -418,6 +418,16 @@ export async function duplicateScenario(scenarioId, newName) {
   const { id, createdAt, lastModified, ...data } = source;
   data.planDetails = { ...data.planDetails, name: newName };
   data.isActive = false;
+  // A copy starts as a DRAFT: nothing has been recorded against the copy's settings yet, even if
+  // the history came along (it is kept for reference and shows as "under previous settings" once
+  // the settings diverge). The plan of record is rebuilt when the copy locks.
+  if (data.decisionTool) {
+    data.decisionTool = { ...data.decisionTool };
+    data.decisionTool.settings = { ...(data.decisionTool.settings || {}), locked: false };
+    delete data.decisionTool.settings.lockedAt; delete data.decisionTool.settings.lockedBy;
+    delete data.decisionTool.planOfRecord; delete data.decisionTool.planOfRecordArchive;
+    if (!carryHistory) data.decisionTool.history = [];
+  }
 
   const newId = await createScenario(data);
   invalidateScenarioCache();
@@ -617,7 +627,18 @@ export async function saveActivePlanOfRecord(planOfRecord) {
   }
 }
 
-/** Lock a strategy choice onto the active plan (Phase E). Explicit act; never silent. */
+/** On unlock: move the current plan of record into a short archive (last 10) and clear it. */
+export async function archivePlanOfRecord() {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const por = scenario.decisionTool?.planOfRecord || null;
+  const archive = Array.isArray(scenario.decisionTool?.planOfRecordArchive) ? scenario.decisionTool.planOfRecordArchive.slice(-9) : [];
+  if (por) archive.push({ ...por, archivedAt: new Date().toISOString() });
+  await saveScenario(scenario.id, { 'decisionTool.planOfRecordArchive': archive, 'decisionTool.planOfRecord': null });
+  if (cachedActiveScenario && cachedActiveScenario.decisionTool) { cachedActiveScenario.decisionTool.planOfRecordArchive = archive; cachedActiveScenario.decisionTool.planOfRecord = null; }
+}
+
+/** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) throw new Error('No active scenario');

@@ -3681,6 +3681,7 @@
       cannedDecade,
       stressTestStrategy,
       requiredPotForStrategy,
+      planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
       stressTestAll,
       planFromSettings,
       STRATEGY_NAMES,
@@ -4580,7 +4581,7 @@
       chip.textContent = locked ? '🔒 locked' : '✏️ draft';
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
-        : 'This plan’s settings are still editable. Saving the Decision settings commits (locks) the plan. Click for details.';
+        : 'This plan’s settings are still editable. It locks itself when you record the first monthly entry or set up a tax year. Click for details.';
       chip.style.cursor = 'pointer';
       chip.onclick = (e) => { e.stopPropagation(); explainPlanLock(locked); };
     }
@@ -4596,11 +4597,11 @@
         '<div style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:560px; width:100%; padding:26px; font-size:15px; line-height:1.6;">' +
           '<h2 style="margin-bottom:12px;">Plans — and why they lock 🔒</h2>' +
           '<p style="margin-bottom:10px; color:var(--text-muted);">A <strong style="color:var(--text);">plan</strong> is a named scenario: its settings (pots, spending target, State Pension, rules) plus everything you record against them — monthly decisions and tax years. You can keep several plans and switch or duplicate them from this dropdown.</p>' +
-          '<p style="margin-bottom:10px; color:var(--text-muted);">When you save a plan’s Decision settings, the plan <strong style="color:var(--text);">locks</strong>: the settings freeze so your recorded history stays meaningful — a decision saved under one set of rules shouldn’t be silently re-judged under another.</p>' +
+          '<p style="margin-bottom:10px; color:var(--text-muted);">When you record the first monthly entry or set up a tax year, the plan <strong style="color:var(--text);">locks</strong>: the settings freeze so your recorded history stays meaningful — a decision saved under one set of rules shouldn’t be silently re-judged under another.</p>' +
           '<ul style="margin:0 0 12px 18px; color:var(--text-muted);">' +
-            '<li><strong style="color:var(--text);">✏️ draft</strong> — settings still editable; nothing committed yet.</li>' +
-            '<li><strong style="color:var(--text);">🔒 locked, nothing recorded</strong> — you can unlock and edit freely.</li>' +
-            '<li><strong style="color:var(--text);">🔒 locked with history</strong> — settings can’t change; duplicate into a new plan instead.</li>' +
+            '<li><strong style="color:var(--text);">✏️ draft</strong> — settings editable; nothing recorded against them yet.</li>' +
+            '<li><strong style="color:var(--text);">🔒 locked</strong> — entries or tax years are recorded against these settings. You can still unlock: you are shown exactly what that does to your record first.</li>' +
+            '<li><strong style="color:var(--text);">Strategy</strong> is not a lock — switch it any time in Stress Settings or the Strategies tab.</li>' +
           '</ul>' +
           '<p style="margin-bottom:16px; color:var(--text-muted);">The Budget and the Stress Tester are never locked — the budget autosaves like a document, and Stress is a sandbox for what-ifs.</p>' +
           '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
@@ -4814,7 +4815,9 @@
       if (!name || !name.trim()) return;
 
       try {
-        await duplicateScenario(active.id, name.trim());
+        let carry = true;
+        try { if (await planHasRecords()) carry = await appConfirm('Copy the recorded history (monthly entries) into the new plan as well?\n\nEither way the copy starts as an editable draft.', { okLabel: 'Copy with history', cancelLabel: 'Settings only' }); } catch (e) { /* default: carry */ }
+        await duplicateScenario(active.id, name.trim(), { carryHistory: carry });
         await renderScenarioSelector();
       } catch (error) {
         console.error('Error duplicating scenario:', error);
@@ -4951,7 +4954,9 @@
                   });
                   invalidateStressCache();
                 }
-                if (newTools.includes('decision')) {
+                if (newTools.includes('decision') && (await planIsLocked())) {
+                  showToast('Decision settings left unchanged — this plan is locked (entries are recorded against it). Unlock it in Decision → Settings to change them.', 'warning', 5000);
+                } else if (newTools.includes('decision')) {
                   await saveDecisionSettings({
                     equityMin: wizardData.decisionEquity,
                     bondMin: wizardData.decisionBond,
@@ -7710,7 +7715,7 @@
         ['optimiseBtnMC', 'optimiseBtnHist'].forEach((id) => { const b = document.getElementById(id); if (b) b.style.display = isPnv ? '' : 'none'; });
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
-          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
+          el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
           el.style.display = 'block';
         } else {
           el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. Six strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
@@ -10384,7 +10389,7 @@
         return !!(s && s.locked);
       } catch (e) {
         console.warn('Could not read decision settings for lock state:', e);
-        return false;   // fail open — never trap the user out of a plan
+        return true;    // fail closed — unlock is always offered, so this never traps the user
       }
     }
 
@@ -10436,20 +10441,14 @@
       }
 
       // Locked: freeze the form, show the notice, and turn Save into a greyed "Locked" pill.
-      _dsCanUnlock = !(await planHasDataDependentOnSettings());
+      _dsCanUnlock = true;
+      let dep = null; try { dep = await planDependents(); } catch (e) { /* facts unavailable */ }
       banner.style.display = 'flex';
       banner.className = 'lock-banner';
-      if (_dsCanUnlock) {
-        banner.innerHTML =
-          '<span>🔒 <strong>These settings are locked.</strong> Nothing has been recorded against them ' +
-          'yet — no tax years, no monthly entries — so you can unlock and edit them.</span>' +
-          '<button type="button" onclick="unlockDecisionSettings()">Unlock to edit</button>';
-      } else {
-        banner.innerHTML =
-          '<span>🔒 <strong>These settings are locked.</strong> Tax years or monthly entries have been ' +
-          'recorded against them, so they can’t be changed. To use different settings, create a new plan.</span>' +
-          '<button type="button" onclick="createNewPlanForSettings()">Create new plan</button>';
-      }
+      const what = dep ? [dep.entriesUnderCurrent ? dep.entriesUnderCurrent + ' monthly entr' + (dep.entriesUnderCurrent === 1 ? 'y' : 'ies') : '', dep.taxYearsSetUp.length ? dep.taxYearsSetUp.length + ' tax year' + (dep.taxYearsSetUp.length === 1 ? '' : 's') : ''].filter(Boolean).join(' and ') : '';
+      banner.innerHTML =
+        '<span>🔒 <strong>These settings are locked</strong> because ' + (what ? what + ' were recorded against them' : 'entries have been recorded against them') + '. You can unlock and edit — the consequences are explained first.</span>' +
+        '<button type="button" onclick="unlockDecisionSettings()">Unlock to edit…</button>';
       setDecisionSettingsEnabled(false);
       saveBtn.textContent = '🔒 Locked';
       saveBtn.classList.add('btn-locked');
@@ -10459,16 +10458,23 @@
     // Unlock the plan for editing — allowed only while nothing depends on the settings (re-checked here
     // to guard against a stale banner). Clears settings.locked and reloads the form editable.
     window.unlockDecisionSettings = async function() {
-      if (await planHasDataDependentOnSettings()) {
-        showToast('Can’t unlock — tax years or entries now depend on these settings. Create a new plan.', 'warning');
-        await refreshDecisionLock();
-        return;
-      }
+      let dep;
+      try { dep = await planDependents(); } catch (e) { showToast('Could not read the plan: ' + e.message, 'error'); return; }
+      const fmtM = (d) => { if (!d) return ''; const [y, m] = d.split('-').map(Number); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1] + ' ' + y; };
+      const li = [];
+      if (dep.entriesUnderCurrent) li.push('<li><strong>' + dep.entriesUnderCurrent + ' monthly entr' + (dep.entriesUnderCurrent === 1 ? 'y' : 'ies') + '</strong> (' + fmtM(dep.firstDate) + (dep.lastDate !== dep.firstDate ? ' – ' + fmtM(dep.lastDate) : '') + ') were computed against these settings. They are <strong>kept</strong>, but once you save different settings they will show in History as <em>recorded under previous settings</em> — their recommendations will not match the new plan.</li>');
+      if (dep.taxYearsSetUp.length) li.push('<li><strong>Tax year' + (dep.taxYearsSetUp.length === 1 ? ' ' : 's ') + dep.taxYearsSetUp.join(', ') + '</strong> ' + (dep.taxYearsSetUp.length === 1 ? 'was' : 'were') + ' set up with this plan\'s spending figure. They stay as they are; if you change the spending target or State Pension, re-run <em>Set up tax year</em> so the monthly expectations match.</li>');
+      li.push('<li><strong>Plan vs actual</strong> restarts: the projection frozen ' + (dep.planOfRecordAt ? 'on ' + new Date(dep.planOfRecordAt).toLocaleDateString('en-GB') : 'at lock time') + ' is archived, and a new one is frozen when you next save. Months before that are no longer measured against the old yardstick.</li>');
+      if (dep.entriesUnderPrevious) li.push('<li>' + dep.entriesUnderPrevious + ' older entr' + (dep.entriesUnderPrevious === 1 ? 'y is' : 'ies are') + ' already marked as recorded under previous settings (this plan has been unlocked before).</li>');
+      li.push('<li><strong>Not affected:</strong> your Budget, Stress-Tester settings, the chosen strategy, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
+      li.push('<li>The plan locks itself again the moment a new entry is recorded. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
+      const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Unlock this plan?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>' }, { okLabel: 'Unlock — I understand', cancelLabel: 'Keep locked', danger: true });
+      if (!ok) return;
       showLoading('Unlocking…');
       try {
-        await saveDecisionSettings({ locked: false });
+        await unlockPlan();
         await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
-        showToast('Settings unlocked — you can edit them now.', 'success');
+        showToast('Plan unlocked — edit and save. It re-locks on the next recorded entry.', 'success', 4000);
       } catch (e) {
         console.error('Unlock error:', e);
         showToast('Could not unlock: ' + e.message, 'error');
@@ -10492,9 +10498,7 @@
 
       // Locked plan: the Save button is a "Locked" pill — clicking it just explains the lock.
       if (_dsLocked || await planIsLocked()) {
-        showToast(_dsCanUnlock
-          ? 'These settings are locked. Use “Unlock to edit” above to change them.'
-          : 'These settings are locked. Define a new plan to use different settings.', 'info');
+        showToast('These settings are locked. Use “Unlock to edit…” above to change them.', 'info');
         return;
       }
 
@@ -10543,29 +10547,16 @@
           glideEndgame: dsAlloc.glideEndgame || null,   // tent endgame for a tagged plan
           allocMode: allocMode('ds'),                   // 'risk' or 'funds'
           taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0),
-          // Saving IS committing the plan definition → lock it. New settings need a new plan.
-          locked: true
+          // Saving does NOT lock. The first recorded entry / set-up tax year locks the plan; a plan
+          // that already has records re-locks on save (its yardstick is rebuilt below).
+          locked: await planHasRecords()
         });
-        // Plan of record: freeze the projection this lock implies — the yardstick history is
-        // measured against. Deterministic, at the decision-side assumed CPI (4% for unentered
-        // years — slightly pessimistic by design). Recomputed on every save-and-lock.
-        try {
-          const locked = await getDecisionSettingsAsync();
-          const assumedCpi = 0.04;
-          await saveActivePlanOfRecord({
-            savedAt: new Date().toISOString(),
-            engineVersion: ENGINE_VERSION,
-            assumedCpi,
-            baseSalary: locked.baseSalary,
-            drawdown: generateDrawdownSchedule({ ...locked, taxMode: locked.taxMode || 'inflates', pa: locked.pa || 12570, brl: locked.brl || 50270, hrl: locked.hrl || 125140 }, locked.duration || 35, assumedCpi)
-              .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
-            glidepath: generateGlidepathSchedule(locked, assumedCpi)
-              .map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
-          });
-        } catch (e) { console.warn('Plan-of-record snapshot failed (non-fatal):', e); }
+        // Plan of record: the projection these settings imply — rebuilt on every save (archived on unlock).
+        try { await saveActivePlanOfRecord(await buildPlanOfRecord(await getDecisionSettingsAsync())); }
+        catch (e) { console.warn('Plan-of-record snapshot failed (non-fatal):', e); }
         updateSetupBanners();
         updateNextStepBanner();
-        showToast('Settings saved and locked. Create a new plan to use different settings.', 'success', 4000);
+        showToast((await planIsLocked()) ? 'Settings saved. The plan is locked again because entries are recorded against it.' : 'Settings saved. The plan stays a draft until you record a monthly entry or set up a tax year.', 'success', 4000);
         // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).
         await refreshDecisionLock();
       } catch (error) {
@@ -10611,7 +10602,7 @@
         const p = strategyPlanFor(settings);
         const r = stressTestStrategy(st.id, p);
         const d = getStrategy(st.id).describe();
-        let h = '<div class="alert alert-info">This plan is locked to <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
+        let h = '<div class="alert alert-info">This plan\'s strategy is <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
         if (r.affordable) {
           const inc = r.cones.income, w = r.cones.wealth;
           h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Age</th><th>Income (middle)</th><th>Income (1-in-10 bad)</th><th>What is left (middle)</th></tr></thead><tbody>';
@@ -10837,6 +10828,7 @@
         const classes = ['history-tab'];
         if (isActive) classes.push('active');
         if (h.inProtection) classes.push('protection');
+        const stale = window._histStale && window._histStale.has(h.date);
 
         // Format date for display - just month if year filter is active
         const [year, month] = h.date.split('-').map(Number);
@@ -10845,7 +10837,7 @@
           ? `${monthNames[month - 1]} ${year}`
           : monthNames[month - 1];
 
-        tabsHtml += `<button class="${classes.join(' ')}" onclick="selectHistoryEntry('${h.date}')">${dateLabel}</button>`;
+        tabsHtml += `<button class="${classes.join(' ')}"${stale ? ' title="Recorded under previous settings" style="opacity:.65;"' : ''} onclick="selectHistoryEntry('${h.date}')">${stale ? '◌ ' : ''}${dateLabel}</button>`;
       });
 
       tabsContainer.innerHTML = tabsHtml;

@@ -9154,7 +9154,7 @@
     // Who-pays selector, shown per row only when partner sharing is on. Shared rows get an optional
     // per-line "my %" override (blank = the budget-wide split).
     function paidBySelectHtml(item, fn) {
-      const current = (item.paidBy || 'me');
+      const current = (item.paidBy || (window._budget && window._budget.sharedWithPartner ? 'shared' : 'me'));
       const opt = (v, l) => '<option value="' + v + '"' + (current === v ? ' selected' : '') + '>' + l + '</option>';
       const globalPct = window._budget.mySharePct ?? 50;
       const pct = current === 'shared'
@@ -9493,7 +9493,7 @@
       const recurring = b.oneOffs.filter((o) => (+o.everyYears || 0) > 0 && (+o.amount || 0) > 0);
       const singles = b.oneOffs.filter((o) => !((+o.everyYears || 0) > 0) && (+o.amount || 0) > 0);
 
-      const plsa = PLSA_2024.single;
+      const plsa = (window._budget && window._budget.sharedWithPartner) ? PLSA_2024.couple : PLSA_2024.single;
       const allIn = s.allInComfortableAnnual;
       const tier = allIn >= plsa.comfortable ? 'at/above Comfortable' : allIn >= plsa.moderate ? 'between Moderate and Comfortable' : allIn >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
 
@@ -9517,7 +9517,7 @@
       html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">= comfortable recurring <strong style="color:var(--text);">' + money(s.comfortableMonthlyNet) + '/mo</strong>' +
         (s.periodicMonthlyAverage > 0 ? ' + periodic set-aside <strong style="color:var(--text);">' + money(s.periodicMonthlyAverage) + '/mo</strong> <span>(averaged from the big periodic costs below)</span>' : '') + '.</div>';
 
-      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your all-in spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
+      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (' + (window._budget && window._budget.sharedWithPartner ? 'couple' : 'single') + ', 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your all-in spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
 
       // Periodic (recurring) one-offs, shown with their averaged cost
       if (recurring.length) {
@@ -10242,7 +10242,7 @@
       }
       if (step === 'review') {
         const s = summariseBudget(window._budget);
-        const plsa = PLSA_2024.single;
+        const plsa = (window._budget && window._budget.sharedWithPartner) ? PLSA_2024.couple : PLSA_2024.single;
         const allIn = s.allInComfortableAnnual;
         const tier = allIn >= plsa.comfortable ? 'at or above <strong>Comfortable</strong>' : allIn >= plsa.moderate ? 'between <strong>Moderate</strong> and <strong>Comfortable</strong>' : allIn >= plsa.minimum ? 'between <strong>Minimum</strong> and <strong>Moderate</strong>' : 'below the <strong>Minimum</strong>';
         let h = '<h2 style="margin-bottom:10px;">Your spending picture</h2>' +
@@ -10253,7 +10253,7 @@
           h += '<div><div style="font-size:12px;color:var(--text-muted);">Partner’s share</div><div style="font-size:24px;font-weight:700;">' + gbp(s.partnerAllInMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">their side — they can plan with this</div></div>';
         }
         h += '</div>';
-        h += '<div class="alert alert-info" style="margin-bottom:14px;"><strong>vs PLSA (single, 2024):</strong> Minimum ' + gbp(plsa.minimum) + ' · Moderate ' + gbp(plsa.moderate) + ' · Comfortable ' + gbp(plsa.comfortable) + ' per year — you’re ' + tier + '. <span style="color:var(--text-muted);">(Home owned outright; excludes care costs.)</span></div>';
+        h += '<div class="alert alert-info" style="margin-bottom:14px;"><strong>vs PLSA (' + (window._budget && window._budget.sharedWithPartner ? 'couple' : 'single') + ', 2024):</strong> Minimum ' + gbp(plsa.minimum) + ' · Moderate ' + gbp(plsa.moderate) + ' · Comfortable ' + gbp(plsa.comfortable) + ' per year — you’re ' + tier + '. <span style="color:var(--text-muted);">(Home owned outright; excludes care costs.)</span></div>';
         const missed = missingSuggestions(window._budget).slice(0, 8);
         if (missed.length) {
           h += '<div style="margin-bottom:14px;"><div style="font-size:13px; margin-bottom:6px;"><strong>Did you miss anything?</strong> Tap to add, then find it on its category screen:</div><div style="display:flex; flex-wrap:wrap; gap:6px;">' +

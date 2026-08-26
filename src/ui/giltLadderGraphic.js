@@ -90,14 +90,14 @@ export function inflationDecadesSvg({ years, cpiPaths }, o = {}) {
   const maxV = Math.max(...series.flat(), 1);
   const x = (i) => padL + (i / (n - 1)) * (W - padL - padR);
   const yOf = (v) => (H - padB) - (v / maxV) * (H - padT - padB);
-  const colors = ['#f97316', '#60a5fa', '#a78bfa'];
+  const colors = ['#f97316', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#facc15'];
   let s = '';
   for (const t of [0, 0.25, 0.5, 0.75, 1].map((f) => f * maxV)) s += `<line x1="${padL}" y1="${yOf(t).toFixed(1)}" x2="${W - padR}" y2="${yOf(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".5"/><text x="${padL - 6}" y="${(yOf(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${gbpK(t)}</text>`;
   s += `<polyline points="${years.map((y, i) => x(i).toFixed(1) + ',' + yOf(y.gross).toFixed(1)).join(' ')}" fill="none" stroke="var(--text,#eee)" stroke-width="2" stroke-dasharray="4 3"/>`;
   series.forEach((ser, k) => { s += `<polyline points="${ser.map((v, i) => x(i).toFixed(1) + ',' + yOf(v).toFixed(1)).join(' ')}" fill="none" stroke="${colors[k]}" stroke-width="2.5"/>`; });
   let lx = padL;
-  for (const [c, t] of [['var(--text,#eee)', 'in today\'s money (both decades)'], ...labels.map((l, k) => [colors[k], l])]) { s += `<line x1="${lx}" y1="${H - 8}" x2="${lx + 14}" y2="${H - 8}" stroke="${c}" stroke-width="2.5"/><text x="${lx + 18}" y="${H - 4}" font-size="10" fill="var(--text-muted,#999)">${esc(t)}</text>`; lx += 24 + t.length * 5.6 + 14; }
+  for (const [c, t] of [['var(--text,#eee)', labels.length === 2 ? 'in today\'s money (both decades)' : 'in today\'s money'], ...labels.map((l, k) => [colors[k], l])]) { s += `<line x1="${lx}" y1="${H - 8}" x2="${lx + 14}" y2="${H - 8}" stroke="${c}" stroke-width="2.5"/><text x="${lx + 18}" y="${H - 4}" font-size="10" fill="var(--text-muted,#999)">${esc(t)}</text>`; lx += 24 + t.length * 5.6 + 14; }
   years.forEach((y, i) => { if (i % 5 === 0 || i === n - 1) s += `<text x="${x(i).toFixed(1)}" y="${H - padB + 12}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">${y.Y}</text>`; });
-  s += `<text x="${padL}" y="18" font-size="13" font-weight="600" fill="var(--text,#eee)">What the ladder pays in cash under two real inflation decades — same purchasing power in both</text>`;
+  s += `<text x="${padL}" y="18" font-size="13" font-weight="600" fill="var(--text,#eee)">${esc(o.title || (labels.length === 2 ? 'What the ladder pays in cash under two real inflation decades — same purchasing power in both' : 'What the ladder pays in cash under ' + labels.length + ' inflation paths — same purchasing power in every one'))}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img">${s}</svg>`;
 }

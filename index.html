@@ -4012,6 +4012,8 @@
         if (input.dataset.formatted) return;
         // Budget tab + wizard use dynamic flex rows; the overlay wrapper would disrupt their layout.
         if (input.closest('#budget-content') || input.closest('#budWizardOverlay') || input.closest('#adminPanelOverlay')) return;
+        // Hidden templates get cloned later; a cloned overlay has no listeners and freezes. Format the clone, not the source.
+        if (input.closest('#giltExplainerSource')) return;
         input.dataset.formatted = 'true';
 
         // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
@@ -7666,7 +7668,7 @@
       await new Promise((r) => setTimeout(r, 20));
       try {
         if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
-        else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltExplainerSource')?.firstElementChild; if (src) document.getElementById('glxHost').appendChild(src.cloneNode(true)); renderGiltLadderExplainer(); }
+        else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltExplainerSource')?.firstElementChild; if (src) { const c = src.cloneNode(true); c.querySelectorAll('.number-format-overlay').forEach((o) => o.remove()); c.querySelectorAll('input[type="number"]').forEach((i) => { delete i.dataset.formatted; i.style.color = ''; }); document.getElementById('glxHost').appendChild(c); } renderGiltLadderExplainer(); }
         else if (id === 'full-il-gilt') box.innerHTML = await fullGiltPageHtml();
         else if (id === 'floor-to-age') box.innerHTML = await floorToAgePageHtml();
         else if (STRATEGY_PAGES[id]) box.innerHTML = await specStrategyPageHtml(id);

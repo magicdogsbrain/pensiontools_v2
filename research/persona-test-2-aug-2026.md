@@ -29,3 +29,18 @@ Verified: unlock → edit → save → re-lock on Pat's plan; plan vs actual rec
 - Jo 27/28 verified: target 62,400 (×1.04) → tax 7,540 + 0.4×12,130 = 12,392 → net 50,008 → £4,167/mo ✓; SIPP £4,189 (BRL frozen) ✓; ISA top-up £607 ✓; tax £628/mo ✓; tax saved £404/mo = 4,852/12 ✓; ISA allocation 7,278 = 12×607 ✓; L&R overlay "rung pays £4,189" every month ✓.
 - Jo 28/29 verified: target 64,896 → net 51,506 → £4,292/mo ✓; ISA £731 ✓; saved £488 = 5,850/12 ✓. History: 24 entries, 0 protection ✓, year-0 actual = planned ✓.
 - [B34] FIXED: plan of record used taxMode 'inflates' (BRL × CPI) while the Decision tool draws to the wizard's FROZEN BRL → planned £4,357/£4,531 vs actual £4,189. Plan of record now defaults to frozen bands.
+
+# Persona 4 — "Kim", 61, couple (partner 59 retiring 63), retired, UFPLS, Floor-to-age 80, ISA hold, adventurous + bond tent, part-time £12k ×3y, declining profile
+- [B35] Couple budget: unmarked lines defaulted to paidBy 'me' → "Your share £3,039, Partner's share £0" — the whole household on one person. FIXED: default is Shared (split by the budget share %) when sharing is on.
+- [B36] Review compared a couple budget with "PLSA (single, 2024)" figures. FIXED: couple figures + label.
+- Kim Decision Sep 2026 (UFPLS) verified: G = (36,468 − 2,514)/0.85 = 39,946/yr → £3,329/mo ✓; taxable 0.75G; 7-month tax (17,477 − PA) × 20% = £981 → £140/mo ✓; overlay "rung pays £3,329" ✓.
+- [B37] FIXED: "Rebalancing Suggestions" (P&V bond-tent advice) still rendered under a contract-strategy overlay.
+- [B38] FIXED: tax-year wizard's "Other taxable income" ignored the Stress plan's income streams / DB pension (Kim's £12k part-time) — now pre-filled from them for that tax year (last year's confirmed figure still wins).
+- Kim 27/28 (UFPLS) verified: net target 37,827 → G = (37,827 − 2,514)/0.85 = 41,545 → £3,462/mo ✓; taxable 0.75G = 31,159 → tax 3,718 → £310/mo ✓; net £3,152 ✓; plan of record planned = actual (frozen bands) ✓; ISA hold untouched (planned ISA 154,500 = 150k × 1.03) ✓.
+- [B39] minor: History "planned tax/yr" for a partial first year is the full-year figure (£3,478) while "actual pace" annualises the partial-year tax (£1,682) — not comparable in year 0; show both on the same basis or label year 0 "partial".
+- [B40] UX: "Delete Entry" on an early month deletes it AND every later entry in that tax year (7 entries) — the confirm explains it, the button doesn't. Rename to "Delete this and later months in the year" when it will cascade.
+- Delete single (last) entry ✓; year filter ✓ (4 entries in 2026); Delete-year button appears only with a year selected ✓.
+- Duplicate "Copy with history" → copy is ✏️ draft with 11 entries + 2 tax years, no plan of record. [B41] minor: a copy that carries records should lock immediately (and build its plan of record) rather than sit as a draft until the next save; or the chip should say "draft — records copied".
+- Drawdown/Glidepath tabs show the non-P&V notice + the strategy's own schedule ✓; Historical tab runs the strategy ✓; Household refuses an unconfigured partner plan with a clear message ✓.
+- [B42] Accumulation for an already-retired plan (61 retiring 61) just says "Enter your ages to project" — should say the planner is for the years before retirement.
+- [B43] Household "Create their plan & switch to it" makes a partner plan with default budget ages 45/60 and sharing off, ignoring the partner's ages (59/63) captured in the plan wizard.

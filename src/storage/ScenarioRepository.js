@@ -429,6 +429,10 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
     delete data.decisionTool.settings.lockedAt; delete data.decisionTool.settings.lockedBy;
     delete data.decisionTool.planOfRecord; delete data.decisionTool.planOfRecordArchive;
     if (!carryHistory) data.decisionTool.history = [];
+    // A copy that carries records is depended on from the moment it exists — lock it (no plan of
+    // record yet; it is rebuilt on the copy's first save).
+    const hasRecords = (data.decisionTool.history || []).length > 0 || Object.values(data.decisionTool.taxYears || {}).some((t) => t && t.yearSetupComplete);
+    if (hasRecords) { data.decisionTool.settings.locked = true; data.decisionTool.settings.lockedAt = new Date().toISOString(); data.decisionTool.settings.lockedBy = 'copied with records'; }
   }
 
   const newId = await createScenario(data);

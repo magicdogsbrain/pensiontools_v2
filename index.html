@@ -10953,7 +10953,7 @@
           const planMonthly = plan.sippDraw / 12;
           const drawDelta = actAvgSipp - planMonthly;
           const fmtD = (d) => (d >= 0 ? '+' : '−') + gbp(Math.round(Math.abs(d)));
-          rows += '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo)</span></td>'
+          rows += '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo' + (y === 0 && recs.length < 12 ? ' — partial year: planned figures are for a full year' : '') + ')</span></td>'
             + '<td>' + gbp(Math.round(planMonthly)) + '/mo</td>'
             + '<td>' + gbp(Math.round(actAvgSipp)) + '/mo <span class="hint">(' + fmtD(drawDelta) + ')</span></td>'
             + '<td>' + gbp(Math.round(plan.tax)) + '</td>'
@@ -11359,7 +11359,7 @@
 
         <!-- Actions -->
         <div class="history-actions">
-          <button class="btn secondary" onclick="deleteHistoryEntry('${h.date}')">Delete Entry</button>
+          <button class="btn secondary" onclick="deleteHistoryEntry('${h.date}')">${(allHistoryData || []).some((x) => x.taxYear === h.taxYear && x.date > h.date) ? 'Delete this & later months in ' + h.taxYear : 'Delete Entry'}</button>
         </div>
       `;
 

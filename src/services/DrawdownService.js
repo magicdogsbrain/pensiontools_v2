@@ -13,7 +13,7 @@ import { calculateTax, grossToNet, calculateBRLHeadroom } from './TaxCalculator.
 import { getRemainingTaxYearMonths } from '../utils/DateUtils.js';
 import { cappedInflation as calculateCappedInflation, OTHER_INCOME_CAP } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
-import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
+import { spSimConfigFromSettings, spTaxYearConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 
 /**
@@ -36,7 +36,8 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
 
   // Same SP derivation as the Monte-Carlo config (shared helper): date-based when a real SP
   // date is set, legacy statePension/statePensionYear fields otherwise.
-  const spCfg = spSimConfigFromSettings(settings);
+  // Tax-year indexed: the Decision tool's plan years are tax years (see spTaxYearConfigFromSettings).
+  const spCfg = spTaxYearConfigFromSettings(settings);
   const spStartYear = spCfg ? spCfg.spStartYear : (settings.statePensionYear ?? Infinity);
   const spAnnualBase = spCfg ? spCfg.spWeeklyAmount * 52 : (settings.statePension || 0);
   const spFirstYearRatio = spCfg ? spCfg.spFirstYearRatio : 1;

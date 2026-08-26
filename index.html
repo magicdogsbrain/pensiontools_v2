@@ -7692,6 +7692,7 @@
       if (window._ssStrategy === 'floor-to-age') return { ...saved, ...mini(), floorToAge: +document.getElementById('miniFloorToAge')?.value || saved.floorToAge || 80 };
       if (window._ssStrategy === 'ladder-and-ratchet') {
         return {
+          ...saved,
           ladderYears: +document.getElementById('lrLadderYears').value || 15,
           drawAnnual: +document.getElementById('lrDraw').value || 0,
           triggerMode: document.getElementById('lrTriggerMode').value,
@@ -7702,6 +7703,7 @@
       }
       if (window._ssStrategy === 'floor-and-flex') {
         return {
+          ...saved,
           essentialsAnnual: +document.getElementById('ffEssentials').value || 0,
           horizonAge: +document.getElementById('ffHorizon').value || 92,
           sleeveRate: (+document.getElementById('ffRate').value || 4) / 100,
@@ -7710,7 +7712,9 @@
           isaTotal: +document.getElementById('stratIsaFf').value || 0
         };
       }
-      return {};
+      // Pots & Valves has no dials, but the saved params still carry values other strategies use
+      // (e.g. essentialsAnnual from the Budget hand-off) — keep them, do not wipe them on Save.
+      return { ...saved };
     }
 
     window.applyStrategyToUI = function (id, params) {

@@ -18,6 +18,10 @@ describe('Decision panel with a contract-strategy overlay', () => {
     expect(html).toContain('£1,833');
     expect(html).toContain('from the invested sleeve');
   });
+  it('the total shown is the engine\'s partial-year-aware figure, not a 12× estimate', () => {
+    const html = buildDecisionHTML({ ...base, sippDraw: 3333, other: 0, statePension: 0, monthlyTax: 308, totalMonthlyNet: 3025 });
+    expect(html).toContain('£3,025');
+  });
   it('pots & valves (no overlay) is unchanged', () => {
     const html = buildDecisionHTML(base);
     expect(html).toContain('Withdraw From');

@@ -21,6 +21,115 @@ export function renderDecisionPanel(decision, container) {
  * @param {object} decision - Decision object
  * @returns {string} HTML string
  */
+function buildTaxSummary(d) {
+  const details = d.calculationDetails || {};
+  let html = '';
+  // Tax information - enhanced with monthly, YTD, and projected
+  html += '<div class="tax-info">';
+  html += '<h4>Tax Summary</h4>';
+
+  // Tax thresholds row
+  html += '<div class="tax-thresholds">';
+  html += `<div class="tax-threshold-item"><span class="label">PA:</span><span>${formatCurrency(d.pa)}</span></div>`;
+  html += `<div class="tax-threshold-item"><span class="label">BRL:</span><span>${formatCurrency(d.brl)}</span></div>`;
+  if (details.taxInfo) {
+    html += `<div class="tax-threshold-item"><span class="label">Headroom:</span><span class="${details.taxInfo.headroomToBRL > 0 ? 'success' : 'warning'}">${formatCurrency(details.taxInfo.headroomToBRL)}</span></div>`;
+  }
+  html += '</div>';
+
+  // Tax comparison table (Monthly | YTD | Projected)
+  html += '<div class="tax-comparison">';
+  html += '<div class="tax-comparison-header">';
+  html += '<div></div><div>Monthly</div><div>YTD</div><div>Projected</div>';
+  html += '</div>';
+
+  // Tax paid row
+  const monthlyTax = details.taxInfo?.monthlyTax || (annualTax / 12);
+  const ytdTax = d.taxPaidYTD || monthlyTax;
+  const projectedTax = d.taxProjectedAnnual || details.taxInfo?.annualTax || annualTax;
+
+  html += '<div class="tax-comparison-row">';
+  html += '<div class="label">Tax Paid</div>';
+  html += `<div>${formatCurrency(monthlyTax)}</div>`;
+  html += `<div>${formatCurrency(ytdTax)}</div>`;
+  html += `<div>${formatCurrency(projectedTax)}</div>`;
+  html += '</div>';
+
+  // Tax saved row (if tax-efficient)
+  if (isTaxEfficientYear || details.taxInfo?.taxSavedAnnual > 0) {
+    const monthlySaved = d.taxSavedMonthly || details.taxInfo?.taxSavedMonthly || 0;
+    const ytdSaved = d.taxSavedYTD || monthlySaved;
+    const projectedSaved = d.taxSavedProjectedAnnual || details.taxInfo?.taxSavedAnnual || 0;
+
+    if (projectedSaved > 0) {
+      html += '<div class="tax-comparison-row saved">';
+      html += '<div class="label">Tax Saved</div>';
+      html += `<div class="success">-${formatCurrency(monthlySaved)}</div>`;
+      html += `<div class="success">-${formatCurrency(ytdSaved)}</div>`;
+      html += `<div class="success">-${formatCurrency(projectedSaved)}</div>`;
+      html += '</div>';
+    }
+  }
+
+  html += '</div>'; // End tax-comparison
+
+  // Effective tax rate
+  if (details.taxInfo && typeof details.taxInfo.effectiveRate === 'number' && !isNaN(details.taxInfo.effectiveRate)) {
+    const effectiveRate = details.taxInfo.effectiveRate * 100;
+    html += `<div class="effective-rate">
+      <span>Effective Tax Rate:</span>
+      <span class="${effectiveRate <= 20 ? 'success' : effectiveRate <= 40 ? 'warning' : 'danger'}">${effectiveRate.toFixed(1)}%</span>
+    </div>`;
+  } else if (details.taxInfo && details.taxInfo.annualTaxable > 0 && details.taxInfo.annualTax >= 0) {
+    // Calculate from available data if effectiveRate is missing
+    const effectiveRate = (details.taxInfo.annualTax / details.taxInfo.annualTaxable) * 100;
+    html += `<div class="effective-rate">
+      <span>Effective Tax Rate:</span>
+      <span class="${effectiveRate <= 20 ? 'success' : effectiveRate <= 40 ? 'warning' : 'danger'}">${effectiveRate.toFixed(1)}%</span>
+    </div>`;
+  }
+
+  html += '</div>'; // End tax-info
+
+  // Rebalancing recommendations
+  if (d.rebalanceNeeded && d.rebalanceActions.length > 0) {
+    html += '<div class="rebalance-card">';
+    html += '<h4>Rebalancing Suggestions</h4>';
+    html += '<ul>';
+    for (const action of d.rebalanceActions) {
+      html += `<li>${action}</li>`;
+    }
+    html += '</ul>';
+    html += '</div>';
+  }
+
+  // Mode explanation
+  html += '<div class="mode-explanation">';
+  html += '<h4>Why This Recommendation?</h4>';
+  html += `<p>${details.reason || 'Standard calculation based on your settings.'}</p>`;
+
+  if (!details.hasSufficientIsa && details.isaNeededMonthly > 0) {
+    html += `<p class="isa-warning">To enable tax-efficient mode, you need ${formatCurrency(details.totalIsaNeeded)} in your ISA (${d.remainingMonths} months remaining in tax year).</p>`;
+  }
+  html += '</div>';
+
+  // Debug toggle (collapsed by default)
+  html += '<details class="debug-section">';
+  html += '<summary>Calculation Details</summary>';
+  html += '<pre>' + JSON.stringify(details, null, 2) + '</pre>';
+  html += '</details>';
+
+  return html;
+}
+
+function closeAfterSource(d) {
+  let html = '';
+  const alerts = (d.alerts || []).filter((a) => a.type !== 'low-cash' && a.type !== 'rebalance');
+  if (alerts.length) { html += '<div class="alerts">'; for (const a of alerts) html += `<div class="alert alert-${a.severity}">${a.message}</div>`; html += '</div>'; }
+  html += buildTaxSummary(d);
+  return html;
+}
+
 export function buildDecisionHTML(decision) {
   const d = decision;
   const details = d.calculationDetails || {};
@@ -183,6 +292,17 @@ export function buildDecisionHTML(decision) {
   html += '</div>'; // End recommendation-card
 
   // Withdrawal source
+  const ov = d.strategyOverlay;
+  if (ov && (ov.floorMonthly > 0 || ov.hidePots)) {
+    // A contract strategy: say where the money actually comes from and skip the P&V pot advice.
+    html += '<div class="source-card">';
+    html += `<h4>Where this month comes from — ${ov.name}</h4>`;
+    if (ov.floorMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.floorMonthly)}</strong> from ${ov.floorLabel} (already cash)</div>`;
+    if (ov.sleeveMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.sleeveMonthly)}</strong> from the invested sleeve</div>`;
+    html += `<p class="hint" style="margin-top:6px;">${ov.note} The tax above is unchanged — it is still a pension withdrawal.</p>`;
+    html += '</div>';
+    return html + closeAfterSource(d);
+  }
   html += '<div class="source-card">';
   html += '<h4>Withdraw From</h4>';
   html += `<div class="source-label ${d.source.toLowerCase().replace(/[^a-z]+/g, '-')}">${d.source}</div>`;
@@ -247,101 +367,7 @@ export function buildDecisionHTML(decision) {
 
   html += '</div>'; // End fund-status
 
-  // Tax information - enhanced with monthly, YTD, and projected
-  html += '<div class="tax-info">';
-  html += '<h4>Tax Summary</h4>';
-
-  // Tax thresholds row
-  html += '<div class="tax-thresholds">';
-  html += `<div class="tax-threshold-item"><span class="label">PA:</span><span>${formatCurrency(d.pa)}</span></div>`;
-  html += `<div class="tax-threshold-item"><span class="label">BRL:</span><span>${formatCurrency(d.brl)}</span></div>`;
-  if (details.taxInfo) {
-    html += `<div class="tax-threshold-item"><span class="label">Headroom:</span><span class="${details.taxInfo.headroomToBRL > 0 ? 'success' : 'warning'}">${formatCurrency(details.taxInfo.headroomToBRL)}</span></div>`;
-  }
-  html += '</div>';
-
-  // Tax comparison table (Monthly | YTD | Projected)
-  html += '<div class="tax-comparison">';
-  html += '<div class="tax-comparison-header">';
-  html += '<div></div><div>Monthly</div><div>YTD</div><div>Projected</div>';
-  html += '</div>';
-
-  // Tax paid row
-  const monthlyTax = details.taxInfo?.monthlyTax || (annualTax / 12);
-  const ytdTax = d.taxPaidYTD || monthlyTax;
-  const projectedTax = d.taxProjectedAnnual || details.taxInfo?.annualTax || annualTax;
-
-  html += '<div class="tax-comparison-row">';
-  html += '<div class="label">Tax Paid</div>';
-  html += `<div>${formatCurrency(monthlyTax)}</div>`;
-  html += `<div>${formatCurrency(ytdTax)}</div>`;
-  html += `<div>${formatCurrency(projectedTax)}</div>`;
-  html += '</div>';
-
-  // Tax saved row (if tax-efficient)
-  if (isTaxEfficientYear || details.taxInfo?.taxSavedAnnual > 0) {
-    const monthlySaved = d.taxSavedMonthly || details.taxInfo?.taxSavedMonthly || 0;
-    const ytdSaved = d.taxSavedYTD || monthlySaved;
-    const projectedSaved = d.taxSavedProjectedAnnual || details.taxInfo?.taxSavedAnnual || 0;
-
-    if (projectedSaved > 0) {
-      html += '<div class="tax-comparison-row saved">';
-      html += '<div class="label">Tax Saved</div>';
-      html += `<div class="success">-${formatCurrency(monthlySaved)}</div>`;
-      html += `<div class="success">-${formatCurrency(ytdSaved)}</div>`;
-      html += `<div class="success">-${formatCurrency(projectedSaved)}</div>`;
-      html += '</div>';
-    }
-  }
-
-  html += '</div>'; // End tax-comparison
-
-  // Effective tax rate
-  if (details.taxInfo && typeof details.taxInfo.effectiveRate === 'number' && !isNaN(details.taxInfo.effectiveRate)) {
-    const effectiveRate = details.taxInfo.effectiveRate * 100;
-    html += `<div class="effective-rate">
-      <span>Effective Tax Rate:</span>
-      <span class="${effectiveRate <= 20 ? 'success' : effectiveRate <= 40 ? 'warning' : 'danger'}">${effectiveRate.toFixed(1)}%</span>
-    </div>`;
-  } else if (details.taxInfo && details.taxInfo.annualTaxable > 0 && details.taxInfo.annualTax >= 0) {
-    // Calculate from available data if effectiveRate is missing
-    const effectiveRate = (details.taxInfo.annualTax / details.taxInfo.annualTaxable) * 100;
-    html += `<div class="effective-rate">
-      <span>Effective Tax Rate:</span>
-      <span class="${effectiveRate <= 20 ? 'success' : effectiveRate <= 40 ? 'warning' : 'danger'}">${effectiveRate.toFixed(1)}%</span>
-    </div>`;
-  }
-
-  html += '</div>'; // End tax-info
-
-  // Rebalancing recommendations
-  if (d.rebalanceNeeded && d.rebalanceActions.length > 0) {
-    html += '<div class="rebalance-card">';
-    html += '<h4>Rebalancing Suggestions</h4>';
-    html += '<ul>';
-    for (const action of d.rebalanceActions) {
-      html += `<li>${action}</li>`;
-    }
-    html += '</ul>';
-    html += '</div>';
-  }
-
-  // Mode explanation
-  html += '<div class="mode-explanation">';
-  html += '<h4>Why This Recommendation?</h4>';
-  html += `<p>${details.reason || 'Standard calculation based on your settings.'}</p>`;
-
-  if (!details.hasSufficientIsa && details.isaNeededMonthly > 0) {
-    html += `<p class="isa-warning">To enable tax-efficient mode, you need ${formatCurrency(details.totalIsaNeeded)} in your ISA (${d.remainingMonths} months remaining in tax year).</p>`;
-  }
-  html += '</div>';
-
-  // Debug toggle (collapsed by default)
-  html += '<details class="debug-section">';
-  html += '<summary>Calculation Details</summary>';
-  html += '<pre>' + JSON.stringify(details, null, 2) + '</pre>';
-  html += '</details>';
-
+  html += buildTaxSummary(d);
   return html;
 }
 

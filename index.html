@@ -3782,7 +3782,7 @@
     import { seededRng } from './src/utils/MathUtils.js';
 
     // State Pension date validation (guards against entering a date of birth)
-    import { validateStatePensionDate } from './src/utils/StatePensionUtils.js';
+    import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
 
     // De-inlined decision engine (was inline calcDecisionPWA).
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
@@ -5264,7 +5264,7 @@
       const decisionSettings = settings.equityGlideEnabled
         ? { ...settings, equityGlide: tentGlideForSettings(settings) }
         : settings;
-      return calcDecisionPWA(dateStr, equity, bond, cash, {
+      const decision = await calcDecisionPWA(dateStr, equity, bond, cash, {
         settings: decisionSettings,
         history: await getHistoryAsync(),
         allTaxYears: await getAllTaxYearsAsync(),
@@ -5276,6 +5276,11 @@
         // growth in a downturn. 0/absent → 3-bucket advice, unchanged.
         diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0
       });
+      // Strategy overlay: a contract strategy pays part (or all) of the month from a matured rung /
+      // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
+      // withdrawal); what changes is WHERE it comes from and whether the P&V pot advice applies.
+      try { decision.strategyOverlay = await decisionStrategyOverlay(decision, dateStr); } catch (e) { console.warn('strategy overlay', e); }
+      return decision;
     }
 
     // Decision form handler
@@ -7402,6 +7407,27 @@
     // When the plan's locked strategy is Ladder & Ratchet or Floor & Flex, the monthly question
     // isn't "which pot pays" — it's "the rung pays; is the sleeve above its line, and should a
     // boom lock more on?" This panel answers THAT, from the same trigger maths the sims run.
+    async function decisionStrategyOverlay(decision, dateStr) {
+      const st = await getActiveStrategy();
+      if (!st.id || st.id === 'pots-and-valves') return null;
+      const settings = await getStressSettingsAsync();
+      const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
+      const startAge = +settings.shapeAgeNow || 57;
+      const [y, m] = dateStr.split('-').map(Number);
+      const planYear = Math.max(0, (m >= 4 ? y : y - 1) - (new Date().getMonth() + 1 >= 4 ? new Date().getFullYear() : new Date().getFullYear() - 1));
+      const spCfg = spSimConfigFromSettings(settings);
+      const spOn = spCfg && planYear >= spCfg.spStartYear;
+      const spAnnual = spOn ? (settings.spWeeklyAmount || 0) * 52 : 0;
+      const total = (decision.sippDraw || 0);
+      const d = getStrategy(st.id).describe();
+      let floorMonthly = 0, floorLabel = '', note = '';
+      if (st.id === 'full-il-gilt' || st.id === 'floor-the-schedule') { floorMonthly = total; floorLabel = st.id === 'full-il-gilt' ? (planYear < (params.cashYears ?? 2) ? 'the cash years bucket' : 'this year\'s matured rung') : 'this year\'s matured rung'; note = 'Every year is bought by contract — nothing is sold. The money is already in cash.'; }
+      else if (st.id === 'floor-to-age') { const A = (params.floorToAge || 80) - startAge; if (planYear < A) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Bought by contract to ' + (params.floorToAge || 80) + '; nothing to sell this year.'; } else { note = 'Past the floor age: the reserve now pays — this is a Pots & Valves-style draw on what is left.'; } }
+      else if (st.id === 'floor-and-flex') { const ess = Math.max(0, (params.essentialsAnnual || 0) - spAnnual) / 12; floorMonthly = Math.min(total, ess); floorLabel = 'the essentials rung'; note = 'Essentials come from the rung; the rest of this month\'s draw is treats from the flex sleeve (sell units for it).'; }
+      else if (st.id === 'ladder-and-ratchet') { const yrs = params.ladderYears || 15; if (planYear < yrs) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Inside the ladder years: the rung pays; the equity sleeve is untouched unless the ratchet fires.'; } else { note = 'Beyond the base ladder: pay from a ratcheted rung if one was secured, otherwise from the sleeve.'; } }
+      return { id: st.id, name: d.name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: st.id !== 'floor-to-age' || floorMonthly > 0 };
+    }
+
     window.renderDecisionStrategyPanel = async function () {
       const el = document.getElementById('dsStrategyPanel');
       if (!el) return;
@@ -8814,6 +8840,15 @@
         // the budget-schedule keep/clear logic below (a later duplicate key used to null it out).
         const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
         await setActiveStrategy(window._ssStrategy || 'pots-and-valves', readStrategyParams());
+        // ONE target: the income shape's first step is the Decision tool's year-0 target too (and the
+        // shape itself its schedule). Only while the plan is a draft — a locked plan's target stays put.
+        try {
+          if (!(await planIsLocked())) {
+            const firstStep = (window._ssIncomeShape === 'phases' && (window._ssIncomeSteps || []).filter((st) => +st.amount > 0).length) ? +[...window._ssIncomeSteps].filter((st) => +st.amount > 0).sort((x, y) => +x.fromAge - +y.fromAge)[0].amount : _newBase;
+            await saveDecisionSettings({ baseSalary: firstStep || _newBase, targetSchedule: _stepSchedule || null });
+            const dsB = document.getElementById('dsBaseSalary'); if (dsB) { dsB.value = firstStep || _newBase; try { syncNetFromGross('ds'); } catch (e) { /* form not built yet */ } }
+          }
+        } catch (e) { console.warn('Decision target sync skipped:', e); }
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           strategyId: window._ssStrategy || 'pots-and-valves',

@@ -7990,7 +7990,18 @@
       const p = strategyPlanFor(over, prm.essentialsAnnual);
       const r = stressTestStrategy(id, p);
       let h = '<div class="card"><h2>' + budEsc(STRATEGY_NAMES[id]) + ' <span class="hint" style="font-weight:normal;font-size:13px;">— ' + budEsc(spec.tag) + '</span></h2><p style="font-size:14px;margin:0 0 4px;">' + spec.intro + '</p>';
-      if (!r.affordable) { h += '<div class="alert alert-danger" style="margin-top:10px;">Not affordable as it stands: ' + budEsc(r.reason || '') + '.</div><div class="strat-block"><div class="section-title">Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '</div></div></div>'; return h; }
+      if (!r.affordable) {
+        const short = r.shortfall || 0; const perK = 27000;
+        h += '<div class="alert alert-danger" style="margin-top:10px;"><strong>Not affordable as it stands:</strong> ' + budEsc(r.reason || '') + '. Roughly every £1k a year across the plan is £' + (perK / 1000) + 'k, so about <strong>' + gbp(Math.round(short / perK) * 1000) + '/yr</strong> less income for life would close the gap — or a shorter horizon, or a lower floor in the later years (the cheapest years to keep are the late ones).</div>';
+        h += '<div class="strat-block"><div class="section-title">Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape and horizon: <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div></div>';
+        const list = (items) => '<ul>' + items.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
+        h += '<div class="strat-block"><div class="section-title">Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
+          + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--success);">Where it shines</div>' + list(spec.shines) + '</div>'
+          + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--warning);">How it fails</div>' + list(spec.fails) + '</div>'
+          + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">What you do</div>' + list(spec.doWhat) + '</div>'
+          + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div>' + list(spec.exit) + '</div></div></div></div>';
+        return h;
+      }
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';

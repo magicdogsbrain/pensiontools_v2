@@ -155,7 +155,7 @@ function ladderPvAt(y, lastRung, drawForYear, pricer) {
 
 function ladderTest(p, configs) {
   const lr = configs.lr;
-  if (!lr) return { affordable: false, reason: `the base ladder costs ${Math.round(configs.baseLadderCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  if (!lr) return { affordable: false, reason: `the base ladder costs £${Math.round(configs.baseLadderCost).toLocaleString()} — £${Math.round(configs.baseLadderCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.baseLadderCost - (p.pot + (p.isa || 0)) };
   const planYears = p.durationYears;
   const drawForYear = lr.drawNetOfSp;
   const pricer = lr.yieldForYear ? curvePricer(drawForYear, lr.yieldForYear) : flatYieldPricer(drawForYear, lr.realYield);
@@ -203,7 +203,7 @@ function ladderTest(p, configs) {
 
 function flexTest(p, configs) {
   const ff = configs.ff;
-  if (!ff) return { affordable: false, reason: `the essentials floor costs ${Math.round(configs.ffFloorCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  if (!ff) return { affordable: false, reason: `the essentials floor costs £${Math.round(configs.ffFloorCost).toLocaleString()} — £${Math.round(configs.ffFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.ffFloorCost - (p.pot + (p.isa || 0)) };
   const planYears = p.durationYears;
   const floorDraw = ff.floorDraw;
   const pricer = ff.yieldForYear ? curvePricer(floorDraw, ff.yieldForYear) : flatYieldPricer(floorDraw, 0.023);
@@ -242,7 +242,7 @@ function flexTest(p, configs) {
 
 function scheduleFloorTest(p, configs) {
   const c = configs.fs;
-  if (!c) return { affordable: false, reason: `buying the whole schedule costs ${Math.round(configs.fsFloorCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  if (!c) return { affordable: false, reason: `buying the whole schedule costs £${Math.round(configs.fsFloorCost).toLocaleString()} — £${Math.round(configs.fsFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.fsFloorCost - (p.pot + (p.isa || 0)) };
   const planYears = p.durationYears;
   const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
   const h = runFlexWindows(c);
@@ -280,7 +280,7 @@ function scheduleFloorTest(p, configs) {
 
 function floorToAgeTest(p, configs) {
   const c = configs.fa;
-  if (!c) return { affordable: false, reason: `buying the schedule to ${configs.fa ? c.floorToAge : (p.params?.floorToAge || 80)} costs ${Math.round(configs.faFloorCost)} — more than the ${Math.round(p.pot + (p.isa || 0))} available` };
+  if (!c) return { affordable: false, reason: `buying the schedule to ${p.params?.floorToAge || 80} costs £${Math.round(configs.faFloorCost).toLocaleString()} — £${Math.round(configs.faFloorCost - (p.pot + (p.isa || 0))).toLocaleString()} more than the pot`, shortfall: configs.faFloorCost - (p.pot + (p.isa || 0)) };
   const N = p.durationYears, A = c.A;
   const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);

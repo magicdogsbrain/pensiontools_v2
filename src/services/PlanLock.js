@@ -27,7 +27,9 @@ export async function buildPlanOfRecord(settings) {
     assumedCpi,
     baseSalary: s.baseSalary,
     settingsChecksum: decisionSettingsChecksum(s),
-    drawdown: generateDrawdownSchedule({ ...s, taxMode: s.taxMode || 'inflates', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, s.duration || 35, assumedCpi)
+    // Frozen bands by default: the Decision tool draws to the tax-year wizard's fixed BRL, so a plan of
+    // record with inflating bands drifted above the actual draw every year (persona test B34).
+    drawdown: generateDrawdownSchedule({ ...s, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, s.duration || 35, assumedCpi)
       .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
     glidepath: generateGlidepathSchedule(s, assumedCpi).map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
   };

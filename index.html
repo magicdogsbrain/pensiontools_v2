@@ -3711,6 +3711,8 @@
       ftaDecadesSvg,
       FTA_FRAMES,
       getRtr,
+      stackedConesSvg,
+      STRATEGY_COLORS,
       orderSheet,
       realYieldForYear,
       nominalYieldForYear,
@@ -7699,6 +7701,48 @@
       } catch (e) { console.error('strategy page', e); box.innerHTML = '<div class="alert alert-danger">Could not build this page: ' + budEsc(e.message) + '</div>'; }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    // ---- Comparison page (the Overview): question router · the matrix · six cones on one axis ----
+    // Defaults to a LEVEL FOOTING (no strategy allowed to cut income) — the default is the product's
+    // opinion, and the level view is the honest one; "as configured" is one click away.
+    window._cmpCutsOff = true;
+    window._cmpYear = 10;
+    window._cmpView = 'income';
+    window._cmpCache = null;
+    const CMP_WORDS = {
+      'pots-and-valves':   { fail: 'a long bad run drains the pots; cuts first, then runs dry late', doWhat: 'monthly: a decision on what to draw and from where', exit: 'nothing to unwind — it is just a portfolio' },
+      'ladder-and-ratchet':{ fail: 'the sleeve is empty before the horizon — a cliff, late', doWhat: 'yearly: watch the trigger; buy rungs when it fires', exit: 'sell rungs at market; annuitise the sleeve' },
+      'floor-and-flex':    { fail: 'lean years — the bills are paid, the treats shrink', doWhat: 'yearly: take a % of the sleeve as treats', exit: 'sell the sleeve any day; the floor stays' },
+      'floor-the-schedule':{ fail: 'it costs most of the pot; no growth in the plan', doWhat: 'yearly: one look at the reserve; buy years if far ahead', exit: 'sell rungs at market; annuitise' },
+      'floor-to-age':      { fail: 'the reserve arrives small — later years bought at a lower level', doWhat: 'nothing until the age; then one priced decision', exit: 'annuitise at the age, or sell the reserve' },
+      'full-il-gilt':      { fail: 'no upside; the official index is not your basket', doWhat: 'nothing monthly; each March check 12 months of cash', exit: 'sell gilts at market; annuitise at 75/80' }
+    };
+    async function cmpRun() {
+      const settings = await getStressSettingsAsync();
+      const eff = window._cmpCutsOff ? { ...settings, disableProtection: true } : settings;
+      const key = JSON.stringify([eff, window._cmpCutsOff]);
+      if (window._cmpCache && window._cmpCache.key === key) return window._cmpCache;
+      const p = strategyPlanFor(eff);
+      const all = stressTestAll(p);
+      window._cmpCache = { key, p, all, settings };
+      return window._cmpCache;
+    }
+    window.setCmpCuts = async function (on) { window._cmpCutsOff = !on; document.getElementById('stratPage').innerHTML = '<div class="loading"><div class="spinner"></div>Re-running all six strategies…</div>'; await new Promise((r) => setTimeout(r, 30)); document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); };
+    window.setCmpYear = function (y) { window._cmpYear = +y; const c = window._cmpCache; if (!c) return; document.getElementById('cmpCones').innerHTML = cmpConesHtml(c); };
+    window.setCmpView = function (v) { window._cmpView = v; const c = window._cmpCache; if (!c) return; document.getElementById('cmpCones').innerHTML = cmpConesHtml(c); };
+    function cmpConesHtml(c) {
+      const ids = Object.keys(c.all.strategies).filter((id) => c.all.strategies[id].affordable);
+      const view = window._cmpView;
+      const strategies = ids.map((id) => ({ id, name: STRATEGY_NAMES[id], color: STRATEGY_COLORS[id], cone: c.all.strategies[id].cones[view] }));
+      const yr = Math.max(0, Math.min(c.p.durationYears, window._cmpYear));
+      let h = '<div class="row-flex" style="margin:6px 0;"><label class="hint">Show <select onchange="setCmpView(this.value)"><option value="income"' + (view === 'income' ? ' selected' : '') + '>income each year</option><option value="wealth"' + (view === 'wealth' ? ' selected' : '') + '>what is left</option></select></label>'
+        + '<label class="hint" style="flex:1 1 240px;">Year <input type="range" min="0" max="' + c.p.durationYears + '" value="' + yr + '" oninput="setCmpYear(this.value)" style="width:70%;vertical-align:middle;"> age ' + (c.p.startAge + yr) + '</label></div>';
+      h += stackedConesSvg({ strategies, year: yr, startAge: c.p.startAge, title: (view === 'income' ? 'Income each year' : 'What is left') + ' — every strategy on one axis, today\'s money; whiskers = 10th–90th percentile at the chosen year' });
+      h += '<div class="table-scroll-container"><table><thead><tr><th>At age ' + (c.p.startAge + yr) + '</th>' + strategies.map((st) => '<th style="color:' + st.color + '">' + budEsc(st.name) + '</th>').join('') + '</tr></thead><tbody>'
+        + '<tr><td>1-in-10 bad</td>' + strategies.map((st) => '<td>' + gbp(Math.round(st.cone.p10[yr] ?? 0)) + '</td>').join('') + '</tr>'
+        + '<tr><td>middle</td>' + strategies.map((st) => '<td><strong>' + gbp(Math.round(st.cone.p50[yr] ?? 0)) + '</strong></td>').join('') + '</tr>'
+        + '<tr><td>1-in-10 good</td>' + strategies.map((st) => '<td>' + gbp(Math.round(st.cone.p90[yr] ?? 0)) + '</td>').join('') + '</tr></tbody></table></div>';
+      return h;
+    }
     async function strategyOverviewHtml() {
       const q = [
         ['I want to know my number, for life', ['floor-the-schedule', 'full-il-gilt']],
@@ -7706,9 +7750,28 @@
         ['I want certainty now and options later', ['floor-to-age', 'floor-and-flex']],
         ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']]
       ];
-      let h = '<div class="card"><h2>Six ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking, and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
-      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" onclick="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div>';
-      h += '<p class="hint" style="margin-top:12px;">The side-by-side comparison (level footing, all six on one axis) is the next page to be built; for now the Stress Tester → Strategies tab still carries the comparison table.</p></div>';
+      let h = '<div class="card"><h2>Six ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
+      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" onclick="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
+      const c = await cmpRun();
+      const S = c.all.strategies, ids = Object.keys(S);
+      const pot = c.p.pot + (c.p.isa || 0);
+      h += '<div class="card"><h2>Side by side, on your plan</h2>';
+      h += '<div class="row-flex" style="margin-bottom:8px;"><label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (window._cmpCutsOff ? '' : 'checked') + ' onchange="setCmpCuts(this.checked)"> Let Pots &amp; Valves cut spending in bad runs (as you configured it)</label>'
+        + '<span class="hint">' + (window._cmpCutsOff ? '<strong>Level footing:</strong> no strategy is allowed to pay you less than the plan.' : '<strong>As configured:</strong> Pots &amp; Valves may cut income up to ' + Math.round((1 - (c.settings.protectionMult ?? 0.8)) * 100) + '% in bad runs — read its row knowing that.') + '</span></div>';
+      const cell = (id, f) => S[id].affordable ? f(S[id]) : '<span class="hint">not affordable — ' + budEsc(S[id].reason || '') + '</span>';
+      const costOf = (r) => r.strategyId === 'full-il-gilt' ? r.signature.total : r.strategyId === 'floor-the-schedule' ? r.signature.floorCost : r.strategyId === 'floor-to-age' ? r.signature.floorCost : r.strategyId === 'ladder-and-ratchet' ? r.signature.baseLadderCost : r.strategyId === 'floor-and-flex' ? r.signature.floorCost : 0;
+      h += '<div class="table-scroll-container"><table><thead><tr><th>Strategy</th><th>What you get</th><th>What you pay today</th><th>What can go wrong</th><th>What you do</th><th>How you get out</th></tr></thead><tbody>';
+      for (const id of ids) {
+        const w = CMP_WORDS[id];
+        h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" onclick="showStrategyPage(\'' + id + '\')">read →</button></td>'
+          + '<td>' + cell(id, (r) => '<strong>' + budEsc(r.guaranteedToAge) + '</strong><br><span class="hint">worst 12 months ' + gbp(Math.round(r.worst12.min)) + '</span>') + '</td>'
+          + '<td>' + cell(id, (r) => { const c0 = costOf(r); return (c0 ? '<strong>' + gbp(Math.round(c0)) + '</strong> bought as gilts (' + Math.round(100 * c0 / pot) + '% of pot)' : 'nothing bought — all invested') + '<br><span class="hint">typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + '</span>'; }) + '</td>'
+          + '<td>' + cell(id, (r) => '<strong>' + (r.ruin.mc).toFixed(0) + '%</strong> ' + (r.ruinLabel ? 'chance of a cut after ' + r.signature.floorToAge : r.strategyId === 'floor-and-flex' || r.strategyId === 'floor-the-schedule' || r.strategyId === 'full-il-gilt' ? 'chance of running out (bought)' : 'chance of running out') + '<br><span class="hint">' + budEsc(w.fail) + '</span>') + '</td>'
+          + '<td class="hint">' + budEsc(w.doWhat) + '</td><td class="hint">' + budEsc(w.exit) + '</td></tr>';
+      }
+      h += '</tbody></table></div>';
+      h += '<div id="cmpCones" style="margin-top:12px;">' + cmpConesHtml(c) + '</div>';
+      h += '<p class="hint" style="margin-top:8px;">All six ran the same plan (income shape, State Pension, horizon from Settings) on the same markets: Shiller 1871–2023 adjusted to world equity, every window plus 1,000 bootstrapped futures each carrying its own inflation; ladders priced on the Bank of England real curve and today\'s gilt prices. Results in today\'s money. An illustration, not advice.</p></div>';
       return h;
     }
     async function genericStrategyPageHtml(id) {

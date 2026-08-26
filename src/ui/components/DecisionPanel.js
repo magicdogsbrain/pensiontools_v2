@@ -134,8 +134,6 @@ function buildTaxSummary(d) {
 
 function closeAfterSource(d) {
   let html = '';
-  const alerts = (d.alerts || []).filter((a) => a.type !== 'low-cash' && a.type !== 'rebalance');
-  if (alerts.length) { html += '<div class="alerts">'; for (const a of alerts) html += `<div class="alert alert-${a.severity}">${a.message}</div>`; html += '</div>'; }
   html += buildTaxSummary(d);
   return html;
 }
@@ -211,9 +209,11 @@ export function buildDecisionHTML(decision) {
   }
 
   // Alerts
-  if (d.alerts && d.alerts.length > 0) {
+  // Contract strategies: the P&V cash/rebalance alerts do not apply (nothing is sold from pots).
+  const topAlerts = (d.alerts || []).filter((a) => !(d.strategyOverlay && d.strategyOverlay.hidePots && (a.type === 'low-cash' || a.type === 'rebalance')));
+  if (topAlerts.length > 0) {
     html += '<div class="alerts">';
-    for (const alert of d.alerts) {
+    for (const alert of topAlerts) {
       const alertClass = getAlertClass(alert.severity);
       html += `<div class="alert ${alertClass}">${alert.message}</div>`;
     }

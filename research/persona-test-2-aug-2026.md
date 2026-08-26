@@ -44,3 +44,10 @@ Verified: unlock → edit → save → re-lock on Pat's plan; plan vs actual rec
 - Drawdown/Glidepath tabs show the non-P&V notice + the strategy's own schedule ✓; Historical tab runs the strategy ✓; Household refuses an unconfigured partner plan with a clear message ✓.
 - [B42] Accumulation for an already-retired plan (61 retiring 61) just says "Enter your ages to project" — should say the planner is for the years before retirement.
 - [B43] Household "Create their plan & switch to it" makes a partner plan with default budget ages 45/60 and sharing off, ignoring the partner's ages (59/63) captured in the plan wizard.
+- (harness) The "Full IL gilt page hang" was my rapid page cycling colliding with the tab — page renders in 0.6 s on a clean load.
+- Sam (P&V) Historical 73% ✓; Scenarios canvas chart renders ✓; Compare allocations grid ✓.
+- [B44] Scenarios: "Great Depression — 35.0 yrs OK, Final £0.00, Protection 413 of 420 months": a run that spends 98% of the plan in protection and ends at £0 is reported as OK. Check what returns follow the 10-year decade (repeat? zero?) and flag "marginal" when the final balance is ~£0 or protection dominates.
+- [B44 detail] runScenario cycles the 10-year decade for the full plan (returns.equity[y % 10]) — the Assumptions page said "then history resumes" (wrong; text FIXED). Design question: post-decade returns should probably revert to long-run averages, with the OK/FAILED verdict flagged "marginal" when the final balance ≈ £0.
+- Top-bar Reset → in-app warning modal (cancelled) ✓; Edit Tools modal ✓; Delete plan → in-app confirm, list 10 → 9 ✓.
+- Funds mode (Sam): VWRL/CSH2/VGOV in SIPP + VWRP in ISA → rolls up £580k (60/31/9) + £80k ISA; saved allocMode 'funds', pots 350/180/50k, isaBalance 80k; MC starting balances match ✓.
+- FIXED B39 (partial-year label), B40 (delete button says when it cascades), B41 (copy with records is locked on creation).

@@ -7715,6 +7715,9 @@
 
     window.applyStrategyToUI = function (id, params) {
       window._ssSavedParams = params || {};
+      // Clear every strategy pot/ISA field first: they are seeded "only when empty", so a value left
+      // over from the PREVIOUS plan (e.g. an £800k test plan) silently became this plan's pot.
+      for (const fid of ['stratSipp', 'stratIsa', 'stratSippFf', 'stratIsaFf', 'miniSipp', 'miniIsa']) { const e = document.getElementById(fid); if (e) e.value = ''; }
       { const se = document.getElementById('miniSipp'), ie = document.getElementById('miniIsa'), fe = document.getElementById('miniFloorToAge'); if (se) se.value = params && params.sippTotal ? params.sippTotal : ''; if (ie) ie.value = params && params.isaTotal != null ? params.isaTotal : ''; if (fe) fe.value = params && params.floorToAge ? params.floorToAge : ''; }
       pickStrategy(id || 'pots-and-valves');
       if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; }

@@ -32,6 +32,17 @@ function bandOf(windows, pick, years) { return Array.from({ length: years + 1 },
 const availablePot = (p) => p.pot + (p.isaHold ? 0 : (p.isa || 0));
 
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
+/** Evenly-spaced sample of the raw per-future series, for spaghetti charts (never the full 1,000). */
+export function sampleOf(seriesList, years, n = 80) {
+  const step = Math.max(1, Math.floor(seriesList.length / n));
+  const out = [];
+  for (let i = 0; i < seriesList.length && out.length < n; i += step) {
+    const src = seriesList[i] || [];
+    out.push(Array.from({ length: years + 1 }, (_, y) => (src[y] != null && Number.isFinite(src[y])) ? src[y] : 0));
+  }
+  return out;
+}
+
 export function coneOf(seriesList, years) {
   const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
   for (let y = 0; y <= years; y++) {
@@ -140,6 +151,7 @@ function pnvTest(p, configs) {
     guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)})` : 'None — market-dependent',
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hist.map((w) => w.terminal), 0.5) },
     cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
+    samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
     signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5),
       pots: { equity: p.pnvCfg.equityStart || 0, bond: p.pnvCfg.bondStart || 0, cash: p.pnvCfg.cashStart || 0, diversifier: p.pnvCfg.diversifierStart || 0, isa: p.pnvCfg.isaBalance || 0 },
@@ -192,6 +204,7 @@ function ladderTest(p, configs) {
     guaranteedToAge: `${p.startAge + lr.ladderYears} by contract; median ratchets to ${p.startAge + lr.ladderYears + h.stats.securedMedian}`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
     failAges: mc.windows.filter((w) => w.survived === false).map((w) => w.failAge),
     signature: {
       neverPct: h.stats.neverPct, fullySecuredPct: h.stats.fullySecuredPct, securedMedian: h.stats.securedMedian,
@@ -232,6 +245,7 @@ function flexTest(p, configs) {
     guaranteedToAge: `${ff.horizonAge} by contract (essentials)`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
     failAges: [],
     signature: {
       year1Flex: h.stats.year1D, worstFlexMedian: h.stats.worstMedian, worstFlexP10: h.stats.worstP10,
@@ -270,6 +284,7 @@ function scheduleFloorTest(p, configs) {
     guaranteedToAge: `${c.horizonAge} by contract (the whole schedule)`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
     failAges: [],
     signature: {
       floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / availablePot(p),
@@ -328,6 +343,7 @@ function floorToAgeTest(p, configs) {
     guaranteedToAge: `${c.floorToAge} by contract; the rest decided at ${c.floorToAge} with a known price`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
     failAges: [],
     signature: {
       floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / availablePot(p),

@@ -89,6 +89,15 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
       // Year 0 wealth = everything the plan holds (ladders count their unpaid rungs at cost)
       expect(r.cones.wealth.p50[0]).toBeCloseTo(p.pot + p.isa, -3);
       expect(r.cones.wealth.p10[0]).toBeCloseTo(r.cones.wealth.p90[0], -3);
+      // Spaghetti sample: a handful of the SAME futures the cone is made of, same length, inside the cone's outer envelope
+      if (r.samples) {
+        expect(r.samples.wealth.length).toBeGreaterThan(1);
+        expect(r.samples.wealth.length).toBeLessThanOrEqual(80);
+        for (const path of r.samples.wealth) {
+          expect(path.length).toBe(p.durationYears + 1);
+          expect(Math.max(...path)).toBeLessThanOrEqual(Math.max(...r.cones.wealth.p90) * 20);
+        }
+      }
     }
   });
 

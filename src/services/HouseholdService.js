@@ -15,7 +15,9 @@
 
 import { getStrategy } from '../strategies/registry.js';
 // Phase B: the household view runs each plan's OWN locked strategy from the registry.
-const eng = (cfg) => getStrategy(cfg?.strategyId).engine;
+// The household check joins two P&V-shaped simulation configs; ladder/floor strategies have no
+// monteCarloReturns/simulate API, so always run the Pots & Valves engine here (the caller says so).
+const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';

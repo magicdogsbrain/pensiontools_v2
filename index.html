@@ -3660,6 +3660,7 @@
       runCompare,
       cannedDecade,
       stressTestStrategy,
+      requiredPotForStrategy,
       stressTestAll,
       planFromSettings,
       STRATEGY_NAMES,
@@ -8329,15 +8330,27 @@
       el.innerHTML = '<p style="font-size:13px;">Searching for the pot that gives 85% success against your plan… (a few seconds)</p>';
       await new Promise((r) => setTimeout(r, 30)); // let the message paint
       try {
-        const baseConfig = createSimulationConfigFromSettings({}, await getStressSettingsAsync());
-        const { requiredPot } = requiredPotForSuccess(baseConfig, 0.85, 300);
+        const sSet = await getStressSettingsAsync();
+        const stratId = sSet.strategyId || 'pots-and-valves';
+        let requiredPot, basisNote;
+        if (stratId === 'pots-and-valves') {
+          const baseConfig = createSimulationConfigFromSettings({}, sSet);
+          ({ requiredPot } = requiredPotForSuccess(baseConfig, 0.85, 300));
+          basisNote = 'for 85% Monte-Carlo success with <strong>Pots &amp; Valves</strong> (this plan\'s strategy) against your budget-derived target';
+        } else {
+          ({ requiredPot } = requiredPotForStrategy(stratId, strategyPlanFor(sSet), 0.85));
+          const contract = stratId === 'full-il-gilt' || stratId === 'floor-the-schedule';
+          basisNote = contract ? 'to buy every year of your income shape by contract with <strong>' + budEsc(STRATEGY_NAMES[stratId]) + '</strong> (this plan\'s strategy) — no growth assumed after retirement, today\'s prices'
+            : 'for 85% success with <strong>' + budEsc(STRATEGY_NAMES[stratId]) + '</strong> (this plan\'s strategy) against your income shape';
+        }
+        if (!Number.isFinite(requiredPot)) { el.innerHTML = '<div class="alert alert-warning">No pot in the search range passes with ' + budEsc(STRATEGY_NAMES[stratId] || stratId) + ' — check the plan\'s income shape and duration.</div>'; return; }
         const rows = window._acProjection.rows;
         const last = rows[rows.length - 1];
         const verdict = (pot) => pot >= requiredPot
           ? '<span style="color:var(--success,#22c55e);font-weight:600;">on track ✓</span>'
           : '<span style="color:var(--danger,#ef4444);font-weight:600;">short by ' + gbp(Math.round(requiredPot - pot)) + '</span>';
         el.innerHTML = '<div class="alert alert-info">Your plan needs about <strong>' + gbp(Math.round(requiredPot))
-          + '</strong> at retirement (today\'s money) for 85% Monte-Carlo success against your budget-derived target.</div>'
+          + '</strong> at retirement (today\'s money) ' + basisNote + '.</div>'
           + '<table><tbody>'
           + '<tr><td>Cautious growth (2%)</td><td>' + gbp(Math.round(last.potLow)) + '</td><td>' + verdict(last.potLow) + '</td></tr>'
           + '<tr><td>Middle growth (5%)</td><td>' + gbp(Math.round(last.potMid)) + '</td><td>' + verdict(last.potMid) + '</td></tr>'

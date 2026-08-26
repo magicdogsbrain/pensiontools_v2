@@ -393,6 +393,29 @@ function fullGiltTest(p, configs) {
   };
 }
 
+/**
+ * The pot a given strategy needs at retirement for the plan to pass, today's money — the
+ * accumulation "am I on track?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
+ * pass when affordable; market strategies when Monte-Carlo ruin ≤ (1 − successTarget). Bisects the
+ * SIPP pot with the plan's ISA left as configured. Fewer runs than the compare (speed).
+ */
+export function requiredPotForStrategy(strategyId, p, successTarget = 0.85, opts = {}) {
+  const runs = opts.mcRuns || 200, stride = opts.stride || 6;
+  const passes = (pot) => {
+    const q = { ...p, pot, mcRuns: runs, stride };
+    if (q.pnvCfg) { const scale = pot / Math.max(1, p.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (p.pnvCfg.equityStart || 0) * scale, bondStart: (p.pnvCfg.bondStart || 0) * scale, cashStart: (p.pnvCfg.cashStart || 0) * scale, diversifierStart: (p.pnvCfg.diversifierStart || 0) * scale, equityMin: (p.pnvCfg.equityMin || 0) * scale, bondMin: (p.pnvCfg.bondMin || 0) * scale, cashTarget: (p.pnvCfg.cashTarget || 0) * scale }; }
+    const r = stressTestStrategy(strategyId, q);
+    if (!r.affordable) return false;
+    return (r.ruin?.mc ?? 0) <= (1 - successTarget) * 100 + 1e-9;
+  };
+  let lo = 0, hi = Math.max(50_000, p.pot || 0);
+  let n = 0;
+  while (!passes(hi) && n++ < 8) { lo = hi; hi *= 2; }
+  if (n >= 8) return { requiredPot: Infinity, passesAt: null };
+  for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (passes(mid)) hi = mid; else lo = mid; }
+  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId };
+}
+
 /** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */
 export function pnvDecadeSeries(p, year, month = 1) {
   const rtr = getRtr(), cpi = getCpi(); const planYears = p.durationYears; const s = (year - 1871) * 12 + (month - 1);

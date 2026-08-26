@@ -68,6 +68,12 @@ describe('plan lock lifecycle', () => {
     expect(await planHasRecords()).toBe(true);   // so a Save re-locks
   });
 
+  it('a plan never unlocked treats every entry as its own, whatever the stamp says', async () => {
+    store.history.push({ date: '2027-05', settingsChecksum: 'legacy-order-sensitive-hash' });
+    const d = await planDependents();
+    expect(d.entriesUnderCurrent).toBe(1); expect(d.entriesUnderPrevious).toBe(0);
+  });
+
   it('a set-up tax year counts as a dependent record', async () => {
     store.taxYears = { '27/28': { yearSetupComplete: true }, '28/29': { yearSetupComplete: false } };
     const d = await planDependents();

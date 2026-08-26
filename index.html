@@ -2495,6 +2495,7 @@
             <!-- Month tabs for selected year -->
             <div class="history-tabs-container">
               <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
+              <div id="historyStaleNote"></div>
               <div class="history-tabs" id="historyTabs">
                 <!-- Month tabs rendered dynamically -->
               </div>
@@ -10871,6 +10872,16 @@
 
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
       renderPlanVsActual(allHistoryData);
+      // Entries recorded under previous settings (only possible once the plan has been unlocked and
+      // re-saved — same rule as PlanLock.planDependents). Kept, but said so.
+      try {
+        const dsNow = await getDecisionSettingsAsync();
+        const curSum = decisionSettingsChecksum(dsNow);
+        const everUnlocked = (dsNow.unlockCount || 0) > 0;
+        window._histStale = new Set(everUnlocked ? allHistoryData.filter((h) => h.settingsChecksum !== undefined && h.settingsChecksum !== curSum).map((h) => h.date) : []);
+      } catch (e) { window._histStale = new Set(); }
+      const staleNote = document.getElementById('historyStaleNote');
+      if (staleNote) staleNote.innerHTML = window._histStale.size ? '<div class="alert alert-warning" style="font-size:12px;">◌ ' + window._histStale.size + ' entr' + (window._histStale.size === 1 ? 'y was' : 'ies were') + ' recorded under previous settings (the plan was unlocked and re-saved since). They are kept for the record; their recommendations were computed against the old plan.</div>' : '';
 
       // Hide delete buttons if no entries
       if (deleteAllBtn) {

@@ -17,3 +17,11 @@
 ## Fixed (26 Aug, persona 2 loop)
 B26 retiree income-start age; B27 protection-year tax projection; B28 ISA-bridge advice; B29 Decision-side SP by tax year (plan of record year 2 now £2,524); B20 native prompt() → appPrompt (rename/duplicate/admin/tax year) — verified duplicate modal + "Settings only" copy appears as draft.
 Verified: unlock → edit → save → re-lock on Pat's plan; plan vs actual recomputed.
+
+# Persona 3 — "Jo", 58, just retired, SIPP £900k, ISA £250k (drawn), DB £8k from 65, downsizing £100k→ISA at 70, kitchen £30k at 62, steps 60/50/45 @58/70/80, Ladder & Ratchet 12y calendar, first-stage 6 months
+- Budget Comfortable ×1.0 + one-offs → £38,139 net → £44,531 gross ✓ ((38,139−2,514)/0.8).
+- [B30] Even with EVERY "Comfortable — use" chip pressed the wizard lands at ~£36.7k base vs PLSA £43.1k: the wizard's category screens don't offer chips for every TYPICAL_TIERS line (rent, car purchase, …), so the calibrated sum isn't reachable from the walk-through alone. Show the running PLSA gap on the review screen ("£6k under the Comfortable standard — usually holidays/car").
+- L&R: 12 rungs £609,629 ✓ (≈ 60k×7 + 52k×2 + 40k×3 discounted); wealth y0 £1.15m ✓; 17.4% MC ruin plausible.
+- [B31] Income cone/"worst 12 months" for ladder & floor strategies omits DB/other income: year 7 shows £52k where £60k arrives (52k rung + 8k DB). The layered chart adds it back, the cone doesn't. Add otherIncomeByYear to the income series in every strategy's enrich().
+- Jo Decision Sep 2026 verified: SIPP £4,189 = BRL/12 ✓; ISA top-up £487 = (net 60k 48,568 − SIPP net 42,730)/12 ✓; tax £479 = (7×4,189 − PA)×20%/7 ✓; annual ISA allocation 3,406 = 7×487 ✓; L&R overlay "rung pays £4,189" ✓; first-stage months 6 copied to Decision ✓.
+- [B32] FIXED: "Tax Saved" compared a full-year inefficient tax (£11,432) with the 7-month actual → £673/mo; now same-basis (≈ £162/mo in a 7-month year, £324 in a full year).

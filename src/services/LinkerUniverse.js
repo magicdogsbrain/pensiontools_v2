@@ -91,6 +91,7 @@ export function dataProvenance() {
   const a = activeLinkers();
   return {
     as_of: a.as_of, curve_as_of: a.curve_as_of, curve_source: a.curve_source, generated_at: a.generated_at, source: a.source, notice: a.notice,
+    index_ratio_settlement: a.index_ratio_settlement || null, reference_rpi: a.reference_rpi || null,
     stale: isStale(), hasCurve: a.realCurve.length > 0, curvePoints: a.realCurve.length
   };
 }

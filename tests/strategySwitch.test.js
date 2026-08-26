@@ -282,3 +282,12 @@ describe('Full index-linked gilt ladder (6th strategy) through the shared stress
     expect(Math.abs(a.signature.total - b.signature.total) / b.signature.total).toBeLessThan(0.03);
   });
 });
+
+describe('a held ISA never funds rungs or floors', () => {
+  it('with isaDrawdownStrategy=hold the gilt ladder and the floors are priced on the SIPP alone', () => {
+    const base = { ...PERSONAS['comfortable 600k+150k ISA, £36k'], equityMin: 1000000, bondMin: 0, cashTarget: 0, isaBalance: 200000, baseSalary: 45000, duration: 30 };
+    const open = compareTab(base).all, held = compareTab({ ...base, isaDrawdownStrategy: 'hold' }).all;
+    expect(held.strategies['full-il-gilt'].plan.spare).toBeCloseTo(open.strategies['full-il-gilt'].plan.spare - 200000, -2);
+    expect(held.configs.fs.E0).toBeCloseTo(open.configs.fs.E0 - 200000, -2);
+  });
+});

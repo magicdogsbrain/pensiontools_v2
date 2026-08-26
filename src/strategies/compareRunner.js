@@ -84,7 +84,7 @@ export function deriveCompareConfigs(p) {
   const END = p.durationYears * 12;
   const realYield = 0.023;
   const yf = p.yieldForYear || (() => realYield);   // live linker curve when the caller has one
-  const total = p.pot + (p.isa || 0);
+  const total = p.pot + (p.isaHold ? 0 : (p.isa || 0));   // a held ISA is not available to buy gilts
 
   // Ladder & Ratchet: base ladder covers up to 15 years (or half the plan when shorter);
   // ratchet rungs run from there to the horizon. Post-SP rungs are net of the State Pension.

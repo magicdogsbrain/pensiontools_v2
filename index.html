@@ -2578,6 +2578,26 @@
           </div>
           <div id="mcResults"></div>
           <div id="optimiseResultsMC"></div>
+          <div class="card" id="tryStrategyCard">
+            <h2>Try a strategy <span style="font-weight:normal;color:var(--text-muted);font-size:13px;">— nothing here is saved</span></h2>
+            <p class="hint" style="margin:0 0 10px;">Run any of the six strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
+            <div class="form-grid">
+              <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
+              <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
+              <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
+              <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
+              <div class="form-group"><label>Income</label><select id="tryIncomeMode" onchange="document.getElementById('tryIncomeWrap').style.display=this.value==='flat'?'':'none'"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
+              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
+              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
+              <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button type="button" onclick="runTryStrategyUI()">Run this what-if</button>
+              <button type="button" class="secondary" onclick="resetTryStrategyUI()">Reset to my plan</button>
+              <button type="button" class="secondary" id="tryUseBtn" onclick="useTriedStrategyUI()" style="display:none;">Use this strategy for my plan</button>
+            </div>
+            <div id="tryResults" style="margin-top:12px;"></div>
+          </div>
         </div>
 
         <!-- Historical Sub-tab -->
@@ -5526,6 +5546,83 @@
       }
     }
 
+
+    // ---- "Try a strategy": a what-if copy of the stress settings run through stressTestStrategy.
+    // Pot/ISA/income/years/cuts are overrides on a COPY; nothing is saved unless the user asks.
+    let _tryLast = null;
+    window.resetTryStrategyUI = async function () {
+      const s = await getStressSettingsAsync();
+      const sel = document.getElementById('tryStrategy');
+      if (sel && !sel.options.length) sel.innerHTML = Object.entries(STRATEGY_NAMES).map(([id, n]) => '<option value="' + id + '">' + budEsc(n) + '</option>').join('');
+      if (sel) sel.value = s.strategyId || 'pots-and-valves';
+      const sp = s.strategyParams || {};
+      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));
+      document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
+      document.getElementById('tryIsaPolicy').value = '';
+      document.getElementById('tryIncomeMode').value = 'shape';
+      document.getElementById('tryIncomeWrap').style.display = 'none';
+      document.getElementById('tryIncome').value = Math.round(s.baseSalary || 0);
+      document.getElementById('tryYears').value = s.duration || 35;
+      document.getElementById('tryCuts').value = '';
+      document.getElementById('tryResults').innerHTML = '';
+      document.getElementById('tryUseBtn').style.display = 'none';
+      refreshNumberOverlays();
+    };
+    function tryStrategySettings(s) {
+      const c = JSON.parse(JSON.stringify(s));
+      const id = document.getElementById('tryStrategy').value || 'pots-and-valves';
+      const pot = +document.getElementById('tryPot').value || 0;
+      const isa = +document.getElementById('tryIsa').value || 0;
+      const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+      const scale = oldPot > 0 ? pot / oldPot : 0;
+      if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+      else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
+      c.isaBalance = isa;
+      c.strategyId = id;
+      c.strategyParams = { ...(s.strategyParams || {}), sippTotal: pot, isaTotal: isa };
+      const pol = document.getElementById('tryIsaPolicy').value; if (pol) c.isaDrawdownStrategy = pol; else if (document.getElementById('tryIsaPolicy').selectedIndex === 2) c.isaDrawdownStrategy = 'bridge';
+      if (document.getElementById('tryIncomeMode').value === 'flat') { c.baseSalary = +document.getElementById('tryIncome').value || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
+      c.duration = Math.max(5, Math.min(35, +document.getElementById('tryYears').value || 35));
+      const cuts = document.getElementById('tryCuts').value; if (cuts) c.disableProtection = cuts === 'off';
+      return c;
+    }
+    window.runTryStrategyUI = async function () {
+      const out = document.getElementById('tryResults');
+      const s = await getStressSettingsAsync();
+      const c = tryStrategySettings(s);
+      out.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[c.strategyId]) + ' on this what-if…</div>';
+      await new Promise((r) => setTimeout(r, 30));
+      try {
+        const p = strategyPlanFor(c);
+        const r = stressTestStrategy(c.strategyId, p);
+        _tryLast = { id: c.strategyId, params: c.strategyParams };
+        const diff = [];
+        if (c.strategyId !== (s.strategyId || 'pots-and-valves')) diff.push('strategy ' + STRATEGY_NAMES[c.strategyId] + ' (plan: ' + STRATEGY_NAMES[s.strategyId || 'pots-and-valves'] + ')');
+        const oldPot = (s.strategyParams?.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
+        if (Math.abs(((c.strategyParams.sippTotal) || 0) - oldPot) > 1) diff.push('pot ' + gbp(c.strategyParams.sippTotal) + ' (plan: ' + gbp(oldPot) + ')');
+        if (Math.abs((c.isaBalance || 0) - (s.strategyParams?.isaTotal ?? s.isaBalance ?? 0)) > 1) diff.push('ISA ' + gbp(c.isaBalance));
+        if (c.incomeShape === 'level' && s.incomeShape === 'phases') diff.push('flat income ' + gbp(c.baseSalary) + ' instead of your steps');
+        if (c.duration !== (s.duration || 35)) diff.push(c.duration + ' years (plan: ' + (s.duration || 35) + ')');
+        if (c.disableProtection !== s.disableProtection && c.strategyId === 'pots-and-valves') diff.push('spending cuts ' + (c.disableProtection ? 'off' : 'on'));
+        out.innerHTML = (diff.length ? '<div class="alert alert-warning" style="font-size:12px;"><strong>What-if, not your plan:</strong> ' + budEsc(diff.join(' · ')) + '. Nothing has been saved.</div>' : '<div class="alert alert-info" style="font-size:12px;">This is your plan as saved, run through ' + budEsc(STRATEGY_NAMES[c.strategyId]) + '.</div>')
+          + strategyResultCard(r, p);
+        document.getElementById('tryUseBtn').style.display = '';
+      } catch (e) { console.error('Try strategy error:', e); out.innerHTML = '<div class="alert alert-danger">Could not run: ' + budEsc(e.message) + '</div>'; }
+    };
+    window.useTriedStrategyUI = async function () {
+      if (!_tryLast) return;
+      const ok = await appConfirm('Switch this plan\'s strategy to ' + STRATEGY_NAMES[_tryLast.id] + '?\n\nOnly the strategy (and its dials) changes. Pot, ISA, income and years stay as saved in Settings — change those there if the what-if used different figures.', { okLabel: 'Switch strategy' });
+      if (!ok) return;
+      try {
+        const { sippTotal, isaTotal, ...params } = _tryLast.params;
+        await setActiveStrategy(_tryLast.id, params);
+        await saveStressSettings({ strategyId: _tryLast.id, strategyParams: params });
+        window._ssStrategy = _tryLast.id;
+        showToast('Strategy switched to ' + STRATEGY_NAMES[_tryLast.id], 'success');
+        await updateStrategyNote();
+        await resetTryStrategyUI();
+      } catch (e) { showToast('Could not switch: ' + e.message, 'error'); }
+    };
     window.runMonteCarloUI = async function() {
       // Starting balances come from Settings (createSimulationConfigFromSettings defaults
       // equityStart/bondStart/cashStart from equityMin/bondMin/cashTarget). Only Years is per-run.
@@ -7608,6 +7705,7 @@
       if (!el) return;
       try {
         const st = await getActiveStrategy();
+        if (document.getElementById('tryStrategy') && !document.getElementById('tryStrategy').options.length) { try { await resetTryStrategyUI(); } catch (e2) { /* settings not ready */ } }
         const isPnv = !st.id || st.id === 'pots-and-valves';
         ['optimiseBtnMC', 'optimiseBtnHist'].forEach((id) => { const b = document.getElementById(id); if (b) b.style.display = isPnv ? '' : 'none'; });
         if (st.id && st.id !== 'pots-and-valves') {

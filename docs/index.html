@@ -2016,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BScw_oNY.js"></script>
+  <script type="module" crossorigin src="./assets/main-BzC9Q5WX.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2579,6 +2579,26 @@
           </div>
           <div id="mcResults"></div>
           <div id="optimiseResultsMC"></div>
+          <div class="card" id="tryStrategyCard">
+            <h2>Try a strategy <span style="font-weight:normal;color:var(--text-muted);font-size:13px;">— nothing here is saved</span></h2>
+            <p class="hint" style="margin:0 0 10px;">Run any of the six strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
+            <div class="form-grid">
+              <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
+              <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
+              <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
+              <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
+              <div class="form-group"><label>Income</label><select id="tryIncomeMode" onchange="document.getElementById('tryIncomeWrap').style.display=this.value==='flat'?'':'none'"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
+              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
+              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
+              <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button type="button" onclick="runTryStrategyUI()">Run this what-if</button>
+              <button type="button" class="secondary" onclick="resetTryStrategyUI()">Reset to my plan</button>
+              <button type="button" class="secondary" id="tryUseBtn" onclick="useTriedStrategyUI()" style="display:none;">Use this strategy for my plan</button>
+            </div>
+            <div id="tryResults" style="margin-top:12px;"></div>
+          </div>
         </div>
 
         <!-- Historical Sub-tab -->

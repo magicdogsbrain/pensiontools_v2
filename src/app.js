@@ -24,7 +24,7 @@ import { runCompare, cannedDecade } from './strategies/compareRunner.js';
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries } from './strategies/stressTest.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
-import { stackedConesSvg, STRATEGY_COLORS } from './ui/comparisonGraphic.js';
+import { stackedConesSvg, STRATEGY_COLORS, incomeSmallMultiplesSvg, riskBarsSvg, leftBarsSvg } from './ui/comparisonGraphic.js';
 import { incomeStaircaseSvg, suggestSteps, amountAtAge as shapeAmountAtAge } from './ui/incomeShapeGraphic.js';
 import { ladderRatchetSvg, floorFlexSvg, floorScheduleSvg, potsValvesSvg, LR_FRAMES, FF_FRAMES, FS_FRAMES, PV_FRAMES } from './ui/strategyMachines.js';
 import { getRtr } from './strategies/ladderEngine.js';
@@ -410,6 +410,9 @@ export {
   getRtr,
   stackedConesSvg,
   STRATEGY_COLORS,
+  incomeSmallMultiplesSvg,
+  riskBarsSvg,
+  leftBarsSvg,
   incomeStaircaseSvg,
   suggestSteps,
   shapeAmountAtAge,

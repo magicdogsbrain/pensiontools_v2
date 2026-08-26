@@ -3662,6 +3662,9 @@
       getRtr,
       stackedConesSvg,
       STRATEGY_COLORS,
+      incomeSmallMultiplesSvg,
+      riskBarsSvg,
+      leftBarsSvg,
       incomeStaircaseSvg,
       suggestSteps,
       shapeAmountAtAge,
@@ -7551,20 +7554,21 @@
       return window._cmpCache;
     }
     window.setCmpCuts = async function (on) { window._cmpCutsOff = !on; document.getElementById('stratPage').innerHTML = '<div class="loading"><div class="spinner"></div>Re-running all six strategies…</div>'; await new Promise((r) => setTimeout(r, 30)); document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); };
-    window.setCmpYear = function (y) { window._cmpYear = +y; const c = window._cmpCache; if (!c) return; document.getElementById('cmpCones').innerHTML = cmpConesHtml(c); };
-    window.setCmpView = function (v) { window._cmpView = v; const c = window._cmpCache; if (!c) return; document.getElementById('cmpCones').innerHTML = cmpConesHtml(c); };
+    window.setCmpAge = function (age) { window._cmpAge = +age; const c = window._cmpCache; if (!c) return; document.getElementById('cmpLeft').innerHTML = cmpLeftHtml(c); };
+    function cmpStrategies(c) { return Object.keys(c.all.strategies).filter((id) => c.all.strategies[id].affordable).map((id) => ({ id, name: STRATEGY_NAMES[id], color: STRATEGY_COLORS[id], r: c.all.strategies[id] })); }
+    function cmpLeftHtml(c) {
+      const age = window._cmpAge || (c.p.startAge + 23);
+      const yi = Math.max(0, Math.min(c.p.durationYears, age - c.p.startAge));
+      const rows = cmpStrategies(c).map((st) => ({ name: st.name, color: st.color, p10: st.r.cones.wealth.p10[yi] ?? 0, p50: st.r.cones.wealth.p50[yi] ?? 0, p90: st.r.cones.wealth.p90[yi] ?? 0 }));
+      return '<div class="row-flex" style="margin:4px 0;"><label class="hint">At age <select onchange="setCmpAge(this.value)">' + [c.p.startAge + 10, c.p.startAge + 23, c.p.startAge + c.p.durationYears - 1].map((a) => '<option value="' + a + '"' + (a === age ? ' selected' : '') + '>' + a + '</option>').join('') + '</select></label></div><div class="machine-scroll">' + leftBarsSvg({ rows, age }) + '</div>';
+    }
     function cmpConesHtml(c) {
-      const ids = Object.keys(c.all.strategies).filter((id) => c.all.strategies[id].affordable);
-      const view = window._cmpView;
-      const strategies = ids.map((id) => ({ id, name: STRATEGY_NAMES[id], color: STRATEGY_COLORS[id], cone: c.all.strategies[id].cones[view] }));
-      const yr = Math.max(0, Math.min(c.p.durationYears, window._cmpYear));
-      let h = '<div class="row-flex" style="margin:6px 0;"><label class="hint">Show <select onchange="setCmpView(this.value)"><option value="income"' + (view === 'income' ? ' selected' : '') + '>income each year</option><option value="wealth"' + (view === 'wealth' ? ' selected' : '') + '>what is left</option></select></label>'
-        + '<label class="hint" style="flex:1 1 240px;">Year <input type="range" min="0" max="' + c.p.durationYears + '" value="' + yr + '" oninput="setCmpYear(this.value)" style="width:70%;vertical-align:middle;"> age ' + (c.p.startAge + yr) + '</label></div>';
-      h += '<div class="machine-scroll">' + stackedConesSvg({ strategies, year: yr, startAge: c.p.startAge, title: (view === 'income' ? 'Income each year' : 'What is left') + ' — every strategy on one axis, today\'s money; whiskers = 10th–90th percentile at the chosen year' }) + '</div>';
-      h += '<div class="table-scroll-container"><table><thead><tr><th>At age ' + (c.p.startAge + yr) + '</th>' + strategies.map((st) => '<th style="color:' + st.color + '">' + budEsc(st.name) + '</th>').join('') + '</tr></thead><tbody>'
-        + '<tr><td>1-in-10 bad</td>' + strategies.map((st) => '<td>' + gbp(Math.round(st.cone.p10[yr] ?? 0)) + '</td>').join('') + '</tr>'
-        + '<tr><td>middle</td>' + strategies.map((st) => '<td><strong>' + gbp(Math.round(st.cone.p50[yr] ?? 0)) + '</strong></td>').join('') + '</tr>'
-        + '<tr><td>1-in-10 good</td>' + strategies.map((st) => '<td>' + gbp(Math.round(st.cone.p90[yr] ?? 0)) + '</td>').join('') + '</tr></tbody></table></div>';
+      const sts = cmpStrategies(c);
+      let h = '';
+      h += '<div class="strat-block"><div class="section-title">1 · What would I get each year?</div><p class="hint" style="margin:0 0 6px;">One panel per strategy, same scale. The line is the middle future; the shaded band runs from a 1-in-10 bad future to a 1-in-10 good one. A flat line with no band is income bought by contract. The dashed line is your first step.</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.income })), startAge: c.p.startAge, planIncome: c.p.targetAnnual }) + '</div></div>';
+      const riskRows = sts.map((st) => ({ name: st.name, color: st.color, mc: st.r.ruin.mc, hist: st.r.ruin.hist, label: st.r.ruinLabel ? 'cut after ' + st.r.signature.floorToAge + ' — ' + CMP_WORDS[st.id].fail : (st.r.ruin.mc === 0 && st.r.ruin.hist === 0 ? 'cannot run out — ' + CMP_WORDS[st.id].fail : CMP_WORDS[st.id].fail) }));
+      h += '<div class="strat-block"><div class="section-title">2 · How likely is it to go wrong?</div><p class="hint" style="margin:0 0 6px;">Bars: share of 1,000 futures in which the plan runs out (or, for Floor to an age, is cut). The white tick is the same thing measured on every real history since 1871. Under each bar: what "going wrong" looks like for that strategy.</p><div class="machine-scroll">' + riskBarsSvg({ rows: riskRows }) + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">3 · What would be left?</div><p class="hint" style="margin:0 0 6px;">All pots and unpaid rungs, today\'s money, at one age. Pick another age to see how the strategies diverge.</p><div id="cmpLeft">' + cmpLeftHtml(c) + '</div></div>';
       return h;
     }
     async function strategyOverviewHtml() {
@@ -7595,7 +7599,7 @@
           + '<td class="hint">' + budEsc(w.doWhat) + '</td><td class="hint">' + budEsc(w.exit) + '</td></tr>';
       }
       h += '</tbody></table></div>';
-      h += '<div id="cmpCones" style="margin-top:12px;">' + cmpConesHtml(c) + '</div>';
+      h += '</div><div class="card"><h2>Three questions, one picture each</h2><div id="cmpCones">' + cmpConesHtml(c) + '</div>';
       h += '<p class="hint" style="margin-top:8px;">All six ran the same plan (income shape, State Pension, horizon from Settings) on the same markets: Shiller 1871–2023 adjusted to world equity, every window plus 1,000 bootstrapped futures each carrying its own inflation; ladders priced on the Bank of England real curve and today\'s gilt prices. Results in today\'s money. An illustration, not advice.</p></div>';
       return h;
     }
@@ -10332,7 +10336,27 @@
     };
 
     // Drawdown schedule
+    async function strategyScheduleNotice(containerId, tabName) {
+      try {
+        const st = await getActiveStrategy();
+        if (!st.id || st.id === 'pots-and-valves') return false;
+        const settings = await getStressSettingsAsync();
+        const p = strategyPlanFor(settings);
+        const r = stressTestStrategy(st.id, p);
+        const d = getStrategy(st.id).describe();
+        let h = '<div class="alert alert-info">This plan is locked to <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
+        if (r.affordable) {
+          const inc = r.cones.income, w = r.cones.wealth;
+          h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Age</th><th>Income (middle)</th><th>Income (1-in-10 bad)</th><th>What is left (middle)</th></tr></thead><tbody>';
+          for (let y = 0; y < p.durationYears; y++) h += '<tr><td>' + (y + 1) + '</td><td>' + (p.startAge + y) + '</td><td>' + gbp(Math.round(inc.p50[y])) + '</td><td>' + gbp(Math.round(inc.p10[y])) + '</td><td>' + gbp(Math.round(w.p50[y])) + '</td></tr>';
+          h += '</tbody></table></div><p class="hint">Today\'s money, gross. ' + (r.strategyId === 'full-il-gilt' ? 'The order sheet and what-arrives-when table are on the strategy page.' : '') + '</p>';
+        } else h += '<div class="alert alert-danger">Not affordable as configured: ' + budEsc(r.reason || '') + '</div>';
+        const box = document.getElementById(containerId); if (box) box.innerHTML = h;
+        return true;
+      } catch (e) { console.error('strategy schedule notice', e); return false; }
+    }
     window.showDrawdownScheduleUI = async function() {
+      if (await strategyScheduleNotice('drawdownResults', 'drawdown schedule')) return;
       const inflation = parseFloat(document.getElementById('ddInflation').value) / 100 || 0.025;
       const duration = parseInt(document.getElementById('ddDuration').value) || 35;
 
@@ -10370,6 +10394,7 @@
 
     // Glidepath visualization
     window.showGlidepathUI = async function() {
+      if (await strategyScheduleNotice('glidepathResults', 'glidepath')) return;
       const inflation = parseFloat(document.getElementById('gpInflation').value) / 100 || 0.025;
       const duration = parseInt(document.getElementById('gpDuration').value) || 35;
 

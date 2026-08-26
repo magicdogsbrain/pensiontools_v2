@@ -2693,7 +2693,8 @@
           <div class="card">
             <h2>Stress Tester Settings</h2>
 
-            <div class="settings-section">
+            <!-- Legacy net-first target box: superseded by "Your income shape" (step 1 = this figure). Kept hidden so the save/load + net⇄gross plumbing (ssNetSpend/ssBaseSalary) keeps working. -->
+            <div class="settings-section" style="display:none;">
               <div class="section-title">Spending need</div>
               <div class="form-grid">
                 <div class="form-group">
@@ -7077,7 +7078,9 @@
       box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0 });
       const note = document.getElementById('incomeShapeNote');
       const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
-      note.innerHTML = (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+      const first = steps[0]; const pa = +document.getElementById('ssPA')?.value || 12570, brl = +document.getElementById('ssBRL')?.value || 50270, hrl = +document.getElementById('ssHRL')?.value || 125140;
+      const netMo = first ? grossToNet(+first.amount, pa, brl, hrl) / 12 : 0;
+      note.innerHTML = (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<strong>First step ' + gbp(+first.amount) + '/yr gross ≈ ' + gbp(Math.round(netMo)) + '/mo take-home</strong> at today\'s bands. ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
     };
     window.startShapeFromBudget = async function () {
       await refreshShapeRefs();

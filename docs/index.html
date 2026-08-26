@@ -390,7 +390,13 @@
       color: var(--bg);
     }
 
-    .strat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+    .strat-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .strat-layout > * { min-width: 0; }
+    .strat-page { min-width: 0; max-width: 100%; }
+    .strat-page .card, .strat-page .settings-section { min-width: 0; }
+    .machine-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .machine-scroll svg { display: block; }
+    @media (max-width: 760px) { .machine-scroll svg { min-width: 680px; } .strat-page h2 { font-size: 18px; } .sw-grid { grid-template-columns: 1fr; } .stepper p { flex-basis: 100%; } }
     .strat-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 2px; }
     .strat-nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 10px 8px 4px; }
     .strat-nav-item { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: var(--radius, 8px); font-size: 13px; width: 100%; cursor: pointer; }
@@ -405,7 +411,7 @@
     .stepper p { margin: 0; font-size: 13px; flex: 1 1 320px; }
     .sw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
     .sw-grid ul { margin: 6px 0 0 18px; padding: 0; font-size: 13px; }
-    @media (max-width: 760px) { .strat-layout { grid-template-columns: 1fr; } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; } }
+    @media (max-width: 760px) { .strat-layout { grid-template-columns: minmax(0, 1fr); } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; font-size: 12px; padding: 5px 8px; } }
     .tab-content {
       display: none;
     }
@@ -2010,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-BmWksbde.js"></script>
+  <script type="module" crossorigin src="./assets/main-CZk2lRUR.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2541,7 +2547,6 @@
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
-          <button class="sub-tab" data-stresstab="strategies" id="strategiesSubTab">Strategies <span id="strategiesNewDot" style="display:none;background:var(--accent);color:#fff;font-size:10px;border-radius:8px;padding:1px 6px;vertical-align:middle;">NEW</span></button>
           <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
         </div>
 
@@ -2637,68 +2642,8 @@
         </div>
 
         <!-- Glidepath Sub-tab -->
-        <div id="stress-strategies" class="stress-subtab hidden">
-          <div class="card">
-            <h2>Strategies <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— three honest ways to turn a pot into an income</span></h2>
-            <p style="font-size:13px;color:var(--text-muted);">
-              The tool never crowns a strategy — it teaches trade-offs and lets you choose. Every
-              comparison below runs on <strong>identical markets</strong>: the same 150 years of
-              historical windows, your numbers, all three strategies side by side.
-            </p>
-
-            <div class="settings-section">
-              <div class="section-title">What matters most to you? <span class="hint" style="font-weight:normal;">(a starting point, not advice — skippable)</span></div>
-              <div class="row-flex">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Certainty ↔ upside
-                  <select id="orientCertainty"><option value="certainty">Certainty</option><option value="mixed" selected>A bit of both</option><option value="upside">Upside</option></select></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Level ↔ flexible income
-                  <select id="orientLevel"><option value="level">Level</option><option value="mixed" selected>A bit of both</option><option value="flex">Flexible</option></select></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Set-and-forget ↔ hands-on
-                  <select id="orientHands"><option value="forget">Set and forget</option><option value="mixed" selected>A bit of both</option><option value="hands">Hands-on</option></select></label>
-                <button type="button" class="risk-btn" style="align-self:flex-end;" onclick="orientStrategies()">Suggest a starting point</button>
-              </div>
-              <p id="orientResult" class="hint" style="margin:8px 0 0;"></p>
-            </div>
-
-            <div id="strategyCards"></div>
-
-            <div class="settings-section">
-              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same plan, same 150 years of markets for all three)</span></div>
-              <p class="hint" style="margin:0 0 8px;">Each strategy's own dials, pre-filled from your Settings. Changing them here changes the <em>comparison only</em> — your saved plan is untouched (use Settings to change the plan). Turn Pots &amp; Valves' spending cuts off to compare on a level footing: it is the only strategy allowed to pay you less in a bad run.</p>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Pots &amp; Valves</div>
-                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cmpPvProt"> Spending cuts in bad runs (protection)</label>
-                  <div class="row-flex" style="margin-top:6px;">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cut %<input type="number" id="cmpPvCut" min="0" max="60" step="5" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cash draws before it cuts<input type="number" id="cmpPvLimit" min="1" max="24" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Ladder &amp; Ratchet</div>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Ladder years<input type="number" id="cmpLrYears" min="1" max="34" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bolted £/yr (year 1)<input type="number" id="cmpLrDraw" step="1000" style="width:110px;"></label>
-                  </div>
-                  <div class="row-flex" style="margin-top:6px;">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Trigger<select id="cmpLrTrig" style="width:110px;"><option value="band">Band</option><option value="calendar">Calendar</option></select></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Band ×<input type="number" id="cmpLrBand" min="1.05" max="2" step="0.05" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor &amp; Flex</div>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr (the floor)<input type="number" id="cmpEssentials" step="1000" style="width:110px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Floor to age<input type="number" id="cmpFfHorizon" min="60" max="105" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sleeve %<input type="number" id="cmpFfRate" min="1" max="10" step="0.5" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor to an age, then decide</div>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="cmpFtaAge" min="60" max="95" style="width:80px;"></label>
-                  <div class="row-flex" style="margin-top:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Full gilt ladder: cash years first<input type="number" id="cmpGiltCash" min="0" max="10" style="width:80px;"></label><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash (£)<input type="number" id="cmpGiltBridge" min="0" step="1000" style="width:110px;"></label></div>
-                  <p class="hint" style="margin:6px 0 0;">Floor the schedule uses your income shape and the plan horizon; nothing to dial.</p></div>
-              </div>
-              <div class="row-flex" style="margin-top:10px;">
-                <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
-                <button type="button" class="risk-btn" onclick="resetCompareDials()">Reset to my Settings</button>
-              </div>
-              <div id="compareResults" style="margin-top:10px;"></div>
-            </div>
-
+        <!-- Gilt-ladder explainer: rendered inside the Strategies tab (cloned into #glxHost); kept here hidden as the source markup -->
+        <div id="giltExplainerSource" style="display:none;">
             <div class="settings-section" id="giltLadderExplainer">
               <div class="section-title">What a gilt ladder is — and what one costs today <span class="hint" style="font-weight:normal;">(a worked example, not linked to your plan)</span></div>
               <div class="alert alert-warning" style="font-size:13px;">
@@ -2721,7 +2666,6 @@
                 <p class="hint">Further reading: the <a href="https://www.dmo.gov.uk/responsibilities/gilt-market/about-gilts/" target="_blank" rel="noopener">DMO’s About gilts</a>, Monevator’s <a href="https://monevator.com/should-you-build-an-index-linked-gilt-ladder/" target="_blank" rel="noopener">Should you build an index-linked gilt ladder?</a>, and LateGenXer’s <a href="https://lategenxer.streamlit.app/Gilt_Ladder" target="_blank" rel="noopener">Gilt Ladder Builder</a> (whose approach this example follows).</p>
               </details>
             </div>
-          </div>
         </div>
 
         <div id="stress-glidepath" class="stress-subtab hidden">

@@ -390,7 +390,13 @@
       color: var(--bg);
     }
 
-    .strat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+    .strat-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .strat-layout > * { min-width: 0; }
+    .strat-page { min-width: 0; max-width: 100%; }
+    .strat-page .card, .strat-page .settings-section { min-width: 0; }
+    .machine-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .machine-scroll svg { display: block; }
+    @media (max-width: 760px) { .machine-scroll svg { min-width: 680px; } .strat-page h2 { font-size: 18px; } .sw-grid { grid-template-columns: 1fr; } .stepper p { flex-basis: 100%; } }
     .strat-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 2px; }
     .strat-nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 10px 8px 4px; }
     .strat-nav-item { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: var(--radius, 8px); font-size: 13px; width: 100%; cursor: pointer; }
@@ -405,7 +411,7 @@
     .stepper p { margin: 0; font-size: 13px; flex: 1 1 320px; }
     .sw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
     .sw-grid ul { margin: 6px 0 0 18px; padding: 0; font-size: 13px; }
-    @media (max-width: 760px) { .strat-layout { grid-template-columns: 1fr; } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; } }
+    @media (max-width: 760px) { .strat-layout { grid-template-columns: minmax(0, 1fr); } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; font-size: 12px; padding: 5px 8px; } }
     .tab-content {
       display: none;
     }
@@ -2540,7 +2546,6 @@
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
-          <button class="sub-tab" data-stresstab="strategies" id="strategiesSubTab">Strategies <span id="strategiesNewDot" style="display:none;background:var(--accent);color:#fff;font-size:10px;border-radius:8px;padding:1px 6px;vertical-align:middle;">NEW</span></button>
           <button class="sub-tab" data-stresstab="stresssettings">Settings</button>
         </div>
 
@@ -2636,68 +2641,8 @@
         </div>
 
         <!-- Glidepath Sub-tab -->
-        <div id="stress-strategies" class="stress-subtab hidden">
-          <div class="card">
-            <h2>Strategies <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— three honest ways to turn a pot into an income</span></h2>
-            <p style="font-size:13px;color:var(--text-muted);">
-              The tool never crowns a strategy — it teaches trade-offs and lets you choose. Every
-              comparison below runs on <strong>identical markets</strong>: the same 150 years of
-              historical windows, your numbers, all three strategies side by side.
-            </p>
-
-            <div class="settings-section">
-              <div class="section-title">What matters most to you? <span class="hint" style="font-weight:normal;">(a starting point, not advice — skippable)</span></div>
-              <div class="row-flex">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Certainty ↔ upside
-                  <select id="orientCertainty"><option value="certainty">Certainty</option><option value="mixed" selected>A bit of both</option><option value="upside">Upside</option></select></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Level ↔ flexible income
-                  <select id="orientLevel"><option value="level">Level</option><option value="mixed" selected>A bit of both</option><option value="flex">Flexible</option></select></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Set-and-forget ↔ hands-on
-                  <select id="orientHands"><option value="forget">Set and forget</option><option value="mixed" selected>A bit of both</option><option value="hands">Hands-on</option></select></label>
-                <button type="button" class="risk-btn" style="align-self:flex-end;" onclick="orientStrategies()">Suggest a starting point</button>
-              </div>
-              <p id="orientResult" class="hint" style="margin:8px 0 0;"></p>
-            </div>
-
-            <div id="strategyCards"></div>
-
-            <div class="settings-section">
-              <div class="section-title">Compare on my numbers <span class="hint" style="font-weight:normal;">(same plan, same 150 years of markets for all three)</span></div>
-              <p class="hint" style="margin:0 0 8px;">Each strategy's own dials, pre-filled from your Settings. Changing them here changes the <em>comparison only</em> — your saved plan is untouched (use Settings to change the plan). Turn Pots &amp; Valves' spending cuts off to compare on a level footing: it is the only strategy allowed to pay you less in a bad run.</p>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Pots &amp; Valves</div>
-                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cmpPvProt"> Spending cuts in bad runs (protection)</label>
-                  <div class="row-flex" style="margin-top:6px;">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cut %<input type="number" id="cmpPvCut" min="0" max="60" step="5" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cash draws before it cuts<input type="number" id="cmpPvLimit" min="1" max="24" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Ladder &amp; Ratchet</div>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Ladder years<input type="number" id="cmpLrYears" min="1" max="34" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bolted £/yr (year 1)<input type="number" id="cmpLrDraw" step="1000" style="width:110px;"></label>
-                  </div>
-                  <div class="row-flex" style="margin-top:6px;">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Trigger<select id="cmpLrTrig" style="width:110px;"><option value="band">Band</option><option value="calendar">Calendar</option></select></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Band ×<input type="number" id="cmpLrBand" min="1.05" max="2" step="0.05" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor &amp; Flex</div>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Essentials £/yr (the floor)<input type="number" id="cmpEssentials" step="1000" style="width:110px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Floor to age<input type="number" id="cmpFfHorizon" min="60" max="105" style="width:80px;"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sleeve %<input type="number" id="cmpFfRate" min="1" max="10" step="0.5" style="width:80px;"></label>
-                  </div></div>
-                <div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">Floor to an age, then decide</div>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="cmpFtaAge" min="60" max="95" style="width:80px;"></label>
-                  <div class="row-flex" style="margin-top:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Full gilt ladder: cash years first<input type="number" id="cmpGiltCash" min="0" max="10" style="width:80px;"></label><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash (£)<input type="number" id="cmpGiltBridge" min="0" step="1000" style="width:110px;"></label></div>
-                  <p class="hint" style="margin:6px 0 0;">Floor the schedule uses your income shape and the plan horizon; nothing to dial.</p></div>
-              </div>
-              <div class="row-flex" style="margin-top:10px;">
-                <button type="button" onclick="runStrategyCompare()">Run the comparison</button>
-                <button type="button" class="risk-btn" onclick="resetCompareDials()">Reset to my Settings</button>
-              </div>
-              <div id="compareResults" style="margin-top:10px;"></div>
-            </div>
-
+        <!-- Gilt-ladder explainer: rendered inside the Strategies tab (cloned into #glxHost); kept here hidden as the source markup -->
+        <div id="giltExplainerSource" style="display:none;">
             <div class="settings-section" id="giltLadderExplainer">
               <div class="section-title">What a gilt ladder is — and what one costs today <span class="hint" style="font-weight:normal;">(a worked example, not linked to your plan)</span></div>
               <div class="alert alert-warning" style="font-size:13px;">
@@ -2720,7 +2665,6 @@
                 <p class="hint">Further reading: the <a href="https://www.dmo.gov.uk/responsibilities/gilt-market/about-gilts/" target="_blank" rel="noopener">DMO’s About gilts</a>, Monevator’s <a href="https://monevator.com/should-you-build-an-index-linked-gilt-ladder/" target="_blank" rel="noopener">Should you build an index-linked gilt ladder?</a>, and LateGenXer’s <a href="https://lategenxer.streamlit.app/Gilt_Ladder" target="_blank" rel="noopener">Gilt Ladder Builder</a> (whose approach this example follows).</p>
               </details>
             </div>
-          </div>
         </div>
 
         <div id="stress-glidepath" class="stress-subtab hidden">
@@ -5210,12 +5154,6 @@
         window.__hideHelpTip && window.__hideHelpTip();
         document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
         document.getElementById(`stress-${tab.dataset.stresstab}`).classList.remove('hidden');
-        if (tab.dataset.stresstab === 'strategies') {
-          loadStrategiesUI();
-          localStorage.setItem('strategiesSeen', '1');
-          const dot = document.getElementById('strategiesNewDot');
-          if (dot) dot.style.display = 'none';
-        }
         if (tab.dataset.stresstab === 'montecarlo') updateStrategyNote();
 
         // Only reload settings when explicitly switching to settings tab
@@ -5506,7 +5444,7 @@
       }
       let h = '<div class="card">' + (opts.compact ? '<div class="section-title">' : '<h2>') + budEsc(r.name) + (opts.compact ? '</div>' : ' — your plan, stress-tested</h2>');
       h += '<div class="alert ' + tone + '">' + head + '</div>';
-      const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p>' + fanChartSvg(band) + '</div>';
+      const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
       h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
       const fa = r.failAges || [];
@@ -7446,139 +7384,6 @@
       refreshStrategyCosts();
     };
 
-    // ---- Strategies tab (Phases D+E): learn, compare on identical markets, lock -------------
-    const STRATEGY_STORY = {
-      'pots-and-valves': {
-        shines: ['You want one flexible pot and monthly guidance', 'Markets are kind more often than not', 'You value upside over certainty'],
-        story: ['Your money sits in pots, each with a floor.', 'Each month, the pot that can best afford it pays you.', 'In bad markets, the safe pots take over.', 'In good markets, the pots refill and floors are restored.']
-      },
-      'ladder-and-ratchet': {
-        shines: ['You want your income bolted on for years ahead', 'You would sleep better with dates, not odds', 'You still want booms to buy MORE certainty'],
-        story: ['Your income for the years ahead is bought and banked.', 'The rest rides the market, aiming above a line.', 'Rise above the line, and more years get locked.', 'Never boom? The banked years still pay regardless.']
-      },
-      'full-il-gilt': {
-        shines: ['You want every year of income written down and bought, today', 'You never want to watch a market or make a decision again', 'You will hold equity, if at all, somewhere else (an ISA)'],
-        story: ['Your income plan, year by year, is turned into a shopping list of index-linked gilts.', 'Each one matures before the April of the year it pays for; you draw it monthly.', 'The first years sit in cash. Where no gilt fits a year, the year before is bought twice.', 'Nothing rides the market. Nothing needs deciding. Ever.']
-      },
-      'floor-to-age': {
-        shines: ['You want the next couple of decades certain and are happy to decide the rest later', 'You would rather turn market risk into a known price at 80 than carry it to 92', 'You keep the option of an annuity without buying one now'],
-        story: ['Every year of your income plan up to a chosen age is bought today as an index-linked gilt.', 'The rest sits untouched in world equities. Nothing to decide until that age.', 'At that age you know the reserve, your health and the price of the remaining years.', 'Buy them (rungs or an annuity) if the reserve covers it — otherwise buy the income it does cover.']
-      },
-      'floor-the-schedule': {
-        shines: ['You have written your income plan down, year by year, and mean it', 'You want nothing to decide each month', 'You would rather hold a reserve than chase upside'],
-        story: ['Every year of your income plan is bought today as an index-linked gilt maturing that year.', 'Each year one matures: that is the money. No decision.', 'What is left over sits untouched in shares as a reserve.', 'Once a year, if the reserve has run far ahead, it buys more years or bigger later years.']
-      },
-      'floor-and-flex': {
-        shines: ['Your essentials are non-negotiable; treats can flex', 'You can name your bills number honestly', 'You want zero chance the basics fail'],
-        story: ['The bills are bought up front, to an age you choose.', 'A second pot pays for everything fun.', 'Good years, bigger treats. Bad years, smaller ones.', 'The bills never notice either way.']
-      }
-    };
-
-    window.renderStrategyCards = async function () {
-      const box = document.getElementById('strategyCards');
-      if (!box) return;
-      const current = await getActiveStrategy();
-      box.innerHTML = listStrategies().map((st) => {
-        const d = st.describe();
-        const extra = STRATEGY_STORY[st.id] || { shines: [], story: [] };
-        const locked = current.id === st.id;
-        return '<div class="settings-section" style="border-color:' + (locked ? 'var(--accent)' : 'var(--border)') + ';">'
-          + '<div class="section-title">' + d.name + (locked ? ' <span style="color:var(--accent);font-size:12px;">— locked for this plan</span>' : '') + '</div>'
-          + '<p style="font-size:14px;margin:0 0 6px;"><strong>' + d.promise + '</strong></p>'
-          + '<ol style="font-size:13px;margin:6px 0 6px 18px;padding:0;">' + extra.story.map((c) => '<li>' + c + '</li>').join('') + '</ol>'
-          + '<p class="hint" style="margin:6px 0;">When it shines: ' + extra.shines.join(' · ') + '</p>'
-          + '<p style="font-size:13px;color:var(--warning);margin:6px 0;">How it fails: ' + d.failure + '</p>'
-          + '<details><summary class="hint" style="cursor:pointer;">Under the bonnet</summary>'
-          + '<p class="hint" style="margin:6px 0 0;">' + d.components.join(' · ') + (d.sensitivity ? ' · ' + d.sensitivity : '') + '</p></details>'
-          + (locked ? '' : '<button type="button" class="risk-btn" style="margin-top:8px;" onclick="lockStrategy(\'' + st.id + '\')">Choose &amp; lock ' + d.name + '</button>')
-          + '</div>';
-      }).join('');
-    };
-
-    window.orientStrategies = function () {
-      const c = document.getElementById('orientCertainty').value;
-      const l = document.getElementById('orientLevel').value;
-      const h = document.getElementById('orientHands').value;
-      const score = { 'pots-and-valves': 0, 'ladder-and-ratchet': 0, 'floor-and-flex': 0 };
-      if (c === 'certainty') { score['ladder-and-ratchet'] += 2; score['floor-and-flex'] += 1; }
-      if (c === 'upside') { score['pots-and-valves'] += 2; }
-      if (l === 'level') { score['ladder-and-ratchet'] += 2; }
-      if (l === 'flex') { score['floor-and-flex'] += 2; score['pots-and-valves'] += 1; }
-      if (h === 'forget') { score['floor-and-flex'] += 1; score['ladder-and-ratchet'] += 1; }
-      if (h === 'hands') { score['pots-and-valves'] += 2; }
-      const order = Object.entries(score).sort((a, b) => b[1] - a[1]);
-      const names = { 'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex' };
-      document.getElementById('orientResult').textContent =
-        'Closest to what you said you wanted: start with ' + names[order[0][0]] + ', then read ' + names[order[1][0]] + '. A starting point, not advice — read all three.';
-    };
-
-    window.runStrategyCompare = async function () {
-      const box = document.getElementById('compareResults');
-      box.innerHTML = '<div class="loading"><div class="spinner"></div>Running all three strategies over every historical window and 1,000 futures each…</div>';
-      await new Promise((r) => setTimeout(r, 30));
-      try {
-        const saved = await getStressSettingsAsync();
-        const settings = compareOverrides(saved);
-        const p = strategyPlanFor(settings);
-        const r = stressTestAll(p);
-        const cols = Object.keys(r.strategies);
-        const S = r.strategies;
-        const target = p.targetAnnual;
-        let html = '<div class="table-scroll-container"><table><thead><tr><th></th>'
-          + cols.map((id) => '<th>' + budEsc(S[id].name) + (saved.strategyId === id ? ' <span class="hint">(locked)</span>' : '') + '</th>').join('') + '</tr></thead><tbody>';
-        const cell = (id, fn) => S[id].affordable ? fn(S[id]) : '<span class="hint">not affordable</span>';
-        const row = (label, fn) => '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cell(id, fn) + '</td>').join('') + '</tr>';
-        html += row('Worst 12 months you\'d have lived', (t) => gbp(Math.round(t.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(t.worst12.median)) + ')</span>');
-        html += row('Income guaranteed to age', (t) => budEsc(t.guaranteedToAge));
-        html += row('Chance of running out', (t) => t.strategyId === 'full-il-gilt'
-          ? '0% — every year is bought today. <span class="hint">The risk is the price (most of the pot) and the index it tracks, not the market.</span>'
-          : t.strategyId === 'floor-to-age'
-          ? t.ruin.mc.toFixed(1) + '% <span class="hint">chance the plan is CUT after ' + t.signature.floorToAge + ' (' + t.ruin.hist.toFixed(1) + '% in history). It never runs out — the reserve buys a smaller income.</span>'
-          : t.strategyId === 'floor-the-schedule'
-          ? '0% — every year of the schedule is bought as gilts up front. <span class="hint">The risk is the price: most of the pot, and no growth in the plan itself.</span>'
-          : t.strategyId === 'floor-and-flex'
-          ? '0% — the bills are bought as gilts up front and cannot fail. <span class="hint">The risk moves into the treats: see the worst-12-months row.</span>'
-          : t.ruin.hist.toFixed(1) + '% <span class="hint">history</span> · ' + t.ruin.mc.toFixed(1) + '% <span class="hint">Monte Carlo</span>');
-        html += row('Left at the horizon (1-in-10 bad / middle / 1-in-10 good)', (t) => gbp(Math.round(t.terminal.p10)) + ' / ' + gbp(Math.round(t.terminal.p50)) + ' / ' + gbp(Math.round(t.terminal.p90)));
-        html += row('Allowed to pay you less?', (t) => t.strategyId === 'pots-and-valves'
-          ? (settings.disableProtection ? 'No — cuts switched off for this comparison' : 'Yes — up to ' + Math.round((1 - settings.protectionMult) * 100) + '% cuts; median ' + Math.round((t.signature.protMonthsMedian || 0) / 12) + ' years on reduced income in history')
-          : t.strategyId === 'ladder-and-ratchet' ? 'No — the bolted income is paid in full until the sleeve is empty' : t.strategyId === 'floor-the-schedule' ? 'No — the schedule is bought; only the reserve moves' : t.strategyId === 'floor-to-age' ? 'Only after ' + t.signature.floorToAge + ', and only if the reserve cannot buy the rest' : t.strategyId === 'full-il-gilt' ? 'No — nothing is left to the market' : 'Treats flex; the bills never do');
-        html += '</tbody></table></div>';
-        for (const id of cols) if (!S[id].affordable) html += '<p class="hint" style="color:var(--warning);">' + budEsc(S[id].name) + ': ' + budEsc(S[id].reason) + '.</p>';
-        if (S['floor-and-flex'].affordable && S['floor-and-flex'].signature.year1Flex < (target * 0.15)) {
-          html += '<p class="hint" style="color:var(--warning);">Floor &amp; Flex at these essentials: the floor consumes almost the whole pot — treats start at just '
-            + gbp(Math.round(S['floor-and-flex'].signature.year1Flex)) + '/yr. The 0% running-out figure is real, but this is a bare-bills retirement in bad markets.</p>';
-        }
-        html += '<p class="hint" style="margin-top:6px;">All strategies ran the SAME plan on the SAME markets (Shiller 1871–2023 adjusted to world equity — US history less 1.5%/yr: every window plus 1,000 bootstrapped futures each, each carrying its own inflation) and the same income need; results in today\'s money. '
-          + 'Pots &amp; Valves runs your actual plan settings; Ladder &amp; Ratchet banks ' + (r.configs.lr ? r.configs.lr.ladderYears : '—') + ' years up front (cost ' + gbp(Math.round(r.configs.baseLadderCost || 0)) + '); '
-          + 'Floor &amp; Flex buys the essentials floor (' + gbp(Math.round(r.configs.ffFloorCost || 0)) + ') and flexes the rest at ' + ((r.configs.ff ? r.configs.ff.rate : 0.04) * 100).toFixed(1) + '%. '
-          + 'Lock any of them in Settings and the Monte Carlo tab shows exactly these numbers with the full cones.</p>';
-        // The three cones side by side — same plan, same futures, same scale of honesty
-        html += '<div class="section-title" style="margin-top:14px;">Cones of uncertainty — the same plan under each strategy</div>';
-        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;">';
-        for (const id of cols) html += strategyResultCard(S[id], p, { compact: true });
-        html += '</div>';
-        // Canned decades — one famous bust, one famous boom
-        html += '<div class="section-title" style="margin-top:14px;font-size:13px;">Two real decades, same money</div>';
-        const dec = (y, label) => {
-          const c = cannedDecade(p, y, 1);
-          const cellD = (id) => {
-            const d = c[id];
-            if (!d) return '—';
-            if (id === 'pots-and-valves') return d.failed ? 'ran out at ' + Math.round(d.failAge) : 'lasted · ' + gbp(Math.round(d.terminal)) + ' left';
-            if (id === 'ladder-and-ratchet') return (d.secured ? 'ratcheted +' + d.secured + ' yrs' : 'never triggered') + (d.survived === false ? ' · sleeve failed' : '');
-            return 'worst treats ' + gbp(Math.round(d.worstYearFlex)) + '/yr';
-          };
-          return '<tr><td>' + label + '</td>' + cols.map((id) => '<td>' + cellD(id) + '</td>').join('') + '</tr>';
-        };
-        html += '<div class="table-scroll-container"><table><tbody>' + dec(1966, 'Start 1966 (the long bust)') + dec(1985, 'Start 1985 (the long boom)') + '</tbody></table></div>';
-        box.innerHTML = html;
-      } catch (e) {
-        console.error('Compare error:', e);
-        box.innerHTML = '<div class="alert alert-warning">Could not run the comparison: ' + budEsc(e.message) + '</div>';
-      }
-    };
-
     window.lockStrategy = async function (id) {
       const st = getStrategy(id);
       const d = st.describe();
@@ -7589,7 +7394,6 @@
       try {
         await setActiveStrategy(id, {});
         showToast(d.name + ' locked for this plan.', 'success');
-        renderStrategyCards();
         updateStrategyNote();
       } catch (e) { showToast('Could not lock: ' + e.message, 'error'); }
     };
@@ -7597,31 +7401,30 @@
     window.updateStrategyNote = async function () {
       const el = document.getElementById('mcStrategyNote');
       if (!el) return;
-      // First-run pointer: the strategy chooser is easy to miss as a sub-tab.
-      const dot = document.getElementById('strategiesNewDot');
-      if (dot && !localStorage.getItem('strategiesSeen')) dot.style.display = 'inline-block';
       try {
         const st = await getActiveStrategy();
-        if (!localStorage.getItem('strategiesSeen') && (!st.id || st.id === 'pots-and-valves')) {
-          el.innerHTML = '<div class="alert alert-info"><strong>New:</strong> compare three ways to turn your pot into an income — Pots &amp; Valves (this simulator), Ladder &amp; Ratchet, and Floor &amp; Flex — on your own numbers over 150 years of markets, and lock one to your plan. <button type="button" class="risk-btn" style="padding:4px 12px;margin-left:8px;" onclick="document.getElementById(\'strategiesSubTab\').click()">Open Strategies</button></div>';
-          el.style.display = 'block';
-          return;
-        }
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
-          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine — every real ' + '35-year history and 1,000 bootstrapped futures — and draws its cones of uncertainty. The same numbers appear in the <strong>Strategies</strong> compare.</div>';
+          el.innerHTML = '<div class="alert alert-info">This plan is locked to <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
           el.style.display = 'block';
-        } else { el.style.display = 'none'; }
+        } else {
+          el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. Six strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+          el.style.display = 'block';
+        }
       } catch (e) { el.style.display = 'none'; }
     };
 
     // ---- Gilt ladder explainer: a generic worked example priced from public data; never the user's plan ----
     window.renderGiltLadderExplainer = function () {
-      const out = document.getElementById('glxOut');
+      // The explainer markup lives hidden in #giltExplainerSource and is cloned into the Strategies
+      // tab (#glxHost); ids are duplicated, so always address the VISIBLE copy when it exists.
+      const root = document.querySelector('#glxHost') || document;
+      const $ = (id) => root.querySelector('#' + id);
+      const out = $('glxOut');
       if (!out) return;
-      const amount = Math.max(0, +document.getElementById('glxAmount').value || 0);
-      const years = Math.max(1, Math.min(40, +document.getElementById('glxYears').value || 10));
-      const kind = document.getElementById('glxKind').value === 'nominal' ? 'nominal' : 'real';
+      const amount = Math.max(0, +$('glxAmount').value || 0);
+      const years = Math.max(1, Math.min(40, +$('glxYears').value || 10));
+      const kind = $('glxKind').value === 'nominal' ? 'nominal' : 'real';
       const sheet = orderSheet({ rungYears: Array.from({ length: years }, (_, i) => i + 1), drawForYear: () => amount, startYear: new Date().getFullYear(), kind });
       const total = sheet.total;
       const avgY = years ? sheet.rows.reduce((a, r) => a + r.realYield, 0) / years : 0;
@@ -7642,50 +7445,6 @@
       out.innerHTML = h;
     };
 
-    // Compare dials: pre-filled from Settings; read back as an OVERRIDDEN settings clone so the compare
-    // runs through the very same planFromSettings → stressTestStrategy path as a saved plan would.
-    window.resetCompareDials = async function () {
-      const s = await getStressSettingsAsync();
-      const prm = s.strategyParams || {};
-      const set = (id, v) => { const el = document.getElementById(id); if (el) { if (el.type === 'checkbox') el.checked = !!v; else el.value = v; } };
-      set('cmpPvProt', !s.disableProtection);
-      set('cmpPvCut', Math.round((1 - (s.protectionMult ?? 0.8)) * 100));
-      set('cmpPvLimit', s.consecutiveLimit ?? 3);
-      const dur = Math.min(s.duration || 35, 35);
-      set('cmpLrYears', prm.ladderYears || Math.min(15, Math.floor(dur / 2)));
-      set('cmpLrDraw', prm.drawAnnual || s.baseSalary || 0);
-      set('cmpLrTrig', prm.triggerMode || 'band');
-      set('cmpLrBand', prm.bandThreshold || 1.2);
-      set('cmpEssentials', prm.essentialsAnnual || Math.round((s.baseSalary || 40000) * 0.55));
-      set('cmpFfHorizon', prm.horizonAge || Math.min(92, 57 + dur));
-      set('cmpFfRate', ((prm.sleeveRate || 0.04) * 100));
-      set('cmpFtaAge', prm.floorToAge || 80);
-      set('cmpGiltCash', prm.cashYears ?? 2);
-      set('cmpGiltBridge', prm.bridgeCash || 0);
-    };
-    function compareOverrides(s) {
-      const v = (id) => +document.getElementById(id)?.value;
-      const prot = document.getElementById('cmpPvProt')?.checked;
-      return {
-        ...s,
-        disableProtection: !prot,
-        protectionMult: Math.max(0.4, Math.min(1, 1 - (v('cmpPvCut') || 0) / 100)),
-        consecutiveLimit: v('cmpPvLimit') || s.consecutiveLimit || 3,
-        strategyParams: {
-          ...(s.strategyParams || {}),
-          ladderYears: v('cmpLrYears') || undefined,
-          drawAnnual: v('cmpLrDraw') || undefined,
-          triggerMode: document.getElementById('cmpLrTrig')?.value || 'band',
-          bandThreshold: v('cmpLrBand') || 1.2,
-          essentialsAnnual: v('cmpEssentials') || undefined,
-          horizonAge: v('cmpFfHorizon') || undefined,
-          sleeveRate: (v('cmpFfRate') || 4) / 100,
-          floorToAge: v('cmpFtaAge') || 80,
-          cashYears: Number.isFinite(v('cmpGiltCash')) ? v('cmpGiltCash') : 2,
-          bridgeCash: v('cmpGiltBridge') || 0
-        }
-      };
-    }
     // =====================================================================================
     // STRATEGIES tab — one page per strategy, same five blocks: the machine · turn the dials ·
     // two real decades · where it shines / how it fails / what you do / how you get out · the
@@ -7703,7 +7462,7 @@
       await new Promise((r) => setTimeout(r, 20));
       try {
         if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
-        else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltLadderExplainer'); if (src) document.getElementById('glxHost').appendChild(src.cloneNode(true)); renderGiltLadderExplainer(); }
+        else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltExplainerSource')?.firstElementChild; if (src) document.getElementById('glxHost').appendChild(src.cloneNode(true)); renderGiltLadderExplainer(); }
         else if (id === 'full-il-gilt') box.innerHTML = await fullGiltPageHtml();
         else if (id === 'floor-to-age') box.innerHTML = await floorToAgePageHtml();
         else if (STRATEGY_PAGES[id]) box.innerHTML = await specStrategyPageHtml(id);
@@ -7746,7 +7505,7 @@
       const yr = Math.max(0, Math.min(c.p.durationYears, window._cmpYear));
       let h = '<div class="row-flex" style="margin:6px 0;"><label class="hint">Show <select onchange="setCmpView(this.value)"><option value="income"' + (view === 'income' ? ' selected' : '') + '>income each year</option><option value="wealth"' + (view === 'wealth' ? ' selected' : '') + '>what is left</option></select></label>'
         + '<label class="hint" style="flex:1 1 240px;">Year <input type="range" min="0" max="' + c.p.durationYears + '" value="' + yr + '" oninput="setCmpYear(this.value)" style="width:70%;vertical-align:middle;"> age ' + (c.p.startAge + yr) + '</label></div>';
-      h += stackedConesSvg({ strategies, year: yr, startAge: c.p.startAge, title: (view === 'income' ? 'Income each year' : 'What is left') + ' — every strategy on one axis, today\'s money; whiskers = 10th–90th percentile at the chosen year' });
+      h += '<div class="machine-scroll">' + stackedConesSvg({ strategies, year: yr, startAge: c.p.startAge, title: (view === 'income' ? 'Income each year' : 'What is left') + ' — every strategy on one axis, today\'s money; whiskers = 10th–90th percentile at the chosen year' }) + '</div>';
       h += '<div class="table-scroll-container"><table><thead><tr><th>At age ' + (c.p.startAge + yr) + '</th>' + strategies.map((st) => '<th style="color:' + st.color + '">' + budEsc(st.name) + '</th>').join('') + '</tr></thead><tbody>'
         + '<tr><td>1-in-10 bad</td>' + strategies.map((st) => '<td>' + gbp(Math.round(st.cone.p10[yr] ?? 0)) + '</td>').join('') + '</tr>'
         + '<tr><td>middle</td>' + strategies.map((st) => '<td><strong>' + gbp(Math.round(st.cone.p50[yr] ?? 0)) + '</strong></td>').join('') + '</tr>'
@@ -7828,7 +7587,7 @@
       let h = '<div class="card"><h2>Full index-linked gilt ladder <span class="hint" style="font-weight:normal;font-size:13px;">— the fully deterministic plan</span></h2>';
       h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Every year of your income plan is bought today.</strong> The first years sit in cash; every later year has one index-linked gilt that matures just before that year\'s April. You draw it monthly. Nothing rides the market, and there is nothing to decide — at 60, at 75, or at 90.</p>';
       // Block 1 — the machine
-      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine" class="machine-scroll">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" min="0" max="10" value="' + (prm.cashYears ?? 2) + '" style="width:80px;" onchange="setGiltDial(\'cashYears\', this.value)"></label>'
@@ -7843,7 +7602,7 @@
       if (plan.years.length) {
         const n = plan.years.length;
         const paths = { 'if inflation runs like 1973 onwards': cpiPathFrom(1973, n), 'if inflation runs like 2010 onwards': cpiPathFrom(2010, n) };
-        h += '<div class="strat-block"><div class="section-title">3 · Two real decades</div><p class="hint" style="margin:0 0 6px;">Most strategies look different in a bad decade. This one does not — so the honest picture is what the rungs pay in <em>cash</em> under two real inflation histories. The dashed line is your plan in today\'s money; the solid lines are the pounds that would actually arrive. They buy the same things.</p>' + inflationDecadesSvg({ years: plan.years, cpiPaths: paths })
+        h += '<div class="strat-block"><div class="section-title">3 · Two real decades</div><p class="hint" style="margin:0 0 6px;">Most strategies look different in a bad decade. This one does not — so the honest picture is what the rungs pay in <em>cash</em> under two real inflation histories. The dashed line is your plan in today\'s money; the solid lines are the pounds that would actually arrive. They buy the same things.</p>' + '<div class="machine-scroll">' + inflationDecadesSvg({ years: plan.years, cpiPaths: paths }) + '</div>'
           + '<p class="hint">What this does NOT protect: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030 (already in today\'s prices), and frozen tax thresholds. The way to lean against those is a higher floor or an ISA held outside the plan — not this ladder.</p></div>';
       }
       // Block 4 — shines / fails / do / exit
@@ -7885,7 +7644,7 @@
       const sg = r.signature;
       const d = { years: sg.amountsByAge, startAge: p.startAge, A: sg.A, floorToAge: sg.floorToAge, reserveCone: sg.reserveCone, restCostFull: sg.restCostFull, canBuy: sg.canBuy, levelIfCut: sg.levelIfCut, pot: p.pot + (p.isa || 0), floorCost: sg.floorCost, sleeveE0: sg.sleeveE0 };
       window._ftaCache = d;
-      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="ftaMachine">' + floorToAgeSvg(d, window._ftaFrame) + '</div><div id="ftaStepper">' + stepperHtml(FTA_FRAMES, window._ftaFrame, 'setFtaFrame') + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="ftaMachine" class="machine-scroll">' + floorToAgeSvg(d, window._ftaFrame) + '</div><div id="ftaStepper">' + stepperHtml(FTA_FRAMES, window._ftaFrame, 'setFtaFrame') + '</div></div>';
       // dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" onchange="setFtaDial(this.value)"></label>'
@@ -7899,7 +7658,7 @@
       // two real decades: reserve path from 1966 and 1985 starts (Shiller windows, world-adjusted)
       const rtr = getRtr(); const A = sg.A; const paths = {};
       for (const [label, y, m] of [['from Jan 1966', 1966, 1], ['from Jan 1985', 1985, 1], ['from Jan 2000', 2000, 1]]) { const s0 = (y - 1871) * 12 + (m - 1); if (s0 + 12 * A < rtr.length) paths[label] = Array.from({ length: A + 1 }, (_, i) => sg.sleeveE0 * rtr[s0 + 12 * i] / rtr[s0]); }
-      h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><p class="hint" style="margin:0 0 6px;">The reserve\'s actual path if you had started in January 1966 (the long bust), 1985 (the long boom) or 2000 (the lost decade), world-adjusted and after inflation, against the orange line: what the remaining years would cost at ' + sg.floorToAge + ' on today\'s curve. Above the line, the decision is easy; below it, it is a cut.</p>' + ftaDecadesSvg({ A, floorToAge: sg.floorToAge, startAge: p.startAge, paths, restCostFull: sg.restCostFull }) + '</div>';
+      h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><p class="hint" style="margin:0 0 6px;">The reserve\'s actual path if you had started in January 1966 (the long bust), 1985 (the long boom) or 2000 (the lost decade), world-adjusted and after inflation, against the orange line: what the remaining years would cost at ' + sg.floorToAge + ' on today\'s curve. Above the line, the decision is easy; below it, it is a cut.</p>' + '<div class="machine-scroll">' + ftaDecadesSvg({ A, floorToAge: sg.floorToAge, startAge: p.startAge, paths, restCostFull: sg.restCostFull }) + '</div></div>';
       // shines / fails / do / exit
       h += '<div class="strat-block"><div class="section-title">4 · Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--success);">Where it shines</div><ul><li>The expensive early years — the ones most exposed to a bad start — are certain.</li><li>Market risk is converted into a known price on a known day, when you know more than you do now.</li><li>The annuity option stays open without being bought early.</li></ul></div>'
@@ -8003,11 +7762,11 @@
         return h;
       }
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
-      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine" class="machine-scroll">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
       h += '<div class="alert ' + (r.ruin.mc <= 5 ? 'alert-success' : r.ruin.mc <= 15 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">' + spec.verdict(r, p) + '</div>';
       h += '<div style="margin-top:8px;"><button type="button" onclick="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
-      h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div>' + spec.decades(r, p) + '</div>';
+      h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><div class="machine-scroll">' + spec.decades(r, p) + '</div></div>';
       const list = (items) => '<ul>' + items.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
       h += '<div class="strat-block"><div class="section-title">4 · Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--success);">Where it shines</div>' + list(spec.shines) + '</div>'
@@ -8018,12 +7777,7 @@
       return h;
     }
 
-    window.loadStrategiesUI = async function () {
-      renderStrategyCards();
-      renderGiltLadderExplainer();
-      const ess = document.getElementById('cmpEssentials');
-      if (ess && !ess.value) await resetCompareDials();
-    };
+
 
     // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------
     window.renderExtraIncomes = function (settings) {

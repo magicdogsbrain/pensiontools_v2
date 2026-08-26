@@ -5338,6 +5338,7 @@
 
           // Initialize and show wizard
           initTaxYearWizard(wizardContainer, dateStr, async (wizardResult) => {
+            try { await updatePlanLockChip(); } catch (e) { /* cosmetic */ }   // a set-up tax year locks the plan
             // Wizard completed - hide it and proceed with calculation
             wizardContainer.style.display = 'none';
 
@@ -5391,6 +5392,7 @@
         await saveDecision(currentDecision);
         showToast('Decision saved to history', 'success');
         await renderHistory();  // Refresh history display
+        try { await updatePlanLockChip(); } catch (e) { /* cosmetic */ }   // the first record locks the plan
       } catch (error) {
         console.error('Save error:', error);
         showToast('Error saving: ' + error.message, 'error');
@@ -8573,7 +8575,7 @@
         box.style.cssText = 'background:var(--card,#1e293b);border:1px solid var(--border,#334155);border-radius:12px;max-width:440px;width:100%;padding:20px;';
         const msg = document.createElement('p');
         msg.style.cssText = 'white-space:pre-line;font-size:14px;line-height:1.55;margin:0 0 16px;';
-        msg.textContent = message;
+        if (message && typeof message === 'object' && message.html) msg.innerHTML = message.html; else msg.textContent = message;
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
         const no = document.createElement('button');

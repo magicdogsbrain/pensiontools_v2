@@ -43,6 +43,9 @@ export function sampleOf(seriesList, years, n = 80) {
   return out;
 }
 
+/** DB pension / income streams / 'other' for plan year y, today's money (0 when the plan has none). */
+const otherAt = (p, y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
+
 export function coneOf(seriesList, years) {
   const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
   for (let y = 0; y <= years; y++) {
@@ -210,7 +213,7 @@ function ladderTest(p, configs) {
       const lastRung = Math.min(lr.ladderYears + securedBy, planYears);
       wealth.push(sleeve + ladderPvAt(y, lastRung, drawForYear, pricer));
       const failedBy = w.survived === false && w.failAge != null && (p.startAge + y) >= w.failAge;
-      income.push(failedBy ? 0 : drawForYear(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0));
+      income.push(failedBy ? 0 : drawForYear(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));
     }
     return { wealth, income };
   };
@@ -254,7 +257,7 @@ function flexTest(p, configs) {
     for (let y = 0; y <= planYears; y++) {
       // Unpaid rungs are valued only to the floor's horizon (what was actually bought), never to the plan end.
       wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, Math.min(planYears, (ff.horizonAge || (p.startAge + planYears)) - p.startAge), floorDraw, pricer));
-      income.push(floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0));
+      income.push(floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0) + otherAt(p, y));
     }
     return { wealth, income };
   };
@@ -293,7 +296,7 @@ function scheduleFloorTest(p, configs) {
     const wealth = [], income = [];
     for (let y = 0; y <= planYears; y++) {
       wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, planYears, c.floorDraw, pricer));
-      income.push(c.floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0));   // = the schedule, by contract
+      income.push(c.floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));   // = the schedule, by contract
     }
     return { wealth, income };
   };
@@ -339,14 +342,14 @@ function floorToAgeTest(p, configs) {
     for (let y = 0; y <= N; y++) {
       if (y <= A) {
         wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, A, c.floorDraw, pricer));
-        income.push(c.floorDraw(y + 1) + spAt(y));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
       } else {
         const grow = (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, sA);
         const rungsPv = full
           ? (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += Math.max(0, c.amountAt(k) - (k > (p.spStartYear ?? Infinity) ? p.spAnnual : 0)) * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })()
           : (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += level * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })();
         wealth.push(leftover * grow + rungsPv);
-        income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y));
+        income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y) + otherAt(p, y));
       }
     }
     return { sA, full, level, leftover, wealth, income, worst: Math.min(...income) };
@@ -397,7 +400,7 @@ function fullGiltTest(p, configs) {
   const income = [], wealth = [];
   const costByYear = {}; for (const o of plan.orders) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
   for (let y = 0; y <= N; y++) {
-    const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)));
+    const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)) + otherAt(p, y));
     let w = plan.spare; for (const yr of plan.years) if (yr.Y >= firstTaxYear + y) w += yr.from === 'cash' ? yr.need : (costByYear[yr.Y] || 0);
     wealth.push(w);
   }

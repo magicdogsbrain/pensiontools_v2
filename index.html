@@ -2207,10 +2207,19 @@
                   <label>Total in your ISA (£)</label>
                   <input type="number" id="dsIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
                 </div>
+                <div class="form-group">
+                  <label>How the ISA is used</label>
+                  <select id="dsIsaPolicy" style="max-width:260px;">
+                    <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
+                    <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
+                    <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
+                  </select>
+                </div>
               </div>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
-                tax-free bridge, drawn without tax and modelled with its own steady return.
+                Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
+                own steady return; choose above whether it tops up income tax-free, is rationed to the State
+                Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -3028,10 +3037,19 @@
                   <label>Total in your ISA (£)</label>
                   <input type="number" id="ssIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
                 </div>
+                <div class="form-group">
+                  <label>How the ISA is used</label>
+                  <select id="ssIsaPolicy" style="max-width:260px;">
+                    <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
+                    <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
+                    <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
+                  </select>
+                </div>
               </div>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Your risk level shapes how the SIPP is invested. The ISA is kept separate — it’s the
-                tax-free bridge, drawn without tax and modelled with its own steady return.
+                Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
+                own steady return; choose above whether it tops up income tax-free, is rationed to the State
+                Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
@@ -4232,6 +4250,7 @@
         document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
         syncNetFromGross('ds');
         document.getElementById('dsIsaBalance').value = decisionSettings.isaBalance || 0;
+        { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = decisionSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
         document.getElementById('dsAccessMethod').value = decisionSettings.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = decisionSettings.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
@@ -4291,6 +4310,7 @@
         document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
+        { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = stressSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
         document.getElementById('ssAccessMethod').value = stressSettings.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = stressSettings.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
@@ -8107,6 +8127,7 @@
         document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
+        { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
         document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
@@ -8200,6 +8221,7 @@
           hodlEnabled: document.getElementById('ssHodlEnabled').checked,
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
+          isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
           spendingProfile: document.getElementById('ssSpendingProfile').value,
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
@@ -8317,6 +8339,7 @@
         document.getElementById('dsDisableProtection').checked = s.disableProtection || false;
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
         document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
+        { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
         document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = s.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
@@ -9986,6 +10009,7 @@
           disableProtection: document.getElementById('dsDisableProtection').checked,
           consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value,
           isaBalance: +document.getElementById('dsIsaBalance').value || 0,
+          isaDrawdownStrategy: document.getElementById('dsIsaPolicy')?.value || 'minimiseEarlyTax',
           // Diversifiers sleeve + tagged portfolio — the Decision target now reflects the chosen
           // allocation (preset / custom / tagged) consistently with Stress.
           diversifierStart: dsAlloc.diversifierStart || 0,

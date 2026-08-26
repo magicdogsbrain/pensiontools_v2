@@ -2872,16 +2872,20 @@
               <div style="display:none;">
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
-              <div style="margin-top:12px;">
-                <div class="section-title" style="font-size:13px;">Income shape <span class="hint" style="font-weight:normal;">— level, or stepped with age (go-go / go-slow / no-go)</span></div>
-                <div class="row-flex">
-                  <button type="button" class="risk-btn" id="shapeLevelBtn" onclick="setIncomeShape('level')">Level for the whole plan</button>
-                  <button type="button" class="risk-btn" id="shapeStepBtn" onclick="setIncomeShape('phases')">Stepped by age</button>
+              <div id="incomeShapeBlock" style="margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="section-title" style="font-size:14px;">Your income shape <span class="hint" style="font-weight:normal;">— the one number every tool works to, year by year</span></div>
+                <p class="hint" style="margin:0 0 8px;">Your budget is what you spend <em>now</em>. Retirement spending usually runs in three phases — <strong>go-go</strong> (travel, projects, the years you are fit), <strong>go-slow</strong> (from the mid-70s, spending typically drifts down 1–2% a year in real terms), and <strong>no-go</strong> (the basics, and care if it comes). Nobody can budget those years line by line, so don't try: start from today's figure, then draw the steps you'd actually want. Above the budget is fine. Below your essentials turns orange.</p>
+                <div class="row-flex" style="margin-bottom:6px;">
+                  <button type="button" class="risk-btn" onclick="startShapeFromBudget()">Start from my budget</button>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" onclick="startShapeFromNumber()">Use it</button></label>
+                  <button type="button" class="risk-btn" onclick="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Your age now
                     <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" oninput="renderIncomeSteps()"></label>
                 </div>
-                <div id="incomeStepsEditor" style="display:none; margin-top:8px;"></div>
+                <div id="incomeShapePreview" class="machine-scroll"></div>
+                <div id="incomeStepsEditor" style="margin-top:8px;"></div>
                 <p id="incomeShapeNote" class="hint" style="margin:6px 0 0;"></p>
+                <div style="display:none;"><button type="button" id="shapeLevelBtn"></button><button type="button" id="shapeStepBtn"></button></div>
               </div>
               <div id="stratCopyOffer" style="display:none; margin-top:8px;">
                 <button type="button" class="risk-btn" onclick="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>
@@ -3657,6 +3661,9 @@
       getRtr,
       stackedConesSvg,
       STRATEGY_COLORS,
+      incomeStaircaseSvg,
+      suggestSteps,
+      shapeAmountAtAge,
       ladderRatchetSvg,
       floorFlexSvg,
       floorScheduleSvg,
@@ -4299,7 +4306,8 @@
         document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', stressSettings.strategyParams || {});
-        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : [];
+        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
+        refreshShapeRefs().then(() => renderIncomeSteps());
         if (stressSettings.shapeAgeNow) document.getElementById('shapeAgeNow').value = stressSettings.shapeAgeNow;
         setIncomeShape(stressSettings.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
@@ -7004,8 +7012,8 @@
           act = () => { switchToTab('budget'); setTimeout(() => openBudgetWizard(), 400); };
         } else if (!targetApplied) {
           const m = budget.derived?.allInComfortableMonthly;
-          text = 'Your budget adds up' + (m ? ' to about ' + gbp(Math.round(m)) + '/mo take-home' : '') + '. Make it your plan\'s target, then see if your pension can pay for it.';
-          btn = 'Set as my plan\'s target';
+          text = 'Your budget adds up' + (m ? ' to about ' + gbp(Math.round(m)) + '/mo take-home' : '') + '. That is today\'s spending — use it as the first step of your income shape, then draw the later years and see if the pension can pay for them.';
+          btn = 'Use it as the start of my income shape';
           act = async () => { await applyBudgetToPlan(); updateNextStepBanner(); };
         } else if (!stress.configured) {
           text = 'Target set. Now the big question: can your pension actually pay for it? Open the Stress Tester settings, tell it what you have, and run the simulation.';
@@ -7040,6 +7048,8 @@
     window._ssIncomeSteps = [];
 
     window.setIncomeShape = function (mode) {
+      // The shape is always steps now; a single step is a level income. 'level' is accepted for old saves.
+      mode = 'phases';
       window._ssIncomeShape = mode;
       document.getElementById('shapeLevelBtn').classList.toggle('active', mode === 'level');
       document.getElementById('shapeStepBtn').classList.toggle('active', mode === 'phases');
@@ -7053,15 +7063,55 @@
       if (dg) dg.style.display = mode === 'phases' ? 'none' : '';
       if (dsx) dsx.style.display = mode === 'phases' ? 'block' : 'none';
       renderIncomeSteps();
-      document.getElementById('incomeShapeNote').textContent = mode === 'phases'
-        ? 'Stepped income replaces the flat target (and any budget-derived schedule) when you save. The spending profile below should usually be "Level for life" — the steps ARE your decline.'
-        : '';
+    };
+    window._shapeRefs = { essentials: 0, budgetGross: 0 };
+    async function refreshShapeRefs() {
+      try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null }; } } catch (e) {}
+    }
+    window.renderIncomeShapePreview = function () {
+      const box = document.getElementById('incomeShapePreview'); if (!box) return;
+      const ageNow = +document.getElementById('shapeAgeNow')?.value || 57;
+      const dur = +document.getElementById('ssDuration')?.value || 35;
+      const steps = (window._ssIncomeSteps || []).filter((st) => +st.amount > 0);
+      if (!steps.length) { box.innerHTML = '<p class="hint">No shape yet — start from your budget or a number.</p>'; return; }
+      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0 });
+      const note = document.getElementById('incomeShapeNote');
+      const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
+      note.innerHTML = (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+    };
+    window.startShapeFromBudget = async function () {
+      await refreshShapeRefs();
+      const g = window._shapeRefs.budgetGross; if (!g) { showToast('Your budget has no spending lines yet — open the Budget tab first.', 'warning'); return; }
+      const ageNow = +document.getElementById('shapeAgeNow').value || 57;
+      const steps = window._ssIncomeSteps || [];
+      if (steps.length) steps[0] = { fromAge: ageNow, amount: g }; else window._ssIncomeSteps = [{ fromAge: ageNow, amount: g }];
+      const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = g; syncNetFromGross('ss'); }
+      const ff = document.getElementById('ffEssentials'); if (ff && !ff.value && window._shapeRefs.essentials) ff.value = window._shapeRefs.essentials;
+      renderIncomeSteps();
+      showToast('First step set from your budget: ' + gbp(g) + '/yr gross. Now draw the later steps.', 'success');
+    };
+    window.startShapeFromNumber = function () {
+      const g = +document.getElementById('shapeStartNumber').value || 0; if (!g) return;
+      const ageNow = +document.getElementById('shapeAgeNow').value || 57;
+      window._ssIncomeSteps = [{ fromAge: ageNow, amount: g }];
+      const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = g; syncNetFromGross('ss'); }
+      renderIncomeSteps();
+    };
+    window.suggestShapeSteps = function () {
+      const ageNow = +document.getElementById('shapeAgeNow').value || 57;
+      const first = (window._ssIncomeSteps || [])[0]; const base = first ? +first.amount : (+document.getElementById('ssBaseSalary')?.value || window._shapeRefs.budgetGross || 0);
+      if (!base) { showToast('Set a first step first (from your budget or a number).', 'warning'); return; }
+      window._ssIncomeSteps = suggestSteps(base, ageNow, window._shapeRefs.essentials || 0);
+      renderIncomeSteps();
+      showToast('Suggested: −15% from 75, −30% from 85 (never below essentials). Edit freely — these are typical, not yours.', 'info', 5000);
     };
 
     window.renderIncomeSteps = function () {
       const box = document.getElementById('incomeStepsEditor');
-      if (!box || window._ssIncomeShape !== 'phases') return;
+      if (!box) return;
+      window._ssIncomeShape = 'phases';
       const steps = window._ssIncomeSteps;
+      if (!steps.length) { box.innerHTML = ''; renderIncomeShapePreview(); return; }
       steps.sort((a, b) => (+a.fromAge || 0) - (+b.fromAge || 0));
       box.innerHTML = steps.map((st, i) =>
         '<div class="row-flex" style="margin-top:4px;">'
@@ -7070,11 +7120,12 @@
         + (i === 0 ? '<span class="hint">)</span>' : '')
         + '<span class="hint">take</span>'
         + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" oninput="updIncomeStep(' + i + ',\'amount\',this.value)">'
-        + '<span class="hint">£/yr gross</span>'
+        + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of today\'s budget' : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" onclick="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>').join('')
         + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" onclick="addIncomeStep()">+ Add a step</button>'
-        + '<p class="hint" style="margin:6px 0 0;">e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80.</p>';
+        + '<p class="hint" style="margin:6px 0 0;">One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80.</p>';
+      renderIncomeShapePreview();
       refreshStrategyCosts();
     };
     window.addIncomeStep = function () {
@@ -7083,7 +7134,7 @@
       renderIncomeSteps();
     };
     window.updIncomeStep = function (i, k, v) {
-      if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = v === '' ? '' : +v; refreshStrategyCosts(); }
+      if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = v === '' ? '' : +v; if (i === 0 && k === 'amount') { const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = +v || 0; syncNetFromGross('ss'); } } renderIncomeShapePreview(); refreshStrategyCosts(); }
     };
     window.rmIncomeStep = function (i) { window._ssIncomeSteps.splice(i, 1); renderIncomeSteps(); };
 
@@ -8298,7 +8349,8 @@
         document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         applyStrategyToUI(s.strategyId || 'pots-and-valves', s.strategyParams || {});
-        window._ssIncomeSteps = Array.isArray(s.incomeSteps) ? JSON.parse(JSON.stringify(s.incomeSteps)) : [];
+        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
+        refreshShapeRefs().then(() => renderIncomeSteps());
         if (s.shapeAgeNow) document.getElementById('shapeAgeNow').value = s.shapeAgeNow;
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
@@ -9018,7 +9070,7 @@
       html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.</div>';
       html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" onchange="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
       html += '<div style="font-size:13px; margin-bottom:8px;">Plan target: <strong>' + money(targetMonthly) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(targetGrossAnnual) + '/yr before tax' + (headM ? ' — budget + ' + money(headM) + '/mo headroom' : '') + ')</span></div>';
-      html += '<button type="button" onclick="applyBudgetToPlan()">Set as my plan’s target (Stress + Decision)</button>';
+      html += '<button type="button" onclick="applyBudgetToPlan()">Use as the start of my income shape</button><span class="hint" style="margin-left:8px;">This is today’s spending. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</span>';
       html += '</div>';
 
       document.getElementById('budSummary').innerHTML = html;
@@ -9221,11 +9273,18 @@
         // Per-year schedule: dated budget lines + one-offs, grossed up per year — the stress
         // engine follows the shape (car lease ends, roof lands in its year) instead of a flat
         // average. baseSalary stays as the year-0 anchor for display and the Decision tool.
+        // The budget is TODAY'S spending: it seeds the FIRST step of the income shape only. The
+        // go-slow / no-go steps are the user's to draw (Stress Settings → Your income shape); the
+        // budget's age bands and one-offs are not turned into a schedule any more.
         const stressNow = await getStressSettingsAsync();
+        const ageNow = stressNow.shapeAgeNow || +window._budget.retirementAge || 57;
+        const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? JSON.parse(JSON.stringify(stressNow.incomeSteps)) : [];
+        if (steps.length) steps[0] = { fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
         const dur = stressNow.duration || 35;
-        const netSchedule = targetScheduleFromBudget(window._budget, dur);
-        const targetSchedule = netSchedule.map((n) => Math.round(grossUpAnnual(n + headM * 12)));
-        await saveStressSettings({ baseSalary: gross, targetSchedule });
+        const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => shapeAmountAtAge(steps, ageNow + y, gross));
+        const essentialsGross = Math.round(grossUpAnnual(s.essentialAnnualNet || 0));
+        const prm = { ...(stressNow.strategyParams || {}) }; if (!prm.essentialsAnnual && essentialsGross) prm.essentialsAnnual = essentialsGross;
+        await saveStressSettings({ baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule, strategyParams: prm });
         // Double-count caution: this budget already shapes spending by age AND the profile
         // is 'Declining' — the generic drift would cut the late years twice.
         const b = window._budget;
@@ -9243,7 +9302,7 @@
         const dsGross = document.getElementById('dsBaseSalary');
         if (dsGross && !locked) { dsGross.value = gross; syncNetFromGross('ds'); }
         updateNextStepBanner();
-        showToast('Target set: both tools now work to ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + ' — ' + gbp(gross) + '/yr gross' +
+        showToast('Income shape started from your budget: ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home as the first step' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + '. Draw the later steps in Stress Settings → Your income shape' + ' — ' + gbp(gross) + '/yr gross' +
           (locked ? '. Stress only; the Decision plan is locked' : ''), 'success', 5000);
       } catch (e) {
         console.error('Apply-to-plan error:', e);

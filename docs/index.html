@@ -2016,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CZk2lRUR.js"></script>
+  <script type="module" crossorigin src="./assets/main-iqTR9-DW.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2873,16 +2873,20 @@
               <div style="display:none;">
               </div>
               <p id="ssStrategyBlurb" class="hint" style="margin:8px 0 0;"></p>
-              <div style="margin-top:12px;">
-                <div class="section-title" style="font-size:13px;">Income shape <span class="hint" style="font-weight:normal;">— level, or stepped with age (go-go / go-slow / no-go)</span></div>
-                <div class="row-flex">
-                  <button type="button" class="risk-btn" id="shapeLevelBtn" onclick="setIncomeShape('level')">Level for the whole plan</button>
-                  <button type="button" class="risk-btn" id="shapeStepBtn" onclick="setIncomeShape('phases')">Stepped by age</button>
+              <div id="incomeShapeBlock" style="margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
+                <div class="section-title" style="font-size:14px;">Your income shape <span class="hint" style="font-weight:normal;">— the one number every tool works to, year by year</span></div>
+                <p class="hint" style="margin:0 0 8px;">Your budget is what you spend <em>now</em>. Retirement spending usually runs in three phases — <strong>go-go</strong> (travel, projects, the years you are fit), <strong>go-slow</strong> (from the mid-70s, spending typically drifts down 1–2% a year in real terms), and <strong>no-go</strong> (the basics, and care if it comes). Nobody can budget those years line by line, so don't try: start from today's figure, then draw the steps you'd actually want. Above the budget is fine. Below your essentials turns orange.</p>
+                <div class="row-flex" style="margin-bottom:6px;">
+                  <button type="button" class="risk-btn" onclick="startShapeFromBudget()">Start from my budget</button>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" onclick="startShapeFromNumber()">Use it</button></label>
+                  <button type="button" class="risk-btn" onclick="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Your age now
                     <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" oninput="renderIncomeSteps()"></label>
                 </div>
-                <div id="incomeStepsEditor" style="display:none; margin-top:8px;"></div>
+                <div id="incomeShapePreview" class="machine-scroll"></div>
+                <div id="incomeStepsEditor" style="margin-top:8px;"></div>
                 <p id="incomeShapeNote" class="hint" style="margin:6px 0 0;"></p>
+                <div style="display:none;"><button type="button" id="shapeLevelBtn"></button><button type="button" id="shapeStepBtn"></button></div>
               </div>
               <div id="stratCopyOffer" style="display:none; margin-top:8px;">
                 <button type="button" class="risk-btn" onclick="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>

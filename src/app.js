@@ -21,10 +21,11 @@ import {
 // the plan's locked strategy — never from the engine modules directly.
 import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
-import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES } from './strategies/stressTest.js';
+import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries } from './strategies/stressTest.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
 import { stackedConesSvg, STRATEGY_COLORS } from './ui/comparisonGraphic.js';
+import { ladderRatchetSvg, floorFlexSvg, floorScheduleSvg, potsValvesSvg, LR_FRAMES, FF_FRAMES, FS_FRAMES, PV_FRAMES } from './ui/strategyMachines.js';
 import { getRtr } from './strategies/ladderEngine.js';
 import { getCpi } from './strategies/ladderEngine.js';
 import { orderSheet, realYieldForYear, nominalYieldForYear, loadLiveGilts, dataProvenance, activeLinkers } from './services/LinkerUniverse.js';
@@ -397,6 +398,7 @@ export {
   stressTestAll,
   planFromSettings,
   STRATEGY_NAMES,
+  pnvDecadeSeries,
   giltLadderSvg,
   inflationDecadesSvg,
   GILT_FRAMES,
@@ -407,6 +409,14 @@ export {
   getRtr,
   stackedConesSvg,
   STRATEGY_COLORS,
+  ladderRatchetSvg,
+  floorFlexSvg,
+  floorScheduleSvg,
+  potsValvesSvg,
+  LR_FRAMES,
+  FF_FRAMES,
+  FS_FRAMES,
+  PV_FRAMES,
   realYieldForYear,
   nominalYieldForYear,
   loadLiveGilts,

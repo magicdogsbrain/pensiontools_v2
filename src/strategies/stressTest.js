@@ -25,6 +25,9 @@ export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder'
 };
 
+/** p10/p50/p90 band of one per-window series (array index = plan year). */
+function bandOf(windows, pick, years) { return Array.from({ length: years + 1 }, (_, y) => { const v = windows.map((w) => pick(w, y) ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; }); }
+
 /** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
 export function coneOf(seriesList, years) {
   const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
@@ -134,7 +137,10 @@ function pnvTest(p, configs) {
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hist.map((w) => w.terminal), 0.5) },
     cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
-    signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5) },
+    signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5),
+      pots: { equity: p.pnvCfg.equityStart || 0, bond: p.pnvCfg.bondStart || 0, cash: p.pnvCfg.cashStart || 0, diversifier: p.pnvCfg.diversifierStart || 0, isa: p.pnvCfg.isaBalance || 0 },
+      floors: { equity: p.pnvCfg.equityMin || 0, bond: p.pnvCfg.bondMin || 0, cash: p.pnvCfg.cashTarget || 0 },
+      protection: { enabled: !p.pnvCfg.disableProtection, cutPct: Math.round((1 - (p.pnvCfg.protectionMult ?? 0.8)) * 100), limit: p.pnvCfg.consecutiveLimit ?? 3 } },
     n: { hist: hist.length, mc: runs },
     wealthLabel: 'All pots (SIPP + ISA), today\'s money'
   };
@@ -171,6 +177,9 @@ function ladderTest(p, configs) {
   };
   const mcE = mc.windows.map(enrich);
   const terms = mc.windows.map((w) => w.terminal ?? 0);
+  const sleeveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
+  const failAgesMc = mc.windows.filter((w) => w.survived === false).map((w) => w.failAge);
+  const securedByYear = Array.from({ length: planYears + 1 }, (_, y) => pct(mc.windows.map((w) => (w.trades || []).filter((t) => t.t <= 12 * y).reduce((a, t) => a + t.bought, 0)), 0.5));
   return {
     affordable: true,
     ruin: { hist: 100 * hist.filter((w) => w.survived === false).length / hist.length, mc: 100 - (mc.stats.survivalPct ?? 100) },
@@ -183,7 +192,9 @@ function ladderTest(p, configs) {
     signature: {
       neverPct: h.stats.neverPct, fullySecuredPct: h.stats.fullySecuredPct, securedMedian: h.stats.securedMedian,
       securedMedianMc: mc.stats.securedMedian, sellEventsMedian: h.stats.sellEventsMedian,
-      sleeveMedian: h.stats.sleeveMedian, sleeveWorst: h.stats.sleeveWorst, baseLadderCost: configs.baseLadderCost, ladderYears: lr.ladderYears
+      sleeveMedian: h.stats.sleeveMedian, sleeveWorst: h.stats.sleeveWorst, baseLadderCost: configs.baseLadderCost, ladderYears: lr.ladderYears,
+      sleeveCone, securedByYear, glide: { E0: lr.E0, gp: lr.glideRate ?? 0.05, b: lr.trigger.b ?? 1.2, mode: lr.trigger.mode },
+      failAgeP10: failAgesMc.length ? pct(failAgesMc, 0.5) : null, drawNet: Array.from({ length: planYears }, (_, k) => drawForYear(k + 1))
     },
     n: { hist: hist.length, mc: mc.windows.length },
     wealthLabel: 'Growth sleeve + unpaid ladder rungs, today\'s money'
@@ -208,6 +219,8 @@ function flexTest(p, configs) {
   };
   const mcE = mc.windows.map(enrich);
   const terms = mc.windows.map((w) => w.terminal);
+  const sleeveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
+  const treatsCone = bandOf(mc.windows, (w, y) => w.dByYear[Math.min(y, w.dByYear.length - 1)], planYears);
   return {
     affordable: true,
     ruin: { hist: 0, mc: 0 },   // essentials are bought; a %-of-pot sleeve cannot deplete
@@ -218,7 +231,9 @@ function flexTest(p, configs) {
     failAges: [],
     signature: {
       year1Flex: h.stats.year1D, worstFlexMedian: h.stats.worstMedian, worstFlexP10: h.stats.worstP10,
-      shareLeanYears: h.stats.shareYearsUnder(10000), floorCost: configs.ffFloorCost, horizonAge: ff.horizonAge
+      shareLeanYears: h.stats.shareYearsUnder(10000), floorCost: configs.ffFloorCost, horizonAge: ff.horizonAge,
+      sleeveCone, treatsCone, rate: ff.rate, sleeveE0: ff.E0, floorByYear: Array.from({ length: planYears }, (_, k) => floorDraw(k + 1)),
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: p.essentialsAnnual, sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 }))
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
     wealthLabel: 'Flex sleeve + unpaid floor rungs, today\'s money'
@@ -243,6 +258,7 @@ function scheduleFloorTest(p, configs) {
   const mcE = mc.windows.map(enrich);
   const terms = mc.windows.map((w) => w.terminal);
   const sleeveAt = (y) => { const v = mc.windows.map((w) => w.sleeveByYear[Math.min(y, planYears)] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const reserveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
   return {
     affordable: true,
     ruin: { hist: 0, mc: 0 },   // every year of the schedule is bought; the sleeve is never drawn
@@ -253,7 +269,8 @@ function scheduleFloorTest(p, configs) {
     failAges: [],
     signature: {
       floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / (p.pot + (p.isa || 0)),
-      sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge,
+      sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge, reserveCone,
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 })),
       rule: 'Once a year: if the reserve is more than double its glide line (starting value x 1.05^years), spend the excess on rungs beyond the horizon or on raising the later years; otherwise leave it.'
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
@@ -354,6 +371,13 @@ function fullGiltTest(p, configs) {
     n: { hist: 1, mc: 1 },
     wealthLabel: "Unpaid rungs at cost + cash, today's money (no market exposure)"
   };
+}
+
+/** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */
+export function pnvDecadeSeries(p, year, month = 1) {
+  const rtr = getRtr(), cpi = getCpi(); const planYears = p.durationYears; const s = (year - 1871) * 12 + (month - 1);
+  if (s < 0 || s + planYears * 12 >= rtr.length) return null;
+  return pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge);
 }
 
 /** Stress-test ONE strategy on the plan. */

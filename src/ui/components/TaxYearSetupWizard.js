@@ -13,6 +13,7 @@ import {
   calculateMonthlyBreakdown
 } from '../../services/TaxYearWizardService.js';
 import { saveTaxYearConfig, getTaxYearConfigAsync } from '../../storage/DecisionRepository.js';
+import { lockPlanIfNeeded } from '../../services/PlanLock.js';
 
 // Wizard state
 let wizardElement = null;
@@ -843,6 +844,7 @@ async function finishWizard() {
     if (!check || !check.yearSetupComplete) {
       throw new Error('the saved tax year did not read back — please try Confirm again');
     }
+    try { await lockPlanIfNeeded('tax year set up'); } catch (e) { console.warn('Auto-lock failed (non-fatal):', e); }
     console.log(`Tax Year Wizard: Successfully saved config for ${wizardContext.taxYear}`);
   } catch (error) {
     console.error(`Tax Year Wizard: Failed to save config for ${wizardContext.taxYear}`, error);

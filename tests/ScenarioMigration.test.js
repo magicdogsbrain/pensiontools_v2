@@ -79,3 +79,4 @@ describe('normalizeScenario', () => {
     expect(normalizeScenario(null)).toEqual({ scenario: null, migrated: false });
   });
 });
+

@@ -21,6 +21,7 @@ import {
 // the plan's locked strategy — never from the engine modules directly.
 import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
+import { planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded } from './services/PlanLock.js';
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy } from './strategies/stressTest.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
@@ -397,6 +398,7 @@ export {
   orderSheet,
   stressTestStrategy,
   requiredPotForStrategy,
+  planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
   stressTestAll,
   planFromSettings,
   STRATEGY_NAMES,

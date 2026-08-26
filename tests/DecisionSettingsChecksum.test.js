@@ -23,6 +23,8 @@ describe('decisionSettingsChecksum', () => {
       .toBe(decisionSettingsChecksum({ ...base, locked: false }));
     expect(decisionSettingsChecksum({ ...base, locked: true }))
       .toBe(decisionSettingsChecksum(base));
+    expect(decisionSettingsChecksum({ ...base, locked: false, lockedAt: 'x', lockedBy: 'y', unlockedAt: 'z', unlockCount: 3 }))
+      .toBe(decisionSettingsChecksum(base));
   });
 
   it('changes when a plan-defining field changes', () => {

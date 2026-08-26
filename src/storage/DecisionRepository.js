@@ -193,7 +193,9 @@ export function generateDecisionChecksum(db) {
  */
 export function decisionSettingsChecksum(settings) {
   if (!settings) return '';
-  const { locked, ...planDefining } = settings;
+  // Lock bookkeeping is volatile: it must never move the checksum (an unlock alone would otherwise
+  // mark every entry as "under previous settings").
+  const { locked, lockedAt, lockedBy, unlockedAt, unlockCount, ...planDefining } = settings;
   return simpleHash(planDefining);
 }
 

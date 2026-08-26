@@ -2867,7 +2867,7 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" oninput="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" oninput="refreshStrategyCosts()"></label>
                 </div>
-                <p class="hint" style="margin:6px 0 0;">Priced against <strong>Total in your SIPP</strong> under <em>Your allocation</em> below (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="document.getElementById('ssRiskMode')?.scrollIntoView({behavior:'smooth',block:'start'})">Go to Your allocation</button></p>
+                <p class="hint" style="margin:6px 0 0;">Priced against <strong>Total in your SIPP</strong> under <em>Your allocation</em> below (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="goToAllocation()">Go to Your allocation</button></p>
                 <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
               </div>
               <div style="display:none;">
@@ -7793,6 +7793,13 @@
         doWhat: ['<strong>Monthly:</strong> enter pot values; take the draw the rules give you', '<strong>Yearly:</strong> review the allocation and floors', '<strong>Nothing to buy</strong>'],
         exit: ['Nothing to unwind — it is a portfolio', 'Move to any ladder strategy at any time']
       }
+    };
+    window.goToAllocation = function () {
+      const title = [...document.querySelectorAll('#stress-stresssettings .section-title')].find((e) => /^Your allocation/.test(e.textContent.trim()));
+      const sec = title ? (title.closest('.settings-section') || title) : (document.getElementById('ssRiskMode') || document.getElementById('ssFundsMode'));
+      if (!sec) return;
+      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sec.style.transition = 'box-shadow .3s'; sec.style.boxShadow = '0 0 0 3px var(--accent)'; setTimeout(() => { sec.style.boxShadow = ''; }, 1800);
     };
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;

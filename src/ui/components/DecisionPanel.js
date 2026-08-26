@@ -23,6 +23,16 @@ export function renderDecisionPanel(decision, container) {
  */
 function buildTaxSummary(d) {
   const details = d.calculationDetails || {};
+  const isTaxEfficientYear = d.isTaxEfficientYear ?? d.taxEfficient;
+  const monthlyTaxable = (d.sippDraw || 0) + (d.other || 0) + (d.statePension || 0);
+  const annualTaxable = monthlyTaxable * 12;
+  const pa = d.pa || 12570;
+  const brl = d.brl || 50270;
+  // Engine figure first (partial-year aware); the flat 12× estimate only when the engine gave none.
+  let annualTax = d.monthlyTax != null ? d.monthlyTax * 12 : 0;
+  if (d.monthlyTax == null && annualTaxable > pa) {
+    annualTax = annualTaxable <= brl ? (annualTaxable - pa) * 0.2 : (brl - pa) * 0.2 + (annualTaxable - brl) * 0.4;
+  }
   let html = '';
   // Tax information - enhanced with monthly, YTD, and projected
   html += '<div class="tax-info">';
@@ -273,8 +283,11 @@ export function buildDecisionHTML(decision) {
     }
   }
 
-  // Net = gross taxable - tax + ISA (tax-free)
-  const totalMonthlyNet = monthlyTaxable - (annualTax / 12) + d.isaDraw;
+  // Net = gross taxable - tax + ISA (tax-free). The ENGINE's monthly tax wins when present — it is
+  // partial-year aware; the flat 12× estimate here overstated tax on a mid-year start.
+  const totalMonthlyNet = d.totalMonthlyNet != null ? d.totalMonthlyNet
+    : d.monthlyTax != null ? monthlyTaxable - d.monthlyTax + (d.isaDraw || 0)
+    : monthlyTaxable - (annualTax / 12) + (d.isaDraw || 0);
 
   html += '<div class="draw-row total">';
   html += `<span class="label">Total Monthly Income</span>`;

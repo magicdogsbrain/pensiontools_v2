@@ -46,8 +46,8 @@ export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o 
     const top = st.cone.p90.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)); const bot = st.cone.p10.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).reverse();
     s += `<polygon points="${top.concat(bot).join(' ')}" fill="${st.color}" opacity=".18"/><polyline points="${st.cone.p50.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}" fill="none" stroke="${st.color}" stroke-width="2"/>`;
     for (let i = 0; i < n; i += 10) s += `<text x="${x(i).toFixed(1)}" y="${oy + ch - 6}" text-anchor="middle" font-size="9" fill="var(--text-muted,#999)">${startAge + i}</text>`;
-    const flat = Math.abs(st.cone.p90[Math.min(n - 1, 20)] - st.cone.p10[Math.min(n - 1, 20)]) < 1;
-    s += `<text x="${ox + cw - padR}" y="${oy + 14}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${flat ? 'by contract — no spread' : 'band = 1-in-10 bad to 1-in-10 good'}</text>`;
+    const tag = st.contract === true ? 'by contract — no spread' : st.contract === 'partial' ? 'by contract until the decision age' : 'band = 1-in-10 bad to 1-in-10 good; drops to £0 where futures ran out';
+    s += `<text x="${ox + cw - padR}" y="${oy + 14}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${tag}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Income each year, one panel per strategy">${s}</svg>`;
 }

@@ -15,7 +15,7 @@ import { incomeSmallMultiplesSvg, riskBarsSvg, leftBarsSvg } from '../src/ui/com
 describe('one-question comparison panels', () => {
   const cone = (base, spread) => ({ p10: Array(36).fill(base - spread), p50: Array(36).fill(base), p90: Array(36).fill(base + spread) });
   it('income small multiples: one panel per strategy, flat contract panels say so', () => {
-    const svg = incomeSmallMultiplesSvg({ strategies: [{ name: 'A', color: '#fff', cone: cone(40000, 5000) }, { name: 'B', color: '#000', cone: cone(40000, 0) }], startAge: 57, planIncome: 60000 });
+    const svg = incomeSmallMultiplesSvg({ strategies: [{ name: 'A', color: '#fff', cone: cone(40000, 5000) }, { name: 'B', color: '#000', cone: cone(40000, 0), contract: true }], startAge: 57, planIncome: 60000 });
     expect((svg.match(/<polygon/g) || []).length).toBe(2);
     expect(svg).toContain('by contract — no spread'); expect(svg).toContain('band = 1-in-10 bad');
   });

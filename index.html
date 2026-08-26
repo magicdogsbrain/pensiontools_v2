@@ -390,6 +390,22 @@
       color: var(--bg);
     }
 
+    .strat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+    .strat-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 2px; }
+    .strat-nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 10px 8px 4px; }
+    .strat-nav-item { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: var(--radius, 8px); font-size: 13px; width: 100%; cursor: pointer; }
+    .strat-nav-item:hover { background: rgba(96,165,250,.08); }
+    .strat-nav-item.active { background: rgba(96,165,250,.14); border-color: rgba(96,165,250,.35); font-weight: 600; }
+    .strat-block { margin-top: 18px; }
+    .strat-block > .section-title { font-size: 15px; margin-bottom: 6px; }
+    .stepper { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .stepper .dots { display: flex; gap: 6px; }
+    .stepper .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 0; padding: 0; cursor: pointer; }
+    .stepper .dot.active { background: #60a5fa; }
+    .stepper p { margin: 0; font-size: 13px; flex: 1 1 320px; }
+    .sw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .sw-grid ul { margin: 6px 0 0 18px; padding: 0; font-size: 13px; }
+    @media (max-width: 760px) { .strat-layout { grid-template-columns: 1fr; } .strat-nav { position: static; flex-direction: row; flex-wrap: wrap; } .strat-nav-group { display: none; } .strat-nav-item { width: auto; } }
     .tab-content {
       display: none;
     }
@@ -2059,6 +2075,7 @@
         <nav class="tabs">
           <button class="tab" data-tab="budget">Budget</button>
           <button class="tab" data-tab="stress">Stress Tester</button>
+          <button class="tab" data-tab="strategies">Strategies</button>
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
           <button class="tab" data-tab="household">Household</button>
@@ -3312,6 +3329,24 @@
       </div>
 
       <!-- Budget Tab -->
+      <div id="strategies-content" class="tab-content">
+        <div class="strat-layout">
+          <nav class="strat-nav" id="stratNav" aria-label="Strategies">
+            <button type="button" class="strat-nav-item" data-page="overview" onclick="showStrategyPage('overview')">Overview</button>
+            <div class="strat-nav-group">Six ways to turn a pot into an income</div>
+            <button type="button" class="strat-nav-item" data-page="pots-and-valves" onclick="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
+            <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" onclick="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+            <button type="button" class="strat-nav-item" data-page="floor-and-flex" onclick="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
+            <button type="button" class="strat-nav-item" data-page="floor-the-schedule" onclick="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
+            <button type="button" class="strat-nav-item" data-page="floor-to-age" onclick="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
+            <button type="button" class="strat-nav-item" data-page="full-il-gilt" onclick="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
+            <div class="strat-nav-group">Background</div>
+            <button type="button" class="strat-nav-item" data-page="gilts" onclick="showStrategyPage('gilts')">Gilt ladders explained</button>
+          </nav>
+          <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
       <div id="accumulation-content" class="tab-content">
         <div class="card">
           <h2>Accumulation Planner <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— am I saving enough?</span></h2>
@@ -3668,6 +3703,10 @@
       stressTestAll,
       planFromSettings,
       STRATEGY_NAMES,
+      giltLadderSvg,
+      inflationDecadesSvg,
+      GILT_FRAMES,
+      getCpi,
       orderSheet,
       realYieldForYear,
       nominalYieldForYear,
@@ -5125,6 +5164,7 @@
         if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
+        if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
         updateNextStepBanner();
         updateSetupBanners();
         window.__hideHelpTip && window.__hideHelpTip();
@@ -7631,6 +7671,116 @@
         }
       };
     }
+    // =====================================================================================
+    // STRATEGIES tab — one page per strategy, same five blocks: the machine · turn the dials ·
+    // two real decades · where it shines / how it fails / what you do / how you get out · the
+    // honest numbers. Everything is computed from the reader's own plan via stressTestStrategy.
+    // =====================================================================================
+    window._stratPage = 'overview';
+    window._stratFrame = 4;
+    window._stratDials = {};
+    window.loadStrategiesPage = async function () { await showStrategyPage(window._stratPage || 'overview'); };
+    window.showStrategyPage = async function (id) {
+      window._stratPage = id;
+      document.querySelectorAll('#stratNav .strat-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.page === id));
+      const box = document.getElementById('stratPage');
+      box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      await new Promise((r) => setTimeout(r, 20));
+      try {
+        if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
+        else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltLadderExplainer'); if (src) document.getElementById('glxHost').appendChild(src.cloneNode(true)); renderGiltLadderExplainer(); }
+        else if (id === 'full-il-gilt') box.innerHTML = await fullGiltPageHtml();
+        else box.innerHTML = await genericStrategyPageHtml(id);
+      } catch (e) { console.error('strategy page', e); box.innerHTML = '<div class="alert alert-danger">Could not build this page: ' + budEsc(e.message) + '</div>'; }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    async function strategyOverviewHtml() {
+      const q = [
+        ['I want to know my number, for life', ['floor-the-schedule', 'full-il-gilt']],
+        ['I want the most money over my life', ['pots-and-valves', 'ladder-and-ratchet']],
+        ['I want certainty now and options later', ['floor-to-age', 'floor-and-flex']],
+        ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']]
+      ];
+      let h = '<div class="card"><h2>Six ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking, and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
+      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" onclick="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div>';
+      h += '<p class="hint" style="margin-top:12px;">The side-by-side comparison (level footing, all six on one axis) is the next page to be built; for now the Stress Tester → Strategies tab still carries the comparison table.</p></div>';
+      return h;
+    }
+    async function genericStrategyPageHtml(id) {
+      const settings = await getStressSettingsAsync();
+      const p = strategyPlanFor(settings);
+      const r = stressTestStrategy(id, p);
+      const st = getStrategy(id).describe();
+      return '<div class="card"><h2>' + budEsc(st.name) + '</h2><p style="font-size:14px;"><strong>' + budEsc(st.promise) + '</strong></p><p class="hint">Full page (machine, dials, two decades) coming next; the honest numbers on your plan are below.</p></div>' + strategyResultCard(r, p);
+    }
+    function stepperHtml(frames, current, onSel) {
+      const f = frames[current - 1];
+      return '<div class="stepper"><div class="dots">' + frames.map((_, i) => '<button type="button" class="dot' + (i + 1 === current ? ' active' : '') + '" aria-label="Step ' + (i + 1) + '" onclick="' + onSel + '(' + (i + 1) + ')"></button>').join('') + '</div>'
+        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current <= 1 ? 'disabled' : '') + ' onclick="' + onSel + '(' + (current - 1) + ')">‹ Back</button>'
+        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current >= frames.length ? 'disabled' : '') + ' onclick="' + onSel + '(' + (current + 1) + ')">Next ›</button>'
+        + '<p><strong>' + (current) + '/' + frames.length + ' — ' + budEsc(f.title) + '.</strong> ' + budEsc(f.text) + '</p></div>';
+    }
+    window.setGiltFrame = function (n) { window._stratFrame = Math.max(1, Math.min(4, n)); const p = window._giltPlanCache; if (!p) return; document.getElementById('giltMachine').innerHTML = giltLadderSvg(p, window._stratFrame); document.getElementById('giltStepper').innerHTML = stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame'); };
+    window.setGiltDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; const box = document.getElementById('stratPage'); box.innerHTML = await fullGiltPageHtml(); };
+    window.useFullGiltStrategy = async function () {
+      const d = window._stratDials;
+      const s = await getStressSettingsAsync();
+      await saveStressSettings({ strategyId: 'full-il-gilt', strategyParams: { ...(s.strategyParams || {}), cashYears: d.cashYears ?? (s.strategyParams?.cashYears ?? 2), bridgeCash: d.bridgeCash ?? (s.strategyParams?.bridgeCash ?? 0) } });
+      try { await setActiveStrategy('full-il-gilt', {}); } catch (e) {}
+      showToast('Full index-linked gilt ladder is now this plan\'s strategy. The Stress Tester runs it; Settings holds the dials.', 'success');
+    };
+    /** CPI factor per plan year for a historical start (Shiller monthly CPI, world-independent). */
+    function cpiPathFrom(year, nYears) {
+      const cpi = getCpi(); const s = (year - 1871) * 12; const out = [];
+      for (let i = 0; i < nYears; i++) { const a = s + 12 * i; out.push(a < cpi.length ? cpi[a] / cpi[s] : out[out.length - 1] * Math.pow(1.03, 1)); }
+      return out;
+    }
+    async function fullGiltPageHtml() {
+      const settings = await getStressSettingsAsync();
+      const d = window._stratDials;
+      const over = { ...settings, strategyParams: { ...(settings.strategyParams || {}), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
+      const p = strategyPlanFor(over);
+      const r = stressTestStrategy('full-il-gilt', p);
+      const plan = r.plan; window._giltPlanCache = plan;
+      const prov = dataProvenance();
+      const prm = over.strategyParams;
+      const shape = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
+        ? settings.incomeSteps.map((x) => gbp(+x.amount) + ' from ' + x.fromAge).join(' → ') : gbp(settings.baseSalary || 0) + ' flat';
+      let h = '<div class="card"><h2>Full index-linked gilt ladder <span class="hint" style="font-weight:normal;font-size:13px;">— the fully deterministic plan</span></h2>';
+      h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Every year of your income plan is bought today.</strong> The first years sit in cash; every later year has one index-linked gilt that matures just before that year\'s April. You draw it monthly. Nothing rides the market, and there is nothing to decide — at 60, at 75, or at 90.</p>';
+      // Block 1 — the machine
+      h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
+      // Block 2 — dials
+      h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" min="0" max="10" value="' + (prm.cashYears ?? 2) + '" style="width:80px;" onchange="setGiltDial(\'cashYears\', this.value)"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" onchange="setGiltDial(\'bridgeCash\', this.value)"></label>'
+        + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
+        + '</div>';
+      h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable
+        ? '<strong>Affordable.</strong> Cash ' + gbp(Math.round(plan.cash)) + ' + ' + plan.orders.length + ' gilts ' + gbp(Math.round(plan.giltsCost)) + ' = <strong>' + gbp(Math.round(plan.total)) + '</strong> of your ' + gbp(Math.round(p.pot + (p.isa || 0))) + ' → ' + gbp(Math.round(plan.spare)) + ' left over.'
+        : '<strong>Not affordable as it stands:</strong> ' + budEsc(plan.reason || '') + '. Every £1k a year across the whole plan is roughly £27k; the cheapest years to trim are the early ones (they cost nearly £1 per £1), the dearest to add are the late ones (about 55p per £1).') + '</div>';
+      h += '<div style="margin-top:8px;"><button type="button" onclick="useFullGiltStrategy()">Use this as my plan\'s strategy</button> <span class="hint">Saves the dials to Settings and locks the strategy; the Stress Tester and the Decision tool then run it.</span></div></div>';
+      // Block 3 — two real decades
+      if (plan.years.length) {
+        const n = plan.years.length;
+        const paths = { 'if inflation runs like 1973 onwards': cpiPathFrom(1973, n), 'if inflation runs like 2010 onwards': cpiPathFrom(2010, n) };
+        h += '<div class="strat-block"><div class="section-title">3 · Two real decades</div><p class="hint" style="margin:0 0 6px;">Most strategies look different in a bad decade. This one does not — so the honest picture is what the rungs pay in <em>cash</em> under two real inflation histories. The dashed line is your plan in today\'s money; the solid lines are the pounds that would actually arrive. They buy the same things.</p>' + inflationDecadesSvg({ years: plan.years, cpiPaths: paths })
+          + '<p class="hint">What this does NOT protect: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030 (already in today\'s prices), and frozen tax thresholds. The way to lean against those is a higher floor or an ISA held outside the plan — not this ladder.</p></div>';
+      }
+      // Block 4 — shines / fails / do / exit
+      h += '<div class="strat-block"><div class="section-title">4 · Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
+        + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--success);">Where it shines</div><ul><li>Your number is known for every year, today, in writing.</li><li>A 1929, 1966 or 2000 start changes nothing.</li><li>No decisions in old age — the plan runs itself.</li></ul></div>'
+        + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--warning);">How it fails</div><ul><li>It costs most or all of the pot; there is no upside and nothing left over for a good decade.</li><li>It tracks the official index, not your basket, and not wages — you can feel poorer at 85 with the same "real" income.</li><li>Sold early, gilts are worth the market price, which can be less than you paid.</li></ul></div>'
+        + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">What you do</div><ul><li><strong>Once:</strong> ' + (plan.orders.length + 1) + ' orders by phone, in nominal, over a few days.</li><li><strong>Monthly:</strong> nothing — a standing withdrawal at the planned amount.</li><li><strong>Each March:</strong> check twelve months of cash is sitting there. Do not divide the cash by twelve: gap years pay two years at once.</li></ul></div>'
+        + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div><ul><li>Sell the remaining gilts any day at market price (gilts are liquid).</li><li>Or swap them for an RPI-linked annuity at 75 or 80 — one transaction, income for life, no admin.</li></ul></div>'
+        + '</div></div>';
+      // Block 5 — honest numbers
+      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + giltOrderSheetHtml(plan)
+        + '<p class="hint" style="margin-top:8px;">Prices as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>';
+      h += '</div>';
+      return h;
+    }
+
     window.loadStrategiesUI = async function () {
       renderStrategyCards();
       renderGiltLadderExplainer();

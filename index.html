@@ -3653,6 +3653,7 @@
       getActivePlanOfRecord,
       saveActivePlanOfRecord,
       ENGINE_VERSION,
+      SCENARIOS,
       getActiveStrategy,
       setActiveStrategy,
       listStrategies,
@@ -5583,11 +5584,69 @@
     };
 
     // Scenarios simulation
+
+    // ---- Named scenarios for the non-P&V strategies. The canned decades are 10 years of equity +
+    // inflation; after year 10 inflation is held at 2.5%. A contract strategy is judged on what the
+    // pounds arriving would be (indexation), a market strategy on its own historical window.
+    const SCENARIO_START = { GREAT_DEPRESSION: 1929, STAGFLATION_70S: 1973, LOST_DECADE_2000S: 2000, CRISIS_2008: 2008 };
+    function scenarioCpiPath(sc, nYears) {
+      const out = [1]; let c = 1;
+      for (let i = 1; i < nYears; i++) { c *= 1 + (sc.inflation[i - 1] ?? 0.025); out.push(c); }
+      return out;
+    }
+    function strategyScenariosHtml(settings) {
+      const id = settings.strategyId, name = STRATEGY_NAMES[id] || id;
+      const p = strategyPlanFor(settings);
+      const r = stressTestStrategy(id, p);
+      const scs = Object.entries(SCENARIOS);
+      let h = '<div class="card"><h2>Scenario Analysis — ' + budEsc(name) + '</h2>';
+      if (id === 'full-il-gilt') {
+        const plan = r.plan;
+        if (!plan || !plan.years || !plan.years.length) return h + '<div class="alert alert-warning">The ladder could not be priced (' + budEsc(r.reason || 'unaffordable') + '), so there is nothing to run the scenarios through. Fix the plan in Settings first.</div></div>';
+        const n = plan.years.length;
+        h += '<div class="alert alert-info"><strong>Every year of this plan is bought today, index-linked.</strong> Equity crashes, lost decades and 2008 do nothing to it — the only thing a scenario changes is the number of <em>pounds</em> that arrive, and they always buy the same. So the honest scenario test is inflation: here is what each famous decade would do to the cash arriving, against the plan in today\'s money.</div>';
+        h += '<div class="table-wrap"><table><thead><tr><th>Scenario</th><th>Prices after 10 years</th><th>Year-1 cash</th><th>Year-10 cash</th><th>Real income</th><th>Verdict</th></tr></thead><tbody>';
+        const paths = {};
+        for (const [k, sc] of scs) {
+          const cp = scenarioCpiPath(sc, n); paths[sc.name] = cp;
+          const y1 = plan.years[0].gross, y10 = plan.years[Math.min(9, n - 1)].gross;
+          h += '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + sc.color + ';margin-right:6px;"></span>' + budEsc(sc.name) + (SCENARIO_START[k] ? ' <span class="hint">(from ' + SCENARIO_START[k] + ')</span>' : '') + '</td>'
+            + '<td>' + (cp[Math.min(10, n - 1)] >= 1 ? '+' : '') + ((cp[Math.min(10, n - 1)] - 1) * 100).toFixed(0) + '%</td>'
+            + '<td>' + gbp(Math.round(y1 * cp[0])) + '</td><td>' + gbp(Math.round(y10 * cp[Math.min(9, n - 1)])) + '</td>'
+            + '<td>' + gbp(Math.round(y10)) + ' (unchanged)</td><td style="color:var(--success);">Paid in full — indexed by contract</td></tr>';
+        }
+        h += '</tbody></table></div>';
+        h += '<div class="section-title" style="margin-top:14px;">Pounds arriving each year under each scenario</div><p class="hint" style="margin:0 0 6px;">Dashed = your plan in today\'s money. Each solid line is the cash the rungs would actually pay under that decade\'s inflation, then 2.5% a year. Higher lines are not more money — they buy exactly the same.</p><div class="machine-scroll">' + inflationDecadesSvg({ years: plan.years, cpiPaths: paths }) + '</div>';
+        h += '<p class="hint" style="margin-top:10px;">What no scenario here tests: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030, frozen tax thresholds, and the DMO\'s 3-month indexation lag in a fast-moving year. The Great Depression row is a real deflation — UK linkers have no floor, so the pounds fall with prices; they still buy the plan.</p>';
+        return h + '</div>';
+      }
+      // Market-exposed strategies: the real historical window that starts at each scenario's vintage.
+      h += '<div class="alert alert-info">' + budEsc(name) + ' is run on the real history that starts at each scenario\'s vintage (the canned decades are the same years). ' + (r.guaranteedToAge ? 'Contract part: <strong>' + budEsc(String(r.guaranteedToAge)) + '</strong>. ' : '') + 'The Synthetic Worst has no vintage, so it is not run here — its equivalent is the worst window in the Historical tab.</div>';
+      h += '<div class="table-wrap"><table><thead><tr><th>Scenario</th><th>Starts</th><th>What happened to this plan</th><th>Left at the end (today\'s money)</th></tr></thead><tbody>';
+      for (const [k, sc] of scs) {
+        const y = SCENARIO_START[k];
+        if (!y) continue;
+        let cell = '', term = '';
+        try {
+          const d = cannedDecade(p, y, 1);
+          const w = d[id];
+          if (id === 'ladder-and-ratchet' && w) { cell = w.survived === false ? '<span style="color:var(--danger);">Ran out after the ladder — the sleeve could not extend it</span>' : 'Ladder paid by contract; the ratchet secured ' + (w.secured ?? 0) + ' more year' + ((w.secured ?? 0) === 1 ? '' : 's'); term = gbp(Math.round(w.terminal || 0)); }
+          else if (id === 'floor-and-flex' && w) { cell = 'Floor paid by contract; leanest treat-year ' + gbp(Math.round(w.worstYearFlex || 0)); term = gbp(Math.round(w.terminal || 0)); }
+          else cell = '<span class="hint">The floor is by contract; this strategy\'s reserve outcome for this vintage is in the Historical tab.</span>';
+        } catch (e) { cell = '<span class="hint">Not available: ' + budEsc(e.message) + '</span>'; }
+        h += '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + sc.color + ';margin-right:6px;"></span>' + budEsc(sc.name) + '</td><td>' + y + '</td><td>' + cell + '</td><td>' + term + '</td></tr>';
+      }
+      h += '</tbody></table></div>';
+      return h + '</div>';
+    }
     window.runScenariosUI = async function() {
       // Starting balances + duration both come from Settings (empty overrides).
       const sSet = await getStressSettingsAsync();
       if (sSet.strategyId && sSet.strategyId !== 'pots-and-valves') {
-        document.getElementById('scenResults').innerHTML = '<div class="alert alert-info">Named scenarios (2022, the 1970s, 2008…) are built into the ladder strategies\' historical run — every crisis since 1871 is one of its windows, and the famous vintages (1929, 1966, 2000, 2008) are called out in <strong>Strategies → Two real decades</strong>. Run the Monte Carlo or Historical tab for this plan\'s numbers.</div>';
+        document.getElementById('scenResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running the named scenarios through ' + budEsc(STRATEGY_NAMES[sSet.strategyId] || sSet.strategyId) + '…</div>';
+        await new Promise((r) => setTimeout(r, 30));
+        try { document.getElementById('scenResults').innerHTML = strategyScenariosHtml(sSet); }
+        catch (e) { console.error('Scenario error:', e); document.getElementById('scenResults').innerHTML = '<div class="alert alert-danger">Error: ' + budEsc(e.message) + '</div>'; }
         return;
       }
       const config = {};

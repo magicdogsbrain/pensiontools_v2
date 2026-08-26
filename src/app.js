@@ -451,5 +451,6 @@ export {
   grossToNet,
 
   // Constants
-  VERSION
+  VERSION,
+  SCENARIOS
 };

@@ -10,6 +10,7 @@
  */
 
 import { decisionToHistory } from '../models/Decision.js';
+import { lockPlanIfNeeded } from './PlanLock.js';
 import {
   getDecisionSettingsAsync,
   addHistoryRecord,

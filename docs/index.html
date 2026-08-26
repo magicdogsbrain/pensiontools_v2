@@ -2016,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DcOWY_ip.js"></script>
+  <script type="module" crossorigin src="./assets/main-CFmAzfne.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2863,12 +2863,22 @@
                 <button type="button" class="risk-btn" data-strat="floor-to-age" onclick="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
                 <button type="button" class="risk-btn" data-strat="full-il-gilt" onclick="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
               </div>
+              <div id="ssPotMini" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
+                <div class="section-title" style="font-size:13px;">Your pot <span class="hint" style="font-weight:normal;">— what this strategy has to buy with</span></div>
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your SIPP (£)<input type="number" id="miniSipp" step="1000" style="width:130px;" oninput="miniPotChanged()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" oninput="miniPotChanged()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" onchange="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
+                  <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
+                </div>
+                <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
+              </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" oninput="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" oninput="refreshStrategyCosts()"></label>
                 </div>
-                <p class="hint" style="margin:6px 0 0;">Priced against <strong>Total in your SIPP</strong> under <em>Your allocation</em> below (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="goToAllocation()">Go to Your allocation</button></p>
+                <p class="hint" style="margin:6px 0 0;">Priced against <strong>Your pot</strong> above (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios.</p>
                 <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
               </div>
               <div style="display:none;">

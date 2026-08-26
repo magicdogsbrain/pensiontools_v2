@@ -102,7 +102,8 @@ function buildTaxSummary(d) {
   html += '</div>'; // End tax-info
 
   // Rebalancing recommendations
-  if (d.rebalanceNeeded && d.rebalanceActions.length > 0) {
+  // Contract strategies hold their income in rungs/cash, not P&V pots — no P&V rebalancing advice.
+  if (d.rebalanceNeeded && d.rebalanceActions.length > 0 && !(d.strategyOverlay && d.strategyOverlay.hidePots)) {
     html += '<div class="rebalance-card">';
     html += '<h4>Rebalancing Suggestions</h4>';
     html += '<ul>';

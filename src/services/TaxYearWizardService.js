@@ -233,6 +233,16 @@ export function validateIsaInput(isaEntered, isaNeeded, brlExhausted) {
  * @param {string} selectedMonth - Selected month in YYYY-MM format
  * @returns {Promise<object>} Wizard initialization data
  */
+/** Other taxable income the Stress plan already carries for a tax year ('YY/YY'), today's money. */
+export function otherIncomeFromStress(ss, taxYear) {
+  if (!ss) return 0;
+  const y = Math.max(0, (2000 + parseInt(String(taxYear).split('/')[0], 10)) - 2026);   // plan year 0 = 26/27
+  let t = +ss.other || 0;
+  if ((ss.dbAmount || 0) > 0 && y >= (ss.dbStartYear || 0)) t += +ss.dbAmount;
+  for (const inc of ss.extraIncomes || []) if (inc.annual > 0 && y >= (inc.startYear || 0) && (inc.endYear == null || y <= inc.endYear)) t += +inc.annual;
+  return Math.round(t);
+}
+
 export async function getWizardData(selectedMonth) {
   const dateObj = parseMonth(selectedMonth);
   const taxYear = getTaxYear(dateObj);
@@ -242,6 +252,7 @@ export async function getWizardData(selectedMonth) {
 
   // Get settings and existing config
   const settings = await getDecisionSettingsAsync();
+  let stressSettings = null; try { stressSettings = await getActiveStressSettings(); } catch (e) { stressSettings = null; }
   const existingConfig = await getTaxYearConfigAsync(taxYear);
   const allTaxYears = await getAllTaxYearsAsync();
 
@@ -315,7 +326,9 @@ export async function getWizardData(selectedMonth) {
       brl: prevYearConfig?.brl || existingConfig.brl,
       hrl: prevYearConfig?.hrl || existingConfig.hrl,
       cpi: prevCpi,
-      other: prevYearConfig?.other || 0
+      // Last year's figure, else what the Stress plan already knows about this tax year: DB pension
+      // once started, income streams (part-time work, rent) active in this plan year, and 'other'.
+      other: prevYearConfig?.other || otherIncomeFromStress(stressSettings, taxYear)
     },
 
     // State pension

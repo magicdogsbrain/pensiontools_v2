@@ -371,3 +371,20 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;
   return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: firstYearRatio };
 }
+
+
+/**
+ * Decision-side SP config: the Decision tool's plan years are UK TAX years (6 April), so the
+ * State Pension starts in the plan year whose tax year contains the SP date — not floor(calendar
+ * years from today). Returns { spStartYear, spWeeklyAmount, spFirstYearRatio } like the sim config.
+ */
+export function spTaxYearConfigFromSettings(settings, now = new Date()) {
+  if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
+  const spStartYear = Math.max(0, tyStart(spDate) - tyStart(now));
+  const yStart = new Date(tyStart(spDate), 3, 6), yEnd = new Date(tyStart(spDate) + 1, 3, 6);
+  const spFirstYearRatio = Math.max(0, Math.min(1, (yEnd - spDate) / (yEnd - yStart)));
+  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio };
+}

@@ -443,6 +443,14 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
       // Build alerts array
       const alerts = [];
+      // Protection is cutting income while an ISA sits idle (policy never touches it below the BRL):
+      // say what the cut is and how long the ISA could cover it. Advice, not an automatic draw.
+      const protCut = inProtection ? Math.max(0, (stdSippForHistory || 0) - sipp) : 0;
+      const isaIdle = (deps.isaBalance || 0);
+      if (protCut > 1 && isaIdle > 0 && isa <= 0 && settings.isaDrawdownStrategy !== 'hold') {
+        const yrs = isaIdle / (protCut * 12);
+        alerts.push({ message: `Protection is cutting your draw by £${Math.round(protCut).toLocaleString()}/mo. Your ISA (£${Math.round(isaIdle).toLocaleString()}) could cover that cut for about ${yrs >= 10 ? '10+' : yrs.toFixed(1)} years, tax-free — your call.`, severity: 'info', type: 'isa-bridge' });
+      }
       if (warn) {
         alerts.push({ message: warn, severity: 'danger', type: 'low-cash' });
       }
@@ -472,8 +480,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const monthsPassedIncludingThis = thisTaxYearHistory.length + 1;
       const monthsRemaining = Math.max(0, deliverMonths - monthsPassedIncludingThis);
 
-      // Use stdSipp for projected remaining months (standard draw without boost/protection)
-      const projectedRemainingSipp = monthsRemaining * stdSippForHistory;
+      // Project the remaining months at THIS month's draw (protection included): assuming a snap back
+      // to the standard draw overstated the year's tax in every protection month (persona test B27).
+      const projectedRemainingSipp = monthsRemaining * sipp;
 
       // Total annual SIPP = YTD + this month + projected remaining at standard rate
       const totalAnnualSipp = sippYTD + sipp + projectedRemainingSipp;

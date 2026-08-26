@@ -4727,7 +4727,7 @@
           e.stopPropagation();
           const id = btn.dataset.id;
           const currentName = btn.dataset.name;
-          const newName = prompt('Rename plan:', currentName);
+          const newName = await appPrompt('Rename plan:', currentName, { okLabel: 'Rename' });
           if (newName && newName.trim() && newName.trim() !== currentName) {
             try {
               await renameScenario(id, newName.trim());
@@ -4824,7 +4824,7 @@
       }
 
       const activeName = active.planDetails?.name || active.name || 'My Plan';
-      const name = prompt('Name for the copy:', activeName + ' (copy)');
+      const name = await appPrompt('Name for the copy:', activeName + ' (copy)', { okLabel: 'Duplicate' });
       if (!name || !name.trim()) return;
 
       try {
@@ -8606,6 +8606,27 @@
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
+    // In-app prompt (text input) — same reasons as appConfirm. Resolves the string, or null on cancel.
+    window.appPrompt = function (message, initial = '', opts = {}) {
+      return new Promise((resolve) => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--card,#1e293b);border:1px solid var(--border,#334155);border-radius:12px;max-width:440px;width:100%;padding:20px;';
+        const msg = document.createElement('p'); msg.style.cssText = 'font-size:14px;margin:0 0 10px;'; msg.textContent = message;
+        const inp = document.createElement('input'); inp.type = opts.password ? 'password' : 'text'; inp.value = initial || ''; inp.style.cssText = 'width:100%;margin-bottom:14px;';
+        const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+        const no = document.createElement('button'); no.type = 'button'; no.className = 'secondary'; no.textContent = opts.cancelLabel || 'Cancel';
+        const ok = document.createElement('button'); ok.type = 'button'; ok.textContent = opts.okLabel || 'OK';
+        const done = (v) => { ov.remove(); resolve(v); };
+        no.onclick = () => done(null); ok.onclick = () => done(inp.value);
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(inp.value); if (e.key === 'Escape') done(null); });
+        ov.addEventListener('click', (e) => { if (e.target === ov) done(null); });
+        row.append(no, ok); box.append(msg, inp, row); ov.appendChild(box); document.body.appendChild(ov);
+        setTimeout(() => { inp.focus(); inp.select(); }, 0);
+      });
+    };
+
     window.appConfirm = function (message, opts = {}) {
       return new Promise((resolve) => {
         const ov = document.createElement('div');
@@ -10343,10 +10364,10 @@
     let _adminProfiles = null;     // staged { key: { field: value } } overrides
     let _adminSuggestions = [];
 
-    window.openAdminPanel = function () {
+    window.openAdminPanel = async function () {
       const pass = adminPassphrase();
       if (pass) {
-        const entered = prompt('Admin passphrase:');
+        const entered = await appPrompt('Admin passphrase:', '', { password: true, okLabel: 'Unlock' });
         if (entered !== pass) { if (entered !== null) showToast('Wrong passphrase', 'error'); return; }
       }
       _adminFunds = activeFundCatalogue().map((f) => ({ ...f }));
@@ -11989,7 +12010,7 @@
         return;
       }
 
-      const year = prompt('Enter tax year (e.g., 25/26):');
+      const year = await appPrompt('Enter tax year (e.g., 25/26):', '', { okLabel: 'Add' });
       if (!year || !/^\d{2}\/\d{2}$/.test(year)) {
         showToast('Invalid format. Use YY/YY (e.g., 25/26)', 'error');
         return;

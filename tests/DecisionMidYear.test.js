@@ -24,3 +24,18 @@ describe('September start, 7 months left, £40k target', () => {
     expect(r.monthlyTax).toBeCloseTo(5486 / 12, 0);
   });
 });
+
+describe('protection year: the tax figure projects the remaining months at the cut draw', () => {
+  it('a 20% cut on £28k/12 from month 1 of a full year taxes the cut income, not the standard', async () => {
+    const s2 = { ...settings, baseSalary: 28000, equityMin: 160000, bondMin: 128000, cashTarget: 32000, isaBalance: 0, protectionFactor: 20, consecutiveLimit: 1 };
+    // prior history: two cash draws in this tax year → protection fires
+    const history = [{ date: '2026-04', sipp: 2333, source: 'Cash', inProtection: false, taxYear: '26/27' }, { date: '2026-05', sipp: 2333, source: 'Cash', inProtection: false, taxYear: '26/27' }];
+    const r = await calcDecisionPWA('2026-06', 150000, 128000, 20000, { settings: s2, history, allTaxYears: { '26/27': ty({ confirmedSalary: 28000, startMonth: 4, remainingMonths: 12, expectedMonthly: { sipp: { gross: 28000 / 12 } } }) }, spInfo: { amount: 0, isReceiving: false }, isaBalance: 0 });
+    if (r.inProtection) {
+      const annual = 2333 * 2 + r.sippDraw * 10;
+      expect(r.monthlyTax * 12).toBeCloseTo(Math.max(0, annual - 12570) * 0.2, -2);
+    } else {
+      expect(r.sippDraw).toBeCloseTo(2333, 0);
+    }
+  });
+});

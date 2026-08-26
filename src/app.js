@@ -23,6 +23,8 @@ import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/regist
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES } from './strategies/stressTest.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
+import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
+import { getRtr } from './strategies/ladderEngine.js';
 import { getCpi } from './strategies/ladderEngine.js';
 import { orderSheet, realYieldForYear, nominalYieldForYear, loadLiveGilts, dataProvenance, activeLinkers } from './services/LinkerUniverse.js';
 import { runLadderWindows, runLadderMonteCarlo } from './strategies/LadderAndRatchet.js';
@@ -398,6 +400,10 @@ export {
   inflationDecadesSvg,
   GILT_FRAMES,
   getCpi,
+  floorToAgeSvg,
+  ftaDecadesSvg,
+  FTA_FRAMES,
+  getRtr,
   realYieldForYear,
   nominalYieldForYear,
   loadLiveGilts,

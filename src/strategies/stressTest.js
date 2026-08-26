@@ -294,6 +294,7 @@ function floorToAgeTest(p, configs) {
   const hE = h.windows.map(decide), mcE = mc.windows.map(decide);
   const pctCut = (arr) => 100 * arr.filter((e) => !e.full).length / arr.length;
   const sAt = (arr) => { const v = arr.map((e) => e.sA); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const reserveCone = Array.from({ length: A + 1 }, (_, y) => { const v = mc.windows.map((w) => w.sleeveByYear[y] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; });
   const canBuy = (amount) => { const cost = c.restCost(() => amount); return { amount, cost, hist: 100 * hE.filter((e) => e.sA >= cost).length / hE.length, mc: 100 * mcE.filter((e) => e.sA >= cost).length / mcE.length }; };
   const lowest = Math.min(...Array.from({ length: N - A }, (_, i) => c.amountAt(A + 1 + i)));
   const terms = mcE.map((e) => e.wealth[N]);
@@ -308,8 +309,9 @@ function floorToAgeTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
     failAges: [],
     signature: {
-      floorToAge: c.floorToAge, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / (p.pot + (p.isa || 0)),
-      sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull,
+      floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / (p.pot + (p.isa || 0)),
+      sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull, reserveCone,
+      amountsByAge: Array.from({ length: N }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spAt(k) })),
       canBuy: [canBuy(c.amountAt(A + 1)), canBuy(lowest)].filter((x, i, a) => i === 0 || x.amount !== a[0].amount),
       levelIfCut: { p10: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.1) || null, p50: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.5) || null },
       rule: `Nothing to decide until ${c.floorToAge}. At ${c.floorToAge}: price the remaining years on that day's real-yield curve (or an RPI annuity quote); buy the schedule if the reserve covers it, otherwise the level income it does cover.`

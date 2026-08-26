@@ -281,7 +281,9 @@ export function annualNetAtAge(budget, age, tier = 'all') {
  */
 export function myShareFactor(item, budget, age = null) {
   if (!budget || !budget.sharedWithPartner) return 1;
-  const who = (item && item.paidBy) || 'me';
+  // In a shared budget an unmarked line is SHARED (split by the budget's share %), not "mine":
+  // defaulting to 'me' put the whole household on one person (persona test B35).
+  const who = (item && item.paidBy) || 'shared';
   if (who === 'partner') return 0;
   if (who === 'shared') {
     const own = item && item.mySharePct;

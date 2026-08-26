@@ -8487,7 +8487,21 @@
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
       try {
         showLoading('Creating ' + name + '…');
+        // Their plan starts from what THIS plan already knows about them: ages from the plan wizard,
+        // sharing on, and this person as their partner — not the 45/60 defaults.
+        let mine = null; try { mine = await getBudgetAsync(); } catch (e) { mine = null; }
         await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], {}, true);
+        try {
+          const theirs = await getBudgetAsync();
+          if (mine && theirs) {
+            theirs.currentAge = mine.partnerAge || theirs.currentAge;
+            theirs.retirementAge = mine.partnerRetirementAge || theirs.retirementAge;
+            theirs.retired = !!mine.partnerRetired;
+            theirs.sharedWithPartner = true;
+            theirs.partnerAge = mine.currentAge || null; theirs.partnerRetirementAge = mine.retirementAge || null; theirs.partnerRetired = !!mine.retired;
+            await saveBudget(theirs);
+          }
+        } catch (e) { console.warn('Partner budget seed skipped:', e); }
         showToast(name + ' created — fill in their Stress settings, then come back to Household and pick them.', 'success', 6000);
         location.reload();
       } catch (e) {
@@ -8539,7 +8553,10 @@
       const warnEl = document.getElementById('acWarnings');
       const projEl = document.getElementById('acProjection');
       if (!a.currentAge || !a.retirementAge || a.retirementAge <= a.currentAge) {
-        bd.innerHTML = ''; warnEl.innerHTML = ''; projEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Enter your ages to project.</p>';
+        bd.innerHTML = ''; warnEl.innerHTML = '';
+        projEl.innerHTML = (a.currentAge && a.retirementAge && a.retirementAge <= a.currentAge)
+          ? '<div class="alert alert-info">This planner is for the years <em>before</em> retirement. Your plan says you retire at ' + a.retirementAge + ' and you are ' + a.currentAge + ' — the Stress Tester and Decision Tool are the tools for you now.</div>'
+          : '<p style="color:var(--text-muted);font-size:13px;">Enter your ages to project.</p>';
         return;
       }
       const b = contributionBreakdown(a);

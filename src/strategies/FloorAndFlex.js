@@ -232,3 +232,27 @@ export const FloorToAge = {
   },
   engine: { runWindows: runFlexWindows, floorCost }
 };
+
+/**
+ * Full index-linked gilt ladder ("fully deterministic"): every year of the income schedule bought
+ * today — the first years from cash, the rest one linker per tax year maturing before that April.
+ * No equity sleeve, no trigger, nothing to decide. GiltLadderPlan.buildGiltLadder does the maths.
+ */
+export const FullGiltLadder = {
+  id: 'full-il-gilt',
+  name: 'Full index-linked gilt ladder',
+  promise: 'Every year of your income bought today. A gilt matures before each April; you draw it monthly. Nothing to decide, ever.',
+  failure: "It costs the whole pot at today's real yields; there is no upside, and the only inflation it tracks is the official index (RPI to CPIH from 2030).",
+  granularity: 'windows',
+  describe() {
+    return {
+      id: this.id, name: this.name, promise: this.promise, failure: this.failure,
+      engineVersion: ENGINE_VERSION,
+      components: ['cash (money-market) for the first years', 'one 3-month-lag index-linked gilt per tax year, maturing before that April',
+        'double-drops where no gilt matures in a window', "nominal = today's-money income / index ratio (DMO base RPI + ONS RPI)"],
+      usesTrigger: false,
+      sensitivity: 'cost moves with real yields: roughly 8% per 1pp on a 15-year rung'
+    };
+  },
+  engine: { runWindows: runFlexWindows, floorCost }
+};

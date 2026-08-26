@@ -2016,7 +2016,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-CpG0cjV9.js"></script>
+  <script type="module" crossorigin src="./assets/main-CHiDF-Qq.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2867,7 +2867,7 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" oninput="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" oninput="refreshStrategyCosts()"></label>
                 </div>
-                <p class="hint" style="margin:6px 0 0;">Uses your income shape (Settings above), your State Pension date, and the latest gilt prices and index ratios. Run Monte Carlo or the Strategies compare for the full order sheet.</p>
+                <p class="hint" style="margin:6px 0 0;">Priced against <strong>Total in your SIPP</strong> under <em>Your allocation</em> below (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="document.getElementById('ssRiskMode')?.scrollIntoView({behavior:'smooth',block:'start'})">Go to Your allocation</button></p>
                 <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
               </div>
               <div style="display:none;">
@@ -2921,7 +2921,7 @@
                 </div>
                 <div class="form-grid" style="margin-top:8px;">
                   <div class="form-group">
-                    <label>Total in your SIPP (£)</label>
+                    <label>Total in your SIPP (£) <span class="hint">— for this strategy; blank = Your allocation below</span></label>
                     <input type="number" id="stratSipp" oninput="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">
@@ -2961,7 +2961,7 @@
                 </div>
                 <div class="form-grid" style="margin-top:8px;">
                   <div class="form-group">
-                    <label>Total in your SIPP (£)</label>
+                    <label>Total in your SIPP (£) <span class="hint">— for this strategy; blank = Your allocation below</span></label>
                     <input type="number" id="stratSippFf" oninput="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">

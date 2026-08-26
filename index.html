@@ -7869,7 +7869,7 @@
         row('Monte Carlo', SIMULATION_DEFAULTS.MONTE_CARLO_RUNS.toLocaleString() + ' futures, circular block bootstrap, ' + (MC_BLOCK_YEARS || 5) + '-year blocks', 'Random consecutive 5-year stretches of real history are stitched together, so booms, busts and inflation regimes survive intact. Independent yearly draws would understate sequence risk.'),
         row('Historical', 'Every rolling start year ' + yrs[0] + '–' + (yrs[yrs.length - 1]) + ' (Pots &amp; Valves); every start month since 1871 (ladders)', 'Overlapping windows: 150 years is really only about 10 independent 15-year draws. Treat the tail as indicative, not a probability.'),
         row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by <code>tests/calibration.test.js</code>; 5%/30y ≈59%, 6%/30y ≈39%.'),
-        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years, then history resumes. For contract strategies only the inflation path matters.')
+        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years REPEATED for the whole plan (35 years of 1929–38 on a loop is far harsher than any real history — treat these as torture tests, not forecasts). For contract strategies only the inflation path matters.')
       ]);
 
       h += '<div class="section-title">4 · Bonds, cash and the ISA (Pots &amp; Valves)</div>' + table([

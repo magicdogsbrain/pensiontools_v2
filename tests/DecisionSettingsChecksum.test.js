@@ -27,6 +27,12 @@ describe('decisionSettingsChecksum', () => {
       .toBe(decisionSettingsChecksum(base));
   });
 
+  it('is independent of key order (Firestore round-trips reorder keys)', () => {
+    const reordered = Object.keys(base).sort().reverse().reduce((o, k) => { o[k] = base[k]; return o; }, {});
+    expect(decisionSettingsChecksum(reordered)).toBe(decisionSettingsChecksum(base));
+    expect(decisionSettingsChecksum({ ...base, taggedFunds: [{ b: 1, a: 2 }] })).toBe(decisionSettingsChecksum({ ...base, taggedFunds: [{ a: 2, b: 1 }] }));
+  });
+
   it('changes when a plan-defining field changes', () => {
     const c0 = decisionSettingsChecksum(base);
     expect(decisionSettingsChecksum({ ...base, baseSalary: 60000 })).not.toBe(c0);

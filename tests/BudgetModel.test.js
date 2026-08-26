@@ -172,7 +172,7 @@ describe('BudgetModel — typical amounts (PLSA-tier anchored)', () => {
   it('defaults to the Moderate tier and picks couple vs single by the sharing flag', () => {
     expect(typicalMonthlyFor('Council tax', { sharedWithPartner: false })).toBe(156);   // 115 × PLSA calibration (Moderate chips sum to £31,300/yr)
     expect(typicalMonthlyFor('Council tax', { sharedWithPartner: true })).toBe(207);
-    expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(470);
+    expect(typicalMonthlyFor('Groceries & household', { sharedWithPartner: true })).toBe(573);   // 470 × couple Moderate calibration
   });
 
   it('the chosen tier changes the figure (Minimum < Moderate < Comfortable)', () => {

@@ -23,6 +23,7 @@ import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/regist
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
 import { planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded } from './services/PlanLock.js';
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy } from './strategies/stressTest.js';
+import { deriveCompareConfigs } from './strategies/compareRunner.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
 import { incomeLayersSvg, incomeLayersRows } from './ui/incomeLayersGraphic.js';
@@ -401,6 +402,7 @@ export {
   requiredPotForStrategy,
   planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
   stressTestAll,
+  deriveCompareConfigs,
   planFromSettings,
   STRATEGY_NAMES,
   pnvDecadeSeries,

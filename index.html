@@ -3802,6 +3802,7 @@
       requiredPotForStrategy,
       planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
       stressTestAll,
+      deriveCompareConfigs,
       planFromSettings,
       STRATEGY_NAMES,
       giltLadderSvg,
@@ -8073,7 +8074,7 @@
       window._stratPage = id;
       document.querySelectorAll('#stratNav .strat-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.page === id));
       const box = document.getElementById('stratPage');
-      box.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      box.innerHTML = '<div class="loading"><div class="spinner"></div><div id="cmpProgress" class="hint" style="margin-top:8px;"></div></div>';
       await new Promise((r) => setTimeout(r, 20));
       try {
         if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
@@ -8107,7 +8108,18 @@
       const key = JSON.stringify([eff, window._cmpCutsOff]);
       if (window._cmpCache && window._cmpCache.key === key) return window._cmpCache;
       const p = strategyPlanFor(eff);
-      const all = stressTestAll(p);
+      // One strategy per turn of the event loop, with a progress line, so a phone stays responsive
+      // (the six runs together take ~12s on a laptop and far longer on a handset).
+      const configs = deriveCompareConfigs(p);
+      const strategies = {};
+      const ids = Object.keys(STRATEGY_NAMES);
+      const prog = document.getElementById('cmpProgress');
+      for (let i = 0; i < ids.length; i++) {
+        if (prog) prog.textContent = 'Running ' + STRATEGY_NAMES[ids[i]] + ' (' + (i + 1) + ' of ' + ids.length + ')…';
+        await new Promise((r) => setTimeout(r, 30));
+        strategies[ids[i]] = stressTestStrategy(ids[i], p, configs);
+      }
+      const all = { configs, strategies };
       window._cmpCache = { key, p, all, settings };
       return window._cmpCache;
     }

@@ -169,21 +169,25 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
   let V = E0, last = 0, nxt = firstRung, sec = 0;
   const trades = [];
   const fires = [];
-  const vByYear = [E0];   // filled at review points only (calendar mode grows between reviews)   // a review FIRES when V > G — distinct from managing to buy a rung
-  for (const t of reviews) {
-    V *= rtr[s + t] / rtr[s + last];
-    last = t;
-    const G = E0 * Math.pow(1 + gp, t / 12);
-    const fired = V > G;
-    fires.push({ t, fired });
-    if (fired) {
-      let ex = V - G, bought = 0;
-      while (nxt <= maxRung) {
-        const c = priceForYear(nxt, t);
-        if (ex >= c) { ex -= c; V -= c; sec += 1; nxt += 1; bought += 1; }
-        else break;
+  const vByYear = [E0];   // sleeve value at EVERY plan-year boundary (the cone), reviews fire only on their dates
+  const reviewSet = new Set(reviews);
+  const lastT = reviews.length ? Math.max(...reviews) : 0;
+  for (let t = 1; t <= lastT; t++) {
+    V *= rtr[s + t] / rtr[s + t - 1];
+    if (reviewSet.has(t)) {
+      last = t;
+      const G = E0 * Math.pow(1 + gp, t / 12);
+      const fired = V > G;   // a review FIRES when V > G — distinct from managing to buy a rung
+      fires.push({ t, fired });
+      if (fired) {
+        let ex = V - G, bought = 0;
+        while (nxt <= maxRung) {
+          const c = priceForYear(nxt, t);
+          if (ex >= c) { ex -= c; V -= c; sec += 1; nxt += 1; bought += 1; }
+          else break;
+        }
+        if (bought) trades.push({ t, bought });
       }
-      if (bought) trades.push({ t, bought });
     }
     if (t % 12 === 0) vByYear[t / 12] = V;
   }

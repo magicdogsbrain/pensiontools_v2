@@ -2016,7 +2016,70 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="./assets/main-DOUCfCsh.js"></script>
+
+    <style id="mobileShell">
+    /* ===== Mobile shell (≤700px): compact header + menu sheet, fixed bottom tab bar, pill sub-tabs ===== */
+    #mobileTabBar, #mobileSheet, #mobileMenuBtn { display: none; }
+    @media (max-width: 700px) {
+      .app-container { padding: 10px 10px 84px; }
+      .header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 0 8px; text-align: left; }
+      .header h1 { display: none; }
+      .header .scenario-selector { width: auto; justify-content: flex-start; min-width: 0; }
+      .header .scenario-selector-label { display: none; }
+      .header .scenario-active-btn { max-width: none; width: 100%; display: flex; align-items: center; gap: 6px; }
+      .header .scenario-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      .header .scenario-dropdown { left: 0; transform: none; min-width: min(320px, 92vw); }
+      .header .header-actions { display: none; }
+      #mobileMenuBtn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; }
+      /* main tabs move to the bottom bar */
+      .tabs-wrapper { display: none; }
+      #mobileTabBar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: var(--card); border-top: 1px solid var(--border); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+      #mobileTabBar button { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; border-radius: 8px; min-height: 48px; cursor: pointer; }
+      #mobileTabBar button .ico { font-size: 20px; line-height: 1; }
+      #mobileTabBar button.active { color: var(--primary); }
+      /* sub-tabs: one scrollable row of pills with an edge fade */
+      .sub-tabs { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; gap: 6px; padding: 4px 24px 4px 4px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); scroll-snap-type: x proximity; margin-bottom: 12px; }
+      .sub-tabs::-webkit-scrollbar { display: none; }
+      .sub-tab { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: 13px; border-radius: 999px; scroll-snap-align: start; }
+      /* generic content fixes */
+      .card { padding: 12px; }
+      .keynums { grid-template-columns: 1fr 1fr; }
+      .kn-val { font-size: 20px; }
+      .form-grid { grid-template-columns: 1fr !important; }
+      .row-flex { flex-wrap: wrap; }
+      .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
+      .table-wrap, .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+      .card > table, .settings-section > table, .strat-block > table { display: block; overflow-x: auto; max-width: 100%; }
+      .machine-scroll { overflow-x: auto; }
+      .strat-page h2 { font-size: 17px; }
+      .strat-nav { display: flex; overflow-x: auto; flex-wrap: nowrap !important; gap: 6px; padding-bottom: 6px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+      .strat-nav-item { flex: 0 0 auto; border-radius: 999px; }
+      .toast { left: 10px; right: 10px; bottom: 80px; max-width: none; }
+      #nextStepBanner { flex-direction: column; align-items: stretch; }
+      .assump-kv { display: block; }
+      .assump-kv > div { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    }
+    /* bottom sheet (all sizes; only opened from the mobile menu) */
+    #mobileSheet { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.55); }
+    #mobileSheet.open { display: block; }
+    #mobileSheet .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 16px 16px 0 0; padding: 12px 14px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
+    #mobileSheet .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 10px; }
+    #mobileSheet .sheet button { display: flex; width: 100%; align-items: center; gap: 10px; background: none; border: none; color: var(--text); font-size: 15px; padding: 13px 6px; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; min-height: 48px; }
+    #mobileSheet .sheet button.danger { color: #f87171; }
+    #mobileSheet .sheet .who { font-size: 12px; color: var(--text-muted); padding: 4px 6px 10px; word-break: break-all; }
+    /* Assumptions page: accordion sections, key/value rows */
+    .assump details { border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; background: var(--card-alt); }
+    .assump summary { cursor: pointer; padding: 10px 12px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .assump summary::after { content: '+'; color: var(--text-muted); font-weight: 400; }
+    .assump details[open] summary::after { content: '–'; }
+    .assump .assump-kv { padding: 0 12px 10px; }
+    .assump .assump-kv > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .assump .assump-kv > div:last-child { border-bottom: none; }
+    .assump .assump-kv .k { color: var(--text-muted); }
+    .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
+    @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
+    </style>
+  <script type="module" crossorigin src="./assets/main-DHMqEW1X.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2061,6 +2124,7 @@
             </div>
           </div>
         </div>
+        <button type="button" id="mobileMenuBtn" aria-label="Menu" onclick="openMobileMenu()">&#8801;</button>
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
@@ -2071,6 +2135,14 @@
           </div>
         </div>
       </header>
+      <nav id="mobileTabBar" aria-label="Main">
+        <button type="button" data-mtab="budget" onclick="mobileGo('budget')"><span class="ico">&#128203;</span>Budget</button>
+        <button type="button" data-mtab="stress" onclick="mobileGo('stress')"><span class="ico">&#128200;</span>Stress</button>
+        <button type="button" data-mtab="strategies" onclick="mobileGo('strategies')"><span class="ico">&#9878;&#65039;</span>Strategies</button>
+        <button type="button" data-mtab="decision" onclick="mobileGo('decision')"><span class="ico">&#128183;</span>Decide</button>
+        <button type="button" data-mtab="more" onclick="openMobileMore()"><span class="ico">&#8943;</span>More</button>
+      </nav>
+      <div id="mobileSheet" onclick="if (event.target === this) closeMobileSheet()"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
       <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">

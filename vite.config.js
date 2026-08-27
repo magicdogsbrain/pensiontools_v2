@@ -4,6 +4,8 @@ export default defineConfig({
   root: '.',
   base: './',
   publicDir: 'public',
+  // Never ship console output: several logs carried the user's financial data (security audit H1).
+  esbuild: { drop: ['console', 'debugger'] },
   build: {
     outDir: 'docs',
     emptyOutDir: true,

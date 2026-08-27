@@ -13,17 +13,7 @@
  *         stressTool: { settings }
  */
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-  addDoc,
-  writeBatch
-} from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, writeBatch, query, where } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config.js';
 import { getCurrentUser } from './AuthService.js';
 import { normalizeScenario } from './scenarioMigration.js';
@@ -307,6 +297,14 @@ export async function wipeAllUserData() {
 
     // Delete profile
     batch.delete(doc(db, 'users', user.uid, 'profile', 'settings'));
+
+    // The only personal data outside users/{uid}: the fund-suggestion queue rows this user filed
+    // (they carry the uid). Right to erasure means they go too (security audit H2).
+    try {
+      const q = query(collection(db, 'fundSuggestions'), where('uid', '==', user.uid));
+      const snap = await getDocs(q);
+      snap.forEach((d) => batch.delete(d.ref));
+    } catch (e) { /* older rules may not permit the read; the account deletion still proceeds */ }
 
     await batch.commit();
 

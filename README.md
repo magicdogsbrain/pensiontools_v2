@@ -13,7 +13,7 @@ A Progressive Web App for pension drawdown planning with Monte Carlo stress test
 
 ## Usage
 
-Visit the hosted version at: https://magicdogsbrain.github.io/pension-planner-pwa/
+Visit the hosted version at: https://pensiontools.uk/
 
 Or run locally:
 ```bash

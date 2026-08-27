@@ -106,7 +106,7 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
     const pv = all.strategies['pots-and-valves'], lr = all.strategies['ladder-and-ratchet'], ff = all.strategies['floor-and-flex'];
     // Floor & Flex cannot run out (failAges empty); its 'ruin' is the honest risk of a year below the plan.
     expect(ff.failAges).toEqual([]);
-    expect(ff.ruinLabel).toMatch(/less than the plan/);
+    expect(ff.ruinLabel).toMatch(/lean year/);
     expect(ff.ruin.mc).toBeGreaterThanOrEqual(0);
     expect(ff.ruin.mc).toBeLessThanOrEqual(100);
     expect(ff.guaranteedToAge).toMatch(/by contract/);

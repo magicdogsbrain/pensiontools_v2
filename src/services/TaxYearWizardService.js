@@ -386,10 +386,15 @@ export function calculateMonthlyBreakdown(params) {
     monthlyIsaNet = isaSavingsAllocation / remainingMonths;
   }
 
-  // Calculate annual gross taxable income (SIPP + Other + State Pension)
-  const annualTaxableGross = (monthlySippGross + monthlyFixedIncomeGross) * 12;
-  const annualTax = calcTax(annualTaxableGross);
-  const monthlyTax = annualTax / 12;
+  // Tax for THIS tax year: the draws over the remaining months sit on top of any income already
+  // received before drawdown started (which has used up allowance/band). The extra tax the draws
+  // cause is total tax less the tax already due on that earlier income, spread over the months
+  // actually drawn. For a full year with nothing earned before, this is the plain annual figure.
+  const months = Math.max(1, Math.min(12, remainingMonths || 12));
+  const drawsThisYear = (monthlySippGross + monthlyFixedIncomeGross) * months;
+  const priorIncome = months < 12 ? (grossIncomeToDate || 0) : 0;
+  const annualTax = calcTax(drawsThisYear + priorIncome) - calcTax(priorIncome);
+  const monthlyTax = annualTax / months;
 
   // Calculate net for taxable sources (proportional tax allocation)
   const totalTaxableGross = monthlySippGross + monthlyFixedIncomeGross;

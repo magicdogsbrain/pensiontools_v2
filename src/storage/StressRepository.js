@@ -290,6 +290,18 @@ export function scheduleFromSteps(settings, startAge = 57) {
   });
 }
 
+/**
+ * Legacy SP start year when no SP date is set. If the plan knows the income-start age, assume
+ * the State Pension arrives at 67 (plan year = 67 − start age) rather than the historic
+ * "year 12" default — a 60-year-old retiree would otherwise see SP arrive at 72.
+ */
+function defaultSpYear(settings) {
+  if (settings.statePensionYear != null && settings.statePensionYear !== 12) return settings.statePensionYear;
+  const start = +settings.shapeAgeNow || 0;
+  if (start > 0) return Math.max(0, 67 - start);
+  return settings.statePensionYear ?? 999;
+}
+
 export function createSimulationConfigFromSettings(overrides = {}, preloadedSettings = null) {
   const settings = preloadedSettings || getStressSettings();
 
@@ -298,7 +310,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
   const spConfig = calculateSpConfigFromSettings(settings);
   const spFields = spConfig
     ? { spStartYear: spConfig.spStartYear, spWeeklyAmount: spConfig.spWeeklyAmount, spFirstYearRatio: spConfig.spFirstYearRatio }
-    : { statePension: settings.statePension || 0, statePensionYear: settings.statePensionYear ?? 999 };
+    : { statePension: settings.statePension || 0, statePensionYear: defaultSpYear(settings) };
 
   // ISA composition (own-funds mode): when the plan has tagged ISA-wrapped holdings, model the
   // ISA pool at THEIR asset mix (same driver machinery as the taxable pots) instead of the flat

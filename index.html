@@ -5681,7 +5681,7 @@
       if (sel && !sel.options.length) sel.innerHTML = Object.entries(STRATEGY_NAMES).map(([id, n]) => '<option value="' + id + '">' + budEsc(n) + '</option>').join('');
       if (sel) sel.value = s.strategyId || 'pots-and-valves';
       const sp = s.strategyParams || {};
-      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));
+      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0)));
       document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
@@ -7365,7 +7365,7 @@
         } else if (!stress.configured) {
           text = 'Target set. Now the big question: can your pension actually pay for it? Open the Stress Tester settings, tell it what you have, and run the simulation.';
           btn = 'Open Stress Tester settings';
-          act = () => { switchToTab('stress'); setTimeout(() => { [...document.querySelectorAll('button')].filter((b) => /^Settings$/.test(b.textContent.trim()) && b.offsetParent).forEach((b) => b.click()); }, 400); };
+          act = () => { switchToTab('stress'); setTimeout(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click(), 400); window.scrollTo({ top: 0 }); };
         } else if (!decisionDone) {
           text = 'Your target is set and the Stress Tester is ready — when the long-term picture looks right, set up the monthly Decision Tool (it tells you what to draw, from where, each month).';
           btn = 'Open the Decision Tool';

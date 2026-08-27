@@ -45,9 +45,16 @@ describe('tax saved is on the same basis as the tax paid', () => {
   it('Sep start, £60k target with a £250k ISA: saving per month = (tax on 7×£5,000 − tax on 7×£4,189) / 7', async () => {
     const s3 = { ...settings, baseSalary: 60000, isaBalance: 250000 };
     const r = await calcDecisionPWA('2026-09', 450000, 360000, 90000, { settings: s3, history: [], allTaxYears: { '26/27': ty({ confirmedSalary: 60000, expectedMonthly: { sipp: { gross: 4189 } } }) }, spInfo: { amount: 0, isReceiving: false }, isaBalance: 250000 });
-    expect(r.sippDraw).toBeCloseTo(50270 / 12, 0);
-    const ineff = Math.max(0, 35000 - 12570) * 0.2;            // 7 × £5,000, all within the basic band
-    const eff = Math.max(0, r.sippDraw * 7 - 12570) * 0.2;
-    expect(r.taxSavedMonthly).toBeCloseTo((ineff - eff) / 7, 0);   // ≈ £162, not £673
+    // 7 × £5,000 = £35,000 sits entirely inside the year's basic band — the ISA has nothing to save.
+    expect(r.sippDraw).toBeCloseTo(60000 / 12, 0);
+    expect(r.taxSavedMonthly).toBeCloseTo(0, 0);
+  });
+  it('Aug start after £18k of salary: still draws target/12; the salary consumes the allowance, not the need', async () => {
+    const s4 = { ...settings, baseSalary: 28763, isaBalance: 60000 };
+    const r = await calcDecisionPWA('2026-08', 225000, 135000, 22500, { settings: s4, history: [], allTaxYears: { '26/27': ty({ confirmedSalary: 28763, startMonth: 8, remainingMonths: 8, grossIncomeToDate: 18000 }) }, spInfo: { amount: 0, isReceiving: false }, isaBalance: 60000 });
+    expect(r.sippDraw).toBeCloseTo(28763 / 12, 0);
+    const draws = (28763 / 12) * 8;
+    const extraTax = (18000 + draws - 12570) * 0.2 - (18000 - 12570) * 0.2;
+    expect(r.monthlyTax).toBeCloseTo(extraTax / 8, 0);
   });
 });

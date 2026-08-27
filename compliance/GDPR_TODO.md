@@ -90,3 +90,14 @@ to the ICO within 72 hours.
 ---
 See also: `compliance/PRIVACY_POLICY.md` (this repo) and the company Record of Processing in the
 AshworthEnterprises workspace (`compliance/DATA_PROCESSING_RECORD.md`).
+
+## Security & privacy pass — 27 Aug 2026 (done)
+- XSS: all user/remote strings escaped (`budEsc` now escapes quotes too); toasts use textContent; fund catalogue/search/ticker inputs escaped; ticker whitelist `[A-Z0-9.-]{1,12}` on input and on admin publish; scenario names/descriptions escaped in the plan menu and household selector.
+- CSV export: formula injection neutralised (leading = + - @ tab CR prefixed with ').
+- Budget calculator: `Function()` replaced by a recursive-descent arithmetic parser.
+- Firestore rules: `fundSuggestions` create constrained (field whitelist, ticker shape/length); users may read/delete their own suggestions; account deletion now removes them (right to erasure). Rules deployed 27 Aug 2026.
+- Auth: ID token refreshed after email verification; explicit local persistence.
+- Bundle: console output stripped from production; debug hooks dev-only; `index-old.html` and stale root `sw.js` removed.
+- Headers (Cloudflare `_headers`): CSP in report-only mode (inline handlers still require 'unsafe-inline'), nosniff, referrer-policy, X-Frame-Options, permissions-policy. TODO: review CSP reports, then enforce.
+- Privacy contact changed from a personal address to privacy@usefulish.uk — **create/forward this mailbox**.
+- Personal financial documents moved out of the repo folder to ../pensiontools_private_docs/.

@@ -114,10 +114,12 @@ function buildTaxSummary(d) {
     html += '</div>';
   }
 
-  // Mode explanation
+  // Mode explanation — under a contract strategy (rung pays; nothing is sold) the Pots & Valves
+  // reasoning ("Below min", "Growth") does not apply, so only the tax-mode line is shown.
+  const contract = d.strategyOverlay && d.strategyOverlay.hidePots;
   html += '<div class="mode-explanation">';
   html += '<h4>Why This Recommendation?</h4>';
-  html += `<p>${details.reason || 'Standard calculation based on your settings.'}</p>`;
+  html += `<p>${contract ? (d.strategyOverlay.note || 'This month is paid by the strategy\'s own schedule — see "Where this month comes from" above.') : (details.reason || 'Standard calculation based on your settings.')}</p>`;
 
   if (!details.hasSufficientIsa && details.isaNeededMonthly > 0) {
     html += `<p class="isa-warning">To enable tax-efficient mode, you need ${formatCurrency(details.totalIsaNeeded)} in your ISA (${d.remainingMonths} months remaining in tax year).</p>`;

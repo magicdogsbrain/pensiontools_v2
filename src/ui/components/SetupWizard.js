@@ -126,8 +126,8 @@ function renderScenarioWizard() {
   wizardElement.innerHTML = `
     <div class="wizard-overlay">
       <div class="wizard-box">
-        <div class="wizard-title">Welcome to Pension Planner</div>
-        <div class="wizard-subtitle">Let's create your first plan</div>
+        <div class="wizard-title">${(typeof window !== 'undefined' && window._hasPlans) ? 'New plan' : 'Welcome to Pension Planner'}</div>
+        <div class="wizard-subtitle">${(typeof window !== 'undefined' && window._hasPlans) ? 'A few basics and it is ready — everything else lives in the tools' : "Let's create your first plan"}</div>
 
         <div class="wizard-progress">
           ${renderProgressDots(totalSteps, currentStep)}

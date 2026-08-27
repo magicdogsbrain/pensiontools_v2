@@ -22,7 +22,7 @@ import {
 import { getStrategy, listStrategies, ENGINE_VERSION } from './strategies/registry.js';
 import { runCompare, cannedDecade } from './strategies/compareRunner.js';
 import { planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded } from './services/PlanLock.js';
-import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy } from './strategies/stressTest.js';
+import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy, scoreStrategy } from './strategies/stressTest.js';
 import { deriveCompareConfigs } from './strategies/compareRunner.js';
 import { runInWorker, workerAvailable } from './workers/engineClient.js';
 import { BE_FRAMES, bridgeEngineSvg } from './ui/bridgeEngineGraphic.js';
@@ -405,6 +405,7 @@ export {
   requiredPotForStrategy,
   planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
   stressTestAll,
+  scoreStrategy,
   deriveCompareConfigs,
   runInWorker,
   workerAvailable,

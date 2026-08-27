@@ -4751,9 +4751,8 @@
     const DEMO_PLANS = {
       '1m': { name: 'r/FiredUK — £1M, £40k rising', tab: 'strategies', page: 'overview',
         stress: { configured: true, equityMin: 700000, bondMin: 200000, cashTarget: 100000, diversifierStart: 0, isaBalance: 0, isaDrawdownStrategy: 'hold', baseSalary: 40000, duration: 39, shapeAgeNow: 56, currentAge: 56, statePension: 11973, statePensionYear: 11, riskMode: 'risk', strategyId: 'pots-and-valves', strategyParams: { ladderYears: 15, triggerMode: 'calendar', bandThreshold: 1.2, cashYears: 3, bridgeAge: 67 } } },
-      'default': { name: 'Try-it plan', tab: 'strategies', page: 'overview',
-        stress: { configured: true, equityMin: 250000, bondMin: 150000, cashTarget: 50000, isaBalance: 50000, baseSalary: 30000, duration: 32, shapeAgeNow: 60, currentAge: 60, statePension: 11973, statePensionYear: 7 } }
     };
+    DEMO_PLANS['default'] = DEMO_PLANS['1m'];   // one guest story: the £1M example, from the landing button too
     async function startGuest(demoKey) {
       // Guest mode: a synthetic user, storage in this tab only (sessionStorage), nothing sent anywhere.
       const demo = DEMO_PLANS[demoKey] || DEMO_PLANS['default'];
@@ -4761,8 +4760,14 @@
         const user = enterGuestMode();
         invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
         const list = await listScenariosAsync();
-        if (!list.some((sc) => sc.planDetails?.name === demo.name)) {
+        const existing = list.find((sc) => sc.planDetails?.name === demo.name);
+        if (!existing) {
+          // A guest tab holds one plan: an older guest plan (e.g. the previous seed) makes way for this one.
+          for (const sc of list) { try { await deleteScenario(sc.id); } catch (e) { /* ignore */ } }
           await createNewScenario(demo.name, 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
+          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        } else if (!existing.isActive) {
+          await switchScenario(existing.id);
           invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
         }
         hideLandingPage();

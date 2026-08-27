@@ -376,7 +376,7 @@ export function buildDecisionHTML(decision) {
   const statusClass = surplus >= 0 ? 'healthy' : 'warning';
   html += `<div class="overall-status ${statusClass}">`;
   html += `<span>Total Surplus: ${formatCurrency(surplus)}</span>`;
-  html += `<span>(${surplusPercent.toFixed(1)}% above target)</span>`;
+  html += `<span>(${Math.abs(surplusPercent).toFixed(1)}% ${surplus >= 0 ? 'above' : 'below'} target)</span>`;
   html += '</div>';
 
   html += '</div>'; // End fund-status

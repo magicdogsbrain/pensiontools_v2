@@ -2054,6 +2054,15 @@
       .card select { width: 100% !important; }
       select { text-overflow: ellipsis; }
       .card, .settings-section { overflow-x: clip; }
+      /* Decision result panel: stacked under the entry form; its cards must not exceed the column */
+      #decisionOutput, #decisionOutput > *, #decisionOutput .card { box-sizing: border-box; width: auto; max-width: 100%; min-width: 0; }
+      .overall-status { flex-wrap: wrap; gap: 4px 10px; }
+      /* Wide tables scroll sideways as one piece rather than wrapping every cell into a ribbon */
+      .table-scroll-container table, .table-wrap table { white-space: nowrap; }
+      .table-scroll-container { position: relative; }
+      .table-scroll-container::after { content: 'swipe \2192'; position: absolute; right: 6px; top: 2px; font-size: 10px; color: var(--text-muted); pointer-events: none; }
+      #planVsActual .section-title { white-space: normal; }
+      #planVsActual .section-title > span { display: block; margin-top: 2px; }
       .row-flex { flex-wrap: wrap; }
       .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
       .table-wrap, .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }

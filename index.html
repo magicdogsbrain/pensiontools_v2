@@ -8448,7 +8448,7 @@
       const tot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0) || 1;
       const cur = { eqPct: d.eqPct ?? Math.round(100 * (s.equityMin || 0) / tot), bondPct: d.bondPct ?? Math.round(100 * (s.bondMin || 0) / tot), divPct: d.divPct ?? Math.round(100 * (s.diversifierStart || 0) / tot), cashPct: d.cashPct ?? Math.round(100 * (s.cashTarget || 0) / tot) };
       const sum = cur.eqPct + cur.bondPct + cur.divPct + cur.cashPct;
-      const slider = (label, k, color) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;min-width:150px;">' + label + ' <strong style="color:' + color + ';">' + cur[k] + '%</strong><input type="range" min="0" max="100" step="5" value="' + cur[k] + '" style="width:150px;accent-color:' + color + ';" data-on-change="setSpecDial(\'' + k + '\', this.value)"></label>';
+      const slider = (label, k, color) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;min-width:150px;">' + label + ' <strong style="color:' + color + ';">' + cur[k] + '%</strong><input type="range" min="0" max="100" step="5" value="' + cur[k] + '" style="width:150px;accent-color:' + color + ';" data-cur="' + [cur.eqPct, cur.bondPct, cur.divPct, cur.cashPct].join(',') + '" data-on-change="setAllocDial(\'' + k + '\', this.value, this.dataset.cur)"></label>';
       return '<div class="row-flex" style="gap:14px;align-items:flex-end;">' + slider('Shares', 'eqPct', '#f97316') + slider('Bonds', 'bondPct', '#60a5fa') + slider('Diversifiers', 'divPct', '#a78bfa') + slider('Cash', 'cashPct', '#9ca3af')
         + '<span class="hint" style="' + (sum === 100 ? '' : 'color:#f59e0b;') + '">' + (sum === 100 ? 'Totals 100%' : 'Totals ' + sum + '% — the pots are scaled to 100%') + '. Pot ' + gbp(Math.round(tot)) + ' from Settings.</span></div>';
     };
@@ -8542,6 +8542,17 @@
       if (!sec) return;
       sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       sec.style.transition = 'box-shadow .3s'; sec.style.boxShadow = '0 0 0 3px var(--accent)'; setTimeout(() => { sec.style.boxShadow = ''; }, 1800);
+    };
+    // Allocation sliders keep to 100%: moving one scales the other three proportionally.
+    window.setAllocDial = async function (k, v, cur) {
+      const d = window._stratDials; const keys = ['eqPct', 'bondPct', 'divPct', 'cashPct'];
+      const curArr = String(cur || '').split(',').map((x) => +x || 0);
+      const vals = {}; keys.forEach((kk, i) => { vals[kk] = d[kk] ?? (curArr[i] || 0); });
+      const nv = Math.max(0, Math.min(100, +v || 0)); const others = keys.filter((kk) => kk !== k); const rest = others.reduce((a, kk) => a + vals[kk], 0);
+      for (const kk of others) vals[kk] = rest > 0 ? Math.round((100 - nv) * vals[kk] / rest) : Math.round((100 - nv) / 3);
+      vals[k] = 100 - others.reduce((a, kk) => a + vals[kk], 0);
+      for (const kk of keys) d[kk] = vals[kk];
+      document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage);
     };
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;

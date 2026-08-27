@@ -48,3 +48,11 @@ then funds mode VWRP/VAGP, 1 month recorded). Delete when done.
   P&V 45/35/20 24% ruin · Buckets 31% · L&R 16% (72 by contract) · Bridge 16% (66 by contract, engine median
   £993k at 66, typically fails by 84) · F&F 0% (bills to 91) · Floor the schedule 0% (89% of pot) ·
   Floor-to-67 17% cut · Full gilt £1.6k over the pot.
+
+## Roadmap (pencilled 27 Aug 2026, from the TPAW comparison)
+1. Valuation-adjusted futures: shift the bootstrapped equity/bond distributions to current CAPE and real yields
+   (TPAW's approach), as a toggle with the raw-history run kept alongside.
+2. "Amortise the pot" strategy (TPAW / amortisation-based variable withdrawal): spend what the pot can afford over
+   the remaining horizon at the expected return, recomputed yearly; risk-aversion dial; spending tilt; floor/ceiling.
+3. Lead every strategy page with the spending fan by age; pass-in-full second.
+4. Floor the schedule to use the real order-sheet pricing (so it differs from the full gilt ladder only in the reserve rule).

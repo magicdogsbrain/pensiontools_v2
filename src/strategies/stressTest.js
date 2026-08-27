@@ -274,12 +274,14 @@ function flexTest(p, configs) {
   // (essentials + treats below the income the plan asked for). Coverage = share of planned income delivered.
   const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
   const plannedAt = (y) => (sched ? (sched[Math.min(y, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual) + otherAt(p, y);
-  const paidInFull = (e) => e.income.every((v, y) => v >= plannedAt(y) * 0.995);
+  // A "lean year" is one paying more than 10% under the plan; a strategy built to flex should not be
+  // marked down for a £200 dip. Coverage (below) still counts every pound of shortfall.
+  const paidInFull = (e) => e.income.every((v, y) => v >= plannedAt(y) * 0.90);
   const covOf = (arr) => 100 * arr.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, plannedAt(y))), 0) / (planYears + 1), 0) / Math.max(1, arr.length);
   return {
     affordable: true,
     ruin: { hist: 100 * hE.filter((e) => !paidInFull(e)).length / Math.max(1, hE.length), mc: 100 * mcE.filter((e) => !paidInFull(e)).length / Math.max(1, mcE.length) },
-    ruinLabel: 'chance at least one year pays less than the plan (the bills are always paid — the treats shrank)',
+    ruinLabel: 'chance of at least one lean year — more than 10% under the plan (the bills are always paid; the treats shrank)',
     coverage: covOf(mcE),
     survivedMc: mcE.map(paidInFull),
     worst12: { min: p.essentialsAnnual + h.stats.worstMin, median: p.essentialsAnnual + h.stats.worstMedian },

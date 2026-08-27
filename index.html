@@ -5520,13 +5520,14 @@
       const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
       const div = (s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart)}` : '';
       // Some callers pass only the allocation slice; the SP note needs the full settings object.
-      const knowsSp = ('spStartDate' in s) || ('statePension' in s);
-      const spNote = knowsSp
-        ? ((!s.spStartDate || !s.spWeeklyAmount)
-          ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
-          : '')
-        : (window._lastSpNote || '');
-      window._lastSpNote = spNote;
+      const knowsSp = ('statePension' in s) || ('spStartDate' in s);
+      if (!knowsSp) {
+        // Re-render once with the full saved settings so the SP note is never stale.
+        getStressSettingsAsync().then((full) => renderStressStartSummary({ ...full, ...s })).catch(() => {});
+      }
+      const spNote = knowsSp && (!s.spStartDate || !s.spWeeklyAmount)
+        ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
+        : '';
       const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
         `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. ` +
         'Edit them in the Settings tab.' + spNote;
@@ -7031,7 +7032,12 @@
       updateTaggingSummary(p);
     };
     window.addFundRow = function(p) {
-      funds(p).push({ ticker: '', value: '', wrapper: 'SIPP' });
+      // Carry over whatever was typed in the search box (a ticker not in the catalogue is the
+      // usual reason to reach for this button), sanitised to the ticker whitelist.
+      const search = document.getElementById(p + 'FundSearch');
+      const typed = (search ? search.value : '').trim().toUpperCase().replace(/[^A-Z0-9.-]/g, '').slice(0, 12);
+      funds(p).push({ ticker: typed, value: '', wrapper: 'SIPP' });
+      if (search) search.value = '';
       renderFunds(p);
     };
     window.removeFund = function(p, i) { funds(p).splice(i, 1); renderFunds(p); };

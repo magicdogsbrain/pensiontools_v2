@@ -2062,6 +2062,19 @@
       .table-scroll-container { position: relative; }
       .table-scroll-container::after { content: 'swipe \2192'; position: absolute; right: 6px; top: 2px; font-size: 10px; color: var(--text-muted); pointer-events: none; }
       #planVsActual .section-title { white-space: normal; }
+      /* Result charts are drawn in 660–680px user units; squeezed to 350px their labels are ~5px.
+         Keep them legible and let the reader swipe instead. */
+      svg.ichart { display: block; min-width: 600px; }
+      /* Strategy matrix: one card per strategy with labelled rows instead of a six-column swipe */
+      .cmp-matrix-wrap { overflow: visible; }
+      .cmp-matrix-wrap::after { content: none; }
+      .cmp-matrix, .cmp-matrix tbody, .cmp-matrix tr, .cmp-matrix td { display: block; width: 100%; box-sizing: border-box; white-space: normal; }
+      .cmp-matrix thead { display: none; }
+      .cmp-matrix tr { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; background: var(--card-alt, transparent); }
+      .cmp-matrix td { border: none; padding: 6px 0; }
+      .cmp-matrix td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-bottom: 2px; }
+      .cmp-matrix td[colspan] { padding-top: 4px; }
+      .card:has(> svg.ichart), div:has(> svg.ichart) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       #planVsActual .section-title > span { display: block; margin-top: 2px; }
       .row-flex { flex-wrap: wrap; }
       .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
@@ -8133,15 +8146,15 @@
         + '<span class="hint">' + (window._cmpCutsOff ? '<strong>Level footing:</strong> no strategy is allowed to pay you less than the plan.' : '<strong>As configured:</strong> Pots &amp; Valves may cut income up to ' + Math.round((1 - (c.settings.protectionMult ?? 0.8)) * 100) + '% in bad runs — read its row knowing that.') + '</span></div>';
       const cell = (id, f) => S[id].affordable ? f(S[id]) : '<span class="hint">not affordable — ' + budEsc(S[id].reason || '') + '</span>';
       const costOf = (r) => r.strategyId === 'full-il-gilt' ? r.signature.total : r.strategyId === 'floor-the-schedule' ? r.signature.floorCost : r.strategyId === 'floor-to-age' ? r.signature.floorCost : r.strategyId === 'ladder-and-ratchet' ? r.signature.baseLadderCost : r.strategyId === 'floor-and-flex' ? r.signature.floorCost : 0;
-      h += '<div class="table-scroll-container"><table><thead><tr><th>Strategy</th><th>What you get</th><th>What you pay today</th><th>What can go wrong</th><th>What you do</th><th>How you get out</th></tr></thead><tbody>';
+      h += '<div class="table-scroll-container cmp-matrix-wrap"><table class="cmp-matrix"><thead><tr><th>Strategy</th><th>What you get</th><th>What you pay today</th><th>What can go wrong</th><th>What you do</th><th>How you get out</th></tr></thead><tbody>';
       for (const id of ids) {
         const w = CMP_WORDS[id];
         if (!S[id].affordable) { h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" data-on-click="showStrategyPage(\'' + id + '\')">read →</button></td><td colspan="5" class="hint">Not affordable on this plan — ' + budEsc(S[id].reason || '') + '. ' + budEsc(w.fail) + '</td></tr>'; continue; }
         h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" data-on-click="showStrategyPage(\'' + id + '\')">read →</button></td>'
-          + '<td>' + cell(id, (r) => '<strong>' + budEsc(r.guaranteedToAge) + '</strong><br><span class="hint">worst 12 months ' + gbp(Math.round(r.worst12.min)) + '</span>') + '</td>'
-          + '<td>' + cell(id, (r) => { const c0 = costOf(r); return (c0 ? '<strong>' + gbp(Math.round(c0)) + '</strong> bought as gilts (' + Math.round(100 * c0 / pot) + '% of pot)' : 'nothing bought — all invested') + '<br><span class="hint">typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + '</span>'; }) + '</td>'
-          + '<td>' + cell(id, (r) => '<strong>' + (r.ruin.mc).toFixed(0) + '%</strong> ' + (r.ruinLabel ? 'chance of a cut after ' + r.signature.floorToAge : r.strategyId === 'floor-and-flex' || r.strategyId === 'floor-the-schedule' || r.strategyId === 'full-il-gilt' ? 'chance of running out (bought)' : 'chance of running out') + '<br><span class="hint">' + budEsc(w.fail) + '</span>') + '</td>'
-          + '<td class="hint">' + budEsc(w.doWhat) + '</td><td class="hint">' + budEsc(w.exit) + '</td></tr>';
+          + '<td data-label="What you get">' + cell(id, (r) => '<strong>' + budEsc(r.guaranteedToAge) + '</strong><br><span class="hint">worst 12 months ' + gbp(Math.round(r.worst12.min)) + '</span>') + '</td>'
+          + '<td data-label="What you pay today">' + cell(id, (r) => { const c0 = costOf(r); return (c0 ? '<strong>' + gbp(Math.round(c0)) + '</strong> bought as gilts (' + Math.round(100 * c0 / pot) + '% of pot)' : 'nothing bought — all invested') + '<br><span class="hint">typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + '</span>'; }) + '</td>'
+          + '<td data-label="What can go wrong">' + cell(id, (r) => '<strong>' + (r.ruin.mc).toFixed(0) + '%</strong> ' + (r.ruinLabel ? 'chance of a cut after ' + r.signature.floorToAge : r.strategyId === 'floor-and-flex' || r.strategyId === 'floor-the-schedule' || r.strategyId === 'full-il-gilt' ? 'chance of running out (bought)' : 'chance of running out') + '<br><span class="hint">' + budEsc(w.fail) + '</span>') + '</td>'
+          + '<td class="hint" data-label="What you do">' + budEsc(w.doWhat) + '</td><td class="hint" data-label="How you get out">' + budEsc(w.exit) + '</td></tr>';
       }
       h += '</tbody></table></div>';
       h += '</div><div class="card"><h2>Four questions, one picture each</h2><div id="cmpCones">' + cmpConesHtml(c) + '</div>';

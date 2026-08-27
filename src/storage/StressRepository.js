@@ -295,7 +295,7 @@ export function scheduleFromSteps(settings, startAge = 57) {
  * the State Pension arrives at 67 (plan year = 67 − start age) rather than the historic
  * "year 12" default — a 60-year-old retiree would otherwise see SP arrive at 72.
  */
-function defaultSpYear(settings) {
+export function defaultSpYear(settings) {
   if (settings.statePensionYear != null && settings.statePensionYear !== 12) return settings.statePensionYear;
   const start = +settings.shapeAgeNow || 0;
   if (start > 0) return Math.max(0, 67 - start);

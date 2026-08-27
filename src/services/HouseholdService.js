@@ -21,6 +21,7 @@ const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
+import { defaultSpYear } from '../storage/StressRepository.js';
 
 /**
  * Paired-path Monte Carlo across two plan configs.
@@ -100,8 +101,9 @@ function targetForYear(settings, year) {
 function spFor(settings) {
   const cfg = spSimConfigFromSettings(settings);
   if (cfg) return { startYear: cfg.spStartYear, annual: cfg.spWeeklyAmount * 52 };
-  if (settings.statePensionYear != null && settings.statePension > 0) {
-    return { startYear: settings.statePensionYear, annual: settings.statePension };
+  if (settings.statePension > 0) {
+    // Same fallback as the simulation config: no SP date => 67 − income-start age.
+    return { startYear: defaultSpYear(settings), annual: settings.statePension };
   }
   return { startYear: Infinity, annual: 0 };
 }

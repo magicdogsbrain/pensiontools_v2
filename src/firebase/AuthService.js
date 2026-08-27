@@ -81,6 +81,17 @@ export function isLoggedIn() {
 }
 
 /**
+ * Guest mode: a synthetic user so every tool works, with storage redirected to this browser tab
+ * (FirestoreService keeps guest data in sessionStorage — nothing is sent to the server, and the
+ * Firestore rules would reject an unauthenticated write anyway). Listeners are NOT notified: the
+ * caller boots the app itself.
+ */
+const GUEST_USER = Object.freeze({ uid: 'guest', email: 'Guest — nothing is saved', displayName: 'Guest', isGuest: true, emailVerified: true });
+export function enterGuestMode() { currentUser = GUEST_USER; return GUEST_USER; }
+export function isGuest() { return !!(currentUser && currentUser.isGuest); }
+export function leaveGuestMode() { if (isGuest()) currentUser = null; }
+
+/**
  * Sign up with email and password
  * @param {string} email
  * @param {string} password

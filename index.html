@@ -2190,7 +2190,8 @@
       <div id="mobileSheet" data-on-click="sheetBackdropClick(event, this)"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
-      <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="leaveGuest()">Create a free account to keep it</button></div>
+<div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
         <button type="button" data-on-click="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
@@ -3939,6 +3940,7 @@
 
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
+    import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
     // De-inlined decision engine (was inline calcDecisionPWA).
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
@@ -4715,6 +4717,8 @@
     /**
      * Initialize landing page (shown first to unauthenticated visitors)
      */
+    // Arriving from guest mode's "create an account" button: straight to sign-up.
+    try { if (new URLSearchParams(location.search).get('signup') === '1') setTimeout(() => { hideLandingPage(); showAuthScreenWithTab('signup'); }, 50); } catch (e) { /* ignore */ }
     initLandingPage(document.getElementById('landingPage'), {
       onGetStarted: () => {
         hideLandingPage();
@@ -4723,11 +4727,30 @@
       onSignIn: () => {
         hideLandingPage();
         showAuthScreenWithTab('signin');
+      },
+      onTryGuest: async () => {
+        // Guest mode: a synthetic user, storage in this tab only (sessionStorage), nothing sent anywhere.
+        try {
+          const user = enterGuestMode();
+          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+          const list = await listScenariosAsync();
+          if (!list.length) {
+            await createNewScenario('Try-it plan', 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], {
+              stressSettings: { configured: true, equityMin: 250000, bondMin: 150000, cashTarget: 50000, isaBalance: 50000, baseSalary: 30000, duration: 32, shapeAgeNow: 60, currentAge: 60, statePension: 11973, statePensionYear: 7 }
+            }, true);
+            invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+          }
+          hideLandingPage();
+          await showMainApp(user, 'stress');
+          const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
+          showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
+        } catch (e) { console.error('guest mode', e); showToast('Could not start guest mode: ' + e.message, 'error'); }
       }
     });
 
     // Logout button handler
     document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (isGuest()) { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname; return; }
       try {
         invalidateCache();
         invalidateStressCache();
@@ -7540,6 +7563,7 @@
         banner.style.display = 'flex';
       } catch (e) { banner.style.display = 'none'; }
     };
+    window.leaveGuest = function () { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname + '?signup=1'; };
     window.dismissNextStep = async function () {
       try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
       document.getElementById('nextStepBanner').style.display = 'none';

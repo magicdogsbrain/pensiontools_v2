@@ -153,7 +153,7 @@ export async function saveProfileOverrides(overrides) {
 export function submitFundSuggestion({ ticker, name, subClass }) {
   try {
     const u = getCurrentUser();
-    if (!u || !isFirebaseConfigured() || !db || !ticker) return;
+    if (!u || u.isGuest || !isFirebaseConfigured() || !db || !ticker) return;
     addDoc(collection(db, 'fundSuggestions'), {
       ticker: String(ticker).toUpperCase().trim().slice(0, 12),
       name: String(name || '').slice(0, 80),

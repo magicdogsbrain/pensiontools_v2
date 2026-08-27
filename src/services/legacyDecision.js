@@ -205,8 +205,14 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           // SIPP to BRL, ISA tops up the net gap tax-free, extra SIPP above BRL when the pot
           // can't cover it. Same engine as the Stress Tester (both call planDrawdown), which
           // is what lets a replayed Monte-Carlo trajectory agree with the Decision Tool.
+          // Mid-year start: plan the REMAINING months only. Income earned before drawdown began
+          // was spent in those months — it consumes this year's allowance and basic-rate band but
+          // does not reduce what each remaining month needs (target/12). Both the target and the
+          // other income are therefore pro-rated to the months left; the pre-start income is added
+          // to both sides so the band arithmetic sees it. Full year, £0 before => identical to before.
+          const share = deliverMonths / 12;
           const plan = planDrawdown({
-            targetGross: target, fixedIncome: other + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
+            targetGross: target * share + preStartIncome, fixedIncome: other * share + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
             taxFreeFraction: taxFreeF,
             isaBalance,
             strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
@@ -219,8 +225,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           // Monthly NEED, not the annual target crammed into the remaining months: a September start
           // draws 1/12 of the year's target each month (the no-ISA path already did this); the tax
           // below is then worked out on the months actually drawn.
-          stdSipp = plan.sippGross / 12;
-          isaToUse = plan.isaDraw / 12;
+          stdSipp = plan.sippGross / deliverMonths;
+          isaToUse = plan.isaDraw / deliverMonths;
         } else {
           // Legacy per-tax-year ISA allocation path (unchanged when no ISA balance is set).
           if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {

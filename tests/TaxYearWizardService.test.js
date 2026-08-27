@@ -49,3 +49,21 @@ describe('budget-schedule suggestion (mocked stress settings)', () => {
     expect(typeof data.chainSuggestedSalary).toBe('number');
   });
 });
+
+import { calculateMonthlyBreakdown } from '../src/services/TaxYearWizardService.js';
+
+describe('calculateMonthlyBreakdown — tax on a mid-year start', () => {
+  const base = { targetSalary: 28763, brl: 50270, pa: 12570, other: 0, statePension: 0, isaSavingsAllocation: 0, isTaxEfficient: true };
+  it('full year, nothing earned before: plain annual tax / 12', () => {
+    const r = calculateMonthlyBreakdown({ ...base, remainingMonths: 12, grossIncomeToDate: 0 });
+    expect(r.sipp.tax).toBeCloseTo((28763 - 12570) * 0.2 / 12, 2);
+  });
+  it('8 months left with £18k already earned: the draws are taxed on top of that income', () => {
+    const r = calculateMonthlyBreakdown({ ...base, remainingMonths: 8, grossIncomeToDate: 18000 });
+    const draws = (28763 / 12) * 8;
+    const total = (18000 + draws - 12570) * 0.2;
+    const already = (18000 - 12570) * 0.2;
+    expect(r.sipp.tax).toBeCloseTo((total - already) / 8, 2);
+    expect(r.sipp.tax).toBeGreaterThan(400);
+  });
+});

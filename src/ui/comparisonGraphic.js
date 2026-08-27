@@ -5,7 +5,7 @@
  */
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
-export const STRATEGY_COLORS = { 'pots-and-valves': '#f97316', 'ladder-and-ratchet': '#a78bfa', 'floor-and-flex': '#22c55e', 'floor-the-schedule': '#60a5fa', 'floor-to-age': '#facc15', 'full-il-gilt': '#e5e7eb' };
+export const STRATEGY_COLORS = { 'pots-and-valves': '#f97316', 'buckets-in-order': '#f43f5e', 'ladder-and-ratchet': '#a78bfa', 'bridge-and-engine': '#2dd4bf', 'floor-and-flex': '#22c55e', 'floor-the-schedule': '#60a5fa', 'floor-to-age': '#facc15', 'full-il-gilt': '#e5e7eb' };
 
 export function stackedConesSvg({ strategies, year, startAge, title }, o = {}) {
   const W = o.width || 960, H = o.height || 300, padL = 60, padR = 16, padT = 30, padB = 34;

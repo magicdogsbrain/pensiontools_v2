@@ -322,6 +322,9 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Tax bands from settings (previously only supplied by UI call-site overrides — configs
     // built without overrides had pa/brl/hrl undefined, which NaN'd every draw).
     strategyId: settings.strategyId || 'pots-and-valves',
+    // Buckets in order runs the same engine with ordered sourcing and no rebalancing.
+    sourcingMode: settings.strategyId === 'buckets-in-order' ? 'ordered' : undefined,
+    bucketBand: settings.strategyId === 'buckets-in-order' ? ((settings.strategyParams && settings.strategyParams.bucketBand > 0) ? settings.strategyParams.bucketBand / 100 : 0.10) : undefined,
     pa: settings.pa ?? 12570,
     brl: settings.brl ?? 50270,
     hrl: settings.hrl ?? 125140,

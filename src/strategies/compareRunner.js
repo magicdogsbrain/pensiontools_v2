@@ -145,7 +145,21 @@ export function deriveCompareConfigs(p) {
     minDrawToA: Math.min(...Array.from({ length: A }, (_, i) => amountAt(i + 1)))
   } : null;
 
-  return { END, lr, ff, fs: fsc, fa, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
+  // Bridge & engine: cash years + one rung per year to the bridge age (default: State Pension
+  // age), priced on the curve (cash years at face); the engine is the rest, in equities, untouched.
+  const spAge = (p.spStartYear != null && p.spStartYear > 0) ? p.startAge + p.spStartYear : p.startAge + Math.min(10, p.durationYears - 1);
+  const bridgeAge = Math.max(p.startAge + 1, Math.min(prm.bridgeAge || spAge, p.startAge + p.durationYears - 1));
+  const B = bridgeAge - p.startAge;
+  const beCashYears = Math.max(0, Math.min(prm.cashYears ?? 3, B));
+  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? 1 : Math.pow(1 + yf(k), -k));
+  const beE0 = total - beCost;
+  let beRest = 0; for (let k = B + 1; k <= p.durationYears; k++) beRest += drawNet(k) * Math.pow(1 + yf(k - B), -(k - B));
+  const be = beE0 > 0 ? {
+    E0: beE0, rate: 0, END, floorCost: beCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    bridgeAge, B, cashYears: beCashYears, amountAt, restCostFull: beRest
+  } : null;
+
+  return { END, lr, ff, fs: fsc, fa, be, beAffordable: beE0 > 0, beCost, beBridgeAge: bridgeAge, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
 }
 
 /** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */

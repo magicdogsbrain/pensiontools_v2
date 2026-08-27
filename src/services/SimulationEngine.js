@@ -14,7 +14,7 @@ import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
 import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
-import { planSourcing } from './WithdrawalSourcing.js';
+import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 
@@ -417,14 +417,19 @@ export function simulate(config, returns, seed = 0) {
 
     // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
     // Same module the Decision tool advises from — one engine, two surfaces.
-    const sourcing = planSourcing({
+    const sourcingInputs = {
       draw: monthDraw,
       equity, bond, cash,
       diversifier, diversifierTarget: config.diversifierStart || 0,
       hodl,
       eqMin, bdMin, csTarget,
       inProtection: prot
-    });
+    };
+    // "Buckets in order": equities pay while at/above their absolute £ trajectory (the opening
+    // equity pot inflated and depleted like the floors); else cash, then the defensive sleeve.
+    const sourcing = config.sourcingMode === 'ordered'
+      ? planSourcingOrdered({ ...sourcingInputs, eqPath: calculateGlidepath(config.equityStart || 0, year, config.duration, cumInf, true), band: config.bucketBand ?? 0.10 })
+      : planSourcing(sourcingInputs);
     equity -= sourcing.fromEquity;
     bond -= sourcing.fromBond;
     cash -= sourcing.fromCash;
@@ -451,7 +456,12 @@ export function simulate(config, returns, seed = 0) {
       failed = true;
       failMonth = month;
     }
-    if (sourcing.replenish > 0) {
+    if (sourcing.replenish > 0 && config.sourcingMode === 'ordered') {
+      // Ordered buckets: the sweep comes from equities only (that is the whole point of it).
+      const sweep = Math.min(sourcing.replenish, equity);
+      equity -= sweep;
+      cash += sweep;
+    } else if (sourcing.replenish > 0) {
       // Refill cash from growth surplus, proportionally from the overweight growth pots
       const eqS = Math.max(0, equity - eqMin), bdS = Math.max(0, bond - bdMin);
       const tot = eqS + bdS;

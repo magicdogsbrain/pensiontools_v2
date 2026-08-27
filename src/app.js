@@ -25,6 +25,8 @@ import { planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlan
 import { stressTestStrategy, stressTestAll, planFromSettings, STRATEGY_NAMES, pnvDecadeSeries, requiredPotForStrategy } from './strategies/stressTest.js';
 import { deriveCompareConfigs } from './strategies/compareRunner.js';
 import { runInWorker, workerAvailable } from './workers/engineClient.js';
+import { BE_FRAMES, bridgeEngineSvg } from './ui/bridgeEngineGraphic.js';
+import { BK_FRAMES, bucketsSvg } from './ui/bucketsGraphic.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
 import { incomeLayersSvg, incomeLayersRows } from './ui/incomeLayersGraphic.js';
@@ -406,6 +408,7 @@ export {
   deriveCompareConfigs,
   runInWorker,
   workerAvailable,
+  BE_FRAMES, bridgeEngineSvg, BK_FRAMES, bucketsSvg,
   planFromSettings,
   STRATEGY_NAMES,
   pnvDecadeSeries,

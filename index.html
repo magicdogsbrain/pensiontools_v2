@@ -2048,7 +2048,12 @@
       .card { padding: 12px; }
       .keynums { grid-template-columns: 1fr 1fr; }
       .kn-val { font-size: 20px; }
-      .form-grid { grid-template-columns: 1fr !important; }
+      .form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+      .form-grid > *, .settings-section, .settings-section > *, .card > * { min-width: 0; }
+      .form-grid input, .form-grid select, .form-grid textarea, .settings-section select, .card select, .card input[type=number], .card input[type=text] { max-width: 100%; box-sizing: border-box; }
+      .card select { width: 100% !important; }
+      select { text-overflow: ellipsis; }
+      .card, .settings-section { overflow-x: clip; }
       .row-flex { flex-wrap: wrap; }
       .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
       .table-wrap, .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }

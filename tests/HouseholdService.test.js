@@ -194,3 +194,18 @@ describe('calendar alignment for a partner who is still working', () => {
     expect(r2.potFan[0].p50).toBeCloseTo(r0.potFan[0].p50, -3);
   });
 });
+
+import { combineHouseholdStrategies } from '../src/services/HouseholdService.js';
+describe('household with each partner on their own strategy', () => {
+  it('pairs futures by index and sums the wealth samples', () => {
+    const rA = { survivedMc: [true, true, false, true], samples: { wealth: [[100, 90], [100, 80]] }, cones: { wealth: { p50: [] } } };
+    const rB = { survivedMc: [true, false, false, true], samples: { wealth: [[50, 60], [50, 40]] }, cones: { wealth: { p50: [] } } };
+    const r = combineHouseholdStrategies(rA, rB);
+    expect(r.runs).toBe(4);
+    expect(r.successA).toBeCloseTo(0.75, 5);
+    expect(r.successB).toBeCloseTo(0.5, 5);
+    expect(r.jointSuccess).toBeCloseTo(0.5, 5);
+    expect(r.potFan[0].p50).toBe(150);
+    expect(r.byStrategy).toBe(true);
+  });
+});

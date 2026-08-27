@@ -169,7 +169,8 @@ function pnvTest(p, configs) {
   for (let s = 0; s < rtr.length - END; s += (p.stride || 1)) hist.push({ s, ...pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge) });
   const mc = [];
   const runs = p.mcRuns || 400;
-  for (let i = 0; i < runs; i++) { const path = bootstrapPaths(i * 31337 + 11, END); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
+  // Seed i*7919+3 is the SAME as runFlexMonteCarlo / runLadderMonteCarlo: future i is one market for every strategy.
+  for (let i = 0; i < runs; i++) { const path = bootstrapPaths(i * 7919 + 3, END); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
   const terms = mc.map((w) => w.terminal);
   return {
     affordable: true,
@@ -180,6 +181,7 @@ function pnvTest(p, configs) {
     cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
     samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
+    survivedMc: mc.map((w) => !w.failed),
     signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5),
       pots: { equity: p.pnvCfg.equityStart || 0, bond: p.pnvCfg.bondStart || 0, cash: p.pnvCfg.cashStart || 0, diversifier: p.pnvCfg.diversifierStart || 0, isa: p.pnvCfg.isaBalance || 0 },
       floors: { equity: p.pnvCfg.equityMin || 0, bond: p.pnvCfg.bondMin || 0, cash: p.pnvCfg.cashTarget || 0 },
@@ -233,6 +235,7 @@ function ladderTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
     failAges: mc.windows.filter((w) => w.survived === false).map((w) => w.failAge),
+    survivedMc: mc.windows.map((w) => w.survived !== false),
     signature: {
       neverPct: h.stats.neverPct, fullySecuredPct: h.stats.fullySecuredPct, securedMedian: h.stats.securedMedian,
       securedMedianMc: mc.stats.securedMedian, sellEventsMedian: h.stats.sellEventsMedian,
@@ -376,6 +379,7 @@ function floorToAgeTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
     failAges: [],
+    survivedMc: mcE.map((e) => e.full),
     signature: {
       floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / availablePot(p),
       sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull, reserveCone,
@@ -439,6 +443,7 @@ function bridgeTest(p, configs) {
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
     failAges: fails,
+    survivedMc: mcE.map((e) => !e.failed),
     signature: {
       bridgeAge: c.bridgeAge, B, cashYears: c.cashYears, bridgeCost: configs.beCost, engineE0: c.E0, shareOfPot: configs.beCost / availablePot(p),
       engineAtB: at(mcE), engineAtBHist: at(hE), engineCone, restCostFull: c.restCostFull, pot: availablePot(p),

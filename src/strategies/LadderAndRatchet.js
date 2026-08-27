@@ -30,7 +30,7 @@ export const LADDER_DEFAULTS = {
  */
 export function runLadderMonteCarlo(cfg, runs = 1000) {
   const paths = [];
-  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(i * 12345 + 7, cfg.END));
+  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(cfg.mcSeed ? cfg.mcSeed(i) : i * 12345 + 7, cfg.END));
   const sub = runLadderCore(cfg, paths, paths.map(() => 0));
   const p = (sub.stats.survivalPct ?? 100) / 100;
   sub.stats.survivalHalfWidthPp = 196 * Math.sqrt(Math.max(0, p * (1 - p)) / runs) / 2 * 2 / 2; // 1.96·√(p(1−p)/n) in pp

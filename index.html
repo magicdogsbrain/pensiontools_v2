@@ -3884,6 +3884,7 @@
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
       startOffset,
+      combineHouseholdStrategies,
       runSurvivorCheck,
       allowanceNudge,
       runCareCheck,
@@ -8751,9 +8752,24 @@
         const cfgA = createSimulationConfigFromSettings({}, ownSettings);
         const cfgB = createSimulationConfigFromSettings({}, partnerSettings);
         const offsets = { a: startOffset(ownSettings), b: startOffset(partnerSettings) };
-        let r;
-        try { r = await runInWorker('household', { cfgA, cfgB, runs: 1000, offsets }); }
-        catch (e) { console.warn('engine worker unavailable, running inline', e); r = runHouseholdMonteCarlo(cfgA, cfgB, 1000, offsets); }
+        const idA = ownSettings.strategyId || 'pots-and-valves', idB = partnerSettings.strategyId || 'pots-and-valves';
+        let r, stratNote = '';
+        if (idA === 'pots-and-valves' && idB === 'pots-and-valves') {
+          try { r = await runInWorker('household', { cfgA, cfgB, runs: 1000, offsets }); }
+          catch (e) { console.warn('engine worker unavailable, running inline', e); r = runHouseholdMonteCarlo(cfgA, cfgB, 1000, offsets); }
+        } else {
+          // Each partner on their OWN strategy, paired future-for-future on the shared market seed.
+          let res;
+          try { res = await runInWorker('household-strategies', { settingsA: ownSettings, cfgA, settingsB: partnerSettings, cfgB, idA, idB }); }
+          catch (e) {
+            console.warn('engine worker unavailable, running inline', e);
+            const rA = stressTestStrategy(idA, strategyPlanFor(ownSettings)), rB = stressTestStrategy(idB, strategyPlanFor(partnerSettings));
+            res = { combined: combineHouseholdStrategies(rA, rB), rA, rB };
+          }
+          if (!res.rA.affordable || !res.rB.affordable) { out.innerHTML = '<div class="alert alert-warning">One plan\'s strategy is not affordable as configured — ' + budEsc(!res.rA.affordable ? (res.rA.reason || '') : (res.rB.reason || '')) + '. Fix that plan first.</div>'; return; }
+          r = res.combined;
+          stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(document.getElementById('hhOwnPlan').value) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(partner.planDetails?.name || 'Partner') + ' — paired future for future on the same markets' + ((offsets.a || offsets.b) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Survives" means paid in full (for Floor to an age: never cut).</p>';
+        }
         const ownName = document.getElementById('hhOwnPlan').value;
         const pName = partner.planDetails?.name || 'Partner';
         const thisYear = new Date().getFullYear();
@@ -8773,7 +8789,7 @@
           + '<tr><td>' + ownName + ' on their own</td><td><strong>' + pctFmt(r.successA) + '</strong></td></tr>'
           + '<tr><td>' + pName + ' on their own</td><td><strong>' + pctFmt(r.successB) + '</strong></td></tr>'
           + '<tr><td>Both together</td><td><strong>' + pctFmt(r.jointSuccess) + '</strong></td></tr>'
-          + '</tbody></table>';
+          + '</tbody></table>' + stratNote;
         html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
           + 'The together number can\'t be better than the weaker plan — and both plans face the '
           + '<em>same</em> markets, so a bad decade hits you both at once. That\'s why this check runs '

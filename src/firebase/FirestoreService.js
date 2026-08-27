@@ -15,7 +15,7 @@
 
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, writeBatch, query, where } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config.js';
-import { getCurrentUser } from './AuthService.js';
+import { getCurrentUser , isGuest } from './AuthService.js';
 import { normalizeScenario } from './scenarioMigration.js';
 
 /**
@@ -75,7 +75,19 @@ async function migrateAndPersistScenario(raw) {
  * Load all scenarios for current user
  * @returns {Promise<object[]>} Array of scenario objects with id
  */
+
+// ---- Guest store: scenarios for a guest session live in sessionStorage (this tab only) ----
+const GUEST_KEY = 'pt_guest_scenarios';
+function guestRead() { try { return JSON.parse(sessionStorage.getItem(GUEST_KEY) || '[]'); } catch (e) { return []; } }
+function guestWrite(list) { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify(list)); } catch (e) { /* quota / private mode: keep in memory only */ guestMem = list; } }
+let guestMem = null;
+function guestList() { return guestMem || guestRead(); }
+function guestSave(list) { guestMem = list; guestWrite(list); }
+export function clearGuestData() { guestMem = null; try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { /* ignore */ } }
+export function guestHasData() { return guestList().length > 0; }
+
 export async function loadAllScenarios() {
+  if (isGuest()) return guestList().map((x) => ({ ...x }));
   if (!isFirebaseConfigured()) return [];
 
   const collRef = getUserCollection('scenarios');
@@ -101,6 +113,7 @@ export async function loadAllScenarios() {
  * @returns {Promise<object|null>}
  */
 export async function loadScenario(scenarioId) {
+  if (isGuest()) { const x = guestList().find((y) => y.id === scenarioId); return x ? { ...x } : null; }
   if (!isFirebaseConfigured()) return null;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -132,6 +145,7 @@ export async function loadScenario(scenarioId) {
  * @returns {Promise<void>}
  */
 export async function saveScenario(scenarioId, data) {
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { list[i] = { ...list[i], ...data, lastModified: new Date().toISOString() }; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -154,6 +168,7 @@ export async function saveScenario(scenarioId, data) {
  * @returns {Promise<string>} New scenario document ID
  */
 export async function createScenario(data) {
+  if (isGuest()) { const id = 'guest-' + Math.random().toString(36).slice(2, 10); const list = guestList(); list.push({ ...data, id, createdAt: new Date().toISOString(), lastModified: new Date().toISOString() }); guestSave(list); return id; }
   if (!isFirebaseConfigured()) return null;
 
   const collRef = getUserCollection('scenarios');
@@ -178,6 +193,7 @@ export async function createScenario(data) {
  * @returns {Promise<void>}
  */
 export async function deleteScenarioDoc(scenarioId) {
+  if (isGuest()) { guestSave(guestList().filter((y) => y.id !== scenarioId)); return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -197,6 +213,7 @@ export async function deleteScenarioDoc(scenarioId) {
  * @returns {Promise<void>}
  */
 export async function setActiveScenarioDoc(scenarioId) {
+  if (isGuest()) { guestSave(guestList().map((y) => ({ ...y, isActive: y.id === scenarioId }))); return; }
   if (!isFirebaseConfigured()) return;
 
   const user = getCurrentUser();
@@ -232,6 +249,7 @@ export async function setActiveScenarioDoc(scenarioId) {
  * @returns {Promise<object|null>}
  */
 export async function loadUserProfile() {
+  if (isGuest()) return null;
   if (!isFirebaseConfigured()) return null;
 
   const docRef = getUserDoc('profile');
@@ -255,6 +273,7 @@ export async function loadUserProfile() {
  * @returns {Promise<void>}
  */
 export async function saveUserProfile(data) {
+  if (isGuest()) return;
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('profile');
@@ -281,6 +300,7 @@ export async function saveUserProfile(data) {
  * @returns {Promise<void>}
  */
 export async function wipeAllUserData() {
+  if (isGuest()) { clearGuestData(); return; }
   if (!isFirebaseConfigured()) return;
 
   const user = getCurrentUser();
@@ -324,6 +344,7 @@ export async function wipeAllUserData() {
  * @returns {Promise<boolean>}
  */
 export async function hasCloudData() {
+  if (isGuest()) return guestHasData();
   if (!isFirebaseConfigured()) return false;
 
   const scenarios = await loadAllScenarios();

@@ -19,7 +19,7 @@ export function initLandingPage(container, callbacks) {
 /**
  * Render the landing page content
  */
-function renderLandingPage({ onGetStarted, onSignIn }) {
+function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
   if (!landingPageElement) return;
 
   landingPageElement.innerHTML = `
@@ -91,6 +91,7 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
         <div class="landing-cta">
           <button class="landing-btn primary" id="landingGetStarted">Get Started — Create Free Account</button>
           <button class="landing-btn secondary" id="landingSignIn">Already have an account? Sign In</button>
+          <button class="landing-btn secondary" id="landingTryGuest" title="Everything works; nothing is saved or sent anywhere — it lives in this browser tab until you close it">Just try it — no account, nothing saved</button>
         </div>
 
         <div class="landing-footer">
@@ -104,6 +105,7 @@ function renderLandingPage({ onGetStarted, onSignIn }) {
   // Attach listeners
   document.getElementById('landingGetStarted').addEventListener('click', onGetStarted);
   document.getElementById('landingSignIn').addEventListener('click', onSignIn);
+  const g = document.getElementById('landingTryGuest'); if (g && onTryGuest) g.addEventListener('click', onTryGuest);
 }
 
 /**

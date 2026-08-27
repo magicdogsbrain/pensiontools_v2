@@ -34,3 +34,17 @@ then funds mode VWRP/VAGP, 1 month recorded). Delete when done.
 - "Why this recommendation? Below min" leaks P&V wording under a contract-strategy overlay.
 - Household year table is 6 columns on a phone (scrolls); could become cards like the matrix.
 - B30 (budget chips can't reach PLSA comfortable) and B44 (scenario decade repeat) still open.
+
+## 27 Aug PM — two new strategies (from the Gemini discussion)
+- **Bridge & engine** (`bridge-and-engine`): cash years + one linker per year to the bridge age (default SP age),
+  engine = rest in equities untouched; after the bridge total-return draws net of SP, no re-buy/trigger/ratchet.
+  Engine: `bridgeTest` in stressTest.js on `configs.be` (compareRunner). Graphic: src/ui/bridgeEngineGraphic.js.
+- **Buckets in order** (`buckets-in-order`): P&V engine with `config.sourcingMode='ordered'` →
+  `planSourcingOrdered` (WithdrawalSourcing.js): equities pay while ≥ their absolute £ path
+  (calculateGlidepath(equityStart)), sweep above band into cash up to target, else cash → defensive → equities;
+  no glide rebalancing. Graphic: src/ui/bucketsGraphic.js. Decision tool honours it via StressRepository config
+  (sourcingMode) — legacyDecision (the monthly advice) still uses planSourcing: FOLLOW-UP.
+- Eight-way, "Chris compare" (SIPP £1.212M, ISA £60k held, 80/65/45/40 to 91, SP Aug 2037, level footing):
+  P&V 45/35/20 24% ruin · Buckets 31% · L&R 16% (72 by contract) · Bridge 16% (66 by contract, engine median
+  £993k at 66, typically fails by 84) · F&F 0% (bills to 91) · Floor the schedule 0% (89% of pot) ·
+  Floor-to-67 17% cut · Full gilt £1.6k over the pot.

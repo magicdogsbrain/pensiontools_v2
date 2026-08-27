@@ -78,3 +78,17 @@ describe('Buckets in order — stress test', () => {
     expect(r.cones.wealth.p50.length).toBe(35);
   });
 });
+
+import { scoreStrategy } from '../src/strategies/stressTest.js';
+describe('scoreStrategy — coverage ratio and volatility-adjusted coverage', () => {
+  it('a plan that lasts and leaves money scores C > 1; a failing one C < 1; vol is floored', () => {
+    const p = { durationYears: 10, targetAnnual: 10000 };
+    const ok = { affordable: true, samples: { wealth: [[100000, 110000, 120000, 130000, 140000, 150000, 160000, 170000, 180000, 190000, 200000]] }, cones: { wealth: { p50: [] } } };
+    const bad = { affordable: true, samples: { wealth: [[100000, 60000, 30000, 10000, 0, 0, 0, 0, 0, 0, 0]] }, cones: { wealth: { p50: [] } } };
+    const a = scoreStrategy(ok, p), b = scoreStrategy(bad, p);
+    expect(a.coverageRatio).toBeCloseTo((10 + 20) / 10, 5);
+    expect(b.coverageRatio).toBeCloseTo(3 / 10, 5);
+    expect(a.vol).toBeGreaterThanOrEqual(0.03);
+    expect(a.vac).toBeGreaterThan(b.vac);
+  });
+});

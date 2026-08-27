@@ -362,8 +362,11 @@ function floorToAgeTest(p, configs) {
   const canBuy = (amount) => { const cost = c.restCost(() => amount); return { amount, cost, hist: 100 * hE.filter((e) => e.sA >= cost).length / hE.length, mc: 100 * mcE.filter((e) => e.sA >= cost).length / mcE.length }; };
   const lowest = Math.min(...Array.from({ length: N - A }, (_, i) => c.amountAt(A + 1 + i)));
   const terms = mcE.map((e) => e.wealth[N]);
+  const planned = Array.from({ length: N + 1 }, (_, y) => c.amountAt(Math.min(N, y + 1)) + otherAt(p, y));
+  const coverage = 100 * mcE.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, planned[y])), 0) / (N + 1), 0) / mcE.length;
   return {
     affordable: true,
+    coverage,
     // Never runs out: the reserve always buys SOMETHING at A. 'ruin' here = the plan is CUT after A.
     ruin: { hist: pctCut(hE), mc: pctCut(mcE) },
     ruinLabel: 'chance the plan is cut after ' + c.floorToAge + ' (it never runs out — the reserve buys a smaller income)',
@@ -531,6 +534,13 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
+  // Coverage (Estrada & Kritzman): the average share of the plan's years that were paid, across the
+  // futures — a late shortfall costs far less than an early one. Contract strategies score 100 by
+  // construction; a strategy may set its own income-based figure (Floor to an age does).
+  if (r.affordable && r.coverage == null) {
+    const N = Math.max(1, p.durationYears), nMc = (r.n && r.n.mc) || 0, fails = r.failAges || [];
+    r.coverage = nMc > 0 ? 100 * ((nMc - fails.length) + fails.reduce((t, a) => t + Math.max(0, Math.min(1, (a - p.startAge) / N)), 0)) / nMc : 100;
+  }
   return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };
 }
 
@@ -540,4 +550,42 @@ export function stressTestAll(p) {
   const strategies = {};
   for (const id of Object.keys(STRATEGY_NAMES)) strategies[id] = stressTestStrategy(id, p, configs);
   return { configs, strategies };
+}
+
+
+/**
+ * Scores for ranking strategies on one plan (all in today's money):
+ *  - coverageRatio: Estrada & Kritzman (2019) C = Y/L — years of planned withdrawals sustained during
+ *    the plan PLUS the years the money left over would have paid, over the plan length. C < 1 failed;
+ *    C = 1 lasted exactly; C > 1 left a bequest.
+ *  - vol: the volatility a retiree lives with — the standard deviation of year-on-year changes in total
+ *    wealth along each future, averaged. Floored at VOL_FLOOR so a fully contracted plan (whose wealth
+ *    barely moves) does not divide by zero.
+ *  - vac: Estrada (2024) volatility-adjusted coverage ratio, C / vol, averaged across futures.
+ * Computed on the evenly-spaced sample of futures every strategy exposes (`samples`), so every
+ * strategy is scored the same way. Contract-only strategies without samples use their median path.
+ */
+export const VOL_FLOOR = 0.03;
+export function scoreStrategy(r, p) {
+  if (!r || !r.affordable) return null;
+  const N = Math.max(1, p.durationYears);
+  const need = Math.max(1, p.targetAnnual || 1);
+  const paths = (r.samples && r.samples.wealth && r.samples.wealth.length) ? r.samples.wealth : [r.cones.wealth.p50];
+  let cSum = 0, vSum = 0, vacSum = 0, n = 0;
+  for (const w of paths) {
+    if (!w || !w.length) continue;
+    let fail = -1;
+    for (let y = 1; y < w.length; y++) { if (!(w[y] > 0)) { fail = y; break; } }
+    const yearsFunded = fail < 0 ? N : Math.max(0, fail - 1);
+    const terminal = fail < 0 ? Math.max(0, w[Math.min(N, w.length - 1)] || 0) : 0;
+    const C = (yearsFunded + terminal / need) / N;
+    const rets = [];
+    for (let y = 1; y < w.length && (fail < 0 || y < fail); y++) if (w[y - 1] > 0 && w[y] > 0) rets.push(Math.log(w[y] / w[y - 1]));
+    const mean = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
+    const vol = rets.length > 1 ? Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1)) : 0;
+    const v = Math.max(VOL_FLOOR, vol);
+    cSum += C; vSum += v; vacSum += C / v; n++;
+  }
+  if (!n) return null;
+  return { coverageRatio: cSum / n, vol: vSum / n, vac: vacSum / n, n };
 }

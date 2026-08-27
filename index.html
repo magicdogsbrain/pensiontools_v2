@@ -3830,6 +3830,7 @@
       planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
       stressTestAll,
       deriveCompareConfigs,
+      scoreStrategy,
       BE_FRAMES, bridgeEngineSvg, BK_FRAMES, bucketsSvg,
       runInWorker,
       workerAvailable,
@@ -5652,6 +5653,24 @@
       h += '</tbody></table></div></details>';
       return h;
     }
+    // The verdict every strategy card and page opens with: chance the money lasts, share of the years paid.
+    function verdictBlockHtml(r, p) {
+      if (!r || !r.affordable) return '';
+      const sr = 100 - (r.ruin.mc || 0);
+      const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : sr);
+      const cut = !!r.ruinLabel;
+      const v = sr >= 90 ? { t: cut ? 'Very likely to pay the plan in full' : 'Very likely to last', c: 'success' }
+        : sr >= 75 ? { t: cut ? 'Likely to pay the plan in full — with some risk of a cut' : 'Likely to last — with some risk', c: 'success' }
+        : sr >= 50 ? { t: cut ? 'A real chance of a cut' : 'At real risk of running out', c: 'warning' }
+        : { t: cut ? 'A cut is more likely than not' : 'Unlikely to last as planned', c: 'danger' };
+      const basis = r.n.mc.toLocaleString() + ' simulated futures and ' + r.n.hist + ' real ' + p.durationYears + '-year histories since 1871';
+      return '<div class="verdict verdict-' + v.c + '"><div class="verdict-title">' + (cut ? 'Will you get what you planned? — ' : 'Will your money last? — ') + v.t + '</div>'
+        + '<div class="verdict-heroes"><div><span class="hero">' + sr.toFixed(0) + '%</span><span class="hero-sub">' + (cut ? 'chance the plan is paid in full (never runs out)' : 'chance your money lasts the whole plan') + '</span></div>'
+        + '<div><span class="hero" style="font-size:30px;">' + cov.toFixed(0) + '%</span><span class="hero-sub">of planned retirement income delivered (coverage)</span></div>'
+        + '<div><span class="hero" style="font-size:30px;">' + gbp(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div></div>'
+        + '<div class="verdict-basis">Based on ' + basis + ' (' + (r.ruin.hist || 0).toFixed(0) + '% of the histories ' + (cut ? 'were cut' : 'ran out') + '). Today\'s money.</div></div>';
+    }
+    window.verdictBlockHtml = verdictBlockHtml;
     function strategyResultCard(r, p, opts = {}) {
       if (!r.affordable && r.strategyId === 'full-il-gilt' && r.plan) {
         return '<div class="card"><h2>' + budEsc(r.name) + '</h2><div class="alert alert-danger">Not affordable as configured: ' + budEsc(r.reason || '') + '. Trim the early years, shorten the horizon, or lower the floor — every £1k/yr for the whole plan is roughly £27k.</div>' + giltOrderSheetHtml(r.plan) + '</div>';
@@ -5707,6 +5726,7 @@
           + 'Treats start at ' + gbp(Math.round(r.signature.year1Flex)) + '/yr and flex with the market; the worst treat-year was ' + gbp(Math.round(r.signature.worstFlexMedian)) + ' in the median history and ' + gbp(Math.round(r.signature.worstFlexP10)) + ' in a 1-in-10 bad one. The honest risk is lean years, not running out.';
       }
       let h = '<div class="card">' + (opts.compact ? '<div class="section-title">' : '<h2>') + budEsc(r.name) + (opts.compact ? '</div>' : ' — your plan, stress-tested</h2>');
+      h += verdictBlockHtml(r, p);
       h += '<div class="alert ' + tone + '">' + head + '</div>';
       const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
       h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
@@ -8234,11 +8254,29 @@
         ['I want three pots and a simple order', ['buckets-in-order', 'pots-and-valves']],
         ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']]
       ];
-      let h = '<div class="card"><h2>Eight ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
-      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" data-on-click="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
       const c = await cmpRun();
       const S = c.all.strategies, ids = Object.keys(S);
       const pot = c.p.pot + (c.p.isa || 0);
+      // ---- 1 · Ranked on your plan: every strategy on the same markets, scored the same way ----
+      const scored = ids.map((id) => ({ id, r: S[id], sc: S[id].affordable ? scoreStrategy(S[id], c.p) : null })).filter((x) => x.sc);
+      scored.sort((a, b) => b.sc.vac - a.sc.vac);
+      const best = scored[0];
+      let h = '<div class="card"><h2>Which strategy? — ranked on your plan</h2>'
+        + '<p class="hint" style="margin:0 0 8px;">All ' + ids.length + ' ran <strong>your</strong> plan (pot, ISA policy, income shape, State Pension, horizon) on the <strong>same</strong> markets — every real window since 1871 plus 1,000 bootstrapped futures — with ' + (window._cmpCutsOff ? 'no strategy allowed to pay you less than the plan (level footing)' : 'Pots &amp; Valves allowed to cut as you configured it') + '. '
+        + 'The score is Estrada\'s <em>volatility-adjusted coverage ratio</em> (Journal of Retirement, 2024): the coverage ratio of Estrada &amp; Kritzman (2019) — years of planned income the money sustained, counting what is left over as extra years, over the plan length — divided by the volatility you would live with along the way. It rewards lasting longer and leaving more; it penalises a bumpy ride. It is one honest yardstick, not the only one: the columns beside it are the trade-offs it hides.</p>'
+        + '<div class="table-scroll-container"><table><thead><tr><th>#</th><th>Strategy</th><th>Paid in full</th><th>Income delivered</th><th>Coverage ratio</th><th>Worst 12 months</th><th>Typically left</th><th>Bumpiness</th><th>Score</th></tr></thead><tbody>';
+      scored.forEach((x, i) => {
+        const r = x.r, sc = x.sc, sr = 100 - (r.ruin.mc || 0);
+        h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (i + 1) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[x.id] + ';border-radius:2px;margin-right:6px;"></span>' + budEsc(STRATEGY_NAMES[x.id]) + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + x.id + '\')">read →</button></td>'
+          + '<td>' + sr.toFixed(0) + '%' + (r.ruinLabel ? ' <span class="hint">(else cut)</span>' : '') + '</td><td>' + (r.coverage != null ? r.coverage.toFixed(0) : '—') + '%</td><td>' + sc.coverageRatio.toFixed(2) + '</td><td>' + gbp(Math.round(r.worst12.min)) + '</td><td>' + gbp(Math.round(r.terminal.p50)) + '</td><td>' + (sc.vol * 100).toFixed(0) + '%/yr</td><td><strong>' + sc.vac.toFixed(1) + '</strong></td></tr>';
+      });
+      const unaff = ids.filter((id) => !S[id].affordable);
+      h += '</tbody></table></div>' + (unaff.length ? '<p class="hint" style="margin-top:6px;">Not affordable on this plan, so not ranked: ' + unaff.map((id) => budEsc(STRATEGY_NAMES[id]) + ' (' + budEsc(S[id].reason || '') + ')').join('; ') + '.</p>' : '');
+      if (best) h += '<div class="alert alert-info" style="margin-top:10px;"><strong>On this yardstick, ' + budEsc(STRATEGY_NAMES[best.id]) + ' comes first on your plan</strong> — paid in full in ' + (100 - best.r.ruin.mc).toFixed(0) + '% of futures, coverage ratio ' + best.sc.coverageRatio.toFixed(2) + ', bumpiness ' + (best.sc.vol * 100).toFixed(0) + '%/yr. Read its page, then the runner-up\'s: the right choice depends on what you would rather live with — a cut, a cliff, or a bumpy pot — and that is yours to weigh, not the score\'s. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="showStrategyPage(\'' + best.id + '\')">Read ' + budEsc(STRATEGY_NAMES[best.id]) + ' →</button></div>';
+      h += '<p class="hint" style="margin-top:8px;">Paid in full = share of futures in which the plan never ran out (for Floor to an age: never cut). Income delivered = share of planned income actually paid, averaged over futures (a late shortfall costs less than an early one). Coverage ratio = years sustained + years the leftover would fund, over the plan length. Bumpiness = year-on-year volatility of total wealth along the way (floored at ' + Math.round(VOL_FLOOR_PCT) + '% so a fully bought plan scores finite). Sources: Estrada &amp; Kritzman, <em>Toward Determining the Optimal Investment Strategy for Retirement</em>, J. Retirement 2019; Estrada, <em>Retirement Planning: The Volatility-Adjusted Coverage Ratio</em>, J. Retirement 2024.</p></div>';
+      // ---- 2 · The question router ----
+      h += '<div class="card"><h2>Eight ways to turn a pot into an income</h2><p class="hint">Pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
+      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" data-on-click="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
       h += '<div class="card"><h2>Side by side, on your plan</h2>';
       h += '<div class="row-flex" style="margin-bottom:8px;"><label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (window._cmpCutsOff ? '' : 'checked') + ' data-on-change="setCmpCuts(this.checked)"> Let Pots &amp; Valves cut spending in bad runs (as you configured it)</label>'
         + '<span class="hint">' + (window._cmpCutsOff ? '<strong>Level footing:</strong> no strategy is allowed to pay you less than the plan.' : '<strong>As configured:</strong> Pots &amp; Valves may cut income up to ' + Math.round((1 - (c.settings.protectionMult ?? 0.8)) * 100) + '% in bad runs — read its row knowing that.') + '</span></div>';
@@ -8309,6 +8347,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
+      if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
       h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable
         ? '<strong>Affordable.</strong> Cash ' + gbp(Math.round(plan.cash)) + ' + ' + plan.orders.length + ' gilts ' + gbp(Math.round(plan.giltsCost)) + ' = <strong>' + gbp(Math.round(plan.total)) + '</strong> of your ' + gbp(Math.round(p.pot + (p.isaHold ? 0 : (p.isa || 0)))) + (p.isaHold && p.isa ? ' (ISA held aside)' : '') + ' → ' + gbp(Math.round(plan.spare)) + ' left over.'
         : '<strong>Not affordable as it stands:</strong> ' + budEsc(plan.reason || '') + '. Every £1k a year across the whole plan is roughly £27k; the cheapest years to trim are the early ones (they cost nearly £1 per £1), the dearest to add are the late ones (about 55p per £1).') + '</div>';
@@ -8365,6 +8404,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" data-on-change="setFtaDial(this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape, State Pension and horizon come from Settings. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change them</button></div></div>';
       const cb = sg.canBuy.map((x) => gbp(Math.round(x.amount)) + '/yr to the horizon (' + gbp(Math.round(x.cost)) + ' at ' + sg.floorToAge + '): <strong>' + x.mc.toFixed(0) + '%</strong> of futures, ' + x.hist.toFixed(0) + '% of real histories').join('; ');
+      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
       h += '<div class="alert ' + (r.ruin.mc <= 10 ? 'alert-success' : r.ruin.mc <= 25 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">'
         + '<strong>Bought to ' + sg.floorToAge + ': ' + gbp(Math.round(sg.floorCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Reserve today: ' + gbp(Math.round(sg.sleeveE0)) + '.</strong> '
         + 'At ' + sg.floorToAge + ' it is worth a median ' + gbp(Math.round(sg.sleeveAtA.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.sleeveAtA.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.sleeveAtA.p90)) + '). Chance it can then buy ' + cb + '. '
@@ -8401,6 +8441,7 @@
     };
     const dial = (label, id, attrs, value) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + label + '<input ' + attrs + ' value="' + value + '" style="width:90px;" data-on-change="setSpecDial(\'' + id + '\', this.value)"></label>';
     const pnvDecadesHtml = (r, p) => { const series = {}; for (const [lab, y] of [['from Jan 1966', 1966], ['from Jan 1985', 1985], ['from Jan 2000', 2000]]) { const w = pnvDecadeSeries(p, y, 1); if (w) series[lab + (w.failed ? ' — ran out at ' + Math.round(w.failAge) : ' — ' + gbp(Math.round(w.terminal / 1000)) + 'k left')] = w.wealthByYear.map((v) => v || 0); } return '<p class="hint" style="margin:0 0 6px;">All pots together, from three real starts, in today\'s money.</p>' + decadeLinesSvg({ title: 'The pots from three real starts', startAge: p.startAge, series, refLine: p.pot + (p.isa || 0), refLabel: 'where it started' }); };
+    const VOL_FLOOR_PCT = 3;
     const STRATEGY_PAGES = {
       'ladder-and-ratchet': {
         tag: 'income bolted on, booms buy more years', frames: LR_FRAMES,
@@ -8511,6 +8552,7 @@
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine" class="machine-scroll">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
+      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
       h += '<div class="alert ' + (r.ruin.mc <= 5 ? 'alert-success' : r.ruin.mc <= 15 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">' + spec.verdict(r, p) + '</div>';
       h += '<div style="margin-top:8px;"><button type="button" data-on-click="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><div class="machine-scroll">' + spec.decades(r, p) + '</div></div>';

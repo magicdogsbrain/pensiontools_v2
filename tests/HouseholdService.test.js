@@ -209,3 +209,15 @@ describe('household with each partner on their own strategy', () => {
     expect(r.byStrategy).toBe(true);
   });
 });
+
+describe('household pairing with a deterministic partner', () => {
+  it('a one-future plan is broadcast across the other plan\'s futures', () => {
+    const rA = { survivedMc: [true, false, true, true], samples: { wealth: [[100, 90], [100, 0]] }, cones: { wealth: { p50: [] } } };
+    const gilt = { survivedMc: [true], samples: null, cones: { wealth: { p50: [40, 30] } } };
+    const r = combineHouseholdStrategies(rA, gilt);
+    expect(r.runs).toBe(4);
+    expect(r.successB).toBe(1);
+    expect(r.jointSuccess).toBeCloseTo(0.75, 5);
+    expect(r.potFan[0].p50).toBe(140);
+  });
+});

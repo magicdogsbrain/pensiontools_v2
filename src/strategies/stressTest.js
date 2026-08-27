@@ -542,6 +542,8 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   // Coverage (Estrada & Kritzman): the average share of the plan's years that were paid, across the
   // futures — a late shortfall costs far less than an early one. Contract strategies score 100 by
   // construction; a strategy may set its own income-based figure (Floor to an age does).
+  // Per-future survival for pairing (household): contract strategies survive every future by construction.
+  if (r.affordable && !r.survivedMc) r.survivedMc = Array.from({ length: Math.max(1, (r.n && r.n.mc) || 1) }, () => true);
   if (r.affordable && r.coverage == null) {
     const N = Math.max(1, p.durationYears), nMc = (r.n && r.n.mc) || 0, fails = r.failAges || [];
     r.coverage = nMc > 0 ? 100 * ((nMc - fails.length) + fails.reduce((t, a) => t + Math.max(0, Math.min(1, (a - p.startAge) / N)), 0)) / nMc : 100;

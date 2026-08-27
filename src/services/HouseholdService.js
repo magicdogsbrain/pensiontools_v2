@@ -328,18 +328,21 @@ export function runCareCheck({ cfgA, cfgB, setA, setB, who = 'A', startYear = 10
  * @param {object} rB - same for partner B
  */
 export function combineHouseholdStrategies(rA, rB) {
-  const sa = rA.survivedMc || [], sb = rB.survivedMc || [];
-  const n = Math.min(sa.length, sb.length);
+  const sa = rA.survivedMc || [true], sb = rB.survivedMc || [true];
+  // A deterministic plan (one "future", e.g. the full gilt ladder) is broadcast across the other's futures.
+  const bc = (arr, i) => (arr.length === 1 ? arr[0] : arr[i]);
+  const n = (sa.length === 1 || sb.length === 1) ? Math.max(sa.length, sb.length) : Math.min(sa.length, sb.length);
   let both = 0, okA = 0, okB = 0;
-  for (let i = 0; i < n; i++) { if (sa[i]) okA++; if (sb[i]) okB++; if (sa[i] && sb[i]) both++; }
-  const wa = (rA.samples && rA.samples.wealth) || [rA.cones.wealth.p50], wb = (rB.samples && rB.samples.wealth) || [rB.cones.wealth.p50];
-  const m = Math.min(wa.length, wb.length);
+  for (let i = 0; i < n; i++) { const a = !!bc(sa, i), b = !!bc(sb, i); if (a) okA++; if (b) okB++; if (a && b) both++; }
+  const wa = (rA.samples && rA.samples.wealth && rA.samples.wealth.length) ? rA.samples.wealth : [rA.cones.wealth.p50];
+  const wb = (rB.samples && rB.samples.wealth && rB.samples.wealth.length) ? rB.samples.wealth : [rB.cones.wealth.p50];
+  const m = (wa.length === 1 || wb.length === 1) ? Math.max(wa.length, wb.length) : Math.min(wa.length, wb.length);
   const years = Math.max(wa[0] ? wa[0].length : 0, wb[0] ? wb[0].length : 0);
   const pct = (arr, q) => { const s2 = [...arr].sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * s2.length))]; };
   const potFan = [];
   for (let y = 0; y < years; y++) {
     const vals = [];
-    for (let i = 0; i < m; i++) { const a = wa[i] || [], b = wb[i] || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0)); }
+    for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0)); }
     potFan.push({ year: y, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90) });
   }
   return { runs: n, jointSuccess: n ? both / n : 0, successA: n ? okA / n : 0, successB: n ? okB / n : 0, independenceAssumed: n ? (okA / n) * (okB / n) : 0, potFan, sampleFutures: m, byStrategy: true };

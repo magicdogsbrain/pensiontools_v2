@@ -32,12 +32,12 @@ const gk = (v) => '£' + Math.round(v / 1000) + 'k';
 /** Q1: "What would I get each year?" — one small panel per strategy, same axes, income band + median. */
 export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o = {}) {
   const cols = Math.min(3, strategies.length), rows = Math.ceil(strategies.length / cols);
-  const W = o.width || 960, cw = W / cols, ch = 170, H = rows * ch + 8;
+  const W = o.width || 960, cw = W / cols, ch = 180, H = rows * ch + 8;
   const n = Math.max(...strategies.map((s) => s.cone.p50.length));
   const maxV = Math.max(planIncome || 0, ...strategies.flatMap((s) => s.cone.p90)) * 1.05 || 1;
   let s = '';
   strategies.forEach((st, k) => {
-    const ox = (k % cols) * cw, oy = Math.floor(k / cols) * ch; const padL = 44, padR = 10, padT = 22, padB = 22;
+    const ox = (k % cols) * cw, oy = Math.floor(k / cols) * ch; const padL = 44, padR = 10, padT = 32, padB = 22;
     const x = (i) => ox + padL + (i / Math.max(1, n - 1)) * (cw - padL - padR);
     const y = (v) => oy + ch - padB - (Math.max(0, v) / maxV) * (ch - padT - padB);
     s += `<text x="${ox + padL}" y="${oy + 14}" font-size="12" font-weight="600" fill="${st.color}">${esc(st.name)}</text>`;
@@ -47,7 +47,7 @@ export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o 
     s += `<polygon points="${top.concat(bot).join(' ')}" fill="${st.color}" opacity=".18"/><polyline points="${st.cone.p50.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}" fill="none" stroke="${st.color}" stroke-width="2"/>`;
     for (let i = 0; i < n; i += 10) s += `<text x="${x(i).toFixed(1)}" y="${oy + ch - 6}" text-anchor="middle" font-size="9" fill="var(--text-muted,#999)">${startAge + i}</text>`;
     const tag = st.contract === true ? 'by contract — no spread' : st.contract === 'partial' ? 'by contract until the decision age' : st.contract === 'untilfail' ? 'paid in full until a future runs out (risk is in what is left)' : 'band = 1-in-10 bad to 1-in-10 good';
-    s += `<text x="${ox + cw - padR}" y="${oy + 14}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${tag}</text>`;
+    s += `<text x="${ox + cw - padR}" y="${oy + 26}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${tag}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Income each year, one panel per strategy">${s}</svg>`;
 }

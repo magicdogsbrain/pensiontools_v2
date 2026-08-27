@@ -83,6 +83,10 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
         </div>
 
         <div class="landing-section">
+          <h2>Beta — a work in progress</h2>
+          <p>Built by one retired engineer, still changing week to week. Numbers move as the models improve; nothing here is financial advice. If something looks wrong, it may well be — tell me.</p>
+        </div>
+        <div class="landing-feature">
           <h2>Completely free</h2>
           <p>All tools are free to use. No ads, no premium tier, no catch. This is a personal project built to help people make better pension decisions.</p>
         </div>

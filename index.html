@@ -3818,6 +3818,8 @@
       planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
       stressTestAll,
       deriveCompareConfigs,
+      runInWorker,
+      workerAvailable,
       planFromSettings,
       STRATEGY_NAMES,
       giltLadderSvg,
@@ -5712,8 +5714,15 @@
       target.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[settings.strategyId] || settings.strategyId) + ' over every history and 1,000 futures…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
-        const r = stressTestStrategy(settings.strategyId, p);
+        let p, r;
+        try {
+          const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings), strategyId: settings.strategyId, essentialsAnnual: undefined });
+          p = res.p; r = res.r;
+        } catch (e) {
+          console.warn('engine worker unavailable, running inline', e);
+          p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
+          r = stressTestStrategy(settings.strategyId, p);
+        }
         window._latestStrategyStress = r;
         const html = strategyResultCard(r, p);
         if (targetId === 'strategyRunResults') target.innerHTML = html;
@@ -8122,15 +8131,22 @@
       const eff = window._cmpCutsOff ? { ...settings, disableProtection: true } : settings;
       const key = JSON.stringify([eff, window._cmpCutsOff]);
       if (window._cmpCache && window._cmpCache.key === key) return window._cmpCache;
+      const prog = document.getElementById('cmpProgress');
+      const say = (t) => { if (prog) prog.textContent = t; };
+      // Off the main thread when we can (a phone must not freeze); the synchronous loop is the fallback.
+      try {
+        const cfg = createSimulationConfigFromSettings({}, eff);
+        const res = await runInWorker('overview', { settings: eff, cfg, essentialsAnnual: undefined },
+          (pr) => say('Running ' + pr.name + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…'));
+        window._cmpCache = { key, p: res.p, all: res.all, settings };
+        return window._cmpCache;
+      } catch (e) { console.warn('engine worker unavailable, running inline', e); }
       const p = strategyPlanFor(eff);
-      // One strategy per turn of the event loop, with a progress line, so a phone stays responsive
-      // (the six runs together take ~12s on a laptop and far longer on a handset).
       const configs = deriveCompareConfigs(p);
       const strategies = {};
       const ids = Object.keys(STRATEGY_NAMES);
-      const prog = document.getElementById('cmpProgress');
       for (let i = 0; i < ids.length; i++) {
-        if (prog) prog.textContent = 'Running ' + STRATEGY_NAMES[ids[i]] + ' (' + (i + 1) + ' of ' + ids.length + ')…';
+        say('Running ' + STRATEGY_NAMES[ids[i]] + ' (' + (i + 1) + ' of ' + ids.length + ')…');
         await new Promise((r) => setTimeout(r, 30));
         strategies[ids[i]] = stressTestStrategy(ids[i], p, configs);
       }
@@ -8517,7 +8533,10 @@
         }
         const cfgA = createSimulationConfigFromSettings({}, ownSettings);
         const cfgB = createSimulationConfigFromSettings({}, partnerSettings);
-        const r = runHouseholdMonteCarlo(cfgA, cfgB, 1000, { a: startOffset(ownSettings), b: startOffset(partnerSettings) });
+        const offsets = { a: startOffset(ownSettings), b: startOffset(partnerSettings) };
+        let r;
+        try { r = await runInWorker('household', { cfgA, cfgB, runs: 1000, offsets }); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); r = runHouseholdMonteCarlo(cfgA, cfgB, 1000, offsets); }
         const ownName = document.getElementById('hhOwnPlan').value;
         const pName = partner.planDetails?.name || 'Partner';
         const thisYear = new Date().getFullYear();

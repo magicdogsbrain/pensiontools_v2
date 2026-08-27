@@ -21,7 +21,7 @@ const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
-import { defaultSpYear } from '../storage/StressRepository.js';
+import { defaultSpYear } from '../services/IncomeSchedule.js';
 
 /**
  * Paired-path Monte Carlo across two plan configs.

@@ -17,7 +17,7 @@ import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
-import { scheduleFromSteps } from '../storage/StressRepository.js';
+import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 

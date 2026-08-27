@@ -3818,6 +3818,7 @@
       runFlexWindows as runFlexWindowsX,
       runHouseholdMonteCarlo,
       householdIncomeTimeline,
+      startOffset,
       runSurvivorCheck,
       allowanceNudge,
       runCareCheck,
@@ -3992,6 +3993,10 @@
       document.querySelectorAll('.decision-subtab').forEach(c => c.classList.add('hidden'));
       const entryContent = document.getElementById('decision-entry');
       if (entryContent) entryContent.classList.remove('hidden');
+      // A different plan: the previous plan's recommendation and typed fund values must not linger.
+      const out = document.getElementById('decisionOutput');
+      if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see your recommendation.</p></div></div>';
+      ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
     }
 
     // Inject component styles
@@ -8447,7 +8452,7 @@
         }
         const cfgA = createSimulationConfigFromSettings({}, ownSettings);
         const cfgB = createSimulationConfigFromSettings({}, partnerSettings);
-        const r = runHouseholdMonteCarlo(cfgA, cfgB, 1000);
+        const r = runHouseholdMonteCarlo(cfgA, cfgB, 1000, { a: startOffset(ownSettings), b: startOffset(partnerSettings) });
         const ownName = document.getElementById('hhOwnPlan').value;
         const pName = partner.planDetails?.name || 'Partner';
         const thisYear = new Date().getFullYear();
@@ -8482,12 +8487,12 @@
         }
         html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + ownName + ' needs</th><th>' + pName + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
         const marks = new Set([0]);
-        rows.forEach((row, i) => { if (i > 0 && (row.spA !== rows[i-1].spA || row.spB !== rows[i-1].spB || row.db !== rows[i-1].db || (row.needB === 0 && rows[i-1].needB > 0) || (row.needA === 0 && rows[i-1].needA > 0))) marks.add(i); });
+        rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i-1].workingA || row.workingB !== rows[i-1].workingB || row.spA !== rows[i-1].spA || row.spB !== rows[i-1].spB || row.db !== rows[i-1].db || (row.needB === 0 && rows[i-1].needB > 0) || (row.needA === 0 && rows[i-1].needA > 0))) marks.add(i); });
         for (let y = 0; y < rows.length; y += 5) marks.add(y);
         [...marks].sort((a, b) => a - b).forEach((i) => {
           const row = rows[i];
           if (!row) return;
-          html += '<tr><td>' + yr(row.year) + (row.bridge ? ' 🌉' : '') + '</td><td>' + gbp(Math.round(row.needA)) + '</td><td>' + gbp(Math.round(row.needB))
+          html += '<tr><td>' + yr(row.year) + (row.bridge ? ' 🌉' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(Math.round(row.needA))) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(Math.round(row.needB)))
             + '</td><td>' + gbp(Math.round(row.spA + row.spB)) + '</td><td>' + gbp(Math.round(row.db + row.other)) + '</td><td><strong>' + gbp(Math.round(row.drawNeed)) + '</strong></td></tr>';
         });
         html += '</tbody></table></div>'
@@ -11066,21 +11071,31 @@
           (byYear[y] = byYear[y] || []).push(h);
         }
         let rows = '';
+        let taxYears = {};
+        try { taxYears = await getAllTaxYearsAsync() || {}; } catch (e) { taxYears = {}; }
         for (const y of Object.keys(byYear).map(Number).sort((a, b) => a - b)) {
           const plan = por.drawdown[y];
           if (!plan) continue;
           const recs = byYear[y];
+          // A partial first year (mid-year start) is measured on its own months, not annualised:
+          // the wizard's expected tax over the months left vs the tax actually paid so far.
+          const tyCfg = taxYears[recs[0].taxYear] || null;
+          const partialMonths = (y === 0 && tyCfg && tyCfg.remainingMonths > 0 && tyCfg.remainingMonths < 12) ? tyCfg.remainingMonths : 0;
+          const partialPlannedTax = partialMonths ? ((tyCfg.expectedMonthly?.sipp?.tax || 0) + (tyCfg.expectedMonthly?.other?.tax || 0) + (tyCfg.expectedMonthly?.statePension?.tax || 0)) * partialMonths : 0;
           const actAvgSipp = recs.reduce((t, h) => t + (h.sipp || 0), 0) / recs.length;
           const actTax = recs.reduce((t, h) => t + (h.taxPaidMonthly || h.monthlyTax || 0), 0);
           const lastIsaVal = recs[recs.length - 1].isaBalance ?? null;
           const planMonthly = plan.sippDraw / 12;
           const drawDelta = actAvgSipp - planMonthly;
           const fmtD = (d) => (d >= 0 ? '+' : '−') + gbp(Math.round(Math.abs(d)));
-          rows += '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo' + (y === 0 && recs.length < 12 ? ' — partial year: planned figures are for a full year' : '') + ')</span></td>'
+          rows += '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo' + (partialMonths ? ' of a ' + partialMonths + '-month first year' : (y === 0 && recs.length < 12 ? ' — partial year: planned figures are for a full year' : '')) + ')</span></td>'
             + '<td>' + gbp(Math.round(planMonthly)) + '/mo</td>'
             + '<td>' + gbp(Math.round(actAvgSipp)) + '/mo <span class="hint">(' + fmtD(drawDelta) + ')</span></td>'
-            + '<td>' + gbp(Math.round(plan.tax)) + '</td>'
-            + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>'
+            + (partialMonths
+              ? '<td>' + gbp(Math.round(partialPlannedTax)) + '<span class="hint"> for ' + partialMonths + ' mo</span></td>'
+                + '<td>' + gbp(Math.round(actTax)) + '<span class="hint"> so far (' + recs.length + ' mo)</span></td>'
+              : '<td>' + gbp(Math.round(plan.tax)) + '</td>'
+                + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
             + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
         }
         if (!rows) { box.innerHTML = ''; return; }

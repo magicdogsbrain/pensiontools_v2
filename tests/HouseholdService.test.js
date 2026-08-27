@@ -161,3 +161,36 @@ describe('runCareCheck', () => {
     expect(heavy.careJoint).toBeLessThan(care.careJoint);
   });
 });
+
+import { startOffset } from '../src/services/HouseholdService.js';
+
+describe('calendar alignment for a partner who is still working', () => {
+  it('startOffset = income-start age − age today (0 when retired or unknown)', () => {
+    expect(startOffset({ currentAge: 58, shapeAgeNow: 60 })).toBe(2);
+    expect(startOffset({ currentAge: 62, shapeAgeNow: 62 })).toBe(0);
+    expect(startOffset({})).toBe(0);
+  });
+  it('timeline: the working partner needs nothing and gets no SP until their plan starts', () => {
+    const a = { baseSalary: 30000, duration: 30, currentAge: 58, shapeAgeNow: 60, statePension: 12000, statePensionYear: 7 };
+    const b = { baseSalary: 20000, duration: 30, statePension: 11000, statePensionYear: 3 };
+    const rows = householdIncomeTimeline(a, b);
+    expect(rows[0].workingA).toBe(true);
+    expect(rows[0].needA).toBe(0);
+    expect(rows[0].needB).toBe(20000);
+    expect(rows[2].workingA).toBe(false);
+    expect(rows[2].needA).toBe(30000);
+    // A's SP is plan year 7 → calendar year 9
+    expect(rows[8].spA).toBe(0);
+    expect(rows[9].spA).toBe(12000);
+    expect(rows[3].spB).toBe(11000);
+    expect(rows.length).toBe(33);
+  });
+  it('Monte Carlo: shifting a plan by its offset leaves its own success rate unchanged in shape and runs it on later market years', () => {
+    const cfg = (o = {}) => ({ equityStart: 150000, bondStart: 100000, cashStart: 30000, isaBalance: 0, baseSalary: 12000, years: 20, pa: 12570, brl: 50270, hrl: 125140, ...o });
+    const r0 = runHouseholdMonteCarlo(cfg(), cfg(), 60, { a: 0, b: 0 });
+    const r2 = runHouseholdMonteCarlo(cfg(), cfg(), 60, { a: 0, b: 2 });
+    expect(r2.potFan.length).toBe(23);
+    expect(r2.successA).toBe(r0.successA);
+    expect(r2.potFan[0].p50).toBeCloseTo(r0.potFan[0].p50, -3);
+  });
+});

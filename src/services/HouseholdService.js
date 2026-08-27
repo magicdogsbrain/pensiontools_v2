@@ -28,28 +28,46 @@ import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
  *            potFan: Array<{year, p10, p50, p90}>}}  pot fan = household wealth (pots + ISA,
  *            today's money); a finished shorter plan carries its final value flat.
  */
-export function runHouseholdMonteCarlo(configA, configB, runs = 1000) {
-  const yearsMax = Math.max(configA.years, configB.years);
+export function runHouseholdMonteCarlo(configA, configB, runs = 1000, offsets = { a: 0, b: 0 }) {
+  // Calendar alignment: each plan's year 0 is ITS OWN income start. A partner still working
+  // starts `offset` calendar years later, so their plan runs on the market path shifted by that
+  // much — the same calendar year sees the same market for both, which is the whole point.
+  const offA = Math.max(0, Math.round(offsets?.a || 0));
+  const offB = Math.max(0, Math.round(offsets?.b || 0));
+  const yearsMax = Math.max(configA.years + offA, configB.years + offB);
   let both = 0, okA = 0, okB = 0;
   const perYear = Array.from({ length: yearsMax + 1 }, () => []);
+  const shifted = (returns, off) => {
+    if (!off) return returns;
+    const out = { equity: {}, inflation: {} };
+    for (const k of Object.keys(returns.equity)) {
+      const y = Number(k) - off;
+      if (y >= 0) { out.equity[y] = returns.equity[k]; out.inflation[y] = returns.inflation[k]; }
+    }
+    return out;
+  };
 
   for (let i = 0; i < runs; i++) {
     const returns = eng(configA).monteCarloReturns({ years: yearsMax }, i);
     // Same yearly market path; different in-sim seeds so idiosyncratic residuals differ.
-    const ra = eng(configA).simulate(configA, returns, i);
-    const rb = eng(configB).simulate(configB, returns, i + 500000);
+    const ra = eng(configA).simulate(configA, shifted(returns, offA), i);
+    const rb = eng(configB).simulate(configB, shifted(returns, offB), i + 500000);
     if (!ra.failed) okA++;
     if (!rb.failed) okB++;
     if (!ra.failed && !rb.failed) both++;
 
-    const wealthAt = (r, y) => {
+    // Wealth in calendar year c: a plan not yet started holds its opening pot (still working).
+    const wealthAt = (r, cfg, c, off) => {
+      const y = c - off;
+      const opening = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0) + (cfg.isaBalance || 0);
+      if (y < 0) return opening;
       const len = (r.potByYear || []).length;
       const idx = Math.min(y, len - 1);
       const pot = (r.potByYear && r.potByYear[idx] != null) ? r.potByYear[idx] : 0;
       const isa = (r.isaByYear && r.isaByYear[idx] != null) ? r.isaByYear[idx] : 0;
       return pot + isa;
     };
-    for (let y = 0; y <= yearsMax; y++) perYear[y].push(wealthAt(ra, y) + wealthAt(rb, y));
+    for (let c = 0; c <= yearsMax; c++) perYear[c].push(wealthAt(ra, configA, c, offA) + wealthAt(rb, configB, c, offB));
   }
 
   const pct = (arr, p) => {
@@ -97,26 +115,36 @@ function spFor(settings) {
 export function householdIncomeTimeline(setA, setB, labelYears = null) {
   const durA = setA.duration || 35;
   const durB = setB.duration || 35;
-  const years = labelYears ?? Math.max(durA, durB);
+  const offA = startOffset(setA), offB = startOffset(setB);
+  const years = labelYears ?? Math.max(durA + offA, durB + offB);
   const a = spFor(setA), b = spFor(setB);
   const rows = [];
-  for (let y = 0; y <= years; y++) {
-    const needA = y <= durA ? targetForYear(setA, y) : 0;
-    const needB = y <= durB ? targetForYear(setB, y) : 0;
-    const spA = y >= a.startYear ? a.annual : 0;
-    const spB = y >= b.startYear ? b.annual : 0;
-    const db = (setA.dbAmount > 0 && y >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
-             + (setB.dbAmount > 0 && y >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
-    const other = (setA.other || 0) + (setB.other || 0);
+  // `year` is CALENDAR years from today; each plan's own year is that less its start offset.
+  for (let c = 0; c <= years; c++) {
+    const yA = c - offA, yB = c - offB;
+    const workingA = yA < 0, workingB = yB < 0;
+    const needA = (!workingA && yA <= durA) ? targetForYear(setA, yA) : 0;
+    const needB = (!workingB && yB <= durB) ? targetForYear(setB, yB) : 0;
+    const spA = (!workingA && yA >= a.startYear) ? a.annual : 0;
+    const spB = (!workingB && yB >= b.startYear) ? b.annual : 0;
+    const db = (setA.dbAmount > 0 && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
+             + (setB.dbAmount > 0 && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
+    const other = (!workingA ? (setA.other || 0) : 0) + (!workingB ? (setB.other || 0) : 0);
     const need = needA + needB;
     const guaranteed = spA + spB + db + other;
     rows.push({
-      year: y, needA, needB, need, spA, spB, db, other, guaranteed,
+      year: c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB,
       drawNeed: Math.max(0, need - guaranteed),
-      bridge: (a.annual > 0 && y < a.startYear) || (b.annual > 0 && y < b.startYear)
+      bridge: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
     });
   }
   return rows;
+}
+
+/** Calendar years until this plan's income starts (0 for someone already retired). */
+export function startOffset(settings) {
+  const now = +settings.currentAge || 0, start = +settings.shapeAgeNow || 0;
+  return (now > 0 && start > now) ? Math.round(start - now) : 0;
 }
 
 /**

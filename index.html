@@ -76,11 +76,16 @@
     }
     .bud-grid .bud-row button { padding: 4px 9px; width: auto; }
     @media (max-width: 640px) {
+      /* Phone: name on its own line, then amount | ⏱ ages | × on ONE line (was three) */
       .bud-grid .bud-row, .bud-grid--shared .bud-row {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px 6px;
       }
       .bud-grid .bud-label { grid-column: 1 / -1; }
-      .bud-grid .bud-amt { grid-column: 1 / -1; }   /* amount gets the full row — never a sliver */
+      .bud-grid .bud-amt { grid-column: 1; }
+      .bud-grid .bud-ages { grid-column: 2; }
+      .bud-grid .bud-actions { grid-column: 3; }
+      .bud-grid .bud-paidby { grid-column: 1 / -1; }
       .bud-grid .bud-row.bud-head { display: none; }
       .bud-grid .bud-actions { justify-content: flex-end; }
       /* Section titles: stack the muted hint under the heading instead of wrapping beside it */

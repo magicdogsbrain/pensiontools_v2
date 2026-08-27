@@ -2062,6 +2062,19 @@
       .table-scroll-container { position: relative; }
       .table-scroll-container::after { content: 'swipe \2192'; position: absolute; right: 6px; top: 2px; font-size: 10px; color: var(--text-muted); pointer-events: none; }
       #planVsActual .section-title { white-space: normal; }
+      /* Result charts are drawn in 660–680px user units; squeezed to 350px their labels are ~5px.
+         Keep them legible and let the reader swipe instead. */
+      svg.ichart { display: block; min-width: 600px; }
+      /* Strategy matrix: one card per strategy with labelled rows instead of a six-column swipe */
+      .cmp-matrix-wrap { overflow: visible; }
+      .cmp-matrix-wrap::after { content: none; }
+      .cmp-matrix, .cmp-matrix tbody, .cmp-matrix tr, .cmp-matrix td { display: block; width: 100%; box-sizing: border-box; white-space: normal; }
+      .cmp-matrix thead { display: none; }
+      .cmp-matrix tr { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; background: var(--card-alt, transparent); }
+      .cmp-matrix td { border: none; padding: 6px 0; }
+      .cmp-matrix td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-bottom: 2px; }
+      .cmp-matrix td[colspan] { padding-top: 4px; }
+      .card:has(> svg.ichart), div:has(> svg.ichart) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       #planVsActual .section-title > span { display: block; margin-top: 2px; }
       .row-flex { flex-wrap: wrap; }
       .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
@@ -2096,7 +2109,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-DyA-JSmA.js"></script>
+  <script type="module" crossorigin src="./assets/main-CBH1EFJm.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->

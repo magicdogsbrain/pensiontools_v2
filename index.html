@@ -2126,11 +2126,11 @@
             </div>
           </div>
         </div>
-        <button type="button" id="mobileMenuBtn" aria-label="Menu" onclick="openMobileMenu()">&#8801;</button>
+        <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
-            <button class="logout-btn" id="adminGearBtn" style="display:none;" title="Administration" onclick="openAdminPanel()">&#9881;</button>
+            <button class="logout-btn" id="adminGearBtn" style="display:none;" title="Administration" data-on-click="openAdminPanel()">&#9881;</button>
             <button class="logout-btn" id="resetBtn" title="Delete all data and start fresh">Reset</button>
             <button class="logout-btn" id="deleteAccountBtn" title="Permanently delete your account and all data">Delete Account</button>
             <button class="logout-btn" id="logoutBtn">Sign Out</button>
@@ -2138,19 +2138,19 @@
         </div>
       </header>
       <nav id="mobileTabBar" aria-label="Main">
-        <button type="button" data-mtab="budget" onclick="mobileGo('budget')"><span class="ico">&#128203;</span>Budget</button>
-        <button type="button" data-mtab="stress" onclick="mobileGo('stress')"><span class="ico">&#128200;</span>Stress</button>
-        <button type="button" data-mtab="strategies" onclick="mobileGo('strategies')"><span class="ico">&#9878;&#65039;</span>Strategies</button>
-        <button type="button" data-mtab="decision" onclick="mobileGo('decision')"><span class="ico">&#128183;</span>Decide</button>
-        <button type="button" data-mtab="more" onclick="openMobileMore()"><span class="ico">&#8943;</span>More</button>
+        <button type="button" data-mtab="budget" data-on-click="mobileGo('budget')"><span class="ico">&#128203;</span>Budget</button>
+        <button type="button" data-mtab="stress" data-on-click="mobileGo('stress')"><span class="ico">&#128200;</span>Stress</button>
+        <button type="button" data-mtab="strategies" data-on-click="mobileGo('strategies')"><span class="ico">&#9878;&#65039;</span>Strategies</button>
+        <button type="button" data-mtab="decision" data-on-click="mobileGo('decision')"><span class="ico">&#128183;</span>Decide</button>
+        <button type="button" data-mtab="more" data-on-click="openMobileMore()"><span class="ico">&#8943;</span>More</button>
       </nav>
-      <div id="mobileSheet" onclick="if (event.target === this) closeMobileSheet()"><div class="sheet" id="mobileSheetBody"></div></div>
+      <div id="mobileSheet" data-on-click="sheetBackdropClick(event, this)"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
       <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
-        <button type="button" onclick="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
+        <button type="button" data-on-click="dismissNextStep()" title="Hide guidance for this plan" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;">✕</button>
       </div>
       <div class="tabs-wrapper">
         <nav class="tabs">
@@ -2180,13 +2180,13 @@
             <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
             spending need and State Pension — and they're still the defaults, so any answer would be
             meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('decision')">Open Settings</button>
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('decision')">Open Settings</button>
           </div>
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
               <h2>Monthly Entry</h2>
-              <form id="decisionForm" onsubmit="handleDecisionSubmit(event)">
+              <form id="decisionForm" data-on-submit="handleDecisionSubmit(event)">
                 <div class="form-grid">
                   <div class="form-group">
                     <label>Month</label>
@@ -2198,21 +2198,21 @@
                 <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Equity Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
+                    <label>Equity Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryEquity" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Bond Funds <a href="#" class="itemise-link" onclick="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
+                    <label>Bond Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryBond" value="" required>
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Cash <a href="#" class="itemise-link" onclick="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
+                    <label>Cash <a href="#" class="itemise-link" data-on-click="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryCash" value="" required>
@@ -2228,7 +2228,7 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Diversifiers <a href="#" class="itemise-link" onclick="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
+                    <label>Diversifiers <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
                       <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
                     </label>
                     <div class="input-with-unit">
@@ -2246,15 +2246,15 @@
                     <div id="fundModalRows"></div>
                     <div id="fundModalSubtotal" style="font-weight:600; margin-top:12px; border-top:1px solid var(--border,#334155); padding-top:10px;"></div>
                     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
-                      <button type="button" class="risk-btn" onclick="closeFundBucketModal()">Cancel</button>
-                      <button type="button" class="btn-primary" onclick="applyFundBucketModal()">Done</button>
+                      <button type="button" class="risk-btn" data-on-click="closeFundBucketModal()">Cancel</button>
+                      <button type="button" class="btn-primary" data-on-click="applyFundBucketModal()">Done</button>
                     </div>
                   </div>
                 </div>
 
                 <div class="button-row" style="margin-top: 24px;">
                   <button type="submit">Calculate</button>
-                  <button type="button" class="success" onclick="saveCurrentDecision()" id="saveBtn" disabled>
+                  <button type="button" class="success" data-on-click="saveCurrentDecision()" id="saveBtn" disabled>
                     <span class="btn-text">Save to History</span>
                     <span class="btn-spinner"><span class="spinner"></span><span>Saving...</span></span>
                   </button>
@@ -2286,8 +2286,8 @@
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
-                <button type="button" id="dsModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ds','risk')">Pick a risk level</button>
-                <button type="button" id="dsModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ds','funds')">Use my own funds</button>
+                <button type="button" id="dsModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ds','risk')">Pick a risk level</button>
+                <button type="button" id="dsModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ds','funds')">Use my own funds</button>
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -2299,11 +2299,11 @@
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Total in your SIPP (£)</label>
-                  <input type="number" id="dsPot" value="500000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+                  <input type="number" id="dsPot" value="500000" data-on-input="updateAllocDisplay('ds')" style="max-width:220px;">
                 </div>
                 <div class="form-group">
                   <label>Total in your ISA (£)</label>
-                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ds')" style="max-width:220px;">
+                  <input type="number" id="dsIsaBalance" placeholder="e.g. 50000" data-on-input="updateAllocDisplay('ds')" style="max-width:220px;">
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
@@ -2322,15 +2322,15 @@
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="dsRisks" class="risk-cards">
-                  <button type="button" class="risk-card" data-risk="cautious" onclick="setRiskPreset('ds','cautious')">
+                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ds','cautious')">
                     <div class="rc-title">Cautious</div>
                     <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
                   </button>
-                  <button type="button" class="risk-card" data-risk="balanced" onclick="setRiskPreset('ds','balanced')">
+                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ds','balanced')">
                     <div class="rc-title">Balanced</div>
                     <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
                   </button>
-                  <button type="button" class="risk-card" data-risk="adventurous" onclick="setRiskPreset('ds','adventurous')">
+                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ds','adventurous')">
                     <div class="rc-title">Adventurous</div>
                     <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
                   </button>
@@ -2338,11 +2338,11 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds'); renderModelPortfolio('ds')">
+                  <input type="checkbox" id="dsDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ds'); renderModelPortfolio('ds')">
                   <span><strong>Diversifiers sleeve</strong> — gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
               </div>
-              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ds')">
+              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ds')">
                 <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
                 <div id="dsModelPortfolio" style="margin-top:8px;"></div>
               </details>
@@ -2354,12 +2354,12 @@
                 The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
               </p>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
-                <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ds', this.value)" onfocus="showFundSearch('ds', this.value)" onblur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
+                <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ds', this.value)" data-on-focus="showFundSearch('ds', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
                 <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" onclick="addFundRow('ds')">+ Add custom ticker</button>
-                <button type="button" class="risk-btn" onclick="clearFunds('ds')">Clear</button>
+                <button type="button" class="risk-btn" data-on-click="addFundRow('ds')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" data-on-click="clearFunds('ds')">Clear</button>
               </div>
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
@@ -2378,7 +2378,7 @@
 
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex; align-items:center; cursor:pointer;">
-                <input type="checkbox" id="dsEquityGlide" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ds')">
+                <input type="checkbox" id="dsEquityGlide" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ds')">
                 <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
               </label>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
@@ -2395,12 +2395,12 @@
                 <div class="form-group">
                   <label>What you want to spend (take-home)</label>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" id="dsNetSpend" style="flex:1 1 auto; min-width:0;" oninput="netSpendChanged('ds', this.value)">
-                    <button type="button" class="risk-btn" id="dsNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleNetPeriod('ds')">/mo</button>
+                    <input type="number" id="dsNetSpend" style="flex:1 1 auto; min-width:0;" data-on-input="netSpendChanged('ds', this.value)">
+                    <button type="button" class="risk-btn" id="dsNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" data-on-click="toggleNetPeriod('ds')">/mo</button>
                   </div>
                   <div id="dsNetGrossNote" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
                   <div id="dsBudgetChipRow" style="margin-top:6px; display:none;">
-                    <button type="button" class="budwiz-chip" id="dsBudgetChip" onclick="useBudgetSpend('ds')"></button>
+                    <button type="button" class="budwiz-chip" id="dsBudgetChip" data-on-click="useBudgetSpend('ds')"></button>
                   </div>
                   <!-- Hidden gross-equivalent target: keeps the save/load path (baseSalary) and the
                        tax-efficient engine unchanged while the UI is net-first. -->
@@ -2431,8 +2431,8 @@
 <div>
                 <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
+                  <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
                 </div>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
@@ -2504,8 +2504,8 @@
                 You still review and Save before anything locks.
               </p>
               <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="secondary" onclick="copyDecisionFromStressUI('all')">Use ALL Stress settings</button>
-                <button type="button" class="secondary" onclick="copyDecisionFromStressUI('target')">Copy target amount only</button>
+                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('all')">Use ALL Stress settings</button>
+                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('target')">Copy target amount only</button>
               </div>
             </div>
 
@@ -2542,8 +2542,8 @@
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button id="dsSaveBtn" onclick="saveDecisionSettingsUI()">Save Settings</button>
-              <button id="dsResetBtn" class="secondary" onclick="resetDecisionSettingsUI()">Reset to Defaults</button>
+              <button id="dsSaveBtn" data-on-click="saveDecisionSettingsUI()">Save Settings</button>
+              <button id="dsResetBtn" class="secondary" data-on-click="resetDecisionSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
         </div>
@@ -2555,16 +2555,16 @@
             <!-- History header with actions -->
             <div class="history-header">
               <div class="history-year-selector">
-                <select id="historyYearFilter" onchange="filterHistoryByYear(this.value)">
+                <select id="historyYearFilter" data-on-change="filterHistoryByYear(this.value)">
                   <!-- Year options rendered dynamically -->
                 </select>
               </div>
               <div class="history-actions-header">
-                <button class="btn danger small" onclick="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
+                <button class="btn danger small" data-on-click="deleteHistoryForSelectedYear()" id="deleteYearBtn" style="display:none;">
                   <span class="btn-text">Delete Year</span>
                   <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
                 </button>
-                <button class="btn danger small" onclick="deleteAllHistory()" id="deleteAllHistoryBtn">
+                <button class="btn danger small" data-on-click="deleteAllHistory()" id="deleteAllHistoryBtn">
                   <span class="btn-text">Delete All</span>
                   <span class="btn-spinner"><span class="spinner"></span><span>Deleting...</span></span>
                 </button>
@@ -2574,13 +2574,13 @@
             <!-- Month tabs for selected year -->
             <div id="historyStaleNote"></div>
             <div class="history-tabs-container">
-              <button class="history-scroll-btn left" onclick="scrollHistoryTabs('left')">‹</button>
+              <button class="history-scroll-btn left" data-on-click="scrollHistoryTabs('left')">‹</button>
                             <div class="history-tabs" id="historyTabs">
                 <!-- Month tabs rendered dynamically -->
               </div>
-              <button class="history-scroll-btn right" onclick="scrollHistoryTabs('right')">›</button>
+              <button class="history-scroll-btn right" data-on-click="scrollHistoryTabs('right')">›</button>
               <!-- Mobile dropdown selector -->
-              <select class="mobile-tab-selector" id="historyMobileSelector" onchange="selectHistoryEntry(this.value)">
+              <select class="mobile-tab-selector" id="historyMobileSelector" data-on-change="selectHistoryEntry(this.value)">
                 <!-- Options rendered dynamically -->
               </select>
             </div>
@@ -2597,16 +2597,16 @@
           <div class="tax-years-full-page">
             <!-- Horizontal scrolling year tabs (desktop) + dropdown (mobile) -->
             <div class="tax-year-tabs-container">
-              <button class="tax-year-scroll-btn left" onclick="scrollTaxYearTabs('left')">‹</button>
+              <button class="tax-year-scroll-btn left" data-on-click="scrollTaxYearTabs('left')">‹</button>
               <div class="tax-year-tabs" id="taxYearTabs">
                 <!-- Year tabs rendered dynamically -->
               </div>
-              <button class="tax-year-scroll-btn right" onclick="scrollTaxYearTabs('right')">›</button>
+              <button class="tax-year-scroll-btn right" data-on-click="scrollTaxYearTabs('right')">›</button>
               <!-- Mobile dropdown selector -->
-              <select class="mobile-tab-selector" id="taxYearMobileSelector" onchange="selectTaxYear(this.value)">
+              <select class="mobile-tab-selector" id="taxYearMobileSelector" data-on-change="selectTaxYear(this.value)">
                 <!-- Options rendered dynamically -->
               </select>
-              <button class="tax-year-add-btn" onclick="addTaxYear()">+ Add Year</button>
+              <button class="tax-year-add-btn" data-on-click="addTaxYear()">+ Add Year</button>
             </div>
 
             <!-- Selected year detail view -->
@@ -2635,14 +2635,14 @@
             <strong>Set up this plan first.</strong> Simulations run on your Settings — your pots,
             spending need and State Pension — and they're still the defaults, so any result would be
             meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" onclick="openToolSettingsTab('stress')">Open Settings</button>
+            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('stress')">Open Settings</button>
           </div>
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
-            <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
+            <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
             <div id="strategyRunResults"></div>
             <h2>Monte Carlo Simulation
-              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('mc')">What is this doing?</button>
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('mc')">What is this doing?</button>
             </h2>
             <p id="mcBlurb" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 futures stitched from random 5-year blocks of 1928–2024 history — <strong>world</strong> equity (US history less the 1.5%/yr US-vs-World gap), so a world tracker is not modelled on US returns.</p>
             <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
@@ -2653,8 +2653,8 @@
               </div>
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button onclick="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
-              <button id="optimiseBtnMC" onclick="runCompareStrategiesUI('MC')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
+              <button data-on-click="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
+              <button id="optimiseBtnMC" data-on-click="runCompareStrategiesUI('MC')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
             </div>
           </div>
           <div id="mcResults"></div>
@@ -2667,7 +2667,7 @@
               <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
               <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
-              <div class="form-group"><label>Income</label><select id="tryIncomeMode" onchange="document.getElementById('tryIncomeWrap').style.display=this.value==='flat'?'':'none'"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
+              <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
@@ -2675,9 +2675,9 @@
               <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
             </div>
             <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-              <button type="button" onclick="runTryStrategyUI()">Run this what-if</button>
-              <button type="button" class="secondary" onclick="resetTryStrategyUI()">Reset to my plan</button>
-              <button type="button" class="secondary" id="tryUseBtn" onclick="useTriedStrategyUI()" style="display:none;">Use this strategy for my plan</button>
+              <button type="button" data-on-click="runTryStrategyUI()">Run this what-if</button>
+              <button type="button" class="secondary" data-on-click="resetTryStrategyUI()">Reset to my plan</button>
+              <button type="button" class="secondary" id="tryUseBtn" data-on-click="useTriedStrategyUI()" style="display:none;">Use this strategy for my plan</button>
             </div>
             <div id="tryResults" style="margin-top:12px;"></div>
           </div>
@@ -2687,7 +2687,7 @@
         <div id="stress-historical" class="stress-subtab hidden">
           <div class="card">
             <h2>Historical Sequence Analysis
-              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('hist')">What is this doing?</button>
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('hist')">What is this doing?</button>
             </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
             <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
@@ -2698,8 +2698,8 @@
               </div>
             </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button onclick="runHistoricalUI()">Run Historical Analysis</button>
-              <button id="optimiseBtnHist" onclick="runCompareStrategiesUI('Hist')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
+              <button data-on-click="runHistoricalUI()">Run Historical Analysis</button>
+              <button id="optimiseBtnHist" data-on-click="runCompareStrategiesUI('Hist')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
             </div>
           </div>
           <div id="histResults"></div>
@@ -2710,12 +2710,12 @@
         <div id="stress-scenarios" class="stress-subtab hidden">
           <div class="card">
             <h2>Stress Scenarios
-              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" onclick="openStressExplainer('scen')">What is this doing?</button>
+              <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('scen')">What is this doing?</button>
             </h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
             <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
-              <button onclick="runScenariosUI()">Run All Scenarios</button>
+              <button data-on-click="runScenariosUI()">Run All Scenarios</button>
             </div>
           </div>
           <div id="scenResults"></div>
@@ -2737,7 +2737,7 @@
               </div>
             </div>
             <div style="margin-top: 20px;">
-              <button onclick="showDrawdownScheduleUI()">Show Schedule</button>
+              <button data-on-click="showDrawdownScheduleUI()">Show Schedule</button>
             </div>
           </div>
           <div id="drawdownResults"></div>
@@ -2753,9 +2753,9 @@
                 <strong>What it is not.</strong> It does not know whether a ladder suits you, which gilt you should buy, or how it interacts with your tax position; it is not a recommendation and not financial advice. A bond ladder is not necessarily the best strategy for anyone — the three strategies above are the honest comparison. Figures ignore dealing costs, bid–offer spreads, accrued interest, whole-unit rounding and the tax treatment of coupons. If in doubt, take regulated advice.
               </div>
               <div class="row-flex" style="margin-top:8px;align-items:flex-end;">
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">£ per year (today’s money)<input type="number" id="glxAmount" value="10000" step="1000" style="width:120px;" oninput="renderGiltLadderExplainer()"></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Number of years<input type="number" id="glxYears" value="10" min="1" max="40" style="width:90px;" oninput="renderGiltLadderExplainer()"></label>
-                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Gilt type<select id="glxKind" style="width:230px;" onchange="renderGiltLadderExplainer()"><option value="real">Index-linked (keeps pace with RPI/CPIH)</option><option value="nominal">Conventional (fixed £, inflation not covered)</option></select></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">£ per year (today’s money)<input type="number" id="glxAmount" value="10000" step="1000" style="width:120px;" data-on-input="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Number of years<input type="number" id="glxYears" value="10" min="1" max="40" style="width:90px;" data-on-input="renderGiltLadderExplainer()"></label>
+                <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Gilt type<select id="glxKind" style="width:230px;" data-on-change="renderGiltLadderExplainer()"><option value="real">Index-linked (keeps pace with RPI/CPIH)</option><option value="nominal">Conventional (fixed £, inflation not covered)</option></select></label>
               </div>
               <div id="glxOut" style="margin-top:10px;"></div>
               <details style="margin-top:8px;"><summary class="hint" style="cursor:pointer;">How a ladder works, in four lines</summary>
@@ -2785,7 +2785,7 @@
               </div>
             </div>
             <div style="margin-top: 20px;">
-              <button onclick="showGlidepathUI()">Show Glidepath</button>
+              <button data-on-click="showGlidepathUI()">Show Glidepath</button>
             </div>
           </div>
           <div id="glidepathResults"></div>
@@ -2803,12 +2803,12 @@
                 <div class="form-group">
                   <label>What you want to spend (take-home)</label>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" id="ssNetSpend" style="flex:1 1 auto; min-width:0;" oninput="netSpendChanged('ss', this.value)">
-                    <button type="button" class="risk-btn" id="ssNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" onclick="toggleNetPeriod('ss')">/mo</button>
+                    <input type="number" id="ssNetSpend" style="flex:1 1 auto; min-width:0;" data-on-input="netSpendChanged('ss', this.value)">
+                    <button type="button" class="risk-btn" id="ssNetPeriodBtn" style="padding:6px 12px; flex:0 0 auto;" title="Switch monthly / yearly" data-on-click="toggleNetPeriod('ss')">/mo</button>
                   </div>
                   <div id="ssNetGrossNote" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
                   <div id="ssBudgetChipRow" style="margin-top:6px; display:none;">
-                    <button type="button" class="budwiz-chip" id="ssBudgetChip" onclick="useBudgetSpend('ss')"></button>
+                    <button type="button" class="budwiz-chip" id="ssBudgetChip" data-on-click="useBudgetSpend('ss')"></button>
                   </div>
                   <!-- The engine still works from a gross-equivalent annual target; this hidden field keeps
                        the existing save/load path (baseSalary) while the UI is net-first. -->
@@ -2827,8 +2827,8 @@
 <div>
                 <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" onclick="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" onclick="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
+                  <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
                 </div>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
@@ -2958,27 +2958,27 @@
             <div class="settings-section" style="border-color: var(--accent);">
               <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
               <div class="row-flex" id="ssStrategyPick">
-                <button type="button" class="risk-btn" data-strat="pots-and-valves" onclick="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
-                <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" onclick="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-                <button type="button" class="risk-btn" data-strat="floor-and-flex" onclick="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
-                <button type="button" class="risk-btn" data-strat="floor-the-schedule" onclick="pickStrategy('floor-the-schedule')">Floor the schedule</button>
-                <button type="button" class="risk-btn" data-strat="floor-to-age" onclick="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
-                <button type="button" class="risk-btn" data-strat="full-il-gilt" onclick="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
+                <button type="button" class="risk-btn" data-strat="pots-and-valves" data-on-click="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
+                <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" data-on-click="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+                <button type="button" class="risk-btn" data-strat="floor-and-flex" data-on-click="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
+                <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
+                <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
+                <button type="button" class="risk-btn" data-strat="full-il-gilt" data-on-click="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
               </div>
               <div id="ssPotMini" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">Your pot <span class="hint" style="font-weight:normal;">— what this strategy has to buy with</span></div>
                 <div class="row-flex">
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your SIPP (£)<input type="number" id="miniSipp" step="1000" style="width:130px;" oninput="miniPotChanged()"></label>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" oninput="miniPotChanged()"></label>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" onchange="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your SIPP (£)<input type="number" id="miniSipp" step="1000" style="width:130px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" data-on-change="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
                   <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
                 </div>
                 <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" oninput="refreshStrategyCosts()"></label>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" oninput="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                 </div>
                 <p class="hint" style="margin:6px 0 0;">Priced against <strong>Your pot</strong> above (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios.</p>
                 <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
@@ -2990,11 +2990,11 @@
                 <div class="section-title" style="font-size:14px;">Your income shape <span class="hint" style="font-weight:normal;">— the one number every tool works to, year by year</span></div>
                 <p class="hint" style="margin:0 0 8px;">Your budget is what you spend <em>now</em>. Retirement spending usually runs in three phases — <strong>go-go</strong> (travel, projects, the years you are fit), <strong>go-slow</strong> (from the mid-70s, spending typically drifts down 1–2% a year in real terms), and <strong>no-go</strong> (the basics, and care if it comes). Nobody can budget those years line by line, so don't try: start from today's figure, then draw the steps you'd actually want. Above the budget is fine. Below your essentials turns orange.</p>
                 <div class="row-flex" style="margin-bottom:6px;">
-                  <button type="button" class="risk-btn" onclick="startShapeFromBudget()">Start from my budget</button>
-                  <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" onclick="startShapeFromNumber()">Use it</button></label>
-                  <button type="button" class="risk-btn" onclick="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
+                  <button type="button" class="risk-btn" data-on-click="startShapeFromBudget()">Start from my budget</button>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" data-on-click="startShapeFromNumber()">Use it</button></label>
+                  <button type="button" class="risk-btn" data-on-click="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income starts at age
-                    <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" oninput="renderIncomeSteps()"></label>
+                    <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" data-on-input="renderIncomeSteps()"></label>
                 </div>
                 <div id="incomeShapePreview" class="machine-scroll"></div>
                 <div id="incomeStepsEditor" style="margin-top:8px;"></div>
@@ -3002,7 +3002,7 @@
                 <div style="display:none;"><button type="button" id="shapeLevelBtn"></button><button type="button" id="shapeStepBtn"></button></div>
               </div>
               <div id="stratCopyOffer" style="display:none; margin-top:8px;">
-                <button type="button" class="risk-btn" onclick="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>
+                <button type="button" class="risk-btn" data-on-click="tryStrategyInCopy()">Try this strategy in a COPY of this plan</button>
                 <span class="hint">— your current plan stays exactly as it is; the copy carries your pot totals over.</span>
               </div>
 
@@ -3010,11 +3010,11 @@
                 <div class="form-grid">
                   <div class="form-group">
                     <label>Base IL-gilt ladder (years of income bought up front)</label>
-                    <input type="number" id="lrLadderYears" value="15" min="1" max="30" oninput="refreshStrategyCosts()">
+                    <input type="number" id="lrLadderYears" value="15" min="1" max="30" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group" id="lrDrawGroup">
                     <label>Income to bolt on (£/yr, gross)</label>
-                    <input type="number" id="lrDraw" oninput="refreshStrategyCosts()">
+                    <input type="number" id="lrDraw" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group" id="lrDrawStepped" style="display:none;">
                     <label>Income bolted on</label>
@@ -3022,24 +3022,24 @@
                   </div>
                   <div class="form-group">
                     <label>Trigger</label>
-                    <select id="lrTriggerMode" onchange="refreshStrategyCosts()">
+                    <select id="lrTriggerMode" data-on-change="refreshStrategyCosts()">
                       <option value="band" selected>Band — sells only 20%+ above the glide path</option>
                       <option value="calendar">Calendar — reviews every 5 years</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label>Band threshold (× glide path)</label>
-                    <input type="number" id="lrBand" value="1.2" min="1.05" max="2" step="0.05" oninput="refreshStrategyCosts()">
+                    <input type="number" id="lrBand" value="1.2" min="1.05" max="2" step="0.05" data-on-input="refreshStrategyCosts()">
                   </div>
                 </div>
                 <div class="form-grid" style="margin-top:8px;">
                   <div class="form-group">
                     <label>Total in your SIPP (£) <span class="hint">— for this strategy; blank = Your allocation below</span></label>
-                    <input type="number" id="stratSipp" oninput="refreshStrategyCosts()">
+                    <input type="number" id="stratSipp" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">
                     <label>Total in your ISA (£)</label>
-                    <input type="number" id="stratIsa" oninput="refreshStrategyCosts()">
+                    <input type="number" id="stratIsa" data-on-input="refreshStrategyCosts()">
                   </div>
                 </div>
                 <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
@@ -3051,21 +3051,21 @@
                 <div class="form-grid">
                   <div class="form-group">
                     <label>Essentials to floor (£/yr — the bills, by contract)</label>
-                    <input type="number" id="ffEssentials" oninput="refreshStrategyCosts()">
+                    <input type="number" id="ffEssentials" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">
                     <label>Floor paid to age</label>
-                    <select id="ffHorizon" onchange="refreshStrategyCosts()">
+                    <select id="ffHorizon" data-on-change="refreshStrategyCosts()">
                       <option value="92" selected>92</option><option value="95">95</option><option value="100">100</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label>Flex sleeve rate (%/yr of sleeve, reset annually)</label>
-                    <input type="number" id="ffRate" value="4" min="3" max="5" step="0.25" oninput="refreshStrategyCosts()">
+                    <input type="number" id="ffRate" value="4" min="3" max="5" step="0.25" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">
                     <label>Ratchet (booms feed the floor)</label>
-                    <select id="ffRatchet" onchange="refreshStrategyCosts()">
+                    <select id="ffRatchet" data-on-change="refreshStrategyCosts()">
                       <option value="off" selected>Off — pure design</option>
                       <option value="extend">On — extend the floor past the horizon</option>
                       <option value="raise">On — raise the floor amounts</option>
@@ -3075,11 +3075,11 @@
                 <div class="form-grid" style="margin-top:8px;">
                   <div class="form-group">
                     <label>Total in your SIPP (£) <span class="hint">— for this strategy; blank = Your allocation below</span></label>
-                    <input type="number" id="stratSippFf" oninput="refreshStrategyCosts()">
+                    <input type="number" id="stratSippFf" data-on-input="refreshStrategyCosts()">
                   </div>
                   <div class="form-group">
                     <label>Total in your ISA (£)</label>
-                    <input type="number" id="stratIsaFf" oninput="refreshStrategyCosts()">
+                    <input type="number" id="stratIsaFf" data-on-input="refreshStrategyCosts()">
                   </div>
                 </div>
                 <p id="ffCostLine" class="hint" style="margin:8px 0 0;"></p>
@@ -3091,8 +3091,8 @@
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
-                <button type="button" id="ssModeRisk" class="alloc-mode-btn active" onclick="setAllocMode('ss','risk')">Pick a risk level</button>
-                <button type="button" id="ssModeFunds" class="alloc-mode-btn" onclick="setAllocMode('ss','funds')">Use my own funds</button>
+                <button type="button" id="ssModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ss','risk')">Pick a risk level</button>
+                <button type="button" id="ssModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ss','funds')">Use my own funds</button>
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -3110,7 +3110,7 @@
                   <option value="25">1-in-4 chance of living beyond</option>
                   <option value="50">Average life expectancy</option>
                 </select>
-                <button type="button" onclick="applyLongevitySuggestion()">Use</button>
+                <button type="button" data-on-click="applyLongevitySuggestion()">Use</button>
               </div>
               <p id="ssLongevityNote" style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
                 Planning to the average means a 50% chance of outliving the plan — a survival
@@ -3122,11 +3122,11 @@
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Total in your SIPP (£)</label>
-                  <input type="number" id="ssPot" value="500000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+                  <input type="number" id="ssPot" value="500000" data-on-input="updateAllocDisplay('ss')" style="max-width:220px;">
                 </div>
                 <div class="form-group">
                   <label>Total in your ISA (£)</label>
-                  <input type="number" id="ssIsaBalance" placeholder="e.g. 50000" oninput="updateAllocDisplay('ss')" style="max-width:220px;">
+                  <input type="number" id="ssIsaBalance" placeholder="e.g. 50000" data-on-input="updateAllocDisplay('ss')" style="max-width:220px;">
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
@@ -3145,15 +3145,15 @@
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
-                  <button type="button" class="risk-card" data-risk="cautious" onclick="setRiskPreset('ss','cautious')">
+                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ss','cautious')">
                     <div class="rc-title">Cautious</div>
                     <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
                   </button>
-                  <button type="button" class="risk-card" data-risk="balanced" onclick="setRiskPreset('ss','balanced')">
+                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ss','balanced')">
                     <div class="rc-title">Balanced</div>
                     <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
                   </button>
-                  <button type="button" class="risk-card" data-risk="adventurous" onclick="setRiskPreset('ss','adventurous')">
+                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ss','adventurous')">
                     <div class="rc-title">Adventurous</div>
                     <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
                   </button>
@@ -3161,14 +3161,14 @@
               </div>
               <div class="form-group" style="margin-top: 12px;">
                 <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
                   <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
                 </label>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
                 </p>
               </div>
-              <details style="margin-top:10px;" ontoggle="renderModelPortfolio('ss')">
+              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ss')">
                 <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
                 <div id="ssModelPortfolio" style="margin-top:8px;"></div>
               </details>
@@ -3180,12 +3180,12 @@
                 Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
               </p>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
-                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" oninput="showFundSearch('ss', this.value)" onfocus="showFundSearch('ss', this.value)" onblur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
+                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
                 <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" onclick="addFundRow('ss')">+ Add custom ticker</button>
-                <button type="button" class="risk-btn" onclick="clearFunds('ss')">Clear</button>
+                <button type="button" class="risk-btn" data-on-click="addFundRow('ss')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" data-on-click="clearFunds('ss')">Clear</button>
               </div>
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
@@ -3204,7 +3204,7 @@
 
             <div class="form-group" style="margin-top: 16px;">
               <label style="display:flex; align-items:center; cursor:pointer;">
-                <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" onchange="updateAllocDisplay('ss')">
+                <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss')">
                 <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
               </label>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
@@ -3280,9 +3280,9 @@
                 <div class="section-title" style="font-size:13px;">Income streams &amp; lump sums <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(part-time work, rent that ends, an inheritance, downsizing)</span></div>
                 <div id="ssExtraIncomes"></div>
                 <div class="row-flex" style="margin-top:6px;">
-                  <button type="button" class="risk-btn" onclick="addExtraIncome()">+ Income for some years</button>
-                  <button type="button" class="risk-btn" onclick="addWindfall()">+ One-off lump sum</button>
-                  <button type="button" class="risk-btn" onclick="addExtraWithdrawal()">+ Extra spend (a car, a roof, a wedding)</button>
+                  <button type="button" class="risk-btn" data-on-click="addExtraIncome()">+ Income for some years</button>
+                  <button type="button" class="risk-btn" data-on-click="addWindfall()">+ One-off lump sum</button>
+                  <button type="button" class="risk-btn" data-on-click="addExtraWithdrawal()">+ Extra spend (a car, a roof, a wedding)</button>
                 </div>
                 <p class="hint" style="margin:6px 0 0;">
                   Amounts in today's money. Years are plan years (0 = now). Income streams are taxable
@@ -3318,7 +3318,7 @@
 
             <div class="settings-section">
               <div class="section-title">Start from your Decision plan</div>
-              <button type="button" class="secondary" onclick="copyStressFromDecisionUI()">Copy from Decision Tool</button>
+              <button type="button" class="secondary" data-on-click="copyStressFromDecisionUI()">Copy from Decision Tool</button>
               <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
             </div>
 
@@ -3390,8 +3390,8 @@
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button onclick="saveStressSettingsUI()">Save Settings</button>
-              <button class="secondary" onclick="resetStressSettingsUI()">Reset to Defaults</button>
+              <button data-on-click="saveStressSettingsUI()">Save Settings</button>
+              <button class="secondary" data-on-click="resetStressSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
         </div>
@@ -3401,17 +3401,17 @@
       <div id="strategies-content" class="tab-content">
         <div class="strat-layout">
           <nav class="strat-nav" id="stratNav" aria-label="Strategies">
-            <button type="button" class="strat-nav-item" data-page="overview" onclick="showStrategyPage('overview')">Overview</button>
+            <button type="button" class="strat-nav-item" data-page="overview" data-on-click="showStrategyPage('overview')">Overview</button>
             <div class="strat-nav-group">Six ways to turn a pot into an income</div>
-            <button type="button" class="strat-nav-item" data-page="pots-and-valves" onclick="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
-            <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" onclick="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-            <button type="button" class="strat-nav-item" data-page="floor-and-flex" onclick="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
-            <button type="button" class="strat-nav-item" data-page="floor-the-schedule" onclick="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
-            <button type="button" class="strat-nav-item" data-page="floor-to-age" onclick="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
-            <button type="button" class="strat-nav-item" data-page="full-il-gilt" onclick="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
+            <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
+            <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+            <button type="button" class="strat-nav-item" data-page="floor-and-flex" data-on-click="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
+            <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
+            <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
+            <button type="button" class="strat-nav-item" data-page="full-il-gilt" data-on-click="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
             <div class="strat-nav-group">Background</div>
-            <button type="button" class="strat-nav-item" data-page="gilts" onclick="showStrategyPage('gilts')">Gilt ladders explained</button>
-            <button type="button" class="strat-nav-item" data-page="assumptions" onclick="showStrategyPage('assumptions')">Assumptions &amp; data</button>
+            <button type="button" class="strat-nav-item" data-page="gilts" data-on-click="showStrategyPage('gilts')">Gilt ladders explained</button>
+            <button type="button" class="strat-nav-item" data-page="assumptions" data-on-click="showStrategyPage('assumptions')">Assumptions &amp; data</button>
           </nav>
           <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -3430,26 +3430,26 @@
           <div class="settings-section">
             <div class="section-title">About you</div>
             <div class="form-grid">
-              <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" oninput="recalcAccumulation()"></div>
-              <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" oninput="recalcAccumulation()"></div>
-              <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" oninput="recalcAccumulation()"></div>
-              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" data-on-input="recalcAccumulation()"></div>
             </div>
           </div>
 
           <div class="settings-section">
             <div class="section-title">Contributions</div>
             <div class="form-grid">
-              <div class="form-group"><label>You pay (£/mo, from take-home)</label><input type="number" id="acNetMonthly" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>You pay (£/mo, from take-home)</label><input type="number" id="acNetMonthly" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>How relief works</label>
-                <select id="acScheme" onchange="recalcAccumulation()">
+                <select id="acScheme" data-on-change="recalcAccumulation()">
                   <option value="ras" selected>Relief at source (most SIPPs / group schemes)</option>
                   <option value="netpay">Net pay (deducted before tax)</option>
                   <option value="salsac">Salary sacrifice (before tax &amp; NI)</option>
                 </select>
               </div>
-              <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" oninput="recalcAccumulation()"></div>
-              <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" oninput="recalcAccumulation()"></div>
+              <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" data-on-input="recalcAccumulation()"></div>
             </div>
             <div id="acBreakdown" style="margin-top:10px;"></div>
           </div>
@@ -3467,12 +3467,12 @@
               Pension, access method) through the Monte Carlo to find the pot that gives
               <strong>85% success</strong> — then compares your projection against it.
             </p>
-            <button type="button" onclick="runOnTrackCheck()">Check against my plan's target</button>
+            <button type="button" data-on-click="runOnTrackCheck()">Check against my plan's target</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
           </div>
 
           <div class="button-row" style="margin-top:10px;">
-            <button type="button" onclick="saveAccumulationUI()">Save</button>
+            <button type="button" data-on-click="saveAccumulationUI()">Save</button>
           </div>
           <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
             Not financial advice. Annual Allowance £60,000 (tapers above £200k income; £10,000
@@ -3503,7 +3503,7 @@
               </div>
               <div class="form-group">
                 <label>Partner's plan</label>
-                <select id="hhPartnerSelect" onchange="savePartnerSelection()">
+                <select id="hhPartnerSelect" data-on-change="savePartnerSelection()">
                   <option value="">— choose a plan —</option>
                 </select>
               </div>
@@ -3511,9 +3511,9 @@
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Wendy - plan 1" style="max-width:200px;">
-              <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" onclick="createPartnerPlan()">Create their plan &amp; switch to it</button>
+              <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" data-on-click="createPartnerPlan()">Create their plan &amp; switch to it</button>
             </div>
-            <button type="button" onclick="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
+            <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
           <div id="hhResults">
@@ -3562,15 +3562,15 @@
             <div class="form-grid">
               <div class="form-group">
                 <label>Age today</label>
-                <input type="number" id="budCurrentAge" oninput="onBudgetHorizonChange()">
+                <input type="number" id="budCurrentAge" data-on-input="onBudgetHorizonChange()">
               </div>
               <div class="form-group">
                 <label>Retirement age</label>
-                <input type="number" id="budRetireAge" oninput="onBudgetHorizonChange()">
+                <input type="number" id="budRetireAge" data-on-input="onBudgetHorizonChange()">
               </div>
               <div class="form-group">
                 <label>Plan to age</label>
-                <input type="number" id="budEndAge" oninput="onBudgetHorizonChange()">
+                <input type="number" id="budEndAge" data-on-input="onBudgetHorizonChange()">
               </div>
             </div>
           </div>
@@ -3580,12 +3580,12 @@
               <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— optional</span>
             </div>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <input type="checkbox" id="budShared" style="width:auto;" onchange="onBudgetSharedToggle()">
+              <input type="checkbox" id="budShared" style="width:auto;" data-on-change="onBudgetSharedToggle()">
               <span style="text-transform:none;">Some of these costs are paid by a partner</span>
             </label>
             <div id="budShareRow" style="display:none; margin-top:10px;">
               <label style="font-size:13px;">Your share of any “Shared” costs:
-                <input type="number" id="budSharePct" value="50" min="0" max="100" style="width:72px; margin:0 4px;" oninput="onBudgetSharePctChange()">%
+                <input type="number" id="budSharePct" value="50" min="0" max="100" style="width:72px; margin:0 4px;" data-on-input="onBudgetSharePctChange()">%
               </label>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Mark each line <strong>Me / Partner / Shared</strong>. Your plan only funds your share — costs your
@@ -3594,7 +3594,7 @@
               <details style="margin-top:8px;">
                 <summary style="font-size:13px; cursor:pointer;">Change who pays over time <span style="color:var(--text-muted);">(optional — e.g. "I pay 70% until her pension starts at 63, then 50/50")</span></summary>
                 <div id="budSplitPhases" style="margin-top:8px;"></div>
-                <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" onclick="addSplitPhase()">+ Add a change</button>
+                <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" data-on-click="addSplitPhase()">+ Add a change</button>
                 <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                   Each row: from the age given, your share of "Shared" costs becomes the new percentage.
                   Before the first row, the percentage above applies. Your plan's per-year target follows this automatically.
@@ -3608,9 +3608,9 @@
               <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— sets every typical-£ suggestion below</span>
             </div>
             <div id="budTierBtns" style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" class="risk-btn" data-tier="minimum" onclick="setPlsaTier('minimum')">Minimum</button>
-              <button type="button" class="risk-btn" data-tier="moderate" onclick="setPlsaTier('moderate')">Moderate</button>
-              <button type="button" class="risk-btn" data-tier="comfortable" onclick="setPlsaTier('comfortable')">Comfortable</button>
+              <button type="button" class="risk-btn" data-tier="minimum" data-on-click="setPlsaTier('minimum')">Minimum</button>
+              <button type="button" class="risk-btn" data-tier="moderate" data-on-click="setPlsaTier('moderate')">Moderate</button>
+              <button type="button" class="risk-btn" data-tier="comfortable" data-on-click="setPlsaTier('comfortable')">Comfortable</button>
             </div>
             <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">
               The PLSA Retirement Living Standards: <strong>Minimum</strong> covers the essentials (no car,
@@ -3622,15 +3622,15 @@
           <div id="budWizBanner" style="display:none;" class="alert alert-info">
             <strong>New to budgeting?</strong> The guided walk-through takes you category by category with
             typical UK figures, a built-in calculator and tips on what changes at retirement.
-            <button type="button" class="risk-btn" onclick="openBudgetWizard()" style="margin-left:8px; padding:5px 14px; font-size:13px;">Start the walk-through</button>
+            <button type="button" class="risk-btn" data-on-click="openBudgetWizard()" style="margin-left:8px; padding:5px 14px; font-size:13px;">Start the walk-through</button>
           </div>
 
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;">
-            <button type="button" onclick="openBudgetWizard()">Guided walk-through</button>
-            <button type="button" class="risk-btn" onclick="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
-            <button type="button" class="risk-btn" onclick="exportBudgetCsv()" title="Download the whole budget as a spreadsheet-friendly CSV (opens cleanly in Google Sheets / Excel)">Export CSV</button>
-            <button type="button" class="risk-btn" onclick="document.getElementById('budImportFile').click()" title="Import a budget CSV (the exported layout — edit it in Google Sheets, download as CSV, import here)">Import CSV</button>
-            <input type="file" id="budImportFile" accept=".csv,text/csv" style="display:none;" onchange="importBudgetCsvFile(this)">
+            <button type="button" data-on-click="openBudgetWizard()">Guided walk-through</button>
+            <button type="button" class="risk-btn" data-on-click="fillTypicalAmounts()">Fill blanks with typical UK amounts</button>
+            <button type="button" class="risk-btn" data-on-click="exportBudgetCsv()" title="Download the whole budget as a spreadsheet-friendly CSV (opens cleanly in Google Sheets / Excel)">Export CSV</button>
+            <button type="button" class="risk-btn" data-on-click="clickElement('budImportFile')" title="Import a budget CSV (the exported layout — edit it in Google Sheets, download as CSV, import here)">Import CSV</button>
+            <input type="file" id="budImportFile" accept=".csv,text/csv" style="display:none;" data-on-change="importBudgetCsvFile(this)">
             <span style="font-size:12px;color:var(--text-muted);">ONS retired-household averages (FYE2023) — a starting point, adjust everything.</span>
           </div>
 
@@ -3640,7 +3640,7 @@
             </div>
             <div id="budEssentialRows"></div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
-              <button type="button" class="risk-btn" onclick="addBudgetLine('essential')">+ Add essential</button>
+              <button type="button" class="risk-btn" data-on-click="addBudgetLine('essential')">+ Add essential</button>
               <div style="font-size:13px;">Essential subtotal: <strong id="budEssentialSubtotal">—</strong>/yr</div>
             </div>
           </div>
@@ -3651,7 +3651,7 @@
             </div>
             <div id="budDiscretionaryRows"></div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
-              <button type="button" class="risk-btn" onclick="addBudgetLine('discretionary')">+ Add lifestyle</button>
+              <button type="button" class="risk-btn" data-on-click="addBudgetLine('discretionary')">+ Add lifestyle</button>
               <div style="font-size:13px;">Lifestyle subtotal: <strong id="budDiscretionarySubtotal">—</strong>/yr</div>
             </div>
           </div>
@@ -3661,7 +3661,7 @@
               <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— a car every few years, a new roof, a big trip, helping the kids</span>
             </div>
             <div id="budOneOffRows"></div>
-            <button type="button" class="risk-btn" onclick="addBudgetOneOff()" style="margin-top:8px;">+ Add one-off</button>
+            <button type="button" class="risk-btn" data-on-click="addBudgetOneOff()" style="margin-top:8px;">+ Add one-off</button>
           </div>
 
           <div class="settings-section" id="budSuggestionsSection" style="display:none;">
@@ -3678,7 +3678,7 @@
 
           <div class="button-row" style="margin-top: 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
             <span id="budSaveStatus" style="font-size:13px; color:var(--text-muted);">Autosaves as you edit</span>
-            <button type="button" class="risk-btn" onclick="resetBudgetUI()">Reset budget…</button>
+            <button type="button" class="risk-btn" data-on-click="resetBudgetUI()">Reset budget…</button>
           </div>
 
         </div>
@@ -3858,6 +3858,7 @@
     import { SUB_ASSET_PROFILE_DEFAULTS, TUNABLE_PROFILE_FIELDS } from './src/services/SubAssetModel.js';
 
     // Import constants for optimization
+    import { installInlineHandlers } from './src/ui/inlineHandlers.js';
     import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from './src/constants.js';
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
@@ -3873,6 +3874,9 @@
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
 
     // Expose for optimization
+    installInlineHandlers();   // data-on-* delegated handlers (no inline script: strict CSP)
+    window.wizRetiredToggle = function (labelId, checked) { const l = document.getElementById(labelId); if (l) l.textContent = checked ? 'Age you retired' : 'Target retirement age'; };
+    window.setDisplay = function (id, v) { const e = document.getElementById(id); if (e) e.style.display = v; };
     window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };   // engine functions only (no data); the second inline module reads them
     // Read-only debug hooks (no writes): lets a console inspect what the plan lock sees.
     if (import.meta.env.DEV) window._ptDebug = { getDecisionSettingsAsync, getHistoryAsync, decisionSettingsChecksum, planDependents, getAllTaxYearsAsync, getStressSettingsAsync };
@@ -4705,8 +4709,8 @@
           '</ul>' +
           '<p style="margin-bottom:16px; color:var(--text-muted);">The Budget and the Stress Tester are never locked — the budget autosaves like a document, and Stress is a sandbox for what-ifs.</p>' +
           '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
-            '<button type="button" onclick="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +
-            (locked ? '<button type="button" class="risk-btn" onclick="document.getElementById(\'planLockExplainer\').remove(); document.querySelector(\'.tab[data-tab=&quot;decision&quot;]\').click(); openToolSettingsTab(\'decision\');">View the locked settings</button>' : '') +
+            '<button type="button" data-on-click="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +
+            (locked ? '<button type="button" class="risk-btn" data-on-click="document.getElementById(\'planLockExplainer\').remove(); document.querySelector(\'.tab[data-tab=&quot;decision&quot;]\').click(); openToolSettingsTab(\'decision\');">View the locked settings</button>' : '') +
           '</div>' +
         '</div>';
       el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
@@ -6128,7 +6132,7 @@
           } else if (medianDiff > 0) {
             h += '<div class="alert alert-info" style="margin-bottom:16px;"><strong>Bonus:</strong> it also typically leaves ' + medianDiffPct.toFixed(0) + '% more at the end.</div>';
           }
-          h += '<button onclick="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply this split to your Settings</button>';
+          h += '<button data-on-click="applyOptimisedAllocationUI(' + bestResult.equity + ',' + bestResult.bond + ',' + bestResult.cash + ')" style="width:100%;">Apply this split to your Settings</button>';
           h += '</div>';
         } else {
           h += '<div class="card" style="margin-top:20px;border-color:var(--primary);">';
@@ -6792,7 +6796,7 @@
     // the tent glides equity UP to this chosen risk level (user-adjustable any time, up or down).
     function glideEndgameSelectorHtml(p) {
       const cur = (window._customAlloc[p] && window._customAlloc[p].glideEndgame && window._customAlloc[p].glideEndgame.key) || '';
-      const btn = (key, label) => '<button type="button" class="risk-btn' + (cur === key ? ' active' : '') + '" style="padding:6px 12px;" onclick="setGlideEndgame(\'' + p + '\',\'' + key + '\')">' + label + '</button>';
+      const btn = (key, label) => '<button type="button" class="risk-btn' + (cur === key ? ' active' : '') + '" style="padding:6px 12px;" data-on-click="setGlideEndgame(\'' + p + '\',\'' + key + '\')">' + label + '</button>';
       return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;"><strong>Glide towards</strong> — your funds are the start; the tent raises shares over time to this level:</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + btn('cautious', 'Cautious') + btn('balanced', 'Balanced') + btn('adventurous', 'Adventurous') + '</div>';
     }
@@ -6922,7 +6926,7 @@
       const matches = searchFunds(query);
       if (!query.trim() || !matches.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
       box.innerHTML = matches.map(f =>
-        '<div class="fund-search-item" data-p="' + budEsc(p) + '" data-ticker="' + budEsc(f.ticker) + '" onmousedown="addFundFromSearch(this.dataset.p, this.dataset.ticker)" style="padding:7px 10px; cursor:pointer;">' +
+        '<div class="fund-search-item" data-p="' + budEsc(p) + '" data-ticker="' + budEsc(f.ticker) + '" data-on-mousedown="addFundFromSearch(this.dataset.p, this.dataset.ticker)" style="padding:7px 10px; cursor:pointer;">' +
         '<strong>' + budEsc(f.ticker) + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + budEsc(f.name) + '</span></div>'
       ).join('');
       box.style.display = 'block';
@@ -6950,7 +6954,7 @@
           g.map(o => '<option value="' + o.key + '"' + (o.key === selected ? ' selected' : '') + '>' + o.label + '</option>').join('') +
           '</optgroup>';
       }
-      return '<select onchange="updateFundField(\'' + p + '\',' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
+      return '<select data-on-change="updateFundField(\'' + p + '\',' + i + ',\'subClass\',this.value)" style="width:190px;">' + opts + '</select>';
     }
     // Category cell: the sub-class dropdown, plus — for tickers we don't recognise — lookup links
     // (plain search pages in a new tab; the user decides the category) and a not-recognised hint.
@@ -6976,11 +6980,11 @@
       ensureFundDatalist(p);
       tb.innerHTML = funds(p).map((f, i) =>
         '<tr>' +
-        '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + budEsc(f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
-        '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" onblur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
-        '<td style="padding:3px 6px;"><select onchange="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
+        '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + budEsc(f.ticker || '') + '" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
+        '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" data-on-blur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
+        '<td style="padding:3px 6px;"><select data-on-change="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
         '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categoryCellHtml(p, i, f) + '</td>' +
-        '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
+        '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
         '</tr>'
       ).join('');
       updateTaggingSummary(p);
@@ -7137,7 +7141,7 @@
           const name = cat ? cat.name : (prof ? prof.label : '');
           return '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0;">' +
             '<span><strong>' + f.ticker + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + name + '</span></span>' +
-            '<span style="white-space:nowrap;">£ <input type="number" class="fund-modal-input" oninput="updateFundModalSubtotal()" style="width:120px;" placeholder="0"></span>' +
+            '<span style="white-space:nowrap;">£ <input type="number" class="fund-modal-input" data-on-input="updateFundModalSubtotal()" style="width:120px;" placeholder="0"></span>' +
             '</div>';
         }).join('');
       }
@@ -7260,7 +7264,7 @@
       if (s.strategyId && s.strategyId !== 'pots-and-valves') {
         // This grid is Pots & Valves' three risk levels × bond tent. It has nothing to say about a
         // ladder or floor strategy — send the user to the six-strategy compare instead.
-        if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all six strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+        if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all six strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
         if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; }
         return;
       }
@@ -7375,26 +7379,32 @@
       document.getElementById('nextStepBanner').style.display = 'none';
     };
     // ---- Mobile shell: bottom bar proxies the real .tab buttons; the ≡ menu is a bottom sheet ----
+    window.setSpecDialChecked = function (key, on) { setSpecDial(key, on ? 1 : 0); };
+    window.updateTaxYearCpiPct = function (ty, pct) { updateTaxYear(ty, 'cpi', (+pct || 0) / 100); };
+    window.callIfDefined = function (name) { if (typeof window[name] === 'function') window[name](); };
+    window.sheetBackdropClick = function (event, el) { if (event.target === el) closeMobileSheet(); };
+    window.tryIncomeModeChanged = function (v) { document.getElementById('tryIncomeWrap').style.display = v === 'flat' ? '' : 'none'; };
+    window.clickElement = function (id) { const e = document.getElementById(id); if (e) e.click(); };
     window.mobileGo = function (name) { document.querySelector('.tab[data-tab="' + name + '"]')?.click(); closeMobileSheet(); window.scrollTo({ top: 0 }); };
     window.closeMobileSheet = function () { const sh = document.getElementById('mobileSheet'); if (sh) sh.classList.remove('open'); };
     function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
     window.openMobileMore = function () {
       const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
-      openSheet('<button type="button" onclick="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
-        + (vis('household') ? '<button type="button" onclick="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
-        + '<button type="button" onclick="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>');
+      openSheet('<button type="button" data-on-click="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
+        + (vis('household') ? '<button type="button" data-on-click="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
+        + '<button type="button" data-on-click="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>');
     };
     window.openMobileMenu = function () {
       const email = document.getElementById('userEmail')?.textContent || '';
       const admin = document.getElementById('adminGearBtn'); const adminVis = admin && admin.style.display !== 'none';
       openSheet('<div class="who">' + budEsc(email) + '</div>'
-        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioActiveBtn\').click();">&#128194; Switch plan</button>'
-        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioNewBtn\').click();">&#10133; New plan</button>'
-        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioDuplicateBtn\').click();">&#128203; Duplicate this plan</button>'
-        + (adminVis ? '<button type="button" onclick="closeMobileSheet(); openAdminPanel();">&#9881; Administration</button>' : '')
-        + '<button type="button" class="danger" onclick="closeMobileSheet(); document.getElementById(\'resetBtn\').click();">&#9888; Reset all my data</button>'
-        + '<button type="button" class="danger" onclick="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>'
-        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'logoutBtn\').click();">&#128682; Sign out</button>');
+        + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioActiveBtn\').click();">&#128194; Switch plan</button>'
+        + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioNewBtn\').click();">&#10133; New plan</button>'
+        + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioDuplicateBtn\').click();">&#128203; Duplicate this plan</button>'
+        + (adminVis ? '<button type="button" data-on-click="closeMobileSheet(); openAdminPanel();">&#9881; Administration</button>' : '')
+        + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'resetBtn\').click();">&#9888; Reset all my data</button>'
+        + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>'
+        + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'logoutBtn\').click();">&#128682; Sign out</button>');
     };
     // keep the bottom bar's active state in step with the real tabs; bring the active sub-tab into view
     (function () {
@@ -7486,14 +7496,14 @@
       box.innerHTML = steps.map((st, i) =>
         '<div class="row-flex" style="margin-top:4px;">'
         + '<span class="hint">' + (i === 0 ? 'From now (age' : 'From age') + '</span>'
-        + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled' : '') + ' oninput="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
+        + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
         + (i === 0 ? '<span class="hint">)</span>' : '')
         + '<span class="hint">take</span>'
-        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" oninput="updIncomeStep(' + i + ',\'amount\',this.value)">'
+        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
         + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of today\'s budget' : '') + '</span>'
-        + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" onclick="rmIncomeStep(' + i + ')">✕</button>' : '')
+        + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>').join('')
-        + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" onclick="addIncomeStep()">+ Add a step</button>'
+        + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" data-on-click="addIncomeStep()">+ Add a step</button>'
         + '<p class="hint" style="margin:6px 0 0;">One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80.</p>';
       renderIncomeShapePreview();
       refreshStrategyCosts();
@@ -7572,7 +7582,7 @@
             + (spAnnual && planYear + 1 > 10 ? ' The State Pension tops it back up to ' + gbp(draw) + '.' : '') + '</p>'
             + '<div class="row-flex"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Equity sleeve value today (£)'
             + '<input type="number" id="lrSleeveNow" style="width:150px;"></label>'
-            + '<button type="button" class="risk-btn" style="align-self:flex-end;" onclick="checkLadderTrigger()">Check the trigger</button></div>'
+            + '<button type="button" class="risk-btn" style="align-self:flex-end;" data-on-click="checkLadderTrigger()">Check the trigger</button></div>'
             + '<div id="lrTriggerResult" style="margin-top:8px;"></div></div>';
         }
         if (st.id === 'floor-and-flex') {
@@ -7585,7 +7595,7 @@
             + (spAnnual && planYear + 1 > 10 ? ' (+ State Pension to ' + gbp(ess) + ')' : '') + '. The bills never notice the market.</p>'
             + '<div class="row-flex"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">Flex sleeve value today (£)'
             + '<input type="number" id="ffSleeveNow" style="width:150px;"></label>'
-            + '<button type="button" class="risk-btn" style="align-self:flex-end;" onclick="checkFlexDraw(' + rate + ')">This year\'s treats</button></div>'
+            + '<button type="button" class="risk-btn" style="align-self:flex-end;" data-on-click="checkFlexDraw(' + rate + ')">This year\'s treats</button></div>'
             + '<div id="ffDrawResult" style="margin-top:8px;"></div></div>';
         }
         el.innerHTML = html;
@@ -7888,10 +7898,10 @@
         ['optimiseBtnMC', 'optimiseBtnHist'].forEach((id) => { const b = document.getElementById(id); if (b) b.style.display = isPnv ? '' : 'none'; });
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
-          el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
+          el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
           el.style.display = 'block';
         } else {
-          el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. Six strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+          el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. Six strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
           el.style.display = 'block';
         }
       } catch (e) { el.style.display = 'none'; }
@@ -8060,7 +8070,7 @@
       const age = window._cmpAge || (c.p.startAge + 23);
       const yi = Math.max(0, Math.min(c.p.durationYears, age - c.p.startAge));
       const rows = cmpStrategies(c).map((st) => ({ name: st.name, color: st.color, p10: st.r.cones.wealth.p10[yi] ?? 0, p50: st.r.cones.wealth.p50[yi] ?? 0, p90: st.r.cones.wealth.p90[yi] ?? 0 }));
-      return '<div class="row-flex" style="margin:4px 0;"><label class="hint">At age <select onchange="setCmpAge(this.value)">' + [c.p.startAge + 10, c.p.startAge + 23, c.p.startAge + c.p.durationYears - 1].map((a) => '<option value="' + a + '"' + (a === age ? ' selected' : '') + '>' + a + '</option>').join('') + '</select></label></div><div class="machine-scroll">' + leftBarsSvg({ rows, age }) + '</div>';
+      return '<div class="row-flex" style="margin:4px 0;"><label class="hint">At age <select data-on-change="setCmpAge(this.value)">' + [c.p.startAge + 10, c.p.startAge + 23, c.p.startAge + c.p.durationYears - 1].map((a) => '<option value="' + a + '"' + (a === age ? ' selected' : '') + '>' + a + '</option>').join('') + '</select></label></div><div class="machine-scroll">' + leftBarsSvg({ rows, age }) + '</div>';
     }
     function cmpConesHtml(c) {
       const sts = cmpStrategies(c);
@@ -8080,20 +8090,20 @@
         ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']]
       ];
       let h = '<div class="card"><h2>Six ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
-      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" onclick="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
+      h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" data-on-click="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
       const c = await cmpRun();
       const S = c.all.strategies, ids = Object.keys(S);
       const pot = c.p.pot + (c.p.isa || 0);
       h += '<div class="card"><h2>Side by side, on your plan</h2>';
-      h += '<div class="row-flex" style="margin-bottom:8px;"><label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (window._cmpCutsOff ? '' : 'checked') + ' onchange="setCmpCuts(this.checked)"> Let Pots &amp; Valves cut spending in bad runs (as you configured it)</label>'
+      h += '<div class="row-flex" style="margin-bottom:8px;"><label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (window._cmpCutsOff ? '' : 'checked') + ' data-on-change="setCmpCuts(this.checked)"> Let Pots &amp; Valves cut spending in bad runs (as you configured it)</label>'
         + '<span class="hint">' + (window._cmpCutsOff ? '<strong>Level footing:</strong> no strategy is allowed to pay you less than the plan.' : '<strong>As configured:</strong> Pots &amp; Valves may cut income up to ' + Math.round((1 - (c.settings.protectionMult ?? 0.8)) * 100) + '% in bad runs — read its row knowing that.') + '</span></div>';
       const cell = (id, f) => S[id].affordable ? f(S[id]) : '<span class="hint">not affordable — ' + budEsc(S[id].reason || '') + '</span>';
       const costOf = (r) => r.strategyId === 'full-il-gilt' ? r.signature.total : r.strategyId === 'floor-the-schedule' ? r.signature.floorCost : r.strategyId === 'floor-to-age' ? r.signature.floorCost : r.strategyId === 'ladder-and-ratchet' ? r.signature.baseLadderCost : r.strategyId === 'floor-and-flex' ? r.signature.floorCost : 0;
       h += '<div class="table-scroll-container"><table><thead><tr><th>Strategy</th><th>What you get</th><th>What you pay today</th><th>What can go wrong</th><th>What you do</th><th>How you get out</th></tr></thead><tbody>';
       for (const id of ids) {
         const w = CMP_WORDS[id];
-        if (!S[id].affordable) { h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" onclick="showStrategyPage(\'' + id + '\')">read →</button></td><td colspan="5" class="hint">Not affordable on this plan — ' + budEsc(S[id].reason || '') + '. ' + budEsc(w.fail) + '</td></tr>'; continue; }
-        h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" onclick="showStrategyPage(\'' + id + '\')">read →</button></td>'
+        if (!S[id].affordable) { h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" data-on-click="showStrategyPage(\'' + id + '\')">read →</button></td><td colspan="5" class="hint">Not affordable on this plan — ' + budEsc(S[id].reason || '') + '. ' + budEsc(w.fail) + '</td></tr>'; continue; }
+        h += '<tr><td><span style="display:inline-block;width:10px;height:10px;background:' + STRATEGY_COLORS[id] + ';border-radius:2px;margin-right:6px;"></span><strong>' + budEsc(STRATEGY_NAMES[id]) + '</strong><br><button type="button" class="risk-btn" style="padding:2px 8px;font-size:11px;margin-top:4px;" data-on-click="showStrategyPage(\'' + id + '\')">read →</button></td>'
           + '<td>' + cell(id, (r) => '<strong>' + budEsc(r.guaranteedToAge) + '</strong><br><span class="hint">worst 12 months ' + gbp(Math.round(r.worst12.min)) + '</span>') + '</td>'
           + '<td>' + cell(id, (r) => { const c0 = costOf(r); return (c0 ? '<strong>' + gbp(Math.round(c0)) + '</strong> bought as gilts (' + Math.round(100 * c0 / pot) + '% of pot)' : 'nothing bought — all invested') + '<br><span class="hint">typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + '</span>'; }) + '</td>'
           + '<td>' + cell(id, (r) => '<strong>' + (r.ruin.mc).toFixed(0) + '%</strong> ' + (r.ruinLabel ? 'chance of a cut after ' + r.signature.floorToAge : r.strategyId === 'floor-and-flex' || r.strategyId === 'floor-the-schedule' || r.strategyId === 'full-il-gilt' ? 'chance of running out (bought)' : 'chance of running out') + '<br><span class="hint">' + budEsc(w.fail) + '</span>') + '</td>'
@@ -8113,9 +8123,9 @@
     }
     function stepperHtml(frames, current, onSel) {
       const f = frames[current - 1];
-      return '<div class="stepper"><div class="dots">' + frames.map((_, i) => '<button type="button" class="dot' + (i + 1 === current ? ' active' : '') + '" aria-label="Step ' + (i + 1) + '" onclick="' + onSel + '(' + (i + 1) + ')"></button>').join('') + '</div>'
-        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current <= 1 ? 'disabled' : '') + ' onclick="' + onSel + '(' + (current - 1) + ')">‹ Back</button>'
-        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current >= frames.length ? 'disabled' : '') + ' onclick="' + onSel + '(' + (current + 1) + ')">Next ›</button>'
+      return '<div class="stepper"><div class="dots">' + frames.map((_, i) => '<button type="button" class="dot' + (i + 1 === current ? ' active' : '') + '" aria-label="Step ' + (i + 1) + '" data-on-click="' + onSel + '(' + (i + 1) + ')"></button>').join('') + '</div>'
+        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current <= 1 ? 'disabled' : '') + ' data-on-click="' + onSel + '(' + (current - 1) + ')">‹ Back</button>'
+        + '<button type="button" class="risk-btn" style="padding:3px 10px;" ' + (current >= frames.length ? 'disabled' : '') + ' data-on-click="' + onSel + '(' + (current + 1) + ')">Next ›</button>'
         + '<p><strong>' + (current) + '/' + frames.length + ' — ' + budEsc(f.title) + '.</strong> ' + budEsc(f.text) + '</p></div>';
     }
     window.setGiltFrame = function (n) { window._stratFrame = Math.max(1, Math.min(4, n)); const p = window._giltPlanCache; if (!p) return; document.getElementById('giltMachine').innerHTML = giltLadderSvg(p, window._stratFrame); document.getElementById('giltStepper').innerHTML = stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame'); };
@@ -8150,14 +8160,14 @@
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine" class="machine-scroll">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" min="0" max="10" value="' + (prm.cashYears ?? 2) + '" style="width:80px;" onchange="setGiltDial(\'cashYears\', this.value)"></label>'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" onchange="setGiltDial(\'bridgeCash\', this.value)"></label>'
-        + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" min="0" max="10" value="' + (prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>'
+        + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
       h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable
         ? '<strong>Affordable.</strong> Cash ' + gbp(Math.round(plan.cash)) + ' + ' + plan.orders.length + ' gilts ' + gbp(Math.round(plan.giltsCost)) + ' = <strong>' + gbp(Math.round(plan.total)) + '</strong> of your ' + gbp(Math.round(p.pot + (p.isaHold ? 0 : (p.isa || 0)))) + (p.isaHold && p.isa ? ' (ISA held aside)' : '') + ' → ' + gbp(Math.round(plan.spare)) + ' left over.'
         : '<strong>Not affordable as it stands:</strong> ' + budEsc(plan.reason || '') + '. Every £1k a year across the whole plan is roughly £27k; the cheapest years to trim are the early ones (they cost nearly £1 per £1), the dearest to add are the late ones (about 55p per £1).') + '</div>';
-      h += '<div style="margin-top:8px;"><button type="button" onclick="useFullGiltStrategy()">Use this as my plan\'s strategy</button> <span class="hint">Saves the dials to Settings and locks the strategy; the Stress Tester and the Decision tool then run it.</span></div></div>';
+      h += '<div style="margin-top:8px;"><button type="button" data-on-click="useFullGiltStrategy()">Use this as my plan\'s strategy</button> <span class="hint">Saves the dials to Settings and locks the strategy; the Stress Tester and the Decision tool then run it.</span></div></div>';
       // Block 3 — two real decades
       if (plan.years.length) {
         const n = plan.years.length;
@@ -8198,7 +8208,7 @@
       h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Your income is bought by contract up to an age you choose; the rest of the pot rides in world equities until then.</strong> At that age you know the reserve, your health and the price of the remaining years — and you make one decision, with real numbers, instead of thirty small ones.</p>';
       if (!r.affordable) {
         h += '<div class="alert alert-danger" style="margin-top:10px;">Not affordable as it stands: ' + budEsc(r.reason || '') + '. Lower the age, or step the income down with age in Settings.</div>';
-        h += '<div class="strat-block"><div class="section-title">Turn the dials</div><label class="hint">Buy the schedule to age <input type="number" min="60" max="95" value="' + age + '" style="width:80px;" onchange="setFtaDial(this.value)"></label></div></div>';
+        h += '<div class="strat-block"><div class="section-title">Turn the dials</div><label class="hint">Buy the schedule to age <input type="number" min="60" max="95" value="' + age + '" style="width:80px;" data-on-change="setFtaDial(this.value)"></label></div></div>';
         return h;
       }
       const sg = r.signature;
@@ -8207,14 +8217,14 @@
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="ftaMachine" class="machine-scroll">' + floorToAgeSvg(d, window._ftaFrame) + '</div><div id="ftaStepper">' + stepperHtml(FTA_FRAMES, window._ftaFrame, 'setFtaFrame') + '</div></div>';
       // dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" onchange="setFtaDial(this.value)"></label>'
-        + '<div class="hint" style="flex:1 1 260px;">Income shape, State Pension and horizon come from Settings. <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change them</button></div></div>';
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" data-on-change="setFtaDial(this.value)"></label>'
+        + '<div class="hint" style="flex:1 1 260px;">Income shape, State Pension and horizon come from Settings. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change them</button></div></div>';
       const cb = sg.canBuy.map((x) => gbp(Math.round(x.amount)) + '/yr to the horizon (' + gbp(Math.round(x.cost)) + ' at ' + sg.floorToAge + '): <strong>' + x.mc.toFixed(0) + '%</strong> of futures, ' + x.hist.toFixed(0) + '% of real histories').join('; ');
       h += '<div class="alert ' + (r.ruin.mc <= 10 ? 'alert-success' : r.ruin.mc <= 25 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">'
         + '<strong>Bought to ' + sg.floorToAge + ': ' + gbp(Math.round(sg.floorCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Reserve today: ' + gbp(Math.round(sg.sleeveE0)) + '.</strong> '
         + 'At ' + sg.floorToAge + ' it is worth a median ' + gbp(Math.round(sg.sleeveAtA.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.sleeveAtA.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.sleeveAtA.p90)) + '). Chance it can then buy ' + cb + '. '
         + 'Chance the plan is <em>cut</em> after ' + sg.floorToAge + ': <strong>' + r.ruin.mc.toFixed(0) + '%</strong>' + (sg.levelIfCut.p50 ? ' — and in those futures the later years are bought at a median ' + gbp(Math.round(sg.levelIfCut.p50)) + '/yr (1-in-10: ' + gbp(Math.round(sg.levelIfCut.p10)) + ')' : '') + '. It never runs out.</div>';
-      h += '<div style="margin-top:8px;"><button type="button" onclick="useFloorToAgeStrategy()">Use this as my plan\'s strategy</button></div></div>';
+      h += '<div style="margin-top:8px;"><button type="button" data-on-click="useFloorToAgeStrategy()">Use this as my plan\'s strategy</button></div></div>';
       // two real decades: reserve path from 1966 and 1985 starts (Shiller windows, world-adjusted)
       const rtr = getRtr(); const A = sg.A; const paths = {};
       for (const [label, y, m] of [['from Jan 1966', 1966, 1], ['from Jan 1985', 1985, 1], ['from Jan 2000', 2000, 1]]) { const s0 = (y - 1871) * 12 + (m - 1); if (s0 + 12 * A < rtr.length) paths[label] = Array.from({ length: A + 1 }, (_, i) => sg.sleeveE0 * rtr[s0 + 12 * i] / rtr[s0]); }
@@ -8244,7 +8254,7 @@
       g += '<text x="' + padL + '" y="18" font-size="13" font-weight="600" fill="var(--text,#eee)">' + budEsc(title) + '</text>';
       return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" preserveAspectRatio="xMidYMid meet" role="img">' + g + '</svg>';
     };
-    const dial = (label, id, attrs, value) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + label + '<input ' + attrs + ' value="' + value + '" style="width:90px;" onchange="setSpecDial(\'' + id + '\', this.value)"></label>';
+    const dial = (label, id, attrs, value) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + label + '<input ' + attrs + ' value="' + value + '" style="width:90px;" data-on-change="setSpecDial(\'' + id + '\', this.value)"></label>';
     const STRATEGY_PAGES = {
       'ladder-and-ratchet': {
         tag: 'income bolted on, booms buy more years', frames: LR_FRAMES,
@@ -8286,7 +8296,7 @@
         tag: 'one flexible portfolio, rules decide which pot pays', frames: PV_FRAMES,
         intro: 'Your money sits in pots — shares, bonds, cash, diversifiers, ISA — each with a floor. Every month the pot that can best afford it pays your income; in a bad run the safe pots take over and, if it persists, the draw is cut. In good markets the pots refill. It is the only strategy here that is allowed to pay you less.',
         machine: (r, p) => ({ fn: potsValvesSvg, d: { pots: r.signature.pots, floors: r.signature.floors, protection: r.signature.protection, wealthCone: r.cones.wealth, incomeCone: r.cones.income, planIncome: p.targetAnnual, startAge: p.startAge } }),
-        dials: (prm, s) => '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' onchange="setSpecDial(\'protectionOn\', this.checked ? 1 : 0)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)) + dial('Cash months before it cuts', 'consecutiveLimit', 'type="number" min="1" max="24"', s.consecutiveLimit ?? 3) + '<span class="hint">Allocation and risk level: in Settings.</span>',
+        dials: (prm, s) => '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)) + dial('Cash months before it cuts', 'consecutiveLimit', 'type="number" min="1" max="24"', s.consecutiveLimit ?? 3) + '<span class="hint">Allocation and risk level: in Settings.</span>',
         verdict: (r, p) => '<strong>Ran out in ' + r.ruin.mc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' futures</strong> (' + r.ruin.hist.toFixed(1) + '% of histories). Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' (median ' + gbp(Math.round(r.worst12.median)) + '). ' + (r.signature.protection.enabled ? 'Spending cuts are ON (up to ' + r.signature.protection.cutPct + '%): a median ' + Math.round((r.signature.protMonthsMedian || 0) / 12) + ' years on reduced income in history.' : 'Spending cuts are OFF: the plan pays in full until it cannot.'),
         decades: (r, p) => { const series = {}; for (const [lab, y] of [['from Jan 1966', 1966], ['from Jan 1985', 1985], ['from Jan 2000', 2000]]) { const w = pnvDecadeSeries(p, y, 1); if (w) series[lab + (w.failed ? ' — ran out at ' + Math.round(w.failAge) : ' — ' + gbp(Math.round(w.terminal / 1000)) + 'k left')] = w.wealthByYear.map((v) => v || 0); } return '<p class="hint" style="margin:0 0 6px;">All pots together, from three real starts, in today\'s money.</p>' + decadeLinesSvg({ title: 'The pots from three real starts', startAge: p.startAge, series, refLine: p.pot + (p.isa || 0), refLabel: 'where it started' }); },
         shines: ['Nothing is bought; everything keeps growing — the most money over a lifetime, on average', 'Monthly guidance on what to draw and from where', 'Markets are kind more often than not'],
@@ -8319,7 +8329,7 @@
       if (!r.affordable) {
         const short = r.shortfall || 0; const perK = 27000;
         h += '<div class="alert alert-danger" style="margin-top:10px;"><strong>Not affordable as it stands:</strong> ' + budEsc(r.reason || '') + '. Roughly every £1k a year across the plan is £' + (perK / 1000) + 'k, so about <strong>' + gbp(Math.round(short / perK) * 1000) + '/yr</strong> less income for life would close the gap — or a shorter horizon, or a lower floor in the later years (the cheapest years to keep are the late ones).</div>';
-        h += '<div class="strat-block"><div class="section-title">Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape and horizon: <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div></div>';
+        h += '<div class="strat-block"><div class="section-title">Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape and horizon: <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div></div>';
         const list = (items) => '<ul>' + items.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
         h += '<div class="strat-block"><div class="section-title">Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
           + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--success);">Where it shines</div>' + list(spec.shines) + '</div>'
@@ -8330,9 +8340,9 @@
       }
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine" class="machine-scroll">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
-      h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" onclick="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
+      h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
       h += '<div class="alert ' + (r.ruin.mc <= 5 ? 'alert-success' : r.ruin.mc <= 15 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">' + spec.verdict(r, p) + '</div>';
-      h += '<div style="margin-top:8px;"><button type="button" onclick="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
+      h += '<div style="margin-top:8px;"><button type="button" data-on-click="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><div class="machine-scroll">' + spec.decades(r, p) + '</div></div>';
       const list = (items) => '<ul>' + items.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
       h += '<div class="strat-block"><div class="section-title">4 · Where it shines, how it fails, what you do, how you get out</div><div class="sw-grid">'
@@ -8355,32 +8365,32 @@
       let html = '';
       inc.forEach((r, i) => {
         html += '<div class="row-flex" style="margin-top:6px;">'
-          + '<input type="text" placeholder="e.g. Part-time work" value="' + budEsc(r.label || '') + '" oninput="updExtraIncome(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
-          + '<span class="hint">£/yr</span><input type="number" value="' + (r.annual ?? '') + '" oninput="updExtraIncome(' + i + ',\'annual\',this.value)" style="width:100px;">'
-          + '<span class="hint">years</span><input type="number" placeholder="0" min="0" value="' + (r.startYear ?? '') + '" oninput="updExtraIncome(' + i + ',\'startYear\',this.value)" style="width:64px;">'
-          + '<span class="hint">to</span><input type="number" placeholder="∞" min="0" value="' + (r.endYear ?? '') + '" oninput="updExtraIncome(' + i + ',\'endYear\',this.value)" style="width:64px;">'
-          + '<select onchange="updExtraIncome(' + i + ',\'indexation\',this.value)" style="width:140px;">'
+          + '<input type="text" placeholder="e.g. Part-time work" value="' + budEsc(r.label || '') + '" data-on-input="updExtraIncome(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">£/yr</span><input type="number" value="' + (r.annual ?? '') + '" data-on-input="updExtraIncome(' + i + ',\'annual\',this.value)" style="width:100px;">'
+          + '<span class="hint">years</span><input type="number" placeholder="0" min="0" value="' + (r.startYear ?? '') + '" data-on-input="updExtraIncome(' + i + ',\'startYear\',this.value)" style="width:64px;">'
+          + '<span class="hint">to</span><input type="number" placeholder="∞" min="0" value="' + (r.endYear ?? '') + '" data-on-input="updExtraIncome(' + i + ',\'endYear\',this.value)" style="width:64px;">'
+          + '<select data-on-change="updExtraIncome(' + i + ',\'indexation\',this.value)" style="width:140px;">'
           + '<option value="lpi5"' + ((r.indexation || 'lpi5') === 'lpi5' ? ' selected' : '') + '>CPI capped 5%</option>'
           + '<option value="cpi"' + (r.indexation === 'cpi' ? ' selected' : '') + '>Full CPI</option>'
           + '<option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Level</option></select>'
-          + '<button type="button" class="risk-btn" title="Remove" onclick="rmExtraIncome(' + i + ')">✕</button></div>';
+          + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmExtraIncome(' + i + ')">✕</button></div>';
       });
       wf.forEach((r, i) => {
         html += '<div class="row-flex" style="margin-top:6px;">'
-          + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" oninput="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
-          + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" oninput="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
-          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" oninput="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
-          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa ? ' checked' : '') + ' onchange="updWindfall(' + i + ',\'toIsa\',this.checked)">to ISA</label>'
-          + '<button type="button" class="risk-btn" title="Remove" onclick="rmWindfall(' + i + ')">✕</button></div>';
+          + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" data-on-input="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa ? ' checked' : '') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">to ISA</label>'
+          + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>';
       });
       (window._ssExtraWithdrawals || []).forEach((r, i) => {
         html += '<div class="row-flex" style="margin-top:6px;">'
-          + '<input type="text" placeholder="e.g. New car" value="' + budEsc(r.label || '') + '" oninput="updExtraWithdrawal(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
-          + '<span class="hint">spend £</span><input type="number" value="' + (r.amount ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'amount\',this.value)" style="width:100px;">'
-          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'year\',this.value)" style="width:64px;">'
-          + '<span class="hint">for</span><input type="number" min="1" placeholder="1" value="' + (r.years ?? '') + '" oninput="updExtraWithdrawal(' + i + ',\'years\',this.value)" style="width:54px;"><span class="hint">yr(s)</span>'
-          + '<select onchange="updExtraWithdrawal(' + i + ',\'indexation\',this.value)" style="width:150px;"><option value="cpi"' + ((r.indexation || 'cpi') === 'cpi' ? ' selected' : '') + '>Today\'s money</option><option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Fixed £ (nominal)</option></select>'
-          + '<button type="button" class="risk-btn" title="Remove" onclick="rmExtraWithdrawal(' + i + ')">✕</button></div>';
+          + '<input type="text" placeholder="e.g. New car" value="' + budEsc(r.label || '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
+          + '<span class="hint">spend £</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'amount\',this.value)" style="width:100px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<span class="hint">for</span><input type="number" min="1" placeholder="1" value="' + (r.years ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'years\',this.value)" style="width:54px;"><span class="hint">yr(s)</span>'
+          + '<select data-on-change="updExtraWithdrawal(' + i + ',\'indexation\',this.value)" style="width:150px;"><option value="cpi"' + ((r.indexation || 'cpi') === 'cpi' ? ' selected' : '') + '>Today\'s money</option><option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Fixed £ (nominal)</option></select>'
+          + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmExtraWithdrawal(' + i + ')">✕</button></div>';
       });
       box.innerHTML = html || '<p class="hint" style="margin:4px 0 0;">None yet — everything comes from the pots, State Pension and DB above.</p>';
     };
@@ -8514,7 +8524,7 @@
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">In year<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Survivor spends (% of joint)<input type="number" id="hhSurvivorPct" value="70" min="40" max="100" style="width:80px;"></label>'
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">DB survivor %<input type="number" id="hhDbSurvivorPct" value="50" min="0" max="100" style="width:80px;"></label>'
-          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" onclick="runSurvivorUI()">Run survivor check</button></div>'
+          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runSurvivorUI()">Run survivor check</button></div>'
           + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>';
 
         // ---- Long-term care one-shot stress ----
@@ -8525,7 +8535,7 @@
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From year<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="3" min="1" max="15" style="width:80px;"></label>'
           + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£/yr, today)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
-          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" onclick="runCareUI()">Run care check</button></div>'
+          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runCareUI()">Run care check</button></div>'
           + '<div id="hhCareResult" style="margin-top:8px;"></div></div>';
 
         window._hhLast = { cfgA, cfgB, ownSettings, partnerSettings, ownName, pName };
@@ -9283,9 +9293,9 @@
       const opt = (v, l) => '<option value="' + v + '"' + (current === v ? ' selected' : '') + '>' + l + '</option>';
       const globalPct = window._budget.mySharePct ?? 50;
       const pct = current === 'shared'
-        ? '<input type="number" min="0" max="100" placeholder="' + globalPct + '%" title="Your % of this shared cost (blank = the overall split)" value="' + (item.mySharePct ?? '') + '" oninput="' + fn + '(\'' + item.id + '\',\'mySharePct\',this.value)" style="flex:0 0 62px;">'
+        ? '<input type="number" min="0" max="100" placeholder="' + globalPct + '%" title="Your % of this shared cost (blank = the overall split)" value="' + (item.mySharePct ?? '') + '" data-on-input="' + fn + '(\'' + item.id + '\',\'mySharePct\',this.value)" style="flex:0 0 62px;">'
         : '';
-      return '<select title="Who pays this?" onchange="' + fn + '(\'' + item.id + '\',\'paidBy\',this.value)" style="flex:0 0 96px;">' +
+      return '<select title="Who pays this?" data-on-change="' + fn + '(\'' + item.id + '\',\'paidBy\',this.value)" style="flex:0 0 96px;">' +
         opt('me', 'Me') + opt('partner', 'Partner') + opt('shared', 'Shared') + '</select>' + pct;
     }
 
@@ -9304,9 +9314,9 @@
       const phases = window._budget.splitPhases || [];
       box.innerHTML = phases.map((p, i) =>
         '<div style="display:flex; align-items:center; gap:6px; margin-top:4px; font-size:13px;">From age '
-        + '<input type="number" min="40" max="100" value="' + (p.fromAge ?? '') + '" style="width:68px;" oninput="updateSplitPhase(' + i + ',\'fromAge\',this.value)"> my share becomes '
-        + '<input type="number" min="0" max="100" value="' + (p.mySharePct ?? '') + '" style="width:68px;" oninput="updateSplitPhase(' + i + ',\'mySharePct\',this.value)">% '
-        + '<button type="button" style="background:none;border:none;color:var(--text-muted);cursor:pointer;" title="Remove" onclick="removeSplitPhase(' + i + ')">✕</button></div>'
+        + '<input type="number" min="40" max="100" value="' + (p.fromAge ?? '') + '" style="width:68px;" data-on-input="updateSplitPhase(' + i + ',\'fromAge\',this.value)"> my share becomes '
+        + '<input type="number" min="0" max="100" value="' + (p.mySharePct ?? '') + '" style="width:68px;" data-on-input="updateSplitPhase(' + i + ',\'mySharePct\',this.value)">% '
+        + '<button type="button" style="background:none;border:none;color:var(--text-muted);cursor:pointer;" title="Remove" data-on-click="removeSplitPhase(' + i + ')">✕</button></div>'
       ).join('') || '<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">No changes yet — one split applies for the whole plan.</p>';
     };
     window.addSplitPhase = function () {
@@ -9343,14 +9353,14 @@
 
     function budLineAgesHtml(line) {
       if (!budLineIsBanded(line)) {
-        return '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Only for some years? Set when this cost starts and stops — e.g. a car lease with 3 years left. Blank = the whole retirement." onclick="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>';
+        return '<button type="button" class="risk-btn" style="padding:4px 8px;" title="Only for some years? Set when this cost starts and stops — e.g. a car lease with 3 years left. Blank = the whole retirement." data-on-click="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>';
       }
       return '<span class="row-flex" style="gap:4px; flex-wrap:nowrap;">' +
         '<span class="hint">age</span>' +
-        '<input type="number" placeholder="' + (window._budget.retirementAge ?? 'from') + '" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
+        '<input type="number" placeholder="' + (window._budget.retirementAge ?? 'from') + '" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" data-on-input="updateBudgetLine(\'' + line.id + '\',\'fromAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
         '<span class="hint">to</span>' +
-        '<input type="number" placeholder="' + (window._budget.endAge ?? 'to') + '" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" oninput="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
-        '<button type="button" class="risk-btn active" style="padding:4px 8px;" title="Back to: applies for the whole retirement" onclick="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>' +
+        '<input type="number" placeholder="' + (window._budget.endAge ?? 'to') + '" title="To age (blank = end of plan)" value="' + (line.toAge ?? '') + '" data-on-input="updateBudgetLine(\'' + line.id + '\',\'toAge\',this.value)" style="width:64px; flex:0 0 auto;">' +
+        '<button type="button" class="risk-btn active" style="padding:4px 8px;" title="Back to: applies for the whole retirement" data-on-click="budMainBandToggle(\'' + line.id + '\')">&#9201;</button>' +
         '</span>';
     }
 
@@ -9378,22 +9388,22 @@
       const typ = typicalMonthlyFor(line.label, window._budget);
       const ph = typ != null ? ('≈' + (period === 'mo' ? typ : typ * 12)) : 'Amount';
       const dup = window._budget.sharedWithPartner
-        ? '<button type="button" class="risk-btn" title="Add a copy for your partner (e.g. their car)" onclick="duplicateBudgetLine(\'' + line.id + '\')">⧉</button>'
+        ? '<button type="button" class="risk-btn" title="Add a copy for your partner (e.g. their car)" data-on-click="duplicateBudgetLine(\'' + line.id + '\')">⧉</button>'
         : '';
       return '<div class="bud-row" data-id="' + line.id + '">' +
         '<div class="bud-label">' +
-          '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" oninput="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)">' +
+          '<input type="text" placeholder="Category" value="' + budEsc(line.label) + '" data-on-input="updateBudgetLine(\'' + line.id + '\',\'label\',this.value)">' +
           hint +
         '</div>' +
         '<div class="bud-amt">' +
-          '<input type="text" inputmode="decimal" id="bm-amt-' + line.id + '" placeholder="' + ph + '" title="Amount in today\'s money — sums welcome: 11.99+8.99 or =4×52/12' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" onchange="updateBudgetAmount(\'' + line.id + '\',this.value,this)">' +
-          '<button type="button" class="risk-btn" title="Switch monthly / yearly" onclick="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
-          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
+          '<input type="text" inputmode="decimal" id="bm-amt-' + line.id + '" placeholder="' + ph + '" title="Amount in today\'s money — sums welcome: 11.99+8.99 or =4×52/12' + (typ != null ? ' (typical shown)' : '') + '" value="' + shown + '" data-on-change="updateBudgetAmount(\'' + line.id + '\',this.value,this)">' +
+          '<button type="button" class="risk-btn" title="Switch monthly / yearly" data-on-click="toggleBudgetPeriod(\'' + line.id + '\')">' + (period === 'mo' ? '/mo' : '/yr') + '</button>' +
+          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" title="Break it down into parts (saved with your budget)" data-on-click="budBreakToggle(\'bm\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
         (window._budget.sharedWithPartner ? '<span class="bud-paidby">' + paidBySelectHtml(line, 'updateBudgetLine') + '</span>' : '') +
         '<span class="bud-ages">' + budLineAgesHtml(line) + '</span>' +
         '<span class="bud-actions">' + dup +
-          '<button type="button" class="risk-btn" title="Remove" onclick="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
+          '<button type="button" class="risk-btn" title="Remove" data-on-click="removeBudgetLine(\'' + line.id + '\')">&times;</button>' +
         '</span>' +
         (line.breakdownOpen ? '<div class="bud-break">' + budBreakPanelHtml('bm', line) + '</div>' : '') +
         '</div>';
@@ -9428,20 +9438,20 @@
         : '';
       return '<div class="bud-row bud-row--oneoff" data-id="' + o.id + '">' +
         '<div class="bud-label">' +
-          '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)">' +
+          '<input type="text" placeholder="e.g. Car" value="' + budEsc(o.label) + '" data-on-input="updateBudgetOneOff(\'' + o.id + '\',\'label\',this.value)">' +
           hint +
         '</div>' +
         '<div class="bud-amt">' +
-          '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)">' +
+          '<input type="number" placeholder="£ amount" title="Total cost in today\'s money" value="' + (o.amount ?? '') + '" data-on-input="updateBudgetOneOff(\'' + o.id + '\',\'amount\',this.value)">' +
         '</div>' +
         (window._budget.sharedWithPartner ? '<span class="bud-paidby">' + paidBySelectHtml(o, 'updateBudgetOneOff') + '</span>' : '') +
         '<span class="bud-ages">' +
-          '<span class="hint">at</span><input type="number" placeholder="age" value="' + (o.atAge ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)">' +
-          '<span class="hint">every</span><input type="number" placeholder="once" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" oninput="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)"><span class="hint">yrs</span>' +
+          '<span class="hint">at</span><input type="number" placeholder="age" value="' + (o.atAge ?? '') + '" data-on-input="updateBudgetOneOff(\'' + o.id + '\',\'atAge\',this.value)">' +
+          '<span class="hint">every</span><input type="number" placeholder="once" title="Leave blank for a one-time cost" value="' + (o.everyYears ?? '') + '" data-on-input="updateBudgetOneOff(\'' + o.id + '\',\'everyYears\',this.value)"><span class="hint">yrs</span>' +
         '</span>' +
         '<span class="bud-actions">' +
-        (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" title="Add a copy for your partner" onclick="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
-          '<button type="button" class="risk-btn" title="Remove" onclick="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
+        (window._budget.sharedWithPartner ? '<button type="button" class="risk-btn" title="Add a copy for your partner" data-on-click="duplicateBudgetOneOff(\'' + o.id + '\')">⧉</button>' : '') +
+          '<button type="button" class="risk-btn" title="Remove" data-on-click="removeBudgetOneOff(\'' + o.id + '\')">&times;</button>' +
         '</span>' +
         '</div>';
     }
@@ -9463,7 +9473,7 @@
       if (!missing.length) { section.style.display = 'none'; box.innerHTML = ''; return; }
       section.style.display = 'block';
       box.innerHTML = missing.map((m) =>
-        '<button type="button" class="risk-btn" style="padding:5px 10px;" title="' + budEsc(m.hint || '') + '" onclick="addBudgetSuggestion(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\')">+ ' + budEsc(m.label) + '</button>'
+        '<button type="button" class="risk-btn" style="padding:5px 10px;" title="' + budEsc(m.hint || '') + '" data-label="' + budEsc(m.label) + '" data-on-click="addBudgetSuggestion(this.dataset.label)">+ ' + budEsc(m.label) + '</button>'
       ).join('');
     }
 
@@ -9667,9 +9677,9 @@
       const targetGrossAnnual = grossUpAnnual(s.allInComfortableAnnual + headM * 12);
       html += '<div style="border-top:1px solid var(--border); padding-top:12px;">';
       html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.</div>';
-      html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" onchange="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
+      html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" data-on-change="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
       html += '<div style="font-size:13px; margin-bottom:8px;">Plan target: <strong>' + money(targetMonthly) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(targetGrossAnnual) + '/yr before tax' + (headM ? ' — budget + ' + money(headM) + '/mo headroom' : '') + ')</span></div>';
-      html += '<button type="button" onclick="applyBudgetToPlan()">Use as the start of my income shape</button><span class="hint" style="margin-left:8px;">This is today’s spending. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</span>';
+      html += '<button type="button" data-on-click="applyBudgetToPlan()">Use as the start of my income shape</button><span class="hint" style="margin-left:8px;">This is today’s spending. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</span>';
       html += '</div>';
 
       document.getElementById('budSummary').innerHTML = html;
@@ -9703,7 +9713,7 @@
     function budRenderUndoChips() {
       const label = _budLastRemoved ? (_budLastRemoved.item.label || 'item') : null;
       const html = _budLastRemoved
-        ? 'Removed \u201C' + budEsc(label) + '\u201D \u2014 <button type="button" class="budwiz-chip" onclick="budUndoRemove()">Undo</button>'
+        ? 'Removed \u201C' + budEsc(label) + '\u201D \u2014 <button type="button" class="budwiz-chip" data-on-click="budUndoRemove()">Undo</button>'
         : null;
       const statusEl = document.getElementById('budSaveStatus');
       if (statusEl && html) statusEl.innerHTML = html;
@@ -9817,7 +9827,7 @@
           window._budImportUndo = before;
           showToast('Imported ' + b.lines.length + ' items. Undo available for 60s via the button below.', 'success', 8000);
           const st = document.getElementById('budSaveStatus');
-          if (st) st.innerHTML = 'Imported — <a href="#" onclick="undoBudgetImport();return false;" style="color:var(--primary);">Undo</a>';
+          if (st) st.innerHTML = 'Imported — <a href="#" data-on-click="undoBudgetImport();return false;" style="color:var(--primary);">Undo</a>';
           setTimeout(() => { window._budImportUndo = null; }, 60000);
         } catch (e) {
           console.error('Budget import error:', e);
@@ -9988,7 +9998,7 @@
       const fixed = !!BUD_WIZ_LABEL_GROUP[(line.label || '').trim().toLowerCase()];
       const nameCell = fixed
         ? '<div style="font-weight:600;">' + budEsc(line.label) + '</div>'
-        : '<input type="text" placeholder="What is it?" value="' + budEsc(line.label) + '" oninput="budWizField(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">';
+        : '<input type="text" placeholder="What is it?" value="' + budEsc(line.label) + '" data-on-input="budWizField(\'' + line.id + '\',\'label\',this.value)" style="width:100%;">';
       const hint = line.hint ? '<div class="budwiz-hint">' + budEsc(line.hint) + '</div>' : '';
       const flag = typicalSanityFlag(line.label, line.annual, window._budget);
       const nudge = flag
@@ -9999,20 +10009,20 @@
       return '<div class="budwiz-row" id="bw-row-' + line.id + '">' +
         '<div class="budwiz-name">' + nameCell + hint + '</div>' +
         '<div class="budwiz-amt">' +
-          '<input type="text" inputmode="decimal" id="bw-amt-' + line.id + '" placeholder="£ or e.g. =12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, =4×52/12" value="' + budWizAmountShown(line) + '" onchange="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
-          '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Switch monthly / yearly" onclick="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
-          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:6px 9px;" title="Break it down into parts (saved with your budget)" onclick="budBreakToggle(\'bw\',\'' + line.id + '\')">&Sigma;</button>' +
+          '<input type="text" inputmode="decimal" id="bw-amt-' + line.id + '" placeholder="£ or e.g. =12+9.50" title="Amount in today\'s money — sums welcome: 11.99+8.99, =4×52/12" value="' + budWizAmountShown(line) + '" data-on-change="budWizAmount(\'' + line.id + '\',this.value,this)" style="flex:1 1 auto; min-width:0;">' +
+          '<button type="button" class="risk-btn" style="padding:6px 9px;" title="Switch monthly / yearly" data-on-click="budWizTogglePeriod(\'' + line.id + '\')">/' + period + '</button>' +
+          '<button type="button" class="risk-btn' + (line.breakdownOpen ? ' active' : '') + '" style="padding:6px 9px;" title="Break it down into parts (saved with your budget)" data-on-click="budBreakToggle(\'bw\',\'' + line.id + '\')">&Sigma;</button>' +
         '</div>' +
         '<div class="budwiz-chipslot">' +
-          (typTxt ? '<button type="button" class="budwiz-chip" onclick="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
+          (typTxt ? '<button type="button" class="budwiz-chip" data-on-click="budWizUseTypical(\'' + line.id + '\')" title="ONS retired-household average — a starting point">' + typTxt + ' — use</button>' : '') +
         '</div>' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(line, 'budWizField') : '') +
         (budWizIsBanded(line)
-          ? '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 78px;">' +
-            '<input type="number" placeholder="to age" title="To age (blank = end of plan). E.g. a car lease with 3 years left: to retirement age + 3." value="' + (line.toAge ?? '') + '" oninput="budWizField(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 78px;">'
+          ? '<input type="number" placeholder="from age" title="From age (blank = retirement)" value="' + (line.fromAge ?? '') + '" data-on-input="budWizField(\'' + line.id + '\',\'fromAge\',this.value)" style="flex:0 0 78px;">' +
+            '<input type="number" placeholder="to age" title="To age (blank = end of plan). E.g. a car lease with 3 years left: to retirement age + 3." value="' + (line.toAge ?? '') + '" data-on-input="budWizField(\'' + line.id + '\',\'toAge\',this.value)" style="flex:0 0 78px;">'
           : '') +
-        '<button type="button" class="risk-btn' + (budWizIsBanded(line) ? ' active' : '') + '" style="padding:6px 9px;" title="' + (budWizIsBanded(line) ? 'Remove the age limits — make this a whole-of-retirement cost again' : 'Assumed for the whole retirement. Click to limit it to an age range — for temporary costs like a lease or a mortgage that ends.') + '" onclick="budWizBandToggle(\'' + line.id + '\')">&#x23F1;</button>' +
-        '<button type="button" class="risk-btn" style="padding:6px 11px;" title="Remove" onclick="budWizRemove(\'' + line.id + '\')">&times;</button>' +
+        '<button type="button" class="risk-btn' + (budWizIsBanded(line) ? ' active' : '') + '" style="padding:6px 9px;" title="' + (budWizIsBanded(line) ? 'Remove the age limits — make this a whole-of-retirement cost again' : 'Assumed for the whole retirement. Click to limit it to an age range — for temporary costs like a lease or a mortgage that ends.') + '" data-on-click="budWizBandToggle(\'' + line.id + '\')">&#x23F1;</button>' +
+        '<button type="button" class="risk-btn" style="padding:6px 11px;" title="Remove" data-on-click="budWizRemove(\'' + line.id + '\')">&times;</button>' +
         '<div id="bw-err-' + line.id + '" class="budwiz-err"></div>' +
         nudge +
         (line.breakdownOpen ? '<div style="flex-basis:100%;">' + budBreakPanelHtml('bw', line) + '</div>' : '') +
@@ -10160,17 +10170,17 @@
     function budBreakPanelHtml(ctx, line) {
       const rows = (line.breakdown || []).map((r, i) =>
         '<div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">' +
-          '<input type="text" placeholder="' + (i === 0 ? 'e.g. insurance' : i === 1 ? 'e.g. fuel' : 'part ' + (i + 1)) + '" value="' + budEsc(r.label) + '" oninput="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'label\',this.value)" style="flex:1 1 auto; min-width:0;">' +
-          '<input type="text" inputmode="decimal" placeholder="£ or =12+8" value="' + (r.amount ?? '') + '" onchange="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'amount\',this.value,this)" style="flex:0 0 104px;">' +
-          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="This part is per month / per year" onclick="budBreakTogglePeriod(\'' + ctx + '\',\'' + line.id + '\',' + i + ',this)">/' + (r.period || 'yr') + '</button>' +
-          '<button type="button" class="risk-btn" style="padding:4px 9px;" title="Remove part" onclick="budBreakRemoveRow(\'' + ctx + '\',\'' + line.id + '\',' + i + ')">&times;</button>' +
+          '<input type="text" placeholder="' + (i === 0 ? 'e.g. insurance' : i === 1 ? 'e.g. fuel' : 'part ' + (i + 1)) + '" value="' + budEsc(r.label) + '" data-on-input="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'label\',this.value)" style="flex:1 1 auto; min-width:0;">' +
+          '<input type="text" inputmode="decimal" placeholder="£ or =12+8" value="' + (r.amount ?? '') + '" data-on-change="budBreakField(\'' + ctx + '\',\'' + line.id + '\',' + i + ',\'amount\',this.value,this)" style="flex:0 0 104px;">' +
+          '<button type="button" class="risk-btn" style="padding:4px 8px;" title="This part is per month / per year" data-on-click="budBreakTogglePeriod(\'' + ctx + '\',\'' + line.id + '\',' + i + ',this)">/' + (r.period || 'yr') + '</button>' +
+          '<button type="button" class="risk-btn" style="padding:4px 9px;" title="Remove part" data-on-click="budBreakRemoveRow(\'' + ctx + '\',\'' + line.id + '\',' + i + ')">&times;</button>' +
         '</div>'
       ).join('');
       return '<div style="background:var(--card-alt); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:6px;">' +
         '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Break it into parts — mix /mo and /yr freely; sums (or =sums) are fine in each box. The total is written to the line for you, and the parts are saved.</div>' +
         rows +
         '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
-          '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="budBreakAddRow(\'' + ctx + '\',\'' + line.id + '\')">+ add part</button>' +
+          '<button type="button" class="risk-btn" style="padding:4px 12px;" data-on-click="budBreakAddRow(\'' + ctx + '\',\'' + line.id + '\')">+ add part</button>' +
           '<div style="font-size:13px;">Adds up to <strong id="' + ctx + '-bsum-' + line.id + '">' + budBreakTotalLabel(line) + '</strong></div>' +
         '</div></div>';
     }
@@ -10250,12 +10260,12 @@
     // ---- one-offs step ----
     function budWizOneOffRowHtml(o) {
       return '<div class="budwiz-row">' +
-        '<input type="text" placeholder="e.g. Replacement car" value="' + budEsc(o.label) + '" oninput="budWizOneOff(\'' + o.id + '\',\'label\',this.value)" style="flex:1 1 170px; min-width:150px;">' +
-        '<input type="text" inputmode="decimal" placeholder="£ total" title="Total cost in today\'s money — sums welcome" value="' + (o.amount ?? '') + '" onchange="budWizOneOffAmount(\'' + o.id + '\',this.value,this)" style="flex:0 0 110px;">' +
-        '<input type="number" placeholder="at age" title="Age it first happens" value="' + (o.atAge ?? '') + '" oninput="budWizOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
-        '<input type="number" placeholder="every N yrs" title="Blank = one-time" value="' + (o.everyYears ?? '') + '" oninput="budWizOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 104px;">' +
+        '<input type="text" placeholder="e.g. Replacement car" value="' + budEsc(o.label) + '" data-on-input="budWizOneOff(\'' + o.id + '\',\'label\',this.value)" style="flex:1 1 170px; min-width:150px;">' +
+        '<input type="text" inputmode="decimal" placeholder="£ total" title="Total cost in today\'s money — sums welcome" value="' + (o.amount ?? '') + '" data-on-change="budWizOneOffAmount(\'' + o.id + '\',this.value,this)" style="flex:0 0 110px;">' +
+        '<input type="number" placeholder="at age" title="Age it first happens" value="' + (o.atAge ?? '') + '" data-on-input="budWizOneOff(\'' + o.id + '\',\'atAge\',this.value)" style="flex:0 0 84px;">' +
+        '<input type="number" placeholder="every N yrs" title="Blank = one-time" value="' + (o.everyYears ?? '') + '" data-on-input="budWizOneOff(\'' + o.id + '\',\'everyYears\',this.value)" style="flex:0 0 104px;">' +
         (window._budget.sharedWithPartner ? paidBySelectHtml(o, 'budWizOneOff') : '') +
-        '<button type="button" class="risk-btn" style="padding:4px 10px;" onclick="budWizRemoveOneOff(\'' + o.id + '\')">&times;</button>' +
+        '<button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="budWizRemoveOneOff(\'' + o.id + '\')">&times;</button>' +
         '<div id="bw-oerr-' + o.id + '" class="budwiz-err"></div>' +
         '</div>';
     }
@@ -10337,11 +10347,11 @@
         const hasData = window._budget.lines.some((l) => l.annual) || window._budget.oneOffs.some((o) => o.amount);
         const savedNote = hasData
           ? '<div class="alert alert-warning" style="margin-bottom:12px;"><strong>You already have a saved budget</strong> — the totals in the bar below are your own saved figures, and each screen shows them ready to edit. Prefer a clean slate? ' +
-            '<button type="button" class="risk-btn" style="padding:4px 12px; margin-left:4px;" onclick="budWizClearAmounts()">Start fresh — clear all amounts</button>' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px; margin-left:4px;" data-on-click="budWizClearAmounts()">Start fresh — clear all amounts</button>' +
             '<span style="color:var(--text-muted);"> (nothing is saved until you choose Save at the end)</span></div>'
           : '';
         const curTier = plsaTierOf(window._budget);
-        const tierBtn = (t, label) => '<button type="button" class="risk-btn' + (curTier === t ? ' active' : '') + '" data-tier="' + t + '" onclick="setPlsaTier(\'' + t + '\')">' + label + '</button>';
+        const tierBtn = (t, label) => '<button type="button" class="risk-btn' + (curTier === t ? ' active' : '') + '" data-tier="' + t + '" data-on-click="setPlsaTier(\'' + t + '\')">' + label + '</button>';
         return '<h2 style="margin-bottom:10px;">Let’s build your budget</h2>' +
           '<p style="margin-bottom:12px;">We’ll walk through your spending one category at a time — bills first, then the fun stuff, then the big occasional costs. Skip anything; you can come back any time.</p>' +
           savedNote +
@@ -10363,7 +10373,7 @@
         return '<h2 style="margin-bottom:6px;">One-off & periodic costs</h2>' +
           '<p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Big costs that land in a specific year: cars, roofs, weddings, milestone trips, helping the kids. Give recurring ones an "every N years" and we average them into your monthly need; one-time items stay as dated events.</p>' +
           rows +
-          '<button type="button" class="risk-btn" style="margin-top:10px;" onclick="budWizAddOneOff()">+ Add a one-off</button>';
+          '<button type="button" class="risk-btn" style="margin-top:10px;" data-on-click="budWizAddOneOff()">+ Add a one-off</button>';
       }
       if (step === 'review') {
         const s = summariseBudget(window._budget);
@@ -10382,12 +10392,12 @@
         const missed = missingSuggestions(window._budget).slice(0, 8);
         if (missed.length) {
           h += '<div style="margin-bottom:14px;"><div style="font-size:13px; margin-bottom:6px;"><strong>Did you miss anything?</strong> Tap to add, then find it on its category screen:</div><div style="display:flex; flex-wrap:wrap; gap:6px;">' +
-            missed.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" onclick="budWizSuggest(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\', null)">+ ' + budEsc(m.label) + '</button>').join('') + '</div></div>';
+            missed.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" data-label="' + budEsc(m.label) + '" data-on-click="budWizSuggest(this.dataset.label, null)">+ ' + budEsc(m.label) + '</button>').join('') + '</div></div>';
         }
         h += '<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">Everything is saved automatically as you type.</div>';
         h += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">' +
-          '<button type="button" onclick="budWizSave(false)">Done</button>' +
-          '<button type="button" onclick="budWizSave(true)">Set as my plan’s target (Stress + Decision) &amp; finish</button>' +
+          '<button type="button" data-on-click="budWizSave(false)">Done</button>' +
+          '<button type="button" data-on-click="budWizSave(true)">Set as my plan’s target (Stress + Decision) &amp; finish</button>' +
           '</div>';
         return h;
       }
@@ -10400,9 +10410,9 @@
         '<div class="alert alert-info" style="margin-bottom:10px; font-size:13px;">' + g.tip + '</div>' +
         (lines.map(budWizLineRowHtml).join('') || '<p style="font-size:13px;color:var(--text-muted);">Nothing here yet — add below.</p>') +
         '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center;">' +
-          '<button type="button" class="risk-btn" onclick="budWizAddLine(\'' + g.key + '\')">+ Add your own</button>' +
+          '<button type="button" class="risk-btn" data-on-click="budWizAddLine(\'' + g.key + '\')">+ Add your own</button>' +
           (chips.length ? '<span style="font-size:12px;color:var(--text-muted);">Often forgotten:</span>' +
-            chips.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" onclick="budWizSuggest(\'' + budEsc(m.label).replace(/'/g, "\\'") + '\',\'' + g.key + '\')">+ ' + budEsc(m.label) + '</button>').join('') : '') +
+            chips.map((m) => '<button type="button" class="budwiz-chip" title="' + budEsc(m.hint || '') + '" data-label="' + budEsc(m.label) + '" data-key="' + budEsc(g.key) + '" data-on-click="budWizSuggest(this.dataset.label, this.dataset.key)">+ ' + budEsc(m.label) + '</button>').join('') : '') +
         '</div>';
     }
 
@@ -10418,12 +10428,12 @@
         '<div class="budwiz-shell">' +
           '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="font-size:13px; color:var(--text-muted);">Budget walk-through · step ' + (budWizStep + 1) + ' of ' + BUD_WIZ_STEPS.length + '</div>' +
-            '<button type="button" class="risk-btn" style="padding:4px 12px;" title="Close (your entries are kept)" onclick="closeBudgetWizard()">&times;</button>' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px;" title="Close (your entries are kept)" data-on-click="closeBudgetWizard()">&times;</button>' +
           '</div>' +
           '<div class="budwiz-body">' + budWizStepBody(step) + '</div>' +
           '<div class="budwiz-foot">' +
-            '<button type="button" class="risk-btn" onclick="budWizGo(-1)"' + (budWizStep === 0 ? ' disabled' : '') + '>Back</button>' +
-            (!last ? '<button type="button" onclick="budWizGo(1)">' + (step === 'intro' ? 'Start' : 'Next') + '</button>' : '') +
+            '<button type="button" class="risk-btn" data-on-click="budWizGo(-1)"' + (budWizStep === 0 ? ' disabled' : '') + '>Back</button>' +
+            (!last ? '<button type="button" data-on-click="budWizGo(1)">' + (step === 'intro' ? 'Start' : 'Next') + '</button>' : '') +
             '<div class="budwiz-dots">' + dots + '</div>' +
             '<div id="budWizUndoSlot" style="font-size:13px; color:var(--text-muted);"></div>' +
             '<div id="budWizTotals" style="margin-left:auto; font-size:13px; color:var(--text-muted);"></div>' +
@@ -10488,7 +10498,7 @@
         '<li>The calibration figures are long-run estimates, not predictions. This is modelling, not advice.</li>' +
         '</ul>' +
 
-        '<button type="button" onclick="document.getElementById(\'stressExplainer\').remove()">Got it</button>' +
+        '<button type="button" data-on-click="document.getElementById(\'stressExplainer\').remove()">Got it</button>' +
         '</div>';
       el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
       document.body.appendChild(el);
@@ -10543,7 +10553,7 @@
         opts += '<optgroup label="' + BUCKET_LABELS[b] + '">' +
           g.map((o) => '<option value="' + o.key + '"' + (o.key === selected ? ' selected' : '') + '>' + o.label + '</option>').join('') + '</optgroup>';
       }
-      return '<select onchange="adminFundField(' + i + ',\'subClass\',this.value)" style="width:200px;">' + opts + '</select>';
+      return '<select data-on-change="adminFundField(' + i + ',\'subClass\',this.value)" style="width:200px;">' + opts + '</select>';
     }
 
     window.adminFundField = function (i, field, val) {
@@ -10619,16 +10629,16 @@
       if (_adminTab === 'funds') {
         const rows = _adminFunds.map((f, i) =>
           '<tr>' +
-          '<td><input type="text" value="' + budEsc(f.ticker) + '" oninput="adminFundField(' + i + ',\'ticker\',this.value)" style="width:80px;text-transform:uppercase;"></td>' +
-          '<td><input type="text" value="' + budEsc(f.name) + '" oninput="adminFundField(' + i + ',\'name\',this.value)" style="width:280px;"></td>' +
+          '<td><input type="text" value="' + budEsc(f.ticker) + '" data-on-input="adminFundField(' + i + ',\'ticker\',this.value)" style="width:80px;text-transform:uppercase;"></td>' +
+          '<td><input type="text" value="' + budEsc(f.name) + '" data-on-input="adminFundField(' + i + ',\'name\',this.value)" style="width:280px;"></td>' +
           '<td>' + adminSubClassSelect(i, f.subClass) + '</td>' +
-          '<td><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminFundRemove(' + i + ')">&times;</button></td>' +
+          '<td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="adminFundRemove(' + i + ')">&times;</button></td>' +
           '</tr>').join('');
         return '<p style="font-size:13px;color:var(--text-muted);">The shared catalogue every user sees. Saving publishes a cloud override; revert returns to the list shipped in code. Each fund\u2019s category decides which model it runs through.</p>' +
           '<div style="display:flex;gap:8px;margin:8px 0;">' +
-          '<button type="button" class="risk-btn" onclick="adminFundAdd()">+ Add fund</button>' +
-          '<button type="button" onclick="adminSaveFunds()">Save to cloud</button>' +
-          '<button type="button" class="risk-btn" onclick="adminRevertFunds()">Revert to shipped list</button>' +
+          '<button type="button" class="risk-btn" data-on-click="adminFundAdd()">+ Add fund</button>' +
+          '<button type="button" data-on-click="adminSaveFunds()">Save to cloud</button>' +
+          '<button type="button" class="risk-btn" data-on-click="adminRevertFunds()">Revert to shipped list</button>' +
           '<span style="font-size:12px;color:var(--text-muted);align-self:center;">' + _adminFunds.length + ' funds</span></div>' +
           '<div style="overflow-x:auto;"><table style="font-size:13px;border-collapse:collapse;">' +
           '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Name</th><th style="text-align:left;">Category (model)</th><th></th></tr></thead>' +
@@ -10640,7 +10650,7 @@
           + 'Saving overrides the nightly DMO/BoE file (public/data/gilts.json) for all users. A bare CSV has no curve, so rungs fall back to a flat 2.3% real yield — prefer fixing the nightly job.</p>'
           + '<textarea id="adminLinkersCsv" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;" placeholder="0⅛% IL Treasury Gilt 2036,0.125,2036,3"></textarea>'
           + '<div class="row-flex" style="margin-top:8px;">'
-          + '<button type="button" onclick="adminSaveLinkers()">Import &amp; publish</button>'
+          + '<button type="button" data-on-click="adminSaveLinkers()">Import &amp; publish</button>'
           + '<span class="hint" id="adminLinkersStatus"></span></div></div>';
       }
       if (_adminTab === 'categories') {
@@ -10651,14 +10661,14 @@
             if (def[f] === undefined && ov[f] === undefined) return '<td style="color:var(--text-muted);text-align:center;">\u2014</td>';
             const cur = ov[f] !== undefined ? ov[f] : def[f];
             const changed = ov[f] !== undefined;
-            return '<td><input type="number" step="0.001" value="' + cur + '" title="Shipped default: ' + def[f] + '" onchange="adminProfileField(\'' + key + '\',\'' + f + '\',this.value)" style="width:74px;' + (changed ? 'border-color:#eab308;' : '') + '"></td>';
+            return '<td><input type="number" step="0.001" value="' + cur + '" title="Shipped default: ' + def[f] + '" data-on-change="adminProfileField(\'' + key + '\',\'' + f + '\',this.value)" style="width:74px;' + (changed ? 'border-color:#eab308;' : '') + '"></td>';
           }).join('');
           return '<tr><td style="white-space:nowrap;"><strong>' + def.label + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + key + ' \u00B7 ' + def.bucket + '</span></td>' + cells + '</tr>';
         }).join('');
         return '<p style="font-size:13px;color:var(--text-muted);">The calibration seeds behind each category\u2019s model (nominal figures; see SubAssetModel.js for the driver decomposition). Amber border = overridden vs shipped. Changes go live for all users on save \u2014 tune with care; the golden tests only protect the shipped values.</p>' +
           '<div style="display:flex;gap:8px;margin:8px 0;">' +
-          '<button type="button" onclick="adminSaveProfiles()">Save overrides to cloud</button>' +
-          '<button type="button" class="risk-btn" onclick="adminResetProfiles()">Reset all to shipped</button></div>' +
+          '<button type="button" data-on-click="adminSaveProfiles()">Save overrides to cloud</button>' +
+          '<button type="button" class="risk-btn" data-on-click="adminResetProfiles()">Reset all to shipped</button></div>' +
           '<div style="overflow-x:auto;"><table style="font-size:12px;border-collapse:collapse;">' +
           '<thead><tr><th style="text-align:left;">Category</th>' + fields.map((f) => '<th>' + f + '</th>').join('') + '</tr></thead>' +
           '<tbody>' + rows + '</tbody></table></div>';
@@ -10667,11 +10677,11 @@
       const rows = _adminSuggestions.length ? _adminSuggestions.map((x, i) =>
         '<tr><td><strong>' + budEsc(x.ticker) + '</strong></td><td>' + budEsc(x.subClass || '(none)') + '</td>' +
         '<td style="color:var(--text-muted);">' + budEsc(x.name || '') + '</td>' +
-        '<td><button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminSuggestionToFunds(' + i + ')">Add to funds</button> ' +
-        '<button type="button" class="risk-btn" style="padding:2px 8px;" onclick="adminDeleteSuggestion(' + i + ')">Dismiss</button></td></tr>'
+        '<td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="adminSuggestionToFunds(' + i + ')">Add to funds</button> ' +
+        '<button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="adminDeleteSuggestion(' + i + ')">Dismiss</button></td></tr>'
       ).join('') : '<tr><td colspan="4" style="color:var(--text-muted);">Nothing loaded \u2014 press Refresh.</td></tr>';
       return '<p style="font-size:13px;color:var(--text-muted);">Unknown tickers users categorised themselves. \u201CAdd to funds\u201D copies one into the Funds editor (publish from there).</p>' +
-        '<button type="button" class="risk-btn" onclick="adminLoadSuggestions()" style="margin:8px 0;">Refresh</button>' +
+        '<button type="button" class="risk-btn" data-on-click="adminLoadSuggestions()" style="margin:8px 0;">Refresh</button>' +
         '<div style="overflow-x:auto;"><table style="font-size:13px;border-collapse:collapse;">' +
         '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Chosen category</th><th style="text-align:left;">Name</th><th></th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table></div>';
@@ -10681,13 +10691,13 @@
       const overlay = document.getElementById('adminPanelOverlay');
       const prevBody = overlay.querySelector('.budwiz-body');
       const prevScroll = preserveScroll && prevBody ? prevBody.scrollTop : 0;
-      const tabBtn = (t, label) => '<button type="button" class="risk-btn' + (_adminTab === t ? ' active' : '') + '" onclick="adminSetTab(\'' + t + '\')">' + label + '</button>';
+      const tabBtn = (t, label) => '<button type="button" class="risk-btn' + (_adminTab === t ? ' active' : '') + '" data-on-click="adminSetTab(\'' + t + '\')">' + label + '</button>';
       overlay.innerHTML =
         '<div class="budwiz-shell">' +
           '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="display:flex; gap:8px; align-items:center;"><strong>\u2699 Administration</strong>' +
             tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + tabBtn('linkers', 'Linkers') + '</div>' +
-            '<button type="button" class="risk-btn" style="padding:4px 12px;" onclick="closeAdminPanel()">&times;</button>' +
+            '<button type="button" class="risk-btn" style="padding:4px 12px;" data-on-click="closeAdminPanel()">&times;</button>' +
           '</div>' +
           '<div class="budwiz-body">' + adminBodyHtml() + '</div>' +
         '</div>';
@@ -10769,7 +10779,7 @@
       const verb = dep && (dep.entriesUnderCurrent + dep.taxYearsSetUp.length) === 1 ? 'was' : 'were';
       banner.innerHTML =
         '<span>🔒 <strong>These settings are locked</strong> because ' + (what ? what + ' ' + verb + ' recorded against them' : 'entries have been recorded against them') + '. You can unlock and edit — the consequences are explained first.</span>' +
-        '<button type="button" onclick="unlockDecisionSettings()">Unlock to edit…</button>';
+        '<button type="button" data-on-click="unlockDecisionSettings()">Unlock to edit…</button>';
       setDecisionSettingsEnabled(false);
       saveBtn.textContent = '🔒 Locked';
       saveBtn.classList.add('btn-locked');
@@ -10924,7 +10934,7 @@
         const p = strategyPlanFor(settings);
         const r = stressTestStrategy(st.id, p);
         const d = getStrategy(st.id).describe();
-        let h = '<div class="alert alert-info">This plan\'s strategy is <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" onclick="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
+        let h = '<div class="alert alert-info">This plan\'s strategy is <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
         if (r.affordable) {
           const inc = r.cones.income, w = r.cones.wealth;
           h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Age</th><th>Income (middle)</th><th>Income (1-in-10 bad)</th><th>What is left (middle)</th></tr></thead><tbody>';
@@ -11169,7 +11179,7 @@
           ? `${monthNames[month - 1]} ${year}`
           : monthNames[month - 1];
 
-        tabsHtml += `<button class="${classes.join(' ')}"${stale ? ' title="Recorded under previous settings" style="opacity:.65;"' : ''} onclick="selectHistoryEntry('${h.date}')">${stale ? '◌ ' : ''}${dateLabel}</button>`;
+        tabsHtml += `<button class="${classes.join(' ')}"${stale ? ' title="Recorded under previous settings" style="opacity:.65;"' : ''} data-on-click="selectHistoryEntry('${h.date}')">${stale ? '◌ ' : ''}${dateLabel}</button>`;
       });
 
       tabsContainer.innerHTML = tabsHtml;
@@ -11253,7 +11263,7 @@
 
       let html = `
         <div class="no-print" style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-          <button class="btn secondary" onclick="printMonthlyReport('${h.date}')">Download PDF</button>
+          <button class="btn secondary" data-on-click="printMonthlyReport('${h.date}')">Download PDF</button>
         </div>
         <!-- Header with date and mode -->
         <div class="history-detail-card">
@@ -11467,7 +11477,7 @@
 
         <!-- Actions -->
         <div class="history-actions">
-          <button class="btn secondary" onclick="deleteHistoryEntry('${h.date}')">${(allHistoryData || []).some((x) => x.taxYear === h.taxYear && x.date > h.date) ? 'Delete this & later months in ' + h.taxYear : 'Delete Entry'}</button>
+          <button class="btn secondary" data-on-click="deleteHistoryEntry('${h.date}')">${(allHistoryData || []).some((x) => x.taxYear === h.taxYear && x.date > h.date) ? 'Delete this & later months in ' + h.taxYear : 'Delete Entry'}</button>
         </div>
       `;
 
@@ -11729,7 +11739,7 @@
         if (isActive) classes.push('active');
         if (!isSetup) classes.push('not-setup');
 
-        tabsHtml += `<button class="${classes.join(' ')}" onclick="selectTaxYear('${ty}')">${ty}</button>`;
+        tabsHtml += `<button class="${classes.join(' ')}" data-on-click="selectTaxYear('${ty}')">${ty}</button>`;
       });
 
       tabsContainer.innerHTML = tabsHtml;
@@ -11808,7 +11818,7 @@
           <div class="not-configured-message">
             <h3>Tax Year ${taxYear} Not Configured</h3>
             <p>This tax year hasn't been set up yet. Use the Decision Tool to calculate a decision for a month in this tax year to trigger the setup wizard.</p>
-            <button class="btn primary" onclick="triggerWizardForYear('${taxYear}')">Set Up ${taxYear}</button>
+            <button class="btn primary" data-on-click="triggerWizardForYear('${taxYear}')">Set Up ${taxYear}</button>
           </div>
         `;
         return;
@@ -11868,26 +11878,26 @@
           <div class="alert alert-info" style="margin-top:12px;"><strong>Rebalance:</strong> ${rebalanceMsg}</div>
         </div>`;
 
-      let html = `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" onclick="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" onclick="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
+      let html = `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" data-on-click="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" data-on-click="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
         <!-- Tax Thresholds -->
         <div class="tax-year-detail-card">
           <h3>Tax Thresholds</h3>
           <div class="tax-year-grid">
             <div class="tax-year-field">
               <label>Personal Allowance</label>
-              <input type="number" value="${config.pa || 12570}" onchange="updateTaxYear('${taxYear}','pa',this.value)">
+              <input type="number" value="${config.pa || 12570}" data-on-change="updateTaxYear('${taxYear}','pa',this.value)">
             </div>
             <div class="tax-year-field">
               <label>Basic Rate Limit</label>
-              <input type="number" value="${config.brl || 50270}" onchange="updateTaxYear('${taxYear}','brl',this.value)">
+              <input type="number" value="${config.brl || 50270}" data-on-change="updateTaxYear('${taxYear}','brl',this.value)">
             </div>
             <div class="tax-year-field">
               <label>Higher Rate Limit</label>
-              <input type="number" value="${config.hrl || 125140}" onchange="updateTaxYear('${taxYear}','hrl',this.value)">
+              <input type="number" value="${config.hrl || 125140}" data-on-change="updateTaxYear('${taxYear}','hrl',this.value)">
             </div>
             <div class="tax-year-field">
               <label>CPI (Previous Year)</label>
-              <input type="number" step="0.1" value="${((config.cpi || 0.04) * 100).toFixed(1)}" onchange="updateTaxYear('${taxYear}','cpi',this.value/100)">
+              <input type="number" step="0.1" value="${((config.cpi || 0.04) * 100).toFixed(1)}" data-on-change="updateTaxYearCpiPct('${taxYear}', this.value)">
             </div>
           </div>
         </div>
@@ -11902,7 +11912,7 @@
             </div>
             <div class="tax-year-field">
               <label>Other Taxable Income (Annual)</label>
-              <input type="number" value="${config.other || 0}" onchange="updateTaxYear('${taxYear}','other',this.value)">
+              <input type="number" value="${config.other || 0}" data-on-change="updateTaxYear('${taxYear}','other',this.value)">
             </div>
             <div class="tax-year-field">
               <label>State Pension (Annual)</label>
@@ -12011,8 +12021,8 @@
       // Actions
       html += `
         <div class="tax-year-actions">
-          <button class="btn secondary" onclick="deleteTaxYear('${taxYear}')">Delete Year</button>
-          <button class="btn secondary" onclick="reconfigureTaxYear('${taxYear}')">Reconfigure via Wizard</button>
+          <button class="btn secondary" data-on-click="deleteTaxYear('${taxYear}')">Delete Year</button>
+          <button class="btn secondary" data-on-click="reconfigureTaxYear('${taxYear}')">Reconfigure via Wizard</button>
         </div>
       `;
 
@@ -12044,7 +12054,7 @@
 
       // Scroll tab into view
       const tabsContainer = document.getElementById('taxYearTabs');
-      const activeTab = tabsContainer.querySelector(`.tax-year-tab[onclick="selectTaxYear('${taxYear}')"]`);
+      const activeTab = tabsContainer.querySelector(`.tax-year-tab[data-on-click="selectTaxYear('${taxYear}')"]`);
       if (activeTab) {
         activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }

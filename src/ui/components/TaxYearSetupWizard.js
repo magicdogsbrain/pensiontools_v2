@@ -238,7 +238,7 @@ function renderCpiAndSalary() {
 
       <div class="wizard-input" style="margin-bottom: 16px;">
         <span class="wizard-unit">CPI</span>
-        <input type="number" id="wizCPI" value="${cpiPercent}" step="0.1" style="max-width: 80px;" onchange="window._updateWizardSalary && window._updateWizardSalary()">
+        <input type="number" id="wizCPI" value="${cpiPercent}" step="0.1" style="max-width: 80px;" data-on-change="callIfDefined('_updateWizardSalary')">
         <span class="wizard-unit">%</span>
       </div>
 

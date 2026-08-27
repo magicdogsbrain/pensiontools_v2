@@ -163,10 +163,10 @@ function renderScenarioStep1() {
         <label style="display:block; font-size:13px; margin-bottom:6px;">Who's this plan for?</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
-            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerBlock').style.display='none'"> Just me
+            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} data-on-change="setDisplay('wizPartnerBlock','none')"> Just me
           </label>
           <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
-            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} onchange="document.getElementById('wizPartnerBlock').style.display='block'"> Me and a partner
+            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} data-on-change="setDisplay('wizPartnerBlock','block')"> Me and a partner
           </label>
         </div>
       </div>
@@ -212,7 +212,7 @@ function personAgeBlock(who, prefix, ageVal, retVal, retiredChecked) {
         </div>
         <label style="flex:0 0 auto; display:flex; align-items:center; gap:6px; font-size:13px; padding-bottom:8px; cursor:pointer;">
           <input type="checkbox" id="${retiredId}" ${retiredChecked ? 'checked' : ''} style="width:auto;"
-            onchange="document.getElementById('${retId}Label').textContent = this.checked ? 'Age you retired' : 'Target retirement age'">
+            data-on-change="wizRetiredToggle('${retId}Label', this.checked)">
           Already retired
         </label>
       </div>
@@ -389,7 +389,7 @@ function renderStressStep(step) {
               <label>Total in your SIPP (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
-                <input type="number" id="wizPot" oninput="updateAllocDisplay('wiz')">
+                <input type="number" id="wizPot" data-on-input="updateAllocDisplay('wiz')">
               </div>
             </div>
             <div class="wizard-grid-item">
@@ -403,14 +403,14 @@ function renderStressStep(step) {
 
           <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
           <div id="wizRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('wiz','cautious')">Cautious</button>
-            <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('wiz','balanced')">Balanced</button>
-            <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('wiz','adventurous')">Adventurous</button>
+            <button type="button" class="risk-btn" data-risk="cautious" data-on-click="setRiskPreset('wiz','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" data-on-click="setRiskPreset('wiz','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" data-on-click="setRiskPreset('wiz','adventurous')">Adventurous</button>
           </div>
           <div id="wizAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
 
           <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
-            <input type="checkbox" id="wizEquityGlide" onchange="updateAllocDisplay('wiz')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <input type="checkbox" id="wizEquityGlide" data-on-change="updateAllocDisplay('wiz')" style="width:auto;margin-right:10px;margin-top:2px;">
             <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
           </label>
 
@@ -551,7 +551,7 @@ function renderDecisionStep(step) {
               <label>Total in your SIPP (£)</label>
               <div class="wizard-input">
                 <span class="wizard-unit">£</span>
-                <input type="number" id="wizDPot" oninput="updateAllocDisplay('wizD')">
+                <input type="number" id="wizDPot" data-on-input="updateAllocDisplay('wizD')">
               </div>
             </div>
             <div class="wizard-grid-item">
@@ -565,14 +565,14 @@ function renderDecisionStep(step) {
 
           <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
           <div id="wizDRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="risk-btn" data-risk="cautious" onclick="setRiskPreset('wizD','cautious')">Cautious</button>
-            <button type="button" class="risk-btn" data-risk="balanced" onclick="setRiskPreset('wizD','balanced')">Balanced</button>
-            <button type="button" class="risk-btn" data-risk="adventurous" onclick="setRiskPreset('wizD','adventurous')">Adventurous</button>
+            <button type="button" class="risk-btn" data-risk="cautious" data-on-click="setRiskPreset('wizD','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" data-on-click="setRiskPreset('wizD','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" data-on-click="setRiskPreset('wizD','adventurous')">Adventurous</button>
           </div>
           <div id="wizDAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
 
           <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
-            <input type="checkbox" id="wizDEquityGlide" onchange="updateAllocDisplay('wizD')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <input type="checkbox" id="wizDEquityGlide" data-on-change="updateAllocDisplay('wizD')" style="width:auto;margin-right:10px;margin-top:2px;">
             <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
           </label>
 

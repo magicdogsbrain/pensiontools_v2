@@ -2070,6 +2070,16 @@
       /* Result charts are drawn in 660–680px user units; squeezed to 350px their labels are ~5px.
          Keep them legible and let the reader swipe instead. */
       svg.ichart { display: block; min-width: 600px; }
+      /* Budget walk-through rows on a phone: name; then amount | /mo | Σ | ⏱ | × on one line; chip below */
+      .budwiz-row { gap: 6px 6px; }
+      .budwiz-name { flex: 1 1 100%; min-width: 0; }
+      .budwiz-amt { flex: 1 1 auto; min-width: 0; }
+      .budwiz-amt input { min-width: 0; width: 100%; }
+      .budwiz-row > button.risk-btn { flex: 0 0 auto; }
+      .budwiz-chipslot { flex: 1 1 100%; order: 10; }
+      .budwiz-chipslot:empty { display: none; }
+      .budwiz-body { padding: 4px 12px 16px; }
+      .budwiz-head { padding: 12px 12px 6px; }
       /* Strategy matrix: one card per strategy with labelled rows instead of a six-column swipe */
       .cmp-matrix-wrap { overflow: visible !important; }
       .cmp-matrix { min-width: 0 !important; width: 100% !important; }

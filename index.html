@@ -4381,6 +4381,20 @@
       resetDecisionSubTabs();
       clearStressResults();
 
+      // A ?demo= link for a signed-in visitor: add the demo plan to their account (once) and open it.
+      if (window._pendingDemo && !user.isGuest && DEMO_PLANS[window._pendingDemo]) {
+        const demo = DEMO_PLANS[window._pendingDemo]; window._pendingDemo = null;
+        try {
+          const list = await listScenariosAsync();
+          const existing = list.find((sc) => sc.planDetails?.name === demo.name);
+          if (existing) { if (!existing.isActive) await switchScenario(existing.id); }
+          else await createNewScenario(demo.name, 'From a shared demo link. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
+          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+          await renderScenarioSelector();
+          initialTab = demo.tab;
+          if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 400);
+        } catch (e) { console.warn('demo link', e); }
+      }
       // Determine which tab to show
       const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
       updateNextStepBanner();
@@ -4729,25 +4743,44 @@
         hideLandingPage();
         showAuthScreenWithTab('signin');
       },
-      onTryGuest: async () => {
-        // Guest mode: a synthetic user, storage in this tab only (sessionStorage), nothing sent anywhere.
-        try {
-          const user = enterGuestMode();
-          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
-          const list = await listScenariosAsync();
-          if (!list.length) {
-            await createNewScenario('Try-it plan', 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], {
-              stressSettings: { configured: true, equityMin: 250000, bondMin: 150000, cashTarget: 50000, isaBalance: 50000, baseSalary: 30000, duration: 32, shapeAgeNow: 60, currentAge: 60, statePension: 11973, statePensionYear: 7 }
-            }, true);
-            invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
-          }
-          hideLandingPage();
-          await showMainApp(user, 'stress');
-          const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
-          showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
-        } catch (e) { console.error('guest mode', e); showToast('Could not start guest mode: ' + e.message, 'error'); }
-      }
+      onTryGuest: () => startGuest(null)
     });
+    // Demo plans that can be deep-linked (?demo=1m): the r/FiredUK £1M example — £40k rising with
+    // inflation from 56, 700/200/100 pots for the flexible strategies, a 15-rung ladder with reviews
+    // at 5/10/15 for Ladder & Ratchet, State Pension at 67.
+    const DEMO_PLANS = {
+      '1m': { name: 'r/FiredUK — £1M, £40k rising', tab: 'strategies', page: 'overview',
+        stress: { configured: true, equityMin: 700000, bondMin: 200000, cashTarget: 100000, diversifierStart: 0, isaBalance: 0, isaDrawdownStrategy: 'hold', baseSalary: 40000, duration: 39, shapeAgeNow: 56, currentAge: 56, statePension: 11973, statePensionYear: 11, riskMode: 'risk', strategyId: 'pots-and-valves', strategyParams: { ladderYears: 15, triggerMode: 'calendar', bandThreshold: 1.2, cashYears: 3, bridgeAge: 67 } } },
+      'default': { name: 'Try-it plan', tab: 'stress', page: null,
+        stress: { configured: true, equityMin: 250000, bondMin: 150000, cashTarget: 50000, isaBalance: 50000, baseSalary: 30000, duration: 32, shapeAgeNow: 60, currentAge: 60, statePension: 11973, statePensionYear: 7 } }
+    };
+    async function startGuest(demoKey) {
+      // Guest mode: a synthetic user, storage in this tab only (sessionStorage), nothing sent anywhere.
+      const demo = DEMO_PLANS[demoKey] || DEMO_PLANS['default'];
+      try {
+        const user = enterGuestMode();
+        invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        const list = await listScenariosAsync();
+        if (!list.some((sc) => sc.planDetails?.name === demo.name)) {
+          await createNewScenario(demo.name, 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
+          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        }
+        hideLandingPage();
+        await showMainApp(user, demo.tab);
+        const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
+        if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 300);
+        showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
+      } catch (e) { console.error('guest mode', e); showToast('Could not start guest mode: ' + e.message, 'error'); }
+    }
+    window.startGuest = startGuest;
+    // ?demo=<key>: straight into the demo as a guest (a signed-in visitor gets the demo plan added instead).
+    try {
+      const demoKey = new URLSearchParams(location.search).get('demo');
+      if (demoKey && DEMO_PLANS[demoKey]) {
+        window._pendingDemo = demoKey;
+        setTimeout(async () => { if (window._pendingDemo && !isLoggedIn()) { window._pendingDemo = null; await startGuest(demoKey); } }, 1500);
+      }
+    } catch (e) { /* ignore */ }
 
     // Logout button handler
     document.getElementById('logoutBtn').addEventListener('click', async () => {

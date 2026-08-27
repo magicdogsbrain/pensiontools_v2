@@ -5519,9 +5519,12 @@
     function renderStressStartSummary(s) {
       const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
       const div = (s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart)}` : '';
+      const spNote = (!s.spStartDate || !s.spWeeklyAmount)
+        ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
+        : '';
       const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
         `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. ` +
-        'Edit them in the Settings tab.';
+        'Edit them in the Settings tab.' + spNote;
       ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = text;
@@ -8481,9 +8484,9 @@
         // ---- Where the money comes from, year by year ----
         const rows = householdIncomeTimeline(ownSettings, partnerSettings);
         html += '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
-        const bridgeYears = rows.filter((row) => row.bridge).length;
-        if (bridgeYears > 0) {
-          html += '<div class="alert alert-info">Until <strong>' + yr(bridgeYears) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked 🌉) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
+        const lastBridge = rows.filter((row) => row.bridge).pop();
+        if (lastBridge) {
+          html += '<div class="alert alert-info">Until <strong>' + yr(lastBridge.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked 🌉) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
         }
         html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + ownName + ' needs</th><th>' + pName + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
         const marks = new Set([0]);

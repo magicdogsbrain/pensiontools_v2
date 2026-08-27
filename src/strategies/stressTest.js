@@ -87,7 +87,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   const spWeekly = cfg.spWeeklyAmount || settings.spWeeklyAmount || 0;
   const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
   const spStartYear = cfg.spStartYear ?? cfg.statePensionYear ?? settings.statePensionYear ?? 99;
-  const durationYears = Math.min(settings.duration || cfg.duration || 35, 35);
+  const durationYears = Math.min(settings.duration || cfg.duration || 35, 45);   // 45y: the linker universe and 150y windows both cover it
   // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
   // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat.
   const rawSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : scheduleFromSteps(settings, startAge);

@@ -5519,9 +5519,14 @@
     function renderStressStartSummary(s) {
       const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
       const div = (s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart)}` : '';
-      const spNote = (!s.spStartDate || !s.spWeeklyAmount)
-        ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
-        : '';
+      // Some callers pass only the allocation slice; the SP note needs the full settings object.
+      const knowsSp = ('spStartDate' in s) || ('statePension' in s);
+      const spNote = knowsSp
+        ? ((!s.spStartDate || !s.spWeeklyAmount)
+          ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
+          : '')
+        : (window._lastSpNote || '');
+      window._lastSpNote = spNote;
       const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
         `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. ` +
         'Edit them in the Settings tab.' + spNote;
@@ -7457,6 +7462,7 @@
     };
     window._shapeRefs = { essentials: 0, budgetGross: 0 };
     async function refreshShapeRefs() {
+      window._shapeRefs = { essentials: 0, budgetGross: 0 };   // never carry another plan's budget lines over
       try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null }; } } catch (e) {}
     }
     window.renderIncomeShapePreview = function () {

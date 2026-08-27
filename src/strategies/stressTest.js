@@ -266,12 +266,22 @@ function flexTest(p, configs) {
     return { wealth, income };
   };
   const mcE = mc.windows.map(enrich);
+  const hE = h.windows.map(enrich);
   const terms = mc.windows.map((w) => w.terminal);
   const sleeveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
   const treatsCone = bandOf(mc.windows, (w, y) => w.dByYear[Math.min(y, w.dByYear.length - 1)], planYears);
+  // The bills cannot fail, so "ruin" here is the honest risk: a year that pays LESS THAN THE PLAN
+  // (essentials + treats below the income the plan asked for). Coverage = share of planned income delivered.
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const plannedAt = (y) => (sched ? (sched[Math.min(y, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual) + otherAt(p, y);
+  const paidInFull = (e) => e.income.every((v, y) => v >= plannedAt(y) * 0.995);
+  const covOf = (arr) => 100 * arr.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, plannedAt(y))), 0) / (planYears + 1), 0) / Math.max(1, arr.length);
   return {
     affordable: true,
-    ruin: { hist: 0, mc: 0 },   // essentials are bought; a %-of-pot sleeve cannot deplete
+    ruin: { hist: 100 * hE.filter((e) => !paidInFull(e)).length / Math.max(1, hE.length), mc: 100 * mcE.filter((e) => !paidInFull(e)).length / Math.max(1, mcE.length) },
+    ruinLabel: 'chance at least one year pays less than the plan (the bills are always paid — the treats shrank)',
+    coverage: covOf(mcE),
+    survivedMc: mcE.map(paidInFull),
     worst12: { min: p.essentialsAnnual + h.stats.worstMin, median: p.essentialsAnnual + h.stats.worstMedian },
     guaranteedToAge: `${ff.horizonAge} by contract (essentials)`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },

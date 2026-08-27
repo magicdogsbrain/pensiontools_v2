@@ -104,7 +104,11 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
   it('the strategies genuinely differ on the same plan (a switch changes what you see)', () => {
     const { all } = compareTab(PERSONAS['comfortable 600k+150k ISA, £36k']);
     const pv = all.strategies['pots-and-valves'], lr = all.strategies['ladder-and-ratchet'], ff = all.strategies['floor-and-flex'];
-    expect(ff.ruin.mc).toBe(0);
+    // Floor & Flex cannot run out (failAges empty); its 'ruin' is the honest risk of a year below the plan.
+    expect(ff.failAges).toEqual([]);
+    expect(ff.ruinLabel).toMatch(/less than the plan/);
+    expect(ff.ruin.mc).toBeGreaterThanOrEqual(0);
+    expect(ff.ruin.mc).toBeLessThanOrEqual(100);
     expect(ff.guaranteedToAge).toMatch(/by contract/);
     expect(lr.guaranteedToAge).toMatch(/^72 by contract/);
     expect(lr.worst12.median).toBe(36000);

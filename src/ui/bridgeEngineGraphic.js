@@ -30,7 +30,8 @@ export function bridgeEngineSvg(d, frame = 4, o = {}) {
   const y0 = H - padB;
   const yInc = (v) => y0 - (v / maxIncome) * (y0 - incTop);
   const wc = d.wealthCone || { p10: [], p50: [], p90: [] };
-  const maxRes = Math.max(d.restCostFull || 0, ...(d.engineCone || []).map((c) => c.p90), ...(wc.p90 || []), 1);
+  // Scale on the bridge-era band and the post-bridge MEDIAN (the good tail after the bridge would squash the band that matters).
+  const maxRes = Math.max(d.restCostFull || 0, ...(d.engineCone || []).map((c) => c.p90), ...(wc.p50 || []).map((v) => v * 1.15), 1);
   const yRes = (v) => incTop - 10 - (Math.max(0, v) / maxRes) * (incTop - 10 - padT);
   const xB = padL + d.B * colW;
   const xs = (i) => padL + i * colW + colW / 2;
@@ -66,7 +67,7 @@ export function bridgeEngineSvg(d, frame = 4, o = {}) {
     s += `<polyline points="${idx.map((i) => xs(i).toFixed(1) + ',' + yRes(wc.p50[i]).toFixed(1)).join(' ')}" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-dasharray="6 3"/>`;
     if (d.restCostFull) {
       s += `<line x1="${(xB - colW * 3).toFixed(1)}" y1="${yRes(d.restCostFull).toFixed(1)}" x2="${(xB + colW * 3).toFixed(1)}" y2="${yRes(d.restCostFull).toFixed(1)}" stroke="#f97316" stroke-width="2"/>`;
-      s += `<text x="${(xB + colW * 3 + 4).toFixed(1)}" y="${(yRes(d.restCostFull) - 4).toFixed(1)}" font-size="10" fill="#f97316">buying the rest by contract would cost ${gbpK(d.restCostFull)} at ${d.bridgeAge}</text>`;
+      s += `<text x="${(xB + colW * 3 + 4).toFixed(1)}" y="${(yRes(d.restCostFull) + 12).toFixed(1)}" font-size="10" fill="#f97316">buying the rest by contract would cost ${gbpK(d.restCostFull)} at ${d.bridgeAge}</text>`;
     }
     if (d.failAgeP10) {
       const xf = padL + (d.failAgeP10 - d.startAge) * colW;

@@ -4771,6 +4771,7 @@
     async function renderScenarioSelector() {
       const scenarios = await listScenariosAsync();
       const active = scenarios.find(s => s.isActive);
+      window._hasPlans = scenarios.length > 0;   // the setup wizard words itself differently for a second plan
 
       // Update active scenario name in button
       const nameEl = document.getElementById('scenarioActiveName');
@@ -4971,8 +4972,17 @@
 
       try {
         let carry = true;
-        try { if (await planHasRecords()) carry = await appConfirm('Copy the recorded history (monthly entries) into the new plan as well?\n\nEither way the copy starts as an editable draft.', { okLabel: 'Copy with history', cancelLabel: 'Settings only' }); } catch (e) { /* default: carry */ }
-        await duplicateScenario(active.id, name.trim(), { carryHistory: carry });
+        try { if (await planHasRecords()) carry = await appConfirm('Copy the recorded history (monthly entries) into the new plan as well?\n\nSettings only gives you an editable draft. Copying the history keeps those months on the record, so the copy starts locked like this plan (you can unlock it).', { okLabel: 'Copy with history', cancelLabel: 'Settings only' }); } catch (e) { /* default: carry */ }
+        const copy = await duplicateScenario(active.id, name.trim(), { carryHistory: carry });
+        const copyId = copy?.id || copy;
+        if (copyId && typeof copyId === 'string') {
+          // Land in the copy — that is what "duplicate" is for. Same reload path as picking it from the menu.
+          await switchScenario(copyId);
+          invalidateCache(); invalidateStressCache();
+          showToast('"' + name.trim() + '" created — you are now in the copy.', 'success', 4000);
+          location.reload();
+          return;
+        }
         await renderScenarioSelector();
       } catch (error) {
         console.error('Error duplicating scenario:', error);

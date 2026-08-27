@@ -109,7 +109,8 @@ export function deriveCompareConfigs(p) {
       ? { mode: 'calendar', reviews: Array.from({ length: Math.floor(ladderYears / 5) }, (_, i) => (i + 1) * 60) }
       : { mode: 'band', b: prm.bandThreshold || 1.2 },
     END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
-    baseLadderCost, drawNetOfSp: drawNet
+    baseLadderCost, drawNetOfSp: drawNet,
+    mcSeed: (i) => i * 7919 + 3   // one market per future index, shared with every other strategy
   } : null;
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.

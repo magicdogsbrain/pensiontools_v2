@@ -92,3 +92,17 @@ describe('scoreStrategy — coverage ratio and volatility-adjusted coverage', ()
     expect(a.vac).toBeGreaterThan(b.vac);
   });
 });
+
+import { calcDecisionPWA } from '../src/services/legacyDecision.js';
+import { getDecisionSettings } from '../src/storage/DecisionRepository.js';
+describe('Decision tool executes Buckets in order', () => {
+  it('with equities below their path and cash available, the month comes from cash; P&V would have used the overweight sleeve', async () => {
+    const settings = { ...getDecisionSettings(), equityMin: 500000, bondMin: 400000, cashTarget: 200000, baseSalary: 60000, isaBalance: 0, configured: true };
+    const ty = { '26/27': { taxYear: '26/27', confirmedSalary: 60000, pa: 12570, brl: 50270, hrl: 125140, startMonth: 4, remainingMonths: 12, isTaxEfficient: false, expectedMonthly: { sipp: { gross: 5000 } } } };
+    const deps = { settings, history: [], allTaxYears: ty, spInfo: { amount: 0, isReceiving: false }, isaBalance: 0 };
+    const ordered = await calcDecisionPWA('2026-06', 450000, 480000, 150000, { ...deps, sourcingMode: 'ordered' });
+    expect(ordered.source).toBe('Cash');
+    const pnv = await calcDecisionPWA('2026-06', 450000, 480000, 150000, deps);
+    expect(pnv.source).not.toBe('Cash');
+  });
+});

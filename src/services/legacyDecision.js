@@ -17,7 +17,7 @@ import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
-import { planSourcing } from './WithdrawalSourcing.js';
+import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -407,14 +407,19 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
       // Identical module and numbers to the Stress engine — one rules engine, two surfaces:
       // the sim EXECUTES this plan; here it becomes the month's recommendation.
-      const sourcing = planSourcing({
+      const sourcingInputs = {
         draw: sipp,
         equity, bond, cash,
         diversifier, diversifierTarget: deps.diversifierTarget || diversifier || 0,
         hodl: 0,
         eqMin: adjEquity, bdMin: adjBond, csTarget: adjCash,
         inProtection
-      });
+      };
+      // Buckets in order (deps.sourcingMode): equities pay while at/above their £ path — here the
+      // plan's equity floor for the year, the same line the Stress engine's path depletes to.
+      const sourcing = deps.sourcingMode === 'ordered'
+        ? planSourcingOrdered({ ...sourcingInputs, eqPath: deps.equityPath != null ? deps.equityPath : adjEquity, band: deps.bucketBand ?? 0.10 })
+        : planSourcing(sourcingInputs);
       const source = sourcing.source;
       const reason = sourcing.reason;
       const dEquity = sourcing.fromEquity;

@@ -114,6 +114,16 @@ function buildTaxSummary(d) {
     html += '</div>';
   }
 
+  // Cadence: a quarterly / annual batch — the same monthly recommendation, sold once and parked.
+  const cm = d.cadenceMonths || 1;
+  if (cm > 1) {
+    const total = (d.sippDraw || 0) * cm, isaT = (d.isaMonthly || 0) * cm;
+    const src = d.strategyOverlay && d.strategyOverlay.hidePots ? d.strategyOverlay.floorLabel : (details.source || 'the recommended pot');
+    html += '<div class="callout" style="margin-top:12px;">'
+      + `<strong>${cm === 12 ? 'Your annual batch' : 'Your quarterly batch'}:</strong> sell ${formatCurrency(total)} from ${src} now (${cm} × ${formatCurrency(d.sippDraw || 0)}), leave it as cash inside the SIPP, and let the platform pay ${formatCurrency(d.sippDraw || 0)} a month to your bank.`
+      + (isaT > 0 ? ` Plus ${formatCurrency(isaT)} from the ISA over the period.` : '')
+      + ` Save records all ${cm} months; come back after the period with fresh values.</div>`;
+  }
   // Mode explanation — under a contract strategy (rung pays; nothing is sold) the Pots & Valves
   // reasoning ("Below min", "Growth") does not apply, so only the tax-mode line is shown.
   const contract = d.strategyOverlay && d.strategyOverlay.hidePots;

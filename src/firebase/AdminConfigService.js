@@ -113,8 +113,9 @@ export async function initAdminConfig() {
 /** Save the full fund catalogue as the cloud override and make it live immediately. */
 export async function saveFundCatalogueOverride(funds) {
   const clean = (funds || [])
-    .filter((f) => f.ticker && f.subClass)
-    .map((f) => ({ ticker: String(f.ticker).toUpperCase().trim(), name: String(f.name || ''), subClass: f.subClass }));
+    .map((f) => ({ ticker: String(f.ticker || '').toUpperCase().trim(), name: String(f.name || '').slice(0, 80), subClass: f.subClass }))
+    // Tickers are rendered into attributes/handlers across the app: allow only the ticker alphabet.
+    .filter((f) => /^[A-Z0-9.\-]{1,12}$/.test(f.ticker) && f.subClass);
   await setDoc(doc(db, 'admin', 'fundCatalogue'), { funds: clean, updatedAt: serverTimestamp() });
   _catalogue = Object.freeze([...clean].sort((a, b) => a.ticker.localeCompare(b.ticker)));
   return _catalogue.length;

@@ -1,12 +1,12 @@
 # PensionTools — Privacy Policy
 
-_Last updated: 3 August 2026. Note: swap `cpbooth@gmail.com` for a company email._
+_Last updated: 27 August 2026._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
 (company number **17360947**), registered office **71-75 Shelton Street, Covent Garden, London,
 WC2H 9JQ**. Usefulish Ltd is the **data controller** for the personal data described here.
-Contact for any privacy question or request: **cpbooth@gmail.com**.
+Contact for any privacy question or request: **privacy@usefulish.uk**.
 Usefulish Ltd is registered with the Information Commissioner's Office (ICO), registration
 reference **ZC209401** (registered 29 July 2026).
 
@@ -54,12 +54,12 @@ can be improved. No financial amounts are included.
 ## How long we keep it
 We keep your account and saved plans until you delete them. In the app you can wipe your saved
 data at any time ("Reset"), or permanently delete your account **and** all data ("Delete
-Account"). You can also ask us to delete everything by emailing **cpbooth@gmail.com**.
+Account"). You can also ask us to delete everything by emailing **privacy@usefulish.uk**.
 
 ## Your rights
 Under UK GDPR you can ask us to: access a copy of your data; correct it; delete it ("right to
 erasure"); restrict or object to processing; or receive it in a portable format. Email
-**cpbooth@gmail.com** and we will respond within one month. You can also complain to the ICO
+**privacy@usefulish.uk** and we will respond within one month. You can also complain to the ICO
 (ico.org.uk).
 
 ## Security

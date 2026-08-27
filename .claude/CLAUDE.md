@@ -11,10 +11,10 @@ pension/ISA/SIPP figures, State Pension forecast, tax details, and a full househ
 health-related and dependent/partner spend), tied to each logged-in user — so security and
 documentation matter. Compliance work + the privacy policy live in **`compliance/`**:
 
-- `compliance/GDPR_TODO.md` — prioritised, file-referenced checklist. **P1 is CRITICAL:** there is
-  no `firestore.rules` in the repo — verify/add rules that lock each user to their own
-  `users/{uid}` data. Then: enforce email verification, add account deletion, confirm the Firestore
-  region, fix the (inaccurate) README.
+- `compliance/GDPR_TODO.md` — prioritised, file-referenced checklist. `firestore.rules` exists and
+  locks every path to `users/{uid}` (admin/* and fundSuggestions have their own rules); email
+  verification is enforced; account deletion wipes Firestore + auth. Keep the live rules in step with
+  the file (`firebase deploy --only firestore:rules`) whenever the rules change.
 - `compliance/PRIVACY_POLICY.md` — the policy to publish and link from the app.
 
 If working on authentication, Firestore reads/writes, the scenario/decision/budget models, or the

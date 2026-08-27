@@ -2016,6 +2016,69 @@
       pointer-events: none;
     }
   </style>
+
+    <style id="mobileShell">
+    /* ===== Mobile shell (≤700px): compact header + menu sheet, fixed bottom tab bar, pill sub-tabs ===== */
+    #mobileTabBar, #mobileSheet, #mobileMenuBtn { display: none; }
+    @media (max-width: 700px) {
+      .app-container { padding: 10px 10px 84px; }
+      .header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 0 8px; text-align: left; }
+      .header h1 { display: none; }
+      .header .scenario-selector { width: auto; justify-content: flex-start; min-width: 0; }
+      .header .scenario-selector-label { display: none; }
+      .header .scenario-active-btn { max-width: none; width: 100%; display: flex; align-items: center; gap: 6px; }
+      .header .scenario-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      .header .scenario-dropdown { left: 0; transform: none; min-width: min(320px, 92vw); }
+      .header .header-actions { display: none; }
+      #mobileMenuBtn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; }
+      /* main tabs move to the bottom bar */
+      .tabs-wrapper { display: none; }
+      #mobileTabBar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: var(--card); border-top: 1px solid var(--border); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+      #mobileTabBar button { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; border-radius: 8px; min-height: 48px; cursor: pointer; }
+      #mobileTabBar button .ico { font-size: 20px; line-height: 1; }
+      #mobileTabBar button.active { color: var(--primary); }
+      /* sub-tabs: one scrollable row of pills with an edge fade */
+      .sub-tabs { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; gap: 6px; padding: 4px 24px 4px 4px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); scroll-snap-type: x proximity; margin-bottom: 12px; }
+      .sub-tabs::-webkit-scrollbar { display: none; }
+      .sub-tab { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: 13px; border-radius: 999px; scroll-snap-align: start; }
+      /* generic content fixes */
+      .card { padding: 12px; }
+      .keynums { grid-template-columns: 1fr 1fr; }
+      .kn-val { font-size: 20px; }
+      .form-grid { grid-template-columns: 1fr !important; }
+      .row-flex { flex-wrap: wrap; }
+      .row-flex > input, .row-flex > select { flex: 1 1 120px; min-width: 0; }
+      .table-wrap, .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+      .card > table, .settings-section > table, .strat-block > table { display: block; overflow-x: auto; max-width: 100%; }
+      .machine-scroll { overflow-x: auto; }
+      .strat-page h2 { font-size: 17px; }
+      .strat-nav { display: flex; overflow-x: auto; flex-wrap: nowrap !important; gap: 6px; padding-bottom: 6px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+      .strat-nav-item { flex: 0 0 auto; border-radius: 999px; }
+      .toast { left: 10px; right: 10px; bottom: 80px; max-width: none; }
+      #nextStepBanner { flex-direction: column; align-items: stretch; }
+      .assump-kv { display: block; }
+      .assump-kv > div { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    }
+    /* bottom sheet (all sizes; only opened from the mobile menu) */
+    #mobileSheet { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.55); }
+    #mobileSheet.open { display: block; }
+    #mobileSheet .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 16px 16px 0 0; padding: 12px 14px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
+    #mobileSheet .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 10px; }
+    #mobileSheet .sheet button { display: flex; width: 100%; align-items: center; gap: 10px; background: none; border: none; color: var(--text); font-size: 15px; padding: 13px 6px; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; min-height: 48px; }
+    #mobileSheet .sheet button.danger { color: #f87171; }
+    #mobileSheet .sheet .who { font-size: 12px; color: var(--text-muted); padding: 4px 6px 10px; word-break: break-all; }
+    /* Assumptions page: accordion sections, key/value rows */
+    .assump details { border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; background: var(--card-alt); }
+    .assump summary { cursor: pointer; padding: 10px 12px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .assump summary::after { content: '+'; color: var(--text-muted); font-weight: 400; }
+    .assump details[open] summary::after { content: '–'; }
+    .assump .assump-kv { padding: 0 12px 10px; }
+    .assump .assump-kv > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .assump .assump-kv > div:last-child { border-bottom: none; }
+    .assump .assump-kv .k { color: var(--text-muted); }
+    .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
+    @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
+    </style>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2060,6 +2123,7 @@
             </div>
           </div>
         </div>
+        <button type="button" id="mobileMenuBtn" aria-label="Menu" onclick="openMobileMenu()">&#8801;</button>
         <div class="header-actions">
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
@@ -2070,6 +2134,14 @@
           </div>
         </div>
       </header>
+      <nav id="mobileTabBar" aria-label="Main">
+        <button type="button" data-mtab="budget" onclick="mobileGo('budget')"><span class="ico">&#128203;</span>Budget</button>
+        <button type="button" data-mtab="stress" onclick="mobileGo('stress')"><span class="ico">&#128200;</span>Stress</button>
+        <button type="button" data-mtab="strategies" onclick="mobileGo('strategies')"><span class="ico">&#9878;&#65039;</span>Strategies</button>
+        <button type="button" data-mtab="decision" onclick="mobileGo('decision')"><span class="ico">&#128183;</span>Decide</button>
+        <button type="button" data-mtab="more" onclick="openMobileMore()"><span class="ico">&#8943;</span>More</button>
+      </nav>
+      <div id="mobileSheet" onclick="if (event.target === this) closeMobileSheet()"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
       <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -3798,9 +3870,9 @@
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
 
     // Expose for optimization
-    window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };
+    window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };   // engine functions only (no data); the second inline module reads them
     // Read-only debug hooks (no writes): lets a console inspect what the plan lock sees.
-    window._ptDebug = { getDecisionSettingsAsync, getHistoryAsync, decisionSettingsChecksum, planDependents, getAllTaxYearsAsync, getStressSettingsAsync };
+    if (import.meta.env.DEV) window._ptDebug = { getDecisionSettingsAsync, getHistoryAsync, decisionSettingsChecksum, planDependents, getAllTaxYearsAsync, getStressSettingsAsync };
     window._constants = { EQUITY_RETURNS, INFLATION };
     // Nightly gilt closing prices (public/data/gilts.json) → real-yield curve for the ladder
     // strategies. Fire-and-forget; the bundled snapshot serves until it lands or if it fails.
@@ -3938,10 +4010,10 @@
 
       const toast = document.createElement('div');
       toast.className = `toast-notification ${type}`;
-      toast.innerHTML = `
-        <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '!' : 'ℹ'}</span>
-        <span class="toast-message">${message}</span>
-      `;
+      // textContent, never innerHTML: messages carry user/remote strings (plan names, tickers, errors).
+      const tIcon = document.createElement('span'); tIcon.className = 'toast-icon'; tIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '!' : 'ℹ';
+      const tMsg = document.createElement('span'); tMsg.className = 'toast-message'; tMsg.textContent = String(message ?? '');
+      toast.append(tIcon, tMsg);
       document.body.appendChild(toast);
 
       // Trigger animation
@@ -4660,8 +4732,8 @@
       }
 
       listEl.innerHTML = scenarios.map(s => {
-        const name = s.planDetails?.name || s.name || 'Unnamed Plan';
-        const desc = s.planDetails?.description || s.description || '';
+        const name = budEsc(s.planDetails?.name || s.name || 'Unnamed Plan');
+        const desc = budEsc(s.planDetails?.description || s.description || '');
         return `
         <div class="scenario-dropdown-item ${s.isActive ? 'active' : ''}" data-scenario-id="${s.id}">
           <div>
@@ -6802,7 +6874,7 @@
     function ensureFundDatalist(p, force = false) {
       const dl = document.getElementById(p + 'FundCatalogue');
       if (dl && (force || !dl.childElementCount)) {
-        dl.innerHTML = activeFundCatalogue().map(f => '<option value="' + f.ticker + '">' + f.ticker + ' — ' + f.name + '</option>').join('');
+        dl.innerHTML = activeFundCatalogue().map(f => '<option value="' + budEsc(f.ticker) + '">' + budEsc(f.ticker) + ' — ' + budEsc(f.name) + '</option>').join('');
       }
     }
     // The effective sub-class for a holding: an explicit override, else the LIVE catalogue default.
@@ -6847,8 +6919,8 @@
       const matches = searchFunds(query);
       if (!query.trim() || !matches.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
       box.innerHTML = matches.map(f =>
-        '<div class="fund-search-item" onmousedown="addFundFromSearch(\'' + p + '\',\'' + f.ticker + '\')" style="padding:7px 10px; cursor:pointer;">' +
-        '<strong>' + f.ticker + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + f.name + '</span></div>'
+        '<div class="fund-search-item" data-p="' + budEsc(p) + '" data-ticker="' + budEsc(f.ticker) + '" onmousedown="addFundFromSearch(this.dataset.p, this.dataset.ticker)" style="padding:7px 10px; cursor:pointer;">' +
+        '<strong>' + budEsc(f.ticker) + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + budEsc(f.name) + '</span></div>'
       ).join('');
       box.style.display = 'block';
     };
@@ -6901,7 +6973,7 @@
       ensureFundDatalist(p);
       tb.innerHTML = funds(p).map((f, i) =>
         '<tr>' +
-        '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + (f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
+        '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + budEsc(f.ticker || '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
         '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" oninput="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" onblur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
         '<td style="padding:3px 6px;"><select onchange="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
         '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categoryCellHtml(p, i, f) + '</td>' +
@@ -6916,7 +6988,7 @@
       if (field === 'value') {
         f.value = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;   // strip thousands separators
       } else if (field === 'ticker') {
-        f.ticker = val;
+        f.ticker = String(val || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 12);   // tickers only: letters, digits, dot, dash
         // Seed the category from the catalogue on a recognised ticker (user can still change it).
         const cat = liveCatalogueEntry(val);
         if (cat) f.subClass = cat.subClass;
@@ -7163,7 +7235,7 @@
     };
     window.exportAnnualCsv = function(taxYear) {
       const rows = (typeof allHistoryData !== 'undefined' ? allHistoryData : []).filter(h => h.taxYear === taxYear).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-      const esc = v => { v = (v == null ? '' : String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      const esc = v => { v = (v == null ? '' : String(v)); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;   /* spreadsheet formula injection */ return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       const r0 = v => Math.round(v || 0);
       const cols = ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
       let csv = cols.map(esc).join(',') + '\n';
@@ -7299,6 +7371,36 @@
       try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
       document.getElementById('nextStepBanner').style.display = 'none';
     };
+    // ---- Mobile shell: bottom bar proxies the real .tab buttons; the ≡ menu is a bottom sheet ----
+    window.mobileGo = function (name) { document.querySelector('.tab[data-tab="' + name + '"]')?.click(); closeMobileSheet(); window.scrollTo({ top: 0 }); };
+    window.closeMobileSheet = function () { const sh = document.getElementById('mobileSheet'); if (sh) sh.classList.remove('open'); };
+    function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
+    window.openMobileMore = function () {
+      const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
+      openSheet('<button type="button" onclick="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
+        + (vis('household') ? '<button type="button" onclick="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
+        + '<button type="button" onclick="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>');
+    };
+    window.openMobileMenu = function () {
+      const email = document.getElementById('userEmail')?.textContent || '';
+      const admin = document.getElementById('adminGearBtn'); const adminVis = admin && admin.style.display !== 'none';
+      openSheet('<div class="who">' + budEsc(email) + '</div>'
+        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioActiveBtn\').click();">&#128194; Switch plan</button>'
+        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioNewBtn\').click();">&#10133; New plan</button>'
+        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'scenarioDuplicateBtn\').click();">&#128203; Duplicate this plan</button>'
+        + (adminVis ? '<button type="button" onclick="closeMobileSheet(); openAdminPanel();">&#9881; Administration</button>' : '')
+        + '<button type="button" class="danger" onclick="closeMobileSheet(); document.getElementById(\'resetBtn\').click();">&#9888; Reset all my data</button>'
+        + '<button type="button" class="danger" onclick="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>'
+        + '<button type="button" onclick="closeMobileSheet(); document.getElementById(\'logoutBtn\').click();">&#128682; Sign out</button>');
+    };
+    // keep the bottom bar's active state in step with the real tabs; bring the active sub-tab into view
+    (function () {
+      const sync = () => { const act = document.querySelector('.tab.active')?.dataset.tab; document.querySelectorAll('#mobileTabBar button').forEach((b) => b.classList.toggle('active', b.dataset.mtab === act || (b.dataset.mtab === 'more' && (act === 'accumulation' || act === 'household')))); };
+      const nav = document.querySelector('.tabs'); if (nav) new MutationObserver(sync).observe(nav, { attributes: true, subtree: true, attributeFilter: ['class'] });
+      document.addEventListener('click', (e) => { const st = e.target.closest('.sub-tab'); if (st && window.innerWidth <= 700) setTimeout(() => st.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }), 50); });
+      setTimeout(sync, 500);
+    })();
+
     window.switchToTab = function (name) {
       document.querySelector('.tab[data-tab="' + name + '"]')?.click();
     };
@@ -7846,62 +7948,64 @@
       const pc = (v, d = 1) => (v * 100).toFixed(d) + '%';
       let prov = null; try { prov = dataProvenance(); } catch (e) { /* no gilt data */ }
       const curve = [1, 2, 3, 5, 10, 15, 20, 25, 30].map((k) => { let r = null; try { r = realYieldForYear(k); } catch (e) { /* */ } let n = null; try { n = nominalYieldForYear(k); } catch (e) { /* */ } return { k, r, n }; });
-      const row = (k, v, note) => '<tr><td style="white-space:nowrap;">' + k + '</td><td>' + v + '</td><td class="hint">' + (note || '') + '</td></tr>';
-      const table = (rows) => '<div class="table-wrap"><table><tbody>' + rows.join('') + '</tbody></table></div>';
-      let h = '<div class="card"><h2>Assumptions &amp; data</h2><p class="hint">Everything below is read from the same tables the engines use, so what you see here is what the numbers rest on. App v' + budEsc(VERSION) + ', engine ' + budEsc(ENGINE_VERSION) + '. Nothing here is advice; it is a description of a model.</p>';
+      const row = (k, v, note) => '<div><div class="k">' + k + '</div><div>' + v + '</div>' + (note ? '<div class="note">' + note + '</div>' : '') + '</div>';
+      const table = (rows) => '<div class="assump-kv">' + rows.join('') + '</div>';
+      const GH = 'https://github.com/magicdogsbrain/pensiontools_v2/blob/main/';
+      const gh = (path, label) => '<a href="' + GH + path + '" target="_blank" rel="noopener">' + (label || path.split('/').pop()) + '</a>';
+      let h = '<div class="card assump"><h2>Assumptions &amp; data</h2><p class="hint">Everything below is read from the same tables the engines use, so what you see here is what the numbers rest on. App v' + budEsc(VERSION) + ', engine ' + budEsc(ENGINE_VERSION) + '. Nothing here is advice; it is a description of a model.</p>';
 
-      h += '<div class="section-title">1 · Equity returns</div>' + table([
-        row('Series', 'Calendar-year S&amp;P 500 total return (dividends reinvested), ' + yrs[0] + '–' + yrs[yrs.length - 1] + ' (' + yrs.length + ' years)', 'Aswath Damodaran, NYU Stern — <a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html" target="_blank" rel="noopener">histretSP</a>. Committed with provenance in <code>src/data/damodaranReturns.json</code>.'),
+      h += '<details open><summary>1 · Equity returns</summary>' + table([
+        row('Series', 'Calendar-year S&amp;P 500 total return (dividends reinvested), ' + yrs[0] + '–' + yrs[yrs.length - 1] + ' (' + yrs.length + ' years)', 'Aswath Damodaran, NYU Stern — <a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html" target="_blank" rel="noopener">histretSP</a>. Committed with provenance: ' + gh('src/data/damodaranReturns.json', 'the data file') + '.'),
         row('World adjustment', '−1.5 percentage points a year, applied to every year', 'UBS/Credit Suisse Global Investment Returns Yearbook 2024: US equities 6.6% real vs World 5.0% real, 1900–2023. A global-tracker holder is not modelled on US returns — the winner\'s history.'),
         row('Result (geometric mean)', pc(nomG, 2) + ' nominal · ' + pc(realG, 2) + ' real', 'Worst year ' + worst + ' (' + pc(EQUITY_RETURNS[worst]) + '), best ' + best + ' (' + pc(EQUITY_RETURNS[best]) + ').'),
         row('Ladder &amp; floor engines', 'Shiller monthly S&amp;P price, dividend and CPI, January 1871 onward (1,830 months), the same −1.5pp/yr haircut applied monthly', 'Robert Shiller, <a href="http://www.econ.yale.edu/~shiller/data.htm" target="_blank" rel="noopener">Irrational Exuberance data</a>. Gives 150 years of rolling windows for the ladder strategies.'),
         row('Not modelled', 'Fund charges, platform fees, currency, UK-only equity history', 'Barclays Equity Gilt Study: UK equities ≈5% real long-run — close to the world figure, not the US one.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">2 · Inflation</div>' + table([
+      h += '<details><summary>2 · Inflation</summary>' + table([
         row('Series', 'US CPI, calendar years ' + yrs[0] + '–' + yrs[yrs.length - 1] + ' (Shiller)', 'Geometric mean ' + pc(infG, 2) + '. Used as the price index the pension has to keep up with; UK RPI/CPI history is similar in shape, worse in the 1970s.'),
         row('Monte Carlo inflation', 'Travels with the equity block it came from', 'A 1970s block brings 1970s inflation; a 2010s block brings 2010s inflation. Bonds and cash then see a coherent regime, not random inflation.'),
         row('Decision tool', pc(DECISION_ASSUMED_CPI ?? 0.04, 1) + ' a year for tax years you have not entered', 'Deliberately pessimistic. Years you have set up use the CPI you entered.'),
         row('Gilt ladder pricing', 'Index-linked gilts pay RPI (CPIH from February 2030) with the DMO 3-month lag', 'Your own inflation (care, energy, services) may run above the index; nothing here protects against that.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">3 · How the futures are made</div>' + table([
+      h += '<details><summary>3 · How the futures are made</summary>' + table([
         row('Monte Carlo', SIMULATION_DEFAULTS.MONTE_CARLO_RUNS.toLocaleString() + ' futures, circular block bootstrap, ' + (MC_BLOCK_YEARS || 5) + '-year blocks', 'Random consecutive 5-year stretches of real history are stitched together, so booms, busts and inflation regimes survive intact. Independent yearly draws would understate sequence risk.'),
         row('Historical', 'Every rolling start year ' + yrs[0] + '–' + (yrs[yrs.length - 1]) + ' (Pots &amp; Valves); every start month since 1871 (ladders)', 'Overlapping windows: 150 years is really only about 10 independent 15-year draws. Treat the tail as indicative, not a probability.'),
-        row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by <code>tests/calibration.test.js</code>; 5%/30y ≈59%, 6%/30y ≈39%.'),
+        row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by ' + gh('tests/calibration.test.js', 'a calibration test') + '; 5%/30y ≈59%, 6%/30y ≈39%.'),
         row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years REPEATED for the whole plan (35 years of 1929–38 on a loop is far harsher than any real history — treat these as torture tests, not forecasts). For contract strategies only the inflation path matters.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">4 · Bonds, cash and the ISA (Pots &amp; Valves)</div>' + table([
+      h += '<details><summary>4 · Bonds, cash and the ISA (Pots &amp; Valves)</summary>' + table([
         row('"Bonds" pot', 'A blended sleeve: 15% index-linked, 30% nominal gilts, 20% property, 10% commodities, 10% cash, 15% equity beta; shifts toward linkers when last year\'s inflation > 4.5%', 'A model of a diversified "steadier" fund, not a gilt index. Nominal gilts lose when inflation exceeds 4%; the equity–bond correlation turns positive in inflation shocks (2022).'),
         row('Cash', 'Nominal return = max(0, last year\'s inflation − 1%)', 'Cash lags inflation and never goes negative in nominal terms — FCA-style real return of about −1%.'),
         row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs.'),
         row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' consecutive cash draws; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">5 · Gilt ladders and live data</div>' + table([
+      h += '<details><summary>5 · Gilt ladders and live data</summary>' + table([
         row('Gilts in issue', prov ? 'DMO list, generated ' + budEsc(String(prov.generated_at || '').slice(0, 10)) : 'not loaded', 'UK Debt Management Office D1A. Only 3-month-lag index-linked gilts are used for ladders; old-style 8-month-lag stocks are excluded.'),
         row('Prices', prov ? 'Delayed exchange closes as of ' + budEsc(prov.as_of || '—') + (prov.stale ? ' — <strong>more than 48 hours old</strong>' : '') : '—', budEsc(prov?.source || '') + ' Refreshed nightly by a scheduled job; a stale flag is shown when it fails.'),
         row('Real yield curve', prov && prov.hasCurve ? 'Bank of England real spot curve as of ' + budEsc(prov.curve_as_of || '—') + ' (' + prov.curvePoints + ' points)' : 'fallback flat 2.3%', 'Every rung is priced at its own maturity\'s real yield — never a flat guess. Future rungs (ratchet reviews) are priced on today\'s curve at their then-maturity, which is optimistic if short real yields stay low.'),
         row('Today\'s curve', curve.map((c) => c.k + 'y ' + (c.r == null ? '—' : pc(c.r, 2))).join(' · '), 'Real (RPI-linked). Nominal: ' + curve.filter((c) => c.n != null).map((c) => c.k + 'y ' + pc(c.n, 2)).join(' · ')),
         row('Order-sheet costs', 'Nominal = pays ÷ index ratio, rounded up to £100; bid–offer 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £' + LADDER_DEFAULTS.dealFee + ' a trade', 'Index ratios from the DMO formula (base RPI, 3-month lag), verified to 5 decimal places against DMO publications.'),
         row('Not advice', 'Every ladder shown is an illustration priced from public data', 'Whether to buy anything, and which gilts, is your decision or your adviser\'s.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">6 · Tax</div>' + table([
+      h += '<details><summary>6 · Tax</summary>' + table([
         row('Bands', 'Personal allowance ' + gbp(TAX_DEFAULTS.PERSONAL_ALLOWANCE) + ', basic-rate limit ' + gbp(TAX_DEFAULTS.BASIC_RATE_LIMIT) + ', higher-rate limit ' + gbp(TAX_DEFAULTS.HIGHER_RATE_LIMIT) + '; PA tapers above ' + gbp(TAX_DEFAULTS.PA_TAPER_THRESHOLD), 'Rates 20/40/45%. Frozen (default) or inflating thresholds — your choice in Settings. Scottish bands not modelled.'),
         row('Pension access', 'Flexi-access drawdown or UFPLS (25% tax-free per withdrawal), PCLS option', 'Minimum pension age 57 from April 2028; MPAA £10,000 warning in the Accumulation planner.'),
         row('Not modelled', 'GIA / capital gains, dividend allowance, National Insurance in retirement, tax on the estate', 'The ISA is tax-free; everything else is treated as pension income.')
-      ]);
+      ]) + '</details>';
 
-      h += '<div class="section-title">7 · Known limits</div><ul style="font-size:13px;line-height:1.55;margin:0 0 0 18px;">'
+      h += '<details><summary>7 · Known limits</summary><ul style="font-size:13px;line-height:1.55;margin:0 0 0 18px;">'
         + '<li>Single person. No partner, no survivor scenario, no second tax allowance.</li>'
         + '<li>No general investment account, property, or defined-benefit pension (use Other Income).</li>'
         + '<li>Budget one-offs are averaged into the target, not placed in a specific year.</li>'
         + '<li>Historical data is US equity with a world haircut — Japan from 1989 or UK-only 1965–1980 would look worse.</li>'
         + '<li>Zero spending flexibility in the comparisons unless you switch cuts on — pessimistic on purpose.</li>'
-        + '</ul>';
-      h += '<p class="hint" style="margin-top:14px;">Source code and data files: <a href="https://github.com/magicdogsbrain/pensiontools_v2" target="_blank" rel="noopener">github.com/magicdogsbrain/pensiontools_v2</a> — the data build scripts are <code>scripts/build-market-data.mjs</code> and <code>scripts/fetch-gilt-data.mjs</code>; the audit is <code>research/market-data-audit-aug-2026.md</code>.</p>';
+        + '</ul></details>';
+      h += '<p class="hint" style="margin-top:14px;">Source code and data files: <a href="https://github.com/magicdogsbrain/pensiontools_v2" target="_blank" rel="noopener">github.com/magicdogsbrain/pensiontools_v2</a> — the market-data build ' + gh('scripts/build-market-data.mjs', 'script') + ', the nightly gilt fetch ' + gh('scripts/fetch-gilt-data.mjs', 'script') + ' and the ' + gh('research/market-data-audit-aug-2026.md', 'market-data audit') + '.</p>';
       return h + '</div>';
     }
     window.showStrategyPage = async function (id) {
@@ -8299,7 +8403,7 @@
         sel.innerHTML = '<option value="">— choose a plan —</option>' + scenarios
           .filter((sc) => sc.id !== activeId)
           .map((sc) => '<option value="' + sc.id + '"' + (sc.id === partnerId ? ' selected' : '') + '>'
-            + (sc.planDetails?.name || sc.id) + '</option>').join('');
+            + budEsc(sc.planDetails?.name || sc.id) + '</option>').join('');
       } catch (e) { console.error('Household load error:', e); }
     };
 
@@ -9102,7 +9206,8 @@
     let _budIdSeq = 0;
     const budId = () => 'b' + (++_budIdSeq);
     const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString();
-    const budEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    // SECURITY: the one HTML escaper. Escapes & " ' < > so it is safe in text, double- AND single-quoted attributes.
+    const budEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     function normaliseBudget(b) {
       const out = { ...defaultBudget(), ...(b || {}) };

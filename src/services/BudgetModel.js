@@ -456,13 +456,27 @@ export function evalAmountExpr(str) {
   if (str == null) return null;
   // A leading '=' is spreadsheet muscle memory — accept and strip it.
   const src = String(str).trim().replace(/^=/, '').replace(/[×x]/gi, '*').replace(/,/g, '');
-  if (!src || !/^[\d+\-*/().\s]+$/.test(src) || !/\d/.test(src)) return null;
+  if (!src || src.length > 200 || !/^[\d+\-*/().\s]+$/.test(src) || !/\d/.test(src)) return null;
   try {
-    const val = Function('"use strict"; return (' + src + ');')();
+    const val = evalArithmetic(src);   // recursive-descent parser — no code generation, ever
     return Number.isFinite(val) ? Math.round(val * 100) / 100 : null;
   } catch {
     return null;
   }
+}
+
+/** Tiny arithmetic evaluator: numbers, + - * /, unary minus, parentheses. Throws on anything else. */
+export function evalArithmetic(src) {
+  let i = 0;
+  const peek = () => src[i];
+  const skip = () => { while (i < src.length && /\s/.test(src[i])) i++; };
+  const number = () => { skip(); const m = /^\d*\.?\d+|^\d+\.?/.exec(src.slice(i)); if (!m) throw new Error('number expected'); i += m[0].length; return parseFloat(m[0]); };
+  const factor = () => { skip(); const c = peek(); if (c === '(') { i++; const v = expr(); skip(); if (peek() !== ')') throw new Error(')'); i++; return v; } if (c === '-') { i++; return -factor(); } if (c === '+') { i++; return factor(); } return number(); };
+  const term = () => { let v = factor(); for (;;) { skip(); const c = peek(); if (c === '*') { i++; v *= factor(); } else if (c === '/') { i++; v /= factor(); } else return v; } };
+  const expr = () => { let v = term(); for (;;) { skip(); const c = peek(); if (c === '+') { i++; v += term(); } else if (c === '-') { i++; v -= term(); } else return v; } };
+  const v = expr(); skip();
+  if (i !== src.length) throw new Error('trailing input');
+  return v;
 }
 
 /**
@@ -530,6 +544,8 @@ const CSV_HEADER = ['Type', 'Section', 'Item', 'Amount', 'Period', 'Paid by', 'M
 
 function csvEsc(v) {
   v = (v == null ? '' : String(v));
+  // Spreadsheet formula injection: a cell starting = + - @ tab CR would execute in Excel/Sheets.
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
   return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
 }
 

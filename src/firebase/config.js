@@ -14,7 +14,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 // Firebase configuration
@@ -41,6 +41,8 @@ try {
   if (isFirebaseConfigured()) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    // Explicit choice (audit L12): local persistence, bounded by the app's 1-hour inactivity sign-out.
+    setPersistence(auth, browserLocalPersistence).catch(() => {});
     db = getFirestore(app);
 
     // Use emulators in development (optional)

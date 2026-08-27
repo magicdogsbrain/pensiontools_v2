@@ -39,9 +39,17 @@ service cloud.firestore {
     match /fundSuggestions/{suggestionId} {
       allow create: if request.auth != null
                     && request.auth.token.email_verified == true
-                    && request.resource.data.uid == request.auth.uid;
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['ticker', 'name', 'subClass', 'uid', 'createdAt'])
+                    && request.resource.data.ticker is string
+                    && request.resource.data.ticker.size() >= 1 && request.resource.data.ticker.size() <= 12
+                    && request.resource.data.ticker.matches('^[A-Za-z0-9.\\-]+$')
+                    && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
+                    && (!('subClass' in request.resource.data) || (request.resource.data.subClass is string && request.resource.data.subClass.size() <= 40));
       allow read, update, delete: if request.auth != null
                                   && request.auth.uid == 'K5BLVvYKtzWTzqWqT5qUH7EqrwU2';
+      // Right to erasure: a user may read and delete the suggestions they filed themselves.
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
 }

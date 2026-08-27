@@ -131,6 +131,9 @@ export async function reloadCurrentUser() {
   await currentUser.reload();
   // reload() mutates auth.currentUser in place; re-read it to be safe
   currentUser = auth.currentUser;
+  // Firestore rules read email_verified from the ID TOKEN, which reload() does not refresh — force
+  // a new one so a just-verified user is not denied for up to an hour (security audit M4).
+  try { if (currentUser) await currentUser.getIdToken(true); } catch (e) { /* offline: next request refreshes */ }
   return currentUser;
 }
 

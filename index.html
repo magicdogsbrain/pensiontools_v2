@@ -2235,6 +2235,15 @@
                     <label>Month</label>
                     <input type="month" id="entryMonth" required>
                   </div>
+                  <div class="form-group">
+                    <label>How often you draw</label>
+                    <select id="entryCadence" data-on-change="setCadence(this.value)">
+                      <option value="monthly">Monthly — one month at a time</option>
+                      <option value="quarterly">Quarterly — batch three months</option>
+                      <option value="annual">Annually — batch the whole year</option>
+                    </select>
+                    <p class="hint" id="entryCadenceNote" style="margin:4px 0 0;"></p>
+                  </div>
                 </div>
 
                 <h3 style="margin-top: 24px;">This month's fund values</h3>
@@ -5410,6 +5419,7 @@
 
         // Load content for specific sub-tabs
         if (tab.dataset.decisiontab === 'decisionsettings') await loadDecisionSettings();
+        if (tab.dataset.decisiontab === 'entry') await loadCadenceUI();
         if (tab.dataset.decisiontab === 'history') await renderHistory();
         if (tab.dataset.decisiontab === 'taxyears') await renderTaxYears();
       });
@@ -5430,7 +5440,11 @@
       const decisionSettings = settings.equityGlideEnabled
         ? { ...settings, equityGlide: tentGlideForSettings(settings) }
         : settings;
+      // Strategy execution flags: Buckets in order draws by its fixed order (shared sourcing module).
+      let stratDeps = {};
+      try { const st = await getActiveStrategy(); if (st && st.id === 'buckets-in-order') { const sp = { ...(settings.strategyParams || {}), ...(st.params || {}) }; stratDeps = { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 }; } } catch (e) { /* P&V default */ }
       const decision = await calcDecisionPWA(dateStr, equity, bond, cash, {
+        ...stratDeps,
         settings: decisionSettings,
         history: await getHistoryAsync(),
         allTaxYears: await getAllTaxYearsAsync(),
@@ -5446,8 +5460,22 @@
       // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
       // withdrawal); what changes is WHERE it comes from and whether the P&V pot advice applies.
       try { decision.strategyOverlay = await decisionStrategyOverlay(decision, dateStr); } catch (e) { console.warn('strategy overlay', e); }
+      decision.cadenceMonths = cadenceMonths(settings.cadence);
       return decision;
     }
+    // ---- Cadence: monthly, quarterly or annual batches. The engine is monthly; a batch is N months of
+    // the same recommendation sold at once and parked as SIPP cash, and N history records. ----
+    function cadenceMonths(c) { return c === 'annual' ? 12 : c === 'quarterly' ? 3 : 1; }
+    window.setCadence = async function (v) {
+      try { await saveDecisionSettings({ cadence: v }); } catch (e) { showToast('Could not save: ' + e.message, 'error'); return; }
+      const n = document.getElementById('entryCadenceNote');
+      if (n) n.textContent = v === 'monthly' ? '' : 'Enter this month\'s values; the recommendation covers the next ' + cadenceMonths(v) + ' months and Save records them all.';
+      if (currentDecision) { currentDecision.cadenceMonths = cadenceMonths(v); renderDecisionPanel(currentDecision, document.getElementById('decisionOutput')); }
+    };
+    window.loadCadenceUI = async function () {
+      try { const s = await getDecisionSettingsAsync(); const el = document.getElementById('entryCadence'); if (el) { el.value = s.cadence || 'monthly'; const n = document.getElementById('entryCadenceNote'); if (n) n.textContent = (s.cadence && s.cadence !== 'monthly') ? 'Enter this month\'s values; the recommendation covers the next ' + cadenceMonths(s.cadence) + ' months and Save records them all.' : ''; } } catch (e) { /* not ready */ }
+    };
+    function addMonths(ym, k) { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
     // Decision form handler
     // Soft plausibility guard for fund values. If ALL THREE pots are under £10k the user has
@@ -5565,8 +5593,20 @@
       btn.disabled = true;
 
       try {
-        await saveDecision(currentDecision);
-        showToast('Decision saved to history', 'success');
+        const n = currentDecision.cadenceMonths || 1;
+        if (n === 1) await saveDecision(currentDecision);
+        else {
+          // A batch: the same recommendation for each month it covers, one record per month, stopping
+          // at a tax year that has not been set up yet (its wizard sets its own figures).
+          const ty0 = currentDecision.taxYear; let written = 0;
+          for (let k = 0; k < n; k++) {
+            const date = addMonths(currentDecision.date, k);
+            if (getTaxYearFromDate(date) !== ty0) { showToast('Recorded ' + written + ' month' + (written === 1 ? '' : 's') + ' — the next tax year needs setting up first (enter its first month).', 'warning', 6000); break; }
+            await saveDecision({ ...currentDecision, date, month: date });
+            written++;
+          }
+        }
+        showToast(n === 1 ? 'Decision saved to history' : 'Batch saved — ' + n + ' months recorded', 'success');
         await renderHistory();  // Refresh history display
         try { await updatePlanLockChip(); } catch (e) { /* cosmetic */ }   // the first record locks the plan
       } catch (error) {
@@ -9415,6 +9455,7 @@
 
     // Load decision settings into UI
     async function loadDecisionSettings() {
+      try { await loadCadenceUI(); } catch (e) { /* cosmetic */ }
       showLoading('Loading settings...');
       try {
         const s = await getDecisionSettingsAsync();

@@ -5020,6 +5020,7 @@
     // New Plan button - launches the wizard for a new scenario
     document.getElementById('scenarioNewBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
+      if (guestOnePlanGate()) return;
 
       // Plan-agnostic onboarding: every new plan starts with the tour (skippable), so the
       // how-it-works flow is always one click away instead of locked behind an empty account.
@@ -5044,6 +5045,7 @@
     // Duplicate Plan button
     document.getElementById('scenarioDuplicateBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
+      if (guestOnePlanGate()) return;
       const active = await getActiveScenarioAsync();
       if (!active) {
         showToast('No active plan to duplicate.', 'error');
@@ -7601,6 +7603,12 @@
         banner.style.display = 'flex';
       } catch (e) { banner.style.display = 'none'; }
     };
+    // Guest mode keeps ONE plan (what the landing page promises); more plans need an account.
+    function guestOnePlanGate() {
+      if (!isGuest()) return false;
+      showToast('Guest mode keeps one plan in this tab. Create a free account to have more than one — it takes a minute and your plan comes with you.', 'info', 7000);
+      return true;
+    }
     window.leaveGuest = function () { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname + '?signup=1'; };
     window.dismissNextStep = async function () {
       try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
@@ -8968,7 +8976,8 @@
       }
     };
 
-    window.createPartnerPlan = async function () {
+    window.createPartnerPlan = async function (...a) { if (guestOnePlanGate()) return; return createPartnerPlanReal(...a); };
+    window.createPartnerPlanReal = async function () {
       const name = (document.getElementById('hhNewPlanName').value || '').trim();
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
       try {

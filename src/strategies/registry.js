@@ -18,11 +18,11 @@ import {
 import { resolveIncomeProfile, profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION as _EV } from './version.js';
 import { LadderAndRatchet } from './LadderAndRatchet.js';
-import { FloorAndFlex, FloorTheSchedule, FloorToAge, FullGiltLadder } from './FloorAndFlex.js';
+import { FloorAndFlex, FloorTheSchedule, FloorToAge, FullGiltLadder, runFlexWindows, floorCost } from './FloorAndFlex.js';
 
 export { ENGINE_VERSION } from './version.js';
 
-export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', LADDER_AND_RATCHET: 'ladder-and-ratchet', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age', FULL_IL_GILT: 'full-il-gilt' };
+export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', BUCKETS_IN_ORDER: 'buckets-in-order', LADDER_AND_RATCHET: 'ladder-and-ratchet', BRIDGE_AND_ENGINE: 'bridge-and-engine', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age', FULL_IL_GILT: 'full-il-gilt' };
 
 const PotsAndValves = {
   id: STRATEGY_IDS.POTS_AND_VALVES,
@@ -44,8 +44,35 @@ const PotsAndValves = {
   engine: { simulate, runMonteCarlo, runHistorical, runScenario, monteCarloReturns, simulateTraced }
 };
 
+/** Buckets in order — the Pots & Valves engine with ordered sourcing and no rebalancing. */
+export const BucketsInOrder = {
+  ...PotsAndValves,
+  id: 'buckets-in-order',
+  name: 'Buckets in order',
+  promise: 'Three pots, one order: equities pay while they are on their path; cash when they are not; the defensive sleeve when cash is gone. No rebalancing, ever.',
+  failure: 'A long slump empties cash and the defensive sleeve, and equities are finally sold low — late, and after two buffers.',
+  describe() { return { id: this.id, name: this.name, promise: this.promise, failure: this.failure, engineVersion: PotsAndValves.describe().engineVersion,
+      components: ['absolute £ equity trajectory (never a % share)', 'ordered draw: equities → cash → defensive → equities', 'one sweep: equity excess above the band into cash, up to the cash target', 'no rebalancing between pots'],
+      usesTrigger: false }; }
+};
+
+/** Bridge & engine — years to the bridge age bought (cash, then linkers); the rest rides untouched, then pays by total return. */
+export const BridgeAndEngine = {
+  id: 'bridge-and-engine',
+  name: 'Bridge & engine',
+  promise: 'Every year to your State Pension bought today — cash first, then one linker per year. The rest rides in equities untouched, then pays the rest of your life by ordinary withdrawals.',
+  failure: 'If the engine arrives small at the bridge age, the later years are drawn from a small pot — it can run out, late.',
+  granularity: 'windows',
+  describe() { return { id: this.id, name: this.name, promise: this.promise, failure: this.failure, engineVersion: _EV,
+      components: ['cash years at face', 'one index-linked rung per bridge year (curve-priced)', 'untouched equity engine to the bridge age', 'total-return draws after the bridge (no re-buying, no trigger)'],
+      usesTrigger: false, sensitivity: 'sequence risk is not removed — it is moved to the bridge age' }; },
+  engine: { runWindows: runFlexWindows, floorCost }
+};
+
 const REGISTRY = {
   [PotsAndValves.id]: PotsAndValves,
+  [BucketsInOrder.id]: BucketsInOrder,
+  [BridgeAndEngine.id]: BridgeAndEngine,
   [LadderAndRatchet.id]: LadderAndRatchet,
   [FloorAndFlex.id]: FloorAndFlex,
   [FloorTheSchedule.id]: FloorTheSchedule,

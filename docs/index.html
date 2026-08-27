@@ -2125,7 +2125,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-Bq3JmcI-.js"></script>
+  <script type="module" crossorigin src="./assets/main-ClFrDgzF.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3003,7 +3003,9 @@
               <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
               <div class="row-flex" id="ssStrategyPick">
                 <button type="button" class="risk-btn" data-strat="pots-and-valves" data-on-click="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
+                <button type="button" class="risk-btn" data-strat="buckets-in-order" data-on-click="pickStrategy('buckets-in-order')">Buckets in order</button>
                 <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" data-on-click="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Bridge &amp; engine</button>
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" data-on-click="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
@@ -3016,8 +3018,16 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" data-on-change="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
                   <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
+                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Bridge to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" id="miniBridgeCashWrap" style="display:none;flex-direction:column;gap:2px;">Years in cash first<input type="number" id="miniBridgeCash" min="0" max="10" style="width:80px;" data-on-input="miniPotChanged()"></label>
                 </div>
                 <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
+              </div>
+              <div id="ssBucketsParams" style="display:none;margin-top:8px;">
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sweep band above the equity path (%)<input type="number" id="bucketBand" min="0" max="50" value="10" style="width:80px;"></label>
+                  <span class="hint" style="flex:1 1 260px;">Equities pay while they are on their £ path (the allocation below sets the pots and the cash target). Above the path by more than this band, the excess is swept into cash up to the target. Below the path: cash pays, then the defensive sleeve. Never a rebalancing trade.</span>
+                </div>
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
@@ -3446,9 +3456,11 @@
         <div class="strat-layout">
           <nav class="strat-nav" id="stratNav" aria-label="Strategies">
             <button type="button" class="strat-nav-item" data-page="overview" data-on-click="showStrategyPage('overview')">Overview</button>
-            <div class="strat-nav-group">Six ways to turn a pot into an income</div>
+            <div class="strat-nav-group">Eight ways to turn a pot into an income</div>
             <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
+            <button type="button" class="strat-nav-item" data-page="buckets-in-order" data-on-click="showStrategyPage('buckets-in-order')">Buckets in order</button>
             <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Bridge &amp; engine</button>
             <button type="button" class="strat-nav-item" data-page="floor-and-flex" data-on-click="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
             <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
             <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>

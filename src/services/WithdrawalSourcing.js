@@ -114,3 +114,73 @@ export function planSourcing(p) {
   }
   return out;
 }
+
+
+/**
+ * "Buckets in order" sourcing — the same output shape as planSourcing, a different rule:
+ *   1. If equities are AT or ABOVE their plan trajectory (an absolute £ path, not a % share —
+ *      a % share rises mechanically as cash is spent), the month is sold from equities.
+ *      If they sit above the path by more than `band`, the excess above the path is swept
+ *      into cash — but only up to the cash target (no permanent cash pile).
+ *   2. Otherwise cash pays, untouched equities recover.
+ *   3. Cash empty: the defensive sleeve (bonds, then diversifiers) pays.
+ *   4. Only when every buffer is empty are equities sold below their path.
+ * There is never a rebalancing trade between pots; money moves only to pay the draw or in
+ * the one sweep from equities to cash.
+ * @param {object} p - planSourcing's inputs plus { eqPath, band }
+ */
+export function planSourcingOrdered(p) {
+  const div = p.diversifier || 0;
+  const hodl = p.hodl || 0;
+  const band = p.band ?? 0.10;
+  const out = { fromEquity: 0, fromBond: 0, fromCash: 0, fromDiversifier: 0, fromHodl: 0, shortfall: 0, replenish: 0, source: 'Cash', reason: '' };
+  let remaining = p.draw;
+  const onPath = p.equity >= (p.eqPath || 0) && p.equity > 0;
+
+  if (onPath && !p.inProtection) {
+    const take = Math.min(remaining, p.equity);
+    out.fromEquity = take;
+    remaining -= take;
+    const left = p.equity - take;
+    const upper = (p.eqPath || 0) * (1 + band);
+    if (left > upper) {
+      const cashRoom = Math.max(0, p.csTarget - p.cash);
+      out.replenish = Math.min(left - (p.eqPath || 0), cashRoom);
+    }
+    if (remaining <= 1e-9) {
+      out.source = 'Growth';
+      out.reason = out.replenish > 0 ? 'Equities above their path — sold, excess swept to cash' : 'Equities on their path';
+      return out;
+    }
+  }
+
+  const takeCash = Math.min(remaining, p.cash);
+  out.fromCash = takeCash;
+  remaining -= takeCash;
+  if (remaining > 1e-9) {
+    const take = Math.min(remaining, Math.max(0, p.bond));
+    out.fromBond += take; remaining -= take;
+  }
+  if (remaining > 1e-9 && div > 0) {
+    const take = Math.min(remaining, div);
+    out.fromDiversifier = take; remaining -= take;
+  }
+  if (remaining > 1e-9) {
+    const eqLeft = Math.max(0, p.equity - out.fromEquity);
+    const take = Math.min(remaining, eqLeft);
+    out.fromEquity += take; remaining -= take;
+  }
+  if (remaining > 1e-9 && hodl > 0) {
+    const take = Math.min(remaining, hodl);
+    out.fromHodl = take; remaining -= take;
+  }
+  out.shortfall = Math.max(0, remaining);
+
+  if (out.fromHodl > 0) { out.source = 'HODL'; out.reason = 'Break glass'; }
+  else if (out.fromEquity > 0 && !onPath) { out.source = 'Equity'; out.reason = 'Every buffer empty — equities sold below their path'; }
+  else if (out.fromDiversifier > 0) { out.source = out.fromCash > 0 ? 'Cash + Diversifier' : 'Diversifier'; out.reason = 'Cash exhausted — diversifiers pay'; }
+  else if (out.fromBond > 0) { out.source = out.fromCash > 0 ? 'Mixed' : 'Bond'; out.reason = 'Cash exhausted — the defensive sleeve pays'; }
+  else if (out.fromEquity > 0 && out.fromCash > 0) { out.source = 'Mixed'; out.reason = 'Equities on their path part-fund; cash covers the rest'; }
+  else { out.source = 'Cash'; out.reason = p.inProtection ? 'Protection' : 'Equities below their path — cash pays, equities recover'; }
+  return out;
+}

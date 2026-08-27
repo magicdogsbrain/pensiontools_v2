@@ -1,0 +1,80 @@
+import { describe, it, expect } from 'vitest';
+import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../src/strategies/stressTest.js';
+import { planSourcingOrdered } from '../src/services/WithdrawalSourcing.js';
+import { getStrategy } from '../src/strategies/registry.js';
+import { createSimulationConfigFromSettings, getStressSettings } from '../src/storage/StressRepository.js';
+
+const settings = { ...getStressSettings(), equityMin: 545400, bondMin: 424200, cashTarget: 242400, isaBalance: 60000, isaDrawdownStrategy: 'hold', baseSalary: 60000, duration: 34, shapeAgeNow: 57, currentAge: 56, statePension: 11973, statePensionYear: 10, configured: true };
+const plan = () => planFromSettings(settings, createSimulationConfigFromSettings({}, settings), { startAge: 57 });
+
+describe('registry and names carry the two new strategies', () => {
+  it('both ids are named, registered and distinct from their parents', () => {
+    expect(STRATEGY_NAMES['bridge-and-engine']).toBe('Bridge & engine');
+    expect(STRATEGY_NAMES['buckets-in-order']).toBe('Buckets in order');
+    expect(getStrategy('bridge-and-engine').id).toBe('bridge-and-engine');
+    expect(getStrategy('buckets-in-order').id).toBe('buckets-in-order');
+    expect(getStrategy('buckets-in-order').engine).toBe(getStrategy('pots-and-valves').engine);
+  });
+});
+
+describe('Bridge & engine', () => {
+  const p = { ...plan(), mcRuns: 60, stride: 8 };
+  const r = stressTestStrategy('bridge-and-engine', p);
+  it('defaults the bridge to the State Pension age and buys it with cash years first', () => {
+    expect(r.affordable).toBe(true);
+    expect(r.signature.bridgeAge).toBe(67);
+    expect(r.signature.B).toBe(10);
+    expect(r.signature.cashYears).toBe(3);
+    expect(r.signature.bridgeCost).toBeGreaterThan(0);
+    expect(r.signature.engineE0).toBeCloseTo(p.pot - r.signature.bridgeCost, 0);
+  });
+  it('income during the bridge is the schedule by contract; after it the engine pays or fails late', () => {
+    for (let y = 0; y < 10; y++) expect(r.cones.income.p10[y]).toBeCloseTo(r.cones.income.p90[y], 0);
+    expect(r.ruin.mc).toBeGreaterThanOrEqual(0);
+    expect(r.ruin.mc).toBeLessThanOrEqual(100);
+    for (const a of r.failAges) expect(a).toBeGreaterThanOrEqual(67);
+    expect(r.signature.engineAtB.p50).toBeGreaterThan(0);
+    expect(r.signature.engineCone.length).toBe(11);
+  });
+  it('honours a bridgeAge and cashYears dial', () => {
+    const q = { ...p, params: { ...p.params, bridgeAge: 70, cashYears: 2 } };
+    const s = stressTestStrategy('bridge-and-engine', q);
+    expect(s.signature.bridgeAge).toBe(70);
+    expect(s.signature.cashYears).toBe(2);
+    expect(s.signature.bridgeCost).toBeGreaterThan(r.signature.bridgeCost);
+  });
+});
+
+describe('Buckets in order — sourcing rule', () => {
+  const base = { draw: 5000, equity: 500000, bond: 400000, cash: 200000, diversifier: 0, hodl: 0, eqMin: 0, bdMin: 0, csTarget: 240000, inProtection: false, eqPath: 480000, band: 0.1 };
+  it('equities on or above their path pay the month', () => {
+    const o = planSourcingOrdered(base);
+    expect(o.fromEquity).toBe(5000); expect(o.fromCash).toBe(0); expect(o.source).toBe('Growth');
+  });
+  it('excess above the band is swept to cash, capped at the cash target', () => {
+    const o = planSourcingOrdered({ ...base, equity: 600000 });
+    expect(o.replenish).toBeCloseTo(Math.min(600000 - 5000 - 480000, 40000), 0);
+    const full = planSourcingOrdered({ ...base, equity: 600000, cash: 240000 });
+    expect(full.replenish).toBe(0);
+  });
+  it('below the path: cash pays, then the defensive sleeve, equities last', () => {
+    const c = planSourcingOrdered({ ...base, equity: 400000 });
+    expect(c.fromCash).toBe(5000); expect(c.fromEquity).toBe(0); expect(c.source).toBe('Cash');
+    const d = planSourcingOrdered({ ...base, equity: 400000, cash: 0 });
+    expect(d.fromBond).toBe(5000); expect(d.source).toBe('Bond');
+    const e = planSourcingOrdered({ ...base, equity: 400000, cash: 0, bond: 0 });
+    expect(e.fromEquity).toBe(5000); expect(e.source).toBe('Equity');
+  });
+});
+
+describe('Buckets in order — stress test', () => {
+  it('runs on the P&V engine with ordered sourcing and reports a signature', () => {
+    const p = { ...plan(), mcRuns: 40, stride: 10 };
+    const r = stressTestStrategy('buckets-in-order', p);
+    expect(r.affordable).toBe(true);
+    expect(r.signature.ordered).toBe(true);
+    expect(r.signature.band).toBeCloseTo(0.1, 5);
+    expect(r.ruin.mc).toBeGreaterThanOrEqual(0);
+    expect(r.cones.wealth.p50.length).toBe(35);
+  });
+});

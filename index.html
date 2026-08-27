@@ -3002,7 +3002,9 @@
               <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
               <div class="row-flex" id="ssStrategyPick">
                 <button type="button" class="risk-btn" data-strat="pots-and-valves" data-on-click="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
+                <button type="button" class="risk-btn" data-strat="buckets-in-order" data-on-click="pickStrategy('buckets-in-order')">Buckets in order</button>
                 <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" data-on-click="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Bridge &amp; engine</button>
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" data-on-click="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
@@ -3015,8 +3017,16 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" data-on-change="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
                   <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
+                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Bridge to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" id="miniBridgeCashWrap" style="display:none;flex-direction:column;gap:2px;">Years in cash first<input type="number" id="miniBridgeCash" min="0" max="10" style="width:80px;" data-on-input="miniPotChanged()"></label>
                 </div>
                 <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
+              </div>
+              <div id="ssBucketsParams" style="display:none;margin-top:8px;">
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sweep band above the equity path (%)<input type="number" id="bucketBand" min="0" max="50" value="10" style="width:80px;"></label>
+                  <span class="hint" style="flex:1 1 260px;">Equities pay while they are on their £ path (the allocation below sets the pots and the cash target). Above the path by more than this band, the excess is swept into cash up to the target. Below the path: cash pays, then the defensive sleeve. Never a rebalancing trade.</span>
+                </div>
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
@@ -3445,9 +3455,11 @@
         <div class="strat-layout">
           <nav class="strat-nav" id="stratNav" aria-label="Strategies">
             <button type="button" class="strat-nav-item" data-page="overview" data-on-click="showStrategyPage('overview')">Overview</button>
-            <div class="strat-nav-group">Six ways to turn a pot into an income</div>
+            <div class="strat-nav-group">Eight ways to turn a pot into an income</div>
             <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
+            <button type="button" class="strat-nav-item" data-page="buckets-in-order" data-on-click="showStrategyPage('buckets-in-order')">Buckets in order</button>
             <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
+            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Bridge &amp; engine</button>
             <button type="button" class="strat-nav-item" data-page="floor-and-flex" data-on-click="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
             <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
             <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
@@ -3818,6 +3830,7 @@
       planDependents, planHasRecords, unlockPlan, buildPlanOfRecord, lockPlanIfNeeded,
       stressTestAll,
       deriveCompareConfigs,
+      BE_FRAMES, bridgeEngineSvg, BK_FRAMES, bucketsSvg,
       runInWorker,
       workerAvailable,
       planFromSettings,
@@ -5673,6 +5686,17 @@
           + 'Chance it can then buy ' + cb + '. '
           + 'If it falls short, the later years are bought at a lower level — median ' + (sg.levelIfCut.p50 ? gbp(Math.round(sg.levelIfCut.p50)) : '—') + '/yr in those futures. Nothing runs out; the plan can only be cut after ' + sg.floorToAge + '.'
           + '<br><strong>The only rule:</strong> ' + budEsc(sg.rule);
+      } else if (r.strategyId === 'bridge-and-engine') {
+        const sg = r.signature;
+        head = '<strong>Every year to ' + sg.bridgeAge + ' is bought today</strong> — ' + gbp(Math.round(sg.bridgeCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot): ' + sg.cashYears + ' year' + (sg.cashYears === 1 ? '' : 's') + ' in cash, then one index-linked rung per year. The ' + gbp(Math.round(sg.engineE0)) + ' engine rides untouched in world equities. '
+          + 'At ' + sg.bridgeAge + ' it is worth a median ' + gbp(Math.round(sg.engineAtB.p50)) + ' (1-in-10 bad: ' + gbp(Math.round(sg.engineAtB.p10)) + '; 1-in-10 good: ' + gbp(Math.round(sg.engineAtB.p90)) + ')' + (sg.restCostFull ? ' — buying the rest by contract would cost ' + gbp(Math.round(sg.restCostFull)) + ' that day' : '') + '. '
+          + 'From ' + sg.bridgeAge + ' the State Pension arrives and the engine pays the rest by ordinary withdrawals: it ran out before the horizon in <strong>' + ruinMc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' futures</strong> and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' histories' + (sg.failAgeMedian ? ', typically by ' + Math.round(sg.failAgeMedian) : '') + '. Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + '.'
+          + '<br><strong>The only rule:</strong> ' + budEsc(sg.rule);
+      } else if (r.strategyId === 'buckets-in-order') {
+        const sg = r.signature;
+        head = '<strong>Ran out of money in ' + ruinMc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
+          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + budEsc(r.guaranteedToAge) + '. '
+          + 'Equities pay while on their £ path (' + gbp(Math.round(sg.eqPath)) + ' today, sweep band ' + Math.round(sg.band * 100) + '%); the ' + gbp(Math.round(sg.pots.cash)) + ' cash pot is about ' + sg.cashYears.toFixed(1) + ' years of spending; the defensive sleeve holds ' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '. No rebalancing — ever.';
       } else if (r.strategyId === 'floor-the-schedule') {
         const sg = r.signature;
         head = '<strong>Your whole income schedule is bought by contract to ' + sg.horizonAge + '</strong> — cost ' + gbp(Math.round(sg.floorCost)) + ', ' + Math.round(sg.shareOfPot * 100) + '% of the pot, on today\'s real yields; every year pays in every history and every future, by construction. '
@@ -7346,7 +7370,7 @@
       if (s.strategyId && s.strategyId !== 'pots-and-valves') {
         // This grid is Pots & Valves' three risk levels × bond tent. It has nothing to say about a
         // ladder or floor strategy — send the user to the six-strategy compare instead.
-        if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all six strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+        if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all eight strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
         if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; }
         return;
       }
@@ -7636,9 +7660,11 @@
       let floorMonthly = 0, floorLabel = '', note = '';
       if (st.id === 'full-il-gilt' || st.id === 'floor-the-schedule') { floorMonthly = total; floorLabel = st.id === 'full-il-gilt' ? (planYear < (params.cashYears ?? 2) ? 'the cash years bucket' : 'this year\'s matured rung') : 'this year\'s matured rung'; note = 'Every year is bought by contract — nothing is sold. The money is already in cash.'; }
       else if (st.id === 'floor-to-age') { const A = (params.floorToAge || 80) - startAge; if (planYear < A) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Bought by contract to ' + (params.floorToAge || 80) + '; nothing to sell this year.'; } else { note = 'Past the floor age: the reserve now pays — this is a Pots & Valves-style draw on what is left.'; } }
+      else if (st.id === 'bridge-and-engine') { const B = (params.bridgeAge || 67) - startAge; const cy = params.cashYears ?? 3; if (planYear < B) { floorMonthly = total; floorLabel = planYear < cy ? 'the cash years bucket' : 'this year\'s matured rung'; note = 'On the bridge: ' + (planYear < cy ? 'the cash pays' : 'the rung that matured before this April pays') + ' — the engine is untouched.'; } else { note = 'Past the bridge: the State Pension is in payment and the engine pays the rest by a standing withdrawal from the world-equity fund. Nothing to re-buy, nothing to trigger.'; floorLabel = 'the engine'; } }
+      else if (st.id === 'buckets-in-order') { return null; }
       else if (st.id === 'floor-and-flex') { const ess = Math.max(0, (params.essentialsAnnual || 0) - spAnnual) / 12; floorMonthly = Math.min(total, ess); floorLabel = 'the essentials rung'; note = 'Essentials come from the rung; the rest of this month\'s draw is treats from the flex sleeve (sell units for it).'; }
       else if (st.id === 'ladder-and-ratchet') { const yrs = params.ladderYears || 15; if (planYear < yrs) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Inside the ladder years: the rung pays; the equity sleeve is untouched unless the ratchet fires.'; } else { note = 'Beyond the base ladder: pay from a ratcheted rung if one was secured, otherwise from the sleeve.'; } }
-      return { id: st.id, name: d.name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: st.id !== 'floor-to-age' || floorMonthly > 0 };
+      return { id: st.id, name: d.name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: (st.id !== 'floor-to-age' && st.id !== 'bridge-and-engine') || floorMonthly > 0 };
     }
 
     window.renderDecisionStrategyPanel = async function () {
@@ -7727,6 +7753,8 @@
     // ---- Strategy selection IN SETTINGS (the funds live here, so the strategy does too) -----
     const STRATEGY_BLURBS = {
       'pots-and-valves': 'Your allocation below IS this strategy: the pots, their floors and the risk level are its dials. Rules decide which pot pays each month.',
+      'buckets-in-order': 'Three pots, one order: equities pay while they are on their £ path (never a % share); below it cash pays, then the defensive sleeve; equities are sold low only when every buffer is empty. No rebalancing — the allocation below sets the pots and the cash target.',
+      'bridge-and-engine': 'Buys every year to your State Pension age today — cash first, then one index-linked gilt per year. The rest (the engine) rides in world equities untouched, then pays the later years by ordinary withdrawals. No re-buying, no trigger, no ratchet.',
       'ladder-and-ratchet': 'Buys your income up front as an index-linked gilt ladder; the REST rides in the equity sleeve (the allocation below applies to the sleeve). Booms lock more years on.',
       'floor-and-flex': 'Buys the BILLS by contract to a chosen age; everything else is the flex sleeve paying the treats (the allocation below applies to the sleeve).',
       'floor-the-schedule': 'Buys your WHOLE income schedule (net of State Pension) by contract to the horizon; the remainder is an untouched reserve in shares. Nothing to decide month to month.',
@@ -7749,9 +7777,10 @@
       window._ssStrategy = id;
       document.querySelectorAll('#ssStrategyPick .risk-btn').forEach((b) => b.classList.toggle('active', b.dataset.strat === id));
       document.getElementById('ssStrategyBlurb').textContent = STRATEGY_BLURBS[id] || '';
-      const isLadder = id === 'ladder-and-ratchet' || id === 'floor-and-flex' || id === 'floor-the-schedule' || id === 'floor-to-age' || id === 'full-il-gilt';
+      const isLadder = id === 'ladder-and-ratchet' || id === 'floor-and-flex' || id === 'floor-the-schedule' || id === 'floor-to-age' || id === 'full-il-gilt' || id === 'bridge-and-engine';
+      { const el = document.getElementById('ssBucketsParams'); if (el) el.style.display = id === 'buckets-in-order' ? 'block' : 'none'; }
       { const el = document.getElementById('ssGiltParams'); if (el) el.style.display = id === 'full-il-gilt' ? 'block' : 'none'; }
-      { const mini = document.getElementById('ssPotMini'); const wants = id === 'full-il-gilt' || id === 'floor-the-schedule' || id === 'floor-to-age';
+      { const mini = document.getElementById('ssPotMini'); const wants = id === 'full-il-gilt' || id === 'floor-the-schedule' || id === 'floor-to-age' || id === 'bridge-and-engine';
         if (mini) { mini.style.display = wants ? 'block' : 'none'; if (wants) seedMiniPot(id); } }
       document.getElementById('ssLrParams').style.display = id === 'ladder-and-ratchet' ? 'block' : 'none';
       document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
@@ -7761,7 +7790,7 @@
       // Switching strategy invalidates any run cards from the previous one — clear them.
       for (const rid of ['strategyRunResults', 'histResults', 'scenResults']) {
         const el = document.getElementById(rid);
-        if (el && /Ladder & Ratchet|Floor & Flex|ladder-and-ratchet|floor-and-flex/.test(el.innerHTML)) el.innerHTML = '';
+        if (el && /Ladder & Ratchet|Floor & Flex|ladder-and-ratchet|floor-and-flex|Bridge & engine|Buckets in order/.test(el.innerHTML)) el.innerHTML = '';
       }
       // Offer the safe path for "I modelled with pots; now model a ratchet future":
       const offer = document.getElementById('stratCopyOffer');
@@ -7794,6 +7823,13 @@
       if (se && !se.value) se.value = pot; if (ie && ie.value === '') ie.value = isa;
       if (pe) pe.value = document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax';
       if (fw) fw.style.display = id === 'floor-to-age' ? 'flex' : 'none'; if (fe && !fe.value) fe.value = prm.floorToAge || 80;
+      { const bw = document.getElementById('miniBridgeWrap'), bcw = document.getElementById('miniBridgeCashWrap'), ba = document.getElementById('miniBridgeAge'), bc = document.getElementById('miniBridgeCash');
+        const on = id === 'bridge-and-engine';
+        if (bw) bw.style.display = on ? 'flex' : 'none'; if (bcw) bcw.style.display = on ? 'flex' : 'none';
+        if (on) {
+          if (ba && !ba.value) { let spAge = 67; try { const sp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount')?.value || 1, shapeAgeNow: +document.getElementById('shapeAgeNow')?.value, currentAge: +document.getElementById('shapeAgeNow')?.value }); if (sp && sp.spStartYear > 0) spAge = (+document.getElementById('shapeAgeNow')?.value || 57) + sp.spStartYear; } catch (e) {} ba.value = prm.bridgeAge || spAge; }
+          if (bc && bc.value === '') bc.value = prm.cashYears ?? 3;
+        } }
       miniPotChanged(false);
     }
     window.miniPotChanged = function (refresh = true) {
@@ -7806,7 +7842,7 @@
     };
     window.tryStrategyInCopy = async function () {
       const id = window._ssStrategy;
-      const names = { 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age', 'full-il-gilt': 'Full gilt ladder' };
+      const names = { 'buckets-in-order': 'Buckets', 'bridge-and-engine': 'Bridge', 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age', 'full-il-gilt': 'Full gilt ladder' };
       try {
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId();
@@ -7902,6 +7938,8 @@
         return { ...saved, ...mini(), cashYears: +document.getElementById('giltCashYears').value || 0, bridgeCash: +document.getElementById('giltBridge').value || 0 };
       }
       if (window._ssStrategy === 'floor-the-schedule') return { ...saved, ...mini() };
+      if (window._ssStrategy === 'bridge-and-engine') return { ...saved, ...mini(), bridgeAge: +document.getElementById('miniBridgeAge')?.value || saved.bridgeAge || 67, cashYears: (document.getElementById('miniBridgeCash')?.value !== '' && document.getElementById('miniBridgeCash') != null) ? +document.getElementById('miniBridgeCash').value : (saved.cashYears ?? 3) };
+      if (window._ssStrategy === 'buckets-in-order') return { ...saved, bucketBand: +document.getElementById('bucketBand')?.value || 10 };
       if (window._ssStrategy === 'floor-to-age') return { ...saved, ...mini(), floorToAge: +document.getElementById('miniFloorToAge')?.value || saved.floorToAge || 80 };
       if (window._ssStrategy === 'ladder-and-ratchet') {
         return {
@@ -7937,6 +7975,8 @@
       for (const fid of ['stratSipp', 'stratIsa', 'stratSippFf', 'stratIsaFf', 'miniSipp', 'miniIsa']) { const e = document.getElementById(fid); if (e) e.value = ''; }
       { const se = document.getElementById('miniSipp'), ie = document.getElementById('miniIsa'), fe = document.getElementById('miniFloorToAge'); if (se) se.value = params && params.sippTotal ? params.sippTotal : ''; if (ie) ie.value = params && params.isaTotal != null ? params.isaTotal : ''; if (fe) fe.value = params && params.floorToAge ? params.floorToAge : ''; }
       pickStrategy(id || 'pots-and-valves');
+      if (id === 'bridge-and-engine' && params) { const a = document.getElementById('miniBridgeAge'), b = document.getElementById('miniBridgeCash'); if (a && params.bridgeAge) a.value = params.bridgeAge; if (b && params.cashYears != null) b.value = params.cashYears; }
+      if (id === 'buckets-in-order' && params) { const e = document.getElementById('bucketBand'); if (e && params.bucketBand) e.value = params.bucketBand; }
       if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; }
       if (id === 'ladder-and-ratchet' && params) {
         if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
@@ -8130,6 +8170,8 @@
     window._cmpCache = null;
     const CMP_WORDS = {
       'pots-and-valves':   { fail: 'a long bad run drains the pots; cuts first, then runs dry late', doWhat: 'monthly: a decision on what to draw and from where', exit: 'nothing to unwind — it is just a portfolio' },
+      'buckets-in-order':  { fail: 'a long slump empties cash and the defensive sleeve; equities are sold low, late', doWhat: 'monthly: one look — are equities on their path? sell the payer', exit: 'nothing to unwind — three funds' },
+      'bridge-and-engine': { fail: 'the engine arrives small at the bridge age — the later years run it down and it can run out, late', doWhat: 'nothing until the bridge age; then a standing withdrawal', exit: 'sell rungs at market; annuitise the engine at any age' },
       'ladder-and-ratchet':{ fail: 'the sleeve is empty before the horizon — a cliff, late', doWhat: 'yearly: watch the trigger; buy rungs when it fires', exit: 'sell rungs at market; annuitise the sleeve' },
       'floor-and-flex':    { fail: 'lean years — the bills are paid, the treats shrink', doWhat: 'yearly: take a % of the sleeve as treats', exit: 'sell the sleeve any day; the floor stays' },
       'floor-the-schedule':{ fail: 'it costs most of the pot; no growth in the plan', doWhat: 'yearly: one look at the reserve; buy years if far ahead', exit: 'sell rungs at market; annuitise' },
@@ -8164,7 +8206,7 @@
       window._cmpCache = { key, p, all, settings };
       return window._cmpCache;
     }
-    window.setCmpCuts = async function (on) { window._cmpCutsOff = !on; document.getElementById('stratPage').innerHTML = '<div class="loading"><div class="spinner"></div>Re-running all six strategies…</div>'; await new Promise((r) => setTimeout(r, 30)); document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); };
+    window.setCmpCuts = async function (on) { window._cmpCutsOff = !on; document.getElementById('stratPage').innerHTML = '<div class="loading"><div class="spinner"></div>Re-running all eight strategies…</div>'; await new Promise((r) => setTimeout(r, 30)); document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); };
     window.setCmpAge = function (age) { window._cmpAge = +age; const c = window._cmpCache; if (!c) return; document.getElementById('cmpLeft').innerHTML = cmpLeftHtml(c); };
     function cmpStrategies(c) { return Object.keys(c.all.strategies).filter((id) => c.all.strategies[id].affordable).map((id) => ({ id, name: STRATEGY_NAMES[id], color: STRATEGY_COLORS[id], r: c.all.strategies[id] })); }
     function cmpLeftHtml(c) {
@@ -8176,7 +8218,7 @@
     function cmpConesHtml(c) {
       const sts = cmpStrategies(c);
       let h = '';
-      h += '<div class="strat-block"><div class="section-title">1 · What would I get each year?</div><p class="hint" style="margin:0 0 6px;">One panel per strategy, same scale. The line is the middle future; the shaded band runs from a 1-in-10 bad future to a 1-in-10 good one. A flat line with no band is income bought by contract. The dashed line is your first step. <strong>Pots &amp; Valves and Ladder &amp; Ratchet pay the plan in full until a future runs out</strong> — so their income shows little or no band; their uncertainty is in what is left (panel 3).</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.income, contract: st.id === 'full-il-gilt' || st.id === 'floor-the-schedule' ? true : st.id === 'floor-to-age' ? 'partial' : (st.id === 'pots-and-valves' || st.id === 'ladder-and-ratchet') ? 'untilfail' : false })), startAge: c.p.startAge, planIncome: c.p.targetAnnual }) + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">1 · What would I get each year?</div><p class="hint" style="margin:0 0 6px;">One panel per strategy, same scale. The line is the middle future; the shaded band runs from a 1-in-10 bad future to a 1-in-10 good one. A flat line with no band is income bought by contract. The dashed line is your first step. <strong>Pots &amp; Valves and Ladder &amp; Ratchet pay the plan in full until a future runs out</strong> — so their income shows little or no band; their uncertainty is in what is left (panel 3).</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.income, contract: st.id === 'full-il-gilt' || st.id === 'floor-the-schedule' ? true : (st.id === 'floor-to-age' || st.id === 'bridge-and-engine') ? 'partial' : (st.id === 'pots-and-valves' || st.id === 'ladder-and-ratchet' || st.id === 'buckets-in-order') ? 'untilfail' : false })), startAge: c.p.startAge, planIncome: c.p.targetAnnual }) + '</div></div>';
       const riskRows = sts.map((st) => ({ name: st.name, color: st.color, mc: st.r.ruin.mc, hist: st.r.ruin.hist, label: st.r.ruinLabel ? 'cut after ' + st.r.signature.floorToAge + ' — ' + CMP_WORDS[st.id].fail : (st.r.ruin.mc === 0 && st.r.ruin.hist === 0 ? 'cannot run out — ' + CMP_WORDS[st.id].fail : CMP_WORDS[st.id].fail) }));
       h += '<div class="strat-block"><div class="section-title">2 · How likely is it to go wrong?</div><p class="hint" style="margin:0 0 6px;">Bars: share of 1,000 futures in which the plan runs out (or, for Floor to an age, is cut). The white tick is the same thing measured on every real history since 1871. Under each bar: what "going wrong" looks like for that strategy.</p><div class="machine-scroll">' + riskBarsSvg({ rows: riskRows }) + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · What would be left, year by year?</div><p class="hint" style="margin:0 0 6px;">The same six panels for the money itself — all pots plus unpaid rungs, today\'s money. This is where Pots &amp; Valves\' and the ladder\'s uncertainty lives: the band is wide, and a 1-in-10 bad future reaching £0 is a plan that ran out.</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.wealth, contract: false })), startAge: c.p.startAge, planIncome: 0 }) + '</div></div>';
@@ -8188,9 +8230,11 @@
         ['I want to know my number, for life', ['floor-the-schedule', 'full-il-gilt']],
         ['I want the most money over my life', ['pots-and-valves', 'ladder-and-ratchet']],
         ['I want certainty now and options later', ['floor-to-age', 'floor-and-flex']],
+        ['I want a bridge to my State Pension, then to be left alone', ['bridge-and-engine', 'floor-to-age']],
+        ['I want three pots and a simple order', ['buckets-in-order', 'pots-and-valves']],
         ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']]
       ];
-      let h = '<div class="card"><h2>Six ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
+      let h = '<div class="card"><h2>Eight ways to turn a pot into an income</h2><p class="hint">Not a recommender: pick the question you are actually asking and read the two pages it points to. Every page runs on your own plan and the same markets, so the only thing that differs is the strategy.</p>';
       h += '<div class="sw-grid">' + q.map(([t, ids]) => '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">' + t + '</div>' + ids.map((id) => '<button type="button" class="risk-btn" style="display:block;margin-top:6px;" data-on-click="showStrategyPage(\'' + id + '\')">' + budEsc(STRATEGY_NAMES[id]) + ' →</button>').join('') + '</div>').join('') + '</div></div>';
       const c = await cmpRun();
       const S = c.all.strategies, ids = Object.keys(S);
@@ -8199,7 +8243,7 @@
       h += '<div class="row-flex" style="margin-bottom:8px;"><label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (window._cmpCutsOff ? '' : 'checked') + ' data-on-change="setCmpCuts(this.checked)"> Let Pots &amp; Valves cut spending in bad runs (as you configured it)</label>'
         + '<span class="hint">' + (window._cmpCutsOff ? '<strong>Level footing:</strong> no strategy is allowed to pay you less than the plan.' : '<strong>As configured:</strong> Pots &amp; Valves may cut income up to ' + Math.round((1 - (c.settings.protectionMult ?? 0.8)) * 100) + '% in bad runs — read its row knowing that.') + '</span></div>';
       const cell = (id, f) => S[id].affordable ? f(S[id]) : '<span class="hint">not affordable — ' + budEsc(S[id].reason || '') + '</span>';
-      const costOf = (r) => r.strategyId === 'full-il-gilt' ? r.signature.total : r.strategyId === 'floor-the-schedule' ? r.signature.floorCost : r.strategyId === 'floor-to-age' ? r.signature.floorCost : r.strategyId === 'ladder-and-ratchet' ? r.signature.baseLadderCost : r.strategyId === 'floor-and-flex' ? r.signature.floorCost : 0;
+      const costOf = (r) => r.strategyId === 'full-il-gilt' ? r.signature.total : r.strategyId === 'bridge-and-engine' ? r.signature.bridgeCost : r.strategyId === 'floor-the-schedule' ? r.signature.floorCost : r.strategyId === 'floor-to-age' ? r.signature.floorCost : r.strategyId === 'ladder-and-ratchet' ? r.signature.baseLadderCost : r.strategyId === 'floor-and-flex' ? r.signature.floorCost : 0;
       h += '<div class="table-scroll-container cmp-matrix-wrap"><table class="cmp-matrix"><thead><tr><th>Strategy</th><th>What you get</th><th>What you pay today</th><th>What can go wrong</th><th>What you do</th><th>How you get out</th></tr></thead><tbody>';
       for (const id of ids) {
         const w = CMP_WORDS[id];
@@ -8393,6 +8437,30 @@
         doWhat: ['<strong>Once:</strong> buy the rungs and a world-equity fund', '<strong>Monthly:</strong> nothing', '<strong>Yearly:</strong> if the reserve is more than double its line, buy more years'],
         exit: ['Sell rungs at market', 'Annuitise the reserve or the tail at 75/80']
       },
+      'bridge-and-engine': {
+        tag: 'a bridge bought to your State Pension, an engine for the rest', frames: BE_FRAMES,
+        intro: 'Every year to the bridge age is bought today — the first years in cash, every later year as one index-linked gilt maturing before the April it pays for. What is left is the engine: one world-equity fund you do not touch until the bridge ends. From then the State Pension arrives and the engine pays the rest of the schedule by a standing monthly withdrawal. Nothing is re-bought, nothing triggers, nothing ratchets — and the engine can run out, late. That is the honest trade: certainty for the expensive early years, market risk moved to the far end.',
+        machine: (r, p) => ({ fn: bridgeEngineSvg, d: { years: r.signature.amountsByAge, startAge: p.startAge, B: r.signature.B, bridgeAge: r.signature.bridgeAge, cashYears: r.signature.cashYears, engineCone: r.signature.engineCone, wealthCone: r.cones.wealth, restCostFull: r.signature.restCostFull, failAgeP10: r.signature.failAgeP10, ruinMc: r.ruin.mc, engineE0: r.signature.engineE0, bridgeCost: r.signature.bridgeCost, pot: r.signature.pot } }),
+        dials: (prm, s) => dial('Bridge to age', 'bridgeAge', 'type="number" min="56" max="90"', prm.bridgeAge || (s.shapeAgeNow ? +s.shapeAgeNow + 10 : 67)) + dial('Years in cash first', 'cashYears', 'type="number" min="0" max="10"', prm.cashYears ?? 3),
+        verdict: (r, p) => { const sg = r.signature; return '<strong>Bridge to ' + sg.bridgeAge + ': ' + gbp(Math.round(sg.bridgeCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Engine today: ' + gbp(Math.round(sg.engineE0)) + '.</strong> At ' + sg.bridgeAge + ' the engine is worth a median ' + gbp(Math.round(sg.engineAtB.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.engineAtB.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.engineAtB.p90)) + ')' + (sg.restCostFull ? '; buying the remaining years by contract would cost ' + gbp(Math.round(sg.restCostFull)) + ' that day' : '') + '. Drawing the rest from the engine, the money ran out before the horizon in <strong>' + r.ruin.mc.toFixed(0) + '%</strong> of futures and ' + r.ruin.hist.toFixed(0) + '% of real histories' + (sg.failAgeMedian ? ' — typically by ' + Math.round(sg.failAgeMedian) : '') + '. Nothing can go wrong before ' + sg.bridgeAge + '.'; },
+        decades: (r, p) => { const E0 = r.signature.sleeveE0 ?? r.signature.engineE0; const B = r.signature.B; const rtr = getRtr(); const series = {}; for (const [lab, y] of [['from Jan 1966', 1966], ['from Jan 1985', 1985], ['from Jan 2000', 2000]]) { const s0 = shiller(y); if (s0 + 12 * B < rtr.length) series[lab] = Array.from({ length: B + 1 }, (_, i) => E0 * rtr[s0 + 12 * i] / rtr[s0]); } return '<p class="hint" style="margin:0 0 6px;">The engine\'s actual path to ' + r.signature.bridgeAge + ' had you started in January 1966 (the long bust), 1985 (the long boom) or 2000 (the lost decade), world-adjusted and after inflation. The dashed line is what buying the remaining years by contract would cost at ' + r.signature.bridgeAge + ' on today\'s curve: above it, you could still lock the rest in; below it, the engine has to earn its way.</p>' + decadeLinesSvg({ title: 'The engine from three real starts, against the price of the rest at ' + r.signature.bridgeAge, startAge: p.startAge, series, refLine: r.signature.restCostFull, refLabel: 'cost of the remaining years at ' + r.signature.bridgeAge }); },
+        shines: ['The expensive early years — the ones a bad start would wreck — are certain, and there is nothing to do', 'Sequence risk on the bridge is gone; the engine compounds untouched for a decade', 'When the State Pension arrives the draw on the engine is small, so it usually lasts'],
+        fails: ['A 1966- or 2000-style decade delivers a small engine at the bridge age, and the later years then run it down', 'It fails late and quietly — there is no floor after the bridge unless you buy one then', 'Gilts on the bridge give up equity upside on that capital'],
+        doWhat: ['<strong>Once:</strong> buy the cash years and the rungs to the bridge age, and one world-equity fund', '<strong>Monthly:</strong> nothing until the bridge age; then a standing withdrawal', '<strong>At the bridge age:</strong> one honest look — is the engine big enough to buy a floor for the rest? If so, you can'],
+        exit: ['Sell rungs at market at any time', 'At the bridge age or later: annuitise the engine, or switch to Floor to an age with what it has become']
+      },
+      'buckets-in-order': {
+        tag: 'three pots, an order, no rebalancing', frames: BK_FRAMES,
+        intro: 'Three pots — equities, a defensive sleeve, cash — and one rule that runs every month. Equities pay while they are on or above their plan path in pounds; if they sit above it by more than the band, the excess is swept into cash up to the cash target. Below the path, cash pays and equities are left alone; when cash is gone the defensive sleeve pays; only when every buffer is empty are equities sold below their path. There is never a rebalancing trade. It is Pots &amp; Valves with the valves replaced by an order — and the path is an absolute pound figure, because a percentage share rises by itself as cash is spent and would tell you to sell equities at the bottom.',
+        machine: (r, p) => ({ fn: bucketsSvg, d: { pots: r.signature.pots, eqPath: r.signature.eqPath, band: r.signature.band, cashYears: r.signature.cashYears, wealthCone: r.cones.wealth, startAge: p.startAge, planIncome: p.targetAnnual, ruinMc: r.ruin.mc, failAgeP10: r.signature.failAgeP10 } }),
+        dials: (prm, s) => dial('Sweep band above the path (%)', 'bucketBand', 'type="number" min="0" max="50" step="5"', prm.bucketBand || 10) + '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)),
+        verdict: (r, p) => { const sg = r.signature; return '<strong>Ran out in ' + r.ruin.mc.toFixed(0) + '% of futures</strong> and ' + r.ruin.hist.toFixed(0) + '% of real histories' + (sg.failAgeP10 ? ' — by ' + Math.round(sg.failAgeP10) + ' in the worst tenth of those' : '') + '. Equities ' + gbp(Math.round(sg.pots.equity)) + ' on a path from ' + gbp(Math.round(sg.eqPath)) + ' (band ' + Math.round(sg.band * 100) + '%); cash ' + gbp(Math.round(sg.pots.cash)) + ' ≈ ' + sg.cashYears.toFixed(1) + ' years of spending; defensive ' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '. Typically ' + gbp(Math.round(r.terminal.p50)) + ' left at the end.'; },
+        decades: (r, p) => { const series = {}; for (const [lab, y] of [['from Jan 1966', 1966], ['from Jan 1985', 1985], ['from Jan 2000', 2000]]) { const w = pnvDecadeSeries(p, y, 1); if (w) series[lab + (w.failed ? ' — ran out at ' + Math.round(w.failAge) : ' — ' + gbp(Math.round(w.terminal / 1000)) + 'k left')] = w.wealthByYear.map((v) => v || 0); } return '<p class="hint" style="margin:0 0 6px;">All pots together, from three real starts, in today\'s money.</p>' + decadeLinesSvg({ title: 'The pots from three real starts', startAge: p.startAge, series, refLine: p.pot + (p.isa || 0), refLabel: 'where it started' }); },
+        shines: ['One question a month — are equities on their path? — and a mechanical answer', 'Equities are never sold in a slump while a buffer remains, so a normal bear market never touches them', 'Three funds, no rebalancing trades, no percentage arithmetic'],
+        fails: ['A slump longer than the buffers (cash then defensive) forces equity sales at the bottom — late, and after two shields', 'A permanent cash pot is a permanent drag: it costs real return every year to insure a rare decade', 'The defensive sleeve is only as defensive as what is in it — a multi-asset trust is not a gilt'],
+        doWhat: ['<strong>Once:</strong> set the three pots and the cash target; write down the equity path', '<strong>Monthly (or quarterly, batched):</strong> compare equities with their path; sell the payer; sweep any excess above the band into cash', '<strong>Never:</strong> rebalance between pots'],
+        exit: ['Nothing to unwind — sell any pot on any day', 'Switch to Pots &amp; Valves or a floor strategy with the same three funds']
+      },
       'pots-and-valves': {
         tag: 'one flexible portfolio, rules decide which pot pays', frames: PV_FRAMES,
         intro: 'Your money sits in pots — shares, bonds, cash, diversifiers, ISA — each with a floor. Every month the pot that can best afford it pays your income; in a bad run the safe pots take over and, if it persists, the draw is cut. In good markets the pots refill. It is the only strategy here that is allowed to pay you less.',
@@ -8416,12 +8484,12 @@
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;
     window.setSpecFrame = function (n) { window._specFrame = Math.max(1, Math.min(4, n)); const m = window._specMachine; if (!m) return; document.getElementById('specMachine').innerHTML = m.fn(m.d, window._specFrame); document.getElementById('specStepper').innerHTML = stepperHtml(m.frames, window._specFrame, 'setSpecFrame'); };
-    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const prm = { ...(s.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = { strategyId: id, strategyParams: prm }; if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; await saveStressSettings(patch); try { await setActiveStrategy(id, {}); } catch (e) {} showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
+    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const prm = { ...(s.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = { strategyId: id, strategyParams: prm }; if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; await saveStressSettings(patch); try { await setActiveStrategy(id, {}); } catch (e) {} showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
     async function specStrategyPageHtml(id) {
       const spec = STRATEGY_PAGES[id];
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const prm = { ...(settings.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
+      const prm = { ...(settings.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
       const over = { ...settings, strategyParams: prm };
       if (d.protectionOn != null) over.disableProtection = !d.protectionOn; if (d.cutPct != null) over.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) over.consecutiveLimit = d.consecutiveLimit;
       const p = strategyPlanFor(over, prm.essentialsAnnual);

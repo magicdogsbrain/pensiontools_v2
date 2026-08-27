@@ -22,7 +22,7 @@ import { buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'ladder-and-ratchet': 'Ladder & Ratchet', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder'
+  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder'
 };
 
 /** p10/p50/p90 band of one per-window series (array index = plan year). */
@@ -108,7 +108,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     params: {
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
-      floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash
+      floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
+      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
     firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
@@ -385,6 +386,81 @@ function floorToAgeTest(p, configs) {
   };
 }
 
+/**
+ * Bridge & engine: the years to the bridge age (default: State Pension age) are bought today —
+ * the first `cashYears` in cash, the rest as one index-linked rung per year — and the remainder
+ * of the pot (the engine) rides in world equities untouched. After the bridge the engine pays the
+ * schedule net of the State Pension by ordinary total-return draws: nothing is re-bought, there
+ * is no trigger and no ratchet. It can run out — and if it does, it does so late.
+ */
+function bridgeTest(p, configs) {
+  const c = configs.be;
+  if (!c) return { affordable: false, reason: `buying the bridge to ${configs.beBridgeAge} costs £${Math.round(configs.beCost).toLocaleString()} — £${Math.round(configs.beCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.beCost - availablePot(p) };
+  const N = p.durationYears, B = c.B;
+  const yf = c.yieldForYear || (() => 0.023);
+  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
+  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? 1 : Math.pow(1 + yf(k - y), -(k - y))); return v; };
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  const run = (w) => {
+    // Plan years 1..B (indices 0..B-1) are the bridge; from index B the engine pays the schedule.
+    const wealth = [], income = [];
+    let eng = w.sleeveByYear[B] ?? 0, failAge = null;
+    for (let y = 0; y <= N; y++) {
+      if (y < B) {
+        wealth.push((w.sleeveByYear[y] ?? 0) + bridgePvAt(y));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
+        continue;
+      }
+      if (y > B) eng *= (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, w.sleeveByYear[y - 1] ?? 1e-9);
+      const need = c.floorDraw(y + 1);            // this year's schedule net of the State Pension
+      if (eng >= need) { eng -= need; income.push(c.amountAt(y + 1) + otherAt(p, y)); }
+      else { if (failAge == null) failAge = p.startAge + y; income.push(Math.max(0, eng) + spAt(y) + otherAt(p, y)); eng = 0; }
+      wealth.push(Math.max(0, eng));
+    }
+    return { engineAtB: w.sleeveByYear[B] ?? 0, failed: failAge != null, failAge, wealth, income, worst: Math.min(...income) };
+  };
+  const hE = h.windows.map(run), mcE = mc.windows.map(run);
+  const pctFail = (arr) => 100 * arr.filter((e) => e.failed).length / arr.length;
+  const at = (arr) => { const v = arr.map((e) => e.engineAtB); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const engineCone = Array.from({ length: B + 1 }, (_, y) => { const v = mc.windows.map((w) => w.sleeveByYear[y] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; });
+  const terms = mcE.map((e) => e.wealth[N]);
+  const fails = mcE.filter((e) => e.failed).map((e) => e.failAge);
+  return {
+    affordable: true,
+    ruin: { hist: pctFail(hE), mc: pctFail(mcE) },
+    worst12: { min: Math.min(...hE.map((e) => e.worst)), median: pct(hE.map((e) => e.worst), 0.5) },
+    guaranteedToAge: `${c.bridgeAge} by contract; then the engine + State Pension`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
+    failAges: fails,
+    signature: {
+      bridgeAge: c.bridgeAge, B, cashYears: c.cashYears, bridgeCost: configs.beCost, engineE0: c.E0, shareOfPot: configs.beCost / availablePot(p),
+      engineAtB: at(mcE), engineAtBHist: at(hE), engineCone, restCostFull: c.restCostFull, pot: availablePot(p),
+      amountsByAge: Array.from({ length: N }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spAt(k), bridge: k < B })),
+      failAgeP10: fails.length ? pct(fails, 0.1) : null, failAgeMedian: fails.length ? pct(fails, 0.5) : null,
+      rule: `Nothing to decide until ${c.bridgeAge}: the cash years pay first, then each rung matures before the April it funds. From ${c.bridgeAge} the State Pension arrives and the engine pays the rest by a standing monthly withdrawal — no re-buying, no trigger.`
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Engine + unpaid bridge to ' + c.bridgeAge + ' (after: the engine), today\'s money'
+  };
+}
+
+/** Buckets in order: the Pots & Valves engine with ordered sourcing and no rebalancing (see WithdrawalSourcing.planSourcingOrdered). */
+function bucketsTest(p, configs) {
+  const band = p.params?.bucketBand > 0 ? p.params.bucketBand / 100 : 0.10;
+  const q = { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: 'ordered', bucketBand: band, equityGlide: null } };
+  const r = pnvTest(q, configs);
+  const draw = Math.max(1, p.targetAnnual - (p.spAnnual || 0) * 0);
+  r.signature = { ...r.signature, ordered: true, band, eqPath: q.pnvCfg.equityStart || 0, cashYears: (q.pnvCfg.cashStart || 0) / draw,
+    failAgeP10: r.failAges.length ? pct(r.failAges, 0.1) : null,
+    order: ['equities (above their path)', 'cash', 'defensive sleeve', 'equities (last resort)'] };
+  r.wealthLabel = 'All pots (SIPP + ISA), today\'s money — buckets in order';
+  return r;
+}
+
 function fullGiltTest(p, configs) {
   const N = p.durationYears;
   const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
@@ -452,7 +528,7 @@ export function pnvDecadeSeries(p, year, month = 1) {
 
 /** Stress-test ONE strategy on the plan. */
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'ladder-and-ratchet': ladderTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };

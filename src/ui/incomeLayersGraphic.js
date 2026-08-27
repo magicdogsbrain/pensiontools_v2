@@ -67,6 +67,7 @@ export function incomeLayersRows(r, p) {
       case 'full-il-gilt': contract = r.plan?.years?.[y] ? r.plan.years[y].need : (r.affordable ? netNeed : 0); break;   // .need = what the rung pays (gross − SP)
       case 'floor-the-schedule': contract = netNeed; break;
       case 'floor-to-age': contract = y < ((sig.floorToAge || 80) - p.startAge) ? netNeed : 0; break;
+      case 'bridge-and-engine': contract = y < (sig.B ?? ((sig.bridgeAge || 67) - p.startAge)) ? netNeed : 0; break;
       case 'floor-and-flex': contract = Math.max(0, (p.essentialsAnnual || 0) - s - o); break;
       case 'ladder-and-ratchet': contract = y < (sig.ladderYears || 0) ? Math.min(netNeed, sig.minDraw || p.params?.drawAnnual || netNeed) : 0; break;
       default: contract = 0;

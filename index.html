@@ -2066,7 +2066,8 @@
          Keep them legible and let the reader swipe instead. */
       svg.ichart { display: block; min-width: 600px; }
       /* Strategy matrix: one card per strategy with labelled rows instead of a six-column swipe */
-      .cmp-matrix-wrap { overflow: visible; }
+      .cmp-matrix-wrap { overflow: visible !important; }
+      .cmp-matrix { min-width: 0 !important; width: 100% !important; }
       .cmp-matrix-wrap::after { content: none; }
       .cmp-matrix, .cmp-matrix tbody, .cmp-matrix tr, .cmp-matrix td { display: block; width: 100%; box-sizing: border-box; white-space: normal; }
       .cmp-matrix thead { display: none; }

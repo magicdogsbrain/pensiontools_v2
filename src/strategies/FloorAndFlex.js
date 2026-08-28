@@ -118,6 +118,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
         if (V > cfg.annuitySwap.cost) { V -= cfg.annuitySwap.cost; annuitySwapDone = true; }
       }
       V -= d / 12;
+      if (V <= 0) { V = 0; d = 0; }   // a depleted sleeve pays nothing more (matters when treats are a fixed £)
       const t = m + 1;
       if (R && R.mode === 'band') fireRatchet(t);
       if (R && R.mode === 'calendar' && (R.reviews || []).includes(t)) fireRatchet(t);

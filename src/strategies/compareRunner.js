@@ -118,9 +118,13 @@ export function deriveCompareConfigs(p) {
   const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
   const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;
+  // Treats rule: a share of the sleeve each year (the flexible design), or a FIXED £ equal to the plan
+  // above the essentials (so Floor & Flex can be read on the same footing as the fixed-draw strategies).
+  const fixedTreats = prm.treatsRule === 'fixed' ? Math.max(0, p.targetAnnual - p.essentialsAnnual) : null;
   const ff = ffE0 > 0 ? {
     E0: ffE0, rate: prm.sleeveRate || 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
-    horizonAge: p.startAge + ffYears
+    horizonAge: p.startAge + ffYears,
+    ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {})
   } : null;
 
   // Floor the schedule: the whole income profile (net of SP) to the horizon; the rest is an untouched reserve.

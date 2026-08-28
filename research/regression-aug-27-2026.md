@@ -56,3 +56,6 @@ then funds mode VWRP/VAGP, 1 month recorded). Delete when done.
    the remaining horizon at the expected return, recomputed yearly; risk-aversion dial; spending tilt; floor/ceiling.
 3. Lead every strategy page with the spending fan by age; pass-in-full second.
 4. Floor the schedule to use the real order-sheet pricing (so it differs from the full gilt ladder only in the reserve rule).
+
+## 28 Aug 2026 — ladder builder: State Pension partial year is calendar-year, rungs are tax-year
+`planFromSettings`/`spSimConfigFromSettings` compute the SP's first-year fraction on the **calendar** year (21 Apr 2037 → 255/365 = £8,719) but the ladder maps each rung to a **tax** year (37/38 → 350/365 = £11,967). Effect on the user's live ladder: TG36 sized for £56,281 where £53,033 is needed (≈£3.3k over — harmless, conservative). Fix: when strategy is full-il-gilt / floor-the-schedule, evaluate the SP fraction against the tax year (6 Apr) rather than the plan year. Also confirmed: no linker matures in 2030, so T29 (22 Mar 2029) sits ~12 months — correct behaviour, not a bug.

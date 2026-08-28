@@ -3315,15 +3315,15 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>Other Income/Pension (£/yr)</label>
-                  <input type="number" id="ssOther" value="0">
+                  <input type="number" id="ssOther" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Defined-Benefit Pension (£/yr, today's money)</label>
-                  <input type="number" id="ssDbAmount" value="0">
+                  <input type="number" id="ssDbAmount" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>DB Starts (plan year, 0 = now)</label>
-                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40">
+                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>DB Increases</label>
@@ -3361,15 +3361,15 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>SP Start Date</label>
-                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040">
+                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
-                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Annual Amount (£/yr)</label>
-                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500">
+                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">
@@ -7697,13 +7697,34 @@
       window._shapeRefs = { essentials: 0, budgetGross: 0 };   // never carry another plan's budget lines over
       try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null }; } } catch (e) {}
     }
+    // Settings order: the layers that are NOT the pot (State Pension, other income) come before the
+    // income strategy, so the shape below can show what the pot itself has to supply.
+    function orderStressSettingsSections() {
+      try {
+        const strat = document.getElementById('ssStrategyPick')?.closest('.settings-section');
+        const sp = document.getElementById('ssSpStartDate')?.closest('.settings-section');
+        const oth = document.getElementById('ssOther')?.closest('.settings-section');
+        if (strat && strat.parentElement) { if (oth && oth !== strat) strat.parentElement.insertBefore(oth, strat); if (sp && sp !== strat) strat.parentElement.insertBefore(sp, strat); }
+      } catch (e) { /* layout only */ }
+    }
+    orderStressSettingsSections();
     window.renderIncomeShapePreview = function () {
       const box = document.getElementById('incomeShapePreview'); if (!box) return;
       const ageNow = +document.getElementById('shapeAgeNow')?.value || 57;
       const dur = +document.getElementById('ssDuration')?.value || 35;
       const steps = (window._ssIncomeSteps || []).filter((st) => +st.amount > 0);
       if (!steps.length) { box.innerHTML = '<p class="hint">No shape yet — start from your budget or a number.</p>'; return; }
-      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0 });
+      // Layers: State Pension (from its date) and other income / DB, read from the settings form above.
+      let sp = null; const other = [];
+      try {
+        const wk = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
+        const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow });
+        if (wk > 0 && cfgSp) sp = { annual: wk * 52, fromAge: ageNow + cfgSp.spStartYear };
+        else { const sa = +document.getElementById('ssSpAnnualAmount')?.value || 0; if (sa > 0 && cfgSp) sp = { annual: sa, fromAge: ageNow + cfgSp.spStartYear }; }
+        const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
+        const db = +document.getElementById('ssDbAmount')?.value || 0; if (db > 0) other.push({ annual: db, fromAge: ageNow + (+document.getElementById('ssDbStartYear')?.value || 0), label: 'DB pension' });
+      } catch (e) { /* layers are optional */ }
+      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other });
       const note = document.getElementById('incomeShapeNote');
       const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
       const first = steps[0]; const pa = +document.getElementById('ssPA')?.value || 12570, brl = +document.getElementById('ssBRL')?.value || 50270, hrl = +document.getElementById('ssHRL')?.value || 125140;

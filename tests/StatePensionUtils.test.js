@@ -98,3 +98,14 @@ describe('State Pension plan year: ages do not go stale, boundaries get a month 
     expect(c.spStartYear).toBe(10);
   });
 });
+
+describe('State Pension date is a birthday: plan year = age at SP − start age', () => {
+  it('21 Apr 2037 for a 56-year-old (Aug 2026) retiring at 57 → 67 → plan year 10', () => {
+    const c = spSimConfigFromSettings({ spStartDate: '21 Apr 2037', spWeeklyAmount: 240, shapeAgeNow: 57, currentAge: 56 }, new Date('2026-08-28'));
+    expect(c.spStartYear).toBe(10);
+  });
+  it('already retired at 62, now 64 (Aug 2026), SP 6 May 2029 → 67 → plan year 3', () => {
+    const c = spSimConfigFromSettings({ spStartDate: '6 May 2029', spWeeklyAmount: 230, shapeAgeNow: 64, currentAge: 64 }, new Date('2026-08-28'));
+    expect(c.spStartYear).toBe(3);
+  });
+});

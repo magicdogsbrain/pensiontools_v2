@@ -7,9 +7,9 @@ describe('State Pension offset when the plan starts at a future retirement age',
     const c = spSimConfigFromSettings({ spStartDate: '21 April 2038', spWeeklyAmount: 230.25 }, now);
     expect(c.spStartYear).toBe(11);
   });
-  it('55 today, income starts at 60: SP lands 5 plan-years earlier (age 67 → plan year 6)', () => {
+  it('55 today (birthday 21 April), income starts at 60 (21 Apr 2031): SP on 21 Apr 2038 is plan year 7', () => {
     const c = spSimConfigFromSettings({ spStartDate: '21 April 2038', spWeeklyAmount: 230.25, shapeAgeNow: 60, currentAge: 55 }, now);
-    expect(c.spStartYear).toBe(6);
+    expect(c.spStartYear).toBe(7);
   });
   it('already retired (ages equal) is unchanged', () => {
     const c = spSimConfigFromSettings({ spStartDate: '21 April 2038', spWeeklyAmount: 230.25, shapeAgeNow: 57, currentAge: 57 }, now);

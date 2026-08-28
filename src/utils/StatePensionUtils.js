@@ -372,7 +372,8 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
   // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
   let spStartYear;
-  if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && spDate.getTime() > now.getTime()) {
+  if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && settings.shapeAgeNow > Math.floor(currentAgeNow(settings, now)) && spDate.getTime() > now.getTime()) {
+    // Not yet retired: plan year 0 starts on the birthday the income begins, so count birthdays.
     // The State Pension date IS a birthday (State Pension age is reached on the birthday), so the age
     // at that date is today's age plus the number of birthdays between now and then — counted on the
     // SP date's own month/day. Plan year 0 is the birthday the income starts (shapeAgeNow), so the SP

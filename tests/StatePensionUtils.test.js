@@ -104,8 +104,8 @@ describe('State Pension date is a birthday: plan year = age at SP − start age'
     const c = spSimConfigFromSettings({ spStartDate: '21 Apr 2037', spWeeklyAmount: 240, shapeAgeNow: 57, currentAge: 56 }, new Date('2026-08-28'));
     expect(c.spStartYear).toBe(10);
   });
-  it('already retired at 62, now 64 (Aug 2026), SP 6 May 2029 → 67 → plan year 3', () => {
+  it('already retired (plan year 0 = today): SP 6 May 2029 is 2.7 years away → arrives during plan year 2 (partial year)', () => {
     const c = spSimConfigFromSettings({ spStartDate: '6 May 2029', spWeeklyAmount: 230, shapeAgeNow: 64, currentAge: 64 }, new Date('2026-08-28'));
-    expect(c.spStartYear).toBe(3);
+    expect(c.spStartYear).toBe(2);
   });
 });

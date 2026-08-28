@@ -371,13 +371,24 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   // Plan year 0 is the income-start age (retirement). For someone still working, that is
   // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
   // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
-  const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - currentAgeNow(settings, now)) : 0;
-  const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
-  // Count in whole months: an SP date that lands on the plan-year boundary (e.g. 9.97 years away)
-  // starts plan year 10, not 9 — otherwise the age shown drifts a year early for most of the year.
-  // One month of tolerance: 'age today' is a whole number, so the plan-year boundary is only known to
-  // within a birthday; an SP date a few weeks before it belongs to the year it starts.
-  const spStartYear = Math.floor((Math.round(yearsUntilSp * 12) + 1) / 12);
+  let spStartYear;
+  if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && spDate.getTime() > now.getTime()) {
+    // The State Pension date IS a birthday (State Pension age is reached on the birthday), so the age
+    // at that date is today's age plus the number of birthdays between now and then — counted on the
+    // SP date's own month/day. Plan year 0 is the birthday the income starts (shapeAgeNow), so the SP
+    // starts in plan year (age at SP − start age). No birth date needed, no drift within the year.
+    let birthdays = 0;
+    for (let y = now.getFullYear(); y <= spDate.getFullYear(); y++) {
+      const bd = new Date(y, spDate.getMonth(), spDate.getDate());
+      if (bd.getTime() > now.getTime() && bd.getTime() <= spDate.getTime()) birthdays++;
+    }
+    const ageAtSp = Math.floor(currentAgeNow(settings, now)) + birthdays;
+    spStartYear = Math.max(0, ageAtSp - settings.shapeAgeNow);
+  } else {
+    const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - currentAgeNow(settings, now)) : 0;
+    const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
+    spStartYear = Math.floor((Math.round(yearsUntilSp * 12) + 1) / 12);
+  }
   const daysInYear = 365;
   const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
   const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;

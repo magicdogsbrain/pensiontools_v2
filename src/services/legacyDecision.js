@@ -418,7 +418,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Buckets in order (deps.sourcingMode): equities pay while at/above their £ path — here the
       // plan's equity floor for the year, the same line the Stress engine's path depletes to.
       const sourcing = deps.sourcingMode === 'ordered'
-        ? planSourcingOrdered({ ...sourcingInputs, eqPath: deps.equityPath != null ? deps.equityPath : adjEquity, band: deps.bucketBand ?? 0.10 })
+        ? planSourcingOrdered({ ...sourcingInputs, eqPath: deps.equityPath != null ? deps.equityPath : adjEquity, bdTarget: adjBond, band: deps.bucketBand ?? 0.10 })
         : planSourcing(sourcingInputs);
       const source = sourcing.source;
       const reason = sourcing.reason;
@@ -448,12 +448,18 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // the stress tester actually executes (rounded to £1k for readability; ≥£1k to show).
       let cashReplenish = '';
       const repAmount = Math.floor((sourcing.replenish || 0) / 1000) * 1000;
-      if (repAmount >= 1000) {
+
+      if (repAmount >= 1000 && !sourcing.transfers) {
         cashReplenish = `Replenish Cash: Move £${repAmount.toLocaleString()} from growth funds`;
       }
 
       // Build alerts array
       const alerts = [];
+      if (sourcing.transfers) {
+        const e2b = Math.floor((sourcing.transfers.equityToBond || 0) / 1000) * 1000, b2c = Math.floor((sourcing.transfers.bondToCash || 0) / 1000) * 1000;
+        if (e2b >= 1000) alerts.push({ message: `Waterfall: move £${e2b.toLocaleString()} from equities (above their path) into bonds`, severity: 'info', type: 'cash-replenish' });
+        if (b2c >= 1000) alerts.push({ message: `Waterfall: move £${b2c.toLocaleString()} from bonds (above target) into cash`, severity: 'info', type: 'cash-replenish' });
+      }
       // Protection is cutting income while an ISA sits idle (policy never touches it below the BRL):
       // say what the cut is and how long the ISA could cover it. Advice, not an automatic draw.
       const protCut = inProtection ? Math.max(0, (stdSippForHistory || 0) - sipp) : 0;

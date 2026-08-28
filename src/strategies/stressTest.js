@@ -476,7 +476,7 @@ function bucketsTest(p, configs) {
   const draw = Math.max(1, p.targetAnnual - (p.spAnnual || 0) * 0);
   r.signature = { ...r.signature, ordered: true, band, eqPath: q.pnvCfg.equityStart || 0, cashYears: (q.pnvCfg.cashStart || 0) / draw,
     failAgeP10: r.failAges.length ? pct(r.failAges, 0.1) : null,
-    order: ['equities (above their path)', 'cash', 'defensive sleeve', 'equities (last resort)'] };
+    order: ['cash', 'bonds', 'diversifiers', 'equities (last)'] };
   r.wealthLabel = 'All pots (SIPP + ISA), today\'s money — buckets in order';
   return r;
 }

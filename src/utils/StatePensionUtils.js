@@ -367,7 +367,9 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
   // Count in whole months: an SP date that lands on the plan-year boundary (e.g. 9.97 years away)
   // starts plan year 10, not 9 — otherwise the age shown drifts a year early for most of the year.
-  const spStartYear = Math.floor(Math.round(yearsUntilSp * 12) / 12);
+  // One month of tolerance: 'age today' is a whole number, so the plan-year boundary is only known to
+  // within a birthday; an SP date a few weeks before it belongs to the year it starts.
+  const spStartYear = Math.floor((Math.round(yearsUntilSp * 12) + 1) / 12);
   const daysInYear = 365;
   const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
   const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;

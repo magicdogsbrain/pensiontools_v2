@@ -12,10 +12,10 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
 export const BK_FRAMES = [
-  { title: 'Three pots, one path', text: 'Equities, a defensive sleeve and cash — the amounts you hold today. The dashed line on the equity pot is its plan trajectory in pounds; the rule only ever compares the pot with that line, never with a percentage of the total.' },
-  { title: 'A normal month: equities pay', text: 'Equities are on or above their path, so this month\'s income is sold from equities. Above the band, the excess is swept into cash to refill what a past slump spent — never more than the cash target.' },
-  { title: 'A slump: cash pays, equities untouched', text: 'Equities have fallen below their path. Not one share is sold; cash pays the month. With the cash target at a few years of spending, that insulates equities for the length of a normal bear market.' },
-  { title: 'A long slump: the defensive sleeve, then equities last', text: 'Cash is gone and equities are still below the path: the defensive sleeve (bonds, diversifiers) pays. Only when every buffer is empty are equities sold low. The band on the right is what is left across 1,000 futures.' }
+  { title: 'Three buckets, one path', text: 'Cash, bonds (the defensive sleeve) and equities — the amounts you hold today. The dashed line on the equity bar is its plan trajectory in pounds; the bond bar has a target. Only pound figures are ever compared, never a percentage of the total.' },
+  { title: 'A normal month: cash pays, the surplus waterfalls down', text: 'Income always comes from the lowest-risk bucket that has money — cash. When equities sit above their path by more than the band, the excess spills down into bonds up to their target; bonds above their target spill into cash. Refills only ever come from surplus.' },
+  { title: 'A slump: cash, then bonds — equities untouched', text: 'Equities have fallen below their path, so nothing spills down. Cash keeps paying; when it is gone, bonds pay. Not one share is sold while a buffer remains, and the buffers are sized in years of spending.' },
+  { title: 'A long slump: the buffers are empty, equities last', text: 'Cash and bonds are gone and equities are still below the path: only now are shares sold, at the bottom — the honest failure mode of every bucket strategy. The band on the right is what is left across 1,000 futures.' }
 ];
 
 /**
@@ -36,9 +36,9 @@ export function bucketsSvg(d, frame = 4, o = {}) {
   const barW = 90, slot = (leftW - padL) / 3;
   // frame-dependent illustrative levels
   const level = (p) => {
-    if (frame === 3) return p.key === 'equity' ? p.v * 0.72 : p.key === 'cash' ? p.v * 0.7 : p.v;
-    if (frame === 4) return p.key === 'equity' ? p.v * 0.62 : p.key === 'cash' ? 0 : p.v * 0.85;
-    if (frame === 2) return p.key === 'equity' ? p.v * 1.18 : p.v;
+    if (frame === 3) return p.key === 'equity' ? p.v * 0.72 : p.key === 'cash' ? 0 : p.v * 0.85;
+    if (frame === 4) return p.key === 'equity' ? p.v * 0.62 : 0;
+    if (frame === 2) return p.key === 'equity' ? p.v * 1.18 : p.key === 'cash' ? p.v * 0.9 : p.v;
     return p.v;
   };
   let s = '';
@@ -61,15 +61,16 @@ export function bucketsSvg(d, frame = 4, o = {}) {
     if (p.key === 'cash' && d.cashYears) s += `<text x="${(x + barW / 2).toFixed(1)}" y="${y0 + 27}" text-anchor="middle" font-size="9" fill="var(--text-muted,#999)">≈ ${d.cashYears.toFixed(1)} years of spending</text>`;
   });
   // the arrow: which pot pays this month
-  const payer = frame === 1 ? null : frame === 2 ? 0 : frame === 3 ? 2 : 1;
+  const payer = frame === 1 ? null : frame === 2 ? 2 : frame === 3 ? 1 : 0;   // 2: cash, 3: bonds, 4: equities
   if (payer != null) {
     const p = pots[payer]; const x = padL + payer * slot + slot / 2;
     s += `<path d="M ${x.toFixed(1)} ${(top - 22).toFixed(1)} L ${x.toFixed(1)} ${(yV(level(p)) - 14).toFixed(1)}" stroke="${p.color}" stroke-width="3" marker-end="url(#bkArrow)"/>`;
-    s += `<text x="${x.toFixed(1)}" y="${(top - 26).toFixed(1)}" text-anchor="middle" font-size="11" fill="${p.color}">${frame === 2 ? 'sells this month\'s income' : frame === 3 ? 'pays the month — equities untouched' : 'pays — cash is gone, equities still spared'}</text>`;
+    s += `<text x="${x.toFixed(1)}" y="${(top - 26).toFixed(1)}" text-anchor="middle" font-size="11" fill="${p.color}">${frame === 2 ? 'pays the month (lowest-risk bucket first)' : frame === 3 ? 'pays — cash is gone, equities untouched' : 'pays — every buffer is empty'}</text>`;
     if (frame === 2 && d.band) {
-      const xe = padL + slot / 2 + barW / 2, xc = padL + 2 * slot + slot / 2 - barW / 2;
-      s += `<path d="M ${xe.toFixed(1)} ${(top + 10).toFixed(1)} C ${(xe + 60).toFixed(1)} ${(top - 10).toFixed(1)}, ${(xc - 60).toFixed(1)} ${(top - 10).toFixed(1)}, ${xc.toFixed(1)} ${(top + 10).toFixed(1)}" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#bkArrowG)"/>`;
-      s += `<text x="${((xe + xc) / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#9ca3af">excess above the band swept to cash (up to the target)</text>`;
+      const xe = padL + slot / 2 + barW / 2, xb = padL + slot + slot / 2, xc = padL + 2 * slot + slot / 2 - barW / 2;
+      s += `<path d="M ${xe.toFixed(1)} ${(top + 10).toFixed(1)} C ${(xe + 40).toFixed(1)} ${(top - 10).toFixed(1)}, ${(xb - 40).toFixed(1)} ${(top - 10).toFixed(1)}, ${(xb - barW / 2).toFixed(1)} ${(top + 10).toFixed(1)}" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#bkArrowG)"/>`;
+      s += `<path d="M ${(xb + barW / 2).toFixed(1)} ${(top + 10).toFixed(1)} C ${(xb + 40).toFixed(1)} ${(top - 10).toFixed(1)}, ${(xc - 40).toFixed(1)} ${(top - 10).toFixed(1)}, ${xc.toFixed(1)} ${(top + 10).toFixed(1)}" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#bkArrowG)"/>`;
+      s += `<text x="${((xe + xc) / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#9ca3af">surplus waterfalls: equities above path → bonds → cash (up to targets)</text>`;
     }
   }
   // right: the wealth cone

@@ -3035,8 +3035,8 @@
               </div>
               <div id="ssBucketsParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Sweep band above the equity path (%)<input type="number" id="bucketBand" min="0" max="50" value="10" style="width:80px;"></label>
-                  <span class="hint" style="flex:1 1 260px;">Equities pay while they are on their £ path (the allocation below sets the pots and the cash target). Above the path by more than this band, the excess is swept into cash up to the target. Below the path: cash pays, then the defensive sleeve. Never a rebalancing trade.</span>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Waterfall band above path / target (%)<input type="number" id="bucketBand" min="0" max="50" value="10" style="width:80px;"></label>
+                  <span class="hint" style="flex:1 1 260px;">Cash pays first, then bonds, then equities (the allocation below sets the buckets and their targets). Surplus waterfalls down: equities above their £ path by more than this band refill bonds; bonds above target refill cash. Nothing is sold in a slump.</span>
                 </div>
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
@@ -5833,7 +5833,7 @@
         const sg = r.signature;
         head = '<strong>Ran out of money in ' + ruinMc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + ruinH.toFixed(1) + '% of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
           + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + budEsc(r.guaranteedToAge) + '. '
-          + 'Equities pay while on their £ path (' + gbp(Math.round(sg.eqPath)) + ' today, sweep band ' + Math.round(sg.band * 100) + '%); the ' + gbp(Math.round(sg.pots.cash)) + ' cash pot is about ' + sg.cashYears.toFixed(1) + ' years of spending; the defensive sleeve holds ' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '. No rebalancing — ever.';
+          + 'Cash pays first (' + gbp(Math.round(sg.pots.cash)) + ' ≈ ' + sg.cashYears.toFixed(1) + ' years of spending), then bonds (' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '), then equities; surplus waterfalls down from an equity path of ' + gbp(Math.round(sg.eqPath)) + ' (band ' + Math.round(sg.band * 100) + '%). Nothing sold in a slump.';
       } else if (r.strategyId === 'floor-the-schedule') {
         const sg = r.signature;
         head = '<strong>Your whole income schedule is bought by contract to ' + sg.horizonAge + '</strong> — cost ' + gbp(Math.round(sg.floorCost)) + ', ' + Math.round(sg.shareOfPot * 100) + '% of the pot, on today\'s real yields; every year pays in every history and every future, by construction. '
@@ -7844,7 +7844,7 @@
         // Every plan has a strategy; the Decision tool executes it. Say which, and what that means this month.
         const HOW = {
           'pots-and-valves': 'Rules decide which pot pays each month: growth pots above their floors first, then cash, with the draw cut in a long slump. The recommendation below is that rule applied to the values you enter.',
-          'buckets-in-order': 'One order: equities pay while they are on their £ path; below it cash pays; then the defensive sleeve. The recommendation below follows that order — never a rebalancing trade.',
+          'buckets-in-order': 'One order: cash pays first, then bonds, then equities; surplus waterfalls down from equities to bonds to cash. The recommendation below follows that order — nothing is sold in a slump.',
           'ladder-and-ratchet': 'Inside the ladder years the matured rung pays; the equity sleeve is untouched unless the ratchet fires at a review. Check the trigger below.',
           'bridge-and-engine': 'Until the bridge age the cash years, then the matured rungs, pay; nothing is sold. After it the State Pension is in payment and the engine pays the rest by a standing withdrawal.',
           'floor-and-flex': 'The essentials rung pays the bills; the treats are a fixed share of the flex sleeve, set once a year. Check the draw below.',
@@ -7935,7 +7935,7 @@
     // ---- Strategy selection IN SETTINGS (the funds live here, so the strategy does too) -----
     const STRATEGY_BLURBS = {
       'pots-and-valves': 'Your allocation below IS this strategy: the pots, their floors and the risk level are its dials. Rules decide which pot pays each month.',
-      'buckets-in-order': 'Three pots, one order: equities pay while they are on their £ path (never a % share); below it cash pays, then the defensive sleeve; equities are sold low only when every buffer is empty. No rebalancing — the allocation below sets the pots and the cash target.',
+      'buckets-in-order': 'Three buckets, one order: cash pays first, then bonds, then equities. Surplus waterfalls down — equities above their £ path refill bonds, bonds above target refill cash — and nothing is ever sold in a slump. The allocation below sets the buckets and their targets.',
       'bridge-and-engine': 'Buys every year to your State Pension age today — cash first, then one index-linked gilt per year. The rest (the engine) rides in world equities untouched, then pays the later years by ordinary withdrawals. No re-buying, no trigger, no ratchet.',
       'ladder-and-ratchet': 'Buys your income up front as an index-linked gilt ladder; the REST rides in the equity sleeve (the allocation below applies to the sleeve). Booms lock more years on.',
       'floor-and-flex': 'Buys the BILLS by contract to a chosen age; everything else is the flex sleeve paying the treats (the allocation below applies to the sleeve).',
@@ -8352,7 +8352,7 @@
     window._cmpCache = null;
     const CMP_WORDS = {
       'pots-and-valves':   { fail: 'a long bad run drains the pots; cuts first, then runs dry late', doWhat: 'monthly: a decision on what to draw and from where', exit: 'nothing to unwind — it is just a portfolio' },
-      'buckets-in-order':  { fail: 'a long slump empties cash and the defensive sleeve; equities are sold low, late', doWhat: 'monthly: one look — are equities on their path? sell the payer', exit: 'nothing to unwind — three funds' },
+      'buckets-in-order':  { fail: 'a slump longer than cash and bonds together; equities are sold low, late', doWhat: 'monthly: draw from the lowest-risk bucket; yearly: waterfall any surplus down', exit: 'nothing to unwind — three funds' },
       'bridge-and-engine': { fail: 'the engine arrives small at the bridge age — the later years run it down and it can run out, late', doWhat: 'nothing until the bridge age; then a standing withdrawal', exit: 'sell rungs at market; annuitise the engine at any age' },
       'ladder-and-ratchet':{ fail: 'the sleeve is empty before the horizon — a cliff, late', doWhat: 'yearly: watch the trigger; buy rungs when it fires', exit: 'sell rungs at market; annuitise the sleeve' },
       'floor-and-flex':    { fail: 'lean years — the bills are paid, the treats shrink', doWhat: 'yearly: take a % of the sleeve as treats', exit: 'sell the sleeve any day; the floor stays' },
@@ -8687,15 +8687,15 @@
         exit: ['Sell rungs at market at any time', 'At the bridge age or later: annuitise the engine, or switch to Floor to an age with what it has become']
       },
       'buckets-in-order': {
-        tag: 'three pots, an order, no rebalancing', frames: BK_FRAMES,
-        intro: 'Three pots — equities, a defensive sleeve, cash — and one rule that runs every month. Equities pay while they are on or above their plan path in pounds; if they sit above it by more than the band, the excess is swept into cash up to the cash target. Below the path, cash pays and equities are left alone; when cash is gone the defensive sleeve pays; only when every buffer is empty are equities sold below their path. There is never a rebalancing trade. It is Pots &amp; Valves with the valves replaced by an order — and the path is an absolute pound figure, because a percentage share rises by itself as cash is spent and would tell you to sell equities at the bottom.',
+        tag: 'three buckets, one order, a waterfall', frames: BK_FRAMES,
+        intro: 'Three buckets — cash, bonds, equities — and one rule. Income always comes from the lowest-risk bucket that has money: cash first, then bonds, then equities. Refills only ever come from surplus, and they waterfall down: equities above their plan path in pounds spill the excess into bonds up to their target; bonds above their target spill into cash up to its target. Nothing is sold in a slump — shares go only when both buffers are empty. The paths are absolute pound figures, because a percentage share rises by itself as cash is spent and would tell you to sell equities at the bottom.',
         machine: (r, p) => ({ fn: bucketsSvg, d: { pots: r.signature.pots, eqPath: r.signature.eqPath, band: r.signature.band, cashYears: r.signature.cashYears, wealthCone: r.cones.wealth, startAge: p.startAge, planIncome: p.targetAnnual, ruinMc: r.ruin.mc, failAgeP10: r.signature.failAgeP10 } }),
-        dials: (prm, s) => allocDials(s) + dial('Sweep band above the path (%)', 'bucketBand', 'type="number" min="0" max="50" step="5"', prm.bucketBand || 10) + '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)),
+        dials: (prm, s) => allocDials(s) + dial('Waterfall band above path / target (%)', 'bucketBand', 'type="number" min="0" max="50" step="5"', prm.bucketBand || 10) + '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)),
         verdict: (r, p) => { const sg = r.signature; return '<strong>Ran out in ' + r.ruin.mc.toFixed(0) + '% of futures</strong> and ' + r.ruin.hist.toFixed(0) + '% of real histories' + (sg.failAgeP10 ? ' — by ' + Math.round(sg.failAgeP10) + ' in the worst tenth of those' : '') + '. Equities ' + gbp(Math.round(sg.pots.equity)) + ' on a path from ' + gbp(Math.round(sg.eqPath)) + ' (band ' + Math.round(sg.band * 100) + '%); cash ' + gbp(Math.round(sg.pots.cash)) + ' ≈ ' + sg.cashYears.toFixed(1) + ' years of spending; defensive ' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '. Typically ' + gbp(Math.round(r.terminal.p50)) + ' left at the end.'; },
         decades: (r, p) => pnvDecadesHtml(r, { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: 'ordered', bucketBand: r.signature.band, equityGlide: null } }),
-        shines: ['One question a month — are equities on their path? — and a mechanical answer', 'Equities are never sold in a slump while a buffer remains, so a normal bear market never touches them', 'Three funds, no rebalancing trades, no percentage arithmetic'],
-        fails: ['A slump longer than the buffers (cash then defensive) forces equity sales at the bottom — late, and after two shields', 'A permanent cash pot is a permanent drag: it costs real return every year to insure a rare decade', 'The defensive sleeve is only as defensive as what is in it — a multi-asset trust is not a gilt'],
-        doWhat: ['<strong>Once:</strong> set the three pots and the cash target; write down the equity path', '<strong>Monthly (or quarterly, batched):</strong> compare equities with their path; sell the payer; sweep any excess above the band into cash', '<strong>Never:</strong> rebalance between pots'],
+        shines: ['Income always from the safest bucket that has money — a mechanical rule anyone can run', 'Equities are never sold in a slump while a buffer remains, so a normal bear market never touches them', 'Refills only from surplus, so a boom is banked down the buckets and a bust is left alone'],
+        fails: ['A slump longer than cash and bonds together forces equity sales at the bottom — late, and after two shields', 'Permanent cash and bond buckets are a permanent drag: real return given up every year to insure a rare decade', 'The bond bucket is only as defensive as what is in it — a multi-asset trust is not a gilt'],
+        doWhat: ['<strong>Once:</strong> set the three buckets and their targets; write down the equity path', '<strong>Monthly (or quarterly, batched):</strong> draw from cash, then bonds, then equities', '<strong>Yearly:</strong> waterfall any surplus down — equities above path into bonds, bonds above target into cash', '<strong>Never:</strong> sell equities while a buffer has money'],
         exit: ['Nothing to unwind — sell any pot on any day', 'Switch to Pots &amp; Valves or a floor strategy with the same three funds']
       },
       'pots-and-valves': {

@@ -5952,6 +5952,9 @@
       const out = document.getElementById('tryResults');
       const s = await getStressSettingsAsync();
       const c = tryStrategySettings(s);
+      // Hold the height while running: swapping a long result for a spinner shrinks the page and the
+      // browser clamps the scroll position to the top — the reader would lose their place.
+      out.style.minHeight = (out.offsetHeight || 0) + 'px';
       out.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[c.strategyId]) + ' on this what-if…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {

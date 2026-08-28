@@ -49,11 +49,12 @@ export const BucketsInOrder = {
   ...PotsAndValves,
   id: 'buckets-in-order',
   name: 'Buckets in order',
-  promise: 'Three pots, one order: equities pay while they are on their path; cash when they are not; the defensive sleeve when cash is gone. No rebalancing, ever.',
-  failure: 'A long slump empties cash and the defensive sleeve, and equities are finally sold low — late, and after two buffers.',
+  promise: 'Three buckets, one order: cash pays first, then bonds, then equities. Surplus waterfalls down — equities above their £ path refill bonds, bonds above target refill cash. Never a sale in a slump.',
+  failure: 'A slump longer than cash and bonds together forces equity sales at the bottom — late, and after two buffers; and the buffers are a permanent drag.',
   describe() { return { id: this.id, name: this.name, promise: this.promise, failure: this.failure, engineVersion: PotsAndValves.describe().engineVersion,
-      components: ['absolute £ equity trajectory (never a % share)', 'ordered draw: equities → cash → defensive → equities', 'one sweep: equity excess above the band into cash, up to the cash target', 'no rebalancing between pots'],
+      components: ['draw order: cash → bonds → equities', 'absolute £ equity path and bond target (never a % share)', 'waterfall refills from surplus only: equities → bonds → cash', 'no other trade between pots'],
       usesTrigger: false }; }
+ }
 };
 
 /** Bridge & engine — years to the bridge age bought (cash, then linkers); the rest rides untouched, then pays by total return. */

@@ -45,24 +45,25 @@ describe('Bridge & engine', () => {
   });
 });
 
-describe('Buckets in order — sourcing rule', () => {
-  const base = { draw: 5000, equity: 500000, bond: 400000, cash: 200000, diversifier: 0, hodl: 0, eqMin: 0, bdMin: 0, csTarget: 240000, inProtection: false, eqPath: 480000, band: 0.1 };
-  it('equities on or above their path pay the month', () => {
+describe('Buckets in order — sourcing rule (cash → bonds → equities, waterfall from surplus)', () => {
+  const base = { draw: 5000, equity: 500000, bond: 400000, cash: 200000, diversifier: 0, hodl: 0, eqMin: 0, bdMin: 0, csTarget: 240000, inProtection: false, eqPath: 480000, bdTarget: 400000, band: 0.1 };
+  it('cash pays first even when equities are above their path', () => {
     const o = planSourcingOrdered(base);
-    expect(o.fromEquity).toBe(5000); expect(o.fromCash).toBe(0); expect(o.source).toBe('Growth');
+    expect(o.fromCash).toBe(5000); expect(o.fromEquity).toBe(0); expect(o.source).toBe('Cash');
   });
-  it('excess above the band is swept to cash, capped at the cash target', () => {
-    const o = planSourcingOrdered({ ...base, equity: 600000 });
-    expect(o.replenish).toBeCloseTo(Math.min(600000 - 5000 - 480000, 40000), 0);
-    const full = planSourcingOrdered({ ...base, equity: 600000, cash: 240000 });
-    expect(full.replenish).toBe(0);
+  it('equities above the band waterfall into bonds up to target; bonds above target into cash up to target', () => {
+    const o = planSourcingOrdered({ ...base, equity: 600000, bond: 380000 });
+    expect(o.transfers.equityToBond).toBeCloseTo(Math.min(600000 - 480000, 400000 - 380000), 0);
+    const b = planSourcingOrdered({ ...base, equity: 480000, bond: 480000, cash: 100000 });
+    expect(b.transfers.equityToBond).toBe(0);
+    expect(b.transfers.bondToCash).toBeCloseTo(Math.min(480000 - 400000, 240000 - (100000 - 5000)), 0);
+    const none = planSourcingOrdered({ ...base, equity: 400000 });
+    expect(none.transfers.equityToBond + none.transfers.bondToCash).toBe(0);
   });
-  it('below the path: cash pays, then the defensive sleeve, equities last', () => {
-    const c = planSourcingOrdered({ ...base, equity: 400000 });
-    expect(c.fromCash).toBe(5000); expect(c.fromEquity).toBe(0); expect(c.source).toBe('Cash');
-    const d = planSourcingOrdered({ ...base, equity: 400000, cash: 0 });
+  it('when cash is gone bonds pay; when both are gone equities pay', () => {
+    const d = planSourcingOrdered({ ...base, cash: 0 });
     expect(d.fromBond).toBe(5000); expect(d.source).toBe('Bond');
-    const e = planSourcingOrdered({ ...base, equity: 400000, cash: 0, bond: 0 });
+    const e = planSourcingOrdered({ ...base, cash: 0, bond: 0 });
     expect(e.fromEquity).toBe(5000); expect(e.source).toBe('Equity');
   });
 });

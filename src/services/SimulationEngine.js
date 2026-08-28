@@ -428,7 +428,7 @@ export function simulate(config, returns, seed = 0) {
     // "Buckets in order": equities pay while at/above their absolute £ trajectory (the opening
     // equity pot inflated and depleted like the floors); else cash, then the defensive sleeve.
     const sourcing = config.sourcingMode === 'ordered'
-      ? planSourcingOrdered({ ...sourcingInputs, eqPath: calculateGlidepath(config.equityStart || 0, year, config.duration, cumInf, true), band: config.bucketBand ?? 0.10 })
+      ? planSourcingOrdered({ ...sourcingInputs, eqPath: calculateGlidepath(config.equityStart || 0, year, config.duration, cumInf, true), bdTarget: calculateGlidepath(config.bondStart || 0, year, config.duration, cumInf, true), band: config.bucketBand ?? 0.10 })
       : planSourcing(sourcingInputs);
     equity -= sourcing.fromEquity;
     bond -= sourcing.fromBond;
@@ -456,11 +456,11 @@ export function simulate(config, returns, seed = 0) {
       failed = true;
       failMonth = month;
     }
-    if (sourcing.replenish > 0 && config.sourcingMode === 'ordered') {
-      // Ordered buckets: the sweep comes from equities only (that is the whole point of it).
-      const sweep = Math.min(sourcing.replenish, equity);
-      equity -= sweep;
-      cash += sweep;
+    if (config.sourcingMode === 'ordered') {
+      // Ordered buckets: the waterfall — equity surplus into bonds, bond surplus into cash.
+      const tr = sourcing.transfers || { equityToBond: 0, bondToCash: 0 };
+      const e2b = Math.min(tr.equityToBond || 0, equity); equity -= e2b; bond += e2b;
+      const b2c = Math.min(tr.bondToCash || 0, bond); bond -= b2c; cash += b2c;
     } else if (sourcing.replenish > 0) {
       // Refill cash from growth surplus, proportionally from the overweight growth pots
       const eqS = Math.max(0, equity - eqMin), bdS = Math.max(0, bond - bdMin);

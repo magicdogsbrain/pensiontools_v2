@@ -16,6 +16,7 @@ import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { deriveCompareConfigs } from './compareRunner.js';
+import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { buildGiltLadder } from './GiltLadderPlan.js';
@@ -112,6 +113,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
+    // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April.
+    spFirstYearRatioTaxYear: spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1,
     firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
@@ -488,7 +491,7 @@ function fullGiltTest(p, configs) {
   const firstTaxYear = p.firstTaxYear || new Date().getFullYear() + 1;
   const plan = buildGiltLadder({
     pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
-    spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatio ?? 1,
+    spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0
   });
   if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };

@@ -109,3 +109,12 @@ describe('State Pension date is a birthday: plan year = age at SP − start age'
     expect(c.spStartYear).toBe(2);
   });
 });
+
+describe('spTaxYearFirstRatio (ladder rungs are per tax year)', () => {
+  it('SP starting 21 April pays 350/365 of that tax year, not the calendar 255/365', async () => {
+    const { spTaxYearFirstRatio } = await import('../src/utils/StatePensionUtils.js');
+    expect(spTaxYearFirstRatio({ spStartDate: '21 April 2037' })).toBeCloseTo(350 / 365, 3);
+    expect(spTaxYearFirstRatio({ spStartDate: '1 April 2037' })).toBeCloseTo(5 / 365, 3);   // lands in 36/37
+    expect(spTaxYearFirstRatio({})).toBeNull();
+  });
+});

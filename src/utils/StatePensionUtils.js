@@ -402,6 +402,21 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
  * State Pension starts in the plan year whose tax year contains the SP date — not floor(calendar
  * years from today). Returns { spStartYear, spWeeklyAmount, spFirstYearRatio } like the sim config.
  */
+/**
+ * Share of the State Pension paid in the TAX year it starts (6 April boundary). Gilt-ladder rungs
+ * are bought per tax year, so the first-year SP must be measured against 6 April, not 1 January:
+ * an SP starting 21 April pays 350/365 of a year in that tax year (the calendar ratio, 255/365,
+ * would over-buy that rung by ~£3k). Returns null when no SP date is set.
+ */
+export function spTaxYearFirstRatio(settings) {
+  if (!settings || !settings.spStartDate) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const ty = (spDate.getMonth() > 3 || (spDate.getMonth() === 3 && spDate.getDate() >= 6)) ? spDate.getFullYear() : spDate.getFullYear() - 1;
+  const yStart = new Date(ty, 3, 6), yEnd = new Date(ty + 1, 3, 6);
+  return Math.max(0, Math.min(1, (yEnd - spDate) / (yEnd - yStart)));
+}
+
 export function spTaxYearConfigFromSettings(settings, now = new Date()) {
   if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
   const spDate = parseStatePensionDate(settings.spStartDate);

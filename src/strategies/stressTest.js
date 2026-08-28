@@ -109,7 +109,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
       floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
-      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand
+      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
     firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
@@ -293,7 +293,7 @@ function flexTest(p, configs) {
     signature: {
       year1Flex: h.stats.year1D, worstFlexMedian: h.stats.worstMedian, worstFlexP10: h.stats.worstP10,
       shareLeanYears: h.stats.shareYearsUnder(10000), floorCost: configs.ffFloorCost, horizonAge: ff.horizonAge,
-      sleeveCone, treatsCone, rate: ff.rate, sleeveE0: ff.E0, floorByYear: Array.from({ length: planYears }, (_, k) => floorDraw(k + 1)),
+      sleeveCone, treatsCone, rate: ff.rate, sleeveE0: ff.E0, treatsRule: ff.treatsRule || 'share', fixedTreats: ff.flexMax ?? null, floorByYear: Array.from({ length: planYears }, (_, k) => floorDraw(k + 1)),
       amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: p.essentialsAnnual, sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 }))
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
@@ -556,6 +556,14 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   // construction; a strategy may set its own income-based figure (Floor to an age does).
   // Per-future survival for pairing (household): contract strategies survive every future by construction.
   if (r.affordable && !r.survivedMc) r.survivedMc = Array.from({ length: Math.max(1, (r.n && r.n.mc) || 1) }, () => true);
+  // What was actually spent over the plan (today's money): median across futures of the summed income
+  // series — the counterpart to "what is left". A flexible strategy that spends its upside scores here.
+  if (r.affordable && r.spentMedian == null && r.samples && r.samples.income && r.samples.income.length) {
+    const tots = r.samples.income.map((ser) => ser.reduce((a, v) => a + (v || 0), 0));
+    r.spentMedian = pct(tots, 0.5);
+  } else if (r.affordable && r.spentMedian == null && r.cones && r.cones.income) {
+    r.spentMedian = r.cones.income.p50.reduce((a, v) => a + (v || 0), 0);
+  }
   if (r.affordable && r.coverage == null) {
     const N = Math.max(1, p.durationYears), nMc = (r.n && r.n.mc) || 0, fails = r.failAges || [];
     r.coverage = nMc > 0 ? 100 * ((nMc - fails.length) + fails.reduce((t, a) => t + Math.max(0, Math.min(1, (a - p.startAge) / N)), 0)) / nMc : 100;

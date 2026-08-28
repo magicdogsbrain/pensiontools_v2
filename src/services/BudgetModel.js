@@ -326,7 +326,7 @@ export function essentialAnnualNet(budget) {
 
 /** Comfortable (essential + discretionary) annual spend at the start of retirement. */
 export function comfortableAnnualNet(budget) {
-  return annualNetAtAge(budget, num(budget.retirementAge), 'all');
+  return annualNetAtAge(budget, Math.max(num(budget.retirementAge), num(budget.currentAge) || 0), 'all');
 }
 
 /**
@@ -417,7 +417,9 @@ export function targetScheduleFromBudget(budget, duration) {
  * returned so the UI can show the whole picture. With no partner sharing, mine == household.
  */
 export function summariseBudget(budget) {
-  const retire = num(budget.retirementAge);
+  // The plan's income starts at retirement — or today, for someone already retired (a retirement
+  // age in the past would otherwise evaluate the budget at an age no line covers and read as £0).
+  const retire = Math.max(num(budget.retirementAge), num(budget.currentAge) || 0);
   // Owner's share (what the plan must fund)
   const essentialAnnual = myAnnualNetAtAge(budget, retire, 'essential');
   const comfortableAnnual = myAnnualNetAtAge(budget, retire, 'all');

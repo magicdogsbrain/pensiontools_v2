@@ -495,3 +495,14 @@ describe('budget CSV import/export round-trip', () => {
     expect(r.warnings.some((w) => /no Item above/.test(w))).toBe(true);
   });
 });
+
+
+import { summariseBudget as _sb } from '../src/services/BudgetModel.js';
+describe('already retired: the summary evaluates at today\'s age, not a past retirement age', () => {
+  it('lines that start at today\'s age count when retirementAge < currentAge', () => {
+    const b = { currentAge: 56, retirementAge: 55, endAge: 90, lines: [{ id: 'a', label: 'Food', tier: 'essential', annual: 6000, fromAge: 56, toAge: 90 }], oneOffs: [] };
+    const s = _sb(b);
+    expect(s.essentialAnnualNet).toBe(6000);
+    expect(s.comfortableAnnualNet).toBe(6000);
+  });
+});

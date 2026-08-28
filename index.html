@@ -4385,16 +4385,24 @@
       if (window._pendingDemo && !user.isGuest && DEMO_PLANS[window._pendingDemo]) {
         const demo = DEMO_PLANS[window._pendingDemo]; window._pendingDemo = null;
         try {
+          // Never hijack a signed-in user's active plan: add the demo as a non-active plan and offer it.
           const list = await listScenariosAsync();
-          const existing = list.find((sc) => sc.planDetails?.name === demo.name);
-          if (existing) { if (!existing.isActive) await switchScenario(existing.id); }
-          else await createNewScenario(demo.name, 'From a shared demo link. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
-          invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+          let existing = list.find((sc) => sc.planDetails?.name === demo.name);
+          if (!existing) {
+            const id = await createNewScenario(demo.name, 'From a shared demo link. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, false);
+            invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+            existing = { id };
+          }
           await renderScenarioSelector();
-          initialTab = demo.tab;
-          if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 400);
+          const demoId = existing.id;
+          setTimeout(async () => {
+            const ok = await appConfirm('"' + demo.name + '" has been added to your plans. Your current plan is untouched.\n\nOpen the demo plan now?', { okLabel: 'Open it', cancelLabel: 'Stay here' });
+            if (ok) { try { await switchScenario(demoId); try { sessionStorage.setItem('pt_open_tab', 'strategies'); } catch (e) {} location.href = location.pathname; } catch (e) { showToast('Could not open the demo plan: ' + e.message, 'error'); } }
+          }, 800);
         } catch (e) { console.warn('demo link', e); }
       }
+      // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
+      try { const want = sessionStorage.getItem('pt_open_tab'); if (want) { sessionStorage.removeItem('pt_open_tab'); initialTab = want; if (want === 'strategies') setTimeout(() => { try { showStrategyPage('overview'); } catch (e) {} }, 400); } } catch (e) { /* ignore */ }
       // Determine which tab to show
       const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
       updateNextStepBanner();

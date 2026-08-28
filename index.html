@@ -9476,6 +9476,7 @@
           // Age today (from the Budget/plan wizard): the plan's year 0 is the income-start age, so the
           // State Pension and other dated items are offset by the years still to run before then.
           currentAge: await (async () => { try { const b = await getBudgetAsync(); return +b?.currentAge || null; } catch (e) { return null; } })(),
+          currentAgeAsOf: new Date().toISOString().slice(0, 10),
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,

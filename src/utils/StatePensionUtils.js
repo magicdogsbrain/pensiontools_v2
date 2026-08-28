@@ -355,6 +355,14 @@ export function validateStatePensionDate(dateStr, { now = new Date() } = {}) {
  * builder and the deterministic Drawdown schedule so every projection sees the SAME start
  * year and first-year pro-rata. `now` is injectable for tests.
  */
+/** Age today, aged forward from the date it was recorded (`currentAgeAsOf`) so a stored age does not go stale. */
+export function currentAgeNow(settings, now = new Date()) {
+  const a = +settings.currentAge || 0;
+  if (!a) return 0;
+  if (settings.currentAgeAsOf) { const t = Date.parse(settings.currentAgeAsOf); if (Number.isFinite(t)) return a + Math.max(0, (now.getTime() - t) / (365.25 * 24 * 3600 * 1000)); }
+  return a;
+}
+
 export function spSimConfigFromSettings(settings, now = new Date()) {
   if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
   const spDate = parseStatePensionDate(settings.spStartDate);
@@ -363,7 +371,7 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   // Plan year 0 is the income-start age (retirement). For someone still working, that is
   // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
   // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
-  const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - settings.currentAge) : 0;
+  const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - currentAgeNow(settings, now)) : 0;
   const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
   // Count in whole months: an SP date that lands on the plan-year boundary (e.g. 9.97 years away)
   // starts plan year 10, not 9 — otherwise the age shown drifts a year early for most of the year.

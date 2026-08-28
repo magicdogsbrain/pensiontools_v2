@@ -20,7 +20,7 @@ import { getStrategy } from '../strategies/registry.js';
 const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
-import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
+import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
 import { defaultSpYear } from '../services/IncomeSchedule.js';
 
 /**
@@ -145,7 +145,7 @@ export function householdIncomeTimeline(setA, setB, labelYears = null) {
 
 /** Calendar years until this plan's income starts (0 for someone already retired). */
 export function startOffset(settings) {
-  const now = +settings.currentAge || 0, start = +settings.shapeAgeNow || 0;
+  const now = currentAgeNow(settings), start = +settings.shapeAgeNow || 0;
   return (now > 0 && start > now) ? Math.round(start - now) : 0;
 }
 

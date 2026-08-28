@@ -87,3 +87,14 @@ describe('calculateStatePensionForTaxYear (chronological ordering)', () => {
     expect(r.annual).toBe(0);
   });
 });
+
+import { spSimConfigFromSettings, currentAgeNow } from '../src/utils/StatePensionUtils.js';
+describe('State Pension plan year: ages do not go stale, boundaries get a month of tolerance', () => {
+  it('a stored age is aged forward from its date stamp', () => {
+    expect(currentAgeNow({ currentAge: 55, currentAgeAsOf: '2025-08-01' }, new Date('2026-08-28'))).toBeCloseTo(56.07, 1);
+  });
+  it('SP on 6 Aug 2037 for a 56-year-old retiring at 57 is plan year 10 (age 67)', () => {
+    const c = spSimConfigFromSettings({ spStartDate: '6 Aug 2037', spWeeklyAmount: 230.25, shapeAgeNow: 57, currentAge: 56 }, new Date('2026-08-28'));
+    expect(c.spStartYear).toBe(10);
+  });
+});

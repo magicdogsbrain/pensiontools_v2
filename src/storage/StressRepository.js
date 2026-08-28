@@ -18,8 +18,7 @@ export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
   saveActiveStressSettings,
-  invalidateScenarioCache
-} from './ScenarioRepository.js';
+  invalidateScenarioCache, getActiveBudget } from './ScenarioRepository.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -118,6 +117,12 @@ export async function loadStressDBAsync() {
     const stressSettings = await getActiveStressSettings();
 
     if (stressSettings) {
+      // "Age today" is maintained on the Budget page; a copy frozen in the Stress settings at the last
+      // save goes stale every birthday and shifts the State Pension a plan year. Prefer the newer figure.
+      try {
+        const b = await getActiveBudget();
+        if (b && +b.currentAge > 0 && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
+      } catch (e) { /* no budget yet */ }
       const db = {
         settings: stressSettings,
         lastModified: new Date().toISOString(),

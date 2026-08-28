@@ -2125,7 +2125,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-CPIASQ_l.js"></script>
+  <script type="module" crossorigin src="./assets/main-CFPr0_6_.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3316,15 +3316,15 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>Other Income/Pension (£/yr)</label>
-                  <input type="number" id="ssOther" value="0">
+                  <input type="number" id="ssOther" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Defined-Benefit Pension (£/yr, today's money)</label>
-                  <input type="number" id="ssDbAmount" value="0">
+                  <input type="number" id="ssDbAmount" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>DB Starts (plan year, 0 = now)</label>
-                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40">
+                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>DB Increases</label>
@@ -3362,15 +3362,15 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>SP Start Date</label>
-                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040">
+                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
-                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20">
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <div class="form-group">
                   <label>Annual Amount (£/yr)</label>
-                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500">
+                  <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">

@@ -54,7 +54,6 @@ export const BucketsInOrder = {
   describe() { return { id: this.id, name: this.name, promise: this.promise, failure: this.failure, engineVersion: PotsAndValves.describe().engineVersion,
       components: ['draw order: cash → bonds → equities', 'absolute £ equity path and bond target (never a % share)', 'waterfall refills from surplus only: equities → bonds → cash', 'no other trade between pots'],
       usesTrigger: false }; }
- }
 };
 
 /** Bridge & engine — years to the bridge age bought (cash, then linkers); the rest rides untouched, then pays by total return. */

@@ -2336,6 +2336,7 @@
             <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
 
             <div class="settings-section">
+              <div id="dsStrategyNote"></div>
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
@@ -5984,6 +5985,7 @@
         await resetTryStrategyUI();
       } catch (e) { showToast('Could not switch: ' + e.message, 'error'); }
     };
+    const PNV_FAMILY = ['pots-and-valves', 'buckets-in-order'];   // both run the Pots & Valves engine (buckets: ordered sourcing)
     window.runMonteCarloUI = async function() {
       // Starting balances come from Settings (createSimulationConfigFromSettings defaults
       // equityStart/bondStart/cashStart from equityMin/bondMin/cashTarget). Only Years is per-run.
@@ -5991,7 +5993,7 @@
       const srBox = document.getElementById('strategyRunResults');
       if (srBox) srBox.innerHTML = '';                       // never leave a stale strategy card
       const blurb = document.getElementById('mcBlurb');
-      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+      if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
         if (blurb) blurb.style.display = 'none';
         await runStrategyWindowsUI(s);
         return;
@@ -6021,7 +6023,7 @@
     window.runHistoricalUI = async function() {
       // Starting balances come from Settings; only Years is per-run.
       const s = await getStressSettingsAsync();
-      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+      if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
         // Historical IS the ladder strategies' native mode — run it and say so, instead of
         // crashing into an engine method they don't have.
         document.getElementById('histResults').innerHTML = '<div class="alert alert-info">This plan runs <strong>' + s.strategyId + '</strong> — its results ARE historical (every 150-year market window). Shown below.</div>';
@@ -6108,7 +6110,7 @@
     window.runScenariosUI = async function() {
       // Starting balances + duration both come from Settings (empty overrides).
       const sSet = await getStressSettingsAsync();
-      if (sSet.strategyId && sSet.strategyId !== 'pots-and-valves') {
+      if (sSet.strategyId && !PNV_FAMILY.includes(sSet.strategyId)) {
         document.getElementById('scenResults').innerHTML = '<div class="loading"><div class="spinner"></div>Running the named scenarios through ' + budEsc(STRATEGY_NAMES[sSet.strategyId] || sSet.strategyId) + '…</div>';
         await new Promise((r) => setTimeout(r, 30));
         try { document.getElementById('scenResults').innerHTML = strategyScenariosHtml(sSet); }
@@ -7504,7 +7506,7 @@
       if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running six strategies…</div>';
 
       const s = JSON.parse(JSON.stringify(await getStressSettingsAsync()));
-      if (s.strategyId && s.strategyId !== 'pots-and-valves') {
+      if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
         // This grid is Pots & Valves' three risk levels × bond tent. It has nothing to say about a
         // ladder or floor strategy — send the user to the six-strategy compare instead.
         if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan is locked to <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, so that comparison would not describe your plan. To compare all eight strategies on your plan, use the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
@@ -7838,8 +7840,23 @@
       try {
         const st = await getActiveStrategy();
         const settings = await getStressSettingsAsync();
-        if (!st.id || st.id === 'pots-and-valves') { el.style.display = 'none'; return; }
+        const sid = st.id || settings.strategyId || 'pots-and-valves';
+        // Every plan has a strategy; the Decision tool executes it. Say which, and what that means this month.
+        const HOW = {
+          'pots-and-valves': 'Rules decide which pot pays each month: growth pots above their floors first, then cash, with the draw cut in a long slump. The recommendation below is that rule applied to the values you enter.',
+          'buckets-in-order': 'One order: equities pay while they are on their £ path; below it cash pays; then the defensive sleeve. The recommendation below follows that order — never a rebalancing trade.',
+          'ladder-and-ratchet': 'Inside the ladder years the matured rung pays; the equity sleeve is untouched unless the ratchet fires at a review. Check the trigger below.',
+          'bridge-and-engine': 'Until the bridge age the cash years, then the matured rungs, pay; nothing is sold. After it the State Pension is in payment and the engine pays the rest by a standing withdrawal.',
+          'floor-and-flex': 'The essentials rung pays the bills; the treats are a fixed share of the flex sleeve, set once a year. Check the draw below.',
+          'floor-the-schedule': 'This year\'s matured rung pays the whole month; the reserve is never drawn. Nothing to sell.',
+          'floor-to-age': 'Until the chosen age the matured rung pays; at that age the reserve buys the rest. Nothing to sell before then.',
+          'full-il-gilt': 'The cash-years bucket, then each year\'s matured gilt, pays the standing monthly withdrawal. Nothing to sell, nothing to decide.'
+        };
+        const banner = '<div class="alert alert-info" style="margin-bottom:10px;"><strong>This plan\'s strategy: ' + budEsc(STRATEGY_NAMES[sid] || sid) + '.</strong> ' + budEsc(HOW[sid] || '') + ' <span class="hint">Set in the Stress Tester settings or on its Strategies page — <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">read it</button> <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">change it</button></span></div>';
+        const note = document.getElementById('dsStrategyNote'); if (note) note.innerHTML = banner;
+        if (sid === 'pots-and-valves' || sid === 'buckets-in-order') { el.innerHTML = banner; el.style.display = 'block'; return; }
         const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
+        let bannerHtml = banner;
         const now = new Date();
         const planYear = Math.max(0, (now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1) - 2026);
         const tMonths = Math.max(1, Math.round((now - new Date(2026, 3, 1)) / (30.44 * 24 * 3600 * 1000)));
@@ -7872,7 +7889,7 @@
             + '<button type="button" class="risk-btn" style="align-self:flex-end;" data-on-click="checkFlexDraw(' + rate + ')">This year\'s treats</button></div>'
             + '<div id="ffDrawResult" style="margin-top:8px;"></div></div>';
         }
-        el.innerHTML = html;
+        el.innerHTML = bannerHtml + html;
         el.style.display = html ? 'block' : 'none';
         window._lrCtx = { params, settings, tMonths, planYear };
       } catch (e) { el.style.display = 'none'; }
@@ -9590,6 +9607,7 @@
     // Load decision settings into UI
     async function loadDecisionSettings() {
       try { await loadCadenceUI(); } catch (e) { /* cosmetic */ }
+      try { await renderDecisionStrategyPanel(); } catch (e) { /* cosmetic */ }
       showLoading('Loading settings...');
       try {
         const s = await getDecisionSettingsAsync();

@@ -2250,15 +2250,15 @@
                 <h3 style="margin-top: 24px;">This month's fund values</h3>
                 <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
-                  <div class="form-group">
+                  <div class="form-group" id="entryEquityGroup">
                     <label>Equity Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryEquity" value="" required>
                     </div>
                   </div>
-                  <div class="form-group">
-                    <label>Bond Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
+                  <div class="form-group" id="entryBondGroup">
+                    <label><span id="entryBondLabel">Bond Funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryBond" value="" required>
@@ -2280,7 +2280,7 @@
                       <input type="number" id="entryIsa" value="0" min="0">
                     </div>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" id="entryDiversifierGroup">
                     <label>Diversifiers <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
                       <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
                     </label>
@@ -2335,8 +2335,8 @@
                  To use different settings the user creates a new plan. Populated by refreshDecisionLock. -->
             <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
 
-            <div class="settings-section">
-              <div id="dsStrategyNote"></div>
+            <div id="dsStrategyNote"></div>
+            <div class="settings-section" id="dsAllocSection">
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
@@ -2460,7 +2460,7 @@
                        tax-efficient engine unchanged while the UI is net-first. -->
                   <input type="hidden" id="dsBaseSalary" value="30000">
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="dsSpendingProfileRow">
                   <label>Spending over retirement</label>
                   <select id="dsSpendingProfile">
                     <option value="flat">Level for life (flat real spending) — conservative</option>
@@ -2563,7 +2563,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" id="dsProtectionSection">
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
@@ -8112,6 +8112,27 @@
       box.innerHTML = h;
     };
 
+    // A contract-ladder plan has no risk mix, no valves, no diversifier sleeve, no bond tent and
+    // no protection cuts — every year is bought. Showing the Pots & Valves machinery for such a
+    // plan is noise at best and misleading at worst, so it is hidden and the monthly entry form
+    // collapses to what actually exists: the gilts, the cash, the ISA.
+    const CONTRACT_IDS = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
+    function applyDecisionStrategyMode(sid) {
+      const contract = CONTRACT_IDS.includes(sid);
+      for (const id of ['dsAllocSection', 'dsProtectionSection', 'dsSpendingProfileRow']) {
+        const el = document.getElementById(id); if (el) el.style.display = contract ? 'none' : '';
+      }
+      { const el = document.getElementById('entryEquityGroup'); if (el) el.style.display = contract ? 'none' : ''; }
+      { const el = document.getElementById('entryDiversifierGroup'); if (el) el.style.display = contract ? 'none' : ''; }
+      const eq = document.getElementById('entryEquity'), dv = document.getElementById('entryDiversifier');
+      if (contract) { if (eq && eq.value === '') eq.value = 0; if (dv && dv.value === '') dv.value = 0; }
+      const bl = document.getElementById('entryBondLabel'); if (bl) bl.textContent = contract ? 'Gilt ladder value (unpaid rungs)' : 'Bond Funds';
+      const bi = document.getElementById('entryBondItemise'); if (bi) bi.style.display = contract ? 'none' : '';
+      const bin = document.getElementById('entryBond'); if (bin && contract) bin.title = 'What the remaining gilts are worth today (the holdings page total). Only tracked for the record — the ladder pays by contract whatever this shows.';
+      return contract;
+    }
+
+    window.applyDecisionStrategyMode = applyDecisionStrategyMode;   // exposed for diagnostics/automation
     window.renderDecisionStrategyPanel = async function () {
       const el = document.getElementById('dsStrategyPanel');
       if (!el) return;
@@ -8119,6 +8140,7 @@
         const st = await getActiveStrategy();
         const settings = await getStressSettingsAsync();
         const sid = st.id || settings.strategyId || 'pots-and-valves';
+        try { applyDecisionStrategyMode(sid); } catch (e) { /* form not on this tab */ }
         // Every plan has a strategy; the Decision tool executes it. Say which, and what that means this month.
         const HOW = {
           'pots-and-valves': 'Rules decide which pot pays each month: growth pots above their floors first, then cash, with the draw cut in a long slump. The recommendation below is that rule applied to the values you enter.',

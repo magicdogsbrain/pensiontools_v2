@@ -2125,7 +2125,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-HssaSVnZ.js"></script>
+  <script type="module" crossorigin src="./assets/main-Dz4CuIdz.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2251,15 +2251,15 @@
                 <h3 style="margin-top: 24px;">This month's fund values</h3>
                 <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
-                  <div class="form-group">
+                  <div class="form-group" id="entryEquityGroup">
                     <label>Equity Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryEquity" value="" required>
                     </div>
                   </div>
-                  <div class="form-group">
-                    <label>Bond Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
+                  <div class="form-group" id="entryBondGroup">
+                    <label><span id="entryBondLabel">Bond Funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryBond" value="" required>
@@ -2281,7 +2281,7 @@
                       <input type="number" id="entryIsa" value="0" min="0">
                     </div>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" id="entryDiversifierGroup">
                     <label>Diversifiers <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
                       <span class="hint" title="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">ⓘ</span>
                     </label>
@@ -2336,8 +2336,8 @@
                  To use different settings the user creates a new plan. Populated by refreshDecisionLock. -->
             <div id="dsLockBanner" class="lock-banner" style="display:none;"></div>
 
-            <div class="settings-section">
-              <div id="dsStrategyNote"></div>
+            <div id="dsStrategyNote"></div>
+            <div class="settings-section" id="dsAllocSection">
               <div class="section-title">Your allocation</div>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
@@ -2461,7 +2461,7 @@
                        tax-efficient engine unchanged while the UI is net-first. -->
                   <input type="hidden" id="dsBaseSalary" value="30000">
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="dsSpendingProfileRow">
                   <label>Spending over retirement</label>
                   <select id="dsSpendingProfile">
                     <option value="flat">Level for life (flat real spending) — conservative</option>
@@ -2564,7 +2564,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" id="dsProtectionSection">
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">

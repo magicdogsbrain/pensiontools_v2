@@ -142,11 +142,12 @@ were presentation-only: the engine always ran the P&V cascade and an overlay rel
   `runMonteCarlo`, `runWindows`, `floorCost` — all simulation. The growing
   `if (st.id === '…')` chain in `renderDecisionStrategyPanel` should become
   `getStrategy(sid).decisionView?.(ctx)`. Not urgent; three branches so far.
-- Decision settings form is entirely P&V-shaped (pot floors, valves, rebalancing, risk cards).
-  For a contract ladder most of it is meaningless. It should collapse to: income shape,
-  State Pension, cash years, and the tax-year figures.
-- The monthly entry form still requires Equity/Bond/Cash/ISA/Diversifier values. For a ladder
-  plan only cash matters.
+- ~~Decision settings form entirely P&V-shaped~~ DONE 30 Aug: `applyDecisionStrategyMode(sid)`
+  hides the allocation section (risk cards/own funds/diversifiers/bond tent), Protection and the
+  spending-profile row for contract plans (full-il-gilt, gilt-rotation, floor-the-schedule).
+- ~~Monthly entry form requires Equity/Bond/Diversifiers~~ DONE 30 Aug: for contract plans the
+  equity and diversifier fields are hidden (auto-0) and the bond field is relabelled
+  "Gilt ladder value (unpaid rungs)" — cash, gilts and ISA are what the plan actually holds.
 - Household still runs P&V-family engines for a ladder plan via config.
 
 ## C. What was built

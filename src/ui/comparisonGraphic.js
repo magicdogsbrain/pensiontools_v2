@@ -8,7 +8,12 @@ const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 export const STRATEGY_COLORS = { 'pots-and-valves': '#f97316', 'buckets-in-order': '#f43f5e', 'ladder-and-ratchet': '#a78bfa', 'bridge-and-engine': '#2dd4bf', 'floor-and-flex': '#22c55e', 'floor-the-schedule': '#60a5fa', 'floor-to-age': '#facc15', 'full-il-gilt': '#e5e7eb', 'gilt-rotation': '#fb7185' };
 
 export function stackedConesSvg({ strategies, year, startAge, title }, o = {}) {
-  const W = o.width || 960, H = o.height || 300, padL = 60, padR = 16, padT = 30, padB = 34;
+  const W = o.width || Math.max(960, strategies.length >= 8 ? 1100 : 960);
+  // Legend wraps: nine names never fit one 960px row. Precompute rows so H can grow.
+  const legendW = (name) => 24 + name.length * 5.6 + 12;
+  const legendRows = []; { let lx = 60, row = 0; for (const st of strategies) { const w = legendW(st.name); if (lx + w > W - 16 && lx > 60) { row++; lx = 60; } legendRows.push(row); lx += w; } }
+  const legendH = (Math.max(...legendRows, 0) + 1) * 14;
+  const H = (o.height || 300) + legendH - 14, padL = 60, padR = 16, padT = 30, padB = 20 + legendH;
   const n = Math.max(...strategies.map((s) => s.cone.p50.length));
   const maxV = Math.max(1, ...strategies.flatMap((s) => s.cone.p90));
   const x = (i) => padL + (i / Math.max(1, n - 1)) * (W - padL - padR);
@@ -22,7 +27,7 @@ export function stackedConesSvg({ strategies, year, startAge, title }, o = {}) {
   s += `<line x1="${xy.toFixed(1)}" y1="${padT}" x2="${xy.toFixed(1)}" y2="${H - padB}" stroke="var(--text-muted,#999)" stroke-dasharray="3 3"/>`;
   strategies.forEach((st, k) => { const dx = (k - (strategies.length - 1) / 2) * 6; const p10 = st.cone.p10[yi] ?? 0, p90 = st.cone.p90[yi] ?? 0, p50 = st.cone.p50[yi] ?? 0; s += `<line x1="${(xy + dx).toFixed(1)}" y1="${y(p10).toFixed(1)}" x2="${(xy + dx).toFixed(1)}" y2="${y(p90).toFixed(1)}" stroke="${st.color}" stroke-width="3" opacity=".8"><title>${esc(st.name)} at year ${yi}: ${gbpK(p10)} – ${gbpK(p50)} – ${gbpK(p90)}</title></line><circle cx="${(xy + dx).toFixed(1)}" cy="${y(p50).toFixed(1)}" r="3" fill="${st.color}"/>`; });
   for (let i = 0; i < n; i += 5) s += `<text x="${x(i).toFixed(1)}" y="${H - padB + 12}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">age ${startAge + i}</text>`;
-  let lx = padL; for (const st of strategies) { s += `<line x1="${lx}" y1="${H - 8}" x2="${lx + 14}" y2="${H - 8}" stroke="${st.color}" stroke-width="2.5"/><text x="${lx + 18}" y="${H - 4}" font-size="10" fill="var(--text-muted,#999)">${esc(st.name)}</text>`; lx += 24 + st.name.length * 5.6 + 12; }
+  { let lx = padL, row = 0; strategies.forEach((st, k) => { if (legendRows[k] !== row) { row = legendRows[k]; lx = padL; } const ly = H - legendH + row * 14 + 6; s += `<line x1="${lx}" y1="${ly}" x2="${lx + 14}" y2="${ly}" stroke="${st.color}" stroke-width="2.5"/><text x="${lx + 18}" y="${ly + 4}" font-size="10" fill="var(--text-muted,#999)">${esc(st.name)}</text>`; lx += legendW(st.name); }); }
   s += `<text x="${padL}" y="18" font-size="13" font-weight="600" fill="var(--text,#eee)">${esc(title)}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(title)}">${s}</svg>`;
 }
@@ -32,7 +37,9 @@ const gk = (v) => '£' + Math.round(v / 1000) + 'k';
 /** Q1: "What would I get each year?" — one small panel per strategy, same axes, income band + median. */
 export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o = {}) {
   const cols = Math.min(3, strategies.length), rows = Math.ceil(strategies.length / cols);
-  const W = o.width || 960, cw = W / cols, ch = 180, H = rows * ch + 8;
+  // Nine strategies need room: fix each panel at ~380px so names and axes stay legible
+  // (the machine-scroll wrapper provides horizontal scrolling on narrow screens).
+  const W = o.width || Math.max(960, cols * 380), cw = W / cols, ch = 190, H = rows * ch + 8;
   const n = Math.max(...strategies.map((s) => s.cone.p50.length));
   const maxV = Math.max(planIncome || 0, ...strategies.flatMap((s) => s.cone.p90)) * 1.05 || 1;
   let s = '';
@@ -40,7 +47,11 @@ export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o 
     const ox = (k % cols) * cw, oy = Math.floor(k / cols) * ch; const padL = 44, padR = 10, padT = 32, padB = 22;
     const x = (i) => ox + padL + (i / Math.max(1, n - 1)) * (cw - padL - padR);
     const y = (v) => oy + ch - padB - (Math.max(0, v) / maxV) * (ch - padT - padB);
-    s += `<text x="${ox + padL}" y="${oy + 14}" font-size="12" font-weight="600" fill="${st.color}">${esc(st.name)}</text>`;
+    // Truncate the name to its own panel (~6.6px/char at 12px) — long names were bleeding
+    // into the neighbouring panel and overlapping its title.
+    const maxChars = Math.floor((cw - padL - padR) / 6.6);
+    const label = st.name.length > maxChars ? st.name.slice(0, Math.max(3, maxChars - 1)) + '…' : st.name;
+    s += `<text x="${ox + padL}" y="${oy + 14}" font-size="12" font-weight="600" fill="${st.color}">${esc(label)}<title>${esc(st.name)}</title></text>`;
     for (const t of [0, 0.5, 1].map((f) => f * maxV)) s += `<line x1="${ox + padL}" y1="${y(t).toFixed(1)}" x2="${ox + cw - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".4"/><text x="${ox + padL - 4}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${gk(t)}</text>`;
     if (planIncome) s += `<line x1="${ox + padL}" y1="${y(planIncome).toFixed(1)}" x2="${ox + cw - padR}" y2="${y(planIncome).toFixed(1)}" stroke="var(--text,#eee)" stroke-dasharray="3 3" opacity=".6"/>`;
     const top = st.cone.p90.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)); const bot = st.cone.p10.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).reverse();
@@ -67,12 +78,16 @@ export function riskBarsSvg({ rows }, o = {}) {
 }
 /** Q3: "What's left?" — for each strategy a 1-in-10-bad / middle / 1-in-10-good triple at one age. */
 export function leftBarsSvg({ rows, age }, o = {}) {
-  const W = o.width || 960, gw = W / rows.length, H = 200, padT = 24, padB = 28;
+  // Min width per group: nine full-length names in 960px overlapped hopelessly; few groups
+  // still spread across the card as before.
+  const gw = Math.max(140, (o.width || 960) / rows.length), W = Math.max(o.width || 960, gw * rows.length), H = 200, padT = 24, padB = 28;
   const maxV = Math.max(1, ...rows.flatMap((r) => [r.p90])) * 1.05;
   const y = (v) => H - padB - (Math.max(0, v) / maxV) * (H - padT - padB);
   let s = `<text x="8" y="14" font-size="12" font-weight="600" fill="var(--text,#eee)">What is left at age ${age} — 1-in-10 bad · middle · 1-in-10 good (today's money)</text>`;
   rows.forEach((r, k) => { const ox = k * gw + 10, bw = (gw - 20) / 3.6;
     [['p10', .45], ['p50', .8], ['p90', .45]].forEach(([key, op], j) => { const v = r[key]; const bx = ox + j * bw * 1.15; s += `<rect x="${bx.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - padB - y(v)).toFixed(1)}" fill="${r.color}" opacity="${op}"><title>${esc(r.name)} ${key}: ${gk(v)}</title></rect><text x="${(bx + bw / 2).toFixed(1)}" y="${(y(v) - 3).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--text-muted,#999)">${gk(v)}</text>`; });
-    s += `<text x="${(ox + (gw - 20) / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${r.color}">${esc(r.name)}</text>`; });
+    const maxCh = Math.floor((gw - 12) / 6);
+    const nm = r.name.length > maxCh ? r.name.slice(0, Math.max(3, maxCh - 1)) + '…' : r.name;
+    s += `<text x="${(ox + (gw - 20) / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${r.color}">${esc(nm)}<title>${esc(r.name)}</title></text>`; });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="What is left">${s}</svg>`;
 }

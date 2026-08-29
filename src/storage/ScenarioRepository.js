@@ -211,6 +211,15 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     ufplsYears: s.ufplsYears ?? currentDecision.ufplsYears ?? null,
     ufplsThenPcls: s.ufplsThenPcls ?? currentDecision.ufplsThenPcls ?? false,
     bandFillRecycle: s.bandFillRecycle ?? currentDecision.bandFillRecycle ?? false,
+    // The plan's strategy travels with the copy. Without this the Decision tool runs pure
+    // Pots & Valves against pot floors the user never chose for that strategy (see
+    // research/rotation-plan-aug-2026.md, audit item D1).
+    strategyId: s.strategyId ?? currentDecision.strategyId ?? 'pots-and-valves',
+    strategyParams: s.strategyParams ? { ...s.strategyParams } : (currentDecision.strategyParams || {}),
+    incomeShape: s.incomeShape ?? currentDecision.incomeShape ?? null,
+    incomeSteps: Array.isArray(s.incomeSteps) ? s.incomeSteps.map((x) => ({ ...x })) : (currentDecision.incomeSteps || null),
+    shapeAgeNow: s.shapeAgeNow ?? currentDecision.shapeAgeNow ?? null,
+    firstTaxYear: s.firstTaxYear ?? currentDecision.firstTaxYear ?? null,
     configured: true,   // a full copy IS a configuration — routing can go straight to the tool
     seededFrom: 'stress'
   };

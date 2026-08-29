@@ -3942,6 +3942,7 @@
 
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
+    import { ladderPosition, taxYearOf } from './src/services/LadderPosition.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
     // De-inlined decision engine (was inline calcDecisionPWA).
@@ -5519,7 +5520,16 @@
         : settings;
       // Strategy execution flags: Buckets in order draws by its fixed order (shared sourcing module).
       let stratDeps = {};
-      try { const st = await getActiveStrategy(); if (st && st.id === 'buckets-in-order') { const sp = { ...(settings.strategyParams || {}), ...(st.params || {}) }; stratDeps = { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 }; } } catch (e) { /* P&V default */ }
+      try {
+        const st = await getActiveStrategy();
+        if (st && st.id === 'buckets-in-order') {
+          // Params can live on the scenario strategy block, on Decision settings (seeded from
+          // Stress) or on Stress settings itself — most specific wins.
+          const ss = await getStressSettingsAsync().catch(() => ({}));
+          const sp = { ...(ss.strategyParams || {}), ...(settings.strategyParams || {}), ...(st.params || {}) };
+          stratDeps = { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 };
+        }
+      } catch (e) { /* P&V default */ }
       const decision = await calcDecisionPWA(dateStr, equity, bond, cash, {
         ...stratDeps,
         settings: decisionSettings,
@@ -7822,14 +7832,24 @@
       const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
       const startAge = +settings.shapeAgeNow || 57;
       const [y, m] = dateStr.split('-').map(Number);
-      const planYear = Math.max(0, (m >= 4 ? y : y - 1) - (new Date().getMonth() + 1 >= 4 ? new Date().getFullYear() : new Date().getFullYear() - 1));
+      const firstTY = +settings.firstTaxYear || (new Date().getFullYear() + 1);
+      const planYear = Math.max(0, (m >= 4 ? y : y - 1) - firstTY);
       const spCfg = spSimConfigFromSettings(settings);
       const spOn = spCfg && planYear >= spCfg.spStartYear;
       const spAnnual = spOn ? (settings.spWeeklyAmount || 0) * 52 : 0;
       const total = (decision.sippDraw || 0);
       const d = getStrategy(st.id).describe();
       let floorMonthly = 0, floorLabel = '', note = '';
-      if (st.id === 'full-il-gilt' || st.id === 'floor-the-schedule') { floorMonthly = total; floorLabel = st.id === 'full-il-gilt' ? (planYear < (params.cashYears ?? 2) ? 'the cash years bucket' : 'this year\'s matured rung') : 'this year\'s matured rung'; note = 'Every year is bought by contract — nothing is sold. The money is already in cash.'; }
+      if (st.id === 'full-il-gilt' || st.id === 'floor-the-schedule') {
+        // The ladder is a contract: the monthly figure is this tax year's rung divided by the
+        // months left, NOT the P&V tax-band draw. Fall back to the P&V number only if the plan
+        // cannot be built (e.g. settings incomplete).
+        const lp = await ladderPositionForPlan(settings, dateStr);
+        floorMonthly = lp ? lp.monthly : total;
+        floorLabel = lp ? (lp.source === 'cash' ? 'the cash years bucket' : 'rung ' + lp.source + ' (already cash)') : 'this year\'s matured rung';
+        note = lp ? ('Tax year ' + lp.taxYearLabel + ', age ' + lp.age + '. ' + lp.instruction + ' Nothing is sold; the money is already in cash.')
+                  : 'Every year is bought by contract — nothing is sold. The money is already in cash.';
+      }
       else if (st.id === 'floor-to-age') { const A = (params.floorToAge || 80) - startAge; if (planYear < A) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Bought by contract to ' + (params.floorToAge || 80) + '; nothing to sell this year.'; } else { note = 'Past the floor age: the reserve now pays — this is a Pots & Valves-style draw on what is left.'; } }
       else if (st.id === 'bridge-and-engine') { const B = (params.bridgeAge || 67) - startAge; const cy = params.cashYears ?? 3; if (planYear < B) { floorMonthly = total; floorLabel = planYear < cy ? 'the cash years bucket' : 'this year\'s matured rung'; note = 'On the bridge: ' + (planYear < cy ? 'the cash pays' : 'the rung that matured before this April pays') + ' — the engine is untouched.'; } else { note = 'Past the bridge: the State Pension is in payment and the engine pays the rest by a standing withdrawal from the world-equity fund. Nothing to re-buy, nothing to trigger.'; floorLabel = 'the engine'; } }
       else if (st.id === 'buckets-in-order') { return null; }
@@ -7837,6 +7857,146 @@
       else if (st.id === 'ladder-and-ratchet') { const yrs = params.ladderYears || 15; if (planYear < yrs) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Inside the ladder years: the rung pays; the equity sleeve is untouched unless the ratchet fires.'; } else { note = 'Beyond the base ladder: pay from a ratcheted rung if one was secured, otherwise from the sleeve.'; } }
       return { id: st.id, name: d.name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: (st.id !== 'floor-to-age' && st.id !== 'bridge-and-engine') || floorMonthly > 0 };
     }
+
+
+    // The ladder plan of record, and where today sits in it. Cached per (settings, tax year) —
+    // buildGiltLadder is deterministic, so this is safe to memoise for the session.
+    let _ladderPosCache = null;
+    async function ladderPositionForPlan(settings, dateStr, extra) {
+      try {
+        const sid = settings.strategyId;
+        const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : new Date();
+        const key = sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + taxYearOf(today);
+        if (!_ladderPosCache || _ladderPosCache.key !== key) {
+          const p = strategyPlanFor(settings);
+          const r = stressTestStrategy(sid === 'floor-the-schedule' ? 'floor-the-schedule' : 'full-il-gilt', p);
+          if (!r || !r.plan || !Array.isArray(r.plan.years) || !r.plan.years.length) return null;
+          _ladderPosCache = { key, plan: r.plan };
+        }
+        return ladderPosition(_ladderPosCache.plan, {
+          today,
+          cashBalance: extra && extra.cashBalance != null ? extra.cashBalance : null,
+          drawnThisYear: extra && extra.drawnThisYear ? extra.drawnThisYear : 0
+        });
+      } catch (e) { return null; }
+    }
+    window.ladderPositionForPlan = ladderPositionForPlan;
+
+    // "What do I tell the broker this month" for a contract ladder. Everything here is contracted,
+    // so there is no advice to give — only the figure, where it comes from, and what must not be spent.
+    function ladderDecisionCardHtml(lp) {
+      if (!lp) return '';
+      const g = (v) => gbp(Math.round(v));
+      const dt = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+      if (lp.phase === 'before') {
+        const u = lp.upcoming;
+        let hb = '<div class="settings-section" style="border-color:var(--accent);">'
+          + '<div class="section-title">Your gilt ladder — not drawing yet</div>';
+        if (u) {
+          hb += '<p style="font-size:14px;">The ladder starts on <strong>6 April ' + u.Y + '</strong> (tax year ' + budEsc(u.label) + ', age ' + u.age + '). '
+            + 'Nothing to instruct the broker until then.</p>'
+            + '<div class="row-flex" style="gap:18px;flex-wrap:wrap;align-items:flex-start;">'
+            + '<div><div class="hint">First income step</div><div style="font-size:20px;font-weight:600;">' + g(u.gross) + '</div>'
+            + '<div class="hint">' + (u.statePension > 0 ? 'State Pension ' + g(u.statePension) + ' + ladder ' + g(u.fromLadder) : 'all from the ladder') + '</div></div>'
+            + '<div><div class="hint">Will be, from April</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(u.monthly) + ' / month</div>'
+            + '<div class="hint">paid by ' + (u.source === 'cash' ? 'the cash bucket' : 'rung ' + budEsc(u.source)) + '</div></div>'
+            + '<div><div class="hint">Cash bucket</div><div style="font-size:20px;font-weight:600;">' + g(u.cashBucket) + '</div>'
+            + '<div class="hint">' + u.cashYears + ' year' + (u.cashYears === 1 ? '' : 's') + ' before the first rung matures</div></div>'
+            + '</div>'
+            + '<p class="hint" style="margin-top:8px;">Keep the cash bucket in a money-market fund (CSH2 or equivalent) until each April. Figures in today\'s money.</p>';
+        } else { hb += '<p style="font-size:14px;">' + budEsc(lp.instruction) + '</p>'; }
+        return hb + '</div>' + rotationWatchHtml();
+      }
+      if (lp.phase === 'after') return '<div class="settings-section" style="border-color:var(--accent);"><div class="section-title">Your gilt ladder</div><p style="font-size:14px;">' + budEsc(lp.instruction) + '</p></div>' + rotationWatchHtml();
+      const src = lp.source === 'cash' ? 'the cash-years bucket (money-market fund)' : ('rung <strong>' + budEsc(lp.source) + '</strong>, which has already matured into cash');
+      let h = '<div class="settings-section" style="border-color:var(--accent);">'
+        + '<div class="section-title">Your gilt ladder — tax year ' + budEsc(lp.taxYearLabel) + ', age ' + lp.age + '</div>'
+        + '<div class="row-flex" style="gap:18px;flex-wrap:wrap;align-items:flex-start;">'
+        + '<div><div class="hint">Income step this year</div><div style="font-size:20px;font-weight:600;">' + g(lp.gross) + '</div>'
+        + '<div class="hint">' + (lp.statePension > 0 ? 'State Pension ' + g(lp.statePension) + ' + ladder ' + g(lp.fromLadder) : 'all from the ladder') + '</div></div>'
+        + '<div><div class="hint">Tell the broker to pay</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(lp.monthly) + ' / month</div>'
+        + '<div class="hint">for the ' + lp.monthsLeft + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to 5 April ' + (lp.taxYear + 1) + '</div></div>'
+        + '<div><div class="hint">Paid by</div><div style="font-size:14px;">' + src + '</div></div>'
+        + '</div>';
+      h += '<p class="hint" style="margin-top:8px;">Nothing to sell and nothing to decide: this year was bought years ago. Figures are in today\'s money — scale by the RPI uplift the rung actually paid.</p>';
+      if (lp.parkedTotal > 0) {
+        h += '<div class="alert alert-warning" style="margin-top:8px;"><strong>' + g(lp.parkedTotal) + ' is parked, not spendable.</strong> '
+          + budEsc(lp.parked.map((p2) => g(p2.amount) + ' for ' + p2.Y + '/' + String(p2.Y + 1).slice(2)).join('; '))
+          + '. Keep it in CSH2 and sell it back to cash by 15 March of its own year.</div>';
+      }
+      if (lp.next) {
+        h += '<p style="font-size:14px;margin-top:8px;"><strong>Next maturity:</strong> ' + budEsc(lp.next.tidm) + ' on ' + dt(lp.next.matures)
+          + ' — about ' + g(lp.next.pays) + ' for ' + budEsc((lp.next.taxYears || []).map((Y) => Y + '/' + String(Y + 1).slice(2)).join(' + '))
+          + (lp.next.sitsMonths > 1 ? '. It arrives ' + lp.next.sitsMonths + ' months early — park it in CSH2 until its April.' : '.') + '</p>';
+      }
+      h += '<div class="row-flex" style="gap:12px;margin-top:10px;align-items:flex-end;">'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Already drawn this tax year (£)<input type="number" id="ladDrawn" value="' + Math.round(lp.drawnThisYear) + '" style="width:140px;"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">SIPP cash + CSH2 today (£)<input type="number" id="ladCash" style="width:140px;"></label>'
+        + '<button type="button" class="risk-btn" data-on-click="recheckLadderMonth()">Check</button></div>'
+        + '<div id="ladCheckResult" style="margin-top:8px;"></div>'
+        + '<div class="hint" style="margin-top:6px;">' + lp.yearsLeft + ' year' + (lp.yearsLeft === 1 ? '' : 's') + ' of ladder still to run after this one.</div>'
+        + '</div>';
+      h += rotationWatchHtml();
+      return h;
+    }
+
+    // Rotation watch — the plan's ONE discretionary decision, kept visible so it is never made
+    // in a hurry. See research/rotation-plan-aug-2026.md.
+    function rotationWatchHtml() {
+      return '<div class="settings-section" style="margin-top:10px;">'
+        + '<div class="section-title">Rotation watch</div>'
+        + '<p style="font-size:14px;">The rungs funding ages 76-91 are dry powder that pays about 2.5% a year real while you hold them. '
+        + 'The plan says: <strong>while the market is within 30% of its all-time high, do nothing.</strong> '
+        + 'On the first month it closes 30% or more below, sell that whole block and buy the equity fund with all of it. '
+        + 'Rungs funding age 75 or younger are never sold.</p>'
+        + '<div class="row-flex" style="gap:12px;align-items:flex-end;">'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Index level today<input type="number" id="rotNow" style="width:130px;"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Its all-time high<input type="number" id="rotHigh" style="width:130px;"></label>'
+        + '<button type="button" class="risk-btn" data-on-click="checkRotationTrigger()">Check the trigger</button></div>'
+        + '<div id="rotResult" style="margin-top:8px;"></div>'
+        + '<p class="hint" style="margin-top:6px;">Historical record for this rule: paid in full in 16 of 16 trigger episodes when fired before 65, '
+        + '14 of 16 when fired at 67 or later (both failures are 1929-30). Bootstrapped futures, which cannot see the trigger at all, say 81-85%.</p>'
+        + '</div>';
+    }
+
+    window.checkRotationTrigger = function () {
+      const box = document.getElementById('rotResult'); if (!box) return;
+      const now = +(document.getElementById('rotNow') || {}).value || 0;
+      const high = +(document.getElementById('rotHigh') || {}).value || 0;
+      if (!now || !high || high <= 0) { box.innerHTML = '<span class="hint">Enter both figures.</span>'; return; }
+      const dd = now / high - 1;
+      const pct = (dd * 100).toFixed(1) + '%';
+      if (dd <= -0.30) {
+        box.innerHTML = '<div class="alert alert-warning"><strong>Trigger is live: ' + pct + ' below the high.</strong> '
+          + 'The plan says sell the ages 76-91 rung block in full, at market, whatever the gilt price, and buy the equity fund with all of it. '
+          + 'Do not tranche it and do not wait for a deeper fall — both tested worse. Keep every rung funding age 75 or younger.</div>';
+      } else {
+        const need = high * 0.70;
+        box.innerHTML = '<div class="alert alert-info"><strong>' + pct + ' below the high — no action.</strong> '
+          + 'The trigger fires at ' + Math.round(need).toLocaleString('en-GB') + ' (30% below). '
+          + 'Until then the ladder runs as bought and the long rungs keep earning their real yield.</div>';
+      }
+    };
+
+    window.recheckLadderMonth = async function () {
+      const box = document.getElementById('ladCheckResult'); if (!box) return;
+      const drawn = +(document.getElementById('ladDrawn') || {}).value || 0;
+      const cashEl = document.getElementById('ladCash');
+      const cash = cashEl && cashEl.value !== '' ? +cashEl.value : null;
+      const settings = await getStressSettingsAsync();
+      const lp = await ladderPositionForPlan(settings, null, { drawnThisYear: drawn, cashBalance: cash });
+      if (!lp) { box.innerHTML = '<span class="hint">Could not rebuild the ladder from this plan\'s settings.</span>'; return; }
+      let h = '<div class="alert alert-info"><strong>' + gbp(Math.round(lp.monthly)) + ' a month</strong> for the ' + lp.monthsLeft
+        + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to 5 April ' + (lp.taxYear + 1) + ' (' + gbp(Math.round(lp.remaining)) + ' still to draw this year).</div>';
+      if (lp.cashCheck) {
+        const c = lp.cashCheck;
+        const cls = c.verdict === 'as expected' ? 'alert-success' : 'alert-warning';
+        h += '<div class="alert ' + cls + '">Cash: you hold ' + gbp(Math.round(c.balance)) + '. The plan expects '
+          + gbp(Math.round(c.expectedTotal)) + ' (' + gbp(Math.round(c.shouldBeLiquid)) + ' to draw this year'
+          + (c.parkedTotal ? ' + ' + gbp(Math.round(c.parkedTotal)) + ' parked for later years' : '') + ') — ' + budEsc(c.verdict) + '.</div>';
+      }
+      box.innerHTML = h;
+    };
 
     window.renderDecisionStrategyPanel = async function () {
       const el = document.getElementById('dsStrategyPanel');
@@ -7880,6 +8040,10 @@
             + '<button type="button" class="risk-btn" style="align-self:flex-end;" data-on-click="checkLadderTrigger()">Check the trigger</button></div>'
             + '<div id="lrTriggerResult" style="margin-top:8px;"></div></div>';
         }
+        if (st.id === 'full-il-gilt' || st.id === 'floor-the-schedule') {
+          const lp = await ladderPositionForPlan(settings, null);
+          html = ladderDecisionCardHtml(lp);
+        }
         if (st.id === 'floor-and-flex') {
           const ess = params.essentialsAnnual || 0;
           const essNet = Math.max(0, ess - (planYear + 1 > 10 ? spAnnual : 0));
@@ -7894,7 +8058,7 @@
             + '<div id="ffDrawResult" style="margin-top:8px;"></div></div>';
         }
         el.innerHTML = bannerHtml + html;
-        el.style.display = html ? 'block' : 'none';
+        el.style.display = 'block';
         window._lrCtx = { params, settings, tMonths, planYear };
       } catch (e) { el.style.display = 'none'; }
     };

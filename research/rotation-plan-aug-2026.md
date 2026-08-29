@@ -194,3 +194,23 @@ Shipped as the ninth strategy **`gilt-rotation` ("Gilt ladder + rotation")** plu
 
 On Chris's plan shape the model says: block £249k covering £413k, trigger fires in 77% of futures,
 rotated years cut in 16% of futures / 7% of histories, median left at 91 ≈ £417k vs £4k un-rotated.
+
+## F. Runway sweep — 30 Aug 2026 (the "maximum time to wait" question)
+
+Chris asked whether a late trigger leaves the bought equities enough time to recover before the
+sold years start paying. Sweep of the disarm age on the £1M demo (cut 75, first sold draw 76):
+
+| Trigger allowed until | Min runway | Hist cut % | MC cut % | Median left | Futures that rotate |
+|---|---|---|---|---|---|
+| 75 | 1y | 8.0 | 19.0 | £579k | 85% |
+| 72 (old default) | 4y | 3.8 | 16.7 | £579k | 78% |
+| 70 | 6y | 2.0 | 15.7 | £579k | 74% |
+| 67 | 9y | 0.7 | 13.8 | £579k | 67% |
+| 64 | 12y | 0.0 | 11.1 | £579k | 56% |
+
+The median leftover is IDENTICAL at every row: late rotations add nothing to the middle and all
+of the tail. A rotation foregone is not a failure — it is the full ladder. Recovery-to-even from
+a −30% entry is fast (median ~1 month, worst 3.8y, n=32 crossings) but "even" is not the bar —
+funding 16 years of draws is. **Default changed: `rotateDisarmYears` = 8** (trigger dead within
+8 years of the block's first draw; param on strategyParams). Demo effect: MC paid-in-full
+83%→86%, hist 96%→99%, rank 5th→3rd.

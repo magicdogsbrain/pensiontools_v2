@@ -81,3 +81,18 @@ describe('ladderPosition', () => {
     expect(ladderPosition({ years: [] })).toBeNull();
   });
 });
+
+describe('borrowedFloorStatus', () => {
+  it('prices rebuying the sold income on the given curve and drops past years', async () => {
+    const { borrowedFloorStatus } = await import('../src/services/LadderPosition.js');
+    const bf = { soldAt: '2032-05-01', proceeds: 400000, years: [
+      { Y: 2046, age: 76, need: 27520 }, { Y: 2047, age: 77, need: 27520 }, { Y: 2020, age: 50, need: 99999 }
+    ] };
+    const st = borrowedFloorStatus(bf, () => 0.02, new Date('2033-06-01'));
+    expect(st.yearsLeft).toBe(2);
+    expect(st.ages).toEqual([76, 77]);
+    expect(st.rebuyCostToday).toBeGreaterThan(30000);
+    expect(st.rebuyCostToday).toBeLessThan(55040);      // discounted below face
+    expect(borrowedFloorStatus(null, null)).toBeNull();
+  });
+});

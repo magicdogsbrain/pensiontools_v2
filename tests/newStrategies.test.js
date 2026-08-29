@@ -107,3 +107,92 @@ describe('Decision tool executes Buckets in order', () => {
     expect(pnv.source).not.toBe('Cash');
   });
 });
+
+describe('gilt-rotation (the ninth strategy)', () => {
+  it('is registered everywhere the master lists look', async () => {
+    const { STRATEGY_NAMES } = await import('../src/strategies/stressTest.js');
+    const { getStrategy } = await import('../src/strategies/registry.js');
+    const { STRATEGY_COLORS } = await import('../src/ui/comparisonGraphic.js');
+    expect(STRATEGY_NAMES['gilt-rotation']).toBe('Gilt ladder + rotation');
+    expect(getStrategy('gilt-rotation').id).toBe('gilt-rotation');
+    expect(getStrategy('gilt-rotation').describe().usesTrigger).toBe(true);
+    expect(STRATEGY_COLORS['gilt-rotation']).toBeTruthy();
+  });
+
+  it('splits the ladder at the cut age without ever splitting one gilt\'s job', async () => {
+    const { splitLadderAtAge } = await import('../src/strategies/GiltRotation.js');
+    const plan = {
+      firstTaxYear: 2027,
+      years: [
+        { Y: 2044, age: 74, gross: 45000, need: 32520, from: 'T44' },
+        { Y: 2045, age: 75, gross: 40000, need: 27520, from: 'TR45' },
+        { Y: 2046, age: 76, gross: 40000, need: 27520, from: 'TR46' },
+        { Y: 2047, age: 77, gross: 40000, need: 27520, from: 'TR46' },
+        { Y: 2058, age: 88, gross: 40000, need: 27520, from: 'T58' }
+      ],
+      orders: [
+        { tidm: 'T44', taxYears: [2044], cost: 22000, pays: 32520, matures: '2044-03-22' },
+        { tidm: 'TR45', taxYears: [2045], cost: 20000, pays: 27520, matures: '2045-03-22' },
+        { tidm: 'TR46', taxYears: [2046, 2047], cost: 35000, pays: 55040, matures: '2046-03-22' },
+        { tidm: 'T58', taxYears: [2058], cost: 55000, pays: 27520, matures: '2058-03-22' }
+      ]
+    };
+    const sp = splitLadderAtAge(plan, 75);
+    expect(sp.soldOrders.map((o) => o.tidm).sort()).toEqual(['T58', 'TR46']);
+    expect(sp.soldIncomeTotal).toBe(27520 * 3);
+    expect(sp.blockCostToday).toBe(90000);
+    // cut at 76: TR46 funds 76 AND 77 — both above? 76 is not above 76, so TR46 must be KEPT
+    expect(splitLadderAtAge(plan, 76).soldOrders.map((o) => o.tidm)).toEqual(['T58']);
+  });
+
+  it('a flat, never-crashing market never triggers and pays everything', async () => {
+    const { rotationPathsCtx, runRotationPath } = await import('../src/strategies/GiltRotation.js');
+    const plan = {
+      firstTaxYear: 2027, spare: 1000, cash: 0,
+      years: Array.from({ length: 35 }, (_, k) => ({ Y: 2027 + k, age: 57 + k, gross: 40000, need: 27520, from: k < 19 ? 'KEEP' + k : 'SELL' + k })),
+      orders: Array.from({ length: 35 }, (_, k) => ({ tidm: (k < 19 ? 'KEEP' : 'SELL') + k, taxYears: [2027 + k], cost: 20000, pays: 27520, matures: (2026 + k) + '-11-22' }))
+    };
+    const p = { durationYears: 34, startAge: 57, otherIncomeByYear: [] };
+    const ctx = rotationPathsCtx(plan, p, { cutAge: 75, trigger: 0.30 });
+    const series = Array.from({ length: 36 * 12 + 2 }, (_, m) => Math.pow(1.002, m));   // gentle rise: no drawdown
+    const r = runRotationPath(series, 0, ctx);
+    expect(r.triggeredYear).toBeNull();
+    expect(r.failAge).toBeNull();
+    expect(Math.min(...r.income)).toBeGreaterThanOrEqual(27519);
+  });
+
+  it('a crash fires the trigger once, with runway, and the sleeve then pays the sold years', async () => {
+    const { rotationPathsCtx, runRotationPath } = await import('../src/strategies/GiltRotation.js');
+    const plan = {
+      firstTaxYear: 2027, spare: 0, cash: 0,
+      years: Array.from({ length: 35 }, (_, k) => ({ Y: 2027 + k, age: 57 + k, gross: 40000, need: 27520, from: 'G' + k })),
+      orders: Array.from({ length: 35 }, (_, k) => ({ tidm: 'G' + k, taxYears: [2027 + k], cost: 20000, pays: 27520, matures: (2026 + k) + '-11-22' }))
+    };
+    const p = { durationYears: 34, startAge: 57, otherIncomeByYear: [] };
+    const ctx = rotationPathsCtx(plan, p, { cutAge: 75, trigger: 0.30 });
+    // crash 40% in year 2, then a strong recovery
+    const series = []; let v = 1;
+    for (let m = 0; m < 36 * 12 + 2; m++) { series.push(v); v *= (m > 24 && m < 36) ? 0.955 : 1.007; }
+    const r = runRotationPath(series, 0, ctx);
+    expect(r.triggeredYear).toBe(2);
+    expect(r.failAge).toBeNull();          // long recovery leaves the sleeve comfortably ahead
+    expect(r.wealth[34]).toBeGreaterThan(0);
+  });
+
+  it('a trigger with no runway is ignored (disarmed 3 years before the block pays)', async () => {
+    const { rotationPathsCtx, runRotationPath } = await import('../src/strategies/GiltRotation.js');
+    const plan = {
+      firstTaxYear: 2027, spare: 0, cash: 0,
+      years: Array.from({ length: 35 }, (_, k) => ({ Y: 2027 + k, age: 57 + k, gross: 40000, need: 27520, from: 'G' + k })),
+      orders: Array.from({ length: 35 }, (_, k) => ({ tidm: 'G' + k, taxYears: [2027 + k], cost: 20000, pays: 27520, matures: (2026 + k) + '-11-22' }))
+    };
+    const p = { durationYears: 34, startAge: 57, otherIncomeByYear: [] };
+    const ctx = rotationPathsCtx(plan, p, { cutAge: 75, trigger: 0.30 });
+    // crash at plan year 20 (age 77): past lastRotateYear (72-57=15) — must NOT rotate
+    const series = []; let v = 1;
+    for (let m = 0; m < 36 * 12 + 2; m++) { series.push(v); v *= (m > 240 && m < 252) ? 0.95 : 1.004; }
+    const r = runRotationPath(series, 0, ctx);
+    expect(r.triggeredYear).toBeNull();
+    expect(r.failAge).toBeNull();          // rungs still owned: everything contracted
+  });
+});

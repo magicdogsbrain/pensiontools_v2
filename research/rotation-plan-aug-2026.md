@@ -167,3 +167,30 @@ n=16 trigger episodes, all pre-1975 (a 30-year horizon plus data ending 2023-06 
 2008 entirely). Overlapping windows. US S&P with a world-equity haircut; UK linkers have no
 history before 1981, so the gilt leg is arithmetic, not history. The bootstrap lens cannot see the
 trigger at all and returns the un-triggered odds (~84%) — treat that as the floor, not the estimate.
+
+---
+
+## E. Implemented — 30 Aug 2026
+
+Shipped as the ninth strategy **`gilt-rotation` ("Gilt ladder + rotation")** plus execution tooling:
+
+- **Engine** `src/strategies/GiltRotation.js` + `rotationTest` (stressTest.js): the full ladder,
+  trigger = first month the real-TR series closes ≥30% below its running ATH, DISARMED 3 years
+  before the sold block's first draw (the runway guard — without it, late-firing windows sell the
+  floor into the fire and hist ruin runs ~17%; with it ~7%, MC ~16% = the untriggered floor).
+  Approximations documented in the module header: TR-index trigger (fires less than price ⇒
+  conservative) and yields-unchanged accretion of the block.
+- **Nightly equity feed**: fetch-gilt-data.mjs now also writes equity.json / equitySnapshot.js
+  (FRED SP500, Yahoo fallback, ATH carried forward across refreshes); `src/services/EquityIndex.js`
+  serves it; the Rotation watch shows the live drawdown automatically.
+- **Rotation watch** (Decision ladder card + full-il-gilt page block 6): block derived from the
+  plan (splitLadderAtAge), live trigger status, manual override boxes.
+- **Sell ticket**: `giltSellTicketHtml` — units to SELL per rung, sell-side proceeds
+  (× (1−spread) − fee, never the buy-side `cost`), income given up.
+- **Guided switch** `executeRotation()`: appConfirm → strategy becomes floor-to-age(cut) and
+  `strategyParams.borrowedFloor` records date/tidms/years/proceeds/trigger. `borrowedFloorStatus`
+  (LadderPosition.js) prices restoring it on today's curve; an un-missable line shows on the
+  Decision panel and the floor-to-age page until it is rebought.
+
+On Chris's plan shape the model says: block £249k covering £413k, trigger fires in 77% of futures,
+rotated years cut in 16% of futures / 7% of histories, median left at 91 ≈ £417k vs £4k un-rotated.

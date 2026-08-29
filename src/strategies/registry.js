@@ -22,7 +22,7 @@ import { FloorAndFlex, FloorTheSchedule, FloorToAge, FullGiltLadder, runFlexWind
 
 export { ENGINE_VERSION } from './version.js';
 
-export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', BUCKETS_IN_ORDER: 'buckets-in-order', LADDER_AND_RATCHET: 'ladder-and-ratchet', BRIDGE_AND_ENGINE: 'bridge-and-engine', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age', FULL_IL_GILT: 'full-il-gilt' };
+export const STRATEGY_IDS = { POTS_AND_VALVES: 'pots-and-valves', BUCKETS_IN_ORDER: 'buckets-in-order', LADDER_AND_RATCHET: 'ladder-and-ratchet', BRIDGE_AND_ENGINE: 'bridge-and-engine', FLOOR_AND_FLEX: 'floor-and-flex', FLOOR_THE_SCHEDULE: 'floor-the-schedule', FLOOR_TO_AGE: 'floor-to-age', FULL_IL_GILT: 'full-il-gilt', GILT_ROTATION: 'gilt-rotation' };
 
 const PotsAndValves = {
   id: STRATEGY_IDS.POTS_AND_VALVES,
@@ -69,6 +69,21 @@ export const BridgeAndEngine = {
   engine: { runWindows: runFlexWindows, floorCost }
 };
 
+
+const GiltRotation = {
+  ...FullGiltLadder,
+  id: STRATEGY_IDS.GILT_ROTATION,
+  name: 'Gilt ladder + rotation',
+  promise: 'The full ladder, plus one pre-agreed escape: if equities ever fall 30% below their all-time high, the rungs beyond 75 are sold to buy them cheap.',
+  failure: 'If the crash never comes the leftover is the ladder\'s. If it comes late (a 1929 after 65), the rotated years can be cut — the floor to 75 and the State Pension never fail.',
+  describe() {
+    const d = FullGiltLadder.describe.call(this);
+    d.components = [...d.components, 'rotation trigger: equity index 30% below its running all-time high (disarmed 3 years before the sold block starts paying)', 'sold block: every rung whose years all fund ages above the cut (default 75)'];
+    d.usesTrigger = true;
+    return d;
+  }
+};
+
 const REGISTRY = {
   [PotsAndValves.id]: PotsAndValves,
   [BucketsInOrder.id]: BucketsInOrder,
@@ -77,7 +92,8 @@ const REGISTRY = {
   [FloorAndFlex.id]: FloorAndFlex,
   [FloorTheSchedule.id]: FloorTheSchedule,
   [FloorToAge.id]: FloorToAge,
-  [FullGiltLadder.id]: FullGiltLadder
+  [FullGiltLadder.id]: FullGiltLadder,
+  [GiltRotation.id]: GiltRotation
 };
 
 /** The strategy for a plan (default + migration target: pots-and-valves). */

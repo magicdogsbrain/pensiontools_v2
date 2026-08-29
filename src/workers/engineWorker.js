@@ -9,6 +9,7 @@ import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../strateg
 import { deriveCompareConfigs } from '../strategies/compareRunner.js';
 import { runHouseholdMonteCarlo, combineHouseholdStrategies } from '../services/HouseholdService.js';
 import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
+import { loadLiveEquity } from '../services/EquityIndex.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
 
 let giltsReady = null;
@@ -19,7 +20,7 @@ function plan(settings, cfg, essentialsAnnual) {
 self.onmessage = async (e) => {
   const { id, type, payload } = e.data || {};
   try {
-    if (!giltsReady) giltsReady = Promise.resolve().then(() => loadLiveGilts()).catch(() => null);
+    if (!giltsReady) giltsReady = Promise.resolve().then(() => Promise.all([loadLiveGilts(), loadLiveEquity()])).catch(() => null);
     await giltsReady;
     if (type === 'overview') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);

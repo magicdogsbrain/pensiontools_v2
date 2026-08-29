@@ -2125,7 +2125,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-CuX_rgeA.js"></script>
+  <script type="module" crossorigin src="./assets/main-CPsAXEcl.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3021,6 +3021,7 @@
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
                 <button type="button" class="risk-btn" data-strat="full-il-gilt" data-on-click="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
+                <button type="button" class="risk-btn" data-strat="gilt-rotation" data-on-click="pickStrategy('gilt-rotation')">Gilt ladder + rotation</button>
               </div>
               <div id="ssPotMini" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">Your pot <span class="hint" style="font-weight:normal;">— what this strategy has to buy with</span></div>
@@ -3044,6 +3045,7 @@
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                 </div>
                 <p class="hint" style="margin:6px 0 0;">Priced against <strong>Your pot</strong> above (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios.</p>
                 <p id="giltCostLine" class="hint" style="margin:6px 0 0;"></p>
@@ -3467,7 +3469,7 @@
         <div class="strat-layout">
           <nav class="strat-nav" id="stratNav" aria-label="Strategies">
             <button type="button" class="strat-nav-item" data-page="overview" data-on-click="showStrategyPage('overview')">Overview</button>
-            <div class="strat-nav-group">Eight ways to turn a pot into an income</div>
+            <div class="strat-nav-group">Nine ways to turn a pot into an income</div>
             <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
             <button type="button" class="strat-nav-item" data-page="buckets-in-order" data-on-click="showStrategyPage('buckets-in-order')">Buckets in order</button>
             <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
@@ -3476,6 +3478,7 @@
             <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
             <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
             <button type="button" class="strat-nav-item" data-page="full-il-gilt" data-on-click="showStrategyPage('full-il-gilt')">Full index-linked gilt ladder</button>
+            <button type="button" class="strat-nav-item" data-page="gilt-rotation" data-on-click="showStrategyPage('gilt-rotation')">Gilt ladder + rotation</button>
             <div class="strat-nav-group">Background</div>
             <button type="button" class="strat-nav-item" data-page="gilts" data-on-click="showStrategyPage('gilts')">Gilt ladders explained</button>
             <button type="button" class="strat-nav-item" data-page="assumptions" data-on-click="showStrategyPage('assumptions')">Assumptions &amp; data</button>

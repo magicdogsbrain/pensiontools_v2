@@ -108,3 +108,62 @@ guaranteed floor through the go-slow years and still frees £262k.
 > ages 76–91 rung block at market, whatever the price, and buy the global equity fund with all
 > of it. Never sell a rung funding age 75 or younger. Rebuy the sold rungs only if real yields
 > and the equity sleeve later make it free. If the trigger never fires, the plan stands as is.
+
+---
+
+# Design audit — 29 Aug 2026
+
+## A. The ladder itself — sound
+
+- 23 rungs verified against the AJ Bell holdings PDF; every rung at or above the sheet's nominal.
+- Real IRR 1.65% (coupons included); per-rung real yields run 0.73% (2029) to ~2.5% (2050s).
+- Engine bug found and fixed: the State Pension's first-year share was computed on the CALENDAR
+  year while rungs are bought per TAX year. `spTaxYearFirstRatio()` added
+  (`src/utils/StatePensionUtils.js`), used by `fullGiltTest`. TG36 now sizes at 33,200 nominal
+  (£53,033) not 35,200 — Chris holds 35,200, so ~£3.3k spare in 2037/38. Shipped.
+- Remaining gap: cash years need £240k, £226k held (£64k expected from another SIPP; fallback
+  £58.7k/yr for three years). Not a ladder problem.
+
+## B. Decision tool — the real finding
+
+**The Decision tool has no concept of any strategy other than Pots & Valves.** Non-P&V strategies
+were presentation-only: the engine always ran the P&V cascade and an overlay relabelled the number.
+
+| # | Bug | Where | Fixed |
+|---|---|---|---|
+| D1 | `seedDecisionFromStress` dropped `strategyId`/`strategyParams`/income shape, so "Use ALL Stress settings" silently converted a full-IL-gilt plan into a P&V one | `src/storage/ScenarioRepository.js` | yes — strategy, params, income shape, `shapeAgeNow`, `firstTaxYear` now travel with the copy, + tests |
+| D2 | `#dsStrategyPanel` was hidden whenever a strategy had no bespoke body (`display = html ? 'block' : 'none'`), so full-il-gilt got no panel above the entry form at all | `index.html` | yes — always shown |
+| D3 | Plan year computed relative to *today* rather than the plan's first tax year, so it was always 0 — the overlay always said "the cash years bucket" | `index.html` overlay | yes — now `firstTaxYear`-relative |
+| D4 | `{...settings.strategyParams}` spread on the Decision side was always empty (Decision settings had no such field); params came only from the scenario block, which is `{}` for most strategies | `index.html` `calcDecisionWithDeps` | yes — Stress → Decision → scenario, most specific wins |
+| D5 | The monthly figure for a contract ladder was `decision.sippDraw` (P&V tax-band output) relabelled as "this year's matured rung" — a different number from what the ladder actually contracted | `index.html` overlay | yes — now the ladder's own schedule ÷ months left |
+
+**Still open (design, not bugs):**
+- The strategy registry has no decision surface. `getStrategy(id)` exposes `simulate`,
+  `runMonteCarlo`, `runWindows`, `floorCost` — all simulation. The growing
+  `if (st.id === '…')` chain in `renderDecisionStrategyPanel` should become
+  `getStrategy(sid).decisionView?.(ctx)`. Not urgent; three branches so far.
+- Decision settings form is entirely P&V-shaped (pot floors, valves, rebalancing, risk cards).
+  For a contract ladder most of it is meaningless. It should collapse to: income shape,
+  State Pension, cash years, and the tax-year figures.
+- The monthly entry form still requires Equity/Bond/Cash/ISA/Diversifier values. For a ladder
+  plan only cash matters.
+- Household still runs P&V-family engines for a ladder plan via config.
+
+## C. What was built
+
+- `src/services/LadderPosition.js` (+ 9 tests) — pure `(plan, date, balances) → position`:
+  tax year, income step, State Pension split, ladder amount, months left, monthly instruction,
+  parked money that must not be spent, cash reconciliation, next maturity and how long it sits.
+- Decision tool now renders a **"Your gilt ladder — tax year X, age N"** card: the income step,
+  the exact monthly figure to instruct the broker, which rung or bucket pays it, a warning listing
+  money that is parked for later tax years, the next maturity, and a Check button that
+  re-spreads the remainder over the months left and reconciles a typed cash balance.
+- **Rotation watch** panel: the rule in one paragraph, an index-vs-all-time-high check, and the
+  historical record. It is the only discretionary decision in the plan and it now has a home.
+
+## D. Honest limits of the rotation evidence
+
+n=16 trigger episodes, all pre-1975 (a 30-year horizon plus data ending 2023-06 excludes 2000 and
+2008 entirely). Overlapping windows. US S&P with a world-equity haircut; UK linkers have no
+history before 1981, so the gilt leg is arithmetic, not history. The bootstrap lens cannot see the
+trigger at all and returns the un-triggered odds (~84%) — treat that as the floor, not the estimate.

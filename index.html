@@ -5751,6 +5751,20 @@
       // The plan starts at the income shape's first age (retirement), not a hard-coded 57.
       return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual: essentialsOverride, startAge: +settings.shapeAgeNow || 57 });
     }
+    // The worker returns results through structured clone, which STRIPS the function-valued
+    // config fields (floorDraw, drawNetOfSp, amountAt). Rebuild the per-year draw from the plan's
+    // plain data — same formulas as compareRunner — so the example ladders render on both paths.
+    function drawNetFromPlan(p) {
+      const prm = p.params || {};
+      const base = prm.drawAnnual > 0 ? prm.drawAnnual : p.targetAnnual;
+      const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+      const amountAt = (k) => (sched ? (sched[Math.min(k - 1, sched.length - 1)] ?? base) : base);
+      return (k) => Math.max(0, amountAt(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+    }
+    function essentialsDrawFromPlan(p) {
+      return (k) => Math.max(0, (p.essentialsAnnual || 0) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+    }
+
     function exampleLadderHtml(rungYears, drawForYear, caption) {
       const sheet = orderSheet({ rungYears, drawForYear, startYear: new Date().getFullYear() });
       let h = '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Example ladder — how rungs like these could be priced from gilts in issue (illustration only)</summary>';
@@ -5872,18 +5886,18 @@
         + '<tr><td>When it failed</td><td>' + faTxt + '</td></tr>'
         + '</tbody></table></div>';
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
-        h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
+        h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp || drawNetFromPlan(p), 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
       }
       if (r.strategyId === 'full-il-gilt' && r.plan) h += giltOrderSheetHtml(r.plan);
       if (r.strategyId === 'floor-to-age' && r.configs.fa) {
-        h += exampleLadderHtml(Array.from({ length: r.configs.fa.A }, (_, i) => i + 1), r.configs.fa.floorDraw, 'this is the schedule to ' + r.configs.fa.floorToAge + ', one rung per year, net of your State Pension.');
+        h += exampleLadderHtml(Array.from({ length: r.configs.fa.A }, (_, i) => i + 1), r.configs.fa.floorDraw || drawNetFromPlan(p), 'this is the schedule to ' + r.configs.fa.floorToAge + ', one rung per year, net of your State Pension.');
       }
       if (r.strategyId === 'floor-the-schedule' && r.configs.fs) {
-        h += exampleLadderHtml(Array.from({ length: p.durationYears }, (_, i) => i + 1), r.configs.fs.floorDraw, 'this is the whole schedule, one rung per year, net of your State Pension — the shopping list this strategy implies.');
+        h += exampleLadderHtml(Array.from({ length: p.durationYears }, (_, i) => i + 1), r.configs.fs.floorDraw || drawNetFromPlan(p), 'this is the whole schedule, one rung per year, net of your State Pension — the shopping list this strategy implies.');
       }
       if (r.strategyId === 'floor-and-flex' && r.configs.ff) {
         const yrsF = Math.min(r.signature.horizonAge - p.startAge, p.durationYears, 45);
-        h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
+        h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw || essentialsDrawFromPlan(p), 'this shows only what the essentials floor might cost, sized net of your State Pension.');
       }
       h += '<p class="hint" style="margin-top:8px;">Both lenses use the same real-terms market history (Shiller 1871–2023, adjusted to WORLD equity: US history less 1.5%/yr): every ' + yrsN + '-year window, and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it. ' + (r.strategyId === 'pots-and-valves' ? 'This is your Pots &amp; Valves plan run exactly as the Monte Carlo tab runs it — each history\'s own inflation, your tax mode, your cash and bond models — with the results shown in today\'s money.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
       h += '</div>';

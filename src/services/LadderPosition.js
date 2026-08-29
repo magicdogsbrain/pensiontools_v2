@@ -108,3 +108,27 @@ export function ladderPosition(plan, o = {}) {
 }
 
 function fmt(v) { return '£' + Math.round(v).toLocaleString('en-GB'); }
+
+/**
+ * Borrowed-floor status — after a rotation, what it would cost TODAY to put the sold income
+ * back. Pure: (borrowedFloor record, yieldForYear) → status. The record is written by the
+ * guided switch (index.html executeRotation) into strategyParams.borrowedFloor.
+ */
+export function borrowedFloorStatus(borrowedFloor, yieldForYear, now = new Date()) {
+  if (!borrowedFloor || !Array.isArray(borrowedFloor.years) || !borrowedFloor.years.length) return null;
+  const yf = (k) => (yieldForYear ? yieldForYear(k) : 0.023);
+  let cost = 0;
+  const nowY = taxYearOf(now);
+  const future = borrowedFloor.years.filter((y) => y.Y >= nowY);
+  for (const y of future) { const k = Math.max(0.5, y.Y - nowY + 1); cost += y.need / Math.pow(1 + yf(k), k); }
+  const ages = future.map((y) => y.age);
+  return {
+    since: borrowedFloor.soldAt,
+    proceeds: borrowedFloor.proceeds || 0,
+    incomePerYear: future.length ? future[0].need : 0,
+    totalIncome: future.reduce((s, y) => s + y.need, 0),
+    ages: ages.length ? [Math.min(...ages), Math.max(...ages)] : null,
+    yearsLeft: future.length,
+    rebuyCostToday: cost
+  };
+}

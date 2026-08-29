@@ -15,6 +15,7 @@ import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYi
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
+import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge } from './GiltRotation.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
@@ -23,7 +24,7 @@ import { buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder'
+  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
 };
 
 /** p10/p50/p90 band of one per-window series (array index = plan year). */
@@ -110,7 +111,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
       floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
-      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule
+      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule,
+      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April.
@@ -519,6 +521,49 @@ function fullGiltTest(p, configs) {
   };
 }
 
+// Gilt ladder + rotation: the full ladder, plus the ONE pre-agreed escape — on the first month
+// equities close >=trigger below their running all-time high, the rungs funding ages above
+// cutAge are sold (accreted value) and become an equity sleeve that pays those years instead.
+// Never triggers => identical to the full ladder. See src/strategies/GiltRotation.js.
+function rotationTest(p, configs) {
+  const base = fullGiltTest(p, configs);
+  if (!base.affordable) return { ...base, strategyIdHint: 'gilt-rotation' };
+  const plan = base.plan;
+  const cutAge = Math.max(p.startAge + 1, Math.min(p.params?.rotateCutAge || 75, p.startAge + p.durationYears - 2));
+  const trigger = (p.params?.rotateTrigger > 0 ? p.params.rotateTrigger : 30) / 100;
+  const ctx = rotationPathsCtx(plan, p, { cutAge, trigger });
+  if (!ctx.split.soldOrders.length) return base;   // nothing above the cut: it IS the full ladder
+  const N = p.durationYears;
+  const hist = runRotationWindows(ctx);
+  const mc = runRotationMonteCarlo(ctx, p.mcRuns || 400);
+  const ruinOf = (rs) => 100 * rs.filter((r) => r.failAge != null).length / Math.max(1, rs.length);
+  const failAges = mc.filter((r) => r.failAge != null).map((r) => r.failAge);
+  const wealthList = mc.map((r) => r.wealth), incomeList = mc.map((r) => r.income);
+  const terminals = mc.map((r) => r.wealth[N]).sort((a, b) => a - b);
+  const q = (arr, pr) => arr[Math.floor(arr.length * pr)] ?? 0;
+  const histTerm = hist.map((r) => r.wealth[N]).sort((a, b) => a - b);
+  const worstInc = mc.map((r) => Math.min(...r.income.slice(0, N))).sort((a, b) => a - b);
+  const owed = mc[0] ? mc[0].owed : 0;
+  const coverage = 100 * (1 - (mc.reduce((s2, r) => s2 + r.paidShort, 0) / Math.max(1, mc.length * Math.max(1, owed))) * (owed / Math.max(1, mc[0] ? mc[0].income.reduce((a, b) => a + b, 0) : 1)));
+  const triggeredShare = mc.filter((r) => r.triggeredYear != null).length / Math.max(1, mc.length);
+  return {
+    affordable: true, plan,
+    ruin: { hist: ruinOf(hist), mc: ruinOf(mc) },
+    ruinLabel: 'chance the rotated years (after ' + cutAge + ') are cut — the floor to ' + cutAge + ' and the State Pension never fail',
+    worst12: { min: q(worstInc, 0.0), median: q(worstInc, 0.5) },
+    guaranteedToAge: cutAge + ' by contract whatever happens; above that, contract until the trigger fires (' + Math.round(triggeredShare * 100) + '% of futures rotate)',
+    terminal: { p10: q(terminals, 0.1), p50: q(terminals, 0.5), p90: q(terminals, 0.9), histMedian: q(histTerm, 0.5) },
+    cones: { wealth: coneOf(wealthList, N), income: coneOf(incomeList, N) },
+    samples: { wealth: sampleOf(wealthList, N), income: sampleOf(incomeList, N) },
+    survivedMc: mc.map((r) => r.failAge == null),
+    coverage: Math.max(0, Math.min(100, coverage)),
+    failAges,
+    signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },
+    n: { hist: hist.length, mc: mc.length },
+    wealthLabel: 'Unpaid rungs + the rotation block (accreted, then the equity sleeve once the trigger fires), today\'s money'
+  };
+}
+
 /**
  * The pot a given strategy needs at retirement for the plan to pass, today's money — the
  * accumulation "am I on track?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
@@ -551,7 +596,7 @@ export function pnvDecadeSeries(p, year, month = 1) {
 
 /** Stress-test ONE strategy on the plan. */
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   // Coverage (Estrada & Kritzman): the average share of the plan's years that were paid, across the

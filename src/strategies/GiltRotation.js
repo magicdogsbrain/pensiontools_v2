@@ -103,11 +103,14 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   }
   const needAt = (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? yr.need : 0; };
   // The whole point of the rotation is RUNWAY: proceeds must have years to grow before the sold
-  // years start drawing. Firing the trigger with no runway (a crash at 80 when the block starts
-  // paying at 76) is selling the floor into the fire — so the trigger disarms a few years before
-  // the block's first draw. Evidence basis: every episode in the research doc fired by 72.
+  // years start drawing. Firing late is selling the floor into the fire, and the sweep in
+  // research/rotation-plan-aug-2026.md §F shows the asymmetry plainly: the late rotations add
+  // NOTHING to the median outcome and all of the tail risk (disarm at cut−1y: 8% of histories
+  // cut; cut−8y: 0.7%). So the trigger disarms `rotateDisarmYears` (default 8) before the
+  // block's first draw. A rotation foregone is not a failure — it is simply the full ladder.
+  const disarm = p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8;
   return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, needAt,
-    lastRotateYear: Math.max(0, (cutAge - 3) - p.startAge),
+    lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
     otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,
     spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? Math.max(0, yr.gross - yr.need) : 0; } };
 }

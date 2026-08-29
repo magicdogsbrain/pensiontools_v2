@@ -5868,7 +5868,7 @@
       } else if (r.strategyId === 'gilt-rotation') {
         const sg = r.signature;
         head = '<strong>The full ladder, plus one pre-agreed escape.</strong> Every year is bought today (' + gbp(Math.round(sg.total)) + '); the ' + sg.soldRungs + ' rungs funding the years above ' + sg.rotateCutAge + ' (' + gbp(Math.round(sg.blockValueToday)) + ' today, covering ' + gbp(Math.round(sg.blockIncome)) + ' of income) double as dry powder. '
-          + 'If equities ever close ' + Math.round(sg.rotateTrigger) + '% below their all-time high, that block is sold — whatever the gilt price — and buys the equity fund in the crash. The trigger disarms three years before the block starts paying. '
+          + 'If equities ever close ' + Math.round(sg.rotateTrigger) + '% below their all-time high, that block is sold — whatever the gilt price — and buys the equity fund in the crash. The trigger disarms ' + (p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8) + ' years before the block starts paying — a crash with no runway is not an opportunity. '
           + 'It fired in <strong>' + Math.round((sg.triggeredShare || 0) * 100) + '%</strong> of futures; the rotated years were cut in <strong>' + ruinMc.toFixed(1) + '% of futures</strong> and ' + ruinH.toFixed(1) + '% of real histories. The floor to ' + sg.rotateCutAge + ' and the State Pension never fail.'
           + '<br><strong>The only rule:</strong> the ladder\'s March routine, plus one watch — is the market ' + Math.round(sg.rotateTrigger) + '% below its high? Nothing else, ever.';
       } else if (r.strategyId === 'floor-to-age') {
@@ -8012,7 +8012,7 @@
         + '<p style="font-size:14px;">' + blockLine + '</p>'
         + '<p style="font-size:14px;">The rule, agreed in advance: <strong>while the market is within 30% of its all-time high, do nothing.</strong> '
         + 'On the first month it closes 30% or more below, sell the whole block at market — whatever the gilt price — and buy the equity fund with all of it. '
-        + 'Rungs funding age ' + cutAge + ' or younger are never sold, and the trigger disarms three years before the block starts paying.</p>'
+        + 'Rungs funding age ' + cutAge + ' or younger are never sold, and the trigger disarms eight years before the block starts paying — late crashes are lived through on the rungs, not traded.</p>'
         + auto
         + '<div class="row-flex" style="gap:12px;align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Index level (override)<input type="number" id="rotNow" style="width:130px;"></label>'
@@ -8938,7 +8938,7 @@
     const ROT_FRAMES = [
       { title: 'The full ladder, as bought', text: 'Every year to the horizon has its gilt. Nothing below is speculative — this is the machine you already own.' },
       { title: 'The dry powder', text: 'The rungs funding the years above the cut age are the rotation block. While you hold them they accrete at their real yield — the waiting room pays you.' },
-      { title: 'The trigger', text: 'One condition, set in advance: equities 30% or more below their all-time high. Until then, nothing. The trigger disarms three years before the block starts paying — a crash with no runway is not an opportunity.' },
+      { title: 'The trigger', text: 'One condition, set in advance: equities 30% or more below their all-time high. Until then, nothing. The trigger disarms eight years before the block starts paying — a crash with no runway is not an opportunity.' },
       { title: 'After the trigger', text: 'The block is sold at market — whatever the price — and buys the equity fund in the crash. The floor to the cut age and the State Pension are untouched; the rotated years now ride the recovery.' }
     ];
     const STRATEGY_PAGES = {

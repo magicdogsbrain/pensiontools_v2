@@ -78,7 +78,7 @@ const GiltRotation = {
   failure: 'If the crash never comes the leftover is the ladder\'s. If it comes late (a 1929 after 65), the rotated years can be cut — the floor to 75 and the State Pension never fail.',
   describe() {
     const d = FullGiltLadder.describe.call(this);
-    d.components = [...d.components, 'rotation trigger: equity index 30% below its running all-time high (disarmed 3 years before the sold block starts paying)', 'sold block: every rung whose years all fund ages above the cut (default 75)'];
+    d.components = [...d.components, 'rotation trigger: equity index 30% below its running all-time high (disarmed 8 years before the sold block starts paying)', 'sold block: every rung whose years all fund ages above the cut (default 75)'];
     d.usesTrigger = true;
     return d;
   }

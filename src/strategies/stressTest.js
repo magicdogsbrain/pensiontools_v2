@@ -112,7 +112,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
       floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
       bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule,
-      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger
+      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April.

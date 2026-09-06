@@ -520,13 +520,34 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
     expect(fromStart.final).toBeGreaterThan(withInc.final);
   });
 
-  it('a windfall at year N lifts the pot from that year; toIsa routes it to the ISA', () => {
+  it('a windfall at year N lifts TOTAL wealth, split across the wrappers it can legally reach', () => {
     const base = simulate(cfg, flat(10), 11);
     const w = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
-    expect(w.final).toBeGreaterThan(base.final + 60000);   // most of it survives to the end
+    const total = (r) => r.final + (r.finalIsa || 0);
+    // A £100k lump sum cannot go into a pension or ISA at speed (£20k/yr ISA, £3,600/yr SIPP
+    // without earnings) — the rest sits in the taxable sleeve and is taxed. So most of it
+    // survives, but not tax-free, and it arrives across BOTH reported buckets.
+    expect(total(w)).toBeGreaterThan(total(base) + 60000);
+    expect(w.finalIsa).toBeGreaterThan(0);                     // the ISA route is used each year
     expect(w.potByYear[2]).toBeCloseTo(base.potByYear[2], 4);  // untouched before year 3
     const wi = simulate({ ...cfg, isaBalance: 0, windfalls: [{ year: 3, amount: 50000, toIsa: true }] }, flat(10), 11);
     expect(wi.finalIsa).toBeGreaterThan(0);
+  });
+
+  it('the taxable sleeve is taxed, so a windfall is worth less than the same money in a wrapper', () => {
+    const base = simulate(cfg, flat(10), 11);
+    const total = (r) => r.final + (r.finalIsa || 0);
+    const windfall = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
+    // the same £100k already inside the ISA compounds untaxed and must end up worth more
+    const sheltered = simulate({ ...cfg, isaBalance: (cfg.isaBalance || 0) + 100000 }, flat(10), 11);
+    expect(total(sheltered)).toBeGreaterThan(total(windfall));
+  });
+
+  it('bed-and-ISA is a setting: turning it off leaves the money in the taxable sleeve', () => {
+    const on = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
+    const off = simulate({ ...cfg, bedAndIsa: false, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
+    expect(on.finalIsa).toBeGreaterThan(off.finalIsa);   // sheltered steadily
+    expect(off.final).toBeGreaterThan(on.final);         // still sitting in the GIA instead
   });
 
   it('absent both fields, behaviour is unchanged (golden safety)', () => {

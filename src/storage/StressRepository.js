@@ -348,6 +348,14 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Lumpy income (user-defined): income streams with start/end years + one-off lump sums.
     extraIncomes: Array.isArray(settings.extraIncomes) ? settings.extraIncomes : [],
     windfalls: Array.isArray(settings.windfalls) ? settings.windfalls : [],
+    // Taxable sleeve (GIA): where a lump sum actually has to live, because the ISA takes £20k/yr
+    // and a retiree's SIPP £3,600/yr. Default mix is equities unless the plan says otherwise;
+    // a GIA holding gilts is near tax-free (CGT-exempt uplift) and the engine models that.
+    taxableStart: +settings.taxableStart || 0,
+    taxableMix: settings.taxableMix || null,
+    giaTaxBand: settings.giaTaxBand || 'basic',
+    bedAndIsa: settings.bedAndIsa !== false,
+    relevantEarnings: +settings.relevantEarnings || 0,
     extraWithdrawals: Array.isArray(settings.extraWithdrawals) ? settings.extraWithdrawals : [],
     isaDrawdownStrategy: settings.isaDrawdownStrategy,
     // Spending profile: 'flat' (level real spend, default) or 'declining' (spending drifts down

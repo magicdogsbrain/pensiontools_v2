@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newSleeve, sleeveIncome, incomeTaxOnSleeve, withdrawFromSleeve, addToSleeve, growSleeve, bedAndIsa, shelterLumpSum, GIA_DEFAULTS } from '../src/services/TaxableSleeve.js';
+import { sippRoomFor, newSleeve, sleeveIncome, incomeTaxOnSleeve, withdrawFromSleeve, addToSleeve, growSleeve, bedAndIsa, shelterLumpSum, GIA_DEFAULTS } from '../src/services/TaxableSleeve.js';
 
 const EQ = { equity: 1, bond: 0, gilt: 0, cash: 0 };
 const GILT = { equity: 0, bond: 0, gilt: 1, cash: 0 };
@@ -8,10 +8,23 @@ describe('a lump sum cannot be sheltered at speed', () => {
   it('£100k splits into ISA £20k, SIPP £3,600, and £76,400 stuck in the GIA', () => {
     expect(shelterLumpSum(100000, {})).toEqual({ toIsa: 20000, toSipp: 3600, toGia: 76400 });
   });
-  it('someone still earning can put more in the SIPP', () => {
+  it('the MPAA caps a drawdown retiree at £10,000 however much they earn', () => {
+    // flexible access has happened (any drawdown plan), so £10k beats their earnings
     const r = shelterLumpSum(100000, { relevantEarnings: 40000 });
+    expect(r.toSipp).toBe(10000);
+    expect(r.toGia).toBe(70000);
+  });
+  it('before flexible access the Annual Allowance applies and earnings are the cap', () => {
+    const r = shelterLumpSum(100000, { relevantEarnings: 40000, mpaaTriggered: false });
     expect(r.toSipp).toBe(40000);
     expect(r.toGia).toBe(40000);
+  });
+  it('no earnings means £3,600 whether or not the MPAA has been triggered', async () => {
+    const { sippRoomFor } = await import('../src/services/TaxableSleeve.js');
+    expect(sippRoomFor({ relevantEarnings: 0, mpaaTriggered: true })).toBe(3600);
+    expect(sippRoomFor({ relevantEarnings: 0, mpaaTriggered: false })).toBe(3600);
+    expect(sippRoomFor({ relevantEarnings: 200000, mpaaTriggered: true })).toBe(10000);
+    expect(sippRoomFor({ relevantEarnings: 200000, mpaaTriggered: false })).toBe(60000);
   });
   it('a part-used ISA allowance shelters less', () => {
     expect(shelterLumpSum(100000, { isaAllowanceLeft: 5000 }).toIsa).toBe(5000);

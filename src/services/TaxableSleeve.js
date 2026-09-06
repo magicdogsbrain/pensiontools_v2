@@ -3,9 +3,12 @@
  *
  * WHY THIS EXISTS. A lump sum in retirement — downsizing, an inheritance, a maturing policy —
  * cannot legally be put in a pension or an ISA at any speed that matters:
- *   • SIPP: tax relief is capped at 100% of RELEVANT UK EARNINGS, or £3,600 gross if lower.
- *     A retiree with no earnings can put in £3,600 a year, full stop. (The £60,000 Annual
- *     Allowance and the £10,000 MPAA are both far above that, so neither binds here.)
+ *   • SIPP: TWO caps apply and the LOWER wins.
+ *       (a) relief is capped at 100% of RELEVANT UK EARNINGS, or £3,600 gross if lower; and
+ *       (b) the Annual Allowance — £60,000 normally, but only £10,000 (the MPAA) once you have
+ *           flexibly accessed a DC pension, which anyone drawing taxable pension income has.
+ *     So a retiree with no earnings can put in £3,600 a year; a retiree still earning £30,000
+ *     is capped at £10,000 by the MPAA, NOT at their earnings.
  *   • ISA: £20,000 a year.
  * Everything else has to sit unwrapped and taxable. Before this module the app had nowhere to
  * put it, so windfalls were dropped straight into the SIPP or ISA and grew tax-free — which
@@ -31,7 +34,9 @@ export const GIA_DEFAULTS = {
   DIV_RATE_BASIC: 0.0875,
   DIV_RATE_HIGHER: 0.3375,
   ISA_ALLOWANCE: 20000,
-  SIPP_NO_EARNINGS_GROSS: 3600,   // the limit that actually binds a retiree
+  SIPP_NO_EARNINGS_GROSS: 3600,   // relief is capped at 100% of relevant UK earnings, or this
+  ANNUAL_ALLOWANCE: 60000,        // before any flexible access
+  MPAA: 10000,                    // AFTER flexible access — which a drawdown plan has, by definition
   EQUITY_YIELD: 0.02,             // income thrown off, taxed as dividends
   BOND_YIELD: 0.04,               // corporate/convential bond coupon, taxed as savings income
   GILT_COUPON: 0.005              // index-linked gilt coupons are tiny; the uplift is CGT-FREE
@@ -106,9 +111,16 @@ export function bedAndIsa(sleeve, allowance = GIA_DEFAULTS.ISA_ALLOWANCE, band =
  * How a lump sum can legally be split in the year it arrives.
  * Returns what goes where — the remainder is stuck in the GIA whether the user likes it or not.
  */
-export function shelterLumpSum(amount, { isaAllowanceLeft = GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings = 0 } = {}) {
+export function sippRoomFor({ relevantEarnings = 0, mpaaTriggered = true } = {}) {
+  // Earnings cap: 100% of relevant UK earnings, with a £3,600 gross floor for the earnings-less.
+  const earningsCap = Math.max(GIA_DEFAULTS.SIPP_NO_EARNINGS_GROSS, +relevantEarnings || 0);
+  // Allowance cap: £10,000 once a DC pension has been flexibly accessed, else £60,000.
+  const allowanceCap = mpaaTriggered ? GIA_DEFAULTS.MPAA : GIA_DEFAULTS.ANNUAL_ALLOWANCE;
+  return Math.min(earningsCap, allowanceCap);
+}
+
+export function shelterLumpSum(amount, { isaAllowanceLeft = GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings = 0, mpaaTriggered = true } = {}) {
   const toIsa = Math.min(amount, Math.max(0, isaAllowanceLeft));
-  const sippRoom = Math.max(GIA_DEFAULTS.SIPP_NO_EARNINGS_GROSS, Math.min(relevantEarnings, 60000));
-  const toSipp = Math.min(amount - toIsa, sippRoom);
+  const toSipp = Math.min(amount - toIsa, sippRoomFor({ relevantEarnings, mpaaTriggered }));
   return { toIsa, toSipp, toGia: Math.max(0, amount - toIsa - toSipp) };
 }

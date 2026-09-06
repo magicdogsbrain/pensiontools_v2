@@ -7,6 +7,7 @@
 
 import { EQUITY_RETURNS, INFLATION, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
+import { newSleeve, addToSleeve, growSleeve, withdrawFromSleeve, incomeTaxOnSleeve, bedAndIsa, shelterLumpSum, GIA_DEFAULTS } from './TaxableSleeve.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
@@ -73,6 +74,11 @@ export function simulate(config, returns, seed = 0) {
 
   // ISA pot (tax-free top-up; grows at the money-market rate, depletes as drawn)
   let isa = config.isaBalance || 0;
+  // Taxable sleeve (GIA). A windfall cannot legally be put in a pension or ISA at any useful
+  // speed — £20k/yr ISA, £3,600/yr SIPP without earnings — so the balance has to live here and
+  // be taxed. See src/services/TaxableSleeve.js. Gilts held here are CGT-exempt.
+  const gia = newSleeve(config.taxableStart || 0, config.taxableMix || null);
+  let giaCgtUsedThisYear = 0, giaTaxPaid = 0;
   // UFPLS lifetime Lump Sum Allowance headroom (nominal, frozen). Irrelevant (0) for drawdown.
   let lsaRemaining = config.accessMethod === 'ufpls' ? 268275 : 0;
   // Phased access: PCLS-at-switch. UFPLS never crystallises the untouched pot, so at the end of
@@ -232,15 +238,36 @@ export function simulate(config, returns, seed = 0) {
     if (Array.isArray(config.windfalls) && monthInYear === 0) {
       for (const w of config.windfalls) {
         if (w.year === year && w.amount > 0) {
-          if (w.toIsa) { isa += w.amount; continue; }
-          const tot = equity + bond + cash;
-          if (tot <= 0) { cash += w.amount; continue; }
-          equity += w.amount * (equity / tot);
-          bond += w.amount * (bond / tot);
-          cash += w.amount * (cash / tot);
+          // What can legally be sheltered THIS year: £20k ISA, £3,600 SIPP without earnings.
+          // Everything else lands in the taxable sleeve, whatever the user ticked.
+          const split = shelterLumpSum(w.amount, {
+            isaAllowanceLeft: w.toIsa === false ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE,
+            relevantEarnings: config.relevantEarnings || 0
+          });
+          isa += split.toIsa;
+          if (split.toSipp > 0) {
+            const tot = equity + bond + cash;
+            if (tot <= 0) cash += split.toSipp;
+            else { equity += split.toSipp * (equity / tot); bond += split.toSipp * (bond / tot); cash += split.toSipp * (cash / tot); }
+          }
+          addToSleeve(gia, split.toGia);
         }
       }
     }
+
+    // The taxable sleeve: grows with the market, pays income tax each year on what it throws
+    // off, and (optionally) drips into the ISA at the allowance. Drawn BEFORE the ISA — least
+    // tax-efficient money first — but after the SIPP has filled the tax bands.
+    if (gia.value > 0 && monthInYear === 0 && year > 0) {
+      giaCgtUsedThisYear = 0;
+      const tax = incomeTaxOnSleeve(gia, config.giaTaxBand || 'basic');
+      gia.value = Math.max(0, gia.value - tax); giaTaxPaid += tax;
+      if (config.bedAndIsa !== false) {
+        const r = bedAndIsa(gia, GIA_DEFAULTS.ISA_ALLOWANCE, config.giaTaxBand || 'basic', giaCgtUsedThisYear);
+        isa += r.moved; giaCgtUsedThisYear = r.cgtUsed; giaTaxPaid += r.cgt;
+      }
+    }
+
 
     // Phased-access switch event: in the first month after the UFPLS phase ends, optionally take
     // 25% of the remaining (still-uncrystallised) SIPP as a tax-free lump sum into the ISA, capped
@@ -267,7 +294,7 @@ export function simulate(config, returns, seed = 0) {
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
     if (monthInYear === 0) {
       isaByYear[year] = isa / cumInf;                       // today's money
-      potByYear[year] = (equity + bond + cash + diversifier) / cumInf;    // today's money
+      potByYear[year] = (equity + bond + cash + diversifier + gia.value) / cumInf;    // today's money (GIA included)
     }
     totalTaxReal += (taxAnnual / 12) / cumInf;
     if (higherRate) higherRateMonths++;
@@ -331,6 +358,15 @@ export function simulate(config, returns, seed = 0) {
     equity *= monthly(eqReturn);
     bond *= monthly(annualBondReturn);
     cash *= monthly(annualCashReturn);
+    // The taxable sleeve grows at ITS OWN mix — a GIA gilt ladder and a GIA equity portfolio
+    // behave completely differently, which is the whole reason this is modelled rather than
+    // haircut. (Income tax and any bed-and-ISA transfer are applied annually, above.)
+    if (gia.value > 0) {
+      const gm = gia.mix;
+      const giaAnnual = (gm.equity || 0) * eqReturn + (gm.bond || 0) * annualBondReturn
+        + (gm.gilt || 0) * annualBondReturn + (gm.cash || 0) * annualCashReturn;
+      growSleeve(gia, monthly(giaAnnual));
+    }
     if (config.isaMix && isa > 0) {
       // Own-funds mode: the ISA is modelled at ITS tagged asset mix through the same driver
       // machinery as the taxable pots (equity path, sub-asset bonds, diversifiers, cash model).
@@ -443,6 +479,20 @@ export function simulate(config, returns, seed = 0) {
     // shortfall (tax-free, so it needs only the NET of what the SIPP would have delivered).
     // Previously the run was marked failed with money still in the ISA — a plan with £600k
     // of ISA 'ran out' the month its SIPP did. Only when the ISA is empty too has it failed.
+    // GIA FIRST, ISA LAST: the taxable sleeve is the least tax-efficient money, so it funds any
+    // shortfall before the ISA is touched. What reaches the pocket is net of CGT on the realised
+    // gain (nil on gilts, which are CGT-exempt).
+    let giaRescue = 0;
+    if (sourcing.shortfall > 1e-6 && gia.value > 0) {
+      const grossYear0 = sippMonthly * 12;
+      const netFactor0 = grossYear0 > 0 && taxAnnual > 0 ? Math.max(0.55, 1 - taxAnnual / grossYear0) : 1;
+      const netShort0 = sourcing.shortfall * netFactor0;
+      const w = withdrawFromSleeve(gia, netShort0, config.giaTaxBand || 'basic', giaCgtUsedThisYear);
+      giaCgtUsedThisYear = w.cgtUsed; giaTaxPaid += w.cgt; giaRescue = w.net;
+      sourcing.shortfall = Math.max(0, sourcing.shortfall - giaRescue / netFactor0);
+      if (traceRow) traceRow.giaRescue = giaRescue;
+    }
+
     let isaRescue = 0;
     if (sourcing.shortfall > 1e-6 && isa > 0) {
       const grossYear = sippMonthly * 12;
@@ -500,7 +550,7 @@ export function simulate(config, returns, seed = 0) {
         cash,
         hodl,
         diversifier,
-        total: equity + bond + cash + diversifier,
+        total: equity + bond + cash + diversifier + gia.value,
         draw: monthDraw,
         boostAmount,
         source,
@@ -518,7 +568,7 @@ export function simulate(config, returns, seed = 0) {
   // End-of-plan values (today's money) for finished runs; £0 pot carried forward after a failure.
   if (!failed) {
     isaByYear[config.years] = isa / (cumInf || 1);
-    potByYear[config.years] = (equity + bond + cash + diversifier) / (cumInf || 1);
+    potByYear[config.years] = (equity + bond + cash + diversifier + gia.value) / (cumInf || 1);
   } else {
     for (let y = Math.floor(failMonth / 12) + 1; y <= config.years; y++) potByYear[y] = 0;
   }
@@ -533,7 +583,7 @@ export function simulate(config, returns, seed = 0) {
     eqSum += (returns.equity[y] ?? 0);
     if (y < 5) { earlySum += (returns.equity[y] ?? 0); earlyN++; }
   }
-  const finalNominal = equity + bond + cash + diversifier;
+  const finalNominal = equity + bond + cash + diversifier + gia.value;
 
   return {
     failed,

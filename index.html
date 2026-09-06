@@ -9115,6 +9115,20 @@
 
 
     // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------
+    // A lump sum cannot be sheltered at will: £20,000 a year into an ISA, and £3,600 gross a year
+    // into a pension for someone with no relevant UK earnings (the £60k Annual Allowance and the
+    // £10k MPAA are both far above that, so neither binds a retiree). The rest is stuck in a
+    // taxable account. Show people that, rather than silently modelling the impossible.
+    function windfallSplitNote(r) {
+      const amt = +r.amount || 0;
+      const toIsa = r.toIsa === false ? 0 : Math.min(amt, 20000);
+      const toSipp = Math.min(amt - toIsa, 3600);
+      const toGia = Math.max(0, amt - toIsa - toSipp);
+      if (toGia <= 0) return 'Fits inside this year\'s allowances: ' + gbp(toIsa) + ' ISA' + (toSipp ? ' + ' + gbp(toSipp) + ' pension' : '') + '.';
+      return 'Year 1: ' + gbp(toIsa) + ' into the ISA' + (toSipp ? ', ' + gbp(toSipp) + ' into the pension' : '')
+        + ', and <strong>' + gbp(toGia) + ' stays taxable</strong> (a GIA) — it is then moved £20k a year into the ISA as allowances allow. Gilts held there are CGT-free; equities are taxed on dividends and gains.';
+    }
+
     window.renderExtraIncomes = function (settings) {
       const box = document.getElementById('ssExtraIncomes');
       if (!box) return;
@@ -9138,8 +9152,9 @@
           + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" data-on-input="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
           + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
           + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
-          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa ? ' checked' : '') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">to ISA</label>'
-          + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>';
+          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa === false ? '' : ' checked') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">use the ISA allowance</label>'
+          + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>'
+          + (r.amount > 0 ? '<div class="hint" style="margin:2px 0 0 6px;">' + windfallSplitNote(r) + '</div>' : '');
       });
       (window._ssExtraWithdrawals || []).forEach((r, i) => {
         html += '<div class="row-flex" style="margin-top:6px;">'

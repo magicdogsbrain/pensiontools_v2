@@ -234,9 +234,31 @@ export function validateIsaInput(isaEntered, isaNeeded, brlExhausted) {
  * @returns {Promise<object>} Wizard initialization data
  */
 /** Other taxable income the Stress plan already carries for a tax year ('YY/YY'), today's money. */
-export function otherIncomeFromStress(ss, taxYear) {
+/**
+ * Plan year 0 is THE FIRST TAX YEAR THIS USER SET UP IN THE DECISION TOOL — the year the money
+ * actually starts moving. Not a calendar constant, and deliberately not the Stress plan's
+ * `firstTaxYear`, which is only "the year after the plan was built": someone who models in 2026
+ * and retires in 2036 would otherwise have every timed income land ten years early.
+ * @param {object} allTaxYears  the Decision tool's tax-year configs, keyed "27/28"
+ * @param {string} currentTaxYear  the year being set up now (used when nothing is set up yet)
+ */
+export function planYearBaseline(allTaxYears, currentTaxYear) {
+  const yearOf = (k) => 2000 + parseInt(String(k).split('/')[0], 10);
+  const keys = Object.keys(allTaxYears || {}).filter((k) => /^\d{2}\/\d{2}$/.test(k) && Number.isFinite(yearOf(k)));
+  if (keys.length) return Math.min(...keys.map(yearOf));
+  return currentTaxYear ? yearOf(currentTaxYear) : new Date().getFullYear();
+}
+
+/** True when the plan actually carries an other-income projection worth trusting. */
+export function hasOtherIncomePlan(ss) {
+  if (!ss) return false;
+  return (+ss.other > 0) || (+ss.dbAmount > 0) || ((ss.extraIncomes || []).some((i) => +i.annual > 0));
+}
+
+export function otherIncomeFromStress(ss, taxYear, baseline) {
   if (!ss) return 0;
-  const y = Math.max(0, (2000 + parseInt(String(taxYear).split('/')[0], 10)) - 2026);   // plan year 0 = 26/27
+  const base = baseline != null ? baseline : (2000 + parseInt(String(taxYear).split('/')[0], 10));
+  const y = Math.max(0, (2000 + parseInt(String(taxYear).split('/')[0], 10)) - base);
   let t = +ss.other || 0;
   if ((ss.dbAmount || 0) > 0 && y >= (ss.dbStartYear || 0)) t += +ss.dbAmount;
   for (const inc of ss.extraIncomes || []) if (inc.annual > 0 && y >= (inc.startYear || 0) && (inc.endYear == null || y <= inc.endYear)) t += +inc.annual;
@@ -326,9 +348,14 @@ export async function getWizardData(selectedMonth) {
       brl: prevYearConfig?.brl || existingConfig.brl,
       hrl: prevYearConfig?.hrl || existingConfig.hrl,
       cpi: prevCpi,
-      // Last year's figure, else what the Stress plan already knows about this tax year: DB pension
-      // once started, income streams (part-time work, rent) active in this plan year, and 'other'.
-      other: prevYearConfig?.other || otherIncomeFromStress(stressSettings, taxYear)
+      // What the Stress plan says about THIS tax year — DB pension once started, income streams
+      // (part-time work, rent) inside their window, and flat 'other'. The plan wins whenever it
+      // carries a projection, so a stream that starts or ENDS is reflected instead of last year's
+      // figure being inherited for ever. Only when the plan has no other-income at all do we fall
+      // back to carrying the previous year forward (a purely hand-entered figure).
+      other: hasOtherIncomePlan(stressSettings)
+        ? otherIncomeFromStress(stressSettings, taxYear, planYearBaseline(allTaxYears, taxYear))
+        : (prevYearConfig?.other || 0)
     },
 
     // State pension

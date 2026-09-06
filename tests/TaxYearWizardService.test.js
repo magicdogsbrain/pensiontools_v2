@@ -67,3 +67,57 @@ describe('calculateMonthlyBreakdown — tax on a mid-year start', () => {
     expect(r.sipp.tax).toBeGreaterThan(400);
   });
 });
+
+describe('planYearBaseline — plan year 0 is the first tax year actually set up', () => {
+  it('uses the earliest tax year in the Decision tool, however far in the future', async () => {
+    const { planYearBaseline } = await import('../src/services/TaxYearWizardService.js');
+    expect(planYearBaseline({ '36/37': {}, '37/38': {}, '38/39': {} }, '38/39')).toBe(2036);
+    expect(planYearBaseline({ '38/39': {}, '36/37': {} }, '38/39')).toBe(2036);   // order-independent
+  });
+  it('falls back to the year being set up when nothing exists yet', async () => {
+    const { planYearBaseline } = await import('../src/services/TaxYearWizardService.js');
+    expect(planYearBaseline({}, '36/37')).toBe(2036);
+    expect(planYearBaseline(null, '27/28')).toBe(2027);
+  });
+  it('ignores junk keys', async () => {
+    const { planYearBaseline } = await import('../src/services/TaxYearWizardService.js');
+    expect(planYearBaseline({ 'notAYear': {}, '36/37': {} }, '36/37')).toBe(2036);
+  });
+});
+
+describe('other income from the Stress plan (rent, DB, streams)', () => {
+  it('counts plan years from the plan start, not a hardcoded 2026', async () => {
+    const { otherIncomeFromStress } = await import('../src/services/TaxYearWizardService.js');
+    // rent of £8,000 running plan years 3..12, plan starting 2027/28
+    const ss = { extraIncomes: [{ annual: 8000, startYear: 3, endYear: 12 }] };
+    // they start the Decision tool in 2036/37, so THAT is plan year 0
+    const B = 2036;
+    expect(otherIncomeFromStress(ss, '38/39', B)).toBe(0);      // plan year 2 — not started
+    expect(otherIncomeFromStress(ss, '39/40', B)).toBe(8000);   // plan year 3 — starts
+    expect(otherIncomeFromStress(ss, '48/49', B)).toBe(8000);   // plan year 12 — last year
+    expect(otherIncomeFromStress(ss, '49/50', B)).toBe(0);      // plan year 13 — ended
+  });
+
+  it('a plan starting a year later shifts every window by a year', async () => {
+    const { otherIncomeFromStress } = await import('../src/services/TaxYearWizardService.js');
+    const ss = { extraIncomes: [{ annual: 5000, startYear: 5 }] };
+    expect(otherIncomeFromStress(ss, '32/33', 2027)).toBe(5000);   // started 2027 -> year 5 = 32/33
+    expect(otherIncomeFromStress(ss, '32/33', 2028)).toBe(0);      // started 2028 -> year 5 = 33/34
+    expect(otherIncomeFromStress(ss, '33/34', 2028)).toBe(5000);
+  });
+
+  it('adds a DB pension only once it has started, and flat other always', async () => {
+    const { otherIncomeFromStress } = await import('../src/services/TaxYearWizardService.js');
+    const ss = { other: 2000, dbAmount: 9000, dbStartYear: 8 };
+    expect(otherIncomeFromStress(ss, '27/28', 2027)).toBe(2000);
+    expect(otherIncomeFromStress(ss, '35/36', 2027)).toBe(11000);
+  });
+
+  it('hasOtherIncomePlan tells the wizard whether to trust the projection', async () => {
+    const { hasOtherIncomePlan } = await import('../src/services/TaxYearWizardService.js');
+    expect(hasOtherIncomePlan(null)).toBe(false);
+    expect(hasOtherIncomePlan({ other: 0, dbAmount: 0, extraIncomes: [] })).toBe(false);
+    expect(hasOtherIncomePlan({ extraIncomes: [{ annual: 8000, startYear: 0 }] })).toBe(true);
+    expect(hasOtherIncomePlan({ dbAmount: 5000 })).toBe(true);
+  });
+});

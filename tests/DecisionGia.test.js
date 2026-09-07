@@ -103,6 +103,18 @@ describe('Decision tool + taxable sleeve (GIA)', () => {
     expect(off.alerts.some((x) => x.type === 'bed-and-isa')).toBe(false);
   });
 
+  it('ISA on hold: no bed-and-ISA reminder, and a lump sum\'s ISA slice is not advised (it would never be drawn)', async () => {
+    const hold = { ...base.deps.settings, isaDrawdownStrategy: 'hold' };
+    const first = await run({ ...base.deps, isaBalance: 0, giaBalance: 50000, giaBasis: 50000, settings: hold });
+    expect(first.alerts.some((x) => x.type === 'bed-and-isa')).toBe(false);
+    expect(first.bedAndIsaSuggestion).toBeNull();
+    const w = await run({ ...base.deps, settings: { ...hold, windfalls: [{ year: 0, amount: 100000 }] } });
+    expect(w.windfallAdvice[0]).toMatchObject({ toIsa: 0, toSipp: 3600, toGia: 96400 });
+    expect(w.alerts.find((x) => x.type === 'windfall').message).toMatch(/on hold/);
+    const apsIsa = await run({ ...base.deps, settings: { ...hold, windfalls: [{ year: 0, amount: 100000, wrapper: 'isa' }] } });
+    expect(apsIsa.windfallAdvice[0]).toMatchObject({ toIsa: 100000, toGia: 0 });   // an inherited ISA is ISA money already
+  });
+
   it('the taxable sleeve and the plan\'s windfalls travel with a copy in both directions (no silent drop)', () => {
     const stress = { taxableStart: 50000, taxableMix: 'gilt', giaTaxBand: 'higher', bedAndIsa: false, relevantEarnings: 12000, windfalls: [{ year: 2, amount: 80000 }] };
     const d = seedDecisionFromStress(stress, {});

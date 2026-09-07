@@ -115,7 +115,7 @@ proves the allowance refactor is neutral when nothing else uses the allowance).
   giaTaxBand, bedAndIsa, relevantEarnings, windfalls` both ways (the D1 silent-drop trap).
 
 Tests: `tests/DecisionGia.test.js` (9), `tests/ladderWindfall.test.js` (5), additions to
-`tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 592 tests.
+`tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 594 tests.
 
 **Verified 7 Sep (morning), in the browser against the dev server**, not only in vitest: both engines
 imported into the running app. Decision: £200k GIA (basis £100k, exemption already used) pays the
@@ -144,6 +144,32 @@ walk-through (Monthly Entry → Save → next month's basis pre-fill) still need
   portfolio is taxed faithfully (half CGT-free, not all-or-nothing). Windfall `mix` field; the
   Decision-tool advice names the holding. Tax band, earnings and bed-and-ISA stay plan-level —
   they describe the person, not the lump.
+
+## 4c. Interaction audit, 7 Sep (Chris asked for gotchas)
+
+Every ISA/GIA/windfall combination was run through the real engine (hold × bed-and-ISA, hold ×
+cash lump, hold × recycle, hold × inherited ISA, longevity × GIA, UFPLS × GIA, phased PCLS × GIA,
+one-off spend × GIA, gilt × higher band, object mix, malformed / out-of-range windfalls). Found:
+
+- **ISA on 'hold' + anything that moves money INTO the ISA.** Bed-and-ISA (default on) and a cash
+  lump's £20k ISA slice were still made under hold, so spendable money was locked in a pot the plan
+  had promised never to draw (it only ever comes back as a last-resort rescue), and the plan drew
+  more SIPP above the basic-rate limit in its place (£10k more lifetime tax in the test case).
+  **Rule now, in both engines:** under hold the plan moves nothing NEW into the ISA — bed-and-ISA
+  is ignored, a cash lump's ISA slice stays in the taxable account. An inherited ISA (APS) still
+  joins it: it is ISA money already. Band-fill recycling is an explicit opt-in so it is left alone,
+  but the settings form warns when hold + recycle are both on. The bed-and-ISA checkbox greys out
+  under hold with a note; the windfall row shows "ISA on hold — nothing goes into it" instead of
+  the ISA checkbox; the split note says "nothing into the ISA (on hold)".
+- **Windfall "use the ISA allowance" checkbox shown for inherited pensions / ISAs**, where it is
+  meaningless (the wrapper decides). Now shown for cash lumps only.
+- **Decision tool's first GIA entry started at £0** even when the plan's Stress settings had a
+  taxable balance. The Monthly Entry now pre-fills the balance from `taxableStart` when no history
+  record has a GIA yet (cost left blank = no gain assumed until entered).
+- Not changed, noted: in a tax year the wizard marks "not tax-efficient" (everything from the
+  pension), the Decision tool draws neither ISA nor GIA — consistent with that choice. Plan year 0
+  for windfall advice is the first tax year set up in the Decision tool; if that differs from the
+  Stress plan's "now", a lump's year is off by the difference.
 
 ## 5. Still open (found, not fixed — deliberately)
 

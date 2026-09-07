@@ -2379,7 +2379,7 @@
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
-                  <select id="dsIsaPolicy" style="max-width:260px;">
+                  <select id="dsIsaPolicy" style="max-width:260px;" data-on-change="syncIsaHoldUI('ds')">
                     <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
                     <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
                     <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
@@ -2408,6 +2408,7 @@
                 <input type="checkbox" id="dsBedAndIsa" checked style="width:auto;">
                 Remind me each April to move up to £20,000 from the taxable account into the ISA (bed-and-ISA)
               </label>
+              <p id="dsIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
                 own steady return; choose above whether it tops up income tax-free, is rationed to the State
@@ -2556,7 +2557,7 @@
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ds')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
@@ -2952,7 +2953,7 @@
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
@@ -3236,7 +3237,7 @@
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
-                  <select id="ssIsaPolicy" style="max-width:260px;">
+                  <select id="ssIsaPolicy" style="max-width:260px;" data-on-change="syncIsaHoldUI('ss')">
                     <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
                     <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
                     <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
@@ -3283,6 +3284,7 @@
                 <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
+              <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
@@ -5686,7 +5688,11 @@
         const hist = await getHistoryAsync({ sortDesc: true, limit: 50 });
         const last = hist.find((h) => h.giaBasisAfter != null);
         el.value = last ? Math.round(last.giaBasisAfter) : '';
-        const bal = document.getElementById('entryGia'); if (bal && last && last.giaBalanceAfter > 0 && (!bal.value || +bal.value === 0)) bal.value = Math.round(last.giaBalanceAfter);
+        const bal = document.getElementById('entryGia');
+        if (bal && last && last.giaBalanceAfter > 0 && (!bal.value || +bal.value === 0)) bal.value = Math.round(last.giaBalanceAfter);
+        // No GIA recorded yet: start from the plan's "taxable investments today" (copied from the
+        // Stress settings), cost unknown so it is left blank (= no gain assumed until you enter it).
+        if (bal && !last && (!bal.value || +bal.value === 0)) { const ds = await getDecisionSettingsAsync(); if (ds && ds.taxableStart > 0) bal.value = Math.round(ds.taxableStart); }
       } catch (e) { /* not signed in yet */ }
     };
 
@@ -9222,7 +9228,23 @@
       set('GiaTaxBand', s.giaTaxBand || 'basic');
       set('RelevantEarnings', s.relevantEarnings || 0);
       const b = document.getElementById(prefix + 'BedAndIsa'); if (b) b.checked = s.bedAndIsa !== false;
+      syncIsaHoldUI(prefix);
     }
+    // ISA on 'hold' = never drawn for income (last-resort rescue only). The plan therefore moves
+    // nothing NEW into it: bed-and-ISA is off and a cash lump sum's ISA slice stays taxable — the
+    // engines enforce this; the form says so, and warns when band-fill recycling would still do it.
+    window.syncIsaHoldUI = function (prefix) {
+      const hold = document.getElementById(prefix + 'IsaPolicy')?.value === 'hold';
+      const bed = document.getElementById(prefix + 'BedAndIsa'); if (bed) { bed.disabled = hold; bed.closest('label')?.style.setProperty('opacity', hold ? '0.5' : '1'); }
+      const note = document.getElementById(prefix + 'IsaHoldNote');
+      if (note) {
+        const recycle = document.getElementById(prefix + 'BandFillRecycle')?.checked;
+        note.style.display = hold ? '' : 'none';
+        note.textContent = hold ? 'ISA on hold: nothing new is moved into it. Bed-and-ISA is switched off and a cash lump sum\'s £20,000 ISA slice stays in the taxable account instead (an inherited ISA still joins it). Money in a held ISA is only used once the SIPP and the taxable account have both run out.'
+          + (recycle ? ' Band-fill recycling is ON: the recycled money lands in this held ISA and will not be drawn either — turn one of them off unless that is what you want.' : '') : '';
+      }
+      if (prefix === 'ss' && typeof renderExtraIncomes === 'function' && window._ssWindfalls) renderExtraIncomes();
+    };
     function readGiaFields(prefix) {
       const v = (id) => document.getElementById(prefix + id)?.value;
       return {
@@ -9246,14 +9268,15 @@
     function windfallMixOptions(sel) {
       return WINDFALL_MIXES.map(([v, l]) => '<option value="' + v + '"' + ((sel || '') === v ? ' selected' : '') + '>' + l + '</option>').join('');
     }
+    const isaOnHold = (prefix) => document.getElementById(prefix + 'IsaPolicy')?.value === 'hold';
     function windfallSplitNote(r) {
       const amt = +r.amount || 0;
       if (r.wrapper === 'pension') return 'An inherited pension stays in a pension (beneficiary drawdown) — no contribution limit applies; it joins your SIPP pots that year.';
       if (r.wrapper === 'isa') return 'An inherited ISA passes into your ISA under the Additional Permitted Subscription — the whole amount, on top of the £20,000 allowance.';
-      const { toIsa, toSipp, toGia } = routeWindfall(r, { isaAllowanceLeft: GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: +document.getElementById('ssRelevantEarnings')?.value || 0 });
+      const { toIsa, toSipp, toGia } = routeWindfall(r, { isaAllowanceLeft: isaOnHold('ss') ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: +document.getElementById('ssRelevantEarnings')?.value || 0 });
       if (toGia <= 0) return 'Fits inside this year\'s allowances: ' + gbp(toIsa) + ' ISA' + (toSipp ? ' + ' + gbp(toSipp) + ' pension' : '') + '.';
-      return 'Year 1: ' + gbp(toIsa) + ' into the ISA' + (toSipp ? ', ' + gbp(toSipp) + ' into the pension' : '')
-        + ', and <strong>' + gbp(toGia) + ' stays taxable</strong> (a GIA, held as ' + (WINDFALL_MIXES.find(([v]) => v === (r.mix || ''))?.[1] || 'the taxable account is') + ') — then moved into the ISA each year as the allowance allows. Gilts there are CGT-free; shares are taxed on dividends and gains. Today\'s money.';
+      return 'Year 1: ' + (toIsa > 0 ? gbp(toIsa) + ' into the ISA' : 'nothing into the ISA' + (isaOnHold('ss') ? ' (on hold)' : '')) + (toSipp ? ', ' + gbp(toSipp) + ' into the pension' : '')
+        + ', and <strong>' + gbp(toGia) + ' stays taxable</strong> (a GIA, held as ' + (r.mix ? (WINDFALL_MIXES.find(([v]) => v === r.mix)?.[1] || r.mix) : 'the taxable account is') + ') — then moved into the ISA each year as the allowance allows. Gilts there are CGT-free; shares are taxed on dividends and gains. Today\'s money.';
     }
 
     window.renderExtraIncomes = function (settings) {
@@ -9281,7 +9304,8 @@
           + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
           + '<select data-on-change="updWindfall(' + i + ',\'wrapper\',this.value)" style="width:150px;"><option value="cash"' + ((r.wrapper || 'cash') === 'cash' ? ' selected' : '') + '>Cash lump sum</option><option value="pension"' + (r.wrapper === 'pension' ? ' selected' : '') + '>Inherited pension</option><option value="isa"' + (r.wrapper === 'isa' ? ' selected' : '') + '>Inherited ISA</option></select>'
           + ((r.wrapper || 'cash') === 'cash' ? '<span class="hint">taxable part held as</span><select data-on-change="updWindfall(' + i + ',\'mix\',this.value)" style="width:170px;">' + windfallMixOptions(r.mix) + '</select>' : '')
-          + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa === false ? '' : ' checked') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">use the ISA allowance</label>'
+          + ((r.wrapper || 'cash') !== 'cash' ? '' : isaOnHold('ss') ? '<span class="hint" style="color:var(--warning);">ISA on hold — nothing goes into it</span>'
+            : '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa === false ? '' : ' checked') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">use the ISA allowance</label>')
           + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>'
           + (r.amount > 0 ? '<div class="hint" style="margin:2px 0 0 6px;">' + windfallSplitNote(r) + '</div>' : '');
       });

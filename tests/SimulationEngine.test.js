@@ -607,6 +607,21 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
     expect(asGilts.giaTaxReal).toBeGreaterThan(0);                           // the £50k of shares is still taxed
   });
 
+  it('ISA on hold: the plan moves nothing NEW into it — no bed-and-ISA, and a cash lump\'s ISA slice stays taxable (an inherited ISA still joins it)', () => {
+    const hold = { ...cfg, baseSalary: 60000, isaBalance: 100000, isaDrawdownStrategy: 'hold', taxableStart: 150000 };
+    const on = simulate(hold, flat(10), 11), off = simulate({ ...hold, bedAndIsa: false }, flat(10), 11);
+    expect(on.finalIsa).toBe(off.finalIsa);                                   // the toggle is ignored under hold
+    expect(on.finalGia).toBe(off.finalGia);
+    const none = simulate({ ...cfg, isaBalance: 100000, isaDrawdownStrategy: 'hold' }, flat(10), 11);
+    const cash = simulate({ ...cfg, isaBalance: 100000, isaDrawdownStrategy: 'hold', windfalls: [{ year: 2, amount: 100000 }] }, flat(10), 11);
+    expect(cash.isaByYear[3]).toBe(none.isaByYear[3]);                        // the £20k slice did NOT land in the held ISA
+    expect(cash.finalGia).toBeGreaterThan(none.finalGia);                       // it sits in the taxable account, where the plan can spend it
+    const inherited = simulate({ ...cfg, isaBalance: 100000, isaDrawdownStrategy: 'hold', windfalls: [{ year: 2, amount: 50000, wrapper: 'isa' }] }, flat(10), 11);
+    expect(inherited.isaByYear[3]).toBeGreaterThan(none.isaByYear[3]);
+    const drawn = simulate({ ...cfg, isaBalance: 100000, taxableStart: 150000 }, flat(10), 11);
+    expect(drawn.finalIsa).toBeGreaterThan(simulate({ ...cfg, isaBalance: 100000, taxableStart: 150000, bedAndIsa: false }, flat(10), 11).finalIsa);   // ...while a DRAWN ISA still beds-and-ISAs
+  });
+
   it('absent both fields, behaviour is unchanged (golden safety)', () => {
     const a = simulate(cfg, flat(10), 11);
     const b = simulate({ ...cfg, extraIncomes: [], windfalls: [] }, flat(10), 11);

@@ -101,6 +101,27 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Income shape absorbs "Spending" (Chris, 7 Sep 2026).** Today there are two dials that both
+  shape the target: the income steps ("£60k from 57, £50k from 72, £40k from 80", compiled to
+  `targetSchedule`) and a separate *Spending over retirement* select (flat / Blanchett smile)
+  applied multiplicatively on top in `calculateMonthlyDraw` — with a warning not to use both.
+  Fold them into ONE control on the income strategy:
+  - **Level** = a single step (already how the editor works: one row).
+  - **Steps** = explicit rows, each "from age X take £Y" (as now).
+  - **Taper per step** (new): an optional "…then falling N %/yr (real)" on each row, applied
+    from that step's start until the next step begins (or the plan ends). The Blanchett smile
+    becomes a preset (0% for 5 years, then 1%/yr for 20, then 0%) that fills the rows, not a
+    hidden multiplier.
+  - Compile everything into `targetSchedule` in `IncomeSchedule.scheduleFromSteps`, so EVERY
+    consumer (P&V engine, ladder/floor pricing, wizard suggestions, household timeline, Decision
+    tool) reads one schedule and the double-count warning disappears by construction.
+  - Remove `spendingProfile` from both settings forms (`ssSpendingProfile`, `dsSpendingProfile`)
+    and from `calculateMonthlyDraw` (`spendingFactor` → 1); migrate saved `'declining'` plans to
+    the equivalent taper on their steps so their numbers do not move (parity test on the compiled
+    schedule vs the old `spendingSmileFactor`).
+  - Preview: the income-shape chart shows the tapered line; ladder rung sizes follow it.
+  - Tests: compile golden (steps + tapers → schedule), migration parity, `try a strategy` panel's
+    flat-income override still works, Decision wizard suggestion reads the tapered year.
 - ~~**Landing page: showcase all THREE tools**~~ DONE 15 Aug 2026 (commit on branch, not
   yet deployed to pensiontools.uk): landing + post-signin onboarding now present Budget
   Planner first, then Stress Tester (Tool 2) and Decision Tool (Tool 3); net-first

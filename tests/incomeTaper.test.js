@@ -92,3 +92,15 @@ describe('floors and the picture', () => {
     expect(svg).toMatch(/data-line="1"/); expect(svg).toMatch(/data-pot="1"/);
   });
 });
+
+describe('the picture shows streams as layers and lump sums / spends as markers', () => {
+  it('draws a marker per dated event and a layer for a stream', () => {
+    const svg = incomeStaircaseSvg({ steps: [{ fromAge: 60, amount: 40000 }], ageNow: 60, horizonAge: 89,
+      other: [{ annual: 14000, fromAge: 60, toAge: 65, label: 'rent' }],
+      events: [{ age: 65, amount: 600000, label: 'house sale', kind: 'in' }, { age: 62, amount: 30000, label: 'car', kind: 'out', years: 1 }] });
+    expect(svg).toMatch(/▲ £600k house sale/);
+    expect(svg).toMatch(/▼ £30k car/);
+    expect((svg.match(/data-event="1"/g) || []).length).toBe(2);
+    expect(svg).toMatch(/other income £14k/);          // the rent layer in a bar's title
+  });
+});

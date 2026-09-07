@@ -7,6 +7,7 @@
  * Requires user to be logged in - no local storage fallback.
  */
 
+import { spendingSmileFactor } from '../services/SpendingModel.js';
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from '../constants.js';
 import { DECISION_ASSUMED_CPI } from '../services/InflationModel.js';
 import { simpleHash } from '../utils/MathUtils.js';
@@ -119,8 +120,18 @@ export async function loadDecisionDBAsync() {
       getActiveHistory()
     ]);
 
+    const settingsIn = decisionSettings || getDefaultDecisionDB().settings;
+    // The "Declining with age" spending profile is gone (v6.2.1): the taper now lives on the income
+    // steps and arrives here baked into targetSchedule. A Decision copy still carrying the flag gets
+    // its saved schedule multiplied by the old smile once, so the tax-year wizard's suggestions and
+    // the drawdown projection do not change.
+    if (settingsIn.spendingProfile === 'declining') {
+      if (Array.isArray(settingsIn.targetSchedule) && settingsIn.targetSchedule.length) settingsIn.targetSchedule = settingsIn.targetSchedule.map((v, y) => Math.round((+v || 0) * spendingSmileFactor(y, 'declining')));
+      settingsIn.spendingProfile = 'flat';
+      settingsIn.spendingMigratedFrom = 'declining';
+    }
     const db = {
-      settings: decisionSettings || getDefaultDecisionDB().settings,
+      settings: settingsIn,
       taxYears: taxYears || {},
       history: history || [],
       lastModified: new Date().toISOString(),

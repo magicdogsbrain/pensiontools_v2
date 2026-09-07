@@ -107,7 +107,7 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
-- **Income shape absorbs "Spending" (user request, 7 Sep 2026).** Today there are two dials that both
+- ~~**Income shape absorbs "Spending"**~~ DONE in v6.2.1 (7 Sep 2026): per-step decline slider + "glide evenly to the next step"; the Spending tile is gone; "Declining" plans migrated to equivalent steps (parity test). Original spec: Today there are two dials that both
   shape the target: the income steps ("£60k from 57, £50k from 72, £40k from 80", compiled to
   `targetSchedule`) and a separate *Spending over retirement* select (flat / Blanchett smile)
   applied multiplicatively on top in `calculateMonthlyDraw` — with a warning not to use both.

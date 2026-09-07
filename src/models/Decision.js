@@ -161,6 +161,7 @@ export function decisionToHistory(decision) {
     // Mode and status
     mode: decision.taxEfficient ? 'Tax-Efficient' : 'Standard',
     inProtection: decision.inProtection,
+    belowTrack: !!decision.belowTrack,
     reason: decision.protectionReason || '',
     consecutiveDraws: decision.consecutiveCashDraws || 0,
 

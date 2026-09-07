@@ -5,6 +5,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -85,6 +86,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -165,6 +167,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -245,6 +248,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -325,6 +329,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -405,6 +410,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -485,6 +491,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -565,6 +572,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -645,6 +653,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -725,6 +734,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -805,6 +815,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -885,6 +896,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -965,6 +977,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1056,6 +1069,7 @@
         "type": "rebalance"
       }
     ],
+    "belowTrack": false,
     "bond": 380000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1144,6 +1158,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 150,
     "boostEligible": true,
@@ -1230,6 +1245,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1310,6 +1326,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1390,6 +1407,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1476,6 +1494,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 600,
     "boostEligible": true,
@@ -1556,6 +1575,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1636,6 +1656,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1722,6 +1743,7 @@
         "type": "low-cash"
       }
     ],
+    "belowTrack": false,
     "bond": 480000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1802,6 +1824,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1888,6 +1911,7 @@
         "type": "rebalance"
       }
     ],
+    "belowTrack": false,
     "bond": 560000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -1976,6 +2000,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -2062,6 +2087,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 66.67,
     "boostEligible": true,
@@ -2148,6 +2174,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,
@@ -2228,6 +2255,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
     "boostEligible": false,

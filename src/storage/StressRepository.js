@@ -13,7 +13,7 @@ import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
 import { tagPortfolio } from '../services/PortfolioTagger.js';
-import { scheduleFromSteps, defaultSpYear } from '../services/IncomeSchedule.js';
+import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
 export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
@@ -202,6 +202,21 @@ function migrateStressDB(db) {
     if (migrated.settings.hodlValue === undefined) {
       migrated.settings.hodlValue = 25000;
     }
+  }
+
+  // The separate "Declining with age" spending profile (v6.2.0 and earlier) is now expressed on the
+  // income steps themselves (per-step decline / glide). Bake it in once so the compiled schedule is
+  // identical and the plan stops carrying a multiplier nothing shows any more.
+  const ms = migrated.settings;
+  if (ms.spendingProfile === 'declining') {
+    const ageNow = +ms.shapeAgeNow || 57;
+    const steps = (ms.incomeShape === 'phases' && Array.isArray(ms.incomeSteps) && ms.incomeSteps.length) ? ms.incomeSteps : [{ fromAge: ageNow, amount: +ms.baseSalary || 0 }];
+    ms.incomeShape = 'phases';
+    ms.incomeSteps = smileToSteps(steps, ageNow);
+    ms.shapeAgeNow = ageNow;
+    ms.targetSchedule = compileSteps(ms, ageNow);
+    ms.spendingProfile = 'flat';
+    ms.spendingMigratedFrom = 'declining';
   }
 
   migrated.lastModified = db.lastModified;

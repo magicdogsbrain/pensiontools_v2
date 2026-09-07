@@ -35,6 +35,32 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.4', date: '2026-09-07', engineVersion: '6.2.0', announce: true,
+    title: 'The income shape shows its slopes — and never dips below your State Pension',
+    summary: 'The income-shape picture now draws the slope of every step and animates to the new shape when you move a slider; the schedule can never fall below the guaranteed income of the year (State Pension, DB pension, other income); and an audit confirmed every engine, strategy and projection reads the same sloped schedule.',
+    changes: [
+      'Your income shape: bars follow each step\'s slope, a line traces the path over them, and both ease into place when you change a slider or tick "glide".',
+      'A step is your TOTAL income for the year — State Pension, other pensions and the pot together — and the editor now says so. If a slope would take the shape below the guaranteed income that year, it is held there and a note tells you from which age.'
+    ],
+    corrections: [
+      'The picture used its own flat-step arithmetic, so it ignored the slopes the engines were running (6.2.1 to 6.2.3).',
+      '"Use as my plan\'s target" from the Budget page rebuilt the schedule with the same flat arithmetic, dropping the slopes on a plan re-seeded from the Budget. It now uses the engines\' compiler.'
+    ],
+    effects: {
+      stress: ['Plans re-seeded from the Budget in 6.2.1–6.2.3 with sloped steps: the schedule was flat then and is sloped now — the Stress Tester and every strategy follow it. Plans whose slope dipped below the State Pension are held at that floor.'],
+      strategies: ['Same as the Stress Tester.'],
+      decision: ['The tax-year wizard suggests from the (now correct) schedule copy; recorded months are untouched.'],
+      household: [], budget: [], accumulation: []
+    },
+    actions: ['Open Stress Settings → Your income shape once and look at the picture: it is now what the engines run.'],
+    notes: ['Audit of every schedule consumer: both engines, the nine strategies, the drawdown and glidepath projections, the tax-year wizard, the couples check, the layered charts and the Decision copy all read the compiled schedule.'],
+    affects(scenario) {
+      const ss = scenario?.stressTool?.settings || {};
+      const sloped = Array.isArray(ss.incomeSteps) && ss.incomeSteps.some((x) => x && ((+x.decline > 0) || x.glideToNext));
+      return sloped ? ['This plan\'s steps carry slopes: check the picture in Stress Settings and re-save if the schedule looks flat (it was, if you re-seeded from the Budget).'] : [];
+    }
+  },
+  {
     version: '6.2.3', date: '2026-09-07', engineVersion: '6.2.0',
     title: 'Hotfix: lump-sum amount box',
     summary: 'The one-off lump sum amount box under Income streams and lump sums lost focus after every digit (since 6.1.0 the row re-drew itself to update its "where it goes" note). The note now updates in place.',

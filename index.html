@@ -4011,6 +4011,7 @@
     import { installInlineHandlers } from './src/ui/inlineHandlers.js';
     import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from './src/constants.js';
     import { amountAtAge } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age
+    import { animateIncomeShape } from './src/ui/incomeShapeGraphic.js';
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS } from './src/strategies/GiltLadderPlan.js';
@@ -8014,12 +8015,20 @@
         const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
         const db = +document.getElementById('ssDbAmount')?.value || 0; if (db > 0) other.push({ annual: db, fromAge: ageNow + (+document.getElementById('ssDbStartYear')?.value || 0), label: 'DB pension' });
       } catch (e) { /* layers are optional */ }
-      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other });
+      const prevVals = (window._shapePrev && window._shapePrev.key === ageNow + ':' + dur) ? window._shapePrev.vals : null;
+      const floorVals = Array.from({ length: dur }, (_, y) => guaranteedAtYear(y));
+      const flooredYears = Array.from({ length: dur }, (_, y) => y).filter((y) => amountAtAge(steps, ageNow + y, 0) < floorVals[y]);
+      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other, prevVals, floorVals });
+      window._shapeFlooredFrom = flooredYears.length ? ageNow + flooredYears[0] : null;
+      // Animate from the shape that was showing to the new one (bars and the glide line ease over ~½ s).
+      const finalVals = animateIncomeShape(box.querySelector('svg'));
+      if (finalVals) window._shapePrev = { key: ageNow + ':' + dur, vals: finalVals };
       const note = document.getElementById('incomeShapeNote');
       const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
       const first = steps[0]; const pa = +document.getElementById('ssPA')?.value || 12570, brl = +document.getElementById('ssBRL')?.value || 50270, hrl = +document.getElementById('ssHRL')?.value || 125140;
       const netMo = first ? grossToNet(+first.amount, pa, brl, hrl) / 12 : 0;
-      note.innerHTML = (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<strong>First step ' + gbp(+first.amount) + '/yr gross ≈ ' + gbp(Math.round(netMo)) + '/mo take-home</strong> at today\'s bands. ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+      note.innerHTML = (window._shapeFlooredFrom ? '<span style="color:var(--warning);">From age ' + window._shapeFlooredFrom + ' the shape would fall below your guaranteed income (State Pension + other income), so it is held there — the pot simply supplies nothing in those years.</span> ' : '')
+        + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<strong>First step ' + gbp(+first.amount) + '/yr gross ≈ ' + gbp(Math.round(netMo)) + '/mo take-home</strong> at today\'s bands. ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
     };
     window.startShapeFromBudget = async function () {
       await refreshShapeRefs();
@@ -8074,7 +8083,7 @@
         + (i < steps.length - 1 ? '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (st.glideToNext ? ' checked' : '') + ' data-on-change="updIncomeStep(' + i + ',\'glideToNext\',this.checked)">glide evenly to the next step</label>' : '')
         + '</div>').join('')
         + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" data-on-click="addIncomeStep()">+ Add a step</button>'
-        + '<p class="hint" style="margin:6px 0 0;">One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80. The slider lets a step drift down each year in today\'s money (retirement spending usually does, about 1% a year through the middle years); "glide" walks smoothly down to the next step instead of a cliff.</p>';
+        + '<p class="hint" style="margin:6px 0 0;">Each step is your TOTAL gross income for the year — State Pension, other pensions and the pot together (the picture shows the layers). One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80. The slider lets a step drift down each year in today\'s money (retirement spending usually does, about 1% a year through the middle years); "glide" walks smoothly down to the next step instead of a cliff.</p>';
       renderIncomeShapePreview();
       refreshStrategyCosts();
     };
@@ -8103,11 +8112,29 @@
     };
     window.rmIncomeStep = function (i) { window._ssIncomeSteps.splice(i, 1); renderIncomeSteps(); };
 
-    /** £/yr the shape wants at plan year y (age = ageNow + y). Falls back to the flat target. */
+    /**
+     * Guaranteed gross income in plan year y, read from the Stress form: State Pension from its start
+     * year, other income, the DB pension from its start year, and any income streams. The income shape
+     * is TOTAL income (these are layers inside it), so a step can never sensibly fall below this.
+     */
+    window.guaranteedAtYear = function (y) {
+      const g = (id) => +document.getElementById(id)?.value || 0;
+      const ageNow = g('shapeAgeNow') || 57;
+      let total = g('ssOther');
+      try {
+        const wk = g('ssSpWeeklyAmount'), sa = g('ssSpAnnualAmount');
+        const annual = wk > 0 ? wk * 52 : sa;
+        if (annual > 0) { const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow }); if (cfgSp && y >= (cfgSp.spStartYear ?? 99)) total += annual; }
+      } catch (e) { /* no SP date */ }
+      const db = g('ssDbAmount'); if (db > 0 && y >= g('ssDbStartYear')) total += db;
+      for (const r of (window._ssExtraIncomes || [])) if (r && r.annual > 0 && y >= (r.startYear || 0) && (r.endYear == null || y <= r.endYear)) total += +r.annual;
+      return total;
+    };
+    /** £/yr the shape wants at plan year y (age = ageNow + y): the steps with their slopes, never below the year's guaranteed income, never below 0. */
     window.shapeAmountAtYear = function (y, flatTarget) {
       if (window._ssIncomeShape !== 'phases' || !window._ssIncomeSteps.length) return flatTarget;
       const age = (+document.getElementById('shapeAgeNow')?.value || 57) + y;
-      return Math.round(amountAtAge(window._ssIncomeSteps, age, flatTarget));
+      return Math.round(Math.max(0, amountAtAge(window._ssIncomeSteps, age, flatTarget), guaranteedAtYear(y)));
     };
 
     function compiledTargetSchedule(duration, flatTarget) {
@@ -9073,7 +9100,7 @@
       const prov = dataProvenance();
       const prm = over.strategyParams;
       const shape = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
-        ? settings.incomeSteps.map((x) => gbp(+x.amount) + ' from ' + x.fromAge).join(' → ') : gbp(settings.baseSalary || 0) + ' flat';
+        ? settings.incomeSteps.map((x, i, arr) => gbp(+x.amount) + ' from ' + x.fromAge + (x.glideToNext && i < arr.length - 1 ? ' (gliding)' : (+x.decline > 0 ? ' (−' + (+x.decline) + '%/yr)' : ''))).join(' → ') : gbp(settings.baseSalary || 0) + ' flat';
       let h = '<div class="card"><h2>Full index-linked gilt ladder <span class="hint" style="font-weight:normal;font-size:13px;">— the fully deterministic plan</span></h2>';
       h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Every year of your income plan is bought today.</strong> The first years sit in cash; every later year has one index-linked gilt that matures just before that year\'s April. You draw it monthly. Nothing rides the market, and there is nothing to decide — at 60, at 75, or at 90.</p>';
       // Block 1 — the machine
@@ -11004,7 +11031,7 @@
         const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? JSON.parse(JSON.stringify(stressNow.incomeSteps)) : [];
         if (steps.length) steps[0] = { fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
         const dur = stressNow.duration || 35;
-        const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => shapeAmountAtAge(steps, ageNow + y, gross));
+        const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => Math.round(amountAtAge(steps, ageNow + y, gross)));   // slope-aware (IncomeSchedule)
         const essentialsGross = Math.round(grossUpAnnual(s.essentialAnnualNet || 0));
         const prm = { ...(stressNow.strategyParams || {}) }; if (!prm.essentialsAnnual && essentialsGross) prm.essentialsAnnual = essentialsGross;
         await saveStressSettings({ baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule, strategyParams: prm });

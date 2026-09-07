@@ -73,3 +73,22 @@ describe('Buckets in order: spending cuts judged on the whole SIPP against the w
     expect(pv.protMonths).toBeGreaterThan(0);
   });
 });
+
+import { amountAtAge as graphicAmount, incomeStaircaseSvg } from '../src/ui/incomeShapeGraphic.js';
+describe('floors and the picture', () => {
+  it('a decline never goes below zero, a glide never below the next step', () => {
+    expect(amountAtAge([{ fromAge: 60, amount: 30000, decline: 50 }], 120)).toBeGreaterThanOrEqual(0);
+    expect(amountAtAge([{ fromAge: 60, amount: 30000, glideToNext: true }, { fromAge: 70, amount: 20000 }], 69.99)).toBeGreaterThanOrEqual(20000);
+  });
+  it('the graphic uses the engines\' definition of £-at-an-age and floors at guaranteed income', () => {
+    expect(graphicAmount).toBe(amountAtAge);
+    const steps = [{ fromAge: 60, amount: 30000, decline: 5 }];
+    const svg = incomeStaircaseSvg({ steps, ageNow: 60, horizonAge: 79, floorVals: Array.from({ length: 20 }, (_, y) => (y >= 7 ? 12000 : 0)) });
+    const vals = svg.match(/data-vals="([^"]+)"/)[1].split(',').map(Number);
+    expect(vals[0]).toBe(30000);
+    expect(vals[1]).toBe(28500);
+    expect(Math.min(...vals.slice(7))).toBeGreaterThanOrEqual(12000);   // never below the State Pension once it pays
+    expect(vals[19]).toBe(12000);                                        // 30000 × 0.95^19 ≈ 11,300 → floored
+    expect(svg).toMatch(/data-line="1"/); expect(svg).toMatch(/data-pot="1"/);
+  });
+});

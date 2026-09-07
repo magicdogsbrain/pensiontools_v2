@@ -8723,12 +8723,13 @@
       h += '<details><summary>6 · Tax</summary>' + table([
         row('Bands', 'Personal allowance ' + gbp(TAX_DEFAULTS.PERSONAL_ALLOWANCE) + ', basic-rate limit ' + gbp(TAX_DEFAULTS.BASIC_RATE_LIMIT) + ', higher-rate limit ' + gbp(TAX_DEFAULTS.HIGHER_RATE_LIMIT) + '; PA tapers above ' + gbp(TAX_DEFAULTS.PA_TAPER_THRESHOLD), 'Rates 20/40/45%. Frozen (default) or inflating thresholds — your choice in Settings. Scottish bands not modelled.'),
         row('Pension access', 'Flexi-access drawdown or UFPLS (25% tax-free per withdrawal), PCLS option', 'Minimum pension age 57 from April 2028; MPAA £10,000 warning in the Accumulation planner.'),
-        row('Not modelled', 'GIA / capital gains, dividend allowance, National Insurance in retirement, tax on the estate', 'The ISA is tax-free; everything else is treated as pension income.')
+        row('Taxable account (GIA)', 'Dividend allowance £500 (8.75% / 33.75%), savings allowance £1,000 / £500, CGT exemption £3,000 (18% / 24%); gilts CGT-free', 'Drawn before the ISA; a lump sum lands here once the £20,000 ISA allowance and the pension room (MPAA £10,000; £3,600 floor with no earnings) are used. Bed-and-ISA £20,000 a year when switched on.'),
+        row('Not modelled', 'National Insurance in retirement, tax on the estate, CGT loss carry-forward', 'The ISA is tax-free; pension withdrawals are income.')
       ]) + '</details>';
 
       h += '<details><summary>7 · Known limits</summary><ul style="font-size:13px;line-height:1.55;margin:0 0 0 18px;">'
         + '<li>Single person. No partner, no survivor scenario, no second tax allowance.</li>'
-        + '<li>No general investment account, property, or defined-benefit pension (use Other Income).</li>'
+        + '<li>No property or defined-benefit pension (use Other Income). The taxable account is a single mix, not individual holdings.</li>'
         + '<li>Budget one-offs are averaged into the target, not placed in a specific year.</li>'
         + '<li>Historical data is US equity with a world haircut — Japan from 1989 or UK-only 1965–1980 would look worse.</li>'
         + '<li>Zero spending flexibility in the comparisons unless you switch cuts on — pessimistic on purpose.</li>'

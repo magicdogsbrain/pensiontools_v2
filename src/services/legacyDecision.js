@@ -272,7 +272,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         if (isaToUse > 0 && giaBalance > 0) {
           const t = topUpFromSleeve(giaSleeve, isaToUse, topUpBand, cgtUsedSoFar);
           giaDraw = t.taken; giaCgt = t.cgt; giaNet = t.net; cgtUsedAfter = t.cgtUsed; giaGainUsed = t.cgtUsed - cgtUsedSoFar;
-          isaToUse = holdIsa ? 0 : Math.max(0, isaToUse - giaNet);
+          // Sub-penny residual from the gross-up iteration is not an ISA draw.
+          isaToUse = holdIsa ? 0 : (isaToUse - giaNet < 0.005 ? 0 : isaToUse - giaNet);
         }
         isaSavingsUsedThisMonth = isaToUse;
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)

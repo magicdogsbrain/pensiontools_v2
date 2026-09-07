@@ -117,6 +117,15 @@ proves the allowance refactor is neutral when nothing else uses the allowance).
 Tests: `tests/DecisionGia.test.js` (9), `tests/ladderWindfall.test.js` (4), additions to
 `tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 588 tests.
 
+**Verified 7 Sep (morning), in the browser against the dev server**, not only in vitest: both engines
+imported into the running app. Decision: £200k GIA (basis £100k, exemption already used) pays the
+£459 top-up the ISA used to pay, SIPP draw identical, CGT £45.40 on a £504 sale, windfall alert
+routes £100k as £20k ISA / £3,600 SIPP / £76,400 taxable, panel renders the GIA row. Stress: gilt
+sleeve pays nil tax, share sleeve £2,549, ISA lasts longer beside a sleeve, an inherited pension
+never touches the sleeve. Two corrections made: a sub-penny ISA residual after the sleeve paid the
+whole top-up (now exactly 0), and the methodology page's "GIA not modelled" row. The signed-in UI
+walk-through (Monthly Entry → Save → next month's basis pre-fill) still needs a real account.
+
 ## 5. Still open (found, not fixed — deliberately)
 
 - The sleeve's gilt share grows at the engine's nominal bond return, not at the real-yield curve

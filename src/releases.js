@@ -35,6 +35,16 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.3', date: '2026-09-07', engineVersion: '6.2.0',
+    title: 'Hotfix: lump-sum amount box',
+    summary: 'The one-off lump sum amount box under Income streams and lump sums lost focus after every digit (since 6.1.0 the row re-drew itself to update its "where it goes" note). The note now updates in place.',
+    changes: [],
+    corrections: ['Typing a lump-sum amount no longer stops after one digit.'],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: [],
+    notes: []
+  },
+  {
     version: '6.2.2', date: '2026-09-07', engineVersion: '6.2.0',
     title: 'Hotfix: missing sub-tabs',
     summary: 'In 6.2.1 the Stress Tester, Budget and Strategies tabs lost their content and sub-tab ribbons; only the Decision tool showed its ribbon. A stray closing tag from removing the old spending control. Fixed within the hour.',

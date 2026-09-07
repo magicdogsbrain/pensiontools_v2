@@ -119,8 +119,8 @@ export function decisionToHistory(decision) {
   // first year and duplicated tax logic besides.
   const monthlyTax = decision.monthlyTax != null ? decision.monthlyTax : annualTax / 12;
   const monthlyNet = decision.monthlyTax != null
-    ? (decision.totalMonthlyNet != null ? decision.totalMonthlyNet : monthlyTaxable - monthlyTax + (decision.isaDraw || 0))
-    : monthlyTaxable - monthlyTax + (decision.isaDraw || 0);
+    ? (decision.totalMonthlyNet != null ? decision.totalMonthlyNet : monthlyTaxable - monthlyTax + (decision.isaDraw || 0) + (decision.giaNet || 0))
+    : monthlyTaxable - monthlyTax + (decision.isaDraw || 0) + (decision.giaNet || 0);
 
   return {
     // Date and context
@@ -192,7 +192,21 @@ export function decisionToHistory(decision) {
     protectionInducedTaxEfficiency: decision.protectionInducedTaxEfficiency || false,
 
     // Context
-    remainingMonths: decision.remainingMonths || 12
+    remainingMonths: decision.remainingMonths || 12,
+
+    // Taxable sleeve (GIA) — only when the plan has one. The post-draw balance and cost basis are
+    // what the next month's entry is pre-filled from (the basis has to persist between months, or
+    // CGT cannot be worked out); giaGainUsed is summed per tax year for the £3,000 exemption.
+    ...(decision.giaBalance != null ? {
+      gia: decision.giaBalance,
+      giaBasis: decision.giaBasis,
+      giaDraw: decision.giaDraw || 0,
+      giaCgt: decision.giaCgt || 0,
+      giaNet: decision.giaNet || 0,
+      giaGainUsed: decision.giaGainUsed || 0,
+      giaBalanceAfter: decision.giaBalanceAfter,
+      giaBasisAfter: decision.giaBasisAfter
+    } : {})
   };
 }
 

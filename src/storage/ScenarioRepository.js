@@ -103,7 +103,15 @@ export function getDefaultDecisionSettings() {
     isaBalance: 0,
     isaReturn: ISA_DEFAULTS.RETURN,
     isaMin: ISA_DEFAULTS.MIN,
-    isaDrawdownStrategy: ISA_DEFAULTS.DRAWDOWN_STRATEGY
+    isaDrawdownStrategy: ISA_DEFAULTS.DRAWDOWN_STRATEGY,
+    // Taxable sleeve (GIA): an existing unwrapped account today, what it holds (drives the tax it
+    // suffers — gilts are CGT-free), the holder's marginal rate, whether to bed-and-ISA £20k/yr,
+    // and relevant UK earnings (sets the SIPP room for a windfall). Read by both engines.
+    taxableStart: 0,
+    taxableMix: 'equity',
+    giaTaxBand: 'basic',
+    bedAndIsa: true,
+    relevantEarnings: 0
   };
 }
 
@@ -160,6 +168,13 @@ export function seedStressFromDecision(decisionSettings, currentStress = {}, see
     ufplsYears: d.ufplsYears ?? currentStress.ufplsYears ?? null,
     ufplsThenPcls: d.ufplsThenPcls ?? currentStress.ufplsThenPcls ?? false,
     bandFillRecycle: d.bandFillRecycle ?? currentStress.bandFillRecycle ?? false,
+    // Taxable sleeve + windfalls travel with the plan in both directions.
+    taxableStart: d.taxableStart ?? currentStress.taxableStart ?? 0,
+    taxableMix: d.taxableMix ?? currentStress.taxableMix ?? 'equity',
+    giaTaxBand: d.giaTaxBand ?? currentStress.giaTaxBand ?? 'basic',
+    bedAndIsa: d.bedAndIsa ?? currentStress.bedAndIsa ?? true,
+    relevantEarnings: d.relevantEarnings ?? currentStress.relevantEarnings ?? 0,
+    windfalls: Array.isArray(d.windfalls) ? d.windfalls.map((w) => ({ ...w })) : (currentStress.windfalls || []),
     // provenance for the drift banner / re-sync
     seededFrom: 'decision',
     seededAt,
@@ -220,6 +235,15 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     incomeSteps: Array.isArray(s.incomeSteps) ? s.incomeSteps.map((x) => ({ ...x })) : (currentDecision.incomeSteps || null),
     shapeAgeNow: s.shapeAgeNow ?? currentDecision.shapeAgeNow ?? null,
     firstTaxYear: s.firstTaxYear ?? currentDecision.firstTaxYear ?? null,
+    // Taxable sleeve (GIA) + the plan's windfalls: the Decision tool draws the sleeve before the
+    // ISA, taxes it, and advises where each lump sum can legally go in its year. An explicit list
+    // (like everything above) — a key missing here is silently dropped (audit item D1).
+    taxableStart: s.taxableStart ?? currentDecision.taxableStart ?? 0,
+    taxableMix: s.taxableMix ?? currentDecision.taxableMix ?? 'equity',
+    giaTaxBand: s.giaTaxBand ?? currentDecision.giaTaxBand ?? 'basic',
+    bedAndIsa: s.bedAndIsa ?? currentDecision.bedAndIsa ?? true,
+    relevantEarnings: s.relevantEarnings ?? currentDecision.relevantEarnings ?? 0,
+    windfalls: Array.isArray(s.windfalls) ? s.windfalls.map((w) => ({ ...w })) : (currentDecision.windfalls || []),
     configured: true,   // a full copy IS a configuration — routing can go straight to the tool
     seededFrom: 'stress'
   };

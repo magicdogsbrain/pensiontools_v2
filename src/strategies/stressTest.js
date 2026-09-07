@@ -58,9 +58,9 @@ export function coneOf(seriesList, years) {
   return out;
 }
 
-/** Real-terms per-year other income and extra need from the lumpy settings (approximate indexation). */
+/** Real-terms per-year other income, extra need and windfalls from the lumpy settings (approximate indexation). */
 export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
-  const otherIncomeByYear = [], extraNeedByYear = [];
+  const otherIncomeByYear = [], extraNeedByYear = [], windfallByYear = [];
   const real = (amount, mode, y) => mode === 'level' ? amount / Math.pow(1 + assumedCpi, y) : amount;   // cpi & lpi5 ≈ level in real terms
   for (let y = 0; y <= years; y++) {
     let inc = (cfg.other || settings.other || 0);
@@ -68,9 +68,31 @@ export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
     for (const s of cfg.extraIncomes || []) if (s.annual > 0 && y >= (s.startYear || 0) && (s.endYear == null || y <= s.endYear)) inc += real(s.annual, s.indexation || 'lpi5', y);
     let need = 0;
     for (const w of cfg.extraWithdrawals || []) { if (!(w.amount > 0) || w.year == null) continue; const runs = Math.max(1, w.years || 1); if (y >= w.year && y < w.year + runs) need += real(w.amount, w.indexation || 'cpi', y); }
-    otherIncomeByYear.push(inc); extraNeedByYear.push(need);
+    let lump = 0;
+    for (const w of cfg.windfalls || []) if (w.amount > 0 && w.year === y) lump += real(w.amount, w.indexation || 'cpi', y);
+    otherIncomeByYear.push(inc); extraNeedByYear.push(need); windfallByYear.push(lump);
   }
-  return { otherIncomeByYear, extraNeedByYear };
+  return { otherIncomeByYear, extraNeedByYear, windfallByYear };
+}
+
+/**
+ * How a BOUGHT strategy uses a windfall: the lump arrives in its year and buys the rungs from
+ * then on — it pays that year's remaining need and carries forward against the years after,
+ * until it is spent. Parked money is assumed to hold its real value and no more (a short gilt /
+ * cash ladder; gilts in a taxable account are CGT-free, so no tax drag is modelled either —
+ * slightly pessimistic on return, faithful on tax). Returns the per-year amount of need the
+ * windfall pays (`usedByYear`) and the unspent balance carried at each year end (`carryByYear`).
+ */
+export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
+  const usedByYear = [], carryByYear = [];
+  let carry = 0;
+  for (let y = 0; y < needNetByYear.length; y++) {
+    carry += (windfallByYear && windfallByYear[y]) || 0;
+    const use = Math.min(carry, Math.max(0, needNetByYear[y] || 0));
+    carry -= use;
+    usedByYear.push(use); carryByYear.push(carry);
+  }
+  return { usedByYear, carryByYear };
 }
 
 /**
@@ -96,13 +118,21 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   // Other income (DB pension, income streams, 'other') and extra withdrawals (one-off spends), in
   // today's money, per plan year. The P&V engine handles these itself (pnvCfg keeps the raw
   // schedule); the ladder/floor strategies buy the NET need: target + extras − other income.
-  const { otherIncomeByYear, extraNeedByYear } = lumpyByYear(settings, cfg, durationYears);
-  const hasLumpy = otherIncomeByYear.some((v) => v > 0) || extraNeedByYear.some((v) => v > 0);
+  const { otherIncomeByYear: otherBase, extraNeedByYear, windfallByYear } = lumpyByYear(settings, cfg, durationYears);
+  const hasWindfall = windfallByYear.some((v) => v > 0);
+  const hasLumpy = otherBase.some((v) => v > 0) || extraNeedByYear.some((v) => v > 0) || hasWindfall;
   const needByYear = Array.from({ length: durationYears + 1 }, (_, y) => (rawSchedule ? (rawSchedule[Math.min(y, rawSchedule.length - 1)] ?? target) : target) + extraNeedByYear[y]);
+  // Windfalls: previously ignored by every bought strategy (one-off SPENDS were modelled, one-off
+  // RECEIPTS were not — a bias against every ladder in the ranked table). The lump pays the need
+  // from its year onward, so for the ladder builders it behaves as other income in those years
+  // (the P&V engine handles the same windfalls itself through pnvCfg — see the engine).
+  const windfallUse = hasWindfall ? applyWindfallsToNeed(needByYear.map((v, y) => Math.max(0, v - otherBase[y])), windfallByYear) : null;
+  const otherIncomeByYear = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y]) : otherBase;
   const targetSchedule = hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
   return {
     pot, isa, targetAnnual: target,
-    otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule,
+    otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
+    windfallCarryByYear: windfallUse ? windfallUse.carryByYear : null,   // unspent windfall parked at each year end (bought strategies only)
     essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),
     durationYears, startAge, spAnnual, spStartYear,
     incomeShape: settings.incomeShape, incomeSteps: settings.incomeSteps, shapeAgeNow: settings.shapeAgeNow,
@@ -143,7 +173,7 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   const inc = t.map((row) => {
     const pi = row.planInputs || {};
     const taxableYr = ((row.effectiveSipp || 0) + (pi.fixed || 0) / 12) * 12;
-    const isaYr = (row.effectiveIsa ?? row.isaMonthly ?? 0) * 12;
+    const isaYr = ((row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)) * 12;   // tax-free-in-the-hand money: ISA + the taxable sleeve's net
     if (!(pi.pa > 0)) return (taxableYr + isaYr) / 12;
     const netYr = grossToNet(taxableYr, pi.pa, pi.brl, pi.hrl) + isaYr;   // what lands in the bank
     return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12 / (row.cumInf || 1);   // gross-equivalent, today's money
@@ -599,6 +629,16 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
+  // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series
+  // of the bought strategies (the P&V engine already carries it inside its own pots).
+  const carry = p.windfallCarryByYear;
+  if (r.affordable && carry && carry.some((v) => v > 0) && strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') {
+    const at = (y) => carry[Math.min(y, carry.length - 1)] || 0;
+    if (r.cones && r.cones.wealth) for (const k of ['p10', 'p25', 'p50', 'p75', 'p90']) if (r.cones.wealth[k]) r.cones.wealth[k] = r.cones.wealth[k].map((v, y) => v + at(y));
+    if (r.samples && r.samples.wealth) r.samples.wealth = r.samples.wealth.map((ser) => ser.map((v, y) => v + at(y)));
+    const end = at(p.durationYears);
+    if (end > 0 && r.terminal) for (const k of ['p10', 'p50', 'p90', 'histMedian']) if (r.terminal[k] != null) r.terminal[k] += end;
+  }
   // Coverage (Estrada & Kritzman): the average share of the plan's years that were paid, across the
   // futures — a late shortfall costs far less than an early one. Contract strategies score 100 by
   // construction; a strategy may set its own income-based figure (Floor to an age does).

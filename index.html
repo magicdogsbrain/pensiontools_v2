@@ -2289,6 +2289,24 @@
                       <input type="number" id="entryDiversifier" value="0" min="0">
                     </div>
                   </div>
+                  <div class="form-group" id="entryGiaGroup">
+                    <label>Taxable account (GIA)
+                      <span class="hint" title="Investments held OUTSIDE a pension or ISA — where a lump sum has to sit once the £20,000 ISA and the pension limits are used. Drawn before the ISA (least tax-efficient money first), net of CGT; gilts held here are CGT-free. Leave 0 if you have none.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryGia" value="0" min="0">
+                    </div>
+                  </div>
+                  <div class="form-group" id="entryGiaBasisGroup">
+                    <label>…of which cost (what you paid)
+                      <span class="hint" title="The cost of what the taxable account holds — CGT is charged on the gain above it (£3,000 a year exempt). Pre-filled from your last saved month; add to it when you put new money in. Leave blank to assume no gain.">ⓘ</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryGiaBasis" value="" min="0" placeholder="= balance">
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Per-bucket "enter this month's fund values" popup -->
@@ -2367,7 +2385,29 @@
                     <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
                   </select>
                 </div>
+                <div class="form-group">
+                  <label>What your taxable account (GIA) holds
+                    <span class="hint" title="Money outside a pension or ISA — entered each month on the Monthly Entry form. It is drawn before the ISA, net of CGT; gilts held there are CGT-free.">ⓘ</span>
+                  </label>
+                  <select id="dsTaxableMix" style="max-width:260px;">
+                    <option value="equity">Shares (dividends taxed; CGT on gains)</option>
+                    <option value="gilt">Gilts (CGT-free; tiny coupon)</option>
+                    <option value="bond">Bond funds (interest taxed; CGT on gains)</option>
+                    <option value="balanced">Mixed (60% shares / 20% bonds / 20% gilts)</option>
+                    <option value="cash">Cash (interest taxed)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Relevant UK earnings (£/yr, if still working)
+                    <span class="hint" title="Sets how much of a lump sum can go into the pension: the lower of your earnings (floor £3,600 gross) and the £10,000 MPAA once you draw pension income.">ⓘ</span>
+                  </label>
+                  <input type="number" id="dsRelevantEarnings" value="0" min="0" style="max-width:220px;">
+                </div>
               </div>
+              <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                <input type="checkbox" id="dsBedAndIsa" checked style="width:auto;">
+                Remind me each April to move up to £20,000 from the taxable account into the ISA (bed-and-ISA)
+              </label>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
                 own steady return; choose above whether it tops up income tax-free, is rationed to the State
@@ -3208,6 +3248,41 @@
                 own steady return; choose above whether it tops up income tax-free, is rationed to the State
                 Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
+              <div class="form-grid" style="margin-top: 12px;">
+                <div class="form-group">
+                  <label>Taxable investments today (GIA, £)
+                    <span class="hint" title="Money held OUTSIDE a pension or ISA. It is drawn before the ISA (least tax-efficient first), pays tax on its dividends/interest each year and CGT on gains when sold — unless it holds gilts, which are CGT-free. A lump sum in the plan lands here once the ISA and pension limits are used.">ⓘ</span>
+                  </label>
+                  <input type="number" id="ssTaxableStart" value="0" min="0" style="max-width:220px;">
+                </div>
+                <div class="form-group">
+                  <label>What the taxable account holds</label>
+                  <select id="ssTaxableMix" style="max-width:260px;">
+                    <option value="equity">Shares (dividends taxed; CGT on gains)</option>
+                    <option value="gilt">Gilts (CGT-free; tiny coupon)</option>
+                    <option value="bond">Bond funds (interest taxed; CGT on gains)</option>
+                    <option value="balanced">Mixed (60% shares / 20% bonds / 20% gilts)</option>
+                    <option value="cash">Cash (interest taxed)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Your tax band for that account</label>
+                  <select id="ssGiaTaxBand" style="max-width:220px;">
+                    <option value="basic">Basic rate</option>
+                    <option value="higher">Higher rate</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Relevant UK earnings (£/yr, if still working)
+                    <span class="hint" title="Sets how much of a lump sum can go into the pension: the lower of your earnings (floor £3,600 gross) and the £10,000 MPAA that applies once you draw pension income.">ⓘ</span>
+                  </label>
+                  <input type="number" id="ssRelevantEarnings" value="0" min="0" style="max-width:220px;">
+                </div>
+              </div>
+              <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
+                Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
+              </label>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">
@@ -3952,6 +4027,8 @@
 
     // De-inlined decision engine (was inline calcDecisionPWA).
     import { calcDecisionPWA, getTaxYearFromDate } from './src/services/legacyDecision.js';
+    // Taxable sleeve (GIA): the one place the "where can a lump sum legally go" rule lives.
+    import { routeWindfall, GIA_DEFAULTS } from './src/services/TaxableSleeve.js';
 
     // Expose for optimization
     installInlineHandlers();   // data-on-* delegated handlers (no inline script: strict CSP)
@@ -4507,6 +4584,7 @@
         document.getElementById('entryBond').value = '';
         document.getElementById('entryCash').value = '';
         document.getElementById('entryIsa').value = '';
+        prefillGiaBasis();
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
@@ -4521,6 +4599,7 @@
         syncNetFromGross('ds');
         document.getElementById('dsIsaBalance').value = decisionSettings.isaBalance || 0;
         { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = decisionSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+        loadGiaFields('ds', decisionSettings);
         document.getElementById('dsAccessMethod').value = decisionSettings.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = decisionSettings.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
@@ -4585,6 +4664,7 @@
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
         { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = stressSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+        loadGiaFields('ss', stressSettings);
         document.getElementById('ssAccessMethod').value = stressSettings.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = stressSettings.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
@@ -5518,7 +5598,9 @@
     // (storage reads) here and delegate. History must be the full, ascending list.
     async function calcDecisionWithDeps(dateStr, equity, bond, cash) {
       const isaNow = parseFloat(document.getElementById('entryIsa')?.value) || 0;
-      if ([equity, bond, cash, isaNow].some((v) => v < 0)) throw new Error('A fund value cannot be negative — enter what each pot actually holds (£0 if empty).');
+      const giaNow = parseFloat(document.getElementById('entryGia')?.value) || 0;
+      const giaBasisRaw = document.getElementById('entryGiaBasis')?.value;
+      if ([equity, bond, cash, isaNow, giaNow].some((v) => v < 0)) throw new Error('A fund value cannot be negative — enter what each pot actually holds (£0 if empty).');
       const settings = await getDecisionSettingsAsync();
       // Bond tent: when enabled, hand the engine a rising-equity glide centred on the plan's risk
       // split (same helper the Stress engine uses), so the monthly draw + rebalance advice follows it.
@@ -5548,7 +5630,11 @@
         isaBalance: parseFloat(document.getElementById('entryIsa')?.value) || 0,
         // Diversifiers sleeve (optional): the engine advises drawing this reserve before depressed
         // growth in a downturn. 0/absent → 3-bucket advice, unchanged.
-        diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0
+        diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0,
+        // Taxable account (GIA): balance + cost basis from the entry form. The engine draws it before
+        // the ISA, net of CGT, and carries the post-draw basis into the saved record.
+        giaBalance: giaNow,
+        giaBasis: giaBasisRaw === '' || giaBasisRaw == null ? null : parseFloat(giaBasisRaw)
       });
       // Strategy overlay: a contract strategy pays part (or all) of the month from a matured rung /
       // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
@@ -5590,6 +5676,18 @@
       }
       return true;
     }
+
+    // Pre-fill the taxable account's cost basis from the last saved month (it must persist between
+    // months or CGT cannot be worked out). The balance itself is entered fresh each month.
+    window.prefillGiaBasis = async function () {
+      try {
+        const el = document.getElementById('entryGiaBasis'); if (!el) return;
+        const hist = await getHistoryAsync({ sortDesc: true, limit: 50 });
+        const last = hist.find((h) => h.giaBasisAfter != null);
+        el.value = last ? Math.round(last.giaBasisAfter) : '';
+        const bal = document.getElementById('entryGia'); if (bal && last && last.giaBalanceAfter > 0 && (!bal.value || +bal.value === 0)) bal.value = Math.round(last.giaBalanceAfter);
+      } catch (e) { /* not signed in yet */ }
+    };
 
     window.handleDecisionSubmit = async function(event) {
       event.preventDefault();
@@ -9114,6 +9212,26 @@
 
 
 
+    // ---- Taxable account (GIA) settings, shared by the Stress ('ss') and Decision ('ds') forms ----
+    function loadGiaFields(prefix, s) {
+      const set = (id, v) => { const el = document.getElementById(prefix + id); if (el) el.value = v; };
+      set('TaxableStart', s.taxableStart || 0);
+      set('TaxableMix', typeof s.taxableMix === 'string' ? s.taxableMix : (s.taxableMix ? 'balanced' : 'equity'));
+      set('GiaTaxBand', s.giaTaxBand || 'basic');
+      set('RelevantEarnings', s.relevantEarnings || 0);
+      const b = document.getElementById(prefix + 'BedAndIsa'); if (b) b.checked = s.bedAndIsa !== false;
+    }
+    function readGiaFields(prefix) {
+      const v = (id) => document.getElementById(prefix + id)?.value;
+      return {
+        taxableStart: +v('TaxableStart') || 0,
+        taxableMix: v('TaxableMix') || 'equity',
+        giaTaxBand: v('GiaTaxBand') || 'basic',
+        relevantEarnings: +v('RelevantEarnings') || 0,
+        bedAndIsa: document.getElementById(prefix + 'BedAndIsa') ? document.getElementById(prefix + 'BedAndIsa').checked : true
+      };
+    }
+
     // ---- Lumpy income editor (stress settings): extraIncomes[] + windfalls[] ---------------
     // A lump sum cannot be sheltered at will: £20,000 a year into an ISA, and into a pension the
     // LOWER of (100% of relevant UK earnings, floor £3,600 gross) and the annual allowance —
@@ -9121,12 +9239,12 @@
     // The rest is stuck in a taxable account. Show that, rather than modelling the impossible.
     function windfallSplitNote(r) {
       const amt = +r.amount || 0;
-      const toIsa = r.toIsa === false ? 0 : Math.min(amt, 20000);
-      const toSipp = Math.min(amt - toIsa, 3600);   // no earnings assumed; MPAA caps at £10k anyway
-      const toGia = Math.max(0, amt - toIsa - toSipp);
+      if (r.wrapper === 'pension') return 'An inherited pension stays in a pension (beneficiary drawdown) — no contribution limit applies; it joins your SIPP pots that year.';
+      if (r.wrapper === 'isa') return 'An inherited ISA passes into your ISA under the Additional Permitted Subscription — the whole amount, on top of the £20,000 allowance.';
+      const { toIsa, toSipp, toGia } = routeWindfall(r, { isaAllowanceLeft: GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: +document.getElementById('ssRelevantEarnings')?.value || 0 });
       if (toGia <= 0) return 'Fits inside this year\'s allowances: ' + gbp(toIsa) + ' ISA' + (toSipp ? ' + ' + gbp(toSipp) + ' pension' : '') + '.';
       return 'Year 1: ' + gbp(toIsa) + ' into the ISA' + (toSipp ? ', ' + gbp(toSipp) + ' into the pension' : '')
-        + ', and <strong>' + gbp(toGia) + ' stays taxable</strong> (a GIA) — it is then moved £20k a year into the ISA as allowances allow. Gilts held there are CGT-free; equities are taxed on dividends and gains.';
+        + ', and <strong>' + gbp(toGia) + ' stays taxable</strong> (a GIA, in whatever the taxable account holds — set above) — then moved into the ISA each year as the allowance allows. Gilts there are CGT-free; shares are taxed on dividends and gains. Today\'s money.';
     }
 
     window.renderExtraIncomes = function (settings) {
@@ -9152,6 +9270,7 @@
           + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" data-on-input="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
           + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
           + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<select data-on-change="updWindfall(' + i + ',\'wrapper\',this.value)" style="width:150px;"><option value="cash"' + ((r.wrapper || 'cash') === 'cash' ? ' selected' : '') + '>Cash lump sum</option><option value="pension"' + (r.wrapper === 'pension' ? ' selected' : '') + '>Inherited pension</option><option value="isa"' + (r.wrapper === 'isa' ? ' selected' : '') + '>Inherited ISA</option></select>'
           + '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa === false ? '' : ' checked') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">use the ISA allowance</label>'
           + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>'
           + (r.amount > 0 ? '<div class="hint" style="margin:2px 0 0 6px;">' + windfallSplitNote(r) + '</div>' : '');
@@ -9174,7 +9293,7 @@
     window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
     window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
     window.rmExtraIncome = function (i) { window._ssExtraIncomes.splice(i, 1); renderExtraIncomes(); };
-    window.updWindfall = function (i, k, v) { if (window._ssWindfalls?.[i]) window._ssWindfalls[i][k] = k === 'label' ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v); };
+    window.updWindfall = function (i, k, v) { if (window._ssWindfalls?.[i]) { window._ssWindfalls[i][k] = (k === 'label' || k === 'wrapper') ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v); if (k === 'wrapper' || k === 'amount') renderExtraIncomes(); } };
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------
@@ -9755,6 +9874,7 @@
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
         { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+        loadGiaFields('ss', s);
         document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
         document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
@@ -9864,6 +9984,7 @@
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
           isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
+          ...readGiaFields('ss'),
           spendingProfile: document.getElementById('ssSpendingProfile').value,
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
@@ -9987,6 +10108,7 @@
         document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
         document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
         { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+        loadGiaFields('ds', s);
         document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
         document.getElementById('dsUfplsYears').value = s.ufplsYears || '';
         document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
@@ -9998,6 +10120,7 @@
         document.getElementById('entryBond').value = '';
         document.getElementById('entryCash').value = '';
         document.getElementById('entryIsa').value = '';
+        prefillGiaBasis();
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();
@@ -11667,6 +11790,11 @@
           consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value,
           isaBalance: +document.getElementById('dsIsaBalance').value || 0,
           isaDrawdownStrategy: document.getElementById('dsIsaPolicy')?.value || 'minimiseEarlyTax',
+          // Taxable account (GIA): what it holds, bed-and-ISA reminders, earnings (the balance itself
+          // is a monthly entry). No start-balance field on this form — the Monthly Entry is the truth.
+          taxableMix: document.getElementById('dsTaxableMix')?.value || 'equity',
+          relevantEarnings: +document.getElementById('dsRelevantEarnings')?.value || 0,
+          bedAndIsa: document.getElementById('dsBedAndIsa') ? document.getElementById('dsBedAndIsa').checked : true,
           // Diversifiers sleeve + tagged portfolio — the Decision target now reflects the chosen
           // allocation (preset / custom / tagged) consistently with Stress.
           diversifierStart: dsAlloc.diversifierStart || 0,
@@ -12154,6 +12282,11 @@
               <label>ISA Top-up</label>
               <span class="value">${fmt(h.isa)}</span>
             </div>
+            ${h.giaDraw > 0 ? `
+            <div class="history-field">
+              <label>Taxable account (GIA) draw</label>
+              <span class="value">${fmt(h.giaNet)} <span class="hint">(sold ${fmt(h.giaDraw)}, CGT ${fmt(h.giaCgt)})</span></span>
+            </div>` : ''}
             <div class="history-field">
               <label>Other Income</label>
               <span class="value">${fmt(h.other)}</span>

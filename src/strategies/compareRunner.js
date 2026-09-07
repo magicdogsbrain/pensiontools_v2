@@ -39,7 +39,7 @@ export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
     const t = r.trace || [];
     if (t.length >= 12) {
       let run = 0;
-      const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0)
+      const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)
         + ((row.planInputs && row.planInputs.fixed) || 0) / 12) / (row.cumInf || 1));
       for (let i = 0; i < inc.length; i++) {
         run += inc[i];

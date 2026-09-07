@@ -42,9 +42,26 @@ export const GIA_DEFAULTS = {
   GILT_COUPON: 0.005              // index-linked gilt coupons are tiny; the uplift is CGT-FREE
 };
 
+/**
+ * The asset mix of a sleeve. Accepts a ready `{ equity, bond, gilt, cash }` object or one of the
+ * UI's one-word choices ('equity' | 'gilt' | 'bond' | 'cash' | 'balanced'). Anything else, or
+ * nothing, means all-equity — the most heavily taxed case, so the pessimistic default.
+ */
+export function mixFromChoice(choice) {
+  if (choice && typeof choice === 'object') return { equity: +choice.equity || 0, bond: +choice.bond || 0, gilt: +choice.gilt || 0, cash: +choice.cash || 0 };
+  switch (choice) {
+    case 'gilt': return { equity: 0, bond: 0, gilt: 1, cash: 0 };
+    case 'bond': return { equity: 0, bond: 1, gilt: 0, cash: 0 };
+    case 'cash': return { equity: 0, bond: 0, gilt: 0, cash: 1 };
+    case 'balanced': return { equity: 0.6, bond: 0.2, gilt: 0.2, cash: 0 };
+    default: return { equity: 1, bond: 0, gilt: 0, cash: 0 };
+  }
+}
+
 /** A fresh sleeve. `basis` is the cost of what's held — gains above it are what CGT bites on. */
-export function newSleeve(value = 0, mix = null) {
-  return { value, basis: value, mix: mix || { equity: 1, bond: 0, gilt: 0, cash: 0 } };
+export function newSleeve(value = 0, mix = null, basis = null) {
+  const v = Math.max(0, +value || 0);
+  return { value: v, basis: basis == null ? v : Math.max(0, Math.min(v, +basis || 0)), mix: mixFromChoice(mix) };
 }
 
 /** Taxable income thrown off in a year, split by how HMRC treats it. */
@@ -95,6 +112,37 @@ export function addToSleeve(sleeve, amount) {
   return sleeve;
 }
 
+/**
+ * Pay a bill (the year's dividend/interest tax) OUT of the sleeve. That is a sale of a slice, so
+ * the cost basis comes down pro-rata — silently leaving the basis alone would have overstated the
+ * gain, and the CGT, on every later withdrawal.
+ */
+export function payTaxFromSleeve(sleeve, tax) {
+  const t = Math.min(Math.max(0, tax), sleeve.value);
+  if (t <= 0 || sleeve.value <= 0) return 0;
+  sleeve.basis -= sleeve.basis * (t / sleeve.value);
+  sleeve.value -= t;
+  return t;
+}
+
+/**
+ * Deliver a NET amount to the pocket from the sleeve, grossing up for the CGT on the way (the tax
+ * itself is paid by selling a little more). Stops when the sleeve is empty.
+ * @returns {{ taken, cgt, net, cgtUsed }} — net is at most `amount`; the gap is what the sleeve could not fund.
+ */
+export function topUpFromSleeve(sleeve, amount, band = 'basic', cgtUsed = 0) {
+  const out = { taken: 0, cgt: 0, net: 0, cgtUsed };
+  let need = Math.max(0, amount);
+  // Each pass covers the CGT the previous pass incurred, so the residual shrinks by the effective
+  // CGT rate (≤ 24%) every time: twelve passes leave well under a penny on any amount.
+  for (let i = 0; i < 12 && need > 0.001 && sleeve.value > 0; i++) {
+    const r = withdrawFromSleeve(sleeve, need, band, out.cgtUsed);
+    out.taken += r.taken; out.cgt += r.cgt; out.net += r.net; out.cgtUsed = r.cgtUsed;
+    need = Math.max(0, amount - out.net);
+  }
+  return out;
+}
+
 /** Grow the sleeve by a real/nominal factor. Basis does NOT grow — that is where the gain accrues. */
 export function growSleeve(sleeve, factor) { sleeve.value *= factor; return sleeve; }
 
@@ -119,8 +167,31 @@ export function sippRoomFor({ relevantEarnings = 0, mpaaTriggered = true } = {})
   return Math.min(earningsCap, allowanceCap);
 }
 
-export function shelterLumpSum(amount, { isaAllowanceLeft = GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings = 0, mpaaTriggered = true } = {}) {
+export function shelterLumpSum(amount, { isaAllowanceLeft = GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings = 0, mpaaTriggered = true, sippRoomLeft = null } = {}) {
   const toIsa = Math.min(amount, Math.max(0, isaAllowanceLeft));
-  const toSipp = Math.min(amount - toIsa, sippRoomFor({ relevantEarnings, mpaaTriggered }));
+  const room = sippRoomLeft != null ? Math.max(0, sippRoomLeft) : sippRoomFor({ relevantEarnings, mpaaTriggered });
+  const toSipp = Math.min(amount - toIsa, room);
   return { toIsa, toSipp, toGia: Math.max(0, amount - toIsa - toSipp) };
+}
+
+/**
+ * Where a windfall lands, by what it IS. A lump sum of cash (downsizing, a maturing policy, an
+ * inheritance of money) is limited by the rules above. But an inherited PENSION stays in a
+ * pension (beneficiary drawdown — no contribution limit applies), and a late spouse's ISA passes
+ * into the survivor's ISA under the Additional Permitted Subscription. Those must never be
+ * pushed into the taxable sleeve.
+ * w: { amount, wrapper ('cash' default | 'pension' | 'isa'), toIsa }
+ * room: { isaAllowanceLeft, sippRoomLeft, relevantEarnings }
+ * @returns {{ toIsa, toSipp, toGia, usesIsaAllowance, usesSippRoom }}
+ */
+export function routeWindfall(w, room = {}) {
+  const amount = Math.max(0, +w.amount || 0);
+  if (w.wrapper === 'pension') return { toIsa: 0, toSipp: amount, toGia: 0, usesIsaAllowance: 0, usesSippRoom: 0 };
+  if (w.wrapper === 'isa') return { toIsa: amount, toSipp: 0, toGia: 0, usesIsaAllowance: 0, usesSippRoom: 0 };
+  const split = shelterLumpSum(amount, {
+    isaAllowanceLeft: w.toIsa === false ? 0 : (room.isaAllowanceLeft ?? GIA_DEFAULTS.ISA_ALLOWANCE),
+    relevantEarnings: room.relevantEarnings || 0,
+    sippRoomLeft: room.sippRoomLeft
+  });
+  return { ...split, usesIsaAllowance: split.toIsa, usesSippRoom: split.toSipp };
 }

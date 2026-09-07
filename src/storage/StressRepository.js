@@ -352,7 +352,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // and a retiree's SIPP £3,600/yr. Default mix is equities unless the plan says otherwise;
     // a GIA holding gilts is near tax-free (CGT-exempt uplift) and the engine models that.
     taxableStart: +settings.taxableStart || 0,
-    taxableMix: settings.taxableMix || null,
+    taxableMix: settings.taxableMix || null,        // 'equity' | 'gilt' | 'bond' | 'cash' | 'balanced' | { equity, bond, gilt, cash }
     giaTaxBand: settings.giaTaxBand || 'basic',
     bedAndIsa: settings.bedAndIsa !== false,
     relevantEarnings: +settings.relevantEarnings || 0,

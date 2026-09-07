@@ -20,7 +20,7 @@ import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
-import { buildGiltLadder } from './GiltLadderPlan.js';
+import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 
 export const STRATEGY_NAMES = {
@@ -471,7 +471,7 @@ function bridgeTest(p, configs) {
   const yf = c.yieldForYear || (() => 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
   // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
-  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? 1 : Math.pow(1 + yf(k - y), -(k - y))); return v; };
+  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
   const h = runFlexWindows(c);
   const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
   const run = (w) => {
@@ -549,7 +549,7 @@ function fullGiltTest(p, configs) {
   const costByYear = {}; for (const o of plan.orders) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
   for (let y = 0; y <= N; y++) {
     const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)) + otherAt(p, y));
-    let w = plan.spare; for (const yr of plan.years) if (yr.Y >= firstTaxYear + y) w += yr.from === 'cash' ? yr.need : (costByYear[yr.Y] || 0);
+    let w = plan.spare; for (const yr of plan.years) if (yr.Y >= firstTaxYear + y) w += yr.from === 'cash' ? (yr.cost ?? yr.need) : (costByYear[yr.Y] || 0);
     wealth.push(w);
   }
   const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });

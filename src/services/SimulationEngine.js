@@ -113,6 +113,7 @@ export function simulate(config, returns, seed = 0) {
   let maxConsec = 0;
   let curStreak = 0;
   let consecCashDraws = 0;  // trailing consecutive non-growth (cash-side) draws
+  let consecBelowTrack = 0; // Buckets in order: trailing consecutive months the WHOLE SIPP sat below the whole glidepath track
   let prot = false;  // Protection mode flag
   let failed = false;
   let failMonth = null;
@@ -224,10 +225,20 @@ export function simulate(config, returns, seed = 0) {
     // ProtectionStrategy). Reduces the SIPP draw during a sustained downturn.
     const minGrowth = eqMin + bdMin;
     const wasInProtection = prot;
+    // Buckets in order spends cash first BY DESIGN, so "consecutive cash draws" is always true and the
+    // per-pot floors carry no distress signal (cash below target is the plan working). Its health is
+    // the whole SIPP against the whole track — all three inflated, depleting minimums — and the
+    // persistence test counts months below that track instead of cash draws. Same buffer on exit.
+    // The pot starts ON the track, so a dead band of one recovery buffer is applied on the way in as
+    // well as on the way out (enter below track − buffer, exit above track): no cut in a benign market.
+    const ordered = config.sourcingMode === 'ordered';
+    const buffer = config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER;
+    const trackLine = eqMin + bdMin + csTarget - buffer;
+    if (ordered) consecBelowTrack = (equity + bond + cash) < trackLine ? consecBelowTrack + 1 : 0;
     prot = config.disableProtection ? false : assessProtection({
-      totalGrowth: equity + bond,
-      minGrowth,
-      consecCashDraws,
+      totalGrowth: ordered ? equity + bond + cash : equity + bond,
+      minGrowth: ordered ? trackLine : minGrowth,
+      consecCashDraws: ordered ? Math.max(0, consecBelowTrack - 1) : consecCashDraws,
       wasInProtection,
       consecutiveLimit: config.consecutiveLimit,
       recoveryBuffer: config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER

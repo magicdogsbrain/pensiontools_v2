@@ -2524,19 +2524,7 @@
                        tax-efficient engine unchanged while the UI is net-first. -->
                   <input type="hidden" id="dsBaseSalary" value="30000">
                 </div>
-                <div class="form-group" id="dsSpendingProfileRow">
-                  <label>Spending over retirement</label>
-                  <select id="dsSpendingProfile">
-                    <option value="flat">Level for life (flat real spending) — conservative</option>
-                    <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
-                  </select>
-                </div>
-              </div>
-              <p id="dsScheduleSpendNote" class="hint" style="display:none; margin:6px 0 0; color: var(--warning);">
-                Your budget's per-year schedule also drives the tax-year wizard's suggestions. If the
-                budget already winds costs down with age, choose <strong>Level for life</strong> —
-                "Declining" would count the slowdown twice.
-              </p>
+                <!-- "Spending over retirement" moved onto the income steps (per-step decline / glide), v6.2.1 -->
               <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">
                 Locked with the plan. "Declining" is level for the first 5 years, then drifts down ~1%/yr for
                 20 years, then holds — the same spending smile as the Stress tester. In those declining years the
@@ -3537,24 +3525,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
-              <div class="section-title">Spending</div>
-              <div class="form-group" style="margin-top: 0;">
-                <label>Spending over retirement</label>
-                <select id="ssSpendingProfile">
-                  <option value="flat">Level for life (flat real spending) — conservative</option>
-                  <option value="declining">Declining with age (spending drifts down ~1%/yr)</option>
-                </select>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Real spending typically falls through retirement (Blanchett's "spending smile"). "Declining" holds spending level for the first 5 years, drifts down ~1%/yr for the next 20, then holds (a ~18% real fall in mid-retirement — gentler than a straight-line drop). Flat is the pessimistic default. Late-life care costs are not auto-added.
-                </p>
-                <p id="ssScheduleSpendNote" class="hint" style="display:none; margin:6px 0 0; color: var(--warning);">
-                  This plan follows your budget's per-year schedule. If that budget already winds
-                  costs down with age (ended leases, holidays stopping, support ending), choose
-                  <strong>Level for life</strong> — "Declining" would count the slowdown twice.
-                </p>
-              </div>
-            </div>
+            <!-- "Spending" section moved onto the income steps (per-step decline / glide), v6.2.1 -->
 
             <div class="button-row" style="margin-top: 24px;">
               <button data-on-click="saveStressSettingsUI()">Save Settings</button>
@@ -4038,6 +4009,7 @@
     // Import constants for optimization
     import { installInlineHandlers } from './src/ui/inlineHandlers.js';
     import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from './src/constants.js';
+    import { amountAtAge } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS } from './src/strategies/GiltLadderPlan.js';
@@ -4643,7 +4615,6 @@
         document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
         document.getElementById('dsBandFillRecycle').checked = !!decisionSettings.bandFillRecycle;
         syncAccessButtons('ds');
-        document.getElementById('dsSpendingProfile').value = decisionSettings.spendingProfile || 'flat';
         updateScheduleSpendNotes();
         // State Pension (new fields)
         document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
@@ -4697,7 +4668,6 @@
         { const e = document.getElementById('ssProtEscalate'); if (e) e.value = stressSettings.protectionEscalateMonths ?? 12; }
         document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
-        document.getElementById('ssSpendingProfile').value = stressSettings.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
@@ -8093,9 +8063,17 @@
         + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
         + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of today\'s budget' : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
+        + '</div>'
+        // The slope within the step: a real % per year (compounding), or a straight-line glide to the
+        // next step's amount. This replaced the separate "Spending over retirement" control.
+        + '<div class="row-flex" style="margin:2px 0 6px 18px;">'
+        + '<span class="hint">then falling</span>'
+        + '<input type="range" min="0" max="5" step="0.25" value="' + (+st.decline || 0) + '" style="width:140px;padding:0;"' + (st.glideToNext && i < steps.length - 1 ? ' disabled' : '') + ' data-on-input="updIncomeStep(' + i + ',\'decline\',this.value)">'
+        + '<span class="hint" id="stepDeclineLabel' + i + '" style="min-width:110px;">' + stepSlopeLabel(st, i < steps.length - 1) + '</span>'
+        + (i < steps.length - 1 ? '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (st.glideToNext ? ' checked' : '') + ' data-on-change="updIncomeStep(' + i + ',\'glideToNext\',this.checked)">glide evenly to the next step</label>' : '')
         + '</div>').join('')
         + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" data-on-click="addIncomeStep()">+ Add a step</button>'
-        + '<p class="hint" style="margin:6px 0 0;">One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80.</p>';
+        + '<p class="hint" style="margin:6px 0 0;">One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 57 / 72 / 80. The slider lets a step drift down each year in today\'s money (retirement spending usually does, about 1% a year through the middle years); "glide" walks smoothly down to the next step instead of a cliff.</p>';
       renderIncomeShapePreview();
       refreshStrategyCosts();
     };
@@ -8104,7 +8082,22 @@
       window._ssIncomeSteps.push({ fromAge: (+last.fromAge || 57) + 10, amount: Math.max(0, (+last.amount || 40000) - 10000) });
       renderIncomeSteps();
     };
+    function stepSlopeLabel(st, hasNext) {
+      if (st.glideToNext && hasNext) return 'glides to next step';
+      const d = +st.decline || 0;
+      return d > 0 ? '\u2212' + d.toFixed(2).replace(/\.?0+$/, '') + '% a year (real)' : 'level within the step';
+    }
     window.updIncomeStep = function (i, k, v) {
+      const st = window._ssIncomeSteps[i]; if (!st) return;
+      if (k === 'decline') {
+        // Slider ticks: update the model + label at once; the preview and the strategy prices (heavy)
+        // follow once the user stops dragging.
+        st.decline = +v || 0;
+        const lab = document.getElementById('stepDeclineLabel' + i); if (lab) lab.textContent = stepSlopeLabel(st, i < window._ssIncomeSteps.length - 1);
+        clearTimeout(window._stepRenderT); window._stepRenderT = setTimeout(() => renderIncomeSteps(), 400);
+        return;
+      }
+      if (k === 'glideToNext') { st.glideToNext = !!v; renderIncomeSteps(); return; }
       if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = v === '' ? '' : +v; if (i === 0 && k === 'amount') { const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = +v || 0; syncNetFromGross('ss'); } } renderIncomeShapePreview(); refreshStrategyCosts(); }
     };
     window.rmIncomeStep = function (i) { window._ssIncomeSteps.splice(i, 1); renderIncomeSteps(); };
@@ -8113,10 +8106,7 @@
     window.shapeAmountAtYear = function (y, flatTarget) {
       if (window._ssIncomeShape !== 'phases' || !window._ssIncomeSteps.length) return flatTarget;
       const age = (+document.getElementById('shapeAgeNow')?.value || 57) + y;
-      const applicable = window._ssIncomeSteps
-        .filter((st) => Number.isFinite(+st.fromAge) && +st.fromAge <= age && Number.isFinite(+st.amount))
-        .sort((a, b) => +a.fromAge - +b.fromAge).pop();
-      return applicable ? +applicable.amount : flatTarget;
+      return Math.round(amountAtAge(window._ssIncomeSteps, age, flatTarget));
     };
 
     function compiledTargetSchedule(duration, flatTarget) {
@@ -10068,7 +10058,6 @@
         { const e = document.getElementById('ssProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
         document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
         document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
-        document.getElementById('ssSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
         updateAllocDisplay('ss');
         document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
@@ -10184,7 +10173,7 @@
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
           isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
           ...readGiaFields('ss'),
-          spendingProfile: document.getElementById('ssSpendingProfile').value,
+          spendingProfile: 'flat',   // the taper lives on the income steps now
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
           diversifierStart: ssAlloc.diversifierStart || 0,
@@ -10299,7 +10288,6 @@
         const dsSpD = document.getElementById('dsSpStartDate'); if (dsSpD) dsSpD.value = s.spStartDate || '';
         const dsSpW = document.getElementById('dsSpWeeklyAmount'); if (dsSpW) dsSpW.value = s.spWeeklyAmount || '';
         syncNetFromGross('ds');
-        document.getElementById('dsSpendingProfile').value = s.spendingProfile || 'flat';
         document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
         document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
         { const e = document.getElementById('dsProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
@@ -11017,9 +11005,6 @@
         const b = window._budget;
         const ageShaped = (b.lines || []).some((l) => (l.fromAge != null && l.fromAge !== '' && +l.fromAge !== +b.retirementAge) || (l.toAge != null && l.toAge !== '' && +l.toAge !== +b.endAge))
           || (b.oneOffs || []).length > 0 || (Array.isArray(b.splitPhases) && b.splitPhases.length > 0);
-        if (ageShaped && (stressNow.spendingProfile === 'declining')) {
-          showToast('Heads-up: your Spending profile is "Declining with age", but this budget already winds costs down with age. Consider "Level for life" in the Stress settings to avoid counting the slowdown twice.', 'warning', 9000);
-        }
         updateScheduleSpendNotes();
         const locked = await planIsLocked();
         if (!locked) await saveDecisionSettings({ baseSalary: gross });
@@ -11978,7 +11963,7 @@
           duration: +document.getElementById('dsDuration').value,
           equityGlideEnabled: document.getElementById('dsEquityGlide').checked,
           baseSalary: +document.getElementById('dsBaseSalary').value,
-          spendingProfile: document.getElementById('dsSpendingProfile').value || 'flat',
+          spendingProfile: 'flat',   // the taper lives on the income steps now
           // State Pension (new fields)
           spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
           spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,

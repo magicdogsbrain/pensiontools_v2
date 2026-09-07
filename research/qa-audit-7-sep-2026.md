@@ -108,7 +108,7 @@ Fixed and tested: B1, B2, B4, B6, B7, B10, B11 (20 s timeout + one retry + error
 keeps the saved split; a typed Pot rescales it), G2 (age-today note under the State Pension inputs),
 G4 (assumption flagged on the plan, the P&V card and the ranked table), PERF1/PERF2 (worker), C1, C7.
 Tests: `tests/qaFixes.test.js`; decision golden regenerated for the reason text only.
-Not changed: G3 (a modelling decision — documented in the release note), B12 (observed once, not
+G3 fixed in v6.2.1: Buckets in order judges the whole SIPP against the whole glidepath track (dead band of one recovery buffer on entry, same on exit; months-below-track persistence), in both engines. Not changed: B12 (observed once, not
 traced), C3/C4/C5 (copy), C6 (was a text-scrape artefact — the panel shows "Growth" and "Bond: £…" on
 separate lines; not a bug). The unaffordable-strategies line already existed under the table.
 

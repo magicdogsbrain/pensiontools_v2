@@ -123,10 +123,18 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Shared protection decision (same module the Stress engine uses). disableProtection is
       // honoured the same way the Stress engine honours it (previously decision-side had no off
       // switch, so seeded plans could disagree about whether protection fired at all).
+      // Buckets in order (deps.sourcingMode 'ordered') spends cash first by design, so the cash-draw
+      // streak is always satisfied and the per-pot floors say nothing: judge the WHOLE SIPP against the
+      // whole track and count the recorded months below it (belowTrack is saved on each record).
+      const ordered = deps.sourcingMode === 'ordered';
+      const trackLine = adjEquity + adjBond + adjCash - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);   // dead band, as the Stress engine
+      const belowTrack = ordered && (equity + bond + cash) < trackLine;
+      let consecBelow = 0;
+      for (let i = priorHistory.length - 1; i >= 0; i--) { if (priorHistory[i].belowTrack) consecBelow++; else break; }
       const inProtection = settings.disableProtection ? false : assessProtection({
-        totalGrowth,
-        minGrowth,
-        consecCashDraws: consec,
+        totalGrowth: ordered ? equity + bond + cash : totalGrowth,
+        minGrowth: ordered ? trackLine : minGrowth,
+        consecCashDraws: ordered ? (belowTrack ? consecBelow : -1) : consec,
         wasInProtection: priorHistory.length > 0 && priorHistory[priorHistory.length - 1].inProtection,
         consecutiveLimit: settings.consecutiveLimit || 3,
         recoveryBuffer: settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER
@@ -648,6 +656,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         pclsSuggestion,                    // switch-year advice: take this much tax-free into the ISA (£0 = n/a)
         recycleGross,                      // band-fill: extra monthly SIPP gross included in sippDraw (£0 = off/none)
         recycleNet,                        // band-fill: net of that to contribute to the ISA this month
+        belowTrack,                        // Buckets in order: this month the whole SIPP sat below the whole track (drives its cut streak)
         // Taxable sleeve (GIA) — emitted ONLY when in use, so plans without one are byte-identical.
         ...(giaBalance > 0 || windfallAdvice.length ? {
           giaBalance,                      // what the taxable account held at the start of the month

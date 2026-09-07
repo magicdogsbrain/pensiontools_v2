@@ -9461,7 +9461,7 @@
           + ((r.wrapper || 'cash') !== 'cash' ? '' : isaOnHold('ss') ? '<span class="hint" style="color:var(--warning);">ISA on hold — nothing goes into it</span>'
             : '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (r.toIsa === false ? '' : ' checked') + ' data-on-change="updWindfall(' + i + ',\'toIsa\',this.checked)">use the ISA allowance</label>')
           + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmWindfall(' + i + ')">✕</button></div>'
-          + (r.amount > 0 ? '<div class="hint" style="margin:2px 0 0 6px;">' + windfallSplitNote(r) + '</div>' : '');
+          + '<div class="hint" id="windfallNote' + i + '" style="margin:2px 0 0 6px;">' + (r.amount > 0 ? windfallSplitNote(r) : '') + '</div>';
       });
       (window._ssExtraWithdrawals || []).forEach((r, i) => {
         html += '<div class="row-flex" style="margin-top:6px;">'
@@ -9481,7 +9481,14 @@
     window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
     window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
     window.rmExtraIncome = function (i) { window._ssExtraIncomes.splice(i, 1); renderExtraIncomes(); };
-    window.updWindfall = function (i, k, v) { if (window._ssWindfalls?.[i]) { window._ssWindfalls[i][k] = (k === 'label' || k === 'wrapper' || k === 'mix') ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v); if (k === 'wrapper' || k === 'amount' || k === 'mix') renderExtraIncomes(); } };
+    window.updWindfall = function (i, k, v) {
+      const r = window._ssWindfalls?.[i]; if (!r) return;
+      r[k] = (k === 'label' || k === 'wrapper' || k === 'mix') ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v);
+      // Never re-render the row while the user is typing in it (that destroyed the amount box after
+      // one digit): the amount only refreshes its own note; a select change can rebuild the row.
+      if (k === 'amount') { const n = document.getElementById('windfallNote' + i); if (n) n.innerHTML = r.amount > 0 ? windfallSplitNote(r) : ''; return; }
+      if (k === 'wrapper' || k === 'mix') renderExtraIncomes();
+    };
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------

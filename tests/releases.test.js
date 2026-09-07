@@ -17,7 +17,7 @@ describe('the release contract', () => {
     expect(VERSION).toBe(pkgVersion);
     expect(RELEASES[0].version).toBe(pkgVersion);
     expect(RELEASES[0].engineVersion).toBe(ENGINE_VERSION);
-    expect(isAnnounced(RELEASES[0])).toBe(true);
+    if (parseVersion(RELEASES[0].version)[2] === 0) expect(isAnnounced(RELEASES[0])).toBe(true);   // a patch may stay silent
   });
 
   it('every curated entry is complete: semver, ISO date, engine version, summary, something changed, effects for known tools only, actions', () => {
@@ -61,7 +61,7 @@ describe('version helpers', () => {
     expect(releasesSince('6.1.0', rels).map((r) => r.version)).toEqual(['6.2.0']);
     expect(releasesSince(null, rels).map((r) => r.version)).toEqual(['6.2.0', '6.1.0', '6.0.0']);
     expect(releasesSince('6.2.0', rels)).toEqual([]);
-    expect(releasesSince('6.0.0').map((r) => r.version)).toContain(pkgVersion);
+    expect(releasesSince('6.0.0').map((r) => r.version)).toContain(RELEASES.find(isAnnounced).version);
     expect(latestRelease().version).toBe(pkgVersion);
   });
 });

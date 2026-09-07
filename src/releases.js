@@ -35,6 +35,16 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.2', date: '2026-09-07', engineVersion: '6.2.0',
+    title: 'Hotfix: missing sub-tabs',
+    summary: 'In 6.2.1 the Stress Tester, Budget and Strategies tabs lost their content and sub-tab ribbons; only the Decision tool showed its ribbon. A stray closing tag from removing the old spending control. Fixed within the hour.',
+    changes: [],
+    corrections: ['Removing the Decision tool\'s "Spending over retirement" control took one closing tag too many, nesting every later tab inside the Decision settings grid. A structure test now guards the tab panels.'],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: ['Reload once if a tab still looks empty.'],
+    notes: []
+  },
+  {
     version: '6.2.1', date: '2026-09-07', engineVersion: '6.2.0', announce: true,
     title: 'Income steps with a slope; fairer cuts for Buckets in order',
     summary: 'The "Spending over retirement" control is gone: each income step now carries its own slope, so you say how fast each phase drifts down (or glides into the next). And Buckets in order now decides on spending cuts by looking at the whole pot against the whole plan track, not at a signal it triggered by design.',

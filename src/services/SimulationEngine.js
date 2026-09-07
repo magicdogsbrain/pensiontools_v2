@@ -249,8 +249,11 @@ export function simulate(config, returns, seed = 0) {
       for (const w of config.windfalls) {
         if (w.year === year && w.amount > 0) {
           const amount = w.indexation === 'level' ? w.amount : w.amount * cumInf;
+          // ISA on 'hold': nothing NEW is moved into it by the plan — a cash lump's £20k slice
+          // stays taxable where the plan can spend it. (An inherited ISA still joins it: it IS ISA
+          // money already — routeWindfall ignores the allowance for wrapper 'isa'.)
           const split = routeWindfall({ ...w, amount }, {
-            isaAllowanceLeft: GIA_DEFAULTS.ISA_ALLOWANCE - isaLumpsThisYear - isaRecycledThisYear,
+            isaAllowanceLeft: isaHeld ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE - isaLumpsThisYear - isaRecycledThisYear,
             sippRoomLeft: sippRoomFor({ relevantEarnings: config.relevantEarnings || 0 }) - sippRoomUsedThisYear,
             relevantEarnings: config.relevantEarnings || 0
           });
@@ -553,7 +556,10 @@ export function simulate(config, returns, seed = 0) {
     if (gia.value > 0 && monthInYear === 11) {
       giaTaxReal += payTaxFromSleeve(gia, incomeTaxOnSleeve(gia, config.giaTaxBand || 'basic')) / cumInf;
       const allowanceLeft = GIA_DEFAULTS.ISA_ALLOWANCE - isaLumpsThisYear - isaRecycledThisYear;
-      if (config.bedAndIsa !== false && allowanceLeft > 0 && gia.value > 0) {
+      // No bed-and-ISA into a HELD ISA: the plan would be moving spendable money into a pot it has
+      // promised never to draw (it would then only ever come back out as a last-resort rescue),
+      // drawing more SIPP above the basic-rate limit in its place. The toggle is ignored under 'hold'.
+      if (config.bedAndIsa !== false && !isaHeld && allowanceLeft > 0 && gia.value > 0) {
         const r = bedAndIsa(gia, allowanceLeft, config.giaTaxBand || 'basic', giaCgtUsedThisYear);
         isa += r.moved; giaCgtUsedThisYear = r.cgtUsed; giaTaxReal += r.cgt / cumInf; isaLumpsThisYear += r.moved;
       }

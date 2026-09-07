@@ -556,7 +556,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // A lump sum the plan expects this year: say where it can legally go (this year's unused ISA
       // allowance, the SIPP room, the rest to a taxable account) so the entered balances follow.
       const windfallAdvice = [];
-      const isaAllowanceLeft = Math.max(0, GIA_DEFAULTS.ISA_ALLOWANCE - isaSubscribedSoFar);
+      // ISA on 'hold': the plan moves nothing new into it (it would never be drawn), so a lump sum's
+      // ISA slice is not advised and neither is bed-and-ISA — the same rule as the Stress engine.
+      const isaAllowanceLeft = holdIsa ? 0 : Math.max(0, GIA_DEFAULTS.ISA_ALLOWANCE - isaSubscribedSoFar);
       // Plan year 0 is the first tax year actually set up (the same anchor the April wizard uses
       // for the plan's other income), not the hard-coded 2026 epoch of `yearNum`.
       const tyKeys = Object.keys(allTaxYears || {}).filter((k) => /^\d{2}\/\d{2}$/.test(k));
@@ -572,12 +574,12 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         if (split.toIsa > 0) parts.push(gbp(split.toIsa) + ' into your ISA (this year\'s unused allowance)');
         if (split.toSipp > 0) parts.push(gbp(split.toSipp) + ' gross into your SIPP (the most the rules allow' + (settings.relevantEarnings > 0 ? '' : ' with no earnings') + ')');
         if (split.toGia > 0) parts.push(gbp(split.toGia) + ' has to stay in a taxable account (GIA' + (w.mix ? ', held as ' + ({ equity: 'shares', gilt: 'gilts, CGT-free', bond: 'bond funds', balanced: 'a 60/20/20 mix', cash: 'cash' })[w.mix] || w.mix : '') + ') — add it to the taxable balance you enter here; it is drawn before the ISA and moved into the ISA each April');
-        alerts.push({ message: (w.label || 'Lump sum') + ' of ' + gbp(amount) + ' expected this plan year: ' + parts.join('; ') + '.', severity: 'info', type: 'windfall' });
+        alerts.push({ message: (w.label || 'Lump sum') + ' of ' + gbp(amount) + ' expected this plan year: ' + parts.join('; ') + '.' + (holdIsa && w.wrapper !== 'pension' && w.wrapper !== 'isa' ? ' (Your ISA is on hold, so none of it is advised into the ISA — money there would never be drawn.)' : ''), severity: 'info', type: 'windfall' });
       }
       // Bed-and-ISA: with money in the taxable account and ISA allowance unused, move it — advised
       // at the start of each tax year (the year's first entry), with the CGT the move would realise.
       let bedAndIsaSuggestion = null;
-      if (giaSleeve.value > 0 && settings.bedAndIsa !== false && tyHistoryForGia.length === 0) {
+      if (giaSleeve.value > 0 && settings.bedAndIsa !== false && !holdIsa && tyHistoryForGia.length === 0) {
         const room = Math.max(0, isaAllowanceLeft - windfallAdvice.reduce((s, a) => s + (a.toIsa || 0), 0));
         const move = Math.min(room, giaSleeve.value);
         if (move >= 1000) {

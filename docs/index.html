@@ -2125,7 +2125,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-Cr4Q0ZN1.js"></script>
+  <script type="module" crossorigin src="./assets/main-AIdtWli9.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2380,7 +2380,7 @@
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
-                  <select id="dsIsaPolicy" style="max-width:260px;">
+                  <select id="dsIsaPolicy" style="max-width:260px;" data-on-change="syncIsaHoldUI('ds')">
                     <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
                     <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
                     <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
@@ -2409,6 +2409,7 @@
                 <input type="checkbox" id="dsBedAndIsa" checked style="width:auto;">
                 Remind me each April to move up to £20,000 from the taxable account into the ISA (bed-and-ISA)
               </label>
+              <p id="dsIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                 Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
                 own steady return; choose above whether it tops up income tax-free, is rationed to the State
@@ -2557,7 +2558,7 @@
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;">
+                  <input type="checkbox" id="dsBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ds')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
@@ -2953,7 +2954,7 @@
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
-                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;">
+                  <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
@@ -3237,7 +3238,7 @@
                 </div>
                 <div class="form-group">
                   <label>How the ISA is used</label>
-                  <select id="ssIsaPolicy" style="max-width:260px;">
+                  <select id="ssIsaPolicy" style="max-width:260px;" data-on-change="syncIsaHoldUI('ss')">
                     <option value="minimiseEarlyTax">Tax-efficient — top up income from the ISA before paying higher-rate tax</option>
                     <option value="maximiseLongevity">Make it last — level the ISA across the years to State Pension</option>
                     <option value="hold">Hold it — never draw the ISA for income (keep it as a separate pot)</option>
@@ -3284,6 +3285,7 @@
                 <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
+              <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
               <div class="form-group" style="margin-top: 12px;">
                 <label>Risk level</label>
                 <div id="ssRisks" class="risk-cards">

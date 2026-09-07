@@ -149,6 +149,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
+    // No State Pension entered: the engine falls back to the legacy £12,000-from-67 default. Say so.
+    spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April.
     spFirstYearRatioTaxYear: spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1,
     firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
@@ -215,7 +217,7 @@ function pnvTest(p, configs) {
     affordable: true,
     ruin: { hist: 100 * hist.filter((w) => w.failed).length / hist.length, mc: 100 * mc.filter((w) => w.failed).length / mc.length },
     worst12: { min: Math.min(...hist.map((w) => w.worst12)), median: pct(hist.map((w) => w.worst12), 0.5) },
-    guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)})` : 'None — market-dependent',
+    guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)}${p.spAssumed ? ', assumed — none entered' : ''})` : 'None — market-dependent',
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hist.map((w) => w.terminal), 0.5) },
     cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
     samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
@@ -228,6 +230,17 @@ function pnvTest(p, configs) {
     n: { hist: hist.length, mc: runs },
     wealthLabel: 'All pots (SIPP + ISA), today\'s money'
   };
+}
+
+/**
+ * "Worst 12 months" for a bought strategy: the lowest ANNUAL income the person actually receives in
+ * any year of any history — rungs + State Pension + other income (a DB pension, a lump sum's use) —
+ * NOT the bought amount alone. The bought amount is £0 in a year a lump sum pays, and net of a DB
+ * pension, so the old figure read "£0" or "£28,000" on a plan whose income never dipped.
+ */
+function worst12Of(series) {
+  const mins = series.map((inc) => Math.min(...inc.slice(1)));
+  return { min: mins.length ? Math.min(...mins) : 0, median: mins.length ? pct(mins, 0.5) : 0 };
 }
 
 /** PV at year y of the ladder rungs still to be paid (years y+1 .. lastRung). */
@@ -268,7 +281,7 @@ function ladderTest(p, configs) {
     affordable: true,
     ruin: { hist: 100 * hist.filter((w) => w.survived === false).length / hist.length, mc: 100 - (mc.stats.survivalPct ?? 100) },
     ruinMcHalfWidthPp: mc.stats.survivalHalfWidthPp,
-    worst12: { min: hist.every((w) => w.survived) ? lr.minDraw : 0, median: lr.minDraw },
+    worst12: worst12Of(hist.map((w) => enrich(w).income)),
     guaranteedToAge: `${p.startAge + lr.ladderYears} by contract; median ratchets to ${p.startAge + lr.ladderYears + h.stats.securedMedian}`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
@@ -362,7 +375,7 @@ function scheduleFloorTest(p, configs) {
   return {
     affordable: true,
     ruin: { hist: 0, mc: 0 },   // every year of the schedule is bought; the sleeve is never drawn
-    worst12: { min: c.minDraw, median: c.minDraw },
+    worst12: worst12Of((Array.isArray(h.windows) ? h.windows : mc.windows).map((w) => enrich(w).income)),
     guaranteedToAge: `${c.horizonAge} by contract (the whole schedule)`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
@@ -629,8 +642,17 @@ export function pnvDecadeSeries(p, year, month = 1) {
 }
 
 /** Stress-test ONE strategy on the plan. */
+/**
+ * The Pots & Valves row is P&V whatever the plan's SAVED strategy. A plan saved on Buckets in order
+ * carries sourcingMode 'ordered' (+ bucketBand) in its config, which used to make the P&V row identical
+ * to the Buckets row in the ranked table.
+ */
+function pnvPlain(p, configs) {
+  return pnvTest({ ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: undefined, bucketBand: undefined } }, configs);
+}
+
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
-  const fn = { 'pots-and-valves': pnvTest, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
+  const fn = { 'pots-and-valves': pnvPlain, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series

@@ -707,7 +707,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         // Calculation details for debug
         calculationDetails: {
           mode: note,
-          reason: `${reason} | ${note}`,
+          reason: reason === note ? reason : `${reason} | ${note}`,
           totalGrowth,
           minGrowth,
           consec,

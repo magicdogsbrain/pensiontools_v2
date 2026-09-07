@@ -102,7 +102,17 @@ batch save, entry delete, History month strip, Plan vs actual, unlock → edit �
 recorded under previous settings". Not tested: CSV export / print (downloads need your permission), the
 Accumulation tab, the fund-suggestion queue.
 
-## Plan — v6.2.0 "Trustworthy comparisons"
+## Status — shipped as v6.2.0 (7 Sep 2026)
+
+Fixed and tested: B1, B2, B4, B6, B7, B10, B11 (20 s timeout + one retry + error toast), G1 (Custom
+keeps the saved split; a typed Pot rescales it), G2 (age-today note under the State Pension inputs),
+G4 (assumption flagged on the plan, the P&V card and the ranked table), PERF1/PERF2 (worker), C1, C7.
+Tests: `tests/qaFixes.test.js`; decision golden regenerated for the reason text only.
+Not changed: G3 (a modelling decision — documented in the release note), B12 (observed once, not
+traced), C3/C4/C5 (copy), C6 (was a text-scrape artefact — the panel shows "Growth" and "Bond: £…" on
+separate lines; not a bug). The unaffordable-strategies line already existed under the table.
+
+## Plan — v6.2.0 "Trustworthy comparisons" (as planned before the fixes)
 
 Ship as one minor release (pops up once): every item changes numbers users see or removes a stall.
 

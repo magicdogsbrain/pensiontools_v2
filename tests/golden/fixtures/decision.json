@@ -908,7 +908,7 @@
       },
       "minGrowth": 1080000,
       "mode": "Protection",
-      "reason": "Protection | Protection",
+      "reason": "Protection",
       "stdSipp": 3770.25,
       "taxInfo": {
         "annualTax": 6072.45,
@@ -988,7 +988,7 @@
       },
       "minGrowth": 1080000,
       "mode": "Protection",
-      "reason": "Protection | Protection",
+      "reason": "Protection",
       "stdSipp": 3770.25,
       "taxInfo": {
         "annualTax": 5952.45,
@@ -1659,7 +1659,7 @@
       },
       "minGrowth": 1080000,
       "mode": "Protection",
-      "reason": "Protection | Protection",
+      "reason": "Protection",
       "stdSipp": 4458.75,
       "taxInfo": {
         "annualTax": 7191.75,

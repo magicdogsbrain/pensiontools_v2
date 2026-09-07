@@ -151,15 +151,23 @@ export async function saveScenario(scenarioId, data) {
   const docRef = getUserDoc('scenarios', scenarioId);
   if (!docRef) return;
 
+  // A write that never settles (a stalled WebChannel) used to leave every Save / wizard Confirm on
+  // "Saving…" for ever. Bound it, retry once, then fail loudly so the caller can show an error.
+  const write = () => updateDoc(docRef, { ...data, lastModified: new Date().toISOString() });
   try {
-    await updateDoc(docRef, {
-      ...data,
-      lastModified: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error saving scenario:', error);
-    throw error;
+    await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long');
+  } catch (first) {
+    console.error('Error saving scenario (first attempt):', first);
+    try { await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long'); }
+    catch (error) { console.error('Error saving scenario:', error); throw error; }
   }
+}
+
+const WRITE_TIMEOUT_MS = 20000;
+function withTimeout(promise, ms, message) {
+  let t;
+  const timer = new Promise((_, reject) => { t = setTimeout(() => reject(new Error(message + ' (' + Math.round(ms / 1000) + 's) — check your connection and try again')), ms); });
+  return Promise.race([promise, timer]).finally(() => clearTimeout(t));
 }
 
 /**

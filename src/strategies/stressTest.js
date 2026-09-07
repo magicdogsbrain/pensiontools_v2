@@ -69,6 +69,10 @@ export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
     let need = 0;
     for (const w of cfg.extraWithdrawals || []) { if (!(w.amount > 0) || w.year == null) continue; const runs = Math.max(1, w.years || 1); if (y >= w.year && y < w.year + runs) need += real(w.amount, w.indexation || 'cpi', y); }
     let lump = 0;
+    // An EXISTING taxable account (GIA) is money the bought strategies can spend from day one — it
+    // buys the first rungs exactly as a lump sum arriving in year 0 would (the P&V engine holds it
+    // as its own taxable sleeve via pnvCfg.taxableStart, so nothing is counted twice).
+    if (y === 0) lump += Math.max(0, +cfg.taxableStart || 0);
     for (const w of cfg.windfalls || []) if (w.amount > 0 && w.year === y) lump += real(w.amount, w.indexation || 'cpi', y);
     otherIncomeByYear.push(inc); extraNeedByYear.push(need); windfallByYear.push(lump);
   }

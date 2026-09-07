@@ -599,6 +599,14 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
     expect(r.finalIsa).toBeGreaterThanOrEqual(100000);
   });
 
+  it('a lump sum carries its own holding: parked in gilts it is taxed like gilts even beside a share sleeve', () => {
+    const big = { ...cfg, baseSalary: 60000, isaBalance: 0, taxableStart: 50000, taxableMix: 'equity' };
+    const asShares = simulate({ ...big, windfalls: [{ year: 0, amount: 300000, toIsa: false }] }, flat(10), 11);
+    const asGilts = simulate({ ...big, windfalls: [{ year: 0, amount: 300000, toIsa: false, mix: 'gilt' }] }, flat(10), 11);
+    expect(asGilts.giaTaxReal).toBeLessThan(asShares.giaTaxReal * 0.5);
+    expect(asGilts.giaTaxReal).toBeGreaterThan(0);                           // the £50k of shares is still taxed
+  });
+
   it('absent both fields, behaviour is unchanged (golden safety)', () => {
     const a = simulate(cfg, flat(10), 11);
     const b = simulate({ ...cfg, extraIncomes: [], windfalls: [] }, flat(10), 11);

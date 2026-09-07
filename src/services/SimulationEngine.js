@@ -261,7 +261,7 @@ export function simulate(config, returns, seed = 0) {
             if (tot <= 0) cash += split.toSipp;
             else { equity += split.toSipp * (equity / tot); bond += split.toSipp * (bond / tot); cash += split.toSipp * (cash / tot); }
           }
-          addToSleeve(gia, split.toGia);
+          addToSleeve(gia, split.toGia, w.mix || null);   // held as the lump says, else like the existing account
         }
       }
     }

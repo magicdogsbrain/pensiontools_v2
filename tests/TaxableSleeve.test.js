@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sippRoomFor, newSleeve, sleeveIncome, incomeTaxOnSleeve, withdrawFromSleeve, addToSleeve, growSleeve, bedAndIsa, shelterLumpSum, GIA_DEFAULTS } from '../src/services/TaxableSleeve.js';
+import { sippRoomFor, newSleeve, sleeveIncome, incomeTaxOnSleeve, withdrawFromSleeve, addToSleeve, growSleeve, bedAndIsa, shelterLumpSum, GIA_DEFAULTS, mixFromChoice, payTaxFromSleeve, topUpFromSleeve, routeWindfall } from '../src/services/TaxableSleeve.js';
 
 const EQ = { equity: 1, bond: 0, gilt: 0, cash: 0 };
 const GILT = { equity: 0, bond: 0, gilt: 1, cash: 0 };
@@ -75,6 +75,41 @@ describe('basis tracking', () => {
     const s = newSleeve(1000, EQ);
     expect(withdrawFromSleeve(s, 5000, 'basic', 0).taken).toBe(1000);
     expect(s.value).toBe(0);
+  });
+});
+
+describe('helpers for the Decision tool and windfall routing', () => {
+  it('mixFromChoice maps the one-word choices; anything else is all-shares (the pessimistic default)', () => {
+    expect(mixFromChoice('gilt')).toEqual(GILT);
+    expect(mixFromChoice(null)).toEqual(EQ);
+    expect(mixFromChoice('nonsense')).toEqual(EQ);
+    expect(mixFromChoice({ equity: 0.5, gilt: 0.5 })).toEqual({ equity: 0.5, bond: 0, gilt: 0.5, cash: 0 });
+    expect(newSleeve(1000, 'gilt').mix).toEqual(GILT);
+  });
+  it('a sleeve can start with a cost basis below its value (an existing account with a gain)', () => {
+    const s = newSleeve(200000, EQ, 120000);
+    expect(s.basis).toBe(120000);
+    expect(newSleeve(100000, EQ, 150000).basis).toBe(100000);   // never above what it is worth
+  });
+  it('paying tax out of the sleeve is a sale: the basis falls pro-rata', () => {
+    const s = newSleeve(100000, EQ); growSleeve(s, 2);           // 200k, basis 100k
+    payTaxFromSleeve(s, 2000);
+    expect(s.value).toBe(198000); expect(s.basis).toBeCloseTo(99000, 6);
+  });
+  it('topUpFromSleeve delivers the NET amount asked for, grossing up for the CGT', () => {
+    const s = newSleeve(100000, EQ); growSleeve(s, 2);
+    const r = topUpFromSleeve(s, 10000, 'basic', GIA_DEFAULTS.CGT_EXEMPTION);   // exemption already used
+    expect(r.net).toBeCloseTo(10000, 2);
+    expect(r.taken).toBeGreaterThan(10000);
+    expect(r.cgt).toBeCloseTo(r.taken - 10000, 2);
+    expect(topUpFromSleeve(newSleeve(500, EQ), 10000).net).toBe(500);          // an empty sleeve stops
+  });
+  it('routeWindfall: cash is limited by the allowances; an inherited pension or ISA is not', () => {
+    expect(routeWindfall({ amount: 100000 }, {})).toMatchObject({ toIsa: 20000, toSipp: 3600, toGia: 76400, usesIsaAllowance: 20000, usesSippRoom: 3600 });
+    expect(routeWindfall({ amount: 100000, wrapper: 'pension' }, {})).toMatchObject({ toSipp: 100000, toGia: 0, usesSippRoom: 0 });
+    expect(routeWindfall({ amount: 100000, wrapper: 'isa' }, {})).toMatchObject({ toIsa: 100000, toGia: 0, usesIsaAllowance: 0 });
+    expect(routeWindfall({ amount: 100000 }, { isaAllowanceLeft: 5000, sippRoomLeft: 0 })).toMatchObject({ toIsa: 5000, toSipp: 0, toGia: 95000 });
+    expect(routeWindfall({ amount: 100000, toIsa: false }, {}).toIsa).toBe(0);
   });
 });
 

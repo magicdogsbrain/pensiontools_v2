@@ -205,10 +205,13 @@ export function runSurvivorCheck({
     ...survivorCfg,
     targetSchedule: schedule,
     spendingProfile: 'flat',
+    // Already nominal at the year of death (indexation 'level'), and NOT a cash lump sum: an
+    // inherited pension stays in a pension (beneficiary drawdown) and the ISA passes by APS —
+    // so the engine must not route either through the contribution limits into a taxable sleeve.
     windfalls: [
       ...(survivorCfg.windfalls || []),
-      { year: deathYear, amount: inheritedPots },
-      { year: deathYear, amount: inheritedIsa, toIsa: true }
+      { year: deathYear, amount: inheritedPots, wrapper: 'pension', indexation: 'level' },
+      { year: deathYear, amount: inheritedIsa, wrapper: 'isa', toIsa: true, indexation: 'level' }
     ].filter((w) => w.amount > 0),
     extraIncomes
   };

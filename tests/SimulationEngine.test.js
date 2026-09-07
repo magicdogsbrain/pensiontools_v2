@@ -537,7 +537,8 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
   it('the taxable sleeve is taxed, so a windfall is worth less than the same money in a wrapper', () => {
     const base = simulate(cfg, flat(10), 11);
     const total = (r) => r.final + (r.finalIsa || 0);
-    const windfall = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
+    // 'level' = a fixed nominal £100k, so the comparison is like-for-like (windfalls default to today's money)
+    const windfall = simulate({ ...cfg, windfalls: [{ year: 3, amount: 100000, indexation: 'level' }] }, flat(10), 11);
     // the same £100k already inside the ISA compounds untaxed and must end up worth more
     const sheltered = simulate({ ...cfg, isaBalance: (cfg.isaBalance || 0) + 100000 }, flat(10), 11);
     expect(total(sheltered)).toBeGreaterThan(total(windfall));
@@ -548,6 +549,54 @@ describe('extraIncomes and windfalls (survivor-stress primitives)', () => {
     const off = simulate({ ...cfg, bedAndIsa: false, windfalls: [{ year: 3, amount: 100000 }] }, flat(10), 11);
     expect(on.finalIsa).toBeGreaterThan(off.finalIsa);   // sheltered steadily
     expect(off.final).toBeGreaterThan(on.final);         // still sitting in the GIA instead
+  });
+
+  it('windfalls are in today\'s money: the same £ arriving later is worth more nominally than a fixed (level) £', () => {
+    const total = (r) => r.final + (r.finalIsa || 0);
+    const cpi = simulate({ ...cfg, windfalls: [{ year: 5, amount: 100000 }] }, flat(10), 11);
+    const level = simulate({ ...cfg, windfalls: [{ year: 5, amount: 100000, indexation: 'level' }] }, flat(10), 11);
+    expect(total(cpi)).toBeGreaterThan(total(level));
+  });
+
+  it('an inherited pension stays a pension and an inherited ISA passes by APS — neither is pushed into the taxable sleeve', () => {
+    const pension = simulate({ ...cfg, windfalls: [{ year: 3, amount: 200000, wrapper: 'pension', indexation: 'level' }] }, flat(10), 11);
+    expect(pension.finalGia).toBe(0);
+    expect(pension.potByYear[4]).toBeGreaterThan(simulate(cfg, flat(10), 11).potByYear[4] + 100000);
+    const isaW = simulate({ ...cfg, isaBalance: 0, windfalls: [{ year: 3, amount: 200000, wrapper: 'isa', indexation: 'level' }] }, flat(10), 11);
+    expect(isaW.finalGia).toBe(0);
+    expect(isaW.finalIsa).toBeGreaterThan(150000);
+  });
+
+  it('one ISA allowance a year: a windfall\'s ISA slice and bed-and-ISA share the £20k rather than each taking it', () => {
+    const w = [{ year: 3, amount: 100000, indexation: 'level' }];
+    const on = simulate({ ...cfg, isaBalance: 0, windfalls: w }, flat(10), 11);
+    const off = simulate({ ...cfg, isaBalance: 0, bedAndIsa: false, windfalls: w }, flat(10), 11);
+    expect(on.isaByYear[4]).toBeCloseTo(off.isaByYear[4], 6);    // year 3's allowance was spent by the lump itself
+    expect(on.isaByYear[5]).toBeGreaterThan(off.isaByYear[5]);   // the next year's allowance beds-and-ISAs
+  });
+
+  it('the taxable sleeve pays the top-up before the ISA, so the ISA lasts longer with a sleeve alongside it', () => {
+    const big = { ...cfg, baseSalary: 60000, isaBalance: 150000 };   // above the basic-rate limit: the top-up is real
+    const isaOnly = simulate(big, flat(10), 11);
+    const withGia = simulate({ ...big, taxableStart: 150000 }, flat(10), 11);
+    expect(withGia.finalIsa).toBeGreaterThan(isaOnly.finalIsa);
+    expect(withGia.giaDrawnReal).toBeGreaterThan(0);
+    expect(withGia.giaTaxReal).toBeGreaterThan(0);              // shares: dividend tax, and CGT on the way out
+    expect(withGia.totalTaxReal).toBeGreaterThan(isaOnly.totalTaxReal);
+  });
+
+  it('a gilt sleeve is near tax-free; a share sleeve is not — the distinction a flat drag would miss', () => {
+    const big = { ...cfg, baseSalary: 60000, isaBalance: 0, taxableStart: 150000 };
+    const eq = simulate({ ...big, taxableMix: 'equity' }, flat(10), 11);
+    const gilt = simulate({ ...big, taxableMix: 'gilt' }, flat(10), 11);
+    expect(eq.giaTaxReal).toBeGreaterThan(1000);
+    expect(gilt.giaTaxReal).toBeLessThan(eq.giaTaxReal * 0.1);
+  });
+
+  it('an ISA on hold is never drawn for income, but a taxable sleeve beside it still pays the top-up', () => {
+    const r = simulate({ ...cfg, baseSalary: 60000, isaBalance: 100000, isaDrawdownStrategy: 'hold', taxableStart: 100000, bedAndIsa: false }, flat(10), 11);
+    expect(r.giaDrawnReal).toBeGreaterThan(0);
+    expect(r.finalIsa).toBeGreaterThanOrEqual(100000);
   });
 
   it('absent both fields, behaviour is unchanged (golden safety)', () => {

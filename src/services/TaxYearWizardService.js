@@ -493,6 +493,7 @@ export function buildTaxYearConfig(wizardData) {
     hrl,
     cpi,
     other,
+    cgtExemptionUsed,
     isaSavingsAllocation,
     isTaxEfficient,
     taxEfficiencyChoice,
@@ -515,6 +516,10 @@ export function buildTaxYearConfig(wizardData) {
 
     // Other taxable income (annual)
     other,
+
+    // Capital gains realised outside the tool this tax year (shares the £3,000 CGT exemption with
+    // the taxable-account sales the Decision tool advises)
+    cgtExemptionUsed: cgtExemptionUsed || 0,
 
     // ISA/Savings
     isaSavingsAllocation: isTaxEfficient ? isaSavingsAllocation : 0,

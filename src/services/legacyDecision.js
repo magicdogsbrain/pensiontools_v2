@@ -18,6 +18,7 @@ import { planDrawdown } from './DrawdownStrategy.js';
 import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
+import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -185,6 +186,25 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const remainingIsaAllocation = Math.max(0, yearlyIsaSavingsAllocation - isaSavingsUsedSoFar);
       const monthlyIsaFromAllocation = remainingIsaAllocation / effectiveRemainingMonths;
 
+      // ---- Taxable sleeve (GIA) — the wrapper a lump sum actually has to live in ----
+      // The user enters the account's value (and what it cost) each month like the ISA. It pays
+      // the month's top-up BEFORE the ISA (least tax-efficient money first; its income is taxed
+      // every year it sits there), net of CGT on the realised gain — nil on gilts, which are
+      // CGT-exempt. A GIA draw is NOT taxable income: it does not fill the personal allowance or
+      // the basic-rate band, so the SIPP band-filling arithmetic below is untouched by it.
+      const giaBalance = Math.max(0, deps.giaBalance || 0);
+      const giaBasisIn = deps.giaBasis == null || deps.giaBasis === '' ? null : +deps.giaBasis;
+      const giaSleeve = newSleeve(giaBalance, settings.taxableMix || 'equity', giaBasisIn);
+      const giaBasisStart = giaSleeve.basis;
+      const holdIsa = settings.isaDrawdownStrategy === 'hold';
+      // This TAX YEAR's records: the CGT exemption (£3,000) is a tax-year allowance, tracked across
+      // the months already recorded plus any gains realised outside the tool (wizard field).
+      const taxYearStartForGia = month >= 4 ? year : year - 1;
+      const tyHistoryForGia = priorHistory.filter(h => { const [hy, hm] = h.date.split('-').map(Number); return (hm >= 4 ? hy : hy - 1) === taxYearStartForGia; });
+      const cgtUsedSoFar = tyHistoryForGia.reduce((s, h) => s + (h.giaGainUsed || 0), 0) + (taxYearConfig.cgtExemptionUsed || 0);
+      const isaSubscribedSoFar = tyHistoryForGia.reduce((s, h) => s + (h.recycleNet || 0) + (h.isaSubscribed || 0), 0);
+      let giaDraw = 0, giaCgt = 0, giaNet = 0, giaGainUsed = 0, cgtUsedAfter = cgtUsedSoFar, topUpBand = 'basic';
+
       if (isTaxEfficientYear) {
         // TAX-EFFICIENT MODE: Use ISA to keep SIPP at/below BRL
         const monthlyFixedIncome = other / 12;
@@ -200,7 +220,10 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         const isaBalance = deps.isaBalance || 0;
         let stdSipp, isaToUse;
 
-        if (isaBalance > 0) {
+        // The top-up pot is the ISA PLUS the taxable sleeve (split GIA-first below). With no GIA
+        // this is exactly the old `isaBalance > 0` branch. An ISA on 'hold' is still never drawn;
+        // a sleeve alongside it is drawn regardless (holding taxable money idle is not a policy).
+        if (isaBalance + giaBalance > 0) {
           // ISA as a real pot via the shared DrawdownStrategy (Option A band management):
           // SIPP to BRL, ISA tops up the net gap tax-free, extra SIPP above BRL when the pot
           // can't cover it. Same engine as the Stress Tester (both call planDrawdown), which
@@ -214,8 +237,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           const plan = planDrawdown({
             targetGross: target * share + preStartIncome, fixedIncome: other * share + preStartIncome, pa: PA, brl: BRL, hrl: HRL,
             taxFreeFraction: taxFreeF,
-            isaBalance,
-            strategy: settings.isaDrawdownStrategy || 'minimiseEarlyTax',
+            isaBalance: holdIsa ? giaBalance : isaBalance + giaBalance,
+            strategy: (holdIsa && giaBalance > 0) ? 'minimiseEarlyTax' : (settings.isaDrawdownStrategy || 'minimiseEarlyTax'),
             // yearsUntilSp only affects the maximiseLongevity ration cap. The Decision Tool has
             // no UI to select that strategy (always Option A / minimiseEarlyTax, which ignores
             // this), so 0 is safe today. If longevity is ever exposed here, compute real
@@ -227,6 +250,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           // below is then worked out on the months actually drawn.
           stdSipp = plan.sippGross / deliverMonths;
           isaToUse = plan.isaDraw / deliverMonths;
+          topUpBand = plan.taxable > BRL + 1 ? 'higher' : 'basic';
         } else {
           // Legacy per-tax-year ISA allocation path (unchanged when no ISA balance is set).
           if (taxYearConfig.expectedMonthly?.sipp?.gross > 0) {
@@ -242,6 +266,13 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           const monthlyNetAtBrl = grossToNet(grossAtBrl, PA, BRL, HRL) / 12;
           const isaNeeded = Math.max(0, monthlyTargetNet - monthlyNetAtBrl);
           isaToUse = Math.min(isaNeeded, monthlyIsaFromAllocation);
+        }
+        // Split the month's top-up: the taxable sleeve pays first (grossed up for the CGT so the
+        // pocket still gets the full amount), the ISA only what is left.
+        if (isaToUse > 0 && giaBalance > 0) {
+          const t = topUpFromSleeve(giaSleeve, isaToUse, topUpBand, cgtUsedSoFar);
+          giaDraw = t.taken; giaCgt = t.cgt; giaNet = t.net; cgtUsedAfter = t.cgtUsed; giaGainUsed = t.cgtUsed - cgtUsedSoFar;
+          isaToUse = holdIsa ? 0 : Math.max(0, isaToUse - giaNet);
         }
         isaSavingsUsedThisMonth = isaToUse;
         stdSippForHistory = stdSipp; // Capture for history (before protection reduction)
@@ -516,9 +547,46 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // would owe on its own, spread evenly over the months actually drawn.
       const monthlyTax = (annualTax - calculateTax(preStartIncome, PA, BRL, HRL)) / deliverMonths;
 
-      // Net = gross taxable this month - monthly tax + ISA (tax-free)
+      // Net = gross taxable this month - monthly tax + ISA (tax-free) + the sleeve's net of CGT
       const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
-      const monthlyNet = monthlyTaxable - monthlyTax + isa;
+      const monthlyNet = monthlyTaxable - monthlyTax + isa + giaNet;
+
+      // ---- Windfalls & bed-and-ISA: ADVICE, never a silent move of money the user holds ----
+      // A lump sum the plan expects this year: say where it can legally go (this year's unused ISA
+      // allowance, the SIPP room, the rest to a taxable account) so the entered balances follow.
+      const windfallAdvice = [];
+      const isaAllowanceLeft = Math.max(0, GIA_DEFAULTS.ISA_ALLOWANCE - isaSubscribedSoFar);
+      // Plan year 0 is the first tax year actually set up (the same anchor the April wizard uses
+      // for the plan's other income), not the hard-coded 2026 epoch of `yearNum`.
+      const tyKeys = Object.keys(allTaxYears || {}).filter((k) => /^\d{2}\/\d{2}$/.test(k));
+      const baselineYear = tyKeys.length ? Math.min(...tyKeys.map((k) => 2000 + parseInt(k.split('/')[0], 10))) : 2026;
+      const planYear = (month >= 4 ? year : year - 1) - baselineYear;
+      for (const w of Array.isArray(settings.windfalls) ? settings.windfalls : []) {
+        if (!(w.amount > 0) || w.year !== planYear) continue;
+        const amount = Math.round(w.indexation === 'level' ? w.amount : w.amount * cumInf);   // today's money in the plan → this year's £
+        const split = routeWindfall({ ...w, amount }, { isaAllowanceLeft, relevantEarnings: settings.relevantEarnings || 0 });
+        windfallAdvice.push({ label: w.label || 'Lump sum', amount, ...split });
+        const gbp = (v) => '£' + Math.round(v).toLocaleString();
+        const parts = [];
+        if (split.toIsa > 0) parts.push(gbp(split.toIsa) + ' into your ISA (this year\'s unused allowance)');
+        if (split.toSipp > 0) parts.push(gbp(split.toSipp) + ' gross into your SIPP (the most the rules allow' + (settings.relevantEarnings > 0 ? '' : ' with no earnings') + ')');
+        if (split.toGia > 0) parts.push(gbp(split.toGia) + ' has to stay in a taxable account (GIA) — add it to the taxable balance you enter here; it is drawn before the ISA and moved into the ISA each April');
+        alerts.push({ message: (w.label || 'Lump sum') + ' of ' + gbp(amount) + ' expected this plan year: ' + parts.join('; ') + '.', severity: 'info', type: 'windfall' });
+      }
+      // Bed-and-ISA: with money in the taxable account and ISA allowance unused, move it — advised
+      // at the start of each tax year (the year's first entry), with the CGT the move would realise.
+      let bedAndIsaSuggestion = null;
+      if (giaSleeve.value > 0 && settings.bedAndIsa !== false && tyHistoryForGia.length === 0) {
+        const room = Math.max(0, isaAllowanceLeft - windfallAdvice.reduce((s, a) => s + (a.toIsa || 0), 0));
+        const move = Math.min(room, giaSleeve.value);
+        if (move >= 1000) {
+          const probe = withdrawFromSleeve({ value: giaSleeve.value, basis: giaSleeve.basis, mix: giaSleeve.mix }, move, topUpBand, cgtUsedAfter);
+          bedAndIsaSuggestion = { amount: move, cgt: probe.cgt };
+          alerts.push({ message: 'Bed-and-ISA: you hold £' + Math.round(giaSleeve.value).toLocaleString() + ' in a taxable account. Move £' + Math.round(move).toLocaleString()
+            + ' of it into your ISA before 5 April (this year\'s unused allowance) — CGT on the way about £' + Math.round(probe.cgt).toLocaleString()
+            + (probe.cgt === 0 ? ' (nil: within the exemption, or gilts)' : '') + '. Then enter the new balances here.', severity: 'info', type: 'bed-and-isa' });
+        }
+      }
 
       // Calculate YTD tax paid (based on actual annual tax, distributed evenly)
       const taxPaidYTD = monthlyTax * monthsPassedIncludingThis;
@@ -577,6 +645,21 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         pclsSuggestion,                    // switch-year advice: take this much tax-free into the ISA (£0 = n/a)
         recycleGross,                      // band-fill: extra monthly SIPP gross included in sippDraw (£0 = off/none)
         recycleNet,                        // band-fill: net of that to contribute to the ISA this month
+        // Taxable sleeve (GIA) — emitted ONLY when in use, so plans without one are byte-identical.
+        ...(giaBalance > 0 || windfallAdvice.length ? {
+          giaBalance,                      // what the taxable account held at the start of the month
+          giaBasis: giaBasisStart,         // ...and what that cost
+          giaDraw,                         // sold from it this month (gross)
+          giaCgt,                          // CGT on that sale (nil on gilts / within the exemption)
+          giaNet,                          // what reaches the pocket from it (included in totalMonthlyNet)
+          giaGainUsed,                     // CGT exemption consumed this month
+          cgtExemptionUsed: cgtUsedAfter,  // ...and in total this tax year
+          giaBalanceAfter: giaSleeve.value,
+          giaBasisAfter: giaSleeve.basis,  // carried to next month's entry (persisted in history)
+          giaIncomeTaxAnnual: incomeTaxOnSleeve(giaSleeve, topUpBand),   // dividend/interest tax the account suffers a year (paid from it)
+          windfallAdvice,
+          bedAndIsaSuggestion
+        } : {}),
 
         // Year-level tax efficiency
         isTaxEfficientYear,

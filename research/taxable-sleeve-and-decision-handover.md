@@ -1,7 +1,7 @@
-# Taxable sleeve (GIA) — what shipped, and what the Decision tool still needs
+# Taxable sleeve (GIA) and windfalls — what shipped, what was reviewed, what is left
 
-Written 6 Sep 2026. Stress Tester side is DONE and deployed. The Decision tool side is NOT
-started — this file is the handover for that work.
+Written 6 Sep 2026; **updated 7 Sep 2026** when the Decision-tool side shipped and the Stress
+Tester side was reviewed and corrected. Everything in sections 1–4 is DONE and tested.
 
 ## 1. Why any of this exists
 
@@ -10,15 +10,19 @@ pension or an ISA at any useful speed**:
 
 | Route | Limit |
 |---|---|
-| ISA | **£20,000 / yr** |
+| ISA | **£20,000 / yr** (one allowance across everything that feeds the ISA) |
 | SIPP | the LOWER of: 100% of relevant UK earnings (floor **£3,600 gross**), and the annual allowance — **£10,000 (MPAA)** once a DC pension has been flexibly accessed, else £60,000 |
 | Everything else | has to sit **unwrapped and taxable** (a GIA) |
 
 **The MPAA is the binding cap for essentially every user of this app**: a drawdown plan has by
-definition flexibly accessed, so £10,000 applies, not £60,000. `mpaaTriggered` therefore defaults
-to `true`. (`ACCUMULATION_RULES.MPAA` in AccumulationEngine.js already had this — reuse it.)
+definition flexibly accessed, so £10,000 applies, not £60,000. `mpaaTriggered` defaults to `true`.
 
-Worked example, £100k lump sum:
+**Except when the money is not cash.** An inherited PENSION stays in a pension (beneficiary
+drawdown — no contribution limit applies) and a late spouse's ISA passes into the survivor's ISA
+under the Additional Permitted Subscription. Windfalls therefore carry a `wrapper` field:
+`'cash'` (default, limited as above) | `'pension'` | `'isa'`. See `routeWindfall()`.
+
+Worked example, £100k cash lump sum:
 
 | Person | ISA | SIPP | Taxable |
 |---|---|---|---|
@@ -26,94 +30,105 @@ Worked example, £100k lump sum:
 | Retired, £30k earnings | £20,000 | £10,000 | **£70,000** |
 | Not yet flexibly accessed, £30k earnings | £20,000 | £30,000 | £50,000 |
 
-Before this work the app had **no wrapper that could hold the balance**, so windfalls were dropped
-straight into the SIPP pots or the ISA and compounded tax-free. That overstated outcomes for
-anyone who entered one.
+## 2. The module — `src/services/TaxableSleeve.js`
 
-## 2. What shipped (Stress Tester)
+- `newSleeve(value, mix, basis?)` — `mix` is `{ equity, bond, gilt, cash }` or a one-word
+  choice via `mixFromChoice()` ('equity' | 'gilt' | 'bond' | 'cash' | 'balanced'; unknown = all
+  equity, the pessimistic default). `basis` (cost) may start below value for an existing account.
+- `sleeveIncome` / `incomeTaxOnSleeve(sleeve, band)` — dividends above £500 (8.75%/33.75%),
+  savings income above £1,000/£500 (20%/40%).
+- `withdrawFromSleeve(sleeve, amount, band, cgtUsed)` — pro-rata sale, CGT above the £3,000
+  exemption (18%/24%). **Gilts are CGT-exempt**: the chargeable gain is scaled by `1 - mix.gilt`.
+  This is the whole reason tax is modelled rather than approximated with a flat drag: a GIA gilt
+  ladder is near tax-free, a GIA equity portfolio is not, and a flat haircut gets that backwards.
+- `topUpFromSleeve(sleeve, netAmount, band, cgtUsed)` — deliver a NET amount, grossing up for the
+  CGT on the way (iterates; residual under a penny).
+- `payTaxFromSleeve(sleeve, tax)` — a bill paid out of the sleeve is a sale: basis falls pro-rata.
+- `bedAndIsa(sleeve, allowance, band, cgtUsed)`, `sippRoomFor(...)`, `shelterLumpSum(...)`,
+  `routeWindfall(w, room)` (wrapper-aware; reports the ISA allowance / SIPP room it consumed).
 
-**`src/services/TaxableSleeve.js`** (new, 16 tests in `tests/TaxableSleeve.test.js`)
-- `newSleeve(value, mix)` — `mix` is `{ equity, bond, gilt, cash }` shares. Tracks `value` and
-  `basis` (cost) separately; growth raises value, never basis — that is where the gain accrues.
-- `sleeveIncome` / `incomeTaxOnSleeve(sleeve, band)` — dividends taxed above the £500 allowance
-  (8.75%/33.75%), savings income above £1,000/£500 (20%/40%).
-- `withdrawFromSleeve(sleeve, amount, band, cgtUsed)` — sells a pro-rata slice, CGT above the
-  £3,000 exemption (18%/24%), returns `{ taken, cgt, net, cgtUsed }`.
-- `bedAndIsa(sleeve, allowance, band, cgtUsed)` — moves up to £20k out, realising CGT.
-- `sippRoomFor({ relevantEarnings, mpaaTriggered })`, `shelterLumpSum(amount, opts)`.
-- **GILTS ARE CGT-EXEMPT.** `withdrawFromSleeve` multiplies the chargeable gain by
-  `1 - mix.gilt`. This is the whole reason tax is modelled rather than approximated with a flat
-  drag: a GIA gilt ladder is near tax-free (tiny coupon, CGT-free uplift) while a GIA equity
-  portfolio is not. A flat haircut gets this backwards.
+## 3. Stress Tester — shipped 6 Sep, REVIEWED AND CORRECTED 7 Sep
 
-**`src/services/SimulationEngine.js`**
-- `const gia = newSleeve(config.taxableStart, config.taxableMix)` alongside the ISA.
-- Windfalls now route through `shelterLumpSum` — ISA / SIPP / GIA by the real limits. `toIsa`
-  now means "use the ISA allowance" (default on), not "put all of it in an ISA".
-- Sleeve grows monthly at **its own mix** (not the SIPP's), pays income tax annually, optionally
-  beds-and-ISAs £20k/yr (`config.bedAndIsa`, default true).
-- **Draw order: GIA first, ISA last** — least tax-efficient money first. `giaRescue` sits just
-  before `isaRescue`, net of CGT.
-- Counted in `potByYear`, `total`, `finalNominal`.
+Review findings on the 6 Sep code, all fixed:
 
-**`src/storage/StressRepository.js`** — new config keys: `taxableStart`, `taxableMix`,
-`giaTaxBand` ('basic'|'higher'), `bedAndIsa` (default true), `relevantEarnings`.
+1. **ISA allowance double-spent.** A windfall's £20k ISA slice, the bed-and-ISA transfer and
+   band-fill recycling each assumed a fresh £20k in the same year (£40k+ of subscriptions). One
+   tracker per tax year now (`isaLumpsThisYear` + `isaRecycledThisYear`); the recycle planner is
+   handed what is left. Two windfalls in one year also shared one SIPP room.
+2. **Windfalls were nominal while the UI said "today's money".** Now inflated by cumulative
+   inflation like extra withdrawals; `indexation: 'level'` keeps a fixed nominal £ (the survivor
+   check pre-converts and sets this).
+3. **Survivor stress regression.** The deceased partner's pots and ISA were injected as cash
+   windfalls, so the new sheltering pushed most of an inherited pension into a taxable GIA.
+   `HouseholdService` now tags them `wrapper: 'pension'` / `'isa'`.
+4. **The sleeve was not drawn before the ISA** (the stated design) — it only rescued a failed
+   SIPP, while the ISA paid every Option-A top-up. The top-up pot is now ISA + sleeve, split
+   sleeve-first (net of CGT, grossed up), ISA for the remainder. An ISA on 'hold' stays held; a
+   sleeve beside it is still drawn.
+5. **Year-start housekeeping charged tax on income not yet earned and credited bed-and-ISA a
+   year early**, and skipped year 0 entirely. Moved to the END of each plan year, every year.
+6. **Tax paid out of the sleeve left the basis untouched**, overstating later gains. Fixed.
+7. **The sleeve's tax was accumulated and then dropped** (`giaTaxPaid` never returned). Now in
+   `totalTaxReal` (today's money) plus `giaTaxReal`, `giaDrawnReal`, `finalGia`.
+8. **Trace income ignored the sleeve** (`giaRescue` was not reduced from `effectiveSipp`, and
+   the compare/worst-12 income series never saw sleeve money). `traceRow.giaNet` is now counted
+   like ISA money in `stressTest.js` and `compareRunner.js`.
+9. **Ladder strategies ignored windfalls entirely** (one-off spends were modelled, one-off
+   receipts were not — a bias against every ladder in the ranked table). `lumpyByYear` now
+   returns `windfallByYear`; `applyWindfallsToNeed` lets the lump pay the need from its year
+   onward (carry-forward, zero real return — slightly pessimistic, and tax-faithful for a gilt
+   sleeve); the unspent carry is added to the bought strategies' wealth cones and terminals.
+   The P&V engine still handles its own windfalls through `pnvCfg`.
+10. **No UI for an existing GIA.** Stress settings now have: taxable investments today, what
+    the account holds, tax band, relevant earnings, bed-and-ISA toggle. The windfall editor has a
+    "what is it" select (cash / inherited pension / inherited ISA) and uses `routeWindfall` for
+    its note instead of a hard-coded copy of the rule.
 
-**index.html** — windfall editor shows `windfallSplitNote()`: what actually lands where, per
-windfall, instead of a tickbox implying £100k could go into an ISA.
+Golden hashes: ONE regenerated again — `db-floor-schedule-divers`, the only app path with a
+windfall. `risk-balanced-isa` and `ufpls-phased-recycle` are byte-identical (the recycle path
+proves the allowance refactor is neutral when nothing else uses the allowance).
 
-**Golden hashes** — ONE regenerated in `tests/integration/fixtures/appPaths.sha.json`:
-`db-floor-schedule-divers`, the only path with a windfall. The other two are byte-identical,
-which is the evidence the change is correctly scoped. Anyone without a windfall sees no change.
+## 4. Decision tool — SHIPPED 7 Sep
 
-## 3. NOT DONE — the Decision tool work
+- **Monthly entry**: "Taxable account (GIA)" balance + "…of which cost" (basis). The basis is
+  pre-filled from the last saved month's `giaBasisAfter` (persisted on every history record —
+  the longitudinal requirement), and the balance from `giaBalanceAfter` when the box is empty.
+- **`legacyDecision.js`**: the top-up pot is ISA + GIA; the sleeve pays first via
+  `topUpFromSleeve` (net of CGT, grossed up), the ISA the remainder. **A GIA draw is not taxable
+  income** — `sippDraw`, the band arithmetic and `annualTaxable` are identical to the ISA-only
+  case (pinned by test). CGT band = basic unless the plan's taxable income exceeds the BRL.
+- **CGT exemption per tax year**: `giaGainUsed` on each record is summed for the tax year, plus
+  the wizard's new "capital gains already realised this tax year" field
+  (`taxYearConfig.cgtExemptionUsed`).
+- **Windfalls are advice**: when the plan expects a lump sum in this plan year (year 0 = the
+  first tax year set up, the wizard's anchor), an alert says how much can go to the ISA (this
+  year's unused allowance, net of recycling recorded), the SIPP room, and what must stay taxable.
+- **Bed-and-ISA is advice**: on the first entry of each tax year, with money in the GIA and
+  allowance unused, an alert gives the move and the CGT it would realise (nil on gilts).
+- **Outputs** (only when a GIA or windfall is in play, so plans without one are byte-identical —
+  the decision golden fixtures are untouched): `giaBalance/giaBasis/giaDraw/giaCgt/giaNet/
+  giaGainUsed/cgtExemptionUsed/giaBalanceAfter/giaBasisAfter/giaIncomeTaxAnnual/windfallAdvice/
+  bedAndIsaSuggestion`. `totalMonthlyNet` includes `giaNet`. `DecisionPanel` shows the draw, the
+  tax line and the account; the History detail shows the draw.
+- **Settings**: Decision settings carry `taxableMix`, `relevantEarnings`, `bedAndIsa`;
+  `seedDecisionFromStress` / `seedStressFromDecision` copy `taxableStart, taxableMix,
+  giaTaxBand, bedAndIsa, relevantEarnings, windfalls` both ways (the D1 silent-drop trap).
 
-### 3a. The Decision tool has no GIA at all
-- Monthly entry form (`index.html` ~2250-2295) has Equity / Bond / Cash / ISA / Diversifiers.
-  Needs a **GIA balance** field (and it should be hidden for contract-ladder plans in the same
-  way `applyDecisionStrategyMode()` hides Equity/Diversifiers — see CONTRACT_IDS).
-- `src/services/legacyDecision.js` does not know the wrapper exists.
+Tests: `tests/DecisionGia.test.js` (9), `tests/ladderWindfall.test.js` (4), additions to
+`tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 588 tests.
 
-### 3b. Sourcing and tax — the real work
-`planSourcing()` / `planSourcingOrdered()` (`src/services/WithdrawalSourcing.js`) decide which
-SIPP pot pays. The GIA is a **different wrapper**, not another pot, and the tax treatment is the
-point:
-- A GIA withdrawal is **mostly not taxable income** — only the realised gain is chargeable, and
-  only above the £3,000 exemption; gilts are exempt entirely.
-- So drawing £10k from a GIA does **not** fill the personal allowance or basic-rate band the way
-  a £10k SIPP draw does. `legacyDecision`'s band-filling maths (`other`, `BRL` headroom,
-  `projectedAnnualTaxable`) must treat GIA draws separately or it will wrongly conclude the
-  bands are full.
-- Recommended order to mirror the Stress engine: **GIA → SIPP (to fill bands) → ISA**.
+## 5. Still open (found, not fixed — deliberately)
 
-### 3c. Cost-basis persistence
-The Stress engine holds `basis` in memory for a run. The Decision tool is longitudinal — basis
-has to **persist between months and years** (a saved field on the decision settings or a
-per-year record), or CGT can't be computed. This is the main new storage requirement.
+- The sleeve's gilt share grows at the engine's nominal bond return, not at the real-yield curve
+  the ladder strategies price on. Adequate for a sleeve; revisit if the GIA gilt ladder becomes a
+  first-class strategy (Chris's house-sale ladder idea).
+- Losses in the sleeve are not carried forward (basis is clamped to value on entry).
+- The Decision tool does not yet model the sleeve's dividend/interest tax as a monthly cash
+  flow — it is reported as an annual estimate paid out of the account.
+- CSV export of history does not include the GIA columns.
 
-### 3d. Annual CGT exemption is a TAX-YEAR thing
-`cgtUsed` resets each tax year. The Decision tool already has tax-year config
-(`getTaxYearConfigAsync`) — the £3,000 exemption used to date belongs there, alongside `other`.
-Consider surfacing "CGT allowance used this year" in the tax-year wizard.
-
-### 3e. Seeding
-`seedDecisionFromStress()` (`src/storage/ScenarioRepository.js`) must copy the new keys —
-`taxableStart`, `taxableMix`, `giaTaxBand`, `bedAndIsa`, `relevantEarnings` — the same way it
-now copies `strategyId`/`strategyParams`/income shape. It is currently an explicit field list, so
-they will be silently dropped until added. (This is exactly the D1 bug from the 30 Aug audit.)
-
-## 4. Also still open (found, not fixed)
-
-- **Ladder strategies ignore windfalls entirely.** `lumpyByYear` handles `extraIncomes` and
-  `extraWithdrawals` but not `windfalls`; `stressTest.js` / `compareRunner.js` /
-  `GiltLadderPlan.js` never see them. So one-off SPENDS are modelled in ladders but one-off
-  RECEIPTS are not — which biases the ranked comparison against every ladder strategy. Now that
-  there is a correct place to put the money this is a much smaller job: make the windfall
-  available to `availablePot` from its year and let the builder buy the extra rungs.
-- **No GIA input in Stress settings UI.** `taxableStart` is wired through the config but there is
-  no field for someone who already holds a GIA today — only windfalls create one.
-
-## 5. Rules reference (so the next session does not re-derive it)
+## 6. Rules reference
 ISA £20,000/yr · MPAA £10,000 · Annual Allowance £60,000 · relief floor £3,600 gross ·
 dividend allowance £500 (8.75% / 33.75%) · savings allowance £1,000 basic / £500 higher ·
-CGT exemption £3,000 (18% / 24%) · **UK gilts are exempt from CGT** (coupon taxable as income).
+CGT exemption £3,000 (18% / 24%) · **UK gilts are exempt from CGT** (coupon taxable as income) ·
+inherited pension = beneficiary drawdown (no contribution limit) · inherited ISA = APS.

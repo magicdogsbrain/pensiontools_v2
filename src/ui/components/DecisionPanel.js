@@ -83,6 +83,11 @@ function buildTaxSummary(d) {
 
   html += '</div>'; // End tax-comparison
 
+  // Taxable account (GIA): its own tax, separate from the income-tax table above.
+  if (d.giaBalance > 0) {
+    html += `<div class="hint" style="margin:4px 0 8px;">Taxable account: CGT this month ${d.giaCgt > 0 ? formatCurrency(d.giaCgt) : 'nil'} (CGT exemption used this tax year ${formatCurrency(d.cgtExemptionUsed || 0)} of £3,000); dividend/interest tax about ${formatCurrency(d.giaIncomeTaxAnnual || 0)} a year, paid out of the account. Gilts held there are CGT-free.</div>`;
+  }
+
   // Effective tax rate
   if (details.taxInfo && typeof details.taxInfo.effectiveRate === 'number' && !isNaN(details.taxInfo.effectiveRate)) {
     const effectiveRate = details.taxInfo.effectiveRate * 100;
@@ -119,8 +124,10 @@ function buildTaxSummary(d) {
   if (cm > 1) {
     const total = (d.sippDraw || 0) * cm, isaT = (d.isaMonthly || 0) * cm;
     const src = d.strategyOverlay && d.strategyOverlay.hidePots ? d.strategyOverlay.floorLabel : (details.source || 'the recommended pot');
+    const giaT = (d.giaNet || 0) * cm;
     html += '<div class="callout" style="margin-top:12px;">'
       + `<strong>${cm === 12 ? 'Your annual batch' : 'Your quarterly batch'}:</strong> sell ${formatCurrency(total)} from ${src} now (${cm} × ${formatCurrency(d.sippDraw || 0)}), leave it as cash inside the SIPP, and let the platform pay ${formatCurrency(d.sippDraw || 0)} a month to your bank.`
+      + (giaT > 0 ? ` Plus about ${formatCurrency(giaT)} from the taxable account over the period.` : '')
       + (isaT > 0 ? ` Plus ${formatCurrency(isaT)} from the ISA over the period.` : '')
       + ` Save records all ${cm} months; come back after the period with fresh values.</div>`;
   }
@@ -249,6 +256,15 @@ export function buildDecisionHTML(decision) {
     html += `<span class="label">ISA Top-up</span>`;
     html += `<span class="value">${formatCurrency(d.isaDraw)}</span>`;
     html += '</div>';
+  }
+
+  // Taxable account (GIA): drawn before the ISA, net of CGT on the realised gain.
+  if (d.giaNet > 0) {
+    html += '<div class="draw-row">';
+    html += `<span class="label">Taxable account (GIA) draw</span>`;
+    html += `<span class="value">${formatCurrency(d.giaNet)}</span>`;
+    html += '</div>';
+    html += `<div class="hint" style="margin:-6px 0 8px;">Sell ${formatCurrency(d.giaDraw)} from the taxable account; CGT on the gain ${d.giaCgt > 0 ? formatCurrency(d.giaCgt) : 'nil'} (this is not taxable income, so it does not use your tax bands). Balance after: ${formatCurrency(d.giaBalanceAfter || 0)}, cost ${formatCurrency(d.giaBasisAfter || 0)}.</div>`;
   }
 
   // Band-fill recycle (opt-in): part of the SIPP withdrawal is destined for the ISA, not spending
@@ -383,6 +399,11 @@ export function buildDecisionHTML(decision) {
   }
 
   html += '</div>'; // End fund-grid
+
+  // Taxable account (GIA): outside the SIPP floors — shown for the record, with its unrealised gain.
+  if (d.giaBalance > 0) {
+    html += `<div class="hint" style="margin-top:10px;">Taxable account (GIA): ${formatCurrency(d.giaBalance)} (cost ${formatCurrency(d.giaBasis || 0)}, unrealised gain ${formatCurrency(Math.max(0, d.giaBalance - (d.giaBasis || 0)))}). Drawn before the ISA; not part of the SIPP floors above.</div>`;
+  }
 
   // Overall status
   const statusClass = surplus >= 0 ? 'healthy' : 'warning';

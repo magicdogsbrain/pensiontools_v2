@@ -44,6 +44,7 @@ export async function initTaxYearWizard(container, selectedMonth, onComplete) {
     hrl: wizardContext.defaults.hrl,
     cpi: wizardContext.defaults.cpi,
     other: wizardContext.defaults.other,
+    cgtExemptionUsed: 0,
     grossIncomeToDate: 0,
     confirmedSalary: wizardContext.suggestedSalary,
     isaSavingsAllocation: 0,
@@ -299,6 +300,16 @@ function renderOtherIncome() {
 
       <div class="wizard-example">
         <strong>Include:</strong> Private pensions, rental income, side hustles, dividends above allowance.
+      </div>
+
+      <div class="wizard-step-desc" style="margin-top: 14px;">
+        Capital gains already realised this tax year outside this tool (optional). The £3,000 CGT exemption
+        is shared with any taxable-account (GIA) sales the tool advises.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizCgtUsed" value="${wizardInputs.cgtExemptionUsed || 0}" min="0">
+        <span class="wizard-unit">of gains</span>
       </div>
 
       <div class="wizard-info-box">
@@ -790,6 +801,9 @@ function saveCurrentInputs() {
   const other = document.getElementById('wizOther');
   if (other) wizardInputs.other = parseFloat(other.value) || 0;
 
+  const cgtUsed = document.getElementById('wizCgtUsed');
+  if (cgtUsed) wizardInputs.cgtExemptionUsed = Math.max(0, parseFloat(cgtUsed.value) || 0);
+
   const isa = document.getElementById('wizISA');
   if (isa) wizardInputs.isaSavingsAllocation = parseFloat(isa.value) || 0;
 
@@ -823,6 +837,7 @@ async function finishWizard() {
     hrl: wizardInputs.hrl,
     cpi: wizardInputs.cpi,
     other: wizardInputs.other,
+    cgtExemptionUsed: wizardInputs.cgtExemptionUsed || 0,
     isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
     isTaxEfficient: wizardInputs.isTaxEfficient,
     taxEfficiencyChoice: wizardInputs.taxEfficiencyChoice,

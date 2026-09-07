@@ -8,8 +8,8 @@
 // ============================================================================
 // The ONE version source is package.json (see RELEASING.md). Vite's JSON named exports ship only
 // this string; vitest resolves it the same way, so the release test can hold both to it.
-import { version as PKG_VERSION } from '../package.json';
-export const VERSION = PKG_VERSION;
+import pkg from '../package.json' with { type: 'json' };   // the import attribute keeps plain Node (tests/golden/generate.mjs) happy too
+export const VERSION = pkg.version;
 
 // ============================================================================
 // TAX DEFAULTS (UK 2024/25)

@@ -7,7 +7,7 @@
  */
 import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../strategies/stressTest.js';
 import { deriveCompareConfigs } from '../strategies/compareRunner.js';
-import { runHouseholdMonteCarlo, combineHouseholdStrategies } from '../services/HouseholdService.js';
+import { runHouseholdMonteCarlo, combineHouseholdStrategies, runSurvivorCheck, runCareCheck } from '../services/HouseholdService.js';
 import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
 import { loadLiveEquity } from '../services/EquityIndex.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
@@ -41,6 +41,10 @@ self.onmessage = async (e) => {
       self.postMessage({ id, result: cloneSafe({ combined: combineHouseholdStrategies(rA, rB), rA: { affordable: rA.affordable, reason: rA.reason, ruin: rA.ruin, name: rA.name }, rB: { affordable: rB.affordable, reason: rB.reason, ruin: rB.ruin, name: rB.name } }) });
     } else if (type === 'household') {
       self.postMessage({ id, result: cloneSafe(runHouseholdMonteCarlo(payload.cfgA, payload.cfgB, payload.runs, payload.offsets)) });
+    } else if (type === 'survivor') {
+      self.postMessage({ id, result: cloneSafe(runSurvivorCheck(payload)) });
+    } else if (type === 'care') {
+      self.postMessage({ id, result: cloneSafe(runCareCheck(payload)) });
     } else {
       throw new Error('unknown job ' + type);
     }

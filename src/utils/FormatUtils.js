@@ -10,7 +10,7 @@
  */
 export function formatCurrency(value, showPence = null) {
   const absValue = Math.abs(value);
-  const showDecimal = showPence !== null ? showPence : absValue < 100;
+  const showDecimal = showPence !== null ? showPence : (absValue > 0 && absValue < 100);   // £0, never £0.00
 
   const formatted = Math.abs(value).toLocaleString('en-GB', {
     minimumFractionDigits: showDecimal ? 2 : 0,

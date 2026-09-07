@@ -18,7 +18,8 @@ describe('GiltLadderPlan — the fully deterministic ladder', () => {
   });
   it('cash covers the bridge and the first N years; the State Pension is netted from 67 with a partial first year', () => {
     expect(plan.cashYears.map((c) => c.Y)).toEqual([2027, 2028, 2029]);
-    expect(plan.cash).toBe(35000 + 80000 * 3);
+    // Cash years cost their inflation drag (−1% real a year, like every other strategy's cash): year 1 at face, year k × 1.01^(k−1).
+    expect(plan.cash).toBeCloseTo(35000 + 80000 * (1 + 1.01 + 1.01 * 1.01), 6);
     const y2037 = plan.years.find((y) => y.Y === 2037);
     expect(y2037.age).toBe(67);
     expect(y2037.need).toBeCloseTo(65000 - 12480 * 8 / 12, 0);

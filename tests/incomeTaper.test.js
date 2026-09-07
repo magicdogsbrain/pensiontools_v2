@@ -104,3 +104,16 @@ describe('the picture shows streams as layers and lump sums / spends as markers'
     expect(svg).toMatch(/other income £14k/);          // the rent layer in a bar's title
   });
 });
+
+import { buildGiltLadder, cashCostFactor } from '../src/strategies/GiltLadderPlan.js';
+import { activeLinkers } from '../src/services/LinkerUniverse.js';
+describe('cash years in the gilt ladder are not free', () => {
+  it('£1 of need k years out costs 1.01^(k−1) of cash today; fifteen cash years cost more than two', () => {
+    expect(cashCostFactor(1)).toBe(1); expect(cashCostFactor(2)).toBeCloseTo(1.01, 9); expect(cashCostFactor(15)).toBeCloseTo(Math.pow(1.01, 14), 9);
+    const base = { pot: 2000000, startAge: 60, durationYears: 30, amountAtAge: () => 40000, spAnnual: 0, spStartAge: 99, firstTaxYear: 2027, linkers: activeLinkers().gilts, todayIso: '2026-09-08' };
+    const two = buildGiltLadder({ ...base, cashYears: 2 }), fifteen = buildGiltLadder({ ...base, cashYears: 15 });
+    expect(fifteen.cash).toBeGreaterThan(40000 * 15);                 // more than face
+    expect(fifteen.cash).toBeCloseTo(40000 * Array.from({ length: 15 }, (_, i) => cashCostFactor(i + 1)).reduce((a, b) => a + b, 0), 3);
+    if (two.affordable && fifteen.affordable) expect(fifteen.total).toBeGreaterThanOrEqual(two.total * 0.98);   // cash is at least as dear as short linkers at today's real yields
+  });
+});

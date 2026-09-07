@@ -3095,7 +3095,7 @@
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                 </div>
@@ -9149,7 +9149,7 @@
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine" class="machine-scroll">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" min="0" max="10" value="' + (prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';

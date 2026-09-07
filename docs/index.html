@@ -2147,7 +2147,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-BmJeh2YC.js"></script>
+  <script type="module" crossorigin src="./assets/main-B_ykrRje.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3096,7 +3096,7 @@
               </div>
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first<input type="number" id="giltCashYears" min="0" max="10" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                 </div>

@@ -35,6 +35,20 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.7', date: '2026-09-08', engineVersion: '6.2.1',
+    title: 'Cash years in the gilt ladders are priced honestly',
+    summary: 'The "years funded from cash first" dial on the Full index-linked gilt ladder and Bridge & engine treated cash as holding its value. It now costs inflation minus 1% a year — the same assumption every other strategy already uses for cash — so a long cash run shows its true cost instead of looking free. The dial is capped at 5 and explains itself.',
+    changes: ['The dial says what it is for (the first year or two, where no gilt matures in the right window) and is capped at 5.'],
+    corrections: ['Cash set aside for year k now costs 1.01^(k−1) per £1 of need. Two cash years move the ladder\'s cost by well under 1%; fifteen would have been about 7% too cheap, with no index-linking.'],
+    effects: {
+      stress: ['Plans on the Full index-linked gilt ladder or Bridge & engine: the ladder cost and spare move slightly (a few hundred pounds on a typical two-year float); a plan set to more than 5 cash years is clamped to 5 next time you open its dials.'],
+      strategies: ['The ranked table\'s "what you pay today" for those two strategies moves the same way.'],
+      decision: [], household: [], budget: [], accumulation: []
+    },
+    actions: ['If you had set more than 3 cash years, look at the dial: it was never meant to be a cash-bucket strategy — Bridge & engine or Buckets in order model a large cash sleeve properly.'],
+    notes: ['Engine version 6.2.1: a strategy\'s arithmetic changed.']
+  },
+  {
     version: '6.2.6', date: '2026-09-08', engineVersion: '6.2.0',
     title: 'Turn a lump sum into income, if you want to',
     summary: 'A lump sum pays for your income shape; it does not raise it. The strategies already use it (more rungs, bigger pots), but the income line only rises if you raise a step — and nothing said so. Under the picture each lump sum now says what it could support per year from its age, with a button that adds that to your steps.',

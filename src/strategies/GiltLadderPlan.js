@@ -13,7 +13,12 @@
  * Illustration from public data, not advice — the UI says so.
  */
 
-export const LADDER_DEFAULTS = { cashYears: 2, bridgeCash: 0, dealFee: 20, spreadShort: 0.0015, spreadMid: 0.0025, spreadLong: 0.004 };
+// cashRealDrag: cash earns about inflation minus 1% (the FCA-prescribed assumption every other strategy in the
+// app runs on), so £1 of need k years out costs £1 × 1.01^k of cash today. Two cash years barely notice;
+// fifteen would have looked free without it.
+export const LADDER_DEFAULTS = { cashYears: 2, bridgeCash: 0, dealFee: 20, spreadShort: 0.0015, spreadMid: 0.0025, spreadLong: 0.004, cashRealDrag: 0.01 };
+/** Cash set aside today to pay £1 of need in plan year k (k = 1 is spent straight away). */
+export function cashCostFactor(k, drag = LADDER_DEFAULTS.cashRealDrag) { return Math.pow(1 + drag, Math.max(0, k - 1)); }
 
 /** Bid-offer allowance by years to maturity: 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond. */
 export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
@@ -48,7 +53,7 @@ export function buildGiltLadder(p) {
     const Y = p.firstTaxYear + k - 1;
     const gross = p.amountAtAge(age);
     const need = Math.max(0, gross - spIn(age));
-    if (k <= cashYears) { cash += need; cashYearsList.push({ Y, age, gross, need }); years.push({ Y, age, gross, need, from: 'cash' }); continue; }
+    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';
     let g = il.filter((x) => x.maturityDateIso >= lo && x.maturityDateIso <= hi).pop();
     let held = false;

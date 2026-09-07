@@ -1,3 +1,4 @@
+import { cashCostFactor } from './GiltLadderPlan.js';
 /**
  * Phase D — the N-way strategy compare (strategy brief §6, UX brief §3.3).
  *
@@ -156,7 +157,7 @@ export function deriveCompareConfigs(p) {
   const bridgeAge = Math.max(p.startAge + 1, Math.min(prm.bridgeAge || spAge, p.startAge + p.durationYears - 1));
   const B = bridgeAge - p.startAge;
   const beCashYears = Math.max(0, Math.min(prm.cashYears ?? 3, B));
-  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? 1 : Math.pow(1 + yf(k), -k));
+  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? cashCostFactor(k) : Math.pow(1 + yf(k), -k));   // cash years: inflation drag, not face
   const beE0 = total - beCost;
   let beRest = 0; for (let k = B + 1; k <= p.durationYears; k++) beRest += drawNet(k) * Math.pow(1 + yf(k - B), -(k - B));
   const be = beE0 > 0 ? {

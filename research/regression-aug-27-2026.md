@@ -44,7 +44,7 @@ then funds mode VWRP/VAGP, 1 month recorded). Delete when done.
   (calculateGlidepath(equityStart)), sweep above band into cash up to target, else cash → defensive → equities;
   no glide rebalancing. Graphic: src/ui/bucketsGraphic.js. Decision tool honours it via StressRepository config
   (sourcingMode) — legacyDecision (the monthly advice) still uses planSourcing: FOLLOW-UP.
-- Eight-way, "Chris compare" (SIPP £1.212M, ISA £60k held, 80/65/45/40 to 91, SP Aug 2037, level footing):
+- Eight-way, "owner compare" (SIPP £1.212M, ISA £60k held, 80/65/45/40 to 91, SP Aug 2037, level footing):
   P&V 45/35/20 24% ruin · Buckets 31% · L&R 16% (72 by contract) · Bridge 16% (66 by contract, engine median
   £993k at 66, typically fails by 84) · F&F 0% (bills to 91) · Floor the schedule 0% (89% of pot) ·
   Floor-to-67 17% cut · Full gilt £1.6k over the pot.

@@ -1,6 +1,6 @@
 # Rotation plan & design audit — 29 Aug 2026
 
-Owner: Chris. Status: plan agreed in principle, app work pending.
+Owner: the site owner. Status: plan agreed in principle, app work pending.
 All £ in Aug-2026 money. Illustration from the app's own engines, not advice.
 
 ## 0. Where the design stands
@@ -98,7 +98,7 @@ guaranteed floor through the go-slow years and still frees £262k.
 4. **No floor beyond 75 after the swap.** Income above the State Pension becomes market-
    dependent from 76. In the failing 2–16% that means trimming in the 80s.
 5. **RPI→CPIH from Feb 2030** reduces the uplift on every unsold rung by ~1%/yr.
-6. **Capacity.** A borrowed floor that exists only in Chris's head cannot be inherited. It must
+6. **Capacity.** A borrowed floor that exists only in the owner's head cannot be inherited. It must
    be visible in the app and in the manual.
 
 ## 4. Decision rule, one paragraph
@@ -120,7 +120,7 @@ guaranteed floor through the go-slow years and still frees £262k.
 - Engine bug found and fixed: the State Pension's first-year share was computed on the CALENDAR
   year while rungs are bought per TAX year. `spTaxYearFirstRatio()` added
   (`src/utils/StatePensionUtils.js`), used by `fullGiltTest`. TG36 now sizes at 33,200 nominal
-  (£53,033) not 35,200 — Chris holds 35,200, so ~£3.3k spare in 2037/38. Shipped.
+  (£53,033) not 35,200 — the owner holds 35,200, so ~£3.3k spare in 2037/38. Shipped.
 - Remaining gap: cash years need £240k, £226k held (£64k expected from another SIPP; fallback
   £58.7k/yr for three years). Not a ladder problem.
 
@@ -193,12 +193,12 @@ Shipped as the ninth strategy **`gilt-rotation` ("Gilt ladder + rotation")** plu
   (LadderPosition.js) prices restoring it on today's curve; an un-missable line shows on the
   Decision panel and the floor-to-age page until it is rebought.
 
-On Chris's plan shape the model says: block £249k covering £413k, trigger fires in 77% of futures,
+On the owner's plan shape the model says: block £249k covering £413k, trigger fires in 77% of futures,
 rotated years cut in 16% of futures / 7% of histories, median left at 91 ≈ £417k vs £4k un-rotated.
 
 ## F. Runway sweep — 30 Aug 2026 (the "maximum time to wait" question)
 
-Chris asked whether a late trigger leaves the bought equities enough time to recover before the
+the owner asked whether a late trigger leaves the bought equities enough time to recover before the
 sold years start paying. Sweep of the disarm age on the £1M demo (cut 75, first sold draw 76):
 
 | Trigger allowed until | Min runway | Hist cut % | MC cut % | Median left | Futures that rotate |

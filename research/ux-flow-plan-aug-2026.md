@@ -132,7 +132,7 @@ Verdict: coherent — proceed.
 - **Stage E:** Survivor check UI + construction logic + tests.
 - **Stage F:** Allowance nudge in Household results.
 - **Stage G:** Create partner plan button in Household.
-- **Stage H:** Deploy; full site walkthrough: budget → target → stress (Chris - plan 1,
+- **Stage H:** Deploy; full site walkthrough: budget → target → stress (the owner - plan 1,
   £4,002/mo net, drawdown) → partner plan (Wendy - plan 1, £1,200/mo net, UFPLS whole-plan)
   → household check → decision tool + tax years for both plans.
 

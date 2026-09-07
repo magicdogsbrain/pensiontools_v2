@@ -126,7 +126,7 @@ never touches the sleeve. Two corrections made: a sub-penny ISA residual after t
 whole top-up (now exactly 0), and the methodology page's "GIA not modelled" row. The signed-in UI
 walk-through (Monthly Entry → Save → next month's basis pre-fill) still needs a real account.
 
-## 4b. Follow-ups from Chris's review, 7 Sep
+## 4b. Follow-ups from the user's review, 7 Sep
 
 - **Help pop-ups were dead.** The eight new ⓘ hints used a bare `title` attribute (native tooltip,
   hover-delay only, nothing on touch) while the app's working mechanism is `.hlp[data-tip]` +
@@ -145,7 +145,7 @@ walk-through (Monthly Entry → Save → next month's basis pre-fill) still need
   Decision-tool advice names the holding. Tax band, earnings and bed-and-ISA stay plan-level —
   they describe the person, not the lump.
 
-## 4c. Interaction audit, 7 Sep (Chris asked for gotchas)
+## 4c. Interaction audit, 7 Sep (the user asked for gotchas)
 
 Every ISA/GIA/windfall combination was run through the real engine (hold × bed-and-ISA, hold ×
 cash lump, hold × recycle, hold × inherited ISA, longevity × GIA, UFPLS × GIA, phased PCLS × GIA,
@@ -181,7 +181,7 @@ new page (Strategies → Background) and the version chips were built alongside 
 
 - The sleeve's gilt share grows at the engine's nominal bond return, not at the real-yield curve
   the ladder strategies price on. Adequate for a sleeve; revisit if the GIA gilt ladder becomes a
-  first-class strategy (Chris's house-sale ladder idea).
+  first-class strategy (the house-sale ladder idea).
 - Losses in the sleeve are not carried forward (basis is clamped to value on entry).
 - The Decision tool does not yet model the sleeve's dividend/interest tax as a monthly cash
   flow — it is reported as an annual estimate paid out of the account.

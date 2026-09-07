@@ -56,6 +56,12 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
 ## Now → Next → Later
 
 ### 🔵 Now
+- **v6.2.0 "Trustworthy comparisons" — the QA audit fixes.** `research/qa-audit-7-sep-2026.md` (7 Sep
+  2026): 8 bugs (horizon corrupted by the Drawdown/Glidepath tabs; P&V == Buckets in the ranked table
+  for Buckets plans; worst-12 ignores lump/DB income; "cut after undefined"; stuck spinner; stalled save
+  with no timeout; stale strategy card; delete trips the duplicate guard), 4 gotchas (silent preset snap
+  of saved fund minimums — data-changing; invisible age-today; Buckets + cuts; no-SP £12k default), 2
+  main-thread freezes, 7 cosmetics. Numbered plan with tests in the audit doc; ship under RELEASING.md.
 - **[0] STATUS UPDATE (16 Aug 2026 audit):** unification is ~70% done — tax, planDrawdown,
   protection DETECTION, tax-boost, glidepath, inflation, spending smile and the ISA pot are all
   shared modules called by BOTH live engines, and the central bug (stress modelling a different

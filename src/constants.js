@@ -6,7 +6,10 @@
 // ============================================================================
 // VERSION
 // ============================================================================
-export const VERSION = '6.0.0';
+// The ONE version source is package.json (see RELEASING.md). Vite's JSON named exports ship only
+// this string; vitest resolves it the same way, so the release test can hold both to it.
+import { version as PKG_VERSION } from '../package.json';
+export const VERSION = PKG_VERSION;
 
 // ============================================================================
 // TAX DEFAULTS (UK 2024/25)

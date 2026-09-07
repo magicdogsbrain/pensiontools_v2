@@ -101,3 +101,10 @@ AshworthEnterprises workspace (`compliance/DATA_PROCESSING_RECORD.md`).
 - Headers (Cloudflare `_headers`): CSP in report-only mode (inline handlers still require 'unsafe-inline'), nosniff, referrer-policy, X-Frame-Options, permissions-policy. TODO: review CSP reports, then enforce.
 - Privacy contact changed from a personal address to privacy@usefulish.uk — **create/forward this mailbox**.
 - Personal financial documents moved out of the repo folder to ../pensiontools_private_docs/.
+
+## Release notes & app preferences — 7 Sep 2026 (done)
+- New data category **App preferences**: `users/{uid}/profile/settings.lastSeenVersion` (the last
+  release whose notes the user has seen) — covered by the existing `users/{uid}/**` rule and by
+  `wipeAllUserData`. Policy updated (table row + "Storage in your browser" paragraph, which also
+  documents the pre-existing localStorage/sessionStorage items: idle timer, dismissed banners,
+  guest-tab plan). No new processor, no analytics.

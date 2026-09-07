@@ -25,10 +25,20 @@ saved-data flow, consult these first.
   Auth** (email/password + Google) and **Cloud Firestore**.
 - Firestore layout: `users/{uid}/scenarios/{scenarioId}` — a "scenario" is a saved plan that
   **embeds** the user's financial data (decision tool settings + dated history of real pot values,
-  stress tool, budget tool). `users/{uid}/profile/settings` exists in code but is currently unused.
+  stress tool, budget tool). `users/{uid}/profile/settings` holds per-user preferences only
+  (`lastSeenVersion` for the once-only release-notes pop-up); it is wiped with the account.
 - Key files: `src/firebase/{config,AuthService,FirestoreService}.js`,
   `src/storage/{Scenario,Decision,Budget}Repository.js`, `src/models/Decision.js`,
   `src/services/BudgetModel.js`, `src/ui/components/AuthPanel.js`, `index.html`.
-- Hosting: GitHub Pages (static build in `docs/`).
+- Hosting: the static build in `docs/` is served by Cloudflare Pages at **pensiontools.uk** (manual
+  deploy, see `RELEASING.md`) and mirrored by GitHub Pages.
 - **Note:** the repo `README.md` wrongly says data is stored in browser localStorage — it is not;
   everything is in Firestore behind login. Don't rely on the README for the data model.
+
+## Releases (read `RELEASING.md` before shipping anything user-visible)
+Every user-visible change ships under a **version bump with a release note**: `package.json` is the
+one version source (`src/constants.js` imports it); the note is an entry in `src/releases.js`
+(changes, corrections, per-tool effects on saved plans, actions, notes, optional `affects(scenario)`)
+that `tests/releases.test.js` enforces — a bump without notes, or notes without a bump, fails the
+suite. Minor/major releases pop up once per user (signed in: profile doc; guest: localStorage);
+every release is listed under Strategies → Background → What's new. Tag `vX.Y.Z`, push, deploy.

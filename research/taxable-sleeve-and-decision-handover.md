@@ -171,6 +171,12 @@ one-off spend × GIA, gilt × higher band, object mix, malformed / out-of-range 
   for windfall advice is the first tax year set up in the Decision tool; if that differs from the
   Stress plan's "now", a lump's year is off by the difference.
 
+## 4d. Shipped as v6.1.0 with release notes (7 Sep)
+
+This work is the first entry in `src/releases.js`; the once-only "What's new" pop-up, the What's
+new page (Strategies → Background) and the version chips were built alongside it. Process in
+`RELEASING.md`; the test suite enforces bump ⇔ notes.
+
 ## 5. Still open (found, not fixed — deliberately)
 
 - The sleeve's gilt share grows at the engine's nominal bond return, not at the real-yield curve

@@ -33,7 +33,7 @@ export function suggestSteps(step1Amount, ageNow, essentials = 0) {
  * `other` = [{ annual, fromAge, toAge, label }] — DB pensions / other taxable income. The bar is drawn
  * bottom-up: State Pension (yellow), other income (grey), and what the pension pot must supply on top.
  */
-export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, budgetGross = 0, sp = null, other = [], prevVals = null, floorVals = null }, o = {}) {
+export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, budgetGross = 0, sp = null, other = [], prevVals = null, floorVals = null, events = [] }, o = {}) {
   const W = o.width || 960, H = o.height || 240, padL = 56, padR = 16, padT = 26, padB = 34;
   const n = Math.max(1, horizonAge - ageNow + 1);
   // Floored at the guaranteed income of the year (State Pension + other income): a target below
@@ -67,6 +67,16 @@ export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, 
   // The glide line: the shape's own path over the bar tops (steps look like steps, slopes like slopes).
   const pts = (arr) => arr.map((v, i) => `${(padL + i * colW + colW / 2).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   s += `<polyline data-line="1" data-target="${esc(pts(vals))}" points="${pts(start)}" fill="none" stroke="var(--text,#eee)" stroke-width="2" stroke-linejoin="round" opacity=".9"/>`;
+  // Dated events: a lump sum arriving (▲, lands in the pots) or a one-off spend leaving (▼). Vertical
+  // marker at the age, label near the top, alternating heights so neighbours do not overlap.
+  const gbpFull = (v) => v >= 1000000 ? '£' + (v / 1000000).toFixed(v % 1000000 ? 1 : 0) + 'M' : gbpK(v);
+  (events || []).filter((e) => e && e.amount > 0 && e.age >= ageNow && e.age <= horizonAge).sort((a, b) => a.age - b.age).forEach((e, k) => {
+    const i = e.age - ageNow; const xm = padL + i * colW + colW / 2; const col = e.kind === 'out' ? '#f97316' : '#34d399';
+    const ty = padT + 12 + (k % 3) * 12;
+    const label = (e.kind === 'out' ? '▼ ' : '▲ ') + gbpFull(e.amount) + ' ' + e.label + (e.kind === 'out' && e.years > 1 ? ' (' + e.years + ' yrs)' : '');
+    s += `<line data-event="1" x1="${xm.toFixed(1)}" y1="${(ty + 4).toFixed(1)}" x2="${xm.toFixed(1)}" y2="${y0}" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 3" opacity=".9"/>`;
+    s += `<text x="${(xm + 4).toFixed(1)}" y="${ty.toFixed(1)}" font-size="10" fill="${col}"${xm > W * 0.7 ? ' text-anchor="end"' : ''}${xm > W * 0.7 ? ` dx="-8"` : ''}>${esc(label)}</text>`;
+  });
   if (essentials > 0) s += `<line x1="${padL}" y1="${y(essentials).toFixed(1)}" x2="${W - padR}" y2="${y(essentials).toFixed(1)}" stroke="var(--text,#eee)" stroke-dasharray="5 3" opacity=".8"/><text x="${W - padR}" y="${(y(essentials) - 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text,#eee)">your essentials ${gbpK(essentials)} (from the budget)</text>`;
   if (budgetGross > 0) s += `<line x1="${padL}" y1="${y(budgetGross).toFixed(1)}" x2="${padL + colW * 3}" y2="${y(budgetGross).toFixed(1)}" stroke="#facc15" stroke-width="2"/><text x="${(padL + colW * 3 + 4).toFixed(1)}" y="${(y(budgetGross) + 3).toFixed(1)}" font-size="10" fill="#facc15">today's budget ${gbpK(budgetGross)}</text>`;
   for (let i = 0; i < n; i += 5) s += `<text x="${(padL + i * colW + colW / 2).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">age ${ageNow + i}</text>`;

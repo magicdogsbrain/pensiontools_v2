@@ -35,6 +35,20 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.5', date: '2026-09-08', engineVersion: '6.2.0',
+    title: 'Income streams, lump sums and one-off spends on the income shape',
+    summary: 'The income-shape picture now draws your income streams (rent, part-time work) as layers for their years, and marks each lump sum and one-off spend at the age it happens. Editing them refreshes the picture at once.',
+    changes: [
+      'Income streams appear as grey layers inside the bars for the years they run, like the DB pension.',
+      'Lump sums (▲) and one-off spends (▼) are marked at their age with the amount and label. A lump sum is not income — it lands in your pots or taxable account and the strategies spend it over the years — so it is a marker, not a layer.',
+      'Changing anything under Income streams & lump sums redraws the picture immediately.'
+    ],
+    corrections: ['Streams were counted in the schedule\'s guaranteed-income floor but not drawn, so the picture and the arithmetic disagreed.'],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: [],
+    notes: []
+  },
+  {
     version: '6.2.4', date: '2026-09-07', engineVersion: '6.2.0', announce: true,
     title: 'The income shape shows its slopes — and never dips below your State Pension',
     summary: 'The income-shape picture now draws the slope of every step and animates to the new shape when you move a slider; the schedule can never fall below the guaranteed income of the year (State Pension, DB pension, other income); and an audit confirmed every engine, strategy and projection reads the same sloped schedule.',

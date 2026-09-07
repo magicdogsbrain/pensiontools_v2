@@ -8014,11 +8014,17 @@
         else { const sa = +document.getElementById('ssSpAnnualAmount')?.value || 0; if (sa > 0 && cfgSp) sp = { annual: sa, fromAge: ageNow + cfgSp.spStartYear }; }
         const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
         const db = +document.getElementById('ssDbAmount')?.value || 0; if (db > 0) other.push({ annual: db, fromAge: ageNow + (+document.getElementById('ssDbStartYear')?.value || 0), label: 'DB pension' });
+        // Income streams (rent, part-time work…) are guaranteed-income layers for their years.
+        for (const r of (window._ssExtraIncomes || [])) if (r && r.annual > 0) other.push({ annual: +r.annual, fromAge: ageNow + (+r.startYear || 0), toAge: r.endYear == null ? 999 : ageNow + (+r.endYear), label: r.label || 'income stream' });
       } catch (e) { /* layers are optional */ }
+      // Lump sums land in the pots (not income) and one-off spends leave them: shown as dated markers.
+      const events = [];
+      for (const w of (window._ssWindfalls || [])) if (w && w.amount > 0 && w.year != null) events.push({ age: ageNow + (+w.year), amount: +w.amount, label: w.label || 'lump sum', kind: 'in' });
+      for (const w of (window._ssExtraWithdrawals || [])) if (w && w.amount > 0 && w.year != null) events.push({ age: ageNow + (+w.year), amount: +w.amount, label: w.label || 'one-off spend', kind: 'out', years: +w.years || 1 });
       const prevVals = (window._shapePrev && window._shapePrev.key === ageNow + ':' + dur) ? window._shapePrev.vals : null;
       const floorVals = Array.from({ length: dur }, (_, y) => guaranteedAtYear(y));
       const flooredYears = Array.from({ length: dur }, (_, y) => y).filter((y) => amountAtAge(steps, ageNow + y, 0) < floorVals[y]);
-      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other, prevVals, floorVals });
+      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other, prevVals, floorVals, events });
       window._shapeFlooredFrom = flooredYears.length ? ageNow + flooredYears[0] : null;
       // Animate from the shape that was showing to the new one (bars and the glide line ease over ~½ s).
       const finalVals = animateIncomeShape(box.querySelector('svg'));
@@ -9500,21 +9506,22 @@
           + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmExtraWithdrawal(' + i + ')">✕</button></div>';
       });
       box.innerHTML = html || '<p class="hint" style="margin:4px 0 0;">None yet — everything comes from the pots, State Pension and DB above.</p>';
+      callIfDefined('renderIncomeShapePreview');   // streams, lump sums and one-off spends are drawn on the income shape
     };
     window.addExtraIncome = function () { (window._ssExtraIncomes = window._ssExtraIncomes || []).push({ indexation: 'lpi5' }); renderExtraIncomes(); };
     window.addExtraWithdrawal = function () { (window._ssExtraWithdrawals = window._ssExtraWithdrawals || []).push({ indexation: 'cpi', years: 1 }); renderExtraIncomes(); };
-    window.updExtraWithdrawal = function (i, k, v) { if (window._ssExtraWithdrawals?.[i]) window._ssExtraWithdrawals[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
+    window.updExtraWithdrawal = function (i, k, v) { if (window._ssExtraWithdrawals?.[i]) window._ssExtraWithdrawals[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); callIfDefined('renderIncomeShapePreview'); };
     window.rmExtraWithdrawal = function (i) { window._ssExtraWithdrawals.splice(i, 1); renderExtraIncomes(); };
     window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
-    window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); };
+    window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); callIfDefined('renderIncomeShapePreview'); };
     window.rmExtraIncome = function (i) { window._ssExtraIncomes.splice(i, 1); renderExtraIncomes(); };
     window.updWindfall = function (i, k, v) {
       const r = window._ssWindfalls?.[i]; if (!r) return;
       r[k] = (k === 'label' || k === 'wrapper' || k === 'mix') ? v : k === 'toIsa' ? !!v : (v === '' ? null : +v);
       // Never re-render the row while the user is typing in it (that destroyed the amount box after
       // one digit): the amount only refreshes its own note; a select change can rebuild the row.
-      if (k === 'amount') { const n = document.getElementById('windfallNote' + i); if (n) n.innerHTML = r.amount > 0 ? windfallSplitNote(r) : ''; return; }
-      if (k === 'wrapper' || k === 'mix') renderExtraIncomes();
+      if (k === 'amount') { const n = document.getElementById('windfallNote' + i); if (n) n.innerHTML = r.amount > 0 ? windfallSplitNote(r) : ''; callIfDefined('renderIncomeShapePreview'); return; }
+      if (k === 'wrapper' || k === 'mix') renderExtraIncomes(); else callIfDefined('renderIncomeShapePreview');
     };
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 

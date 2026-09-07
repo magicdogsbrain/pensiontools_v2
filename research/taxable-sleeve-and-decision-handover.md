@@ -114,8 +114,8 @@ proves the allowance refactor is neutral when nothing else uses the allowance).
   `seedDecisionFromStress` / `seedStressFromDecision` copy `taxableStart, taxableMix,
   giaTaxBand, bedAndIsa, relevantEarnings, windfalls` both ways (the D1 silent-drop trap).
 
-Tests: `tests/DecisionGia.test.js` (9), `tests/ladderWindfall.test.js` (4), additions to
-`tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 588 tests.
+Tests: `tests/DecisionGia.test.js` (9), `tests/ladderWindfall.test.js` (5), additions to
+`tests/SimulationEngine.test.js` and `tests/TaxableSleeve.test.js`. Suite: 69 files, 592 tests.
 
 **Verified 7 Sep (morning), in the browser against the dev server**, not only in vitest: both engines
 imported into the running app. Decision: £200k GIA (basis £100k, exemption already used) pays the
@@ -125,6 +125,25 @@ sleeve pays nil tax, share sleeve £2,549, ISA lasts longer beside a sleeve, an 
 never touches the sleeve. Two corrections made: a sub-penny ISA residual after the sleeve paid the
 whole top-up (now exactly 0), and the methodology page's "GIA not modelled" row. The signed-in UI
 walk-through (Monthly Entry → Save → next month's basis pre-fill) still needs a real account.
+
+## 4b. Follow-ups from Chris's review, 7 Sep
+
+- **Help pop-ups were dead.** The eight new ⓘ hints used a bare `title` attribute (native tooltip,
+  hover-delay only, nothing on touch) while the app's working mechanism is `.hlp[data-tip]` +
+  `initHelpTips()`, which was only initialised after a stress run. All eight now use `.hlp`, and
+  `initHelpTips()` runs at start-up.
+- **Every strategy sees an existing GIA.** `taxableStart` only reached the P&V engine (its sleeve);
+  the bought strategies priced on the SIPP (+ISA) alone. `lumpyByYear` now adds the existing GIA to
+  `windfallByYear[0]`, so it buys the first rungs exactly like a lump arriving in year 0 and the
+  unspent carry counts as wealth. No double count: `pnvCfg` keeps the raw schedule and its own
+  `taxableStart`. Test in `ladderWindfall.test.js`.
+- **A lump sum carries its own holding.** A windfall (e.g. an inheritance 10 years in) has a
+  "taxable part held as" select (same as the account / shares / gilts / bonds / mixed / cash;
+  shown for cash lumps only — inherited pensions and ISAs have no taxable part). `addToSleeve`
+  blends the sleeve's mix by value, so a house sale parked in gilts beside an inherited share
+  portfolio is taxed faithfully (half CGT-free, not all-or-nothing). Windfall `mix` field; the
+  Decision-tool advice names the holding. Tax band, earnings and bed-and-ISA stay plan-level —
+  they describe the person, not the lump.
 
 ## 5. Still open (found, not fixed — deliberately)
 

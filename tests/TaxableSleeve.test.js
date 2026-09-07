@@ -133,3 +133,20 @@ describe('bed and ISA', () => {
     expect(years).toBeLessThanOrEqual(5);
   });
 });
+
+describe('adding money held differently blends the sleeve mix by value', () => {
+  it('£100k of gilts into £100k of shares = half-and-half; CGT on a later sale is halved', () => {
+    const s = newSleeve(100000, EQ); growSleeve(s, 2);            // 200k, basis 100k, all shares
+    addToSleeve(s, 200000, 'gilt');                              // 400k, basis 300k
+    expect(s.mix.equity).toBeCloseTo(0.5, 9);
+    expect(s.mix.gilt).toBeCloseTo(0.5, 9);
+    const r = withdrawFromSleeve(s, 40000, 'basic', 3000);       // gain 10k, only the share half chargeable
+    expect(r.cgt).toBeCloseTo(10000 * 0.5 * 0.18, 6);
+  });
+  it('no mix given = held like the existing account (unchanged behaviour)', () => {
+    const s = newSleeve(100000, GILT); addToSleeve(s, 50000);
+    expect(s.mix).toEqual({ equity: 0, bond: 0, gilt: 1, cash: 0 });
+    const e = newSleeve(0, EQ); addToSleeve(e, 50000, 'gilt');   // an empty sleeve simply takes the new money's mix
+    expect(e.mix.gilt).toBe(1);
+  });
+});

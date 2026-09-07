@@ -105,9 +105,19 @@ export function withdrawFromSleeve(sleeve, amount, band = 'basic', cgtUsed = 0) 
   return { taken: take, cgt, net: take - cgt, cgtUsed: cgtUsed + Math.min(chargeable, exemptLeft) };
 }
 
-/** Add money (a windfall, or a contribution). New money carries its own cost basis. */
-export function addToSleeve(sleeve, amount) {
+/**
+ * Add money (a windfall, or a contribution). New money carries its own cost basis. If it is held
+ * differently from what the sleeve already holds (`mix`: a one-word choice or {equity,bond,gilt,cash}),
+ * the sleeve's mix becomes the value-weighted blend — one sleeve, faithfully taxed: a house sale
+ * parked in gilts beside an inherited share portfolio is mostly CGT-free, not all-or-nothing.
+ */
+export function addToSleeve(sleeve, amount, mix = null) {
   if (!(amount > 0)) return sleeve;
+  if (mix != null && mix !== '') {
+    const add = mixFromChoice(mix), old = sleeve.mix, v0 = Math.max(0, sleeve.value), tot = v0 + amount;
+    sleeve.mix = { equity: 0, bond: 0, gilt: 0, cash: 0 };
+    for (const k of Object.keys(sleeve.mix)) sleeve.mix[k] = (v0 * (old[k] || 0) + amount * (add[k] || 0)) / tot;
+  }
   sleeve.value += amount; sleeve.basis += amount;
   return sleeve;
 }

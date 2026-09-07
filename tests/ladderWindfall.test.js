@@ -47,6 +47,26 @@ describe('windfalls reach the bought strategies', () => {
     expect(plan(base).windfallCarryByYear).toBeNull();
   });
 
+  it('an EXISTING taxable account (GIA) is day-one money for every bought strategy — not only the P&V engine', () => {
+    const with_ = plan({ ...base, taxableStart: 120000 });
+    expect(with_.windfallByYear[0]).toBe(120000);
+    expect(with_.targetSchedule[0]).toBe(0);                                   // it buys the first rungs
+    expect(with_.targetSchedule[1]).toBe(0);
+    expect(with_.targetSchedule[2]).toBe(0);                                   // 3 × £40k
+    expect(with_.targetSchedule[3]).toBe(with_.needByYear[3]);
+    expect(with_.windfallCarryByYear[0]).toBe(80000);
+    expect(with_.pnvCfg.taxableStart).toBe(120000);                            // P&V holds it as its sleeve (no double count: pnvCfg keeps the raw schedule)
+    const without = plan(base);
+    let checked = 0;
+    for (const id of ['full-il-gilt', 'floor-the-schedule', 'ladder-and-ratchet', 'floor-to-age']) {
+      const a = stressTestStrategy(id, without), b = stressTestStrategy(id, with_);
+      if (!a.affordable || !b.affordable) continue;
+      expect(b.terminal.p50, id).toBeGreaterThan(a.terminal.p50);
+      checked++;
+    }
+    expect(checked).toBeGreaterThanOrEqual(3);
+  });
+
   it('every bought strategy is better off with the lump — and the P&V engine still handles it itself', () => {
     const without = plan(base);
     const with_ = plan({ ...base, windfalls: [{ year: 5, amount: 150000 }] });

@@ -571,7 +571,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         const parts = [];
         if (split.toIsa > 0) parts.push(gbp(split.toIsa) + ' into your ISA (this year\'s unused allowance)');
         if (split.toSipp > 0) parts.push(gbp(split.toSipp) + ' gross into your SIPP (the most the rules allow' + (settings.relevantEarnings > 0 ? '' : ' with no earnings') + ')');
-        if (split.toGia > 0) parts.push(gbp(split.toGia) + ' has to stay in a taxable account (GIA) — add it to the taxable balance you enter here; it is drawn before the ISA and moved into the ISA each April');
+        if (split.toGia > 0) parts.push(gbp(split.toGia) + ' has to stay in a taxable account (GIA' + (w.mix ? ', held as ' + ({ equity: 'shares', gilt: 'gilts, CGT-free', bond: 'bond funds', balanced: 'a 60/20/20 mix', cash: 'cash' })[w.mix] || w.mix : '') + ') — add it to the taxable balance you enter here; it is drawn before the ISA and moved into the ISA each April');
         alerts.push({ message: (w.label || 'Lump sum') + ' of ' + gbp(amount) + ' expected this plan year: ' + parts.join('; ') + '.', severity: 'info', type: 'windfall' });
       }
       // Bed-and-ISA: with money in the taxable account and ISA allowance unused, move it — advised

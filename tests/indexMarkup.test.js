@@ -4,9 +4,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '');
+const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '');
 const doc = new JSDOM(html).window.document;
 
 describe('tab panels are siblings, each with its own ribbon', () => {

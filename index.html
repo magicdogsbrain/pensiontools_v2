@@ -2017,9 +2017,30 @@
       bottom: 8px;
       right: 12px;
       font-size: 11px;
-      color: rgba(255,255,255,0.25);
-      pointer-events: none;
+      color: rgba(255,255,255,0.35);
+      background: none; border: none; cursor: pointer; padding: 4px 8px;
     }
+    .version:hover { color: var(--text); }
+    /* Header version chip + the once-only What's-new pop-up / page (src/releases.js) */
+    .version-chip { font-size: 11px; padding: 2px 8px; margin-right: 8px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+    .version-chip:hover { color: var(--text); }
+    .version-chip.unseen::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 6px; vertical-align: middle; }
+    #mobileTabBar button.unseen { position: relative; }
+    #mobileTabBar button.unseen::after { content: ''; position: absolute; top: 4px; right: 22%; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+    .rn-title { margin: 0 0 6px; }
+    .rn-release h3 { margin: 10px 0 4px; font-size: 16px; }
+    .rn-release h3 .hint, .rn-details summary .hint { font-weight: normal; }
+    .rn-summary { color: var(--text-muted); margin: 0 0 8px; }
+    .rn-section { margin: 10px 0; }
+    .rn-h { font-weight: 600; margin-bottom: 4px; }
+    .rn-list { margin: 0 0 6px 18px; padding: 0; color: var(--text-muted); }
+    .rn-list li { margin: 2px 0; }
+    .rn-tool, .rn-plan { margin: 6px 0; }
+    .rn-plan { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-alt); }
+    .rn-details { margin: 10px 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; }
+    .rn-details summary { cursor: pointer; }
+    .rn-reconstructed { opacity: .85; }
+    .rn-history-h { margin-top: 18px; }
   </style>
 
     <style id="mobileShell">
@@ -2035,6 +2056,7 @@
       .header .scenario-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
       .header .scenario-dropdown { left: 0; transform: none; min-width: min(320px, 92vw); }
       .header .header-actions { display: none; }
+      .version { display: none; }   /* sits behind the bottom tab bar on phones; the More sheet has the entry */
       #mobileMenuBtn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; }
       /* main tabs move to the bottom bar */
       .tabs-wrapper { display: none; }
@@ -2171,6 +2193,7 @@
         </div>
         <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
         <span id="betaChip" style="display:inline-block;margin:0 8px;padding:1px 7px;border:1px solid rgba(245,158,11,.6);border-radius:999px;color:#f59e0b;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;opacity:.85;" title="Work in progress: numbers change as the models improve. Not financial advice.">Beta</span><div class="header-actions">
+          <button type="button" id="versionChip" class="version-chip" data-on-click="openWhatsNew()" title="What changed in this version">v…</button>
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
             <button class="logout-btn" id="adminGearBtn" style="display:none;" title="Administration" data-on-click="openAdminPanel()">&#9881;</button>
@@ -3558,6 +3581,7 @@
             <div class="strat-nav-group">Background</div>
             <button type="button" class="strat-nav-item" data-page="gilts" data-on-click="showStrategyPage('gilts')">Gilt ladders explained</button>
             <button type="button" class="strat-nav-item" data-page="assumptions" data-on-click="showStrategyPage('assumptions')">Assumptions &amp; data</button>
+            <button type="button" class="strat-nav-item" data-page="whatsnew" data-on-click="showStrategyPage('whatsnew')">What's new</button>
           </nav>
           <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -3844,7 +3868,7 @@
   <div id="chartTooltip"></div>
 
   <!-- Version display -->
-  <div class="version" id="versionDisplay">Loading...</div>
+  <button type="button" class="version" id="versionDisplay" aria-label="What's new in this version" data-on-click="openWhatsNew()">Loading...</button>
 
   <!-- Application Script -->
   <script type="module">
@@ -4035,6 +4059,9 @@
     // Expose for optimization
     installInlineHandlers();   // data-on-* delegated handlers (no inline script: strict CSP)
     initHelpTips();            // the "?" help pop-ups on the settings forms work from first load, not only after a stress run
+    // Nothing registers sw.js any more, but an old install may still hold a cache-first worker that
+    // would keep serving the previous bundle (and its version). Remove it so a reload fetches fresh.
+    try { navigator.serviceWorker?.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {}); } catch (e) { /* no SW support */ }
     window.wizRetiredToggle = function (labelId, checked) { const l = document.getElementById(labelId); if (l) l.textContent = checked ? 'Age you retired' : 'Target retirement age'; };
     window.setDisplay = function (id, v) { const e = document.getElementById(id); if (e) e.style.display = v; };
     window._simEngine = { runMonteCarlo, runHistorical, simulate, monteCarloReturns };   // engine functions only (no data); the second inline module reads them
@@ -4093,7 +4120,11 @@
 
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
-    import { hasCloudData, wipeAllUserData } from './src/firebase/FirestoreService.js';
+    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile } from './src/firebase/FirestoreService.js';
+    // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
+    import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
+    import { RELEASE_HISTORY } from './src/releases-history.js';
+    import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     // Import charts module
     import {
@@ -4200,7 +4231,7 @@
     }
 
     // Display version
-    document.getElementById('versionDisplay').textContent = `v${VERSION}`;
+    refreshVersionChips();
 
     // Set default month
     document.getElementById('entryMonth').value = getCurrentMonth();
@@ -4817,10 +4848,12 @@
           console.log('Existing user - showing main app');
           hideLandingPage();
           showMainApp(user);
+          maybeAnnounceRelease({ isGuestUser: false, hasData: true });
         } else {
           // New user - show onboarding page
           console.log('New user - showing onboarding page');
           showOnboarding(user);
+          maybeAnnounceRelease({ isGuestUser: false, hasData: false });   // sets the seen marker; nothing to announce to a new user
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
@@ -4872,6 +4905,7 @@
         }
         hideLandingPage();
         await showMainApp(user, demo.tab);
+        maybeAnnounceRelease({ isGuestUser: true, hasData: false });
         const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
         if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 300);
         showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
@@ -4956,6 +4990,91 @@
       el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
       document.body.appendChild(el);
     };
+
+    // ---- Release notes: version chips, the once-only "What's new" pop-up, the What's new page ----
+    // Data lives in src/releases.js (enforced by tests/releases.test.js; process in RELEASING.md).
+    // "Seen" = the highest app version the user has dismissed or read: localStorage first (sync,
+    // works for guests), and for signed-in users the profile doc too, so it is once across devices.
+    const SEEN_KEY = 'pt_lastSeenVersion';
+    const ANNOUNCE_TO_FIRST_VISIT_GUESTS = false;   // a first-time visitor has nothing to compare; the chip dot points at What's new
+    const WIZARD_IDS = ["setupWizard", "onboardingPage", "budWizardOverlay"];
+    function localSeen() { try { return localStorage.getItem(SEEN_KEY) || ''; } catch (e) { return ''; } }
+    function setLocalSeen(v) { try { localStorage.setItem(SEEN_KEY, v); } catch (e) { /* private mode */ } }
+    async function effectiveSeen() {
+      let seen = localSeen();
+      if (!isGuest()) {
+        try {
+          const prof = await loadUserProfile();
+          const remote = (prof && prof.lastSeenVersion) || '';
+          if (compareVersions(remote, seen) > 0) { seen = remote; setLocalSeen(seen); }
+          else if (seen && compareVersions(seen, remote) > 0) saveUserProfile({ lastSeenVersion: seen });   // guest who signed up: carry it over
+        } catch (e) { /* offline: the local marker decides */ }
+      }
+      return seen;
+    }
+    function markSeen(v) { setLocalSeen(v); if (!isGuest()) { try { saveUserProfile({ lastSeenVersion: v }); } catch (e) { /* ignore */ } } refreshVersionChips(); }
+    // A declaration (hoisted): the module's top-level load code calls this before this line runs.
+    function refreshVersionChips() {
+      const unseen = releasesSince(localSeen()).length > 0;
+      const vd = document.getElementById('versionDisplay'); if (vd) vd.textContent = 'v' + VERSION;
+      const vc = document.getElementById('versionChip'); if (vc) { vc.textContent = 'v' + VERSION + ' \u00b7 what\u2019s new'; vc.classList.toggle('unseen', unseen); }
+      const more = document.querySelector('#mobileTabBar button[data-mtab="more"]'); if (more) more.classList.toggle('unseen', unseen);
+    }
+    window.refreshVersionChips = refreshVersionChips;
+    window.openWhatsNew = function () {
+      // Set the target page BEFORE switching tabs: the tab loader renders window._stratPage itself, and a
+      // slow overview render started in parallel would otherwise overwrite this page when it finished.
+      const onTab = document.querySelector('.tab[data-tab="strategies"]')?.classList.contains('active');
+      window._stratPage = 'whatsnew';
+      if (onTab) showStrategyPage('whatsnew'); else switchToTab('strategies');
+    };
+    window.dismissWhatsNew = function () { const el = document.getElementById('whatsNewOverlay'); if (el) el.remove(); markSeen(VERSION); };
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('whatsNewOverlay')) dismissWhatsNew(); });
+    window.showWhatsNew = async function (entries) {
+      let planNotes = [], otherPlanCount = 0, enabledTools = null;
+      try {
+        enabledTools = await getActiveEnabledTools();
+        const scenarios = await listScenariosAsync();
+        const active = scenarios.find((sc) => sc.isActive) || scenarios[0];
+        if (active) planNotes = [{ name: active.planDetails?.name || active.name || 'Untitled', notes: entries.flatMap((r) => r.affects ? safeAffects(r, active) : []) }];
+        otherPlanCount = Math.max(0, scenarios.length - 1);
+      } catch (e) { /* render without plan specifics */ }
+      let el = document.getElementById('whatsNewOverlay'); if (el) el.remove();
+      el = document.createElement('div'); el.id = 'whatsNewOverlay';
+      el.style.cssText = 'position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:20px;';
+      el.innerHTML = '<div role="dialog" aria-modal="true" aria-label="What\'s new" style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:22px 26px; font-size:14px; line-height:1.55;">'
+        + whatsNewHtml(entries, { enabledTools, planNotes, otherPlanCount })
+        + '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; position:sticky; bottom:-22px; background:var(--card); padding:10px 0 4px;">'
+        + '<button type="button" data-on-click="dismissWhatsNew()">Got it</button>'
+        + '<button type="button" class="risk-btn" data-on-click="dismissWhatsNew(); openWhatsNew();">See all versions</button>'
+        + '</div></div>';
+      el.addEventListener('click', (e) => { if (e.target === el) dismissWhatsNew(); });
+      document.body.appendChild(el);
+    };
+    async function whatsNewPageHtml() {
+      let plans = [], enabledTools = null;
+      try {
+        enabledTools = await getActiveEnabledTools();
+        const scenarios = await listScenariosAsync();
+        plans = scenarios.map((sc) => ({ name: sc.planDetails?.name || sc.name || 'Untitled', scenario: sc }));
+      } catch (e) { /* page still renders */ }
+      if (releasesSince(localSeen()).length) markSeen(VERSION);   // reading the page counts as seen
+      return versionsPageHtml(RELEASES, RELEASE_HISTORY, { currentVersion: VERSION, plans, enabledTools });
+    }
+    // Called from exactly two boot paths (signed-in success, guest start) — never from showMainApp,
+    // which the wizards also call. New users and first-visit guests get the marker set silently.
+    async function maybeAnnounceRelease({ isGuestUser, hasData }) {
+      try {
+        if (window._pendingDemo !== undefined) { refreshVersionChips(); return; }   // a demo boot is about the demo
+        const seen = await effectiveSeen();
+        if (!seen && (isGuestUser ? !ANNOUNCE_TO_FIRST_VISIT_GUESTS : !hasData)) { markSeen(VERSION); return; }
+        const rels = releasesSince(seen);
+        refreshVersionChips();
+        if (!rels.length) return;
+        const blocked = () => WIZARD_IDS.some((id) => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.offsetParent !== null; }) || !!document.getElementById('planLockExplainer');
+        setTimeout(() => { if (!blocked()) showWhatsNew(rels); }, 600);
+      } catch (e) { console.error('release announce', e); }
+    }
 
     async function renderScenarioSelector() {
       const scenarios = await listScenariosAsync();
@@ -7806,7 +7925,8 @@
     function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
     window.openMobileMore = function () {
       const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
-      openSheet('<button type="button" data-on-click="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
+      openSheet('<button type="button" data-on-click="closeMobileSheet(); openWhatsNew();">&#127381; What\'s new (v' + VERSION + ')</button>'
+        + '<button type="button" data-on-click="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
         + (vis('household') ? '<button type="button" data-on-click="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
         + '<button type="button" data-on-click="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>');
     };
@@ -8750,14 +8870,17 @@
       const box = document.getElementById('stratPage');
       box.innerHTML = '<div class="loading"><div class="spinner"></div><div id="cmpProgress" class="hint" style="margin-top:8px;"></div></div>';
       await new Promise((r) => setTimeout(r, 20));
+      // Stale-render guard: a page the user has already left must not overwrite the one they opened.
+      const stale = () => window._stratPage !== id;
       try {
-        if (id === 'overview') box.innerHTML = await strategyOverviewHtml();
+        if (id === 'overview') { const html = await strategyOverviewHtml(); if (stale()) return; box.innerHTML = html; }
         else if (id === 'assumptions') box.innerHTML = assumptionsPageHtml();
+        else if (id === 'whatsnew') box.innerHTML = await whatsNewPageHtml();
         else if (id === 'gilts') { box.innerHTML = '<div class="card"><div class="section-title">Gilt ladders explained</div><div id="glxHost"></div></div>'; const src = document.getElementById('giltExplainerSource')?.firstElementChild; if (src) { const c = src.cloneNode(true); c.querySelectorAll('.number-format-overlay').forEach((o) => o.remove()); c.querySelectorAll('input[type="number"]').forEach((i) => { delete i.dataset.formatted; i.style.color = ''; }); document.getElementById('glxHost').appendChild(c); } renderGiltLadderExplainer(); }
-        else if (id === 'full-il-gilt') box.innerHTML = await fullGiltPageHtml();
-        else if (id === 'floor-to-age') box.innerHTML = await floorToAgePageHtml();
-        else if (STRATEGY_PAGES[id]) box.innerHTML = await specStrategyPageHtml(id);
-        else box.innerHTML = await genericStrategyPageHtml(id);
+        else if (id === 'full-il-gilt') { const html = await fullGiltPageHtml(); if (stale()) return; box.innerHTML = html; }
+        else if (id === 'floor-to-age') { const html = await floorToAgePageHtml(); if (stale()) return; box.innerHTML = html; }
+        else if (STRATEGY_PAGES[id]) { const html = await specStrategyPageHtml(id); if (stale()) return; box.innerHTML = html; }
+        else { const html = await genericStrategyPageHtml(id); if (stale()) return; box.innerHTML = html; }
       } catch (e) { console.error('strategy page', e); box.innerHTML = '<div class="alert alert-danger">Could not build this page: ' + budEsc(e.message) + '</div>'; }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };

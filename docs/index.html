@@ -2017,9 +2017,30 @@
       bottom: 8px;
       right: 12px;
       font-size: 11px;
-      color: rgba(255,255,255,0.25);
-      pointer-events: none;
+      color: rgba(255,255,255,0.35);
+      background: none; border: none; cursor: pointer; padding: 4px 8px;
     }
+    .version:hover { color: var(--text); }
+    /* Header version chip + the once-only What's-new pop-up / page (src/releases.js) */
+    .version-chip { font-size: 11px; padding: 2px 8px; margin-right: 8px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+    .version-chip:hover { color: var(--text); }
+    .version-chip.unseen::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 6px; vertical-align: middle; }
+    #mobileTabBar button.unseen { position: relative; }
+    #mobileTabBar button.unseen::after { content: ''; position: absolute; top: 4px; right: 22%; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+    .rn-title { margin: 0 0 6px; }
+    .rn-release h3 { margin: 10px 0 4px; font-size: 16px; }
+    .rn-release h3 .hint, .rn-details summary .hint { font-weight: normal; }
+    .rn-summary { color: var(--text-muted); margin: 0 0 8px; }
+    .rn-section { margin: 10px 0; }
+    .rn-h { font-weight: 600; margin-bottom: 4px; }
+    .rn-list { margin: 0 0 6px 18px; padding: 0; color: var(--text-muted); }
+    .rn-list li { margin: 2px 0; }
+    .rn-tool, .rn-plan { margin: 6px 0; }
+    .rn-plan { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-alt); }
+    .rn-details { margin: 10px 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; }
+    .rn-details summary { cursor: pointer; }
+    .rn-reconstructed { opacity: .85; }
+    .rn-history-h { margin-top: 18px; }
   </style>
 
     <style id="mobileShell">
@@ -2035,6 +2056,7 @@
       .header .scenario-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
       .header .scenario-dropdown { left: 0; transform: none; min-width: min(320px, 92vw); }
       .header .header-actions { display: none; }
+      .version { display: none; }   /* sits behind the bottom tab bar on phones; the More sheet has the entry */
       #mobileMenuBtn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; }
       /* main tabs move to the bottom bar */
       .tabs-wrapper { display: none; }
@@ -2125,7 +2147,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-AIdtWli9.js"></script>
+  <script type="module" crossorigin src="./assets/main-Ct8X7xTs.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2172,6 +2194,7 @@
         </div>
         <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
         <span id="betaChip" style="display:inline-block;margin:0 8px;padding:1px 7px;border:1px solid rgba(245,158,11,.6);border-radius:999px;color:#f59e0b;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;opacity:.85;" title="Work in progress: numbers change as the models improve. Not financial advice.">Beta</span><div class="header-actions">
+          <button type="button" id="versionChip" class="version-chip" data-on-click="openWhatsNew()" title="What changed in this version">v…</button>
           <div class="user-info">
             <span class="user-email" id="userEmail"></span>
             <button class="logout-btn" id="adminGearBtn" style="display:none;" title="Administration" data-on-click="openAdminPanel()">&#9881;</button>
@@ -3559,6 +3582,7 @@
             <div class="strat-nav-group">Background</div>
             <button type="button" class="strat-nav-item" data-page="gilts" data-on-click="showStrategyPage('gilts')">Gilt ladders explained</button>
             <button type="button" class="strat-nav-item" data-page="assumptions" data-on-click="showStrategyPage('assumptions')">Assumptions &amp; data</button>
+            <button type="button" class="strat-nav-item" data-page="whatsnew" data-on-click="showStrategyPage('whatsnew')">What's new</button>
           </nav>
           <div class="strat-page" id="stratPage"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -3845,7 +3869,7 @@
   <div id="chartTooltip"></div>
 
   <!-- Version display -->
-  <div class="version" id="versionDisplay">Loading...</div>
+  <button type="button" class="version" id="versionDisplay" aria-label="What's new in this version" data-on-click="openWhatsNew()">Loading...</button>
 
   <!-- Application Script -->
 </body>

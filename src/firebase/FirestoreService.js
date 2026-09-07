@@ -285,8 +285,8 @@ export async function saveUserProfile(data) {
       lastModified: new Date().toISOString()
     }, { merge: true });
   } catch (error) {
+    // Preferences only (e.g. the last release note seen): never let a failed write take the app down.
     console.error('Error saving user profile:', error);
-    throw error;
   }
 }
 

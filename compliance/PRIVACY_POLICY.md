@@ -1,6 +1,6 @@
 # PensionTools — Privacy Policy
 
-_Last updated: 27 August 2026._
+_Last updated: 7 September 2026._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
@@ -27,8 +27,16 @@ To use the saving features you create an account and log in. We process:
 | Tax details | allowances/bands you set, other taxable income, tax paid/projected | tax-efficient calculations | Contract |
 | Ages / dates | current/retirement/end ages | planning horizon | Contract |
 | Household budget | itemised spending you enter, including any health-related, dependent or partner costs | estimate your income needs | Contract |
+| App preferences | the last version whose release notes you have seen | show release notes once, not every visit | Contract |
 
-All of the above is stored against your account in **Google Cloud Firestore**. We do **not** sell
+All of the above is stored against your account in **Google Cloud Firestore**.
+
+**Storage in your browser.** The app also keeps a few small items in your browser's own storage
+(not cookies, and never sent to us): the time of your last activity (for the automatic sign-out),
+which one-off banners you have dismissed, and the last version whose release notes you have seen.
+In **guest mode** ("Just try it") your plan lives only in that browser tab's session storage and is
+discarded when the tab closes; nothing is sent anywhere. Signing out, "Reset" and "Delete Account"
+clear these items. We do **not** sell
 your data, use it for advertising, or share it for marketing.
 
 ## Who processes your data on our behalf

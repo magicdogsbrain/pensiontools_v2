@@ -35,6 +35,20 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.2.6', date: '2026-09-08', engineVersion: '6.2.0',
+    title: 'Turn a lump sum into income, if you want to',
+    summary: 'A lump sum pays for your income shape; it does not raise it. The strategies already use it (more rungs, bigger pots), but the income line only rises if you raise a step — and nothing said so. Under the picture each lump sum now says what it could support per year from its age, with a button that adds that to your steps.',
+    changes: [
+      'Under the income shape: "▲ £600,000 Sell the rental at 65 pays for the shape above — it is not added to it. Spread evenly over the 25 years left it could support about £24,000/yr more" with an "Add £24,000/yr to my income from 65" button.',
+      'The button adds a step at that age (or raises the one already there) and every later step by the same amount. The lump sum stays in the plan as the money that pays for it. Today\'s money, no growth assumed — slightly cautious, and what the ladder strategies assume too.',
+      'The same line says where the money lands that year — the ISA slice, the SIPP room, and the taxable account held as gilts (CGT-free) or shares (dividends and gains taxed) — because that is how the strategies grow and tax it while it waits to be spent.'
+    ],
+    corrections: [],
+    effects: { stress: ['Nothing changes unless you press the button; if you do, your income shape rises and every strategy prices the higher schedule against the pot plus the lump sum.'], strategies: [], decision: ['If you raise the shape, the Decision tool\'s target follows on the next Stress save (draft plans) or your next tax-year set-up (locked plans).'], household: [], budget: [], accumulation: [] },
+    actions: [],
+    notes: []
+  },
+  {
     version: '6.2.5', date: '2026-09-08', engineVersion: '6.2.0',
     title: 'Income streams, lump sums and one-off spends on the income shape',
     summary: 'The income-shape picture now draws your income streams (rent, part-time work) as layers for their years, and marks each lump sum and one-off spend at the age it happens. Editing them refreshes the picture at once.',

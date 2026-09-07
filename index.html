@@ -3118,6 +3118,7 @@
                 <div id="incomeShapePreview" class="machine-scroll"></div>
                 <div id="incomeStepsEditor" style="margin-top:8px;"></div>
                 <p id="incomeShapeNote" class="hint" style="margin:6px 0 0;"></p>
+                <div id="incomeShapeLumps"></div>
                 <div style="display:none;"><button type="button" id="shapeLevelBtn"></button><button type="button" id="shapeStepBtn"></button></div>
               </div>
               <div id="stratCopyOffer" style="display:none; margin-top:8px;">
@@ -8026,6 +8027,25 @@
       const flooredYears = Array.from({ length: dur }, (_, y) => y).filter((y) => amountAtAge(steps, ageNow + y, 0) < floorVals[y]);
       box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other, prevVals, floorVals, events });
       window._shapeFlooredFrom = flooredYears.length ? ageNow + flooredYears[0] : null;
+      // A lump sum is money to PAY for the shape, not extra spending: the strategies use it (more rungs,
+      // bigger pots) but the income line only rises if you raise a step. Say what it could support and
+      // offer to add that to the steps from its age — the user's call, never silent.
+      const lumpBox = document.getElementById('incomeShapeLumps');
+      if (lumpBox) {
+        const horizonAge = ageNow + dur - 1;
+        lumpBox.innerHTML = (window._ssWindfalls || []).map((w, i) => {
+          if (!w || !(w.amount > 0) || w.year == null) return '';
+          const age = ageNow + (+w.year); const yrs = Math.max(1, horizonAge - age + 1); if (age > horizonAge) return '';
+          const perYear = Math.round(w.amount / yrs / 100) * 100;
+          // Where it lands is what decides how it is taxed while it waits to be spent — say so.
+          let landing = '';
+          if (w.wrapper === 'pension') landing = 'It joins your SIPP (beneficiary drawdown; taxed as pension income when drawn).';
+          else if (w.wrapper === 'isa') landing = 'It joins your ISA (tax-free).';
+          else { try { const sp = routeWindfall(w, { isaAllowanceLeft: isaOnHold('ss') ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: +document.getElementById('ssRelevantEarnings')?.value || 0 }); const mixKey = w.mix || document.getElementById('ssTaxableMix')?.value || 'equity'; const mixTxt = ({ gilt: 'gilts — CGT-free, coupons taxed', equity: 'shares — dividends and gains taxed', bond: 'bond funds — interest and gains taxed', balanced: 'a 60/20/20 mix — partly taxed', cash: 'cash — interest taxed' })[mixKey] || mixKey; landing = 'That year: ' + (sp.toIsa > 0 ? gbp(sp.toIsa) + ' into the ISA, ' : '') + (sp.toSipp > 0 ? gbp(sp.toSipp) + ' into the SIPP, ' : '') + gbp(sp.toGia) + ' into the taxable account held as ' + mixTxt + '; the strategies grow and tax it accordingly.'; } catch (e) { /* no note */ } }
+          return '<div class="hint" style="margin:6px 0 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;"><span>▲ <strong>' + gbp(w.amount) + '</strong> ' + budEsc(w.label || 'lump sum') + ' at ' + age + ' pays for the shape above — it is not added to it. ' + landing + ' Spread evenly over the ' + yrs + ' years left it could support about <strong>' + gbp(perYear) + '/yr</strong> more (today\'s money, no growth, before the tax the taxable account suffers).</span>'
+            + '<button type="button" class="risk-btn" style="padding:3px 10px;font-size:12px;" data-on-click="spendLumpSum(' + i + ')">Add ' + gbp(perYear) + '/yr to my income from ' + age + '</button></div>';
+        }).join('');
+      }
       // Animate from the shape that was showing to the new one (bars and the glide line ease over ~½ s).
       const finalVals = animateIncomeShape(box.querySelector('svg'));
       if (finalVals) window._shapePrev = { key: ageNow + ':' + dur, vals: finalVals };
@@ -8035,6 +8055,22 @@
       const netMo = first ? grossToNet(+first.amount, pa, brl, hrl) / 12 : 0;
       note.innerHTML = (window._shapeFlooredFrom ? '<span style="color:var(--warning);">From age ' + window._shapeFlooredFrom + ' the shape would fall below your guaranteed income (State Pension + other income), so it is held there — the pot simply supplies nothing in those years.</span> ' : '')
         + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<strong>First step ' + gbp(+first.amount) + '/yr gross ≈ ' + gbp(Math.round(netMo)) + '/mo take-home</strong> at today\'s bands. ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+    };
+    // Turn a lump sum into income: a step at its age raised by what it supports per year, every later
+    // step raised the same. The lump-sum entry stays — it is the money that pays for the new steps.
+    window.spendLumpSum = function (i) {
+      const w = (window._ssWindfalls || [])[i]; if (!w || !(w.amount > 0) || w.year == null) return;
+      const ageNow = +document.getElementById('shapeAgeNow').value || 57; const dur = +document.getElementById('ssDuration')?.value || 35;
+      const age = ageNow + (+w.year); const yrs = Math.max(1, ageNow + dur - 1 - age + 1); const perYear = Math.round(w.amount / yrs / 100) * 100;
+      const steps = window._ssIncomeSteps || [];
+      if (!steps.length) { showToast('Set a first step first.', 'warning'); return; }
+      const atAge = Math.round(amountAtAge(steps, age, +steps[0].amount));
+      const existing = steps.find((st) => +st.fromAge === age);
+      if (existing) existing.amount = +existing.amount + perYear;
+      else { const prev = [...steps].filter((st) => +st.fromAge < age).sort((a, b) => +a.fromAge - +b.fromAge).pop(); steps.push({ fromAge: age, amount: atAge + perYear, decline: prev ? (+prev.decline || 0) : 0 }); if (prev && prev.glideToNext) prev.glideToNext = false; }
+      for (const st of steps) if (+st.fromAge > age) st.amount = +st.amount + perYear;
+      window._ssIncomeSteps = steps; renderIncomeSteps();
+      showToast('Added ' + gbp(perYear) + '/yr from age ' + age + ' — ' + gbp(w.amount) + ' spread evenly over ' + yrs + ' years. The lump sum stays in the plan as the money that pays for it. Edit the steps freely, then Save.', 'success', 7000);
     };
     window.startShapeFromBudget = async function () {
       await refreshShapeRefs();

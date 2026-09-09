@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.5.1', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Tax-year page: no target mix for gilt-ladder plans',
+    summary: 'The Tax Years page showed "This Year\'s Target Mix" — a Pots & Valves card — for plans on a gilt ladder, where there is no mix to keep. It is now hidden for contract strategies, as it already was on the monthly record.',
+    changes: [],
+    corrections: ['Tax Years → a year\'s detail no longer shows the target-mix / rebalance card for gilt-ladder plans (Full index-linked gilt ladder, Gilt ladder + rotation, Floor the schedule).'],
+    effects: { decision: ['Ladder plans only: one card fewer on the Tax Years page. Nothing else changes.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.5.0', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Lock your plan and keep the plan document',
     summary: 'When you are happy with the stress test, press "Lock plan & create the plan document" on the Stress tester\'s Settings page. Your settings freeze for both tools, and the app writes the plan document: your age against the tax years, the income steps as a picture and a table, who pays each year, the strategy verdict and cones, the pots and the shopping list, the assumptions, and how the Decision tool will run it. It is kept as the record of what you committed to, and the Decision tool shows where you are against it each month.',

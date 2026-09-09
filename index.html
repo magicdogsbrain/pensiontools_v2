@@ -13523,7 +13523,9 @@
         stageText = `Rising — year ${planYear} of ${riseYears}`;
         rebalanceMsg = `Hold ${mixText}.`;
       }
-      const allocCard = `
+      // A contract strategy (gilt ladders) has no target mix to keep — the ladder is the holding (6.5.1).
+      let stIdNow = ''; try { stIdNow = (await getActiveStrategy())?.id || ''; } catch (e) { stIdNow = ''; }
+      const allocCard = CONTRACT_IDS.includes(stIdNow) ? '' : `
         <div class="tax-year-detail-card">
           <h3>This Year's Target Mix${tentOn ? ' — Bond Tent' : ''}</h3>
           <div class="tax-year-grid">

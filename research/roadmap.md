@@ -107,6 +107,11 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Rotation card: show the two regimes (Chris, 9 Sep 2026).** Gilt ladder + rotation blends "never fires"
+  (a flat ladder, ~36% of futures on Chris's plan) with "fires" (~64%; the 75+ block rides equities) into one
+  cone and one verdict. Split them: share that rotates; income cone and terminal for each regime; the cut
+  chance stated as "given it fires, 1 in 5" as well as overall. Also state the trigger base (real total
+  return, not the price index) and the empirical 10-year odds (55% since 1871) beside the MC figure.
 - **Transition planner — "how do I actually buy it?" (Chris, 9 Sep 2026).** The Stress Tester says a
   bought strategy is affordable and prints an order sheet, but nothing bridges the portfolio someone
   HAS (accumulated funds, existing gilts, cash) to the ladder the plan wants. A new page (Strategies →

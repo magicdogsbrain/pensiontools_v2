@@ -272,6 +272,7 @@ function getDefaultTaxYearConfig() {
 
     // Mid-year start support
     grossIncomeToDate: 0,         // Taxable income before starting pension
+    taxPaidToDate: null,          // PAYE already deducted on it (null = unknown → assume it was taxed on its own)
     startMonth: 4,                // Month number (4 = April) when started
 
     // Wizard completion tracking

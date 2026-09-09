@@ -85,6 +85,8 @@ function guestList() { return guestMem || guestRead(); }
 function guestSave(list) { guestMem = list; guestWrite(list); }
 export function clearGuestData() { guestMem = null; try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { /* ignore */ } }
 export function guestHasData() { return guestList().length > 0; }
+/** A deep copy of the guest's plans — for the hand-off into an account when they sign in. */
+export function guestSnapshot() { try { return JSON.parse(JSON.stringify(guestList())); } catch (e) { return []; } }
 
 export async function loadAllScenarios() {
   if (isGuest()) return guestList().map((x) => ({ ...x }));

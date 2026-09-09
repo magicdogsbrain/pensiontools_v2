@@ -2213,7 +2213,7 @@
       <div id="mobileSheet" data-on-click="sheetBackdropClick(event, this)"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
-      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="leaveGuest()">Create a free account to keep it</button></div>
+      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
 <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
@@ -4096,7 +4096,8 @@
 
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
-    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile } from './src/firebase/FirestoreService.js';
+    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
+    import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
     import { RELEASE_HISTORY } from './src/releases-history.js';
@@ -4815,9 +4816,11 @@
       console.log('Auth success callback triggered for:', user.email);
 
       try {
+        // Guest → account hand-off first: plans stashed by keepGuestWork() become this account's plans.
+        const imported = await importGuestHandoff();
         // Check if user has existing data
         console.log('Checking for existing cloud data...');
-        const hasData = await hasCloudData();
+        const hasData = imported || await hasCloudData();
         console.log('Has cloud data:', hasData);
 
         if (hasData) {
@@ -4843,7 +4846,7 @@
      * Initialize landing page (shown first to unauthenticated visitors)
      */
     // Arriving from guest mode's "create an account" button: straight to sign-up.
-    try { if (new URLSearchParams(location.search).get('signup') === '1') setTimeout(() => { hideLandingPage(); showAuthScreenWithTab('signup'); }, 50); } catch (e) { /* ignore */ }
+    try { const q = new URLSearchParams(location.search); if (q.get('signup') === '1') setTimeout(() => { hideLandingPage(); showAuthScreenWithTab('signup'); }, 50); else if (q.get('signin') === '1') setTimeout(() => { hideLandingPage(); showAuthScreenWithTab('signin'); }, 50); } catch (e) { /* ignore */ }
     initLandingPage(document.getElementById('landingPage'), {
       onGetStarted: () => {
         hideLandingPage();
@@ -4883,6 +4886,7 @@
         hideLandingPage();
         await showMainApp(user, demo.tab);
         maybeAnnounceRelease({ isGuestUser: true, hasData: false });
+        startGuestMeter();
         const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
         if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 300);
         showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
@@ -7914,7 +7918,68 @@
       showToast('Guest mode keeps one plan in this tab. Create a free account to have more than one — it takes a minute and your plan comes with you.', 'info', 7000);
       return true;
     }
-    window.leaveGuest = function () { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname + '?signup=1'; };
+    window.leaveGuest = function () { keepGuestWork('signup'); };
+    // Guest → account: stash the guest plans in THIS browser (localStorage) so they can be copied into
+    // the account the moment sign-in succeeds; the tab's guest session is then cleared.
+    window.keepGuestWork = function (tab) {
+      try { guestStash(localStorage, guestSnapshot()); } catch (e) { /* nothing to keep */ }
+      try { clearGuestData(); leaveGuestMode(); } catch (e) {}
+      location.href = location.pathname + (tab === 'signin' ? '?signin=1' : '?signup=1');
+    };
+    // ---- Guest trial meter: active minutes across tabs and days, nudges, then a stop ----
+    let _guestMeterTimer = null;
+    function startGuestMeter() {
+      if (_guestMeterTimer) return;
+      const check = (first) => {
+        const m = first ? guestMinutes(localStorage) : guestTick(localStorage, { now: Date.now(), lastActivity: lastActivityAnyTab(), visible: document.visibilityState === 'visible' });
+        const t = document.getElementById('guestBannerText'); if (t) t.innerHTML = '<strong>Guest mode</strong> — ' + budEsc(guestBannerText(m).replace(/^Guest mode — /, '')) + ' <strong>Beta:</strong> not financial advice.';
+        if (guestBlocked(m)) { guestHardStop(); return; }
+        const nag = guestPendingNag(localStorage, m);
+        if (nag) { guestMarkNag(localStorage, nag.level); if (nag.firm) guestNagModal(nag.message); else showToast(nag.message, 'info', 9000); }
+      };
+      check(true);
+      _guestMeterTimer = setInterval(() => check(false), 60000);
+    }
+    function guestOverlay(id, title, body, buttons, closable) {
+      let el = document.getElementById(id); if (el) el.remove();
+      el = document.createElement('div'); el.id = id;
+      el.style.cssText = 'position:fixed; inset:0; z-index:1350; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; padding:20px;';
+      el.innerHTML = '<div role="dialog" aria-modal="true" style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:520px; width:100%; padding:24px 26px; font-size:15px; line-height:1.55;">'
+        + '<h2 style="margin:0 0 10px;">' + title + '</h2><p style="color:var(--text-muted); margin:0 0 14px;">' + body + '</p>'
+        + '<div style="display:flex; gap:10px; flex-wrap:wrap;">' + buttons + '</div></div>';
+      if (closable) el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+      document.body.appendChild(el);
+    }
+    function guestNagModal(message) {
+      guestOverlay('guestNag', 'Keep what you have built', budEsc(message) + ' Signing in copies your plan, budget and settings into your account — nothing is lost and nothing is sent anywhere until you do.',
+        '<button type="button" data-on-click="keepGuestWork(\'signup\')">Create a free account and keep this work</button>'
+        + '<button type="button" class="risk-btn" data-on-click="keepGuestWork(\'signin\')">I have an account — sign in</button>'
+        + '<button type="button" class="risk-btn" data-on-click="document.getElementById(\'guestNag\').remove()">Not yet</button>', true);
+    }
+    function guestHardStop() {
+      if (_guestMeterTimer) { clearInterval(_guestMeterTimer); _guestMeterTimer = null; }
+      guestOverlay('guestStop', 'Your ' + (GUEST_ALLOWANCE_MINUTES / 60) + ' free hours are used up',
+        'Guest mode is for trying the tools. To carry on — and to keep what you have built here — sign in or create a free account. Your guest plan, budget and settings are copied into your account the moment you do. Nothing is lost.',
+        '<button type="button" data-on-click="keepGuestWork(\'signup\')">Create a free account and keep this work</button>'
+        + '<button type="button" class="risk-btn" data-on-click="keepGuestWork(\'signin\')">I have an account — sign in</button>', false);
+    }
+    // After a successful sign-in: bring the guest plans in, if any were stashed. Returns true when
+    // something was imported (the account now has data whatever hasCloudData said).
+    async function importGuestHandoff() {
+      const stash = guestReadHandoff(localStorage); if (!stash) return false;
+      const n = stash.scenarios.length;
+      const ok = await appConfirm({ html: '<h3 style="margin:0 0 8px;">Bring in what you built as a guest?</h3><p style="color:var(--text-muted);">' + n + ' plan' + (n === 1 ? '' : 's') + ' from guest mode ' + (n === 1 ? 'is' : 'are') + ' waiting in this browser. Copy ' + (n === 1 ? 'it' : 'them') + ' into this account? ' + (n === 1 ? 'It' : 'They') + ' will be named "… (from guest)".</p>' }, { okLabel: 'Yes, bring ' + (n === 1 ? 'it' : 'them') + ' in', cancelLabel: 'No, start fresh' });
+      if (!ok) { guestClearHandoff(localStorage); return false; }
+      let imported = 0;
+      try {
+        const had = await hasCloudData();
+        for (let i = 0; i < stash.scenarios.length; i++) { await createScenarioDoc({ ...stash.scenarios[i], isActive: !had && i === 0 }); imported++; }
+        invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        guestClearHandoff(localStorage);
+        showToast('Brought in ' + imported + ' plan' + (imported === 1 ? '' : 's') + ' from guest mode.', 'success', 6000);
+      } catch (e) { console.error('guest hand-off', e); showToast('Could not copy your guest plans: ' + e.message + '. They are still in this browser — try again after reloading.', 'error', 8000); }
+      return imported > 0;
+    }
     window.dismissNextStep = async function () {
       try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
       document.getElementById('nextStepBanner').style.display = 'none';

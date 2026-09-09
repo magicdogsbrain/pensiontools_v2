@@ -165,3 +165,12 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   and the bridge alert on the monthly panel — covered by `tests/wizardBridge.test.js` and `tests/decisionAnchor.test.js`.
 - Guest mode on the dev server refuses "Save Settings" ("Please sign in to save settings") — check whether guest
   saving is meant to work for Stress settings (it does for scenarios). Not a 6.4.0 regression (toast pre-exists).
+- **Decision entry form did not switch to the ladder layout on first open (Chris Real, 9 Sep, production).** Equity /
+  Diversifiers visible and "Bond Funds" label although the plan is Gilt ladder + rotation; `#dsStrategyPanel` empty.
+  Calling `renderDecisionStrategyPanel()` by hand fixed it instantly, so the tab-switch call (index.html ~5661) ran
+  too early or threw silently. Reproduce: open the Decision tab straight after sign-in with the What's-new popup up.
+  Candidate fix: re-run `renderDecisionStrategyPanel()` when the Monthly Entry sub-tab is shown and after settings load.
+- **Ladder plans: entering the gilt value is a chore (Chris, 9 Sep).** AJ Bell shows a portfolio total, a cash balance and
+  CSH2 as one line; summing 22 gilt lines is not reasonable monthly. Next patch: for contract strategies the Monthly
+  Entry takes "SIPP total" + "cash & money-market" and derives the gilt value (total − cash); keep the direct box as
+  an override. Also consider remembering last month's split as the default.

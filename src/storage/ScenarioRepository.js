@@ -25,6 +25,7 @@ import {
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { defaultBudget } from '../services/BudgetModel.js';
+import { deriveTiming } from '../services/PlanTiming.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -63,6 +64,15 @@ export function getDefaultStressSettings() {
     other: 0,
     statePension: 12000,
     statePensionYear: 12,
+    // Timing (6.4.0, see services/PlanTiming.js): age today + retired / retire-at-age → the saved
+    // first tax year the plan starts in. Null until the Timing block or the setup wizard sets them;
+    // a plan without an age today keeps the old implicit "starts next April".
+    currentAge: null,
+    currentAgeAsOf: null,
+    retired: null,
+    retireAge: null,
+    firstTaxYear: null,
+    potAtRetirement: null,
     pa: TAX_DEFAULTS.PERSONAL_ALLOWANCE,
     brl: TAX_DEFAULTS.BASIC_RATE_LIMIT,
     hrl: TAX_DEFAULTS.HIGHER_RATE_LIMIT,
@@ -234,7 +244,10 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     incomeShape: s.incomeShape ?? currentDecision.incomeShape ?? null,
     incomeSteps: Array.isArray(s.incomeSteps) ? s.incomeSteps.map((x) => ({ ...x })) : (currentDecision.incomeSteps || null),
     shapeAgeNow: s.shapeAgeNow ?? currentDecision.shapeAgeNow ?? null,
-    firstTaxYear: s.firstTaxYear ?? currentDecision.firstTaxYear ?? null,
+    // The plan's start (6.4.0): the Decision tool's plan year 0 is the Stress plan's first tax year,
+    // derived from age today + retirement status. A legacy plan (no age today) leaves it unset and the
+    // Decision tool falls back to the first tax year set up.
+    firstTaxYear: (s.firstTaxYear > 0 || s.currentAge > 0) ? deriveTiming(s).firstTaxYear : (currentDecision.firstTaxYear ?? null),
     // Taxable sleeve (GIA) + the plan's windfalls: the Decision tool draws the sleeve before the
     // ISA, taxes it, and advises where each lump sum can legally go in its year. An explicit list
     // (like everything above) — a key missing here is silently dropped (audit item D1).

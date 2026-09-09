@@ -14,6 +14,7 @@ import {
   isYearSetupComplete
 } from '../storage/DecisionRepository.js';
 import { getActiveStressSettings } from '../storage/ScenarioRepository.js';
+import { decisionAnchorYear, yearOfTaxKey, taxYearKey } from './PlanTiming.js';
 
 /**
  * Checks if the Tax Year Setup Wizard should be shown
@@ -235,10 +236,11 @@ export function validateIsaInput(isaEntered, isaNeeded, brlExhausted) {
  */
 /** Other taxable income the Stress plan already carries for a tax year ('YY/YY'), today's money. */
 /**
- * Plan year 0 is THE FIRST TAX YEAR THIS USER SET UP IN THE DECISION TOOL — the year the money
- * actually starts moving. Not a calendar constant, and deliberately not the Stress plan's
- * `firstTaxYear`, which is only "the year after the plan was built": someone who models in 2026
- * and retires in 2036 would otherwise have every timed income land ten years early.
+ * FALLBACK anchor for plans that pre-date 6.4.0: the first tax year the user set up in the Decision
+ * tool. Since 6.4.0 the plan carries an explicit start (`firstTaxYear`, derived from age today and
+ * retirement status in the Stress tester's Timing block) and `PlanTiming.decisionAnchorYear` prefers
+ * it — the old objection (that the Stress value was only "the year after the plan was built") no
+ * longer holds because it is saved, not implied by today's date.
  * @param {object} allTaxYears  the Decision tool's tax-year configs, keyed "27/28"
  * @param {string} currentTaxYear  the year being set up now (used when nothing is set up yet)
  */
@@ -293,8 +295,12 @@ export async function getWizardData(selectedMonth) {
   // CPI, netted by the spending decline for THIS plan year — mirrors the Stress tester's smile.
   const prevCpi = prevYearConfig?.cpi || DECISION_ASSUMED_CPI;
   const spendingProfile = settings.spendingProfile || 'flat';
-  // Plan year (0-based) for this tax year — same anchor as legacyDecision.getYearNum (26/27 = year 0).
-  const planYear = Math.max(0, (2000 + (parseInt(taxYear.split('/')[0], 10) || 26)) - 2026);
+  // Plan year for this tax year — the plan's saved first tax year is year 0 (6.4.0, one anchor with
+  // legacyDecision). Negative = a BRIDGE year: the plan has not started, money is being spent to reach it.
+  const planStartYear = decisionAnchorYear(settings, allTaxYears, taxYear, stressSettings);
+  const planYearSigned = yearOfTaxKey(taxYear) - planStartYear;
+  const planYear = Math.max(0, planYearSigned);
+  const bridgeYear = planYearSigned < 0;
   const declineRate = spendingDeclineRateForYear(planYear, spendingProfile);
   const suggestionBase = (prevYearConfig && prevYearConfig.confirmedSalary) || settings.baseSalary;
   const chainSuggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
@@ -312,7 +318,7 @@ export async function getWizardData(selectedMonth) {
     if (sched && sched[planYear] != null) {
       let cumInf = 1;
       for (let i = 0; i < planYear; i++) {
-        const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
+        const yStr = taxYearKey(planStartYear + i);   // walk the tax years from the plan's start
         cumInf *= 1 + ((allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI);
       }
       const smile = spendingSmileFactor(planYear, settings.spendingProfile || 'flat');
@@ -320,14 +326,29 @@ export async function getWizardData(selectedMonth) {
     }
   } catch (e) { /* no stress settings / no schedule — chain fallback below */ }
 
-  const suggestedSalary = scheduleSuggestedSalary ?? chainSuggestedSalary;
-  const suggestionSource = scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
+  // BRIDGE year (before the plan starts): the plan says nothing about this year's income except the
+  // cash it set aside to reach the first April ("Bridge cash to the first April" on the gilt ladders).
+  // Suggest that spread over the months left, annualised; without it, the plan's first step.
+  let bridgeSuggestedSalary = null;
+  if (bridgeYear) {
+    const bridgeCash = +(stressSettings?.strategyParams?.bridgeCash) || 0;
+    const sched0 = Array.isArray(stressSettings?.targetSchedule) ? +stressSettings.targetSchedule[0] : 0;
+    bridgeSuggestedSalary = bridgeCash > 0 && remainingMonths > 0 ? Math.round(bridgeCash * 12 / remainingMonths)
+      : (sched0 > 0 ? sched0 : (scheduleSuggestedSalary ?? null));
+  }
+
+  const suggestedSalary = bridgeSuggestedSalary ?? scheduleSuggestedSalary ?? chainSuggestedSalary;
+  const suggestionSource = bridgeSuggestedSalary != null ? 'bridge' : scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
 
   return {
     taxYear,
     selectedMonth,
     isApril,
     remainingMonths,
+    // Where this tax year sits in the plan (6.4.0): year 0 is the plan's first tax year; negative = bridge.
+    planStartYear,
+    planYear: planYearSigned,
+    bridgeYear,
 
     // Current settings
     baseSalary: settings.baseSalary,
@@ -354,7 +375,7 @@ export async function getWizardData(selectedMonth) {
       // figure being inherited for ever. Only when the plan has no other-income at all do we fall
       // back to carrying the previous year forward (a purely hand-entered figure).
       other: hasOtherIncomePlan(stressSettings)
-        ? otherIncomeFromStress(stressSettings, taxYear, planYearBaseline(allTaxYears, taxYear))
+        ? otherIncomeFromStress(stressSettings, taxYear, planStartYear)
         : (prevYearConfig?.other || 0)
     },
 

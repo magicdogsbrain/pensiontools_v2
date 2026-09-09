@@ -372,6 +372,14 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
   // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
   // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
   let spStartYear;
+  if (+settings.firstTaxYear > 0) {
+    // 6.4.0: the plan carries its start tax year, so the SP's plan year is exact — the tax year the SP
+    // date falls in minus the plan's first tax year (the ladder has always counted this way). The
+    // first-year share is measured against 6 April for the same reason.
+    const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
+    spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear));
+    return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: spTaxYearFirstRatio(settings) ?? 1 };
+  }
   if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && settings.shapeAgeNow > Math.floor(currentAgeNow(settings, now)) && spDate.getTime() > now.getTime()) {
     // Not yet retired: plan year 0 starts on the birthday the income begins, so count birthdays.
     // The State Pension date IS a birthday (State Pension age is reached on the birthday), so the age
@@ -422,7 +430,8 @@ export function spTaxYearConfigFromSettings(settings, now = new Date()) {
   const spDate = parseStatePensionDate(settings.spStartDate);
   if (!spDate) return null;
   const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
-  const spStartYear = Math.max(0, tyStart(spDate) - tyStart(now));
+  // Plan year 0 is the plan's saved first tax year (6.4.0) — "today" only when the plan has none.
+  const spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear > 0 ? +settings.firstTaxYear : tyStart(now)));
   const yStart = new Date(tyStart(spDate), 3, 6), yEnd = new Date(tyStart(spDate) + 1, 3, 6);
   const spFirstYearRatio = Math.max(0, Math.min(1, (yEnd - spDate) / (yEnd - yStart)));
   return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio };

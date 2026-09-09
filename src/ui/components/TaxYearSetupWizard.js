@@ -223,12 +223,14 @@ function renderCpiAndSalary() {
   // CPI, netted by the real-spending decline when the plan declines — mirrors the Stress tester.
   const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
   const declineRate = wizardContext.declineRate || 0;
-  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule';
+  const fromBridge = wizardContext.suggestionSource === 'bridge';
+  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule' || fromBridge;
   const suggestedSalary = fromSchedule
     ? Math.round(wizardContext.suggestedSalary)
     : Math.round(base * (1 + currentCpi - declineRate));
   const declining = declineRate > 0;
   const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
+  const startLabel = wizardContext.planStartYear ? wizardContext.planStartYear + '/' + String(wizardContext.planStartYear + 1).slice(2) : '';
 
   return `
     <div class="wizard-step">
@@ -244,7 +246,11 @@ function renderCpiAndSalary() {
       </div>
 
       <div class="wizard-info-box" id="salaryInfoBox">
-        ${fromSchedule
+        ${fromBridge
+          ? `<p><strong>Bridge year</strong> — your plan starts in ${startLabel}, so this tax year is funded
+             by the cash you set aside to reach it. The suggestion is that bridge cash spread over the
+             months left (or, if none is set, your plan's first income step):</p>`
+          : fromSchedule
           ? `<p><strong>From your budget's plan for this year</strong> — the per-year schedule you set
              from the Budget tool (temporary costs end when they end, one-offs land in their year),
              uplifted to this year's money:</p>`
@@ -687,7 +693,10 @@ function attachListeners() {
       // decline when the plan declines — same behaviour as the Stress tester.
       const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
       const declineRate = wizardContext.declineRate || 0;
-      const suggestedSalary = Math.round(base * (1 + cpi - declineRate));
+      // A bridge-year suggestion is this year's cash spread over the months left — CPI does not move it.
+      const suggestedSalary = wizardContext.suggestionSource === 'bridge'
+        ? Math.round(wizardContext.suggestedSalary)
+        : Math.round(base * (1 + cpi - declineRate));
 
       // Update displays
       cpiDisplay.textContent = cpiPercent.toFixed(1);

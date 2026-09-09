@@ -315,7 +315,9 @@ export const decisionCases = [
   {
     name: 'glidepath depletion floor (yearNum == duration → min 0)',
     input: { dateStr: '2061-07', ...healthy },
-    deps: { settings: baseSettings, history: [], allTaxYears: { '61/62': ty() }, spInfo: noSP }
+    // The plan's anchor is explicit since 6.4.0 (it used to be a hard-coded 2026): pin it so this
+    // case still lands on plan year 35 = duration.
+    deps: { settings: { ...baseSettings, firstTaxYear: 2026 }, history: [], allTaxYears: { '61/62': ty() }, spInfo: noSP }
   },
   {
     name: 'ISA pot (Option A): SIPP to BRL + ISA top-up to target',

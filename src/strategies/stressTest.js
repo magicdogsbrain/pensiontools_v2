@@ -18,6 +18,7 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge } from './GiltRotation.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
+import { deriveTiming } from '../services/PlanTiming.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
@@ -105,12 +106,17 @@ export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
  * user saved in Settings (ladder years, bolted draw, essentials, horizon, sleeve rate) and the
  * plan's real State Pension start year — never a hard-coded "year 10".
  */
-export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge = 57 } = {}) {
+export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge } = {}) {
   const params = settings.strategyParams || {};
+  // WHEN the plan starts (one saved anchor, see PlanTiming): the first tax year, the age the steps
+  // start at, and — for someone retiring later — how much today's pots grow before then.
+  const timing = deriveTiming(settings);
+  if (!(startAge > 0)) startAge = timing.shapeAgeNow || 57;
   const alloc = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0);
   // The strategy settings can pin the SIPP/ISA totals fed to the ladder; otherwise the plan's pots.
-  const pot = params.sippTotal > 0 ? params.sippTotal : alloc;
-  const isa = params.sippTotal > 0 ? (params.isaTotal || 0) : (cfg.isaBalance || 0);
+  // A pinned total is today's money too, so it is projected to retirement like the pots (cfg already is).
+  const pot = params.sippTotal > 0 ? params.sippTotal * timing.potScale.sipp : alloc;
+  const isa = params.sippTotal > 0 ? (params.isaTotal || 0) * timing.potScale.isa : (cfg.isaBalance || 0);
   const target = settings.baseSalary || 0;
   const spWeekly = cfg.spWeeklyAmount || settings.spWeeklyAmount || 0;
   const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
@@ -153,7 +159,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April.
     spFirstYearRatioTaxYear: spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1,
-    firstTaxYear: settings.firstTaxYear || (new Date().getFullYear() + 1),
+    firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
+    yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
     pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself

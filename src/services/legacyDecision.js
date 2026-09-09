@@ -197,6 +197,11 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // tax bands. For a normal full year this collapses to the identity (12 months, £0).
       const deliverMonths = Math.max(1, Math.min(12, taxYearConfig.remainingMonths || 12));
       const preStartIncome = deliverMonths < 12 ? (grossIncomeToDate || 0) : 0;
+      // Tax already deducted on that income (6.4.1). When the wizard has it (payslips), the tax still to
+      // come is the year's total less what is paid — right for someone drawing under cumulative PAYE
+      // since April. Without it, the old assumption: the earlier income was taxed on its own bands.
+      const taxPaidToDate = taxYearConfig.taxPaidToDate;
+      const priorTax = (deliverMonths < 12 && taxPaidToDate != null && taxPaidToDate !== '') ? Math.max(0, +taxPaidToDate || 0) : calculateTax(preStartIncome, PA, BRL, HRL);
 
       // Calculate remaining ISA allocation
       const remainingIsaAllocation = Math.max(0, yearlyIsaSavingsAllocation - isaSavingsUsedSoFar);
@@ -555,14 +560,17 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Annual taxable = total SIPP + Other + State Pension + income earned before drawdown
       // started (mid-year first year) — that income consumed personal allowance/band headroom,
       // so ignoring it under-taxes every drawn month.
-      const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + OTHER + STATE + preStartIncome;
+      // In a partial first year the fixed incomes count only for the months left: the earlier months'
+      // share is already inside the income to date (6.4.1 — it was double-counted before).
+      const fixedShare = deliverMonths / 12;
+      const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + (OTHER + STATE) * fixedShare + preStartIncome;
 
       // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.
       const annualTax = calculateTax(annualTaxable, PA, BRL, HRL);
 
       // Monthly tax: the drawdown months carry the year's tax NET of what the pre-start income
       // would owe on its own, spread evenly over the months actually drawn.
-      const monthlyTax = (annualTax - calculateTax(preStartIncome, PA, BRL, HRL)) / deliverMonths;
+      const monthlyTax = Math.max(0, annualTax - priorTax) / deliverMonths;
 
       // Net = gross taxable this month - monthly tax + ISA (tax-free) + the sleeve's net of CGT
       const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
@@ -618,9 +626,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // 7-month year), plus pre-start income and other taxable income, less what pre-start income
       // owes on its own. Comparing a full-year inefficient figure with a partial-year actual
       // roughly doubled the "saving" in a mid-year first year (persona test B32).
-      const inefficientTaxable = (target / 12) * deliverMonths + OTHER + STATE + preStartIncome;
-      const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - calculateTax(preStartIncome, PA, BRL, HRL);
-      const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - calculateTax(preStartIncome, PA, BRL, HRL))) / deliverMonths);
+      const inefficientTaxable = (target / 12) * deliverMonths + (OTHER + STATE) * fixedShare + preStartIncome;
+      const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - priorTax;
+      const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - priorTax)) / deliverMonths);
 
       // Calculate cumulative ISA used including this month
       const cumulativeIsaSavingsUsed = isaSavingsUsedSoFar + isaSavingsUsedThisMonth;

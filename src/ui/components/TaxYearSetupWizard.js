@@ -46,6 +46,7 @@ export async function initTaxYearWizard(container, selectedMonth, onComplete) {
     other: wizardContext.defaults.other,
     cgtExemptionUsed: 0,
     grossIncomeToDate: 0,
+    taxPaidToDate: null,
     confirmedSalary: wizardContext.suggestedSalary,
     isaSavingsAllocation: 0,
     isTaxEfficient: true,
@@ -195,12 +196,21 @@ function renderMidYearIncome() {
       </div>
 
       <div class="wizard-example">
-        <strong>Include:</strong> Employment income, self-employment, rental income, dividends, etc. received since April.
+        <strong>Include:</strong> Employment income, self-employment, rental income, dividends, pension already drawn, etc. received since April — gross, before tax.
         <br><strong>Exclude:</strong> Tax-free income like ISA withdrawals.
       </div>
 
+      <div class="wizard-step-desc" style="margin-top:14px;">
+        Tax already deducted on that income (PAYE, from your payslips or a P60-to-date). Leave blank if you don't know.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizTaxPaidToDate" value="${wizardInputs.taxPaidToDate == null ? '' : wizardInputs.taxPaidToDate}" placeholder="leave blank if unknown">
+        <span class="wizard-unit">tax paid</span>
+      </div>
+
       <div class="wizard-info-box">
-        <p>This affects how much BRL headroom you have remaining. If you've already earned above the BRL, you cannot be tax-efficient this year.</p>
+        <p>The income to date uses up allowance and basic-rate band, which affects how tax-efficient the rest of the year can be. If you fill in the tax paid, the tax still to come is the year's total less that — the right answer if you have been drawing your pension since April under PAYE. Left blank, the tool assumes the earlier income was taxed on its own (a salary before you started), which overstates the tax to come for someone already in drawdown.</p>
       </div>
 
       <div class="wizard-buttons">
@@ -544,10 +554,11 @@ function renderConfirmation() {
     isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
+    taxPaidToDate: wizardInputs.taxPaidToDate,
     isTaxEfficient: wizardInputs.isTaxEfficient
   });
 
-  const modeLabel = wizardInputs.isTaxEfficient ? 'Tax-Efficient' : 'Tax-Inefficient';
+  const modeLabel = wizardInputs.isTaxEfficient ? 'Tax-efficient (SIPP to the basic-rate limit, ISA tops up)' : 'Full target from the SIPP';
   const modeClass = wizardInputs.isTaxEfficient ? 'success' : 'warning';
 
   // Format currency helper
@@ -574,6 +585,12 @@ function renderConfirmation() {
           <div class="wizard-summary-row">
             <span>Income to Date:</span>
             <span>${fmt(wizardInputs.grossIncomeToDate)}</span>
+          </div>
+        ` : ''}
+        ${wizardInputs.taxPaidToDate != null ? `
+          <div class="wizard-summary-row">
+            <span>Tax already paid:</span>
+            <span>${fmt(wizardInputs.taxPaidToDate)}</span>
           </div>
         ` : ''}
         <div class="wizard-summary-row">
@@ -818,6 +835,8 @@ function saveCurrentInputs() {
 
   const incomeToDate = document.getElementById('wizIncomeToDate');
   if (incomeToDate) wizardInputs.grossIncomeToDate = parseFloat(incomeToDate.value) || 0;
+  const taxPaid = document.getElementById('wizTaxPaidToDate');
+  if (taxPaid) wizardInputs.taxPaidToDate = taxPaid.value.trim() === '' ? null : Math.max(0, parseFloat(taxPaid.value) || 0);
 }
 
 /**
@@ -836,6 +855,7 @@ async function finishWizard() {
     isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
+    taxPaidToDate: wizardInputs.taxPaidToDate,
     isTaxEfficient: wizardInputs.isTaxEfficient
   });
 
@@ -851,6 +871,7 @@ async function finishWizard() {
     isTaxEfficient: wizardInputs.isTaxEfficient,
     taxEfficiencyChoice: wizardInputs.taxEfficiencyChoice,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
+    taxPaidToDate: wizardInputs.taxPaidToDate,
     startMonth: parseInt(wizardContext.selectedMonth.split('-')[1]),
     confirmedSalary: wizardInputs.confirmedSalary,
     remainingMonths: wizardContext.remainingMonths,

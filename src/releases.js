@@ -36,6 +36,25 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.4.1', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Mid-year tax-year setup: tell it the tax you have already paid',
+    summary: 'The tax-year wizard\'s mid-year step now takes the PAYE already deducted this year (from your payslips) alongside the income received. The tax still to come is then the year\'s total less what is paid — right for someone who has been drawing a pension since April. Left blank, the old assumption stands.',
+    changes: [
+      'Mid-year step: a second box, "tax already deducted on that income". It is saved with the tax year and the monthly recommendation\'s tax figure uses it too.',
+      'The confirmation screen names the two modes plainly: "Full target from the SIPP" rather than "Tax-Inefficient".'
+    ],
+    corrections: [
+      'For a retiree already drawing under PAYE, the mid-year setup assumed the income to date had been taxed on its own bands and so pushed the whole higher-rate band into the months left — overstating the tax to come by several hundred pounds a month and understating the expected take-home. The gross draw was never affected.',
+      'In a partial first year, other income and the State Pension were counted in full on top of the income to date (which already held their earlier months) — a small double count of tax, now pro-rated to the months left.'
+    ],
+    effects: {
+      decision: ['Tax years already set up are unchanged: the new box only applies when a year is set up. A "re-do this year\'s setup" button for a year already configured is on the list.'],
+      stress: [], strategies: [], household: [], budget: [], accumulation: []
+    },
+    actions: ['If you are setting up a mid-year first year and have been drawing since April: enter the PAYE to date from your payslip\'s "to-date totals" so the expected tax and take-home match what you actually receive.'],
+    notes: []
+  },
+  {
     version: '6.4.0', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Your plan knows when it starts',
     summary: 'A new "When your plan starts" block at the top of the Stress tester settings: your age today, whether you have already retired or will retire at a given age, and the tax year your plan starts in. That start is saved with the plan and is year 0 for every tool — the gilt ladders, the cones, and the Decision tool — instead of being assumed to be "next April" every time the app was opened.',

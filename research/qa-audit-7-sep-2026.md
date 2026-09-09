@@ -174,3 +174,14 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   CSH2 as one line; summing 22 gilt lines is not reasonable monthly. Next patch: for contract strategies the Monthly
   Entry takes "SIPP total" + "cash & money-market" and derives the gilt value (total − cash); keep the direct box as
   an override. Also consider remembering last month's split as the default.
+- **Mid-year wizard overstates the tax to come for someone who has been drawing all year (Chris, 26/27 setup).**
+  `calculateMonthlyBreakdown` takes tax on the remaining draws as tax(prior + draws) − tax(prior), i.e. it assumes the
+  income to date was taxed on its own bands (right for an ex-employee starting a pension mid-year). For a retiree whose
+  prior income IS pension draws under cumulative PAYE, the earlier months already carried their share of the 40% band,
+  so the remaining months' tax is lower: shown £2,464/mo vs ~£1,810 actual (net £4,679 vs ~£5,330). The SIPP gross
+  recommendation is unaffected. Fix: ask "tax already paid this year" (payslips) and use remaining = annual − paid; or
+  offer "I have been drawing since April" which spreads bands evenly. Also the confirm screen says "Tax-Inefficient"
+  for "take the full target" — rename.
+- 6.4.1 shipped the "tax already paid" box + pro-rated fixed income in partial years. Still open: a "re-do this year's
+  setup" button for a configured tax year (`shouldShowWizard` returns false once `yearSetupComplete`; needs a force flag
+  through `initTaxYearWizard`).

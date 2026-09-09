@@ -406,6 +406,7 @@ export function calculateMonthlyBreakdown(params) {
     isaSavingsAllocation = 0,
     remainingMonths,
     grossIncomeToDate = 0,
+    taxPaidToDate = null,   // PAYE already deducted on that income (6.4.1); null = not known
     isTaxEfficient = true
   } = params;
 
@@ -441,7 +442,12 @@ export function calculateMonthlyBreakdown(params) {
   const months = Math.max(1, Math.min(12, remainingMonths || 12));
   const drawsThisYear = (monthlySippGross + monthlyFixedIncomeGross) * months;
   const priorIncome = months < 12 ? (grossIncomeToDate || 0) : 0;
-  const annualTax = calcTax(drawsThisYear + priorIncome) - calcTax(priorIncome);
+  // With the tax already paid known (payslips), what is still to come is the year's total less that —
+  // right for a retiree drawing under cumulative PAYE since April, whose earlier months already carried
+  // their share of the higher-rate band. Otherwise the old assumption: the earlier income was taxed on
+  // its own bands (an ex-employee starting a pension mid-year).
+  const priorTax = (months < 12 && taxPaidToDate != null && taxPaidToDate !== '') ? Math.max(0, +taxPaidToDate || 0) : calcTax(priorIncome);
+  const annualTax = Math.max(0, calcTax(drawsThisYear + priorIncome) - priorTax);
   const monthlyTax = annualTax / months;
 
   // Calculate net for taxable sources (proportional tax allocation)
@@ -519,6 +525,7 @@ export function buildTaxYearConfig(wizardData) {
     isTaxEfficient,
     taxEfficiencyChoice,
     grossIncomeToDate,
+    taxPaidToDate,
     startMonth,
     confirmedSalary,
     remainingMonths,
@@ -552,6 +559,7 @@ export function buildTaxYearConfig(wizardData) {
 
     // Mid-year start
     grossIncomeToDate: grossIncomeToDate || 0,
+    taxPaidToDate: (taxPaidToDate == null || taxPaidToDate === '') ? null : Math.max(0, +taxPaidToDate || 0),
     startMonth: startMonth || 4,
     remainingMonths: remainingMonths || 12,
 

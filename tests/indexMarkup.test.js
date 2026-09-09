@@ -19,7 +19,10 @@ describe('tab panels are siblings, each with its own ribbon', () => {
   });
   it('the Stress and Decision panels carry their sub-tab ribbons directly', () => {
     expect(doc.querySelectorAll('#stress-content .sub-tab[data-stresstab]').length).toBe(6);
-    expect(doc.querySelectorAll('#decision-content .sub-tab[data-decisiontab]').length).toBe(4);
+    expect(doc.querySelectorAll('#decision-content .sub-tab[data-decisiontab]').length).toBe(5);   // + Plan document (6.5.0)
+    expect(doc.querySelector('#decision-plandoc')).not.toBeNull();
+    expect(doc.querySelector('#ssLockBtn')).not.toBeNull();
+    expect(doc.querySelector('#ssLockBanner')).not.toBeNull();
     expect(doc.querySelector('#decision-content #stress-content')).toBeNull();
     expect(doc.querySelector('#strategies-content #stratNav')).not.toBeNull();
   });

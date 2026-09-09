@@ -42,3 +42,12 @@ one version source (`src/constants.js` imports it); the note is an entry in `src
 that `tests/releases.test.js` enforces — a bump without notes, or notes without a bump, fails the
 suite. Minor/major releases pop up once per user (signed in: profile doc; guest: localStorage);
 every release is listed under Strategies → Background → What's new. Tag `vX.Y.Z`, push, deploy.
+
+## Plan lock and the plan document (v6.5.0)
+ONE lock for both tools (`src/services/PlanLock.js`): set by the Decision tool's first record, or by the user
+from Stress tester → Settings → "Lock plan & create the plan document". Locked: Stress and Decision settings
+frozen, strategy switch refused (`setActiveStrategyChecked` in index.html), "Try a strategy" what-ifs still run.
+The **plan document** (`scenario.planDocument`, archive at `planDocumentArchive`) is the snapshot of the plan as
+committed — built by `src/services/PlanDocument.js` from settings + `planFromSettings` + the strategy result,
+rendered by `src/ui/components/PlanDocumentView.js`; `whereAmI()` reads it against today and the recorded
+months. Unlock archives it. Never store functions or `samples` in it.

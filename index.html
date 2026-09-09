@@ -2236,6 +2236,7 @@
         <div class="sub-tabs">
           <button class="sub-tab active" data-decisiontab="entry">Monthly Entry</button>
           <button class="sub-tab" data-decisiontab="history">History</button>
+          <button class="sub-tab" data-decisiontab="plandoc">Plan document</button>
           <button class="sub-tab" data-decisiontab="taxyears">Tax Years</button>
           <button class="sub-tab" data-decisiontab="decisionsettings">Settings</button>
         </div>
@@ -2357,6 +2358,7 @@
             </div>
 
             <!-- Output Panel -->
+            <div id="whereAmILine"></div>
             <div id="decisionOutput">
               <div class="card">
                 <div class="loading">
@@ -2657,6 +2659,13 @@
         </div>
 
         <!-- History Sub-tab -->
+        <div id="decision-plandoc" class="decision-subtab hidden">
+          <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button type="button" class="btn secondary" data-on-click="printPlanDocument()">Download PDF</button>
+            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Re-take the snapshot from the current settings (the previous document is kept under previous versions)">Refresh the document</button>
+          </div>
+          <div id="planDocumentPage"><p class="hint">Loading…</p></div>
+        </div>
         <div id="decision-history" class="decision-subtab hidden">
           <div class="history-full-page">
             <div id="planVsActual"></div>
@@ -2903,6 +2912,7 @@
         <div id="stress-stresssettings" class="stress-subtab hidden">
           <div class="card">
             <h2>Stress Tester Settings</h2>
+            <div id="ssLockBanner" class="lock-banner" style="display:none;"></div>
 
             <!-- Legacy net-first target box: superseded by "Your income shape" (step 1 = this figure). Kept hidden so the save/load + net⇄gross plumbing (ssNetSpend/ssBaseSalary) keeps working. -->
             <div class="settings-section" style="display:none;">
@@ -3061,7 +3071,19 @@
                 .no-print { display: none !important; }
                 #printPortal input, #printPortal select, #printPortal textarea { border: none !important; background: transparent !important; padding: 0 !important; -webkit-appearance: none; appearance: none; color: #000 !important; }
                 #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
+                /* Plan document: a long generated report on a white page. The app's SVGs are dark-theme-first,
+                   so give them readable tokens and keep their fills. */
+                #printPortal { --text: #111; --text-muted: #555; --border: #bbb; --card: #fff; --card-alt: #f4f4f4; --primary: #1d4ed8; color: #111; background: #fff; }
+                #printPortal svg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                #printPortal .pd-section, #printPortal .card, #printPortal .table-scroll-container, #printPortal .verdict { break-inside: avoid; }
+                #printPortal details.pd-section { display: block; }
+                #printPortal details.pd-section > summary { list-style: none; font-size: 16px; margin: 14px 0 6px; }
+                #printPortal details.pd-section:not([open]) > .pd-body { display: block; }
+                #printPortal .page-break { break-before: page; }
               }
+              .pd-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+              .pd-section > summary { cursor: pointer; font-size: 15px; padding: 4px 0; }
+              .pd-body { padding: 6px 0 2px; }
             </style>
             <div class="settings-section" style="border-color: var(--accent);">
               <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
@@ -3548,7 +3570,8 @@
             <!-- "Spending" section moved onto the income steps (per-step decline / glide), v6.2.1 -->
 
             <div class="button-row" style="margin-top: 24px;">
-              <button data-on-click="saveStressSettingsUI()">Save Settings</button>
+              <button id="ssSaveBtn" data-on-click="saveStressSettingsUI()">Save Settings</button>
+              <button id="ssLockBtn" class="risk-btn" style="padding:8px 14px;" data-on-click="lockPlanFromStress()" title="Freeze these settings for both tools and write the plan document — the record of what you committed to">🔒 Lock plan &amp; create the plan document</button>
               <button class="secondary" data-on-click="resetStressSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
@@ -4042,6 +4065,9 @@
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
     import { ladderPosition, taxYearOf, borrowedFloorStatus } from './src/services/LadderPosition.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
+    import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
+    import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument } from './src/storage/ScenarioRepository.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4592,7 +4618,7 @@
           return !!s.configured || legacy(s) || await planIsLocked();
         }
         const s = await getStressSettingsAsync();
-        return !!s.configured || legacy(s);
+        return !!s.configured || legacy(s) || await planIsLocked();
       } catch (e) { return true; } // fail open — never block a working plan on a read error
     }
 
@@ -4675,6 +4701,7 @@
         window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(stressSettings);
+        refreshStressLock().catch(() => {});
         setIncomeShape(stressSettings.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -4986,9 +5013,9 @@
           '<ul style="margin:0 0 12px 18px; color:var(--text-muted);">' +
             '<li><strong style="color:var(--text);">✏️ draft</strong> — settings editable; nothing recorded against them yet.</li>' +
             '<li><strong style="color:var(--text);">🔒 locked</strong> — entries or tax years are recorded against these settings. You can still unlock: you are shown exactly what that does to your record first.</li>' +
-            '<li><strong style="color:var(--text);">Strategy</strong> is not a lock — switch it any time in Stress Settings or the Strategies tab.</li>' +
+            '<li><strong style="color:var(--text);">Strategy</strong> switches freely while the plan is a draft; once locked it changes only after an unlock (or in a copy).</li>' +
           '</ul>' +
-          '<p style="margin-bottom:16px; color:var(--text-muted);">The Budget and the Stress Tester are never locked — the budget autosaves like a document, and Stress is a sandbox for what-ifs.</p>' +
+          '<p style="margin-bottom:16px; color:var(--text-muted);">You can also lock the plan yourself from Stress Tester → Settings once you are happy with the stress test: that freezes the Stress settings too and writes the <strong style="color:var(--text);">plan document</strong> — the record of what you committed to, which the Decision tool reads against each month. The Budget is never locked; "Try a strategy" what-ifs stay available on a locked plan.</p>' +
           '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
             '<button type="button" data-on-click="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +
             (locked ? '<button type="button" class="risk-btn" data-on-click="document.getElementById(\'planLockExplainer\').remove(); document.querySelector(\'.tab[data-tab=&quot;decision&quot;]\').click(); openToolSettingsTab(\'decision\');">View the locked settings</button>' : '') +
@@ -5720,6 +5747,7 @@
         if (tab.dataset.decisiontab === 'decisionsettings') await loadDecisionSettings();
         if (tab.dataset.decisiontab === 'entry') await loadCadenceUI();
         if (tab.dataset.decisiontab === 'history') await renderHistory();
+        if (tab.dataset.decisiontab === 'plandoc') await renderPlanDocumentPage();
         if (tab.dataset.decisiontab === 'taxyears') await renderTaxYears();
       });
     });
@@ -5887,7 +5915,7 @@
               try {
                 currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash);
                 const container = document.getElementById('decisionOutput');
-                renderDecisionPanel(currentDecision, container);
+                renderDecisionPanel(currentDecision, container); renderWhereAmILine().catch(() => {});
                 document.getElementById('saveBtn').disabled = false;
               } catch (calcError) {
                 console.error('Decision error after wizard:', calcError);
@@ -5902,7 +5930,7 @@
         // No wizard needed - proceed with calculation
         currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash);
         const container = document.getElementById('decisionOutput');
-        renderDecisionPanel(currentDecision, container);
+        renderDecisionPanel(currentDecision, container); renderWhereAmILine().catch(() => {});
         document.getElementById('saveBtn').disabled = false;
       } catch (error) {
         console.error('Decision error:', error);
@@ -6284,7 +6312,7 @@
       if (!ok) return;
       try {
         const { sippTotal, isaTotal, ...params } = _tryLast.params;
-        await setActiveStrategy(_tryLast.id, params);
+        await setActiveStrategyChecked(_tryLast.id, params);
         await saveStressSettings({ strategyId: _tryLast.id, strategyParams: params });
         window._ssStrategy = _tryLast.id;
         showToast('Strategy switched to ' + STRATEGY_NAMES[_tryLast.id], 'success');
@@ -8196,6 +8224,153 @@
       showToast('Suggested: −15% from 75, −30% from 85 (never below essentials). Edit freely — these are typical, not yours.', 'info', 5000);
     };
 
+    // ---- Plan lock from the Stress tester + the Plan Document (6.5.0) ----
+    // ONE lock for both tools (see src/services/PlanLock.js). The Stress page can set it; when set, its
+    // settings freeze, the strategy cannot be switched, and the plan document — the plan as committed —
+    // is written and kept as the yardstick the Decision tool reads against each month.
+    async function setActiveStrategyChecked(id, params = {}) {
+      if (await planIsLocked()) { showToast('This plan is locked — unlock it (Settings) or duplicate it to change strategy.', 'warning', 5000); throw new Error('plan locked'); }
+      return setActiveStrategy(id, params);
+    }
+    function setStressSettingsEnabled(enabled) {
+      const root = document.getElementById('stress-stresssettings'); if (!root) return;
+      root.querySelectorAll('input, select, textarea, button').forEach((el) => {
+        if (el.closest('#ssLockBanner') || el.closest('#ssSetupBanner')) return;
+        if (el.id === 'ssSaveBtn' || el.id === 'ssLockBtn') return;
+        el.disabled = !enabled;
+      });
+    }
+    window.refreshStressLock = async function () {
+      const banner = document.getElementById('ssLockBanner'), saveBtn = document.getElementById('ssSaveBtn'), lockBtn = document.getElementById('ssLockBtn');
+      if (!banner || !saveBtn) return;
+      let locked = false; try { locked = await planIsLocked(); } catch (e) { locked = false; }
+      if (!locked) {
+        banner.style.display = 'none'; setStressSettingsEnabled(true);
+        saveBtn.textContent = 'Save Settings'; saveBtn.classList.remove('btn-locked');
+        if (lockBtn) lockBtn.style.display = '';
+        return;
+      }
+      let doc = null; try { doc = await getActivePlanDocument(); } catch (e) { doc = null; }
+      let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
+      const when = ds.lockedAt ? new Date(ds.lockedAt).toLocaleDateString('en-GB') : '';
+      banner.style.display = 'flex'; banner.className = 'lock-banner';
+      banner.innerHTML = '<span>🔒 <strong>This plan is locked</strong>' + (when ? ' (since ' + when + (ds.lockedBy ? ', ' + budEsc(ds.lockedBy) : '') + ')' : '') + '. Its settings are frozen for both tools' + (doc ? ', and the plan document records what you committed to.' : ' — but it has no plan document yet.') + ' What-ifs still run under "Try a strategy"; to change the plan, unlock it or duplicate it.</span>'
+        + '<span style="display:flex;gap:8px;flex-wrap:wrap;">' + (doc ? '<button type="button" data-on-click="openPlanDocument()">Open plan document</button>' : '<button type="button" data-on-click="createPlanDocumentNow()">Create the plan document now</button>') + '<button type="button" class="secondary" data-on-click="unlockDecisionSettings()">Unlock to edit…</button></span>';
+      setStressSettingsEnabled(false);
+      saveBtn.textContent = '🔒 Locked'; saveBtn.classList.add('btn-locked');
+      if (lockBtn) lockBtn.style.display = 'none';
+    };
+    // The strategy result for the document: run it now (worker, inline fallback) so the snapshot is fresh.
+    async function strategyResultForDocument(settings) {
+      const sid = settings.strategyId || 'pots-and-valves';
+      const ess = (window._shapeRefs && window._shapeRefs.essentials) || undefined;
+      const cfg = createSimulationConfigFromSettings({}, settings);
+      try { const out = await runInWorker('strategy', { settings, cfg, strategyId: sid, essentialsAnnual: ess }); if (out && out.r) return out.r; } catch (e) { /* inline below */ }
+      return stressTestStrategy(sid, strategyPlanFor(settings, ess));
+    }
+    async function buildPlanDocumentNow(reason) {
+      const settings = await getStressSettingsAsync();
+      const r = await strategyResultForDocument(settings);
+      const p = strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined);
+      const name = document.getElementById('scenarioActiveName')?.textContent?.trim() || 'My plan';
+      let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
+      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0 });
+      if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
+      await saveActivePlanDocument(doc);
+      window._planDocLast = doc;
+      return doc;
+    }
+    window.lockPlanFromStress = async function () {
+      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
+      if (await planIsLocked()) { showToast('This plan is already locked.', 'info'); return; }
+      const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Lock this plan?</h3><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">'
+        + '<li>Your Stress settings are saved first, then <strong>frozen</strong> — and so are the Decision tool\'s. The Decision tool runs exactly this plan.</li>'
+        + '<li>The <strong>plan document</strong> is written: your age against the tax years, the income steps, who pays each year, the strategy verdict and cones, the pots and the shopping list, the assumptions — the record you read against each month of retirement.</li>'
+        + '<li>The strategy can no longer be switched on this plan; "Try a strategy" what-ifs still run.</li>'
+        + '<li>You can unlock later — you are shown exactly what that does first.</li></ul>' }, { okLabel: 'Lock the plan', cancelLabel: 'Not yet' });
+      if (!ok) return;
+      showLoading('Saving, running the strategy and writing the plan document…');
+      try {
+        await saveStressSettingsUI();
+        const fresh = await lockPlanIfNeeded('locked from Stress settings');
+        await buildPlanDocumentNow('locked from Stress settings');
+        await refreshStressLock();
+        try { await refreshDecisionLock(); } catch (e) { /* form not built yet */ }
+        try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
+        showToast('Plan locked' + (fresh ? '' : ' (it was already locked)') + ' — plan document written.', 'success', 5000);
+        openPlanDocument();
+      } catch (e) { console.error('Lock from Stress:', e); showToast('Could not lock: ' + e.message, 'error'); }
+      finally { hideLoading(); }
+    };
+    window.createPlanDocumentNow = async function () {
+      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
+      showLoading('Running the strategy and writing the plan document…');
+      try {
+        const prev = await getActivePlanDocument();
+        if (prev) await archivePlanDocument();
+        await buildPlanDocumentNow(prev ? 'document refreshed' : 'document created after lock');
+        await refreshStressLock();
+        showToast(prev ? 'Plan document refreshed — the previous version is kept under previous versions.' : 'Plan document created.', 'success', 4000);
+        await renderPlanDocumentPage();
+        openPlanDocument();
+      } catch (e) { console.error(e); showToast('Could not create the plan document: ' + e.message, 'error'); }
+      finally { hideLoading(); }
+    };
+    window.openPlanDocument = function () {
+      try { switchToTab('decision'); } catch (e) { document.querySelector('.tab[data-tab="decision"]')?.click(); }
+      document.querySelector('.sub-tab[data-decisiontab="plandoc"]')?.click();
+    };
+    const planDocumentRenderers = () => ({ strategyCard: (r, p, opts) => strategyResultCard(r, p, opts), staircaseSvg: (args) => incomeStaircaseSvg(args) });
+    async function whereAmINow(doc) {
+      let history = []; try { history = await getHistoryAsync({ sortDesc: false, limit: 500 }); } catch (e) { history = []; }
+      let ladderPos = null;
+      try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
+      return whereAmI(doc, { today: new Date(), history, ladderPos });
+    }
+    window.renderPlanDocumentPage = async function () {
+      const box = document.getElementById('planDocumentPage'); if (!box) return;
+      try {
+        const doc = await getActivePlanDocument();
+        if (!doc) {
+          const locked = await planIsLocked();
+          box.innerHTML = '<div class="card"><h2>Plan document</h2><p>' + (locked ? 'This plan is locked but has no plan document yet — it was locked before plan documents existed.' : 'The plan document is written when you lock the plan: Stress Tester → Settings → <strong>Lock plan &amp; create the plan document</strong>. It records what you committed to, and this page then shows where you are against it each month.') + '</p>'
+            + (locked ? '<button type="button" data-on-click="createPlanDocumentNow()">Create the plan document now</button>' : '') + '</div>';
+          return;
+        }
+        const w = await whereAmINow(doc);
+        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w) });
+        const archive = await getActivePlanDocumentArchive();
+        if (archive.length) {
+          html += '<details class="card" style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Previous versions (' + archive.length + ')</summary>'
+            + archive.map((a, i) => ({ a, i })).reverse().map(({ a, i }) => '<div style="margin-top:8px;"><strong>' + budEsc(new Date(a.createdAt).toLocaleDateString('en-GB')) + '</strong> — ' + budEsc(a.strategy?.name || '') + ', first step ' + gbp(a.steps?.[0]?.amount || 0) + '/yr; archived ' + budEsc(new Date(a.archivedAt).toLocaleDateString('en-GB')) + ' <button type="button" class="risk-btn" data-on-click="showArchivedPlanDocument(' + i + ')">Open</button></div>').join('')
+            + '</details>';
+        }
+        box.innerHTML = html;
+        window._planDocLast = doc;
+      } catch (e) { console.error('plan document', e); box.innerHTML = '<p class="hint">Could not render the plan document: ' + budEsc(e.message) + '</p>'; }
+    };
+    window.showArchivedPlanDocument = async function (idx) {
+      const archive = await getActivePlanDocumentArchive(); const a = archive[idx]; if (!a) return;
+      const box = document.getElementById('planDocumentPage'); if (!box) return;
+      box.innerHTML = '<div class="alert alert-warning">Previous version, archived ' + budEsc(new Date(a.archivedAt).toLocaleDateString('en-GB')) + '. <button type="button" class="risk-btn" data-on-click="renderPlanDocumentPage()">Back to the current document</button></div>' + planDocumentHtml(a, planDocumentRenderers());
+      window._planDocLast = a;
+    };
+    window.printPlanDocument = async function () {
+      const doc = window._planDocLast || await getActivePlanDocument();
+      if (!doc) { showToast('No plan document yet.', 'info'); return; }
+      const w = await whereAmINow(doc);
+      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w) }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
+      printPortal(html);
+    };
+    window.renderWhereAmILine = async function () {
+      const el = document.getElementById('whereAmILine'); if (!el) return;
+      try {
+        const doc = await getActivePlanDocument(); if (!doc) { el.innerHTML = ''; return; }
+        const w = await whereAmINow(doc);
+        el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
+      } catch (e) { el.innerHTML = ''; }
+    };
+
     // ---- Timing block (6.4.0): WHEN the plan starts ----
     // Age today + retired / retire-at-age → the saved first tax year (year 0 for every tool) and the
     // derived start age of the income steps. See src/services/PlanTiming.js for the rules.
@@ -8618,7 +8793,7 @@
         const prm = { ...(settings.strategyParams || {}), floorToAge: cutAge,
           borrowedFloor: { soldAt: new Date().toISOString().slice(0, 10), tidms: blk.orders.map((o) => o.tidm), nominals: blk.orders.map((o) => o.nominal), years: soldYears, proceeds: Math.round(proceeds), trigger: eq ? { level: eq.level, ath: eq.ath } : null } };
         await saveStressSettings({ strategyId: 'floor-to-age', strategyParams: prm });
-        try { await setActiveStrategy('floor-to-age', { floorToAge: cutAge }); } catch (e) {}
+        try { await setActiveStrategyChecked('floor-to-age', { floorToAge: cutAge }); } catch (e) {}
         invalidateStressCache(); _ladderPosCache = null;
         showToast('Plan switched to Floor to an age (' + cutAge + '). The borrowed floor is on record.', 'success');
         renderDecisionStrategyPanel();
@@ -8915,7 +9090,7 @@
         showLoading('Copying plan…');
         const copy = await duplicateScenario(activeId, newName);
         await switchScenario(copy?.id || copy);
-        await setActiveStrategy(id, readStrategyParams());
+        await setActiveStrategyChecked(id, readStrategyParams());
         await saveStressSettings({ strategyId: id, strategyParams: readStrategyParams() });
         showToast(newName + ' created — this copy models ' + (names[id] || id) + '; your original plan is untouched.', 'success', 6000);
         location.reload();
@@ -9071,7 +9246,7 @@
         { okLabel: 'Lock it in', danger: false });
       if (!ok) return;
       try {
-        await setActiveStrategy(id, {});
+        await setActiveStrategyChecked(id, {});
         showToast(d.name + ' locked for this plan.', 'success');
         updateStrategyNote();
       } catch (e) { showToast('Could not lock: ' + e.message, 'error'); }
@@ -9377,7 +9552,7 @@
       const d = window._stratDials;
       const s = await getStressSettingsAsync();
       await saveStressSettings({ strategyId: 'full-il-gilt', strategyParams: { ...(s.strategyParams || {}), cashYears: d.cashYears ?? (s.strategyParams?.cashYears ?? 2), bridgeCash: d.bridgeCash ?? (s.strategyParams?.bridgeCash ?? 0) } });
-      try { await setActiveStrategy('full-il-gilt', {}); } catch (e) {}
+      try { await setActiveStrategyChecked('full-il-gilt', {}); } catch (e) {}
       showToast('Full index-linked gilt ladder is now this plan\'s strategy. The Stress Tester runs it; Settings holds the dials.', 'success');
     };
     /** CPI factor per plan year for a historical start (Shiller monthly CPI, world-independent). */
@@ -9441,7 +9616,7 @@
     window.useFloorToAgeStrategy = async function () {
       const s = await getStressSettingsAsync();
       await saveStressSettings({ strategyId: 'floor-to-age', strategyParams: { ...(s.strategyParams || {}), floorToAge: window._stratDials.floorToAge ?? (s.strategyParams?.floorToAge ?? 80) } });
-      try { await setActiveStrategy('floor-to-age', {}); } catch (e) {}
+      try { await setActiveStrategyChecked('floor-to-age', {}); } catch (e) {}
       showToast('Floor to an age is now this plan\'s strategy.', 'success');
     };
     async function floorToAgePageHtml() {
@@ -9648,7 +9823,7 @@
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;
     window.setSpecFrame = function (n) { window._specFrame = Math.max(1, Math.min(4, n)); const m = window._specMachine; if (!m) return; document.getElementById('specMachine').innerHTML = m.fn(m.d, window._specFrame); document.getElementById('specStepper').innerHTML = stepperHtml(m.frames, window._specFrame, 'setSpecFrame'); };
-    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const prm = { ...(s.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule', 'rotateCutAge', 'rotateTrigger']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = { strategyId: id, strategyParams: prm }; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, taggedFunds: [], riskMode: 'risk' }); } if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; await saveStressSettings(patch); try { await setActiveStrategy(id, {}); } catch (e) {} showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
+    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const prm = { ...(s.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule', 'rotateCutAge', 'rotateTrigger']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = { strategyId: id, strategyParams: prm }; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, taggedFunds: [], riskMode: 'risk' }); } if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; await saveStressSettings(patch); try { await setActiveStrategyChecked(id, {}); } catch (e) {} showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
     async function specStrategyPageHtml(id) {
       const spec = STRATEGY_PAGES[id];
       const settings = await getStressSettingsAsync();
@@ -10373,6 +10548,7 @@
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(s);
+        refreshStressLock().catch(() => {});
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -10422,6 +10598,11 @@
         showToast('Please sign in to save settings', 'error');
         return;
       }
+      // 6.5.0: a locked plan's Stress settings are frozen too (one lock for both tools).
+      if (!window._ssLockBypass && await planIsLocked()) {
+        showToast('This plan is locked — its settings are frozen for both tools. Unlock it (the banner explains what changes) or duplicate the plan to try something else.', 'info', 6000);
+        return;
+      }
 
       // Guard against entering a date of birth instead of the SP start date.
       const ssSpCheck = validateStatePensionDate(document.getElementById('ssSpStartDate').value.trim());
@@ -10450,7 +10631,7 @@
         // Stepped income compiles to the canonical per-year schedule the engine reads. It must WIN over
         // the budget-schedule keep/clear logic below (a later duplicate key used to null it out).
         const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
-        await setActiveStrategy(window._ssStrategy || 'pots-and-valves', readStrategyParams());
+        await setActiveStrategyChecked(window._ssStrategy || 'pots-and-valves', readStrategyParams());
         // ONE target: the income shape's first step is the Decision tool's year-0 target too (and the
         // shape itself its schedule). Only while the plan is a draft — a locked plan's target stays put.
         try {
@@ -12232,7 +12413,8 @@
       if (dep.taxYearsSetUp.length) li.push('<li><strong>Tax year' + (dep.taxYearsSetUp.length === 1 ? ' ' : 's ') + dep.taxYearsSetUp.join(', ') + '</strong> ' + (dep.taxYearsSetUp.length === 1 ? 'was' : 'were') + ' set up with this plan\'s spending figure. They stay as they are; if you change the spending target or State Pension, re-run <em>Set up tax year</em> so the monthly expectations match.</li>');
       li.push('<li><strong>Plan vs actual</strong> restarts: the projection frozen ' + (dep.planOfRecordAt ? 'on ' + new Date(dep.planOfRecordAt).toLocaleDateString('en-GB') : 'at lock time') + ' is archived, and a new one is frozen when you next save. Months before that are no longer measured against the old yardstick.</li>');
       if (dep.entriesUnderPrevious) li.push('<li>' + dep.entriesUnderPrevious + ' older entr' + (dep.entriesUnderPrevious === 1 ? 'y is' : 'ies are') + ' already marked as recorded under previous settings (this plan has been unlocked before).</li>');
-      li.push('<li><strong>Not affected:</strong> your Budget, Stress-Tester settings, the chosen strategy, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
+      li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>');
+      li.push('<li><strong>Not affected:</strong> your Budget, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
       li.push('<li>The plan locks itself again the moment a new entry is recorded. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
       const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Unlock this plan?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>' }, { okLabel: 'Unlock — I understand', cancelLabel: 'Keep locked', danger: true });
       if (!ok) return;
@@ -12240,6 +12422,7 @@
       try {
         await unlockPlan();
         await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
+        refreshStressLock().catch(() => {});   // the Stress settings page unlocks with it (6.5.0)
         showToast('Plan unlocked — edit and save. It re-locks on the next recorded entry.', 'success', 4000);
       } catch (e) {
         console.error('Unlock error:', e);

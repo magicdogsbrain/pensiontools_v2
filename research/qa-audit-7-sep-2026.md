@@ -191,3 +191,12 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   fix — needs delete + re-enter to clear (config for 26/27 is kept). Still open: redo button for a configured tax year;
   entry-form layout race (renderDecisionStrategyPanel on Monthly Entry show); the record view of pre-6.4.2 records
   falls back to the CURRENT strategy (fine unless the plan switches strategy later).
+
+## 9 Sep 2026 (evening) — v6.5.0 lock + plan document; items parked by Chris
+- **"Remaining months = 7" in September (Chris).** The wizard counts the entry month itself: Sept + Oct–Mar = 7 payments
+  to come, matching 5 paid (Apr–Aug) + 7 = 12. Chris's instinct was 6 (Oct–Mar) because September's payment had
+  already been moved to the payroll account mid-month. Look at: (a) wording — say "7 payments including this month's";
+  (b) an explicit "this month's payment is already made" toggle that shifts the frame (6 months, post-draw balances,
+  income to date incl. September) so the user does not have to add the £7k back to cash by hand.
+- Lock from Stress + plan document shipped (6.5.0). Not yet: plan-vs-actual "pot vs plan cone" column (the where-am-I
+  strip covers it for now); redo button for a configured tax year; Decision entry layout race.

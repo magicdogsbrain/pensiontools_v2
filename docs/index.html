@@ -2147,7 +2147,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-_2kKXCyr.js"></script>
+  <script type="module" crossorigin src="./assets/main-DZ2VRU90.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2237,6 +2237,7 @@
         <div class="sub-tabs">
           <button class="sub-tab active" data-decisiontab="entry">Monthly Entry</button>
           <button class="sub-tab" data-decisiontab="history">History</button>
+          <button class="sub-tab" data-decisiontab="plandoc">Plan document</button>
           <button class="sub-tab" data-decisiontab="taxyears">Tax Years</button>
           <button class="sub-tab" data-decisiontab="decisionsettings">Settings</button>
         </div>
@@ -2358,6 +2359,7 @@
             </div>
 
             <!-- Output Panel -->
+            <div id="whereAmILine"></div>
             <div id="decisionOutput">
               <div class="card">
                 <div class="loading">
@@ -2658,6 +2660,13 @@
         </div>
 
         <!-- History Sub-tab -->
+        <div id="decision-plandoc" class="decision-subtab hidden">
+          <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button type="button" class="btn secondary" data-on-click="printPlanDocument()">Download PDF</button>
+            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Re-take the snapshot from the current settings (the previous document is kept under previous versions)">Refresh the document</button>
+          </div>
+          <div id="planDocumentPage"><p class="hint">Loading…</p></div>
+        </div>
         <div id="decision-history" class="decision-subtab hidden">
           <div class="history-full-page">
             <div id="planVsActual"></div>
@@ -2904,6 +2913,7 @@
         <div id="stress-stresssettings" class="stress-subtab hidden">
           <div class="card">
             <h2>Stress Tester Settings</h2>
+            <div id="ssLockBanner" class="lock-banner" style="display:none;"></div>
 
             <!-- Legacy net-first target box: superseded by "Your income shape" (step 1 = this figure). Kept hidden so the save/load + net⇄gross plumbing (ssNetSpend/ssBaseSalary) keeps working. -->
             <div class="settings-section" style="display:none;">
@@ -3062,7 +3072,19 @@
                 .no-print { display: none !important; }
                 #printPortal input, #printPortal select, #printPortal textarea { border: none !important; background: transparent !important; padding: 0 !important; -webkit-appearance: none; appearance: none; color: #000 !important; }
                 #printPortal .tax-year-detail-card, #printPortal .history-detail-card { break-inside: avoid; }
+                /* Plan document: a long generated report on a white page. The app's SVGs are dark-theme-first,
+                   so give them readable tokens and keep their fills. */
+                #printPortal { --text: #111; --text-muted: #555; --border: #bbb; --card: #fff; --card-alt: #f4f4f4; --primary: #1d4ed8; color: #111; background: #fff; }
+                #printPortal svg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                #printPortal .pd-section, #printPortal .card, #printPortal .table-scroll-container, #printPortal .verdict { break-inside: avoid; }
+                #printPortal details.pd-section { display: block; }
+                #printPortal details.pd-section > summary { list-style: none; font-size: 16px; margin: 14px 0 6px; }
+                #printPortal details.pd-section:not([open]) > .pd-body { display: block; }
+                #printPortal .page-break { break-before: page; }
               }
+              .pd-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+              .pd-section > summary { cursor: pointer; font-size: 15px; padding: 4px 0; }
+              .pd-body { padding: 6px 0 2px; }
             </style>
             <div class="settings-section" style="border-color: var(--accent);">
               <div class="section-title">Income strategy <span class="hint" style="font-weight:normal;">— how this pot becomes a monthly income. Learn &amp; compare in the Strategies tab.</span></div>
@@ -3549,7 +3571,8 @@
             <!-- "Spending" section moved onto the income steps (per-step decline / glide), v6.2.1 -->
 
             <div class="button-row" style="margin-top: 24px;">
-              <button data-on-click="saveStressSettingsUI()">Save Settings</button>
+              <button id="ssSaveBtn" data-on-click="saveStressSettingsUI()">Save Settings</button>
+              <button id="ssLockBtn" class="risk-btn" style="padding:8px 14px;" data-on-click="lockPlanFromStress()" title="Freeze these settings for both tools and write the plan document — the record of what you committed to">🔒 Lock plan &amp; create the plan document</button>
               <button class="secondary" data-on-click="resetStressSettingsUI()">Reset to Defaults</button>
             </div>
           </div>

@@ -36,6 +36,35 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.5.0', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Lock your plan and keep the plan document',
+    summary: 'When you are happy with the stress test, press "Lock plan & create the plan document" on the Stress tester\'s Settings page. Your settings freeze for both tools, and the app writes the plan document: your age against the tax years, the income steps as a picture and a table, who pays each year, the strategy verdict and cones, the pots and the shopping list, the assumptions, and how the Decision tool will run it. It is kept as the record of what you committed to, and the Decision tool shows where you are against it each month.',
+    changes: [
+      'Stress tester → Settings: a Lock button beside Save. Locking saves, runs your strategy, freezes the settings for both tools and writes the plan document. The same lock the Decision tool applies on its first entry — one lock, one chip.',
+      'Decision tool → new "Plan document" tab: a "Where you are" strip (plan year and age, the step you are on and the next one, this year\'s income so far against the plan, your pot against the plan\'s cone, the ladder position for gilt plans), then the document itself, with Download PDF and previous versions.',
+      'Monthly Entry shows the same "where you are" line under each recommendation.',
+      'Plans locked before this release: the Stress settings banner and the Plan document tab offer "Create the plan document now".',
+      'Unlocking a plan now unlocks the Stress settings too and moves the plan document to previous versions; a new one is written when you lock again.'
+    ],
+    corrections: [
+      'The Stress tester\'s settings and the strategy could be changed on a locked plan, so a locked Decision plan could quietly diverge from the Stress plan it was built on. Both are now frozen together; "Try a strategy" what-ifs still run.',
+      'The plan-lock explainer said the Stress tester is never locked. It now describes the lock you can set yourself.'
+    ],
+    effects: {
+      stress: ['Locked plans: the Settings page is read-only until you unlock (the banner explains what changes). Draft plans are unaffected.'],
+      strategies: ['Switching strategy on a locked plan asks you to unlock or duplicate first.'],
+      decision: ['Nothing changes in the recommendation. The new Plan document tab reads the document against your recorded months.'],
+      household: [], budget: [], accumulation: []
+    },
+    actions: ['If your plan is already locked: open Decision tool → Plan document → "Create the plan document now", then download the PDF and keep it.', 'If you have not locked yet: finish the stress test, then press Lock on the Stress settings page.'],
+    notes: ['The document is a snapshot: it does not change when markets, prices or the app move. Refresh it deliberately (the old version is kept) if you re-plan.'],
+    affects(scenario) {
+      const locked = !!scenario?.decisionTool?.settings?.locked;
+      if (locked && !scenario?.planDocument) return ['This plan is locked but has no plan document yet — create it from the Plan document tab.'];
+      return [];
+    }
+  },
+  {
     version: '6.4.2', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Saved monthly records match the live screen for gilt-ladder plans',
     summary: 'The saved record and its PDF for a plan on a gilt ladder (or any contract strategy) no longer show Pots & Valves pot floors, a "surplus" or rebalancing moves, and the source reads "the cash bucket" or "bridge cash" rather than "sell bonds". Months before the plan starts are labelled bridge months.',

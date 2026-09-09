@@ -2,15 +2,17 @@
  * Plan lock — ONE notion, one word.
  *
  * A plan is "locked" when recorded data (monthly decisions, set-up tax years) depends on its
- * Decision settings. The lock is set automatically by the first such record, never by pressing
- * Save. Unlocking is always allowed; it re-baselines the plan of record and leaves earlier entries
- * in place, marked as recorded under previous settings. The strategy choice is NOT a lock — it's
- * a switch — and lives elsewhere (scenario.strategy).
+ * settings, or when the user commits it from the Stress tester's Settings page (6.5.0) — the same
+ * lock either way: it is set automatically by the first such record, or by the user pressing "Lock
+ * plan", never by pressing Save. Locked, the Stress settings and the Decision settings are frozen and
+ * the strategy can only be changed after an unlock. Unlocking is always allowed; it re-baselines the
+ * plan of record, archives the plan document, and leaves earlier entries in place, marked as recorded
+ * under previous settings. The strategy choice lives in scenario.strategy.
  */
 import {
   getDecisionSettingsAsync, saveDecisionSettings, getHistoryAsync, getAllTaxYearsAsync, decisionSettingsChecksum
 } from '../storage/DecisionRepository.js';
-import { getActivePlanOfRecord, saveActivePlanOfRecord, archivePlanOfRecord } from '../storage/ScenarioRepository.js';
+import { getActivePlanOfRecord, saveActivePlanOfRecord, archivePlanOfRecord, archivePlanDocument } from '../storage/ScenarioRepository.js';
 import { generateDrawdownSchedule } from './DrawdownService.js';
 import { generateGlidepathSchedule } from './GlidepathService.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
@@ -81,6 +83,7 @@ export async function lockPlanIfNeeded(reason = 'record') {
  */
 export async function unlockPlan() {
   await archivePlanOfRecord();
+  try { await archivePlanDocument(); } catch (e) { console.warn('Plan document archive failed (non-fatal):', e); }
   const s = await getDecisionSettingsAsync();
   await saveDecisionSettings({ locked: false, unlockedAt: new Date().toISOString(), unlockCount: (s.unlockCount || 0) + 1 });
 }

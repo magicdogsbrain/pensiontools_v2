@@ -474,6 +474,7 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
     data.decisionTool.settings = { ...(data.decisionTool.settings || {}), locked: false };
     delete data.decisionTool.settings.lockedAt; delete data.decisionTool.settings.lockedBy;
     delete data.decisionTool.planOfRecord; delete data.decisionTool.planOfRecordArchive;
+    delete data.planDocument; delete data.planDocumentArchive;   // the copy writes its own when it locks
     if (!carryHistory) data.decisionTool.history = [];
     // A copy that carries records is depended on from the moment it exists — lock it (no plan of
     // record yet; it is rebuilt on the copy's first save).
@@ -688,6 +689,35 @@ export async function archivePlanOfRecord() {
   if (por) archive.push({ ...por, archivedAt: new Date().toISOString() });
   await saveScenario(scenario.id, { 'decisionTool.planOfRecordArchive': archive, 'decisionTool.planOfRecord': null });
   if (cachedActiveScenario && cachedActiveScenario.decisionTool) { cachedActiveScenario.decisionTool.planOfRecordArchive = archive; cachedActiveScenario.decisionTool.planOfRecord = null; }
+}
+
+/**
+ * Plan document (6.5.0): the plan as it was when it was locked — timeline, steps, strategy verdict,
+ * pots, assumptions — kept as the historical yardstick the user reads each month. Stored at the
+ * scenario root (outside both settings objects, so no checksum moves). Unlock archives it (last 10).
+ */
+export async function getActivePlanDocument() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.planDocument || null;
+}
+export async function getActivePlanDocumentArchive() {
+  const scenario = await getActiveScenarioAsync();
+  return Array.isArray(scenario?.planDocumentArchive) ? scenario.planDocumentArchive : [];
+}
+export async function saveActivePlanDocument(doc) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { planDocument: doc });
+  if (cachedActiveScenario) cachedActiveScenario.planDocument = doc;
+}
+export async function archivePlanDocument() {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const doc = scenario.planDocument || null;
+  const archive = Array.isArray(scenario.planDocumentArchive) ? scenario.planDocumentArchive.slice(-9) : [];
+  if (doc) archive.push({ ...doc, archivedAt: new Date().toISOString() });
+  await saveScenario(scenario.id, { planDocumentArchive: archive, planDocument: null });
+  if (cachedActiveScenario) { cachedActiveScenario.planDocumentArchive = archive; cachedActiveScenario.planDocument = null; }
 }
 
 /** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */

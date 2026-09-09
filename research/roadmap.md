@@ -107,6 +107,8 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Transition planner** now has its target: `scenario.planDocument.strategy.p/r.plan.orders` (6.5.0) — diff holdings against it.
+- **Mid-year Decision start: "this month already paid" toggle + remaining-months wording** (Chris, 9 Sep) — see the QA audit note.
 - **"When can I retire?" — earliest retirement age sweep (v6.5.0, follows the 6.4.0 Timing block).**
   Sweep candidate retirement ages with a joint accumulation + decumulation Monte Carlo on ONE
   bootstrap path (`bootstrapPaths(seed, (accumYears+planYears)*12)` then `annualNominal(..., off =

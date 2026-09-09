@@ -2257,8 +2257,10 @@
               <form id="decisionForm" data-on-submit="handleDecisionSubmit(event)">
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Month</label>
+                    <label>Month <span class="hlp" tabindex="0" data-tip="Enter a month BEFORE its payment goes out: the recommendation is that month's draw, and 'payments to come' counts it. If this month's payment has already been made, tick the box and the entry moves to next month — give the balances after the payment, and the tax-year setup will ask for income and tax to date including this month.">?</span></label>
                     <input type="month" id="entryMonth" required>
+                    <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:4px;"><input type="checkbox" id="entryPaidThisMonth" style="width:auto;" data-on-change="togglePaidThisMonth(this.checked)"> This month's payment has already been made — plan from next month</label>
+                    <p id="entryPaidNote" class="hint" style="margin:4px 0 0;"></p>
                   </div>
                   <div class="form-group">
                     <label>How often you draw</label>
@@ -8372,6 +8374,35 @@
       } catch (e) { el.innerHTML = ''; }
     };
 
+    // ---- "This month's payment has already been made" (6.5.4) ----
+    // The tool's month frame is "entry before the payment": the recommendation IS this month's draw and
+    // 'payments to come' counts it (April = 12). Someone who has already taken this month's payment plans
+    // from NEXT month instead: the entry moves one month on, balances are post-payment, and the tax-year
+    // setup asks for income and tax to date including this month. Nothing in the engine changes.
+    window._entryMonthBeforePaid = null;
+    window.togglePaidThisMonth = function (checked) {
+      const inp = document.getElementById('entryMonth'), note = document.getElementById('entryPaidNote'); if (!inp) return;
+      const cur = inp.value || getCurrentMonth();
+      const [y, m] = cur.split('-').map(Number);
+      if (checked) {
+        if (m === 3) {   // March already paid: nothing left in this tax year
+          document.getElementById('entryPaidThisMonth').checked = false;
+          showToast('March\'s payment was the last of this tax year — start with April\'s entry and its tax-year setup instead.', 'info', 6000);
+          return;
+        }
+        window._entryMonthBeforePaid = cur;
+        const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+        inp.value = ny + '-' + String(nm).padStart(2, '0');
+        const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        if (note) note.textContent = 'Planning from ' + names[nm - 1] + ' ' + ny + ': enter the balances as they are after ' + names[m - 1] + '\'s payment. If the tax year is not set up yet, the setup will ask for the income and tax already received this tax year — include ' + names[m - 1] + '\'s.';
+      } else {
+        if (window._entryMonthBeforePaid) inp.value = window._entryMonthBeforePaid;
+        window._entryMonthBeforePaid = null;
+        if (note) note.textContent = '';
+      }
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
     // ---- Timing block (6.4.0): WHEN the plan starts ----
     // Age today + retired / retire-at-age → the saved first tax year (year 0 for every tool) and the
     // derived start age of the income steps. See src/services/PlanTiming.js for the rules.
@@ -13119,7 +13150,7 @@
               </div>
             ` : ''}
             <div class="history-field">
-              <label>Remaining Months</label>
+              <label>Payments to come (incl. this month)</label>
               <span class="value">${h.remainingMonths || 12}</span>
             </div>
           </div>
@@ -13616,7 +13647,7 @@
               <span class="value">${getMonthNameFromNumber(config.startMonth || 4)}</span>
             </div>
             <div class="tax-year-field">
-              <label>Remaining Months (at setup)</label>
+              <label>Payments to come at setup (incl. the start month)</label>
               <span class="value">${config.remainingMonths || 12}</span>
             </div>
           </div>

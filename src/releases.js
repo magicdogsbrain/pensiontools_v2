@@ -36,6 +36,20 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.5.4', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Already taken this month\'s payment? Plan from next month',
+    summary: 'The tool has always assumed you enter a month BEFORE its payment goes out: the recommendation is that payment, and "payments to come" counts it (April shows 12). If this month\'s payment has already been made, a new tick box on Monthly Entry moves the entry to next month: give the balances after the payment, and the tax-year setup asks for income and tax to date including this month. Labels now say "payments to come (incl. this month)" instead of "remaining months".',
+    changes: [
+      'Monthly Entry: "This month\'s payment has already been made — plan from next month" tick box (with a help tip on the month frame). March cannot roll into April — start with April\'s setup instead.',
+      'Tax-year setup, History and Tax Years: "Remaining months" is now "Payments to come this tax year (including this month\'s)".',
+      'Bridge year: the suggested target is the plan\'s first income step (the rate the bridge cash was sized for), with a note on how many of the payments to come the bridge cash covers.'
+    ],
+    corrections: ['The bridge-year suggestion spread the whole bridge cash over the months left, overstating the rate for anyone already part-way through the year.'],
+    effects: { decision: ['No change to saved entries or recommendations. The tick box only sets which month you are entering.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: ['If you recorded this month after its payment had already gone out: delete that entry (and its tax-year setup if it was the first), tick the box, and re-enter from next month with post-payment balances.'],
+    notes: []
+  },
+  {
     version: '6.5.3', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'History view: ladder plans no longer fall back to pot floors',
     summary: 'On a gilt-ladder plan, opening History before the Monthly Entry screen had drawn could still show glidepath targets and a "surplus" on a saved month. The record view now looks the plan\'s strategy up itself.',

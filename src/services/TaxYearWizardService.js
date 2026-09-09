@@ -326,15 +326,18 @@ export async function getWizardData(selectedMonth) {
     }
   } catch (e) { /* no stress settings / no schedule — chain fallback below */ }
 
-  // BRIDGE year (before the plan starts): the plan says nothing about this year's income except the
-  // cash it set aside to reach the first April ("Bridge cash to the first April" on the gilt ladders).
-  // Suggest that spread over the months left, annualised; without it, the plan's first step.
-  let bridgeSuggestedSalary = null;
+  // BRIDGE year (before the plan starts): the plan says nothing about this year's income except that
+  // its first step is the rate the bridge cash was sized for. Suggest the first step (today's money, the
+  // rate the ladder starts at) and say how many of the payments to come the bridge cash covers at that
+  // rate. (6.5.4: spreading the whole bridge cash over the months left overstated the rate for anyone
+  // who had already spent part of it — a September start is 5 payments in.)
+  let bridgeSuggestedSalary = null, bridgeCoverMonths = null;
   if (bridgeYear) {
     const bridgeCash = +(stressSettings?.strategyParams?.bridgeCash) || 0;
     const sched0 = Array.isArray(stressSettings?.targetSchedule) ? +stressSettings.targetSchedule[0] : 0;
-    bridgeSuggestedSalary = bridgeCash > 0 && remainingMonths > 0 ? Math.round(bridgeCash * 12 / remainingMonths)
-      : (sched0 > 0 ? sched0 : (scheduleSuggestedSalary ?? null));
+    const otherNow = +(stressSettings?.other || 0) + +(stressSettings?.dbAmount || 0);
+    bridgeSuggestedSalary = sched0 > 0 ? sched0 : (scheduleSuggestedSalary ?? (bridgeCash > 0 && remainingMonths > 0 ? Math.round(bridgeCash * 12 / remainingMonths) : null));
+    if (bridgeCash > 0 && bridgeSuggestedSalary > 0) bridgeCoverMonths = Math.floor(bridgeCash / Math.max(1, (bridgeSuggestedSalary - otherNow) / 12));
   }
 
   const suggestedSalary = bridgeSuggestedSalary ?? scheduleSuggestedSalary ?? chainSuggestedSalary;
@@ -349,6 +352,7 @@ export async function getWizardData(selectedMonth) {
     planStartYear,
     planYear: planYearSigned,
     bridgeYear,
+    bridgeCoverMonths,   // how many of the payments to come the plan's bridge cash covers at the suggested rate (bridge years only)
 
     // Current settings
     baseSalary: settings.baseSalary,

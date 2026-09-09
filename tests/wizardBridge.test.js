@@ -13,15 +13,23 @@ vi.mock('../src/storage/ScenarioRepository.js', async (orig) => ({ ...(await ori
 import { getWizardData } from '../src/services/TaxYearWizardService.js';
 
 describe('tax-year wizard: bridge years before the plan starts (6.4.0)', () => {
-  it('September 2026 is a bridge year: bridge cash spread over the 7 months left, annualised', async () => {
+  it('September 2026 is a bridge year: the first step is suggested, with the bridge-cash coverage', async () => {
     const d = await getWizardData('2026-09');
     expect(d.taxYear).toBe('26/27');
     expect(d.planStartYear).toBe(2027);
     expect(d.planYear).toBe(-1);
     expect(d.bridgeYear).toBe(true);
-    expect(d.remainingMonths).toBe(7);
+    expect(d.remainingMonths).toBe(7);   // September's payment plus October–March
     expect(d.suggestionSource).toBe('bridge');
-    expect(d.suggestedSalary).toBe(Math.round(50000 * 12 / 7));   // ≈ £85,714
+    expect(d.suggestedSalary).toBe(83650);
+    // £50,000 bridge cash at (83,650 − 3,650 DB) / 12 = £6,667 a month from the pot covers 7 payments
+    expect(d.bridgeCoverMonths).toBe(7);
+  });
+  it('"this month already paid" = plan from October: 6 payments to come, income to date includes September', async () => {
+    const d = await getWizardData('2026-10');
+    expect(d.remainingMonths).toBe(6);
+    expect(d.bridgeYear).toBe(true);
+    expect(d.suggestedSalary).toBe(83650);
   });
   it('April 2027 is plan year 0: the first step, from the schedule', async () => {
     const d = await getWizardData('2027-04');

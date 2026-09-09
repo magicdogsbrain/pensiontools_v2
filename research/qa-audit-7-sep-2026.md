@@ -200,3 +200,9 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   income to date incl. September) so the user does not have to add the £7k back to cash by hand.
 - Lock from Stress + plan document shipped (6.5.0). Not yet: plan-vs-actual "pot vs plan cone" column (the where-am-I
   strip covers it for now); redo button for a configured tax year; Decision entry layout race.
+- 6.5.4 shipped the month-frame answer: convention kept ("entry before the payment"; April = 12), plus the
+  "This month's payment has already been made — plan from next month" tick box on Monthly Entry (Sept→Oct, Dec→Jan,
+  March blocked), "payments to come (incl. this month)" wording everywhere, and the bridge suggestion = first step with
+  bridge-cash coverage months. Verified on dev as guest: tick/untick, month roll-over, March toast, wizard for October
+  → 6 payments to come. Chris's saved September entry (7-payment frame, pre-payment cash) stays valid; to switch to the
+  6-payment frame: delete the Sept entry + the 26/27 setup, tick the box, re-enter from October.

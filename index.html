@@ -5741,6 +5741,7 @@
       if (!(+settings.firstTaxYear > 0)) {
         try { const ss = await getStressSettingsAsync(); const t = deriveTiming(ss); if (t.mode !== 'legacy' || +ss.firstTaxYear > 0) settings.firstTaxYear = t.firstTaxYear; } catch (e) { /* fallback: first tax year set up */ }
       }
+      if (+settings.firstTaxYear > 0) window._decisionAnchor = +settings.firstTaxYear;   // for the saved-record labels
       // Bond tent: when enabled, hand the engine a rising-equity glide centred on the plan's risk
       // split (same helper the Stress engine uses), so the monthly draw + rebalance advice follows it.
       const decisionSettings = settings.equityGlideEnabled
@@ -8206,6 +8207,13 @@
       return taxYearLabel(fty + (+y || 0));
     }
     window.planYearTaxLabel = planYearTaxLabel;
+    // "Year N" for a saved Decision record — or "Bridge year" before the plan starts (6.4.2).
+    window.recordYearLabel = function (h) {
+      const bridge = h?.bridgeYear === true || (window._decisionAnchor > 0 && h?.taxYear ? planYearOf(h.taxYear, window._decisionAnchor) < 0 : false);
+      if (bridge) return 'Bridge year' + (window._decisionAnchor > 0 ? ' (plan starts ' + taxYearLabel(window._decisionAnchor) + ')' : '');
+      const y = window._decisionAnchor > 0 && h?.taxYear ? planYearOf(h.taxYear, window._decisionAnchor) : (h?.yearNum || 0);
+      return 'Year ' + y;
+    };
     window.updateDurationHint = function () {
       const h = document.getElementById('ssDurationAgeHint'); if (!h) return;
       const dur = +document.getElementById('ssDuration')?.value || 0; const a = window._ssTiming?.shapeAgeNow || +document.getElementById('shapeAgeNow')?.value || 0;
@@ -8433,14 +8441,21 @@
       const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
       const timing = deriveTiming(settings);   // 6.4.0: the saved plan start, not "the year after today"
       const startAge = timing.shapeAgeNow || +settings.shapeAgeNow || 57;
-      const planYear = Math.max(0, planYearOf(dateStr, timing.firstTaxYear));
+      const planYearSigned = planYearOf(dateStr, timing.firstTaxYear);
+      const planYear = Math.max(0, planYearSigned);
       const spCfg = spSimConfigFromSettings(settings);
       const spOn = spCfg && planYear >= spCfg.spStartYear;
       const spAnnual = spOn ? (settings.spWeeklyAmount || 0) * 52 : 0;
       const total = (decision.sippDraw || 0);
       const d = getStrategy(st.id).describe();
       let floorMonthly = 0, floorLabel = '', note = '';
-      if (st.id === 'full-il-gilt' || st.id === 'gilt-rotation' || st.id === 'floor-the-schedule') {
+      if (planYearSigned < 0 && CONTRACT_IDS.includes(st.id)) {
+        // Bridge month (6.4.2): the plan has not started, so the month is paid from the cash set aside to
+        // reach the first April — nothing is sold and no rung is involved yet.
+        floorMonthly = total; floorLabel = 'bridge cash (the plan starts ' + taxYearLabel(timing.firstTaxYear) + ')';
+        note = 'Before your plan starts in ' + taxYearLabel(timing.firstTaxYear) + ': this month comes from the cash you set aside to reach it. Nothing is sold; the ladder\'s first rung is not due yet.';
+      }
+      else if (st.id === 'full-il-gilt' || st.id === 'gilt-rotation' || st.id === 'floor-the-schedule') {
         // The ladder is a contract: the monthly figure is this tax year's rung divided by the
         // months left, NOT the P&V tax-band draw. Fall back to the P&V number only if the plan
         // cannot be built (e.g. settings incomplete).
@@ -8695,6 +8710,7 @@
         const st = await getActiveStrategy();
         const settings = await getStressSettingsAsync();
         const sid = st.id || settings.strategyId || 'pots-and-valves';
+        window._activeStrategyId = sid;   // read by the saved-record view for records that pre-date the flag
         try { applyDecisionStrategyMode(sid); } catch (e) { /* form not on this tab */ }
         // Every plan has a strategy; the Decision tool executes it. Say which, and what that means this month.
         const HOW = {
@@ -12487,6 +12503,7 @@
         // stamped at the time, which older records counted from a hard-coded 2026. Negative = bridge.
         let anchor = null;
         try { const ds = await getDecisionSettingsAsync(); let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; } anchor = decisionAnchorYear(ds, taxYears, null, ss); } catch (e) { anchor = null; }
+        if (anchor > 0) window._decisionAnchor = anchor;   // read by recordYearLabel / the record view
         const byYear = {};
         let bridgeRecords = 0;
         for (const h of history) {
@@ -12697,9 +12714,16 @@
         ? `Protection${h.protectionInducedTaxEfficiency ? ' (Tax-Efficient)' : ''}`
         : (isTaxEfficient ? 'Tax-Efficient' : 'Standard');
 
+      // A contract strategy (gilt ladders) pays from its cash bucket / matured rung: no pot floors, no
+      // rebalancing, nothing sold. Records saved before 6.4.2 carry no flag — fall back to the plan's
+      // current strategy. A bridge month (before the plan starts) is paid from the bridge cash.
+      const contract = h.contract != null ? !!h.contract : CONTRACT_IDS.includes(window._activeStrategyId || '');
+      const bridge = h.bridgeYear === true || (window._decisionAnchor > 0 && h.taxYear ? planYearOf(h.taxYear, window._decisionAnchor) < 0 : false);
       // Format withdrawal source details
       let sourceDetail = h.source || 'Unknown';
-      if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
+      if (contract) {
+        sourceDetail = h.strategySource ? ('From ' + h.strategySource) : (bridge ? 'Bridge cash — before the plan starts; nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
+      } else if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
         sourceDetail = `Growth (Equity: ${fmt(h.dEquity || 0)}, Bond: ${fmt(h.dBond || 0)})`;
       } else if (h.source === 'Cash') {
         sourceDetail = `Cash (${fmt(h.dCash || h.sipp || 0)})`;
@@ -12714,7 +12738,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <div>
               <h3 style="margin:0;">${formatHistoryTabDate(h.date)}</h3>
-              <div style="color:var(--text-muted);font-size:13px;">Tax Year ${h.taxYear} • Year ${h.yearNum || 0}</div>
+              <div style="color:var(--text-muted);font-size:13px;">Tax Year ${h.taxYear} • ${recordYearLabel(h)}</div>
             </div>
             <span class="tax-mode-badge ${modeClass}">${modeLabel}</span>
           </div>
@@ -12749,8 +12773,8 @@
             </div>
           </div>
 
-          <!-- Glidepath targets -->
-          ${h.adjEquity || h.adjBond || h.adjCash ? `
+          <!-- Glidepath targets (not for a contract strategy: a ladder has no pot floors to keep) -->
+          ${!contract && (h.adjEquity || h.adjBond || h.adjCash) ? `
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
               <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">GLIDEPATH TARGETS</div>
               <div class="history-grid">
@@ -12914,8 +12938,8 @@
           </div>
         </div>
 
-        <!-- Rebalancing -->
-        ${h.rebal ? `
+        <!-- Rebalancing (never for a contract strategy — nothing is sold or moved) -->
+        ${h.rebal && !contract ? `
           <div class="history-detail-card">
             <h3>Rebalancing Suggestions</h3>
             <div style="padding:12px;background:rgba(243,156,18,0.1);border-radius:8px;">

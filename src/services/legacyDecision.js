@@ -626,7 +626,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // 7-month year), plus pre-start income and other taxable income, less what pre-start income
       // owes on its own. Comparing a full-year inefficient figure with a partial-year actual
       // roughly doubled the "saving" in a mid-year first year (persona test B32).
-      const inefficientTaxable = (target / 12) * deliverMonths + (OTHER + STATE) * fixedShare + preStartIncome;
+      // The SIPP part of the target only — the target already includes other income and the State Pension,
+      // which are added on their own line below (6.4.2: they were counted twice, inventing a "saving").
+      const inefficientTaxable = Math.max(0, (target - OTHER - STATE) / 12) * deliverMonths * (1 - taxFreeF) + (OTHER + STATE) * fixedShare + preStartIncome;
       const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - priorTax;
       const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - priorTax)) / deliverMonths);
 

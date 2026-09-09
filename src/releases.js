@@ -36,6 +36,25 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.4.2', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Saved monthly records match the live screen for gilt-ladder plans',
+    summary: 'The saved record and its PDF for a plan on a gilt ladder (or any contract strategy) no longer show Pots & Valves pot floors, a "surplus" or rebalancing moves, and the source reads "the cash bucket" or "bridge cash" rather than "sell bonds". Months before the plan starts are labelled bridge months.',
+    changes: [
+      'Saved records carry how the month was paid (contract strategy source and note) and whether it was a bridge month; the History view and PDF use them. Older records fall back to the plan\'s current strategy.',
+      'Live recommendation in a bridge month on a ladder plan: the source is the bridge cash — nothing is sold, no rung is due yet.'
+    ],
+    corrections: [
+      'The "tax saved" comparison for a plan with a State Pension or other income counted that income twice, inventing a saving of a few hundred pounds a month. Full-target-from-SIPP months now show no saving, as they should.',
+      'History cards and PDFs said "Year 0" for a month before the plan started; they now say "Bridge year (plan starts 2027/28)".'
+    ],
+    effects: {
+      decision: ['Ladder plans: re-download any monthly PDF — the pot-floor and rebalancing sections are gone and the source is correct. The recommendation figures are unchanged. "Tax saved" falls for plans with a State Pension or other income (it was overstated).'],
+      stress: [], strategies: [], household: [], budget: [], accumulation: []
+    },
+    actions: [],
+    notes: []
+  },
+  {
     version: '6.4.1', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Mid-year tax-year setup: tell it the tax you have already paid',
     summary: 'The tax-year wizard\'s mid-year step now takes the PAYE already deducted this year (from your payslips) alongside the income received. The tax still to come is then the year\'s total less what is paid — right for someone who has been drawing a pension since April. Left blank, the old assumption stands.',

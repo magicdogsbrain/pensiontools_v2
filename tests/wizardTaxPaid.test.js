@@ -41,5 +41,7 @@ describe('mid-year wizard: tax already paid (6.4.1)', () => {
     expect(withPaid.monthlyTax).toBeLessThan(without.monthlyTax);
     expect(Math.abs(withPaid.monthlyTax - (22492 - 9364) / 7)).toBeLessThan(2);
     expect(withPaid.bridgeYear).toBe(true);
+    // Drawing the full target from the SIPP IS the "inefficient" comparison — no saving to report (6.4.2)
+    expect(withPaid.taxSavedMonthly).toBe(0);
   });
 });

@@ -127,6 +127,16 @@ export function decisionToHistory(decision) {
     date: decision.date,
     taxYear: decision.taxYear,
     yearNum: decision.yearNumber,
+    // Where the month sits in the plan and how it was paid (6.4.2) — so the saved record and its PDF show
+    // what the live screen showed: a bridge month before the plan starts; a contract strategy (gilt
+    // ladders) paying from its cash bucket / matured rung, with no pot floors or rebalancing to obey.
+    ...(decision.bridgeYear ? { bridgeYear: true, planStartYear: decision.planStartYear } : {}),
+    ...(decision.strategyOverlay ? {
+      strategyId: decision.strategyOverlay.id || null,
+      contract: !!decision.strategyOverlay.hidePots,
+      strategySource: decision.strategyOverlay.floorLabel || null,
+      strategyNote: decision.strategyOverlay.note || null
+    } : {}),
 
     // Fund balances at time of decision
     equity: decision.equity,

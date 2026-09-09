@@ -107,6 +107,19 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Land where you left off (Chris, 9 Sep 2026) — next iteration.** On sign-in the app always opens the
+  Decision tool; it should reopen the last place the user was. Store it on the user's profile document
+  (`users/{uid}/profile/settings.lastLocation`, alongside `lastSeenVersion`), not on the plan:
+  `{ scenarioId, tab, subTab, stratPage, at }`. Write it (throttled, fire-and-forget via
+  `saveUserProfile`) from the tab and sub-tab click handlers, `showStrategyPage`, and the plan switch;
+  never for guests. Restore in the auth-success path after `showMainApp`: switch plan if `scenarioId`
+  still exists (else the active plan), then `switchToTab(tab)` if that tool is enabled for the plan
+  (else the first visible tab), then the sub-tab / strategy page. Skip the restore on `?demo=`,
+  `?signup=1`/`?signin=1` boots and when the once-only release pop-up would fight it (announce first,
+  then restore, or restore then announce — pick one and test). The existing one-shot
+  `sessionStorage pt_open_tab` reload hint can go once this exists. Privacy: the "App preferences" row
+  already covers profile preferences — add "where you were last" to its examples. Tests: a pure
+  `resolveLandingLocation(saved, scenarios, enabledTools)` with the fallbacks above.
 - ~~**Income shape absorbs "Spending"**~~ DONE in v6.2.1 (7 Sep 2026): per-step decline slider + "glide evenly to the next step"; the Spending tile is gone; "Declining" plans migrated to equivalent steps (parity test). Original spec: Today there are two dials that both
   shape the target: the income steps ("£60k from 57, £50k from 72, £40k from 80", compiled to
   `targetSchedule`) and a separate *Spending over retirement* select (flat / Blanchett smile)

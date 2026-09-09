@@ -185,3 +185,9 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
 - 6.4.1 shipped the "tax already paid" box + pro-rated fixed income in partial years. Still open: a "re-do this year's
   setup" button for a configured tax year (`shouldShowWizard` returns false once `yearSetupComplete`; needs a force flag
   through `initTaxYearWizard`).
+- 6.4.2 (same evening): saved records/PDF respect contract strategies (no pot floors / rebalancing; source = cash bucket
+  or bridge cash), "Bridge year" label, overlay bridge branch, tax-saved double count of SP/other fixed (goldens moved
+  on taxSaved only, deliberately). Chris's saved Sept record still shows the stale "Tax saved £122" computed before the
+  fix — needs delete + re-enter to clear (config for 26/27 is kept). Still open: redo button for a configured tax year;
+  entry-form layout race (renderDecisionStrategyPanel on Monthly Entry show); the record view of pre-6.4.2 records
+  falls back to the CURRENT strategy (fine unless the plan switches strategy later).

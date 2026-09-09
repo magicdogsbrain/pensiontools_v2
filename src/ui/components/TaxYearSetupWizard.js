@@ -187,6 +187,8 @@ function renderMidYearIncome() {
       <div class="wizard-step-title">Income Before Starting Pension</div>
       <div class="wizard-step-desc">
         You're starting your pension drawdown in ${monthName}. Enter any taxable income you've already received this tax year (April to ${prevMonth}).
+        ${monthName}'s own payment is the first the tool plans, so do not include it here. If ${monthName}'s payment has already been made, cancel, tick
+        "This month's payment has already been made" on Monthly Entry, and the setup restarts from next month.
       </div>
 
       <div class="wizard-input">
@@ -258,8 +260,8 @@ function renderCpiAndSalary() {
       <div class="wizard-info-box" id="salaryInfoBox">
         ${fromBridge
           ? `<p><strong>Bridge year</strong> — your plan starts in ${startLabel}, so this tax year is funded
-             by the cash you set aside to reach it. The suggestion is that bridge cash spread over the
-             months left (or, if none is set, your plan's first income step):</p>`
+             by the cash you set aside to reach it. The suggestion is your plan's first income step, the rate
+             the bridge cash was sized for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the bridge cash covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
           : fromSchedule
           ? `<p><strong>From your budget's plan for this year</strong> — the per-year schedule you set
              from the Budget tool (temporary costs end when they end, one-offs land in their year),
@@ -578,7 +580,7 @@ function renderConfirmation() {
           <span>${getMonthName(wizardContext.selectedMonth)}</span>
         </div>
         <div class="wizard-summary-row">
-          <span>Remaining Months:</span>
+          <span>Payments to come this tax year (including this month's):</span>
           <span>${wizardContext.remainingMonths}</span>
         </div>
         ${wizardInputs.grossIncomeToDate > 0 ? `

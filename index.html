@@ -13566,7 +13566,7 @@
           <h3>Income Configuration</h3>
           <div class="tax-year-grid">
             <div class="tax-year-field">
-              <label>Target Annual Salary</label>
+              <label>Target income for the year (gross, all sources)</label>
               <span class="value">${fmt(config.confirmedSalary)}</span>
             </div>
             <div class="tax-year-field">
@@ -13578,9 +13578,14 @@
               <span class="value">${spIsReceiving ? fmt(statePensionValue) + (spInfo.isFirstYear ? ' (partial year)' : '') : (spStartDate !== 'Not configured' ? `Starts ${spStartDate}` : 'Not configured')}</span>
             </div>
             <div class="tax-year-field">
-              <label>Income Before Pension Start</label>
+              <label>Income received earlier this tax year (gross, before the start month)</label>
               <span class="value">${fmt(config.grossIncomeToDate)}</span>
             </div>
+            ${config.taxPaidToDate != null ? `
+            <div class="tax-year-field">
+              <label>Tax already paid on it (PAYE)</label>
+              <span class="value">${fmt(config.taxPaidToDate)}</span>
+            </div>` : ''}
           </div>
         </div>
 
@@ -13591,7 +13596,7 @@
             <div class="tax-year-field">
               <label>Mode</label>
               <span class="tax-mode-badge ${config.isTaxEfficient ? 'efficient' : 'inefficient'}">
-                ${config.isTaxEfficient ? 'Tax-Efficient' : 'Tax-Inefficient'}
+                ${config.isTaxEfficient ? 'Tax-efficient — SIPP to the basic-rate limit, ISA tops up' : 'Full target from the SIPP'}
               </span>
             </div>
             <div class="tax-year-field">

@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.5.2', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Tax-year page speaks plainly',
+    summary: 'The Tax Years detail used payroll words that did not fit a pension: "Target annual salary", "Income before pension start", "Tax-Inefficient". They now say what they mean, and the tax already paid (entered in the mid-year setup) is shown.',
+    changes: ['Tax Years → year detail: "Target income for the year (gross, all sources)", "Income received earlier this tax year", "Tax already paid on it (PAYE)" when entered, and the mode reads "Full target from the SIPP" or "Tax-efficient — SIPP to the basic-rate limit, ISA tops up".'],
+    corrections: [],
+    effects: { decision: ['Wording only; the figures and the recommendation are unchanged.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.5.1', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Tax-year page: no target mix for gilt-ladder plans',
     summary: 'The Tax Years page showed "This Year\'s Target Mix" — a Pots & Valves card — for plans on a gilt ladder, where there is no mix to keep. It is now hidden for contract strategies, as it already was on the monthly record.',
@@ -105,7 +114,7 @@ export const RELEASES = [
       'In a partial first year, other income and the State Pension were counted in full on top of the income to date (which already held their earlier months) — a small double count of tax, now pro-rated to the months left.'
     ],
     effects: {
-      decision: ['Tax years already set up are unchanged: the new box only applies when a year is set up. A "re-do this year\'s setup" button for a year already configured is on the list.'],
+      decision: ['Tax years already set up are unchanged until you re-run the setup: Tax Years → the year → "Reconfigure via Wizard" lets you enter the tax paid.'],
       stress: [], strategies: [], household: [], budget: [], accumulation: []
     },
     actions: ['If you are setting up a mid-year first year and have been drawing since April: enter the PAYE to date from your payslip\'s "to-date totals" so the expected tax and take-home match what you actually receive.'],

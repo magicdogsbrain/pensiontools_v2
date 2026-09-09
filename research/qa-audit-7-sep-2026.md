@@ -145,3 +145,11 @@ Ship as one minor release (pops up once): every item changes numbers users see o
     check your allocation if you saved Stress Settings since August).
 
 Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
+
+## Found 9 Sep 2026 while reading Chris's plan (for the next patch)
+- **Pinned pot vs displayed pot.** The gilt strategies price against `strategyParams.sippTotal` when it is set
+  (Chris's plan: £1,260,000, left by an earlier dial / what-if) while the settings copy says "Priced against
+  Your pot above (£1,212,000)". The card therefore said affordable with £19k spare when, against the
+  displayed pot, the ladder is £29k short. Fix: the copy must show the figure actually used, and the pinned
+  total needs a visible dial with a "use my pot" reset for every bought strategy.
+- Order sheet: no £0 rungs with a £20 fee; charge the held-over cash drag on multi-year rungs (from 8 Sep).

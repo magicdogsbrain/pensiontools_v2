@@ -107,6 +107,20 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **Transition planner — "how do I actually buy it?" (Chris, 9 Sep 2026).** The Stress Tester says a
+  bought strategy is affordable and prints an order sheet, but nothing bridges the portfolio someone
+  HAS (accumulated funds, existing gilts, cash) to the ladder the plan wants. A new page (Strategies →
+  "Build it", or the Decision tool's ladder card): (1) holdings in — paste/CSV from the broker (AJ Bell
+  format first: Investment / Quantity / Price / Value / Cost), matched to the linker universe by
+  maturity date + coupon, plus cash and funds; (2) target = the plan's order sheet (nominal units per
+  rung, cash years); (3) the diff: buy / sell / hold per rung in units and £ at live prices, surpluses
+  flagged, wrapper-aware (SIPP vs ISA vs GIA — gilts CGT-free, coupons taxed); (4) sequencing and
+  timing: what to sell first to fund buys (short surpluses before long), what waits on a future event
+  (a lump sum the plan already spends — mark those rungs "funded later, not bought now" and show the
+  dependency), auction/liquidity notes for the thin long linkers, and a cash-flow check that dealing
+  never leaves the cash years short; (5) execution tracking hooks into the existing ladder position
+  service so bought rungs tick off and the plan-vs-actual shows drift. Also the two order-sheet fixes:
+  no £0 rungs with a £20 fee; charge the held-over cash drag on multi-year rungs.
 - **Land where you left off (Chris, 9 Sep 2026) — next iteration.** On sign-in the app always opens the
   Decision tool; it should reopen the last place the user was. Store it on the user's profile document
   (`users/{uid}/profile/settings.lastLocation`, alongside `lastSeenVersion`), not on the plan:

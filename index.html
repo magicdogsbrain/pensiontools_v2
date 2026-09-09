@@ -4635,6 +4635,7 @@
         const stressSettings = await getStressSettingsAsync();
         const decisionSettings = await getDecisionSettingsAsync();
         updateSetupBanners();
+        try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
         // Monthly Entry captures THIS MONTH's current fund values — NOT the plan's starting minimums.
         // Leave the bucket boxes blank; the user enters them (per-fund via the popups, "Fill all from my
@@ -12743,6 +12744,9 @@
       tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
 
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 });
+      // The record view needs the plan's strategy (records saved before 6.4.2 carry no flag) — resolve it
+      // here rather than relying on the Monthly Entry panel having rendered first (6.5.3).
+      try { const st = await getActiveStrategy(); if (st && st.id) window._activeStrategyId = st.id; } catch (e) { /* keep whatever we had */ }
       renderPlanVsActual(allHistoryData);
       // Entries recorded under previous settings (only possible once the plan has been unlocked and
       // re-saved — same rule as PlanLock.planDependents). Kept, but said so.

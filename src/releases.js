@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.5.3', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'History view: ladder plans no longer fall back to pot floors',
+    summary: 'On a gilt-ladder plan, opening History before the Monthly Entry screen had drawn could still show glidepath targets and a "surplus" on a saved month. The record view now looks the plan\'s strategy up itself.',
+    changes: [],
+    corrections: ['History → a month\'s record: the strategy is resolved from the plan when the page opens, not from whatever the Monthly Entry screen last rendered, so contract strategies always get the ladder view (no pot floors, no rebalancing, source = cash bucket / bridge cash).'],
+    effects: { decision: ['Ladder plans only; display only.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.5.2', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Tax-year page speaks plainly',
     summary: 'The Tax Years detail used payroll words that did not fit a pension: "Target annual salary", "Income before pension start", "Tax-Inefficient". They now say what they mean, and the tax already paid (entered in the mid-year setup) is shown.',

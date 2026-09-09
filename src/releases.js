@@ -35,6 +35,21 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.3.0', date: '2026-09-09', engineVersion: '6.2.1',
+    title: 'Guest mode is a trial — and your guest work comes with you when you sign in',
+    summary: 'Guest mode ("Just try it") now measures active use in this browser: gentle reminders along the way, and after three hours of use it stops until you sign in. Whichever way you sign in — from a reminder, the banner, or the stop — the plan, budget and settings you built as a guest are copied into your account. Nothing is lost.',
+    changes: [
+      'The guest banner shows how much of the three free hours you have used and offers two buttons: create an account and keep this work, or sign in to an existing one and keep it.',
+      'Reminders at 15, 45, 90 and 150 minutes of active use (a tab left open does not count). The last two are a dialog you can dismiss.',
+      'At three hours guest mode stops. Signing in (or creating an account) copies your guest plans into the account as "… (from guest)" — you are asked first.',
+      '"Create a free account to keep it" used to wipe the guest plan on the way to sign-up. It now keeps it.'
+    ],
+    corrections: [],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: ['If you have been using guest mode: sign in once and take your work with you. It is the only way it is kept, and the only way we can support you.'],
+    notes: ['The meter and the hand-off live in your browser only (see the privacy policy). Only signed-in users can be supported; guest mode remains a try-before-you-sign-in.']
+  },
+  {
     version: '6.2.7', date: '2026-09-08', engineVersion: '6.2.1',
     title: 'Cash years in the gilt ladders are priced honestly',
     summary: 'The "years funded from cash first" dial on the Full index-linked gilt ladder and Bridge & engine treated cash as holding its value. It now costs inflation minus 1% a year — the same assumption every other strategy already uses for cash — so a long cash run shows its true cost instead of looking free. The dial is capped at 5 and explains itself.',

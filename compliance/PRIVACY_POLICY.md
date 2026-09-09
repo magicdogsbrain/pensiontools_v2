@@ -35,7 +35,9 @@ All of the above is stored against your account in **Google Cloud Firestore**.
 (not cookies, and never sent to us): the time of your last activity (for the automatic sign-out),
 which one-off banners you have dismissed, and the last version whose release notes you have seen.
 In **guest mode** ("Just try it") your plan lives only in that browser tab's session storage and is
-discarded when the tab closes; nothing is sent anywhere. Signing out, "Reset" and "Delete Account"
+discarded when the tab closes; nothing is sent anywhere. Guest use is metered in this browser (a count of
+active minutes, so we can ask you to sign in after a few hours); and if you choose "keep this work" when
+signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. Signing out, "Reset" and "Delete Account"
 clear these items. We do **not** sell
 your data, use it for advertising, or share it for marketing.
 

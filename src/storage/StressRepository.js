@@ -14,6 +14,7 @@ import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
 import { tagPortfolio } from '../services/PortfolioTagger.js';
 import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
+import { migrateTiming, potScaleOf } from '../services/PlanTiming.js';
 export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
@@ -119,12 +120,15 @@ export async function loadStressDBAsync() {
     if (stressSettings) {
       // "Age today" is maintained on the Budget page; a copy frozen in the Stress settings at the last
       // save goes stale every birthday and shifts the State Pension a plan year. Prefer the newer figure.
+      let budget = null;
       try {
         const b = await getActiveBudget();
         if (b && +b.currentAge > 0 && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
+        budget = b || null;
       } catch (e) { /* no budget yet */ }
       const db = {
         settings: stressSettings,
+        budget,
         lastModified: new Date().toISOString(),
         checksum: null
       };
@@ -218,6 +222,9 @@ function migrateStressDB(db) {
     ms.spendingProfile = 'flat';
     ms.spendingMigratedFrom = 'declining';
   }
+  // 6.4.0: the plan's start (first tax year, retired / retire-at-age) is saved rather than implied by
+  // today's date. Derived once from the age today + the income shape's start age; persisted on save.
+  migrated.settings = migrateTiming(migrated.settings, db.budget || null);
 
   migrated.lastModified = db.lastModified;
   migrated.checksum = db.checksum;
@@ -311,14 +318,21 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
   // (and an untouched RNG stream — golden-safe).
   const isaMix = deriveIsaMix(settings.taggedFunds);
 
+  // Retiring later (6.4.0 Timing block): the pots entered are today's; the plan runs from retirement
+  // on the pots projected to then (today's money), so everything pot-shaped is scaled by the same
+  // factor — starts, glidepath floors, the ISA — exactly as requiredPotForStrategy scales a plan.
+  // Already retired / no projection → 1, byte-identical to before.
+  const ps = potScaleOf(settings);
+  const kS = (v) => (v == null ? v : v * ps.sipp);
+
   return {
     ...(isaMix ? { isaMix } : {}),
-    equityStart: overrides.equityStart ?? settings.equityMin,
-    bondStart: overrides.bondStart ?? settings.bondMin,
-    cashStart: overrides.cashStart ?? settings.cashTarget,
-    equityMin: settings.equityMin,
-    bondMin: settings.bondMin,
-    cashTarget: settings.cashTarget,
+    equityStart: kS(overrides.equityStart ?? settings.equityMin),
+    bondStart: kS(overrides.bondStart ?? settings.bondMin),
+    cashStart: kS(overrides.cashStart ?? settings.cashTarget),
+    equityMin: kS(settings.equityMin),
+    bondMin: kS(settings.bondMin),
+    cashTarget: kS(settings.cashTarget),
     years: overrides.years ?? settings.duration,
     duration: settings.duration,
     baseSalary: settings.baseSalary,
@@ -337,7 +351,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     hodlEnabled: settings.hodlEnabled,
     hodlValue: settings.hodlValue,
     // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
-    isaBalance: settings.isaBalance || 0,
+    isaBalance: (settings.isaBalance || 0) * ps.isa,
     isaReturn: settings.isaReturn,
     // Tax bands from settings (previously only supplied by UI call-site overrides — configs
     // built without overrides had pa/brl/hrl undefined, which NaN'd every draw).
@@ -384,7 +398,7 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Diversifiers sleeve (gold + trend/macro), opt-in. When set, the engine runs the 4-bucket
     // sub-asset path (subAsset present) and holds this pot flat, tapping it first in a downturn.
     // Absent/0 → legacy 3-bucket path, byte-identical.
-    diversifierStart: overrides.diversifierStart ?? (settings.diversifierStart || undefined),
+    diversifierStart: kS(overrides.diversifierStart ?? (settings.diversifierStart || undefined)),
     subAsset: settings.subAsset || undefined
   };
 }

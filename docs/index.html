@@ -2147,7 +2147,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-CWqd6ne3.js"></script>
+  <script type="module" crossorigin src="./assets/main-CEpz68sq.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2389,6 +2389,7 @@
             <div class="form-group" style="margin-top: 16px;">
               <label>Depletion Duration (years)</label>
               <input type="number" id="dsDuration" value="35" style="max-width:220px;">
+              <p id="dsPlanStartNote" class="hint" style="margin:6px 0 0;"></p>
             </div>
 
             <div id="dsRiskMode">
@@ -3076,6 +3077,23 @@
                 <button type="button" class="risk-btn" data-strat="full-il-gilt" data-on-click="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
                 <button type="button" class="risk-btn" data-strat="gilt-rotation" data-on-click="pickStrategy('gilt-rotation')">Gilt ladder + rotation</button>
               </div>
+              <div id="ssTimingBlock" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
+                <div class="section-title" style="font-size:13px;">When your plan starts <span class="hint" style="font-weight:normal;">— year 0 for every tool, the gilt ladders and the Decision tool</span></div>
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have already retired</label>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmFuture" value="future" style="width:auto;" data-on-change="renderTiming()"> I will retire at age <input type="number" id="tmRetireAge" min="40" max="80" style="width:70px;" data-on-input="renderTiming()"></label>
+                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">Plan starts <span class="hlp" tabindex="0" data-tip="The tax year your plan's year 0 is. Already retired: usually next 6 April, living on bridge cash until then; choose this tax year to start now (the Decision tool treats months before the start as a bridge). Retiring later: the tax year you reach that age.">?</span><select id="tmStartYear" style="width:210px;" data-on-change="renderTiming()"></select></label>
+                </div>
+                <div id="tmPotWrap" style="display:none;margin-top:6px;">
+                  <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement; the pots entered below are what you hold today.">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA at retirement (£)<input type="number" id="tmPotIsa" step="1000" style="width:120px;" data-on-input="renderTiming()"></label>
+                  </div>
+                </div>
+                <p id="tmSummary" class="hint" style="margin:6px 0 0;"></p>
+              </div>
               <div id="ssPotMini" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">Your pot <span class="hint" style="font-weight:normal;">— what this strategy has to buy with</span></div>
                 <div class="row-flex">
@@ -3113,8 +3131,8 @@
                   <button type="button" class="risk-btn" data-on-click="startShapeFromBudget()">Start from my budget</button>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" data-on-click="startShapeFromNumber()">Use it</button></label>
                   <button type="button" class="risk-btn" data-on-click="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income starts at age
-                    <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" data-on-input="renderIncomeSteps()"></label>
+                  <!-- The start age is DERIVED from the Timing block above (age today + retirement status); kept as a hidden field because every shape helper reads it. -->
+                  <input type="hidden" id="shapeAgeNow" value="57">
                 </div>
                 <div id="incomeShapePreview" class="machine-scroll"></div>
                 <div id="incomeStepsEditor" style="margin-top:8px;"></div>
@@ -3217,8 +3235,8 @@
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
-              <label>Duration (years)</label>
-              <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+              <label>Duration (years) <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
+              <input type="number" id="ssDuration" value="35" style="max-width:220px;" data-on-input="updateDurationHint()">
               <div class="row-flex" style="margin-top:8px;">
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">

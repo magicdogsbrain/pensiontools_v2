@@ -2388,6 +2388,7 @@
             <div class="form-group" style="margin-top: 16px;">
               <label>Depletion Duration (years)</label>
               <input type="number" id="dsDuration" value="35" style="max-width:220px;">
+              <p id="dsPlanStartNote" class="hint" style="margin:6px 0 0;"></p>
             </div>
 
             <div id="dsRiskMode">
@@ -3075,6 +3076,23 @@
                 <button type="button" class="risk-btn" data-strat="full-il-gilt" data-on-click="pickStrategy('full-il-gilt')">Full index-linked gilt ladder</button>
                 <button type="button" class="risk-btn" data-strat="gilt-rotation" data-on-click="pickStrategy('gilt-rotation')">Gilt ladder + rotation</button>
               </div>
+              <div id="ssTimingBlock" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
+                <div class="section-title" style="font-size:13px;">When your plan starts <span class="hint" style="font-weight:normal;">— year 0 for every tool, the gilt ladders and the Decision tool</span></div>
+                <div class="row-flex">
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have already retired</label>
+                  <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmFuture" value="future" style="width:auto;" data-on-change="renderTiming()"> I will retire at age <input type="number" id="tmRetireAge" min="40" max="80" style="width:70px;" data-on-input="renderTiming()"></label>
+                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">Plan starts <span class="hlp" tabindex="0" data-tip="The tax year your plan's year 0 is. Already retired: usually next 6 April, living on bridge cash until then; choose this tax year to start now (the Decision tool treats months before the start as a bridge). Retiring later: the tax year you reach that age.">?</span><select id="tmStartYear" style="width:210px;" data-on-change="renderTiming()"></select></label>
+                </div>
+                <div id="tmPotWrap" style="display:none;margin-top:6px;">
+                  <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
+                  <div class="row-flex">
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement; the pots entered below are what you hold today.">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA at retirement (£)<input type="number" id="tmPotIsa" step="1000" style="width:120px;" data-on-input="renderTiming()"></label>
+                  </div>
+                </div>
+                <p id="tmSummary" class="hint" style="margin:6px 0 0;"></p>
+              </div>
               <div id="ssPotMini" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">Your pot <span class="hint" style="font-weight:normal;">— what this strategy has to buy with</span></div>
                 <div class="row-flex">
@@ -3112,8 +3130,8 @@
                   <button type="button" class="risk-btn" data-on-click="startShapeFromBudget()">Start from my budget</button>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;">or a number: <input type="number" id="shapeStartNumber" placeholder="£/yr gross" step="1000" style="width:110px;"><button type="button" class="risk-btn" style="padding:3px 10px;" data-on-click="startShapeFromNumber()">Use it</button></label>
                   <button type="button" class="risk-btn" data-on-click="suggestShapeSteps()">Suggest go-slow &amp; no-go steps</button>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income starts at age
-                    <input type="number" id="shapeAgeNow" value="57" min="40" max="80" style="width:80px;" data-on-input="renderIncomeSteps()"></label>
+                  <!-- The start age is DERIVED from the Timing block above (age today + retirement status); kept as a hidden field because every shape helper reads it. -->
+                  <input type="hidden" id="shapeAgeNow" value="57">
                 </div>
                 <div id="incomeShapePreview" class="machine-scroll"></div>
                 <div id="incomeStepsEditor" style="margin-top:8px;"></div>
@@ -3216,8 +3234,8 @@
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
-              <label>Duration (years)</label>
-              <input type="number" id="ssDuration" value="35" style="max-width:220px;">
+              <label>Duration (years) <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
+              <input type="number" id="ssDuration" value="35" style="max-width:220px;" data-on-input="updateDurationHint()">
               <div class="row-flex" style="margin-top:8px;">
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
@@ -4023,6 +4041,7 @@
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
     import { ladderPosition, taxYearOf, borrowedFloorStatus } from './src/services/LadderPosition.js';
+    import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4602,6 +4621,7 @@
 
         // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
         document.getElementById('dsDuration').value = decisionSettings.duration || 35;
+        refreshDsPlanStartNote(decisionSettings);
         writeAlloc('ds', decisionSettings.equityMin ?? 250000, decisionSettings.bondMin ?? 200000, decisionSettings.cashTarget ?? 50000, decisionSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
         window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));  // restore the plan's funds
@@ -4654,7 +4674,7 @@
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', stressSettings.strategyParams || {});
         window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
-        if (stressSettings.shapeAgeNow) document.getElementById('shapeAgeNow').value = stressSettings.shapeAgeNow;
+        await loadTimingUI(stressSettings);
         setIncomeShape(stressSettings.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -4716,8 +4736,14 @@
       try {
         // Duration flows from the horizon; the rest are defaults (target income is derived from the
         // Budget, not asked as a gross salary here).
-        const stressSettings = { duration };
-        const decisionSettings = { duration };
+        // Timing (6.4.0): the ages the wizard already asks for become the plan's saved start — age
+        // today, retired / retire-at-age, and the first tax year derived from them — for both tools.
+        const today = new Date().toISOString().slice(0, 10);
+        const alreadyRetired = !!wizardData.retired || retire <= cur;
+        const timingSeed = cur > 0 ? { currentAge: cur, currentAgeAsOf: today, retired: alreadyRetired, retireAge: alreadyRetired ? null : retire } : {};
+        const timing = cur > 0 ? deriveTiming(timingSeed) : null;
+        const stressSettings = { duration, ...timingSeed, ...(timing ? { firstTaxYear: timing.firstTaxYear, shapeAgeNow: timing.shapeAgeNow } : {}) };
+        const decisionSettings = { duration, ...(timing ? { firstTaxYear: timing.firstTaxYear } : {}) };
 
         await createNewScenario(
           wizardData.scenarioName || 'My plan',
@@ -5710,6 +5736,11 @@
       const giaBasisRaw = document.getElementById('entryGiaBasis')?.value;
       if ([equity, bond, cash, isaNow, giaNow].some((v) => v < 0)) throw new Error('A fund value cannot be negative — enter what each pot actually holds (£0 if empty).');
       const settings = await getDecisionSettingsAsync();
+      // Plan year 0 (6.4.0): the Decision copy carries the plan's first tax year once seeded/synced; a
+      // copy that pre-dates the sync takes it from the Stress plan's Timing block so both tools agree.
+      if (!(+settings.firstTaxYear > 0)) {
+        try { const ss = await getStressSettingsAsync(); const t = deriveTiming(ss); if (t.mode !== 'legacy' || +ss.firstTaxYear > 0) settings.firstTaxYear = t.firstTaxYear; } catch (e) { /* fallback: first tax year set up */ }
+      }
       // Bond tent: when enabled, hand the engine a rising-equity glide centred on the plan's risk
       // split (same helper the Stress engine uses), so the monthly draw + rebalance advice follows it.
       const decisionSettings = settings.equityGlideEnabled
@@ -8075,7 +8106,7 @@
       let sp = null; const other = [];
       try {
         const wk = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
-        const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow });
+        const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow, firstTaxYear: window._ssTiming?.firstTaxYear || undefined });
         if (wk > 0 && cfgSp) sp = { annual: wk * 52, fromAge: ageNow + cfgSp.spStartYear };
         else { const sa = +document.getElementById('ssSpAnnualAmount')?.value || 0; if (sa > 0 && cfgSp) sp = { annual: sa, fromAge: ageNow + cfgSp.spStartYear }; }
         const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
@@ -8164,6 +8195,148 @@
       showToast('Suggested: −15% from 75, −30% from 85 (never below essentials). Edit freely — these are typical, not yours.', 'info', 5000);
     };
 
+    // ---- Timing block (6.4.0): WHEN the plan starts ----
+    // Age today + retired / retire-at-age → the saved first tax year (year 0 for every tool) and the
+    // derived start age of the income steps. See src/services/PlanTiming.js for the rules.
+    window._ssTiming = null;          // { ...deriveTiming(), settings } for the form as it stands
+    window._ssTimingBase = null;      // the saved settings the form was loaded from
+    window._tmProjection = null;      // projected pots at retirement (future mode)
+    function planYearTaxLabel(y) {
+      const fty = window._ssTiming?.firstTaxYear; if (!(fty > 0) || y == null || y === '') return '';
+      return taxYearLabel(fty + (+y || 0));
+    }
+    window.planYearTaxLabel = planYearTaxLabel;
+    window.updateDurationHint = function () {
+      const h = document.getElementById('ssDurationAgeHint'); if (!h) return;
+      const dur = +document.getElementById('ssDuration')?.value || 0; const a = window._ssTiming?.shapeAgeNow || +document.getElementById('shapeAgeNow')?.value || 0;
+      h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur - 1) : '';
+    };
+    function timingSettingsFromForm() {
+      const base = window._ssTimingBase || {};
+      const g = (id) => document.getElementById(id);
+      const age = +g('tmAge')?.value || null;
+      const today = new Date().toISOString().slice(0, 10);
+      const future = !!g('tmFuture')?.checked;
+      const retireAge = future ? (+g('tmRetireAge')?.value || null) : null;
+      const startSel = +g('tmStartYear')?.value || null;
+      const s = {
+        ...base,
+        currentAge: age,
+        // Keep the recorded date when the age is unchanged (so it ages forward); a new age is "as of today".
+        currentAgeAsOf: age ? (age === Math.floor(+base.currentAge || 0) && base.currentAgeAsOf ? base.currentAgeAsOf : today) : null,
+        retired: age ? !future : (base.retired ?? null),
+        retireAge: future ? retireAge : null,
+        firstTaxYear: future ? null : (startSel || base.firstTaxYear || null),
+        spStartDate: g('ssSpStartDate')?.value?.trim() || base.spStartDate || null,
+        duration: +g('ssDuration')?.value || base.duration || 35
+      };
+      const potSipp = +g('tmPotSipp')?.value || 0, potIsa = +g('tmPotIsa')?.value || 0;
+      s.potAtRetirement = future
+        ? ((potSipp > 0 || potIsa > 0) ? { sipp: potSipp || null, isa: potIsa || null, source: 'override' }
+          : (window._tmProjection ? { sipp: window._tmProjection.sipp, isa: window._tmProjection.isa, source: 'accumulation' } : null))
+        : null;
+      return s;
+    }
+    window.renderTiming = async function () {
+      const g = (id) => document.getElementById(id);
+      if (!g('tmAge')) return;
+      let s = timingSettingsFromForm();
+      let t = deriveTiming(s);
+      // Retiring later: project today's pots to retirement from the Accumulation planner's inputs.
+      if (t.mode === 'future') {
+        let acc = {}; try { acc = (typeof getActiveAccumulation === 'function' ? await getActiveAccumulation() : {}) || {}; } catch (e) { acc = {}; }
+        window._tmProjection = projectedPotAtRetirement({ ...s, equityMin: window._ssTimingBase?.equityMin, bondMin: window._ssTimingBase?.bondMin, cashTarget: window._ssTimingBase?.cashTarget, diversifierStart: window._ssTimingBase?.diversifierStart, isaBalance: window._ssTimingBase?.isaBalance }, acc);
+        s = timingSettingsFromForm(); t = deriveTiming(s);
+      } else window._tmProjection = null;
+      window._ssTiming = { ...t, settings: s };
+      // The derived start age drives every shape helper (hidden field) and the preview's SP timing.
+      const sa = g('shapeAgeNow'); const prevAge = +sa.value || 0;
+      sa.value = t.shapeAgeNow; sa.dataset.currentAge = t.currentAge || '';
+      // Keep the END age constant when the start moves (a plan to 91 stays a plan to 91).
+      const dur = g('ssDuration');
+      if (prevAge && dur && +dur.value > 0 && prevAge !== t.shapeAgeNow) { dur.value = Math.max(5, +dur.value + prevAge - t.shapeAgeNow); s.duration = +dur.value; }
+      // Start-year choice (already retired): this tax year or next.
+      const sel = g('tmStartYear');
+      if (sel) {
+        const opts = t.startOptions.map((Y) => '<option value="' + Y + '"' + (Y === t.firstTaxYear ? ' selected' : '') + '>' + (Y === t.startOptions[0] ? 'this tax year' : 'next 6 April') + ' — ' + taxYearLabel(Y) + '</option>').join('');
+        if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; }
+        sel.value = String(t.firstTaxYear);
+      }
+      const retiredMode = t.mode !== 'future';
+      if (g('tmRetired') && !g('tmFuture')?.checked) g('tmRetired').checked = true;
+      g('tmStartWrap').style.display = retiredMode ? 'flex' : 'none';
+      g('tmRetireAge').disabled = retiredMode;
+      g('tmPotWrap').style.display = t.mode === 'future' ? 'block' : 'none';
+      if (t.mode === 'future' && window._tmProjection) {
+        const p = window._tmProjection; const gbpR = (v) => '£' + Math.round(v).toLocaleString();
+        g('tmProjectionLine').innerHTML = 'Pots at retirement in today\'s money, middle band' + (p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)') + ': SIPP <strong>' + gbpR(p.sipp) + '</strong> (cautious ' + gbpR(p.low) + ', strong ' + gbpR(p.high) + ') · ISA <strong>' + gbpR(p.isa) + '</strong>. Every strategy is priced on these; the pots below are what you hold today.';
+      }
+      let summary = t.mode === 'legacy'
+        ? 'Enter your age today to pin the plan to a tax year. Until then the plan is assumed to start next April (' + taxYearLabel(t.firstTaxYear) + ') with the steps from age ' + t.shapeAgeNow + '.'
+        : describeTiming(t, s);
+      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement.';
+      g('tmSummary').textContent = summary;
+      // The first income step starts when the plan starts.
+      if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
+      updateDurationHint();
+      if (typeof renderIncomeSteps === 'function') renderIncomeSteps();
+      const echo = g('giltPotEcho'); if (echo && typeof refreshStrategyCosts === 'function') refreshStrategyCosts();
+    };
+    window.loadTimingUI = async function (s) {
+      const g = (id) => document.getElementById(id);
+      if (!g('tmAge')) return;
+      window._ssTimingBase = s || {};
+      let age = +s?.currentAge || 0;
+      if (!age) { try { const b = await getBudgetAsync(); age = +b?.currentAge || 0; if (age) { window._ssTimingBase = { ...window._ssTimingBase, currentAge: age, currentAgeAsOf: b.currentAgeAsOf || new Date().toISOString().slice(0, 10) }; } } catch (e) { /* no budget */ } }
+      g('tmAge').value = age || '';
+      // A plan saved before 6.4.0 has no flag: infer it the way the repository migration does (a start
+      // age clearly ahead of today = retiring later), so the radios match what the engines will assume.
+      const inferred = migrateTiming(window._ssTimingBase);
+      const future = inferred.retired === false && +inferred.retireAge > 0;
+      g('tmFuture').checked = future; g('tmRetired').checked = !future;
+      g('tmRetireAge').value = future ? inferred.retireAge : (+s?.shapeAgeNow > age ? s.shapeAgeNow : '');
+      g('tmStartYear').innerHTML = s?.firstTaxYear > 0 ? '<option value="' + s.firstTaxYear + '" selected>' + taxYearLabel(+s.firstTaxYear) + '</option>' : '';
+      g('tmStartYear').dataset.opts = '';   // force renderTiming to rebuild the option list (both loaders call this)
+      const ov = s?.potAtRetirement && s.potAtRetirement.source === 'override' ? s.potAtRetirement : null;
+      g('tmPotSipp').value = ov?.sipp || ''; g('tmPotIsa').value = ov?.isa || '';
+      if (!future && !(s?.firstTaxYear > 0) && s?.shapeAgeNow) g('shapeAgeNow').value = s.shapeAgeNow;   // legacy: keep the saved start age
+      await renderTiming();
+    };
+    function timingFieldsForSave() {
+      const t = window._ssTiming;
+      if (!t) { const b = window._ssTimingBase || {}; return { shapeAgeNow: +document.getElementById('shapeAgeNow')?.value || 57, currentAge: b.currentAge ?? null, currentAgeAsOf: b.currentAgeAsOf ?? null, retired: b.retired ?? null, retireAge: b.retireAge ?? null, firstTaxYear: b.firstTaxYear ?? null, potAtRetirement: b.potAtRetirement ?? null }; }
+      const s = t.settings;
+      return { shapeAgeNow: t.shapeAgeNow, currentAge: s.currentAge ?? null, currentAgeAsOf: s.currentAgeAsOf ?? null, retired: s.retired ?? null, retireAge: s.retireAge ?? null,
+        firstTaxYear: t.mode === 'legacy' ? (s.firstTaxYear ?? null) : t.firstTaxYear, potAtRetirement: s.potAtRetirement ?? null };
+    }
+    window.timingFieldsForSave = timingFieldsForSave;
+    // Age today lives in two places (Budget page, Timing block): whichever was edited last wins, so a
+    // change here is written back to the Budget the way the Budget's is read here on load.
+    async function syncBudgetAgeFromTiming() {
+      try {
+        const s = window._ssTiming?.settings; if (!s || !(+s.currentAge > 0)) return;
+        const b = await getBudgetAsync(); if (!b) return;
+        const retireAge = s.retired === false && +s.retireAge > 0 ? +s.retireAge : (window._ssTiming.shapeAgeNow || b.retirementAge);
+        if (+b.currentAge !== +s.currentAge || b.currentAgeAsOf !== s.currentAgeAsOf || (typeof s.retired === 'boolean' && b.retired !== s.retired) || (+b.retirementAge !== retireAge)) {
+          b.currentAge = +s.currentAge; b.currentAgeAsOf = s.currentAgeAsOf; if (typeof s.retired === 'boolean') b.retired = s.retired; b.retirementAge = retireAge;
+          await saveBudget(b);
+          if (window._budget) { window._budget.currentAge = b.currentAge; window._budget.currentAgeAsOf = b.currentAgeAsOf; window._budget.retired = b.retired; window._budget.retirementAge = b.retirementAge; }
+        }
+      } catch (e) { console.warn('Budget age sync skipped:', e); }
+    }
+    window.syncBudgetAgeFromTiming = syncBudgetAgeFromTiming;
+    // Decision settings: where year 0 sits (read-only here — it is set in the Stress tester's Timing block).
+    window.refreshDsPlanStartNote = async function (ds) {
+      const el = document.getElementById('dsPlanStartNote'); if (!el) return;
+      try {
+        const s = ds || await getDecisionSettingsAsync();
+        let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; }
+        const anchor = decisionAnchorYear(s, await getAllTaxYearsAsync().catch(() => ({})), null, ss);
+        const t = ss ? deriveTiming(ss) : null;
+        el.textContent = 'Plan year 0 is tax year ' + taxYearLabel(anchor) + (t && t.mode !== 'legacy' ? ' (steps from age ' + t.shapeAgeNow + ')' : '') + ' — set in Stress tester → Settings → "When your plan starts". Months before it are bridge months.';
+      } catch (e) { el.textContent = ''; }
+    };
+
     window.renderIncomeSteps = function () {
       const box = document.getElementById('incomeStepsEditor');
       if (!box) return;
@@ -8173,9 +8346,9 @@
       steps.sort((a, b) => (+a.fromAge || 0) - (+b.fromAge || 0));
       box.innerHTML = steps.map((st, i) =>
         '<div class="row-flex" style="margin-top:4px;">'
-        + '<span class="hint">' + (i === 0 ? 'From now (age' : 'From age') + '</span>'
-        + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
-        + (i === 0 ? '<span class="hint">)</span>' : '')
+        + '<span class="hint">From age</span>'
+        + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled title="The first step starts when the plan starts — set above in When your plan starts"' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
+        + (i === 0 && window._ssTiming ? '<span class="hint">(' + taxYearLabel(window._ssTiming.firstTaxYear) + ')</span>' : '')
         + '<span class="hint">take</span>'
         + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
         + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of today\'s budget' : '') + '</span>'
@@ -8231,7 +8404,7 @@
       try {
         const wk = g('ssSpWeeklyAmount'), sa = g('ssSpAnnualAmount');
         const annual = wk > 0 ? wk * 52 : sa;
-        if (annual > 0) { const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow }); if (cfgSp && y >= (cfgSp.spStartYear ?? 99)) total += annual; }
+        if (annual > 0) { const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow, firstTaxYear: window._ssTiming?.firstTaxYear || undefined }); if (cfgSp && y >= (cfgSp.spStartYear ?? 99)) total += annual; }
       } catch (e) { /* no SP date */ }
       const db = g('ssDbAmount'); if (db > 0 && y >= g('ssDbStartYear')) total += db;
       for (const r of (window._ssExtraIncomes || [])) if (r && r.annual > 0 && y >= (r.startYear || 0) && (r.endYear == null || y <= r.endYear)) total += +r.annual;
@@ -8258,10 +8431,9 @@
       if (!st.id || st.id === 'pots-and-valves') return null;
       const settings = await getStressSettingsAsync();
       const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
-      const startAge = +settings.shapeAgeNow || 57;
-      const [y, m] = dateStr.split('-').map(Number);
-      const firstTY = +settings.firstTaxYear || (new Date().getFullYear() + 1);
-      const planYear = Math.max(0, (m >= 4 ? y : y - 1) - firstTY);
+      const timing = deriveTiming(settings);   // 6.4.0: the saved plan start, not "the year after today"
+      const startAge = timing.shapeAgeNow || +settings.shapeAgeNow || 57;
+      const planYear = Math.max(0, planYearOf(dateStr, timing.firstTaxYear));
       const spCfg = spSimConfigFromSettings(settings);
       const spOn = spCfg && planYear >= spCfg.spStartYear;
       const spAnnual = spOn ? (settings.spWeeklyAmount || 0) * 52 : 0;
@@ -8294,7 +8466,7 @@
       try {
         const sid = settings.strategyId;
         const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : new Date();
-        const key = sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + taxYearOf(today);
+        const key = sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + (settings.firstTaxYear || 0) + '|' + (settings.duration || 0) + '|' + taxYearOf(today);
         if (!_ladderPosCache || _ladderPosCache.key !== key) {
           const p = strategyPlanFor(settings);
           const r = stressTestStrategy(sid === 'floor-the-schedule' ? 'floor-the-schedule' : 'full-il-gilt', p);   // gilt-rotation pre-trigger IS the full ladder
@@ -8543,8 +8715,9 @@
         window._rotCutAge = params.rotateCutAge || 75;
         let bannerHtml = banner + borrowedFloorLineHtml(settings);
         const now = new Date();
-        const planYear = Math.max(0, (now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1) - 2026);
-        const tMonths = Math.max(1, Math.round((now - new Date(2026, 3, 1)) / (30.44 * 24 * 3600 * 1000)));
+        const firstTY = deriveTiming(settings).firstTaxYear;   // 6.4.0: the plan's saved start, not 2026
+        const planYear = Math.max(0, planYearOf(now, firstTY));
+        const tMonths = Math.max(1, Math.round((now - new Date(firstTY, 3, 6)) / (30.44 * 24 * 3600 * 1000)));
         const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
         let html = '';
         if (st.id === 'ladder-and-ratchet') {
@@ -9515,8 +9688,8 @@
       // Budget page; it used to be applied here invisibly (a Budget left at its default mis-timed the SP).
       const an = document.getElementById(prefix + 'AgeNote');
       if (an) an.textContent = s.currentAge > 0
-        ? 'Age today: ' + s.currentAge + (s.currentAgeAsOf ? ' (as of ' + s.currentAgeAsOf + ')' : '') + ' — taken from your Budget page; income starts at age ' + (s.shapeAgeNow || '—') + ', so the State Pension date is measured from there. Wrong? Change it on the Budget page.'
-        : 'Age today is not set — the plan assumes income starts now (age ' + (s.shapeAgeNow || '—') + '). Set your age on the Budget page so the State Pension date lands in the right plan year.';
+        ? 'The State Pension lands in the plan year its date falls in — measured from the plan start set in "When your plan starts" above (age today ' + s.currentAge + ').'
+        : 'Set your age today in "When your plan starts" above so the State Pension date lands in the right plan year.';
     }
     // ISA on 'hold' = never drawn for income (last-resort rescue only). The plan therefore moves
     // nothing NEW into it: bed-and-ISA is off and a cash lump sum's ISA slice stays taxable — the
@@ -9589,7 +9762,7 @@
         html += '<div class="row-flex" style="margin-top:6px;">'
           + '<input type="text" placeholder="e.g. Inheritance" value="' + budEsc(r.label || '') + '" data-on-input="updWindfall(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
           + '<span class="hint">£ once</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updWindfall(' + i + ',\'amount\',this.value)" style="width:110px;">'
-          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updWindfall(' + i + ',\'year\',this.value)" style="width:64px;"><span class="hint" id="windfallTY' + i + '">' + planYearTaxLabel(r.year) + '</span>'
           + '<select data-on-change="updWindfall(' + i + ',\'wrapper\',this.value)" style="width:150px;"><option value="cash"' + ((r.wrapper || 'cash') === 'cash' ? ' selected' : '') + '>Cash lump sum</option><option value="pension"' + (r.wrapper === 'pension' ? ' selected' : '') + '>Inherited pension</option><option value="isa"' + (r.wrapper === 'isa' ? ' selected' : '') + '>Inherited ISA</option></select>'
           + ((r.wrapper || 'cash') === 'cash' ? '<span class="hint">taxable part held as</span><select data-on-change="updWindfall(' + i + ',\'mix\',this.value)" style="width:170px;">' + windfallMixOptions(r.mix) + '</select>' : '')
           + ((r.wrapper || 'cash') !== 'cash' ? '' : isaOnHold('ss') ? '<span class="hint" style="color:var(--warning);">ISA on hold — nothing goes into it</span>'
@@ -9601,7 +9774,7 @@
         html += '<div class="row-flex" style="margin-top:6px;">'
           + '<input type="text" placeholder="e.g. New car" value="' + budEsc(r.label || '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'label\',this.value)" style="flex:1 1 150px; min-width:120px;">'
           + '<span class="hint">spend £</span><input type="number" value="' + (r.amount ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'amount\',this.value)" style="width:100px;">'
-          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'year\',this.value)" style="width:64px;">'
+          + '<span class="hint">in year</span><input type="number" min="0" value="' + (r.year ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'year\',this.value)" style="width:64px;"><span class="hint" id="withdrawalTY' + i + '">' + planYearTaxLabel(r.year) + '</span>'
           + '<span class="hint">for</span><input type="number" min="1" placeholder="1" value="' + (r.years ?? '') + '" data-on-input="updExtraWithdrawal(' + i + ',\'years\',this.value)" style="width:54px;"><span class="hint">yr(s)</span>'
           + '<select data-on-change="updExtraWithdrawal(' + i + ',\'indexation\',this.value)" style="width:150px;"><option value="cpi"' + ((r.indexation || 'cpi') === 'cpi' ? ' selected' : '') + '>Today\'s money</option><option value="level"' + (r.indexation === 'level' ? ' selected' : '') + '>Fixed £ (nominal)</option></select>'
           + '<button type="button" class="risk-btn" title="Remove" data-on-click="rmExtraWithdrawal(' + i + ')">✕</button></div>';
@@ -9611,7 +9784,7 @@
     };
     window.addExtraIncome = function () { (window._ssExtraIncomes = window._ssExtraIncomes || []).push({ indexation: 'lpi5' }); renderExtraIncomes(); };
     window.addExtraWithdrawal = function () { (window._ssExtraWithdrawals = window._ssExtraWithdrawals || []).push({ indexation: 'cpi', years: 1 }); renderExtraIncomes(); };
-    window.updExtraWithdrawal = function (i, k, v) { if (window._ssExtraWithdrawals?.[i]) window._ssExtraWithdrawals[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); callIfDefined('renderIncomeShapePreview'); };
+    window.updExtraWithdrawal = function (i, k, v) { if (window._ssExtraWithdrawals?.[i]) window._ssExtraWithdrawals[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); if (k === 'year') { const t = document.getElementById('withdrawalTY' + i); if (t) t.textContent = planYearTaxLabel(v); } callIfDefined('renderIncomeShapePreview'); };
     window.rmExtraWithdrawal = function (i) { window._ssExtraWithdrawals.splice(i, 1); renderExtraIncomes(); };
     window.addWindfall = function () { (window._ssWindfalls = window._ssWindfalls || []).push({}); renderExtraIncomes(); };
     window.updExtraIncome = function (i, k, v) { if (window._ssExtraIncomes?.[i]) window._ssExtraIncomes[i][k] = (k === 'label' || k === 'indexation') ? v : (v === '' ? null : +v); callIfDefined('renderIncomeShapePreview'); };
@@ -9622,6 +9795,7 @@
       // Never re-render the row while the user is typing in it (that destroyed the amount box after
       // one digit): the amount only refreshes its own note; a select change can rebuild the row.
       if (k === 'amount') { const n = document.getElementById('windfallNote' + i); if (n) n.innerHTML = r.amount > 0 ? windfallSplitNote(r) : ''; callIfDefined('renderIncomeShapePreview'); return; }
+      if (k === 'year') { const t = document.getElementById('windfallTY' + i); if (t) t.textContent = planYearTaxLabel(r.year); }
       if (k === 'wrapper' || k === 'mix') renderExtraIncomes(); else callIfDefined('renderIncomeShapePreview');
     };
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
@@ -10182,8 +10356,7 @@
         applyStrategyToUI(s.strategyId || 'pots-and-valves', s.strategyParams || {});
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
-        if (s.shapeAgeNow) document.getElementById('shapeAgeNow').value = s.shapeAgeNow;
-        else { try { const b = await getBudgetAsync(); const a0 = Math.max(+b?.retirementAge || 0, +b?.currentAge || 0); if (a0) document.getElementById('shapeAgeNow').value = a0; } catch (e) { /* keep default */ } }
+        await loadTimingUI(s);
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -10267,21 +10440,21 @@
         try {
           if (!(await planIsLocked())) {
             const firstStep = (window._ssIncomeShape === 'phases' && (window._ssIncomeSteps || []).filter((st) => +st.amount > 0).length) ? +[...window._ssIncomeSteps].filter((st) => +st.amount > 0).sort((x, y) => +x.fromAge - +y.fromAge)[0].amount : _newBase;
-            await saveDecisionSettings({ baseSalary: firstStep || _newBase, targetSchedule: _stepSchedule || null });
+            // …and the plan's start (6.4.0): the Decision tool's year 0 is the Stress plan's first tax year.
+            await saveDecisionSettings({ baseSalary: firstStep || _newBase, targetSchedule: _stepSchedule || null, ...(window._ssTiming?.firstTaxYear > 0 ? { firstTaxYear: window._ssTiming.firstTaxYear } : {}) });
             const dsB = document.getElementById('dsBaseSalary'); if (dsB) { dsB.value = firstStep || _newBase; try { syncNetFromGross('ds'); } catch (e) { /* form not built yet */ } }
           }
         } catch (e) { console.warn('Decision target sync skipped:', e); }
+        await syncBudgetAgeFromTiming();
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           strategyId: window._ssStrategy || 'pots-and-valves',
           strategyParams: readStrategyParams(),
           incomeShape: window._ssIncomeShape,
           incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
-          shapeAgeNow: +document.getElementById('shapeAgeNow').value || 57,
-          // Age today (from the Budget/plan wizard): the plan's year 0 is the income-start age, so the
-          // State Pension and other dated items are offset by the years still to run before then.
-          currentAge: await (async () => { try { const b = await getBudgetAsync(); return +b?.currentAge || null; } catch (e) { return null; } })(),
-          currentAgeAsOf: new Date().toISOString().slice(0, 10),
+          // Timing (6.4.0): age today + retired / retire-at-age → the saved first tax year and the derived
+          // start age. The Timing block is the source; the Budget's age is kept in step (see above).
+          ...timingFieldsForSave(),
           accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
           ufplsYears: +document.getElementById('ssUfplsYears').value || null,
           ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
@@ -10419,6 +10592,7 @@
       try {
         const s = await getDecisionSettingsAsync();
         document.getElementById('dsDuration').value = s.duration || 35;
+        refreshDsPlanStartNote(s);
         // FULL allocation restore (mirrors initializeAllInputsFromSettings) — restore the tagged funds,
         // the custom split, and the mode, so a saved "My funds" plan doesn't revert to a risk preset.
         writeAlloc('ds', s.equityMin ?? 250000, s.bondMin ?? 200000, s.cashTarget ?? 50000, s.diversifierStart || 0);
@@ -12307,14 +12481,20 @@
       try {
         const por = await getActivePlanOfRecord();
         if (!por || !history || !history.length) { box.innerHTML = ''; return; }
+        let taxYears = {};
+        try { taxYears = await getAllTaxYearsAsync() || {}; } catch (e) { taxYears = {}; }
+        // Plan year from the record's TAX YEAR against the plan's saved start (6.4.0) — not the yearNum
+        // stamped at the time, which older records counted from a hard-coded 2026. Negative = bridge.
+        let anchor = null;
+        try { const ds = await getDecisionSettingsAsync(); let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; } anchor = decisionAnchorYear(ds, taxYears, null, ss); } catch (e) { anchor = null; }
         const byYear = {};
+        let bridgeRecords = 0;
         for (const h of history) {
-          const y = h.yearNum ?? 0;
+          const y = (anchor && h.taxYear) ? planYearOf(h.taxYear, anchor) : (h.yearNum ?? 0);
+          if (y < 0) { bridgeRecords++; continue; }
           (byYear[y] = byYear[y] || []).push(h);
         }
         let rows = '';
-        let taxYears = {};
-        try { taxYears = await getAllTaxYearsAsync() || {}; } catch (e) { taxYears = {}; }
         for (const y of Object.keys(byYear).map(Number).sort((a, b) => a - b)) {
           const plan = por.drawdown[y];
           if (!plan) continue;
@@ -12340,11 +12520,13 @@
                 + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
             + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
         }
-        if (!rows) { box.innerHTML = ''; return; }
+        const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') are bridge months — spent from the cash set aside to reach the start, so there is no plan figure to compare them with.</p>' : '';
+        if (!rows) { box.innerHTML = bridgeNote ? '<div class="settings-section" style="margin-bottom:14px;"><div class="section-title">Plan vs actual</div>' + bridgeNote + '</div>' : ''; return; }
         box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
           + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + new Date(por.savedAt).toLocaleDateString() + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'
           + '<div class="table-scroll-container"><table><thead><tr><th>Plan year</th><th>Planned draw</th><th>Actual draw</th><th>Planned tax/yr</th><th>Actual tax pace</th><th>Planned ISA left</th></tr></thead><tbody>'
           + rows + '</tbody></table></div>'
+          + bridgeNote
           + '<p class="hint" style="margin-top:6px;">The plan of record never moves — that\'s its job. Your monthly recommendations always use your real fund values and entered CPI.</p></div>';
       } catch (e) { box.innerHTML = ''; }
     }
@@ -13105,7 +13287,8 @@
       // the tax year's start minus 2026 (same 0-based convention as the engine's getYearNum).
       const dPot = (decisionSettings.equityMin || 0) + (decisionSettings.bondMin || 0) + (decisionSettings.cashTarget || 0);
       const dDur = decisionSettings.duration || 35;
-      const planYear = Math.max(0, 2000 + (parseInt(taxYear.split('/')[0], 10) || 26) - 2026);
+      // 6.4.0: counted from the plan's saved start (bridge years read as year 0), not a hard-coded 2026.
+      const planYear = Math.max(0, planYearOf(taxYear, decisionAnchorYear(decisionSettings, allTaxYears, taxYear)));
       const tentOn = !!decisionSettings.equityGlideEnabled;
       const dAlloc = {
         equity: dPot > 0 ? decisionSettings.equityMin / dPot : 0.5,

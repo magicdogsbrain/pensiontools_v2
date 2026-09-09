@@ -153,3 +153,15 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   pot instead of the field the strategy actually uses. Fix the copy to read the SIPP total field, and
   show the gap between the two when they differ (here £48k) so a stale SIPP total is noticed.
 - Order sheet: no £0 rungs with a £20 fee; charge the held-over cash drag on multi-year rungs (from 8 Sep).
+
+## 9 Sep 2026 — v6.4.0 Timing block (plan start anchor)
+- Root cause found while starting Chris's Decision tool: the Stress plan's `firstTaxYear` was never written by any UI
+  (fell back to `getFullYear()+1`, so every plan re-anchored each 1 January) and the Decision tool used five different
+  year-0 conventions (hard-coded 2026 ×3, first tax year set up ×2, today, age-indexed schedule). Fixed by one saved
+  anchor (`src/services/PlanTiming.js`, Timing block in Stress → Settings, `decisionAnchorYear` on the Decision side,
+  bridge years before the start). Verified: 664 tests + 3 wizard bridge tests; guest plan on dev shows the block,
+  infers "retire at 57" from age 45 + steps from 57, select rebuilt after both settings loaders.
+- Not browser-verified (needs a signed-in account with no real history): the Decision tool's bridge-year wizard copy
+  and the bridge alert on the monthly panel — covered by `tests/wizardBridge.test.js` and `tests/decisionAnchor.test.js`.
+- Guest mode on the dev server refuses "Save Settings" ("Please sign in to save settings") — check whether guest
+  saving is meant to work for Stress settings (it does for scenarios). Not a 6.4.0 regression (toast pre-exists).

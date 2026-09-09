@@ -107,6 +107,16 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **"When can I retire?" — earliest retirement age sweep (v6.5.0, follows the 6.4.0 Timing block).**
+  Sweep candidate retirement ages with a joint accumulation + decumulation Monte Carlo on ONE
+  bootstrap path (`bootstrapPaths(seed, (accumYears+planYears)*12)` then `annualNominal(..., off =
+  12*accumYears)`, `ladderEngine.js`; keep the seed family `i*7919+3` so a sweep row equals the
+  Overview run). Accumulation leg = the monthly loop sign-flipped (contributions in, no sourcing /
+  protection / tax) at the accumulation glide (`targetMixForYear`). Worker job `'sweep'` with per-age
+  progress; chart via `riskBarsSvg` with the first age clearing 90% called out ("you could retire in
+  N years"); cheaper runs as `requiredPotForStrategy` (200 runs, stride 6). Replaces the Accumulation
+  planner's three fixed growth bands with the same engine. Timing block mode 3 (`retired:false,
+  retireAge:null`) already has a slot in `PlanTiming.deriveTiming`.
 - **Rotation card: show the two regimes (Chris, 9 Sep 2026).** Gilt ladder + rotation blends "never fires"
   (a flat ladder, ~36% of futures on Chris's plan) with "fires" (~64%; the 75+ block rides equities) into one
   cone and one verdict. Split them: share that rotates; income cone and terminal for each regime; the cut

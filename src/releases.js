@@ -24,6 +24,7 @@
  *                  any shape ({} included) — old plans predate most fields.
  */
 import { ENGINE_VERSION } from './strategies/version.js';
+import { deriveTiming } from './services/PlanTiming.js';
 
 export const TOOL_IDS = ['budget', 'stress', 'strategies', 'decision', 'accumulation', 'household'];
 export const TOOL_LABELS = {
@@ -34,6 +35,45 @@ export const TOOL_LABELS = {
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
+  {
+    version: '6.4.0', date: '2026-09-09', engineVersion: '6.4.0',
+    title: 'Your plan knows when it starts',
+    summary: 'A new "When your plan starts" block at the top of the Stress tester settings: your age today, whether you have already retired or will retire at a given age, and the tax year your plan starts in. That start is saved with the plan and is year 0 for every tool — the gilt ladders, the cones, and the Decision tool — instead of being assumed to be "next April" every time the app was opened.',
+    changes: [
+      'Timing block in Stress tester → Settings: age today (shared with the Budget page), "already retired" or "retire at age X", and the plan start (this tax year or next 6 April for retirees; the year you reach the age for future retirees). The income steps start at the age you reach in that year.',
+      'Retiring later: the pots you enter are today\'s. The plan is priced on the pots projected to retirement in today\'s money — from your Accumulation planner contributions at the middle band, or a figure you type in — and the gilt ladders say they are indicative, priced at today\'s real yields.',
+      'Decision tool: tax years before the plan starts are bridge years. The tax-year wizard says so and suggests your bridge cash spread over the months left (or the plan\'s first step); the monthly view flags the bridge; "plan vs actual" leaves bridge months out of the comparison.',
+      'Lump sums and one-off spends show the tax year their plan year means ("in year 1 · 2028/29"), so a year means the same thing everywhere.',
+      'Duration shows the age it runs to, and moving the plan start keeps the end age constant.'
+    ],
+    corrections: [
+      'The plan\'s first tax year was never saved and fell back to "the calendar year after today", so every plan silently moved a year later each 1 January — a gilt ladder built in 2026 for 2027/28 would have re-priced itself for 2028/29 on New Year\'s Day. It is now saved.',
+      'The Decision tool counted plan years from a hard-coded 2026/27 in three places and from "the first tax year set up" in two others. It now counts from the plan\'s start everywhere, so a plan starting 2027/28 steps its income down in the right April and its pot tracks line up with the Stress tester.',
+      'The State Pension\'s plan year is now the tax year its date falls in minus the plan start (exact), and its first-year share is measured against 6 April. The settings preview and the engine used to disagree about it for anyone not yet retired.'
+    ],
+    effects: {
+      stress: ['Plans with an age today (from the Budget page or the setup wizard) get a saved start derived from it — for most that is the same next-April start as before, so nothing moves. Plans without an age today keep the old assumption until you enter one.', 'Anyone not yet retired: the State Pension lands in the right plan year in the preview and the run alike; the cones may move slightly where it did not before.'],
+      strategies: ['Gilt ladders and rotation are priced for the saved start year — the same rungs as before for a plan starting next April, and no longer a year late after 1 January.'],
+      decision: ['Plan year 0 is the plan\'s start. If your Decision tool history began in 2026/27 and your plan starts then too, nothing changes. If your plan starts later, months before it are now bridge months and the yearly targets, inflation chain and pot tracks are read from the right year.'],
+      household: [], budget: ['Age today is shared with the Timing block — change it in either place.'], accumulation: ['Its projected pot now feeds the Stress tester when you say you will retire later.']
+    },
+    actions: ['Open Stress tester → Settings → "When your plan starts" and check three things: your age today, retired or not, and the start tax year. Save. Then check the income steps still start at the age you meant.', 'If you use the Decision tool and your plan starts after the current tax year, expect the tax-year wizard to call this year a bridge year.'],
+    notes: ['Next: "when can I retire?" — sweep candidate retirement ages and show the confidence at each, with the earliest age that clears 90%.'],
+    affects(scenario) {
+      const s = scenario?.stressTool?.settings || {};
+      const out = [];
+      if (!Object.keys(s).length) { /* nothing set up yet */ }
+      else if (!(+s.currentAge > 0)) out.push('This plan has no age today, so it keeps the old assumption (starts next April with the steps from age ' + (s.shapeAgeNow || 57) + '). Enter your age in the Timing block to pin it.');
+      else {
+        const t = deriveTiming(s);
+        out.push('Plan start: tax year ' + t.firstTaxYear + '/' + String(t.firstTaxYear + 1).slice(2) + (t.mode === 'future' ? ' (retiring at ' + t.retireAge + ')' : ' (already retired)') + ' — the same next-April start as before unless you change it.');
+        if (+s.shapeAgeNow > 0 && t.shapeAgeNow !== +s.shapeAgeNow) out.push('Your income steps were labelled from age ' + s.shapeAgeNow + '; the age you actually reach in that first plan year is ' + t.shapeAgeNow + ', so the steps now start there and each later step lands ' + Math.abs(t.shapeAgeNow - s.shapeAgeNow) + ' year' + (Math.abs(t.shapeAgeNow - s.shapeAgeNow) === 1 ? '' : 's') + (t.shapeAgeNow > s.shapeAgeNow ? ' earlier' : ' later') + ' in plan time. Check the step ages in Settings.');
+      }
+      const ty = scenario?.decisionTool?.taxYears || {};
+      if (Object.keys(ty).length) out.push('Decision tool: plan year 0 is now the plan\'s start; tax years before it are bridge years.');
+      return out;
+    }
+  },
   {
     version: '6.3.0', date: '2026-09-09', engineVersion: '6.2.1',
     title: 'Guest mode is a trial — and your guest work comes with you when you sign in',

@@ -19,6 +19,7 @@ import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from '
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
+import { decisionAnchorYear, taxYearKey, taxYearLabel } from './PlanTiming.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -27,10 +28,12 @@ import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, rout
       return getTaxYear(parseMonth(dateStr));
     }
 
-    // Get year number (0-based from 2026)
-    export function getYearNum(dateStr) {
+    // Plan year of a date: the tax year it falls in minus the plan's first tax year (6.4.0: the
+    // saved anchor, see PlanTiming.decisionAnchorYear — not a hard-coded 2026). SIGNED: negative means a
+    // bridge year before the plan starts. Callers clamp at 0 where a track or an inflation chain is read.
+    export function getYearNum(dateStr, firstTaxYear = 2026) {
       const [y, m] = dateStr.split('-').map(Number);
-      return Math.max(0, (m >= 4 ? y : y - 1) - 2026);
+      return (m >= 4 ? y : y - 1) - firstTaxYear;
     }
 
 
@@ -40,7 +43,12 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const history = deps.history;
       const allTaxYears = deps.allTaxYears;
       const taxYear = getTaxYearFromDate(dateStr);
-      const yearNum = getYearNum(dateStr);
+      // ONE anchor for plan year 0 (6.4.0): the plan's saved first tax year. A negative plan year is a
+      // bridge year — money is being spent before the plan starts, so its tracks read as year 0.
+      const anchorYear = decisionAnchorYear(settings, allTaxYears, taxYear);
+      const yearNumSigned = getYearNum(dateStr, anchorYear);
+      const yearNum = Math.max(0, yearNumSigned);
+      const bridgeYear = yearNumSigned < 0;
       const [year, month] = dateStr.split('-').map(Number);
 
       // Validate that the tax year exists
@@ -75,7 +83,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Calculate cumulative inflation using each year's CPI (PWA logic)
       let cumInf = 1;
       for (let i = 0; i < yearNum; i++) {
-        const yStr = String((26 + i) % 100).padStart(2, '0') + '/' + String((27 + i) % 100).padStart(2, '0');
+        const yStr = taxYearKey(anchorYear + i);   // walk the tax years from the plan's start
         const yearCPI = (allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI; // entered CPI is authoritative; unentered assumes 4%
         cumInf *= 1 + yearCPI;
       }
@@ -567,11 +575,11 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // ISA on 'hold': the plan moves nothing new into it (it would never be drawn), so a lump sum's
       // ISA slice is not advised and neither is bed-and-ISA — the same rule as the Stress engine.
       const isaAllowanceLeft = holdIsa ? 0 : Math.max(0, GIA_DEFAULTS.ISA_ALLOWANCE - isaSubscribedSoFar);
-      // Plan year 0 is the first tax year actually set up (the same anchor the April wizard uses
-      // for the plan's other income), not the hard-coded 2026 epoch of `yearNum`.
-      const tyKeys = Object.keys(allTaxYears || {}).filter((k) => /^\d{2}\/\d{2}$/.test(k));
-      const baselineYear = tyKeys.length ? Math.min(...tyKeys.map((k) => 2000 + parseInt(k.split('/')[0], 10))) : 2026;
-      const planYear = (month >= 4 ? year : year - 1) - baselineYear;
+      // Plan year 0 is the plan's saved first tax year — the same anchor as yearNum (6.4.0).
+      const planYear = yearNumSigned;
+      if (bridgeYear) {
+        alerts.push({ type: 'bridge-year', message: 'Bridge year: your plan starts in ' + taxYearLabel(anchorYear) + ' (' + (-yearNumSigned) + ' tax year' + (yearNumSigned === -1 ? '' : 's') + ' from now). Until then you are spending the money set aside to reach it — the plan\'s pot tracks, rungs and yearly steps are not applied yet.' });
+      }
       for (const w of Array.isArray(settings.windfalls) ? settings.windfalls : []) {
         if (!(w.amount > 0) || w.year !== planYear) continue;
         const amount = Math.round(w.indexation === 'level' ? w.amount : w.amount * cumInf);   // today's money in the plan → this year's £
@@ -623,6 +631,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         date: dateStr,
         taxYear,
         yearNumber: yearNum,
+        // Before the plan starts (6.4.0): flagged with the anchor so the panel can say so. Emitted only
+        // then, so a plan year's result is byte-identical to before (golden-safe).
+        ...(bridgeYear ? { bridgeYear: true, planStartYear: anchorYear } : {}),
         remainingMonths: effectiveRemainingMonths,
 
         // Fund values

@@ -36,6 +36,36 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.6.0', date: '2026-09-10', engineVersion: '6.4.0',
+    title: 'The app knows where you are: saving, approaching, committed, bridge, running',
+    summary: 'Every plan now has a life stage, worked out from your age today, the plan start and the lock — never asked. The stage decides which tools lead, which are frozen with the lock, and which do not apply (a retiree has nothing to accumulate). The next-step banner speaks for the stage, the plan chip shows it, and the plan document keeps the dated journey through the stages. A plan locked while you are still saving now waits for its start date before the Decision tool takes months, and checks the pot you arrive with against the pot it was priced on.',
+    changes: [
+      'Stages: Saving (more than five years out), Approaching (within five years), Committed while still saving, Bridge (retired, before the plan start), Running, and Retired-designing. The leading tools are underlined; tools frozen with the lock are dimmed; the Accumulation planner is hidden for retirees.',
+      'Setup wizard: a new starting point, "I\'m already drawing my pension — pick up from here", for someone retired for a while: the plan starts this tax year with what you hold, then Stress → lock → Decision, with no back-filling.',
+      'Decision tool: a plan locked while still saving takes no monthly entries before its start (record your pot on the Accumulation planner until then). The first month after the start runs an arrival check: if the real pot is more than 10% from the pot the plan was priced on, you choose between running the locked plan on what you have and unlocking to re-plan.',
+      'Plan document: section 5, "Journey", lists each stage change with its date.',
+      'Stress tester, retiring later: the Timing summary says that funds entered under "My funds" are today\'s holdings and set the starting mix only — the plan is priced on the pots at retirement.'
+    ],
+    corrections: [],
+    effects: {
+      stress: ['Nothing in the numbers. Locked plans already had a read-only Settings page; it is now also dimmed in the tab bar.'],
+      accumulation: ['Hidden on plans whose Timing block says "already retired". Change the Timing block to bring it back.'],
+      decision: ['Committed-while-saving plans: entries before the start are refused with the start date. Everyone else: unchanged.'],
+      strategies: [], household: [], budget: []
+    },
+    actions: ['Check the plan chip next to the plan name: it now says which stage the app thinks you are in. If it is wrong, the Timing block in Stress → Settings is where the app reads it from.'],
+    notes: ['Next: a holdings ledger shared by the Accumulation planner, the Stress tester and a transition tool that turns today\'s holdings into the plan\'s target portfolio by the start date.'],
+    affects(scenario) {
+      const ss = scenario?.stressTool?.settings || {};
+      const locked = !!scenario?.decisionTool?.settings?.locked;
+      if (!Object.keys(ss).length) return [];
+      if (!(+ss.currentAge > 0)) return ['No age today on this plan, so its stage reads "Getting started" until you enter one in the Timing block.'];
+      if (ss.retired === true) return ['Retired: the Accumulation planner is hidden on this plan' + (locked ? '; the stage is Bridge or Running depending on the plan start.' : '.')];
+      if (ss.retired === false && locked) return ['Locked while still saving: the Decision tool waits for the plan start; record your pot on the Accumulation planner until then.'];
+      return [];
+    }
+  },
+  {
     version: '6.5.4', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Already taken this month\'s payment? Plan from next month',
     summary: 'The tool has always assumed you enter a month BEFORE its payment goes out: the recommendation is that payment, and "payments to come" counts it (April shows 12). If this month\'s payment has already been made, a new tick box on Monthly Entry moves the entry to next month: give the balances after the payment, and the tax-year setup asks for income and tax to date including this month. Labels now say "payments to come (incl. this month)" instead of "remaining months".',

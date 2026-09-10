@@ -128,7 +128,7 @@ export function buildTargetMix(settings, N) {
  * @param {object} a  { planName, settings (Stress), p (planFromSettings), r (stressTestStrategy, optional),
  *                      lockedAt, lockedBy, budgetGross, essentials, giltPricesAsOf, now }
  */
-export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, now = new Date() } = {}) {
+export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], now = new Date() } = {}) {
   const timing = deriveTiming(settings, now);
   const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials });
   const N = Math.max(1, Math.min(45, p?.durationYears || +settings.duration || 35));
@@ -146,6 +146,7 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
     appVersion: VERSION, engineVersion: ENGINE_VERSION,
     planName, lockedAt: lockedAt || now.toISOString(), lockedBy: lockedBy || 'locked from Stress settings',
     timing: { ...timing, text: describeTiming(timing, settings, now), currentAgeAsOf: settings.currentAgeAsOf || null },
+    journey: Array.isArray(journey) ? journey.map((j) => ({ stage: j.stage, label: j.label, at: j.at, ...(j.note ? { note: j.note } : {}) })) : [],
     steps,
     layers: { sp: layers.sp, other: layers.other, events: layers.events, floorVals: layers.floorVals, ageNow: layers.ageNow, horizonAge: layers.horizonAge, budgetGross, essentials },
     timeline: buildTimeline({ settings, timing, p, r, layers }),

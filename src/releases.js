@@ -36,6 +36,19 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.1', date: '2026-09-10', engineVersion: '6.4.0',
+    title: 'Stage always shown; ladder CSV without pot targets; printable PDFs',
+    summary: 'Three fixes from Chris: a plan whose next-step banner had been dismissed never got its life stage worked out (so the Accumulation tab stayed visible for a retiree and the chip said only "locked"); the Tax Years CSV carried Pots & Valves targets and a rebalance column for gilt-ladder plans; and the Decision PDFs printed the app\'s dark colours and its buttons, which came out illegible on an iPad.',
+    changes: ['The plan chip names the stage: "🔒 locked · Bridge to the plan start · 7 months to go". Click it for why, and what the stage does to the tabs.'],
+    corrections: [
+      'The life stage is now worked out on every load, whether or not the next-step banner is dismissed. Retirees no longer see the Accumulation tab (its figures were derived from the Budget and My funds, never entered).',
+      'Tax Years → Export CSV on a gilt-ladder plan: columns are date, paid from, SIPP draw, ISA draw, gilt ladder value, cash, total, tax and net. No targets, no rebalance.',
+      'Download PDF (monthly record, tax year, plan document): black text on white, no buttons or delete controls, coloured only for good/bad verdicts.'
+    ],
+    effects: { decision: ['CSV and PDF exports of ladder plans change shape as above; pot-strategy plans are unchanged.'], accumulation: ['Hidden for retirees, as intended since 6.6.0.'], stress: [], strategies: [], household: [], budget: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.10.0', date: '2026-09-10', engineVersion: '6.4.0',
     title: '"When could I retire?" — the quick spin for savers',
     summary: 'A new card at the top of the Accumulation planner. Type the income you want (or leave it to your income shape), pick the confidence you want, and it spins every age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age. The answer reads "at £40,000 a year you could retire at 61 with 90% confidence, or at 58 with 75%". Re-run it every year as the numbers move.',

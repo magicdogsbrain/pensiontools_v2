@@ -2150,7 +2150,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-DyvteXzn.js"></script>
+  <script type="module" crossorigin src="./assets/main-DmfyYvTg.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3088,6 +3088,16 @@
                 #printPortal details.pd-section > summary { list-style: none; font-size: 16px; margin: 14px 0 6px; }
                 #printPortal details.pd-section:not([open]) > .pd-body { display: block; }
                 #printPortal .page-break { break-before: page; }
+                /* 6.10.1: a PDF is paper — no buttons, no dark cards, black text (iPad Safari kept the app's
+                   dark-theme colours and greyed the numbers to illegibility). */
+                #printPortal button, #printPortal .btn, #printPortal .history-actions, #printPortal .history-actions-header, #printPortal .risk-btn, #printPortal .no-print { display: none !important; }
+                #printPortal, #printPortal * { color: #111 !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
+                #printPortal .card, #printPortal .history-detail-card, #printPortal .tax-year-detail-card, #printPortal .settings-section, #printPortal .alert { border: 1px solid #bbb !important; }
+                #printPortal .value.success, #printPortal .alert-success { color: #166534 !important; }
+                #printPortal .value.danger, #printPortal .alert-danger { color: #991b1b !important; }
+                #printPortal .value.warning, #printPortal .alert-warning { color: #92400e !important; }
+                #printPortal table { border-collapse: collapse; } #printPortal th, #printPortal td { border-bottom: 1px solid #ddd; }
+                #printPortal svg text { fill: #111 !important; }
               }
               .pd-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
               .pd-section > summary { cursor: pointer; font-size: 15px; padding: 4px 0; }

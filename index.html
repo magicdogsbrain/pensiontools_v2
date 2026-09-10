@@ -3087,6 +3087,16 @@
                 #printPortal details.pd-section > summary { list-style: none; font-size: 16px; margin: 14px 0 6px; }
                 #printPortal details.pd-section:not([open]) > .pd-body { display: block; }
                 #printPortal .page-break { break-before: page; }
+                /* 6.10.1: a PDF is paper — no buttons, no dark cards, black text (iPad Safari kept the app's
+                   dark-theme colours and greyed the numbers to illegibility). */
+                #printPortal button, #printPortal .btn, #printPortal .history-actions, #printPortal .history-actions-header, #printPortal .risk-btn, #printPortal .no-print { display: none !important; }
+                #printPortal, #printPortal * { color: #111 !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
+                #printPortal .card, #printPortal .history-detail-card, #printPortal .tax-year-detail-card, #printPortal .settings-section, #printPortal .alert { border: 1px solid #bbb !important; }
+                #printPortal .value.success, #printPortal .alert-success { color: #166534 !important; }
+                #printPortal .value.danger, #printPortal .alert-danger { color: #991b1b !important; }
+                #printPortal .value.warning, #printPortal .alert-warning { color: #92400e !important; }
+                #printPortal table { border-collapse: collapse; } #printPortal th, #printPortal td { border-bottom: 1px solid #ddd; }
+                #printPortal svg text { fill: #111 !important; }
               }
               .pd-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
               .pd-section > summary { cursor: pointer; font-size: 15px; padding: 4px 0; }
@@ -5040,8 +5050,11 @@
       if (!chip) return;
       const locked = await planIsLocked();
       chip.style.display = 'inline-block';
-      const stageWord = window._lifeStage && window._lifeStage.chip ? ' · ' + window._lifeStage.chip : '';
+      // The stage, by name ("Bridge · 7 months to go"), so the chip answers "where am I?" (6.10.1).
+      const st = window._lifeStage;
+      const stageWord = st && st.key !== 'unknown' ? ' · ' + st.label + (st.chip && !st.label.toLowerCase().includes(st.chip) ? ' · ' + st.chip : '') : '';
       chip.textContent = (locked ? '🔒 locked' : '✏️ draft') + stageWord;
+      if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
         : 'This plan’s settings are still editable. It locks itself when you record the first monthly entry or set up a tax year. Click for details.';
@@ -5066,6 +5079,7 @@
             '<li><strong style="color:var(--text);">🔒 locked</strong> — entries or tax years are recorded against these settings. You can still unlock: you are shown exactly what that does to your record first.</li>' +
             '<li><strong style="color:var(--text);">Strategy</strong> switches freely while the plan is a draft; once locked it changes only after an unlock (or in a copy).</li>' +
           '</ul>' +
+          (window._lifeStage && window._lifeStage.key !== 'unknown' ? '<p style="margin-bottom:10px;"><strong style="color:var(--text);">Where you are: ' + budEsc(window._lifeStage.label) + (window._lifeStage.chip && !window._lifeStage.label.toLowerCase().includes(window._lifeStage.chip) ? ' — ' + budEsc(window._lifeStage.chip) : '') + '.</strong> <span style="color:var(--text-muted);">Worked out from ' + budEsc(window._lifeStage.reasons.join('; ')) + '. The stage decides which tools lead (underlined), which are frozen with the lock (dimmed) and which do not apply (hidden — a retiree has nothing to accumulate). Change your age or the plan start in Stress → Settings → Timing to move it.</span></p>' : '') +
           '<p style="margin-bottom:16px; color:var(--text-muted);">You can also lock the plan yourself from Stress Tester → Settings once you are happy with the stress test: that freezes the Stress settings too and writes the <strong style="color:var(--text);">plan document</strong> — the record of what you committed to, which the Decision tool reads against each month. The Budget is never locked; "Try a strategy" what-ifs stay available on a locked plan.</p>' +
           '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
             '<button type="button" data-on-click="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +
@@ -7918,9 +7932,16 @@
       const rows = (typeof allHistoryData !== 'undefined' ? allHistoryData : []).filter(h => h.taxYear === taxYear).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       const esc = v => { v = (v == null ? '' : String(v)); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;   /* spreadsheet formula injection */ return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       const r0 = v => Math.round(v || 0);
-      const cols = ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
+      // Contract strategies (gilt ladders): no pot targets and no rebalancing exist — the columns would be
+      // the Pots & Valves defaults (6.10.1). Source is the cash bucket / bridge cash / matured rung.
+      const contract = CONTRACT_IDS.includes(window._activeStrategyId || '');
+      const cols = contract
+        ? ['Date', 'Paid from', 'SIPP draw', 'ISA draw', 'Gilt ladder value', 'Cash', 'Total pot', 'Tax (month)', 'Net (month)']
+        : ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
       let csv = cols.map(esc).join(',') + '\n';
-      for (const h of rows) csv += [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || ''].map(esc).join(',') + '\n';
+      for (const h of rows) csv += (contract
+        ? [h.date, h.strategySource || (h.bridgeYear ? 'bridge cash' : 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
+        : [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || '']).map(esc).join(',') + '\n';
       if (!rows.length) csv += '(no monthly records saved for this tax year yet)\n';
       downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
     };
@@ -8014,6 +8035,9 @@
       if (!banner) return;
       try {
         const scenarioId = await getActiveScenarioId();
+        // The life stage is worked out here on every load — BEFORE the dismissed-banner early return, or a
+        // plan with the banner dismissed never got a stage (tabs not hidden, chip without it — Chris, 10 Sep).
+        try { await refreshLifeStage(); } catch (e) { /* stage optional */ }
         if (!scenarioId || localStorage.getItem('nextStepDismissed:' + scenarioId)) { banner.style.display = 'none'; return; }
         const [budget, stress, decision] = await Promise.all([
           getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync()

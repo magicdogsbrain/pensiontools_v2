@@ -3653,6 +3653,17 @@
             <div id="acProjection" style="overflow-x:auto;"></div>
           </div>
 
+          <div class="settings-section" id="acSweepSection" style="border-color:var(--accent);">
+            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, which age clears 90%?</span></div>
+            <p class="hint" style="margin:0 0 8px;">For each age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age on your income shape. A compass you can re-run every year, not the full stress test.</p>
+            <div class="row-flex">
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income I want (£/yr gross, today's money) <span class="hlp" tabindex="0" data-tip="Leave blank to use your income shape's first step (the plan's own steps, moved to start at each candidate age). Type a flat figure to spin a different level.">?</span><input type="number" id="acSweepIncome" step="1000" placeholder="from your income shape" style="width:150px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Confidence I want<select id="acSweepTarget" style="width:130px;"><option value="90" selected>90%</option><option value="85">85%</option><option value="75">75%</option><option value="95">95%</option></select></label>
+              <button type="button" data-on-click="runRetireSweep()">Spin it</button>
+            </div>
+            <div id="acSweepResult" style="margin-top:10px;"></div>
+          </div>
+
           <div class="settings-section" id="acHoldingsSection">
             <div class="section-title">What you hold <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— tickers in, proportions modelled</span></div>
             <p class="hint" style="margin:0 0 8px;">Your holdings are entered once, under <strong>My funds</strong> in the Stress tester's Settings (fund, value, wrapper, cost, £/month in). The planner works on the proportions they roll up to — shares, bonds, diversifiers, cash — and where new money goes. It never guesses a fund's own return.</p>
@@ -8446,6 +8457,34 @@
         const w = await whereAmINow(doc);
         el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
+    };
+
+    // ---- "When could I retire?" quick spin (6.10.0) ----
+    window.runRetireSweep = async function () {
+      const box = document.getElementById('acSweepResult'); if (!box) return;
+      const incomeOverride = +document.getElementById('acSweepIncome')?.value || null;
+      const target = +document.getElementById('acSweepTarget')?.value || 90;
+      box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning the ages…</div>';
+      try {
+        const settings = await getStressSettingsAsync();
+        const acc = { ...(await getActiveAccumulation()), ...readAccumulationInputs() };
+        const t = deriveTiming(settings);
+        if (!(t.currentAge > 0)) { box.innerHTML = '<div class="alert alert-warning">Enter your age today in the Stress tester\'s Timing block first — the spin needs to know how many years of saving are left.</div>'; return; }
+        const payload = { settings, accumulation: acc, incomeOverride, mcRuns: 200, stride: 6 };
+        let out;
+        try { out = await runInWorker('sweep', payload, (pr) => { box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning ' + budEsc(pr.name || '') + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…</div>'; }); }
+        catch (e) { console.warn('sweep worker unavailable, running inline', e); const m = await import('./src/services/RetireSweep.js'); out = m.sweepRetirementAges(payload); }
+        const { earliestAt: eAt, sweepHeadline: head } = await import('./src/services/RetireSweep.js');
+        if (!out || !out.rows || !out.rows.length) { box.innerHTML = '<div class="alert alert-warning">' + budEsc(out?.error || 'Nothing came back.') + '</div>'; return; }
+        const e = eAt(out.rows, target);
+        const rows = out.rows.map((r) => ({ name: 'Age ' + r.age + ' (' + r.taxYear + ')', color: r.success != null && r.success >= target ? '#34d399' : r.success != null && r.success >= 75 ? '#fbbf24' : '#f87171', mc: r.success == null ? 0 : 100 - r.success, hist: 0, label: r.affordable === false ? 'not affordable' : (r.success == null ? '—' : r.success + '%') }));
+        let h = '<div class="alert ' + (e && e.met ? 'alert-success' : 'alert-warning') + '"><strong>' + budEsc(head(out, target)) + '</strong></div>';
+        h += '<div class="table-scroll-container"><table><thead><tr><th>Retire at</th><th>Tax year</th><th>Pot then (today\'s money)</th><th>Chance the money lasts</th><th>Years covered</th><th>Worst 12 months</th></tr></thead><tbody>'
+          + out.rows.map((r) => '<tr' + (e && e.met && r.age === e.age ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + budEsc(r.taxYear) + '</td><td>' + gbp(r.pot) + ' <span class="hint">(' + gbp(r.low) + '–' + gbp(r.high) + ')</span></td><td>' + (r.affordable === false ? '<span class="hint">not affordable: ' + budEsc(r.reason || '') + '</span>' : (r.success == null ? '—' : '<strong>' + r.success + '%</strong>')) + '</td><td>' + (r.coverage == null ? '—' : r.coverage + '%') + '</td><td>' + (r.worst12 == null ? '—' : gbp(r.worst12)) + '</td></tr>').join('')
+          + '</tbody></table></div>';
+        h += '<p class="hint" style="margin-top:6px;">Income ' + gbp(out.income) + '/yr' + (incomeOverride ? ' (flat, as typed)' : ' from your income shape, its steps moved to start at each age') + '; strategy: ' + budEsc(settings.strategyId || 'pots-and-valves') + '; pots at ' + budEsc(out.basis || 'the middle band') + ' with your contributions; 200 futures per age, every 6th history. For the age you choose, set it in the Timing block and run the full Stress tester.</p>';
+        box.innerHTML = h;
+      } catch (e) { console.error('sweep', e); box.innerHTML = '<div class="alert alert-danger">Could not run the spin: ' + budEsc(e.message) + '</div>'; }
     };
 
     // ---- Paste your holdings (6.9.0): any platform page or export → the ledger, with a preview ----

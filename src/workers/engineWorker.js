@@ -11,6 +11,7 @@ import { runHouseholdMonteCarlo, combineHouseholdStrategies, runSurvivorCheck, r
 import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
 import { loadLiveEquity } from '../services/EquityIndex.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
+import { sweepRetirementAges } from '../services/RetireSweep.js';
 
 let giltsReady = null;
 function plan(settings, cfg, essentialsAnnual) {
@@ -45,6 +46,9 @@ self.onmessage = async (e) => {
       self.postMessage({ id, result: cloneSafe(runSurvivorCheck(payload)) });
     } else if (type === 'care') {
       self.postMessage({ id, result: cloneSafe(runCareCheck(payload)) });
+    } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress
+      const out = sweepRetirementAges({ ...payload, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });
+      self.postMessage({ id, result: cloneSafe(out) });
     } else {
       throw new Error('unknown job ' + type);
     }

@@ -2490,7 +2490,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="dsFundRows"></tbody>
                 </table>
@@ -3391,7 +3391,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="ssFundRows"></tbody>
                 </table>
@@ -3648,6 +3648,26 @@
             <div class="section-title">Projection <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(today's money; FCA 2% / 5% / 8% nominal, CPI 2.5%)</span></div>
             <div id="acWarnings"></div>
             <div id="acProjection" style="overflow-x:auto;"></div>
+          </div>
+
+          <div class="settings-section" id="acHoldingsSection">
+            <div class="section-title">What you hold <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— tickers in, proportions modelled</span></div>
+            <p class="hint" style="margin:0 0 8px;">Your holdings are entered once, under <strong>My funds</strong> in the Stress tester's Settings (fund, value, wrapper, cost, £/month in). The planner works on the proportions they roll up to — shares, bonds, diversifiers, cash — and where new money goes. It never guesses a fund's own return.</p>
+            <div id="acHoldings"></div>
+            <div class="row-flex" style="margin-top:8px;"><button type="button" class="risk-btn" data-on-click="openMyFunds()">Edit my holdings</button></div>
+          </div>
+
+          <div class="settings-section" id="acRecordSection">
+            <div class="section-title">Record this month's pot <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— one line a month, read against the locked path</span></div>
+            <div id="acWhereAmI"></div>
+            <div class="row-flex" style="margin-top:6px;">
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Month<input type="month" id="acRecMonth" style="width:150px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Pension pot (£)<input type="number" id="acRecSipp" step="1000" style="width:130px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA (£)<input type="number" id="acRecIsa" step="1000" style="width:120px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Taxable / other (£)<input type="number" id="acRecGia" step="1000" style="width:120px;"></label>
+              <button type="button" data-on-click="recordAccumulationMonth()">Record</button>
+            </div>
+            <div id="acRecords" style="margin-top:8px;"></div>
           </div>
 
           <div class="settings-section">
@@ -4072,8 +4092,9 @@
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
     import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
+    import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -7605,6 +7626,8 @@
         '<td style="padding:3px 6px;"><input type="text" list="' + p + 'FundCatalogue" value="' + budEsc(f.ticker || '') + '" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'ticker\',this.value)" style="width:92px;text-transform:uppercase;" placeholder="e.g. VWRL"></td>' +
         '<td style="padding:3px 6px;"><input type="text" inputmode="numeric" value="' + (f.value ? formatWithSpaces(f.value) : '') + '" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'value\',this.value)" data-on-blur="reformatMoney(this)" style="width:110px;" placeholder="0"></td>' +
         '<td style="padding:3px 6px;"><select data-on-change="updateFundField(\'' + p + '\',' + i + ',\'wrapper\',this.value)" style="width:74px;"><option' + (f.wrapper !== 'ISA' ? ' selected' : '') + '>SIPP</option><option' + (f.wrapper === 'ISA' ? ' selected' : '') + '>ISA</option></select></td>' +
+        '<td style="padding:3px 6px;"><input type="number" step="0.01" min="0" max="5" value="' + (f.ocf != null && f.ocf !== '' ? f.ocf : '') + '" placeholder="0.20" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'ocf\',this.value)" style="width:64px;"></td>' +
+        '<td style="padding:3px 6px;"><input type="number" step="10" min="0" value="' + (f.contribution ? f.contribution : '') + '" placeholder="0" data-on-input="updateFundField(\'' + p + '\',' + i + ',\'contribution\',this.value)" style="width:72px;"></td>' +
         '<td id="' + p + '_fcat_' + i + '" style="padding:3px 6px;">' + categoryCellHtml(p, i, f) + '</td>' +
         '<td style="padding:3px 6px;"><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="removeFund(\'' + p + '\',' + i + ')">&times;</button></td>' +
         '</tr>'
@@ -7629,6 +7652,8 @@
         if (val && f.ticker && !liveCatalogueEntry(f.ticker)) {
           submitFundSuggestion({ ticker: f.ticker, name: '', subClass: val });
         }
+      } else if (field === 'ocf' || field === 'contribution') {
+        f[field] = val === '' || val == null ? null : Math.max(0, parseFloat(val) || 0);   // 6.7.0: cost %/yr, £/month in
       } else {
         f[field] = val;
       }
@@ -8313,7 +8338,8 @@
       const name = document.getElementById('scenarioActiveName')?.textContent?.trim() || 'My plan';
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
       let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
-      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey });
+      let accumulation = null; try { accumulation = await getActiveAccumulation(); } catch (e) { accumulation = null; }
+      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation });
       if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
       await saveActivePlanDocument(doc);
       window._planDocLast = doc;
@@ -8364,7 +8390,8 @@
       let history = []; try { history = await getHistoryAsync({ sortDesc: false, limit: 500 }); } catch (e) { history = []; }
       let ladderPos = null;
       try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
-      return whereAmI(doc, { today: new Date(), history, ladderPos });
+      let accHistory = []; try { if (doc.accumulation) accHistory = await getActiveAccumulationHistory(); } catch (e) { accHistory = []; }
+      return whereAmI(doc, { today: new Date(), history, ladderPos, accHistory });
     }
     window.renderPlanDocumentPage = async function () {
       const box = document.getElementById('planDocumentPage'); if (!box) return;
@@ -8408,6 +8435,63 @@
         const w = await whereAmINow(doc);
         el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
+    };
+
+    // ---- Accumulation: what you hold + the monthly pot record (6.7.0) ----
+    window.openMyFunds = function () {
+      openToolSettingsTab('stress');
+      setTimeout(() => { const el = document.getElementById('ssFundsMode'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' }); }, 500);
+    };
+    window.renderAccumulationHoldings = async function () {
+      const el = document.getElementById('acHoldings'); if (!el) return;
+      try {
+        const ss = await getStressSettingsAsync();
+        const hp = holdingsProportions(ss.taggedFunds || []);
+        if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">No holdings entered yet. Add them under My funds in the Stress tester\'s Settings and the planner will show your proportions here.</p>'; return; }
+        const pct = (v) => Math.round(v * 100) + '%';
+        let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + budEsc(describeMix(hp)) + '</div>';
+        h += '<div class="table-scroll-container"><table><thead><tr><th>Asset class</th><th>Value</th><th>Share</th></tr></thead><tbody>'
+          + hp.subClasses.map((s) => '<tr><td>' + budEsc(s.label) + ' <span class="hint">(' + budEsc(s.bucket) + ')</span></td><td>' + gbp(s.value) + '</td><td>' + pct(s.weight) + '</td></tr>').join('')
+          + '<tr><td><strong>Total</strong> — SIPP ' + gbp(hp.byWrapper.SIPP) + (hp.byWrapper.ISA ? ' · ISA ' + gbp(hp.byWrapper.ISA) : '') + (hp.byWrapper.GIA ? ' · GIA ' + gbp(hp.byWrapper.GIA) : '') + '</td><td><strong>' + gbp(hp.total) + '</strong></td><td></td></tr></tbody></table></div>';
+        if (hp.contributions.monthly > 0) h += '<p class="hint" style="margin:6px 0 0;">New money: ' + gbp(hp.contributions.monthly) + ' a month — ' + ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => hp.contributions.byBucket[b] > 0.004).map((b) => pct(hp.contributions.byBucket[b]) + ' ' + b).join(', ') + '.</p>';
+        if (hp.untagged.length) h += '<p class="hint" style="margin:6px 0 0;">Not counted (unknown category): ' + hp.untagged.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ' — pick a category for them under My funds.</p>';
+        el.innerHTML = h;
+        // Pot today from the ledger, when the box is empty
+        const pn = document.getElementById('acPotNow'); if (pn && !(+pn.value > 0) && hp.byWrapper.SIPP > 0) { pn.value = Math.round(hp.byWrapper.SIPP); }
+      } catch (e) { el.innerHTML = '<p class="hint">Could not read the holdings: ' + budEsc(e.message) + '</p>'; }
+    };
+    window.renderAccumulationRecords = async function () {
+      const el = document.getElementById('acRecords'), strip = document.getElementById('acWhereAmI'); if (!el) return;
+      try {
+        const hist = await getActiveAccumulationHistory();
+        const m = document.getElementById('acRecMonth'); if (m && !m.value) m.value = getCurrentMonth();
+        el.innerHTML = hist.length ? '<div class="table-scroll-container"><table><thead><tr><th>Month</th><th>Pension pot</th><th>ISA</th><th>Taxable / other</th><th>Total</th><th></th></tr></thead><tbody>'
+          + hist.slice().reverse().slice(0, 36).map((r) => '<tr><td>' + budEsc(r.date) + '</td><td>' + gbp(r.sipp || 0) + '</td><td>' + gbp(r.isa || 0) + '</td><td>' + gbp(r.gia || 0) + '</td><td><strong>' + gbp(r.total || 0) + '</strong></td><td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="deleteAccumulationRecord(\'' + budEsc(r.date) + '\')">&times;</button></td></tr>').join('')
+          + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
+        if (strip) {
+          const doc = await getActivePlanDocument();
+          if (doc && doc.accumulation) { const w = whereAmI(doc, { today: new Date(), accHistory: hist }); strip.innerHTML = w ? whereAmIHtml(w) : ''; }
+          else strip.innerHTML = window._lifeStage && ['saving', 'approaching'].includes(window._lifeStage.key) ? '<p class="hint">Lock the plan (Stress tester → Settings) and this strip reads each month\'s pot against the locked path.</p>' : '';
+        }
+      } catch (e) { el.innerHTML = '<p class="hint">Could not read the records: ' + budEsc(e.message) + '</p>'; }
+    };
+    window.recordAccumulationMonth = async function () {
+      if (!isLoggedIn()) { showToast('Please sign in to record', 'error'); return; }
+      const g = (id) => document.getElementById(id);
+      const date = g('acRecMonth')?.value; if (!date) { showToast('Pick the month first', 'error'); return; }
+      const sipp = +g('acRecSipp')?.value || 0, isa = +g('acRecIsa')?.value || 0, gia = +g('acRecGia')?.value || 0;
+      if (!(sipp > 0) && !(isa > 0) && !(gia > 0)) { showToast('Enter at least the pension pot', 'error'); return; }
+      try {
+        const hist = (await getActiveAccumulationHistory()).filter((r) => r.date !== date);
+        hist.push({ date, sipp, isa, gia, total: sipp + isa + gia, recordedAt: new Date().toISOString() });
+        await saveActiveAccumulationHistory(hist);
+        showToast('Recorded ' + date + ': ' + gbp(sipp + isa + gia), 'success');
+        await renderAccumulationRecords();
+      } catch (e) { showToast('Could not record: ' + e.message, 'error'); }
+    };
+    window.deleteAccumulationRecord = async function (date) {
+      try { const hist = (await getActiveAccumulationHistory()).filter((r) => r.date !== date); await saveActiveAccumulationHistory(hist); await renderAccumulationRecords(); }
+      catch (e) { showToast('Could not delete: ' + e.message, 'error'); }
     };
 
     // ---- Life stage (6.6.0): where this plan's owner is, derived — see src/services/LifeStage.js ----
@@ -10368,7 +10452,9 @@
         if (saved.schemeType) document.getElementById('acScheme').value = saved.schemeType;
         set('acEmployerMonthly', saved.employerMonthly);
         if (saved.escalationPct) document.getElementById('acEscalation').value = saved.escalationPct;
+        await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
         recalcAccumulation();
+        renderAccumulationRecords().catch(() => {});
       } catch (e) { console.error('Accumulation load error:', e); }
     };
 
@@ -10409,7 +10495,11 @@
         mpaaTriggered = (hist || []).some((h) => (h.taxFree || 0) > 0);
       } catch (e) { /* no history yet */ }
 
-      const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly });
+      // 6.7.0: a fourth line at the holder's own mix (from the holdings ledger), net of cost; pot today from the ledger when set.
+      let mixRealReturn = null;
+      try { const ss = await getStressSettingsAsync(); const hp = holdingsProportions(ss.taggedFunds || []); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
+      window._acMixOn = Number.isFinite(mixRealReturn);
+      const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn });
       const last = rows[rows.length - 1];
       const warns = contributionWarnings({
         annualGrossTotal: b.totalMonthly * 12, salary: a.salary, mpaaTriggered,
@@ -10417,11 +10507,11 @@
       });
       warnEl.innerHTML = warns.map((w) => '<div class="alert alert-' + (w.severity === 'danger' ? 'danger' : w.severity === 'warning' ? 'warning' : 'info') + '">' + w.message + '</div>').join('');
 
-      let html = '<table><thead><tr><th>Age</th><th>Cautious (2%)</th><th>Middle (5%)</th><th>Strong (8%)</th><th>Paid in</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>Age</th><th>Cautious (2%)</th><th>Middle (5%)</th>' + (window._acMixOn ? '<th>Your mix <span class="hint" title="Your holdings\' expected real return after costs, at long-run assumptions">(' + ((mixRealReturn + 0.025) * 100).toFixed(1) + '%)</span></th>' : '') + '<th>Strong (8%)</th><th>Paid in</th></tr></thead><tbody>';
       const step = rows.length > 12 ? 5 : 1;
       for (let i = 0; i < rows.length; i += (i === 0 || i >= rows.length - step ? 1 : step)) {
         const r = rows[i];
-        html += '<tr' + (i === rows.length - 1 ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + gbp(Math.round(r.potLow)) + '</td><td>' + gbp(Math.round(r.potMid)) + '</td><td>' + gbp(Math.round(r.potHigh)) + '</td><td>' + gbp(Math.round(r.contributedToDate)) + '</td></tr>';
+        html += '<tr' + (i === rows.length - 1 ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + gbp(Math.round(r.potLow)) + '</td><td>' + gbp(Math.round(r.potMid)) + '</td><td>' + (window._acMixOn ? gbp(Math.round(r.potMix || 0)) + '</td><td>' : '') + gbp(Math.round(r.potHigh)) + '</td><td>' + gbp(Math.round(r.contributedToDate)) + '</td></tr>';
       }
       html += '</tbody></table>';
       projEl.innerHTML = html;

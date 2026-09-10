@@ -2150,7 +2150,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-BDlEeWdS.js"></script>
+  <script type="module" crossorigin src="./assets/main-D72U38ff.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2491,7 +2491,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="dsFundRows"></tbody>
                 </table>
@@ -3392,7 +3392,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="ssFundRows"></tbody>
                 </table>
@@ -3649,6 +3649,26 @@
             <div class="section-title">Projection <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(today's money; FCA 2% / 5% / 8% nominal, CPI 2.5%)</span></div>
             <div id="acWarnings"></div>
             <div id="acProjection" style="overflow-x:auto;"></div>
+          </div>
+
+          <div class="settings-section" id="acHoldingsSection">
+            <div class="section-title">What you hold <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— tickers in, proportions modelled</span></div>
+            <p class="hint" style="margin:0 0 8px;">Your holdings are entered once, under <strong>My funds</strong> in the Stress tester's Settings (fund, value, wrapper, cost, £/month in). The planner works on the proportions they roll up to — shares, bonds, diversifiers, cash — and where new money goes. It never guesses a fund's own return.</p>
+            <div id="acHoldings"></div>
+            <div class="row-flex" style="margin-top:8px;"><button type="button" class="risk-btn" data-on-click="openMyFunds()">Edit my holdings</button></div>
+          </div>
+
+          <div class="settings-section" id="acRecordSection">
+            <div class="section-title">Record this month's pot <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— one line a month, read against the locked path</span></div>
+            <div id="acWhereAmI"></div>
+            <div class="row-flex" style="margin-top:6px;">
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Month<input type="month" id="acRecMonth" style="width:150px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Pension pot (£)<input type="number" id="acRecSipp" step="1000" style="width:130px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA (£)<input type="number" id="acRecIsa" step="1000" style="width:120px;"></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Taxable / other (£)<input type="number" id="acRecGia" step="1000" style="width:120px;"></label>
+              <button type="button" data-on-click="recordAccumulationMonth()">Record</button>
+            </div>
+            <div id="acRecords" style="margin-top:8px;"></div>
           </div>
 
           <div class="settings-section">

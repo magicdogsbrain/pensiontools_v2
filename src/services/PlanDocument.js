@@ -15,6 +15,8 @@ import { cleanSteps, amountAtAge } from './IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
 import { targetMixForYear, equityGlideFromRisk } from './GlidepathService.js';
+import { projectAccumulation, potOnPath, contributionBreakdown } from './AccumulationEngine.js';
+import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
 
@@ -124,11 +126,35 @@ export function buildTargetMix(settings, N) {
 }
 
 /**
+ * The locked accumulation path (6.7.0): for a plan that starts later, the pot projected from today's
+ * holdings and contributions to the start — the track a saver is read against each month.
+ * @returns {null | { startAge, retireAge, years, potNow, totalMonthly, mixRealReturn, mixText, path: rows }}
+ */
+export function buildAccumulationPath({ settings = {}, timing, accumulation = null } = {}) {
+  if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
+  const a = accumulation || {};
+  const holdings = Array.isArray(settings.taggedFunds) ? settings.taggedFunds : [];
+  const prop = holdings.length ? holdingsProportions(holdings) : null;
+  const potNow = pensionPotFromHoldings(holdings) || +a.potNow || ((+settings.equityMin || 0) + (+settings.bondMin || 0) + (+settings.cashTarget || 0) + (+settings.diversifierStart || 0));
+  let totalMonthly = 0;
+  try { if (+a.netMonthly > 0 || +a.employerMonthly > 0) totalMonthly = contributionBreakdown({ netMonthly: +a.netMonthly || 0, salary: +a.salary || 0, schemeType: a.schemeType || 'ras', employerMonthly: +a.employerMonthly || 0 }).totalMonthly || 0; } catch (e) { totalMonthly = 0; }
+  if (!(totalMonthly > 0) && prop && prop.contributions.monthly > 0) totalMonthly = prop.contributions.monthly;
+  const years = Math.max(0, timing.shapeAgeNow - timing.currentAge);
+  const mixRealReturn = prop && prop.total > 0 ? prop.expectedReal : null;
+  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: +a.escalationPct || 0, mixRealReturn });
+  return plainClone({
+    startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years, potNow: Math.round(potNow), totalMonthly: Math.round(totalMonthly), mixRealReturn,
+    mixText: prop ? (Math.round(prop.buckets.shares * 100) + '% shares · ' + Math.round(prop.buckets.bonds * 100) + '% bonds · ' + Math.round((prop.buckets.diversifiers || 0) * 100) + '% diversifiers · ' + Math.round(prop.buckets.cash * 100) + '% cash') : null,
+    path: rows.map((r) => ({ year: r.year, age: timing.currentAge + r.year, potLow: Math.round(r.potLow), potMid: Math.round(r.potMid), potHigh: Math.round(r.potHigh), ...(r.potMix != null ? { potMix: Math.round(r.potMix) } : {}), contributedToDate: Math.round(r.contributedToDate) }))
+  });
+}
+
+/**
  * Build the document.
  * @param {object} a  { planName, settings (Stress), p (planFromSettings), r (stressTestStrategy, optional),
  *                      lockedAt, lockedBy, budgetGross, essentials, giltPricesAsOf, now }
  */
-export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], now = new Date() } = {}) {
+export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, now = new Date() } = {}) {
   const timing = deriveTiming(settings, now);
   const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials });
   const N = Math.max(1, Math.min(45, p?.durationYears || +settings.duration || 35));
@@ -147,6 +173,7 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
     planName, lockedAt: lockedAt || now.toISOString(), lockedBy: lockedBy || 'locked from Stress settings',
     timing: { ...timing, text: describeTiming(timing, settings, now), currentAgeAsOf: settings.currentAgeAsOf || null },
     journey: Array.isArray(journey) ? journey.map((j) => ({ stage: j.stage, label: j.label, at: j.at, ...(j.note ? { note: j.note } : {}) })) : [],
+    accumulation: buildAccumulationPath({ settings, timing, accumulation }),   // null unless retiring later (6.7.0)
     steps,
     layers: { sp: layers.sp, other: layers.other, events: layers.events, floorVals: layers.floorVals, ageNow: layers.ageNow, horizonAge: layers.horizonAge, budgetGross, essentials },
     timeline: buildTimeline({ settings, timing, p, r, layers }),
@@ -173,8 +200,24 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
 }
 
 /** Where the user stands today against the document. Pure. */
-export function whereAmI(doc, { today = new Date(), history = [], potsToday = null, ladderPos = null } = {}) {
+export function whereAmI(doc, { today = new Date(), history = [], potsToday = null, ladderPos = null, accHistory = [] } = {}) {
   if (!doc || !doc.timing) return null;
+  // Saver against the locked path (6.7.0): before a retire-later plan starts, read the latest pot record
+  // against the projection the plan was priced on.
+  let saving = null;
+  if (doc.accumulation && Array.isArray(doc.accumulation.path) && doc.accumulation.path.length && doc.timing.mode === 'future') {
+    const lockedAt = new Date(doc.lockedAt || doc.createdAt || today);
+    const yearsElapsed = Math.max(0, (today.getTime() - lockedAt.getTime()) / (365.25 * 24 * 3600 * 1000));
+    const expected = potOnPath(doc.accumulation.path, yearsElapsed, doc.accumulation.path[0].potMix != null ? 'potMix' : 'potMid');
+    const low = potOnPath(doc.accumulation.path, yearsElapsed, 'potLow'), high = potOnPath(doc.accumulation.path, yearsElapsed, 'potHigh');
+    const last = (accHistory || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).pop() || null;
+    const actual = last ? +(last.sipp ?? last.total ?? 0) : (potsToday != null ? +potsToday : null);
+    const start = new Date(+doc.timing.firstTaxYear, 3, 6);
+    const monthsToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / (30.44 * 24 * 3600 * 1000)));
+    saving = { monthsToGo, expected: expected == null ? null : Math.round(expected), low: low == null ? null : Math.round(low), high: high == null ? null : Math.round(high), actual: actual == null ? null : Math.round(actual), recordedAt: last ? last.date : null,
+      band: actual == null || expected == null ? null : actual < (low ?? -Infinity) ? 'below the cautious line' : actual < expected ? 'below the locked path' : actual <= (high ?? Infinity) ? 'on or above the locked path' : 'above the strong line',
+      contributions: doc.accumulation.totalMonthly || 0 };
+  }
   const fty = +doc.timing.firstTaxYear;
   const y = planYearOf(today, fty);
   const bridge = y < 0;
@@ -207,6 +250,7 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     incomeThisYear: { recorded: recs.length, drawn: Math.round(drawn), planned: row ? row.gross : null, perMonth: row ? Math.round(row.gross / 12) : null },
     pot,
     ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null } : null,
-    contract: !!doc.strategy?.contract
+    contract: !!doc.strategy?.contract,
+    saving
   };
 }

@@ -237,6 +237,18 @@ const GROUPS = [
     { ticker: 'PHSP', name: 'WisdomTree Physical Silver (GBP)',        subClass: 'commodities' },
     { ticker: 'WCOA', name: 'WisdomTree Enhanced Commodity (USD)',     subClass: 'commodities' },
   ],
+  // ---- Multi-asset funds (6.7.0): split across sub-classes by `mix` (weights sum to 1). OEICs have no
+  // ticker; the usual shorthand is used. `subClass` is the dominant slice (kept for tools that need one).
+  [
+    { ticker: 'VLS100', name: 'Vanguard LifeStrategy 100% Equity',   subClass: 'worldGrowth', mix: { worldGrowth: 1.00 } },
+    { ticker: 'VLS80',  name: 'Vanguard LifeStrategy 80% Equity',    subClass: 'worldGrowth', mix: { worldGrowth: 0.80, globalAggHedged: 0.20 } },
+    { ticker: 'VLS60',  name: 'Vanguard LifeStrategy 60% Equity',    subClass: 'worldGrowth', mix: { worldGrowth: 0.60, globalAggHedged: 0.40 } },
+    { ticker: 'VLS40',  name: 'Vanguard LifeStrategy 40% Equity',    subClass: 'globalAggHedged', mix: { worldGrowth: 0.40, globalAggHedged: 0.60 } },
+    { ticker: 'VLS20',  name: 'Vanguard LifeStrategy 20% Equity',    subClass: 'globalAggHedged', mix: { worldGrowth: 0.20, globalAggHedged: 0.80 } },
+    { ticker: 'HSBCGSD', name: 'HSBC Global Strategy Dynamic',       subClass: 'worldGrowth', mix: { worldGrowth: 0.80, globalAggHedged: 0.20 } },
+    { ticker: 'HSBCGSB', name: 'HSBC Global Strategy Balanced',      subClass: 'worldGrowth', mix: { worldGrowth: 0.60, globalAggHedged: 0.40 } },
+    { ticker: 'HSBCGSC', name: 'HSBC Global Strategy Cautious',      subClass: 'globalAggHedged', mix: { worldGrowth: 0.35, globalAggHedged: 0.65 } },
+  ],
 ];
 
 /** The default catalogue, ALPHABETICAL by ticker (the UI depends on this ordering). */

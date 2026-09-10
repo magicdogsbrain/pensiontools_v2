@@ -229,7 +229,7 @@ _Last updated: 2026-08-17 — access method (drawdown/UFPLS) + phased access shi
   bridge / running / draft-retired); tab emphasis + hidden Accumulation for retirees; stage banner; plan chip; journey log
   (`scenario.journey`) in the plan document; Decision gate before the start for locked savers; arrival check (10%);
   wizard "pick up from here" for retrospective adopters; own-funds note in future mode.
-- **v6.7.0 — Holdings ledger + accumulation tracked**: `scenario.holdings` (wrapper, ticker/name, units/value, ocf,
+- **v6.7.0 — Holdings ledger + accumulation tracked (SHIPPED 10 Sep 2026)**: `scenario.holdings` (wrapper, ticker/name, units/value, ocf,
   contribution destination) replacing the three fund lists; catalogue `mix` for multi-asset funds; Accumulation on
   bucket proportions + glide + cost drag (tickers in, proportions modelled); monthly pot record; locked projection path
   in the plan document; where-am-I for savers.

@@ -9,7 +9,7 @@ describe('deriveStage — the persona matrix', () => {
     const st = deriveStage(sc({ currentAge: 45, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 }), NOW);
     expect(st.key).toBe('saving');
     expect(st.leads).toContain('accumulation');
-    expect(st.hidden).toEqual([]);
+    expect(st.hidden).toEqual(['transition']);   // nothing to transition yet (6.8.0)
     expect(st.yearsToStart).toBeGreaterThan(APPROACHING_YEARS);
   });
   it('approaching: retire at 60 at 57 → Approaching (within five years)', () => {

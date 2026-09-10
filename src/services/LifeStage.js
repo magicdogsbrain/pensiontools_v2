@@ -87,11 +87,16 @@ export function deriveStage(scenario, now = new Date()) {
   }
   if (locked) reasons.push('plan locked' + (hasDocument ? ' with a plan document' : ''));
   const def = STAGES[key];
+  // The transition tool (6.8.0) leads from Approaching to the plan start (and for a retiree still designing
+  // — a reconcile of what is already held); it has no job while saving far out or once the plan is running.
+  const leads = def.leads.slice(), hidden = def.hidden.slice();
+  if (['approaching', 'committed-saving', 'bridge', 'draft-retired'].includes(key)) leads.push('transition');
+  if (['saving', 'running', 'unknown'].includes(key)) hidden.push('transition');
   const startLabel = taxYearLabel(t.firstTaxYear);
   const banner = def.banner ? { ...def.banner, text: def.banner.text.replace(/\{start\}/g, startLabel) } : null;
   return {
     key, label: def.label, chip: chipText(def, monthsToStart, beforeStart),
-    leads: def.leads.slice(), readOnly: def.readOnly.slice(), hidden: def.hidden.slice(), banner,
+    leads, readOnly: def.readOnly.slice(), hidden, banner,
     locked, retired: t.mode === 'retired', timingMode: t.mode, firstTaxYear: t.firstTaxYear, startLabel,
     yearsToStart: t.yearsToStart, monthsToStart, beforeStart, hasRecords, hasDocument, reasons
   };

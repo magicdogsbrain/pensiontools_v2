@@ -36,6 +36,26 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.8.0', date: '2026-09-10', engineVersion: '6.4.0',
+    title: 'Transition tool: from what you hold to the plan',
+    summary: 'A new Transition tab, shown from "approaching retirement" until the plan starts. It takes the plan document\'s target — every rung of a gilt ladder in units plus the cash years, or the year-0 mix in pounds for a pot strategy — and diffs it against what you hold under My funds: buy, sell, already held, left alone. Then it lays the moves out on a dated schedule to the plan start (cash years first, near rungs before far ones, sales in tranches, new contributions before sales) and lets you tick each order off as you place it.',
+    changes: [
+      'Transition tab (Approaching, Committed-while-saving, Bridge, and Retired-designing stages): target, buy/sell/hold tables with tick-offs, a dated schedule, progress ("62% of the target is held; next: buy the 2031 rung"), and the assumptions the schedule makes (wrappers, tax on sales, gilt units, decision points).',
+      'Gilts in My funds: enter the gilt code (e.g. TR30, TG36) with units and value; the tool matches rungs by code or SEDOL. A rung within 2% of its target counts as held.',
+      'Retrospective adopters: a ladder that is already mostly held reads as a reconcile — top-ups and surpluses only.'
+    ],
+    corrections: [],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: ['The Transition tab reads the same ledger as the Accumulation planner; contributions entered there fund the schedule before sales.'] },
+    actions: ['Lock the plan, then open Transition and enter what you hold under My funds (ticker or gilt code, value, units for gilts, wrapper). Tick each order off as you place it.'],
+    notes: ['Nothing here places an order, and the pound figures are indicative — gilt prices and index ratios move daily. CSV import of platform holdings (AJ Bell first) is next.'],
+    affects(scenario) {
+      const locked = !!scenario?.decisionTool?.settings?.locked;
+      const tf = scenario?.stressTool?.settings?.taggedFunds || [];
+      if (locked && scenario?.planDocument && !tf.length) return ['This plan is locked with a plan document but has no holdings entered — the Transition tab will read everything as "to buy" until you enter what you hold.'];
+      return [];
+    }
+  },
+  {
     version: '6.7.0', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'Holdings ledger: tickers in, proportions modelled — and a monthly pot record while you save',
     summary: 'Your holdings are entered once, under "My funds" in the Stress tester\'s Settings, and every tool reads the same list. Each line now carries its cost and the money going into it each month. The Accumulation planner shows what those holdings roll up to — so much in shares, bonds, diversifiers and cash — and projects a fourth line at your own mix, net of costs, beside the FCA bands. Multi-asset funds (LifeStrategy, HSBC Global Strategy) split into their parts. A plan locked while you are still saving now keeps the projected path in its plan document, and a one-line-a-month pot record reads against it.',

@@ -36,6 +36,19 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.0', date: '2026-09-10', engineVersion: '6.4.0',
+    title: '"When could I retire?" — the quick spin for savers',
+    summary: 'A new card at the top of the Accumulation planner. Type the income you want (or leave it to your income shape), pick the confidence you want, and it spins every age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age. The answer reads "at £40,000 a year you could retire at 61 with 90% confidence, or at 58 with 75%". Re-run it every year as the numbers move.',
+    changes: [
+      'Accumulation planner → "When could I retire?": income, confidence target, Spin. A table per age with the pot it was priced on, the chance the money lasts, years covered and the worst 12 months; the earliest age clearing your target is highlighted.',
+      'Runs in the background worker with progress; 200 futures per age and every sixth history — a compass, not the full stress test. For the age you pick, set it in the Timing block and run the Stress tester proper.'
+    ],
+    corrections: [],
+    effects: { accumulation: ['New card; nothing else on the tab changes.'], stress: [], strategies: [], decision: [], household: [], budget: [] },
+    actions: ['Savers: make sure the Timing block has your age today and My funds has what you hold (paste it), then spin.'],
+    notes: ['The income shape\'s steps are moved to start at each candidate age, so "£40k to 75 then £32k" keeps its shape whichever year you stop. A typed income is flat for life.']
+  },
+  {
     version: '6.9.0', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'Paste your holdings from any platform',
     summary: 'Copy the holdings table from your platform\'s page or export — AJ Bell, HL, ii, Vanguard, a workplace scheme, anything — and paste it into My funds. The tool reads names, units, values and SEDOLs in whatever layout it finds, matches each line to the fund catalogue or to your plan\'s gilt order sheet, shows a preview you check, then merges into your holdings: lines you already have are updated, new ones added, lines missing from the paste are listed for you to remove if sold.',

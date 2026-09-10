@@ -2480,6 +2480,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ds', this.value)" data-on-focus="showFundSearch('ds', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
                 <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
@@ -3381,6 +3382,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
                 <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
@@ -4101,6 +4103,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
+    import { parsePaste, matchRows, mergeLedger } from './src/services/HoldingsPaste.js';
     import { getActiveTransition, saveActiveTransition } from './src/storage/ScenarioRepository.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
@@ -8443,6 +8446,58 @@
         const w = await whereAmINow(doc);
         el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
+    };
+
+    // ---- Paste your holdings (6.9.0): any platform page or export → the ledger, with a preview ----
+    window._pasteCtx = null;
+    window.pasteHoldingsFromTransition = function () { openMyFunds(); setTimeout(() => openPasteHoldings('ss'), 700); };
+    window.openPasteHoldingsNear = function (btn) {
+      const root = btn && btn.closest ? btn.closest('#ssFundsMode, #dsFundsMode, #stress-stresssettings, #decision-decisionsettings') : null;
+      const p = root && root.id && root.id.startsWith('ds') || (root && root.id === 'decision-decisionsettings') ? 'ds' : 'ss';
+      openPasteHoldings(p);
+    };
+    window.openPasteHoldings = async function (p = 'ss') {
+      document.getElementById('pasteHoldingsOverlay')?.remove();
+      let orders = []; try { const doc = await getActivePlanDocument(); orders = doc?.strategy?.r?.plan?.orders || []; } catch (e) { orders = []; }
+      window._pasteCtx = { p, orders, matched: null, wrapper: 'SIPP' };
+      const ov = document.createElement('div'); ov.id = 'pasteHoldingsOverlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;';
+      ov.innerHTML = '<div class="card" style="max-width:900px;width:100%;">'
+        + '<h2 style="margin-top:0;">Paste your holdings</h2>'
+        + '<p class="hint">Open your platform\'s holdings page (or its export), select the table, copy, and paste it below. Any layout works: the tool looks for a name, units, value, and a SEDOL or ticker. Nothing you paste leaves this browser; only the resulting list is saved with your plan.</p>'
+        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">These holdings are in<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option></select></label></div>'
+        + '<textarea id="pasteText" rows="8" style="width:100%;font-family:monospace;font-size:12px;" placeholder="Investment,Units,Value&#10;Vanguard FTSE All-World UCITS ETF,500,£52,600.00&#10;Treasury 0.125% I/L 22/03/2030,35000,£38,584.00"></textarea>'
+        + '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="previewPasteHoldings()">Preview</button><button type="button" class="secondary" data-on-click="document.getElementById(\'pasteHoldingsOverlay\').remove()">Cancel</button></div>'
+        + '<div id="pastePreview" style="margin-top:10px;"></div></div>';
+      document.body.appendChild(ov);
+      setTimeout(() => document.getElementById('pasteText')?.focus(), 50);
+    };
+    window.previewPasteHoldings = function () {
+      const ctx = window._pasteCtx; if (!ctx) return;
+      const text = document.getElementById('pasteText')?.value || '';
+      const wrapper = document.getElementById('pasteWrapper')?.value || 'SIPP';
+      const parsed = parsePaste(text);
+      const matched = matchRows(parsed.rows, { orders: ctx.orders, wrapper });
+      ctx.matched = matched; ctx.wrapper = wrapper;
+      const box = document.getElementById('pastePreview'); if (!box) return;
+      if (!matched.length) { box.innerHTML = '<div class="alert alert-warning">' + parsed.warnings.map(budEsc).join('<br>') + '</div>'; return; }
+      const conf = (m) => m.match.kind === 'none' ? '<span style="color:var(--danger,#f87171);">not recognised — pick a category after applying</span>' : budEsc(m.match.kind === 'gilt' ? 'gilt rung (' + m.match.confidence + ')' : m.match.kind === 'cash' ? 'money market / cash' : 'fund (' + m.match.confidence + ')');
+      const ledger = funds(ctx.p);
+      const merged = mergeLedger(ledger, matched, { wrapper });
+      let h = '<div class="table-scroll-container"><table><thead><tr><th>Pasted</th><th>Read as</th><th>Units</th><th>Value</th><th>Match</th></tr></thead><tbody>'
+        + matched.map((m) => '<tr><td>' + budEsc(m.name || m.ticker || m.sedol || '') + '</td><td>' + budEsc(m.match.name || m.match.ticker || '—') + (m.match.ticker ? ' <span class="hint">' + budEsc(m.match.ticker) + '</span>' : '') + '</td><td>' + (m.units != null ? Math.round(m.units).toLocaleString() : '—') + '</td><td>' + (m.value != null ? gbp(m.value) : '—') + '</td><td>' + conf(m) + '</td></tr>').join('')
+        + '</tbody></table></div>';
+      h += '<p class="hint" style="margin-top:6px;">Applying will ' + (merged.updated.length ? 'update ' + merged.updated.length + ' line' + (merged.updated.length === 1 ? '' : 's') + ' you already have' : 'update nothing') + (merged.added.length ? ', add ' + merged.added.length : '') + (merged.unseen.length ? ', and leave ' + merged.unseen.length + ' ' + wrapper + ' line' + (merged.unseen.length === 1 ? '' : 's') + ' not in the paste (' + merged.unseen.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ') — remove them yourself if they were sold' : '') + '.' + (parsed.warnings.length ? ' ' + parsed.warnings.map(budEsc).join(' ') : '') + '</p>';
+      h += '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="applyPasteHoldings()">Apply to my funds</button></div>';
+      box.innerHTML = h;
+    };
+    window.applyPasteHoldings = function () {
+      const ctx = window._pasteCtx; if (!ctx || !ctx.matched) return;
+      const merged = mergeLedger(funds(ctx.p), ctx.matched, { wrapper: ctx.wrapper });
+      window._taggedFunds[ctx.p] = merged.ledger;
+      renderFunds(ctx.p);
+      document.getElementById('pasteHoldingsOverlay')?.remove();
+      showToast('Holdings applied: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added. Check the categories, then Save Settings.', 'success', 6000);
     };
 
     // ---- Transition tool (6.8.0): from what you hold to the plan document's target ----

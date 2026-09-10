@@ -2150,7 +2150,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-Dje6w8tR.js"></script>
+  <script type="module" crossorigin src="./assets/main-Dc94-CC0.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2481,6 +2481,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ds', this.value)" data-on-focus="showFundSearch('ds', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
                 <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
@@ -3382,6 +3383,7 @@
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
                 Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
               </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
                 <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>

@@ -233,6 +233,6 @@ _Last updated: 2026-08-17 — access method (drawdown/UFPLS) + phased access shi
   contribution destination) replacing the three fund lists; catalogue `mix` for multi-asset funds; Accumulation on
   bucket proportions + glide + cost drag (tickers in, proportions modelled); monthly pot record; locked projection path
   in the plan document; where-am-I for savers.
-- **v6.8.0 — Transition tool**: target from the plan document (order sheet / target mix × model portfolio, per wrapper),
+- **v6.8.0 — Transition tool (SHIPPED 10 Sep 2026; CSV import still to do)**: target from the plan document (order sheet / target mix × model portfolio, per wrapper),
   diff vs the ledger in units and £, dated sequencing (cash years first, near rungs first, tranches, ISA/CGT/MPAA aware,
   decision-point branches), execution tick-off, reconcile mode for part-held ladders; AJ Bell CSV import as 6.8.x.

@@ -2229,6 +2229,7 @@
           <button class="tab" data-tab="strategies">Strategies</button>
           <button class="tab active" data-tab="decision">Decision Tool</button>
           <button class="tab" data-tab="accumulation">Accumulation</button>
+          <button class="tab" data-tab="transition">Transition</button>
           <button class="tab" data-tab="household">Household</button>
         </nav>
       </div>
@@ -3692,6 +3693,9 @@
         </div>
       </div>
 
+      <div id="transition-content" class="tab-content">
+        <div id="transitionPage"><p class="hint">Loading…</p></div>
+      </div>
       <div id="household-content" class="tab-content">
         <div class="card">
           <h2>Household <span style="font-weight:normal;color:var(--text-muted);font-size:14px;">— will the money last for <em>both</em> of you?</span></h2>
@@ -4095,6 +4099,9 @@
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
+    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
+    import { transitionHtml } from './src/ui/components/TransitionView.js';
+    import { getActiveTransition, saveActiveTransition } from './src/storage/ScenarioRepository.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -5717,6 +5724,7 @@
         if (tab.dataset.tab === 'budget') await loadBudgetUI();
         if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
         if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
+        if (tab.dataset.tab === 'transition') await loadTransitionUI();
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
         if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
         updateNextStepBanner();
@@ -8435,6 +8443,34 @@
         const w = await whereAmINow(doc);
         el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
+    };
+
+    // ---- Transition tool (6.8.0): from what you hold to the plan document's target ----
+    window.loadTransitionUI = async function () {
+      const box = document.getElementById('transitionPage'); if (!box) return;
+      box.innerHTML = '<p class="hint">Working out the moves…</p>';
+      try {
+        const stage = window._lifeStage || await refreshLifeStage();
+        const doc = await getActivePlanDocument();
+        const target = targetHoldings(doc);
+        const ss = await getStressSettingsAsync();
+        const ledger = Array.isArray(ss.taggedFunds) ? ss.taggedFunds : [];
+        const diff = diffHoldings(ledger, target);
+        let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
+        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), contributionsMonthly });
+        const tr = await getActiveTransition();
+        const prog = transitionProgress(diff, tr.done || {});
+        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '' });
+        window._transitionLast = { diff, seq };
+      } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }
+    };
+    window.toggleTransitionDone = async function (key, checked) {
+      try {
+        const tr = await getActiveTransition(); const done = { ...(tr.done || {}) };
+        if (checked) done[key] = new Date().toISOString().slice(0, 10); else delete done[key];
+        await saveActiveTransition({ ...tr, done });
+        await loadTransitionUI();
+      } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
     };
 
     // ---- Accumulation: what you hold + the monthly pot record (6.7.0) ----

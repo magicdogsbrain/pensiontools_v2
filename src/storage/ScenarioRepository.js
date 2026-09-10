@@ -752,6 +752,18 @@ export async function saveActiveAccumulationHistory(history) {
   return list;
 }
 
+/** Transition tick-offs (6.8.0): { [moveKey]: 'YYYY-MM-DD' } — which buys/sells the user says are placed. */
+export async function getActiveTransition() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.transition && typeof scenario.transition === 'object' ? scenario.transition : { done: {} };
+}
+export async function saveActiveTransition(transition) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { transition });
+  if (cachedActiveScenario) cachedActiveScenario.transition = transition;
+}
+
 /** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();

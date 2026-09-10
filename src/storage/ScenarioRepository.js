@@ -735,6 +735,23 @@ export async function saveActiveJourney(journey) {
   if (cachedActiveScenario) cachedActiveScenario.journey = journey;
 }
 
+/**
+ * Accumulation history (6.7.0): one light record a month while still saving — the pot by wrapper.
+ * No recommendation attached; read against the locked projection by whereAmI.
+ */
+export async function getActiveAccumulationHistory() {
+  const scenario = await getActiveScenarioAsync();
+  return Array.isArray(scenario?.accumulationTool?.history) ? scenario.accumulationTool.history : [];
+}
+export async function saveActiveAccumulationHistory(history) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const list = (Array.isArray(history) ? history : []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-600);
+  await saveScenario(scenario.id, { 'accumulationTool.history': list });
+  if (cachedActiveScenario) { if (!cachedActiveScenario.accumulationTool) cachedActiveScenario.accumulationTool = {}; cachedActiveScenario.accumulationTool.history = list; }
+  return list;
+}
+
 /** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();

@@ -127,16 +127,22 @@ export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTri
  * Deterministic projection at the three FCA rates, in TODAY'S money.
  * @returns {Array<{age, year, potLow, potMid, potHigh, contributedToDate}>} one row per year
  */
-export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025 }) {
+export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null }) {
   const years = Math.max(0, Math.round(retirementAge - currentAge));
   const rows = [];
   const pots = { low: potNow, mid: potNow, high: potNow };
+  // 6.7.0: a fourth line at the holder's OWN mix — its expected real return net of costs (Holdings.proportions),
+  // stated nominally here so the same deflator applies. Null when no holdings are tagged.
+  const hasMix = Number.isFinite(mixRealReturn);
+  const mixNominal = hasMix ? (1 + mixRealReturn) * (1 + assumedCpi) - 1 : null;
+  let potMix = potNow;
   let monthly = totalMonthly;
   let contributed = 0;
-  rows.push({ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, contributedToDate: 0 });
+  rows.push({ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, ...(hasMix ? { potMix: potNow } : {}), contributedToDate: 0 });
   for (let y = 1; y <= years; y++) {
     for (let m = 0; m < 12; m++) {
       for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) + monthly;
+      if (hasMix) potMix = potMix * (1 + mixNominal / 12) + monthly;
       contributed += monthly;
     }
     monthly *= 1 + (escalationPct || 0) / 100;
@@ -144,10 +150,22 @@ export function projectAccumulation({ currentAge, retirementAge, potNow = 0, tot
     rows.push({
       age: currentAge + y, year: y,
       potLow: pots.low / defl, potMid: pots.mid / defl, potHigh: pots.high / defl,
+      ...(hasMix ? { potMix: potMix / defl } : {}),
       contributedToDate: contributed
     });
   }
   return rows;
+}
+
+/** The projected pot at a point between the yearly rows (today's money), for "where am I" against the path. */
+export function potOnPath(rows, yearsElapsed, key = 'potMid') {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const y = Math.max(0, Math.min(rows.length - 1, yearsElapsed));
+  const i = Math.floor(y), f = y - i;
+  const a = rows[i], b = rows[Math.min(rows.length - 1, i + 1)];
+  if (!a) return null;
+  const va = a[key] ?? a.potMid, vb = (b && (b[key] ?? b.potMid)) ?? va;
+  return va + (vb - va) * f;
 }
 
 /**

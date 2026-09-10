@@ -36,6 +36,31 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.7.0', date: '2026-09-10', engineVersion: '6.4.0',
+    title: 'Holdings ledger: tickers in, proportions modelled — and a monthly pot record while you save',
+    summary: 'Your holdings are entered once, under "My funds" in the Stress tester\'s Settings, and every tool reads the same list. Each line now carries its cost and the money going into it each month. The Accumulation planner shows what those holdings roll up to — so much in shares, bonds, diversifiers and cash — and projects a fourth line at your own mix, net of costs, beside the FCA bands. Multi-asset funds (LifeStrategy, HSBC Global Strategy) split into their parts. A plan locked while you are still saving now keeps the projected path in its plan document, and a one-line-a-month pot record reads against it.',
+    changes: [
+      'My funds: two new columns — cost (% a year) and £ a month going in. Optional; used for the "your mix" line and to say where new money lands.',
+      'Fund catalogue: Vanguard LifeStrategy 20/40/60/80/100 and HSBC Global Strategy Cautious/Balanced/Dynamic split across shares and bonds by their mix.',
+      'Accumulation planner: "What you hold" (proportions, cost, expected real return at long-run assumptions, contribution destinations); pot today filled from the ledger; the projection gains a "your mix" column.',
+      'Accumulation planner: "Record this month\'s pot" — pension pot, ISA, taxable — with a "where you are" strip against the locked path once the plan is locked.',
+      'Plan document: section 4b, "Getting there", the locked accumulation path; the where-am-I strip for savers reads the latest record against it; the arrival check uses it when the plan starts.'
+    ],
+    corrections: ['A LifeStrategy or Global Strategy fund used to count as one asset class. It now counts as its actual split, so the shares/bonds proportions and the engine\'s bond sub-weights are right for holders of multi-asset funds.'],
+    effects: {
+      stress: ['Plans holding a multi-asset fund under My funds: the bucket roll-up changes to the fund\'s real split (e.g. LifeStrategy 80 → 80% shares, 20% bonds), which can move the cones slightly. Single-class funds are unchanged.'],
+      accumulation: ['A new "your mix" projection line when holdings are tagged; otherwise unchanged.'],
+      decision: [], strategies: [], household: [], budget: []
+    },
+    actions: ['If you hold a multi-asset fund, check its ticker is in the catalogue (VLS80 etc.) so it splits; add cost and £/month to the lines you contribute to.'],
+    notes: ['The planner models proportions of asset classes, never a fund\'s own return — a world tracker is a world tracker. Tickers matter again at the transition, where the next release turns today\'s holdings into the plan\'s target portfolio.'],
+    affects(scenario) {
+      const tf = scenario?.stressTool?.settings?.taggedFunds || [];
+      const multi = tf.filter((f) => /^(VLS(20|40|60|80|100)|HSBCGS[BCD])$/i.test(String(f.ticker || '')));
+      return multi.length ? ['This plan holds ' + multi.map((f) => f.ticker).join(', ') + ' — now split into shares and bonds; the roll-up and cones may move a little.'] : [];
+    }
+  },
+  {
     version: '6.6.0', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'The app knows where you are: saving, approaching, committed, bridge, running',
     summary: 'Every plan now has a life stage, worked out from your age today, the plan start and the lock — never asked. The stage decides which tools lead, which are frozen with the lock, and which do not apply (a retiree has nothing to accumulate). The next-step banner speaks for the stage, the plan chip shows it, and the plan document keeps the dated journey through the stages. A plan locked while you are still saving now waits for its start date before the Decision tool takes months, and checks the pot you arrive with against the pot it was priced on.',

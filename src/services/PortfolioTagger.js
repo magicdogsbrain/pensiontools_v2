@@ -10,7 +10,7 @@
  * informational only; the bond and diversifier sub-weights genuinely drive the returns.
  */
 
-import { SUB_ASSET_PROFILES, FUND_TAG_MAP, BUCKETS } from './SubAssetModel.js';
+import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, BUCKETS } from './SubAssetModel.js';
 
 /**
  * Tag a list of holdings and roll them up.
@@ -25,7 +25,17 @@ export function tagPortfolio(holdings) {
   const untagged = [];
   let total = 0, isaTotal = 0;
 
+  // Multi-asset funds (6.7.0): a catalogue entry with `mix` is split into one slice per sub-class so a
+  // LifeStrategy 80 counts as 80% shares and 20% bonds, not as one line.
+  const expanded = [];
   for (const h of holdings) {
+    const entry = h.mix ? { mix: h.mix } : (h.ticker && !h.subClass ? FUND_CATALOGUE.find((f) => f.ticker === String(h.ticker).toUpperCase().trim()) : null);
+    if (entry && entry.mix && typeof entry.mix === 'object') {
+      const total = Object.values(entry.mix).reduce((s, w) => s + (+w || 0), 0) || 1;
+      for (const [sc, w] of Object.entries(entry.mix)) if (+w > 0) expanded.push({ ...h, subClass: sc, value: (+h.value || 0) * (+w / total), mixOf: h.ticker || null });
+    } else expanded.push(h);
+  }
+  for (const h of expanded) {
     const value = +h.value || 0;
     const key = h.subClass || (h.ticker ? FUND_TAG_MAP[h.ticker] : undefined);
     const profile = key ? SUB_ASSET_PROFILES[key] : null;

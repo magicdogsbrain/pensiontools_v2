@@ -110,6 +110,14 @@ export function planDocumentHtml(doc, r = {}) {
     + '<li>The tax-year wizard each April takes the next step from this document\'s schedule, uplifted by the CPI you enter.</li></ul>';
   h += section('4. Assumptions and how the Decision tool runs it', as);
 
+  // Getting there (6.7.0): the locked accumulation path for a plan that starts later
+  if (d.accumulation && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
+    const A = d.accumulation; const hasMix = A.path[0].potMix != null;
+    let gt = '<p>Pension pot ' + gbp(A.potNow) + ' today' + (A.totalMonthly ? ', ' + gbp(A.totalMonthly) + ' a month going in' : '') + (A.mixText ? ', held as ' + esc(A.mixText) : '') + '. In today\'s money:</p>'
+      + table(['Age', 'Cautious (2%)', 'Middle (5%)', ...(hasMix ? ['Your mix'] : []), 'Strong (8%)', 'Paid in'], A.path.map((r) => [String(r.age), gbp(r.potLow), gbp(r.potMid), ...(hasMix ? [gbp(r.potMix)] : []), gbp(r.potHigh), gbp(r.contributedToDate)]))
+      + '<p class="hint">Record your pot each month on the Accumulation planner; the "where you are" strip reads it against ' + (hasMix ? 'the "your mix" line' : 'the middle line') + '. When the plan starts, the first Decision entry checks the pot you arrive with against the pot the plan was priced on.</p>';
+    h += section('4b. Getting there — the locked accumulation path', gt);
+  }
   // Journey: the stages this plan has been through, with dates (6.6.0)
   if (Array.isArray(d.journey) && d.journey.length) {
     h += section('5. Journey', table(['When', 'Stage', 'Note'], d.journey.map((j) => [esc(dateGB(j.at)), esc(j.label || j.stage || ''), esc(j.note || '')])) + '<p class="hint">Stages are worked out from your age, the plan start and the lock — never chosen by hand — and each change is dated here.</p>');
@@ -123,7 +131,15 @@ export function planDocumentHtml(doc, r = {}) {
 export function whereAmIHtml(w) {
   if (!w) return '';
   const parts = [];
-  if (w.bridge) parts.push('<strong>Bridge month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan starts in ' + esc(w.planStart) + '. Living on the bridge cash.');
+  if (w.saving && w.bridge) {
+    // Still saving for a plan locked in advance (6.7.0)
+    const s = w.saving;
+    parts.push('<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong> — the plan starts in ' + esc(w.planStart) + '.');
+    if (s.actual != null && s.expected != null) parts.push('Pension pot ' + gbp(s.actual) + (s.recordedAt ? ' (recorded ' + esc(s.recordedAt) + ')' : '') + ' against ' + gbp(s.expected) + ' on the locked path — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '.');
+    else if (s.expected != null) parts.push('The locked path expects about ' + gbp(s.expected) + ' in the pension pot now. Record this month\'s pot on the Accumulation planner to compare.');
+    if (s.contributions > 0) parts.push('Contributions on the locked plan: ' + gbp(s.contributions) + ' a month gross.');
+  }
+  else if (w.bridge) parts.push('<strong>Bridge month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan starts in ' + esc(w.planStart) + '. Living on the bridge cash.');
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
   if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
   if (w.incomeThisYear && w.incomeThisYear.recorded) parts.push(w.incomeThisYear.recorded + ' month' + (w.incomeThisYear.recorded === 1 ? '' : 's') + ' recorded this tax year: ' + gbp(w.incomeThisYear.drawn) + ' gross so far' + (w.incomeThisYear.perMonth ? ' against ' + gbp(w.incomeThisYear.perMonth) + ' a month planned' : '') + '.');

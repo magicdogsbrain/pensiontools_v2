@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pension-planner-BDlEeWdS';
+const CACHE_NAME = 'pension-planner-D72U38ff';
 const urlsToCache = [
   './',
   './index.html',

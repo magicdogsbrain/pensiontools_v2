@@ -107,6 +107,8 @@ Effort: S ≈ hours, M ≈ a day or two, L ≈ multi-day, XL ≈ weeks.
     `TaxCalculator.js`, fully unit-tested, no UI. Round-trip tests prove correctness.
 
 ### 🟡 Next
+- **"When can I retire?" quick spin on the Accumulation planner (Chris, 10 Sep 2026)** — for each candidate age: pot projected from the ledger + contributions, the income shape run through the Stress engine from that age, confidence per age; "at £Y/yr you could retire at 61 with 90%". Re-runnable yearly. See the earliest-age sweep spec below; this is its front door.
+- ~~Paste your holdings~~ — SHIPPED 6.9.0 (layout-agnostic parser, preview, merge).
 - **Transition planner** now has its target: `scenario.planDocument.strategy.p/r.plan.orders` (6.5.0) — diff holdings against it.
 - **Mid-year Decision start: "this month already paid" toggle + remaining-months wording** (Chris, 9 Sep) — see the QA audit note.
 - **"When can I retire?" — earliest retirement age sweep (v6.5.0, follows the 6.4.0 Timing block).**

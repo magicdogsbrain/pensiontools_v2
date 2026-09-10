@@ -36,6 +36,21 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.9.0', date: '2026-09-10', engineVersion: '6.4.0',
+    title: 'Paste your holdings from any platform',
+    summary: 'Copy the holdings table from your platform\'s page or export — AJ Bell, HL, ii, Vanguard, a workplace scheme, anything — and paste it into My funds. The tool reads names, units, values and SEDOLs in whatever layout it finds, matches each line to the fund catalogue or to your plan\'s gilt order sheet, shows a preview you check, then merges into your holdings: lines you already have are updated, new ones added, lines missing from the paste are listed for you to remove if sold.',
+    changes: [
+      'My funds (Stress tester Settings): a "Paste holdings from your platform" button with a preview (pasted line, read as, units, value, match) and one Apply.',
+      'Gilts are matched to the plan\'s order sheet by SEDOL, by code (TR30), or by maturity year and "index-linked"; funds by ticker then name; money-market funds as cash. Unrecognised lines are kept for you to categorise.',
+      'Transition tab: "Paste my holdings" when the ledger is empty.',
+      'Merges never touch other wrappers, and keep the cost and £/month you had entered on a line.'
+    ],
+    corrections: [],
+    effects: { stress: [], strategies: [], decision: [], household: [], budget: [], accumulation: ['A pasted SIPP fills "pot today" and the proportions on the Accumulation planner.'] },
+    actions: ['Open Stress tester → Settings → My funds → Paste holdings; pick the wrapper the paste belongs to; check the preview; Apply; Save Settings.'],
+    notes: ['Everything is parsed in your browser; nothing pasted is sent anywhere. Per-platform CSV importers were considered and rejected: workplace pensions have no export, and DIY-platform formats drift — one layout-agnostic parser serves them all.'],
+  },
+  {
     version: '6.8.0', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'Transition tool: from what you hold to the plan',
     summary: 'A new Transition tab, shown from "approaching retirement" until the plan starts. It takes the plan document\'s target — every rung of a gilt ladder in units plus the cash years, or the year-0 mix in pounds for a pot strategy — and diffs it against what you hold under My funds: buy, sell, already held, left alone. Then it lays the moves out on a dated schedule to the plan start (cash years first, near rungs before far ones, sales in tranches, new contributions before sales) and lets you tick each order off as you place it.',

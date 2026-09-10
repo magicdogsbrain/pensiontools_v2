@@ -390,6 +390,9 @@
       background: var(--card-alt);
     }
 
+    /* Life stage (6.6.0): the tools that lead now vs the ones frozen with the lock */
+    .tab.tab-lead:not(.active) { box-shadow: inset 0 -2px 0 var(--accent); }
+    .tab.tab-muted:not(.active) { opacity: 0.55; }
     .tab.active {
       background: var(--primary);
       color: var(--bg);
@@ -4069,7 +4072,8 @@
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
     import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney } from './src/storage/ScenarioRepository.js';
+    import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4770,7 +4774,8 @@
         // today, retired / retire-at-age, and the first tax year derived from them — for both tools.
         const today = new Date().toISOString().slice(0, 10);
         const alreadyRetired = !!wizardData.retired || retire <= cur;
-        const timingSeed = cur > 0 ? { currentAge: cur, currentAgeAsOf: today, retired: alreadyRetired, retireAge: alreadyRetired ? null : retire } : {};
+        // "Pick up from here" (6.6.0): retired and already drawing — the plan starts THIS tax year, not next April.
+        const timingSeed = cur > 0 ? { currentAge: cur, currentAgeAsOf: today, retired: alreadyRetired, retireAge: alreadyRetired ? null : retire, ...(wizardData.pickUp ? { firstTaxYear: taxYearStartOf(new Date()) } : {}) } : {};
         const timing = cur > 0 ? deriveTiming(timingSeed) : null;
         const stressSettings = { duration, ...timingSeed, ...(timing ? { firstTaxYear: timing.firstTaxYear, shapeAgeNow: timing.shapeAgeNow } : {}) };
         const decisionSettings = { duration, ...(timing ? { firstTaxYear: timing.firstTaxYear } : {}) };
@@ -4993,7 +4998,8 @@
       if (!chip) return;
       const locked = await planIsLocked();
       chip.style.display = 'inline-block';
-      chip.textContent = locked ? '🔒 locked' : '✏️ draft';
+      const stageWord = window._lifeStage && window._lifeStage.chip ? ' · ' + window._lifeStage.chip : '';
+      chip.textContent = (locked ? '🔒 locked' : '✏️ draft') + stageWord;
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
         : 'This plan’s settings are still editable. It locks itself when you record the first monthly entry or set up a tax year. Click for details.';
@@ -5871,6 +5877,26 @@
       const equity = parseFloat(document.getElementById('entryEquity').value) || 0;
       const bond = parseFloat(document.getElementById('entryBond').value) || 0;
       const cash = parseFloat(document.getElementById('entryCash').value) || 0;
+      // Life stage (6.6.0): a plan locked while still saving takes no months before its start; and the
+      // first month after the start compares the real pot with what the plan was priced on.
+      try {
+        const stage = window._lifeStage || await refreshLifeStage();
+        const gate = decisionEntryAllowed(stage, dateStr);
+        if (!gate.ok) { showToast(gate.reason, 'info', 8000); return; }
+        if (stage && stage.timingMode === 'future' && !stage.beforeStart && !window._arrivalChecked) {
+          const doc = await getActivePlanDocument();
+          const hist = await getHistoryAsync({ limit: 1 }).catch(() => []);
+          if (doc && (!hist || hist.length === 0)) {
+            const a = arrivalCheck(stage, doc, { sipp: equity + bond + cash });
+            if (a && !a.within) {
+              const go = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Your plan has started — arrival check</h3><p style="font-size:14px;">' + budEsc(a.message) + '</p>' }, { okLabel: 'Run the locked plan on what I have', cancelLabel: 'Stop — I will unlock and re-plan' });
+              if (!go) return;
+              try { const j = await getActiveJourney(); await saveActiveJourney([...j, { stage: stage.key, label: 'Arrival check', at: new Date().toISOString(), note: 'pot ' + Math.round(a.actual) + ' vs ' + Math.round(a.expected) + ' priced; ran as locked' }]); } catch (e) { /* journey optional */ }
+            }
+            window._arrivalChecked = true;
+          }
+        }
+      } catch (e) { console.warn('life stage gate', e); }
 
       // Validate
       const missing = [];
@@ -7967,6 +7993,15 @@
           btn = 'Open the Decision Tool';
           act = () => switchToTab('decision');
         }
+        // Life stage (6.6.0): once the onboarding chain has nothing to say, the stage speaks — and a locked
+        // plan's stage always wins over the chain (its settings are frozen; "open Settings" would mislead).
+        let stage = null; try { stage = await refreshLifeStage(); } catch (e) { stage = null; }
+        if (stage && (stage.locked || !text) && stage.banner) {
+          text = stage.banner.text;
+          btn = stage.banner.btn;
+          const tb = stage.banner;
+          act = () => { switchToTab(tb.tab); if (tb.sub) setTimeout(() => document.querySelector('.sub-tab[data-decisiontab="' + tb.sub + '"]')?.click(), 400); };
+        }
         if (!text) { banner.style.display = 'none'; return; }
         document.getElementById('nextStepText').innerHTML = text;
         const b = document.getElementById('nextStepBtn');
@@ -8277,7 +8312,8 @@
       const p = strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined);
       const name = document.getElementById('scenarioActiveName')?.textContent?.trim() || 'My plan';
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
-      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0 });
+      let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
+      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey });
       if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
       await saveActivePlanDocument(doc);
       window._planDocLast = doc;
@@ -8299,7 +8335,7 @@
         await buildPlanDocumentNow('locked from Stress settings');
         await refreshStressLock();
         try { await refreshDecisionLock(); } catch (e) { /* form not built yet */ }
-        try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
+        try { await refreshLifeStage(); updatePlanLockChip(); } catch (e) { /* chip optional */ }
         showToast('Plan locked' + (fresh ? '' : ' (it was already locked)') + ' — plan document written.', 'success', 5000);
         openPlanDocument();
       } catch (e) { console.error('Lock from Stress:', e); showToast('Could not lock: ' + e.message, 'error'); }
@@ -8373,6 +8409,45 @@
         el.innerHTML = w ? whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
     };
+
+    // ---- Life stage (6.6.0): where this plan's owner is, derived — see src/services/LifeStage.js ----
+    window._lifeStage = null;
+    window.refreshLifeStage = async function () {
+      try {
+        const sc = await getActiveScenarioAsync();
+        // Use the EFFECTIVE Stress settings (migrated, with the Budget's age today folded in) — the raw
+        // scenario copy may pre-date the Timing block and carry no age at all.
+        let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; }
+        const stage = deriveStage(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : {});
+        window._lifeStage = stage;
+        applyStageToTabs(stage);
+        try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
+        // Journey: record the stage change with its date (the plan document lists them).
+        try {
+          if (sc && sc.id) {
+            const j = Array.isArray(sc.journey) ? sc.journey : [];
+            const next = journeyAppend(j, stage);
+            if (next !== j) await saveActiveJourney(next);
+          }
+        } catch (e) { /* journey is optional */ }
+        return stage;
+      } catch (e) { console.warn('life stage', e); return null; }
+    };
+    function applyStageToTabs(stage) {
+      document.querySelectorAll('.tab[data-tab]').forEach((tab) => {
+        const key = tab.dataset.tab;
+        tab.classList.toggle('tab-lead', !!stage && stage.leads.includes(key));
+        tab.classList.toggle('tab-muted', !!stage && stage.readOnly.includes(key));
+        // Hidden tools (a retiree has nothing to accumulate). Tool visibility from enabledTools still applies.
+        if (stage && stage.hidden.includes(key)) { tab.dataset.stageHidden = '1'; tab.style.display = 'none'; }
+        else if (tab.dataset.stageHidden) { delete tab.dataset.stageHidden; tab.style.display = ''; }
+        if (stage && stage.readOnly.includes(key)) tab.title = 'Locked with the plan — read-only until you unlock';
+        else if (stage && stage.leads.includes(key)) tab.title = 'Where your plan is now: ' + stage.label;
+        else tab.removeAttribute('title');
+      });
+      const mb = document.querySelectorAll('#mobileTabBar button[data-tab]');
+      mb.forEach((b) => { const key = b.dataset.tab; if (stage && stage.hidden.includes(key)) { b.dataset.stageHidden = '1'; b.style.display = 'none'; } else if (b.dataset.stageHidden) { delete b.dataset.stageHidden; b.style.display = ''; } });
+    }
 
     // ---- "This month's payment has already been made" (6.5.4) ----
     // The tool's month frame is "entry before the payment": the recommendation IS this month's draw and
@@ -8489,7 +8564,7 @@
       let summary = t.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is assumed to start next April (' + taxYearLabel(t.firstTaxYear) + ') with the steps from age ' + t.shapeAgeNow + '.'
         : describeTiming(t, s);
-      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement.';
+      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. Funds entered under "My funds" are today\'s holdings: they set the starting mix only; the plan is priced on the pots at retirement.';
       g('tmSummary').textContent = summary;
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
@@ -12455,6 +12530,7 @@
         await unlockPlan();
         await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
         refreshStressLock().catch(() => {});   // the Stress settings page unlocks with it (6.5.0)
+        refreshLifeStage().then(() => updatePlanLockChip()).catch(() => {});   // stage moves back to draft (6.6.0)
         showToast('Plan unlocked — edit and save. It re-locks on the next recorded entry.', 'success', 4000);
       } catch (e) {
         console.error('Unlock error:', e);

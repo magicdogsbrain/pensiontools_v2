@@ -253,6 +253,13 @@ function renderScenarioStep2() {
             <p>"Where should I take money from this month?" Tax-efficient drawdown advice from your pots.</p>
           </div>
         </button>
+
+        <button type="button" class="wizard-tool-option" data-action="start-retired" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>I'm already drawing my pension — pick up from here</strong>
+            <p>Retired and in drawdown. The plan starts this tax year with what you hold now; the Stress tester tests it, you lock it, and the Decision tool records each month from now on — no back-filling.</p>
+          </div>
+        </button>
       </div>
 
       <div class="wizard-buttons">
@@ -725,6 +732,12 @@ function handleAction(action) {
     case 'start-stress':
     case 'start-decision':
       wizardData.startAt = action.replace('start-', '');
+      finishWizard();
+      break;
+    case 'start-retired':   // 6.6.0: retrospective adopter — retired, plan starts this tax year, go to the Stress tester
+      wizardData.retired = true;
+      wizardData.pickUp = true;
+      wizardData.startAt = 'stress';
       finishWizard();
       break;
 

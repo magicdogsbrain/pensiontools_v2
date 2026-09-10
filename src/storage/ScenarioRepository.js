@@ -720,6 +720,21 @@ export async function archivePlanDocument() {
   if (cachedActiveScenario) { cachedActiveScenario.planDocumentArchive = archive; cachedActiveScenario.planDocument = null; }
 }
 
+/**
+ * Journey (6.6.0): the plan's stage changes with dates — "saving → approaching → committed → running".
+ * The stage itself is derived on every load (services/LifeStage.js); only the history of changes is kept.
+ */
+export async function getActiveJourney() {
+  const scenario = await getActiveScenarioAsync();
+  return Array.isArray(scenario?.journey) ? scenario.journey : [];
+}
+export async function saveActiveJourney(journey) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { journey });
+  if (cachedActiveScenario) cachedActiveScenario.journey = journey;
+}
+
 /** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();

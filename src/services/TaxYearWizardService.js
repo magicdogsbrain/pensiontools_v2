@@ -335,7 +335,9 @@ export async function getWizardData(selectedMonth) {
   if (bridgeYear) {
     const bridgeCash = +(stressSettings?.strategyParams?.bridgeCash) || 0;
     const sched0 = Array.isArray(stressSettings?.targetSchedule) ? +stressSettings.targetSchedule[0] : 0;
-    const otherNow = +(stressSettings?.other || 0) + +(stressSettings?.dbAmount || 0);
+    // Income streams running at year 0 (rent, part-time work) reduce what the cash has to cover, like the DB pension (6.11.4).
+    const streamsNow = (Array.isArray(stressSettings?.extraIncomes) ? stressSettings.extraIncomes : []).reduce((t, r) => t + ((r && +r.annual > 0 && (+r.startYear || 0) <= 0 && (r.endYear == null || +r.endYear >= 0)) ? +r.annual : 0), 0);
+    const otherNow = +(stressSettings?.other || 0) + +(stressSettings?.dbAmount || 0) + streamsNow;
     bridgeSuggestedSalary = sched0 > 0 ? sched0 : (scheduleSuggestedSalary ?? (bridgeCash > 0 && remainingMonths > 0 ? Math.round(bridgeCash * 12 / remainingMonths) : null));
     if (bridgeCash > 0 && bridgeSuggestedSalary > 0) bridgeCoverMonths = Math.floor(bridgeCash / Math.max(1, (bridgeSuggestedSalary - otherNow) / 12));
   }

@@ -45,3 +45,14 @@ describe('tax-year wizard: bridge years before the plan starts (6.4.0)', () => {
     expect(d.suggestedSalary).toBeLessThan(83650);
   });
 });
+
+describe('run-up cover months count income streams running at year 0 (6.11.4)', () => {
+  it('rent of £12,000 a year lowers what the cash to April has to cover', async () => {
+    chrisStress.extraIncomes = [{ label: 'rent', annual: 12000, startYear: 0, endYear: 3 }];
+    try {
+      const d = await getWizardData('2026-09');
+      // £50,000 at (83,650 − 3,650 DB − 12,000 rent) / 12 = £5,667 a month covers 8 payments (7 without the rent)
+      expect(d.bridgeCoverMonths).toBe(8);
+    } finally { delete chrisStress.extraIncomes; }
+  });
+});

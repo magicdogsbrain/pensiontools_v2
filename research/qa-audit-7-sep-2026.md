@@ -237,3 +237,36 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
 - Left in the QA account for Chris to look at: QA Saver 45 (saving), QA Approaching 58 tight (approaching, 61%), QA Approaching
   59 lock (committed-saving, 13 months), QA Retiring now 60 (running, floor to 80), QA Retiring now tight (running, buckets,
   88%), QA Retrospective 70 (running ladder, reconcile 33% held), QA DB heavy (running P&V). Fixes shipped 6.10.2–6.10.5.
+
+## 11 Sep 2026 — complex scenarios (inheritance, rental then sale) + Chris's questions
+
+Shipped today: 6.11.0 (State Pension = the monthly payment from its start month, never the partial year ÷ 12),
+6.11.1 (the months before year 0 are the "run-up", paid from SIPP cash — Chris: "It's coming out of my SIPP"),
+6.11.2 ("Tax saved" = tax-free money used; Chris's September row showed £1,462 with nothing tax-free in it because
+the comparison was the TARGET drawn from the SIPP, so any shortfall — protection, run-up, month already paid — read as
+a saving; goldens regenerated, taxSaved fields only), 6.11.3 (ladders with a lump sum later: no £0 orders, Transition
+target skips them, plan document has a "From a lump sum" column).
+
+### QA Landlord 60 (retired, SIPP £450k, ISA £120k held, rent £14k years 0–4, flat sold £600k in plan year 5, steps £42k→£36k at 75, gilt rotation, 3 cash years, £20k to April)
+- Stress: 93% paid in full; ladder buys years 0–4 (£28k net of rent) and 2050+ today (£363k of £450k); the sale pays
+  2032/33–2051/52 (need 0). **P8 (fixed 6.11.3)**: order sheet listed 20 gilts paying £0 with a £20 fee each; the plan
+  document's year-by-year showed the lump's money as "Other / DB £42,000".
+- Lock from Stress: chip "🔒 locked · Run-up to the plan start · 7 months to go"; banner and where-am-I read "run-up";
+  plan document lists "▲ Sale of the flat £600,000" at plan year 5.
+- Tax-year wizard 26/27 (September, 7 payments): "Run-up year" copy correct; other income pre-filled £14,000 (rent);
+  confirm shows SIPP £2,333 + other £1,167 = £3,500 gross. **P9 (open, minor)**: the run-up "cash to April covers about
+  5 of the 7 payments" divides by the full £42k step, ignoring the income streams (rent) — should be (step − other)/12.
+- Harness note: income steps are `updIncomeStep(i,'amount',v)` (key is `amount`, not `annual`); setting
+  `window._ssIncomeSteps` directly leaves `ssBaseSalary` at 30,000 and the ladder prices the wrong schedule.
+- Decision Sept 2026 entry (run-up): "£2,333 from SIPP cash (the plan's year 0 is 2027/28)", no tax-saved row, History
+  source "From SIPP cash". Fixed in 6.11.4: the overlay note still said "the cash you set aside to reach it"; History note
+  "1 month … are the run-up" grammar.
+
+### QA Inheritance 63 (retired, P&V balanced, SIPP £300k, ISA £80k minimise-early-tax, £30k/yr, £250k inheritance in plan year 2 → cash, balanced, ISA first)
+- Stress 99%. Lock: run-up chip. Plan document year 2: "▲ Inheritance (mother) £250,000" — but the row showed the lump's
+  money as "Other / DB £30,000" for a P&V plan (the pot pays; the lump lands in the pot). **Fixed 6.11.4**: P&V and
+  Buckets keep lump sums out of the income layers; bought strategies show them under "From a lump sum".
+- Tax-year wizard 29/30 (June 2029, plan year 2): **P10 (open, wording)** the suggestion says "From your budget's plan for
+  this year — the per-year schedule you set from the Budget tool" when the schedule came from the Stress income steps.
+  **P11 (open)** suggested £32,448 = £30,000 × 1.04² — the CPI typed (3%) is not applied to the skipped years' uplift
+  (assumed 4% both years); expected £30,000 × 1.04 × 1.03 = £32,136.

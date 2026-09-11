@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.4', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Run-up wording finished; lump sums and the pot strategies; rent counts in the run-up',
+    summary: 'Three follow-ups from today\'s scenario walk. The Decision tool\'s run-up note still said "the cash you set aside to reach it" — it now says SIPP cash. A plan on Pots & Valves or Buckets with an inheritance on the way showed the inheritance\'s money as "Other / DB" income in the plan document; the pot takes the lump, so the pot pays and the row now says so. And in the run-up year the tax-year setup\'s "the cash to April covers about N payments" ignored income streams such as rent; it now nets them off like the DB pension.',
+    changes: [],
+    corrections: ['Decision overlay run-up note wording.', 'Plan document year-by-year for Pots & Valves and Buckets plans with a lump sum after year 0.', 'Run-up cover months with income streams.'],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.3', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Ladders with a lump sum on the way: no £0 orders, and the lump named',
     summary: 'When a house sale or an inheritance is expected later, the ladder builders let it pay the years from its arrival (since 6.4). The order sheet still listed a gilt for each of those years — paying £0, with a £20 fee — and the plan document called the money it pays "other income". Now the sheet lists only gilts that pay something and says which tax years the lump covers and when to buy their rungs; the Transition tool no longer asks you to hold those gilts; and the plan document\'s year-by-year table has a "from a lump sum" column.',

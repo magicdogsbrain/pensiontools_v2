@@ -165,5 +165,10 @@ describe('a lump sum the ladder spends is shown as such, not as other income (6.
     expect(rows.map((r) => r.lump)).toEqual([0, 30000, 30000, 0]);
     expect(rows.map((r) => r.otherPure)).toEqual([14000, 0, 0, 0]);
     expect(rows[1].other).toBe(30000);   // the stacked graphic still sums
+    // Pots & Valves takes the lump into the pot: no lump layer, no other income from it — the pot pays
+    const pv = incomeLayersRows({ strategyId: 'pots-and-valves', cones: { income: { p50: [30000, 30000, 30000, 30000] } } }, p);
+    expect(pv.map((r) => r.lump)).toEqual([0, 0, 0, 0]);
+    expect(pv.map((r) => r.other)).toEqual([14000, 0, 0, 0]);
+    expect(pv[1].market).toBe(30000);
   });
 });

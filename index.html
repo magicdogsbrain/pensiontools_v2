@@ -9004,7 +9004,7 @@
         // Bridge month (6.4.2): the plan has not started, so the month is paid from the cash set aside to
         // reach the first April — nothing is sold and no rung is involved yet.
         floorMonthly = total; floorLabel = 'SIPP cash (the plan\'s year 0 is ' + taxYearLabel(timing.firstTaxYear) + ')';
-        note = 'Before your plan starts in ' + taxYearLabel(timing.firstTaxYear) + ': this month comes from the cash you set aside to reach it. Nothing is sold; the ladder\'s first rung is not due yet.';
+        note = 'Run-up to your plan (year 0 is ' + taxYearLabel(timing.firstTaxYear) + '): this month comes from your SIPP cash — the money-market fund the cash years will also use. Nothing is sold; the ladder\'s first rung is not due yet.';
       }
       else if (st.id === 'full-il-gilt' || st.id === 'gilt-rotation' || st.id === 'floor-the-schedule') {
         // The ladder is a contract: the monthly figure is this tax year's rung divided by the
@@ -13106,7 +13106,7 @@
                 + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
             + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
         }
-        const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') are the run-up — drawn from your SIPP cash before the plan\'s year 0, so there is no plan figure to compare them with.</p>' : '';
+        const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') ' + (bridgeRecords === 1 ? 'is' : 'are') + ' the run-up — drawn from your SIPP cash before the plan\'s year 0, so there is no plan figure to compare ' + (bridgeRecords === 1 ? 'it' : 'them') + ' with.</p>' : '';
         if (!rows) { box.innerHTML = bridgeNote ? '<div class="settings-section" style="margin-bottom:14px;"><div class="section-title">Plan vs actual</div>' + bridgeNote + '</div>' : ''; return; }
         box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
           + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + new Date(por.savedAt).toLocaleDateString() + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'

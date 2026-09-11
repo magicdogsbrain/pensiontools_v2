@@ -1203,6 +1203,18 @@ export function analyzeResults(results) {
     })(),
 
     // ISA analytics (only meaningful when the plan is funded with an ISA)
+    // Everything left, all wrappers (6.11.5): the pension pot above EXCLUDES the ISA, so a plan whose
+    // windfall or bed-and-ISA moves built a large ISA while the SIPP was drawn to nil read "£0 typically
+    // left" with £400k in the ISA. Failed futures count as £0; today's money.
+    finalAllReal: (() => {
+      const reals = results.map(r => (r.failed ? 0 : ((r.finalReal || 0) + ((r.finalIsa || 0) / (r.cumInflation || 1))))).sort((a, b) => a - b);
+      return {
+        p5: percentile(reals, 0.05), p10: percentile(reals, 0.10), p25: percentile(reals, 0.25),
+        p50: percentile(reals, 0.50), p75: percentile(reals, 0.75), p90: percentile(reals, 0.90),
+        p95: percentile(reals, 0.95), min: reals[0] || 0, max: reals[reals.length - 1] || 0
+      };
+    })(),
+
     isa: (() => {
       const funded = results.filter(r => (r.startIsa || 0) > 0);
       if (!funded.length) return { funded: false };

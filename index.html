@@ -7156,7 +7156,9 @@
       initHelpTips();
       initChartHover();
       const survivalStats = stats.survival || {};
-      const finalReal = stats.finalReal || {};
+      const finalReal = stats.finalAllReal || stats.finalReal || {};   // all wrappers (6.11.5) — the ISA is a pot too
+      const finalPension = stats.finalReal || {};
+      const isaLeft = stats.finalAllReal && stats.isa && stats.isa.funded !== false && Math.round((stats.finalAllReal.p50 || 0) - (finalPension.p50 || 0)) > 0;
       const protStats = stats.protection || {};
       const protPct = protStats.pctWithProtection != null
         ? protStats.pctWithProtection
@@ -7179,7 +7181,7 @@
             </div>
             <div class="keynum">
               <div class="kn-val">${formatCurrency(finalReal.p50 || 0)}</div>
-              <div class="kn-label">typically left at the end, today's money ${help('The middle outcome for the pension pot left at the end, in present-day spending power. Futures that ran out count as £0, so this is not flattered by only the lucky runs.')}</div>
+              <div class="kn-label">typically left at the end, today's money${isaLeft ? ' <span class="hint">(pension pot ' + formatCurrency(finalPension.p50 || 0) + ', the rest in the ISA)</span>' : ''} ${help('The middle outcome for everything left at the end — pension pot, ISA and any taxable account — in present-day spending power. Futures that ran out count as £0, so this is not flattered by only the lucky runs.')}</div>
             </div>
             <div class="keynum">
               <div class="kn-val">${protPct.toFixed(0)} in 100</div>
@@ -7205,7 +7207,7 @@
             <div style="margin-top:16px;">
               ${containerId === 'histResults' ? buildWorstPeriodsTable(results) : ''}
 
-              <h4 style="margin:20px 0 8px;">Pot left at the end — full range (today's money)</h4>
+              <h4 style="margin:20px 0 8px;">Left at the end, all pots — full range (today's money)</h4>
               <div class="grid-7" style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;">
                 ${[['p5', 'unluckiest 5%'], ['p10', '10%'], ['p25', '25%'], ['p50', 'middle'], ['p75', '75%'], ['p90', '90%'], ['p95', 'luckiest 5%']].map(([p, lab]) => `
                   <div class="stat-box mini">

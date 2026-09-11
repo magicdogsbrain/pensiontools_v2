@@ -673,3 +673,15 @@ describe('ISA policy "hold" in the stress engine', () => {
     if (!hold.failed) expect(hold.finalIsa).toBeGreaterThan(cfg.isaBalance);       // ISA grew untouched
   });
 });
+
+describe('what is left at the end counts every wrapper (6.11.5)', () => {
+  it('finalAllReal adds the ISA (in today\'s money) to the pension pot; failed futures are £0', async () => {
+    const { analyzeResults } = await import('../src/services/SimulationEngine.js');
+    const mk = (o) => ({ failed: false, years: 10, duration: 10, finalReal: 0, finalIsa: 0, cumInflation: 1, startIsa: 1000, isaLastedYears: 10, higherRateYears: 0, totalTaxReal: 0, isaByYear: [], protMonths: 0, maxConsec: 0, avgInflation: 0.02, avgEquityReturn: 0.05, earlyEquityReturn: 0.05, ...o });
+    const a = analyzeResults([mk({ finalReal: 0, finalIsa: 400000, cumInflation: 2 }), mk({ finalReal: 50000, finalIsa: 100000, cumInflation: 1 }), mk({ failed: true, years: 4, finalReal: 0, finalIsa: 999 })]);
+    expect(a.finalReal.max).toBe(50000);            // pension pot only, as before
+    expect(a.finalAllReal.max).toBe(200000);        // 0 + 400,000 / 2
+    expect(a.finalAllReal.p50).toBe(150000);        // 50,000 + 100,000
+    expect(a.finalAllReal.min).toBe(0);             // the failed future
+  });
+});

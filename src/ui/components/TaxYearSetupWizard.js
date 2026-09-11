@@ -263,9 +263,9 @@ function renderCpiAndSalary() {
              from your SIPP cash (the money-market fund the cash years also use). The suggestion is your plan's first income step, the rate
              that cash was sized for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the cash to April covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
           : fromSchedule
-          ? `<p><strong>From your budget's plan for this year</strong> — the per-year schedule you set
-             from the Budget tool (temporary costs end when they end, one-offs land in their year),
-             uplifted to this year's money:</p>`
+          ? `<p><strong>From your plan's income schedule for this year</strong> — the per-year schedule
+             your plan was priced on (the Stress Tester's income steps, or the Budget tool's plan: temporary
+             costs end when they end, one-offs land in their year), uplifted to this year's money:</p>`
           : ''}
         ${fromSchedule
           ? `<span id="cpiDisplay" hidden>${cpiPercent}</span><span id="netUpliftDisplay" hidden>${netUpliftPct}</span>`
@@ -299,7 +299,10 @@ function renderCpiAndSalary() {
  */
 function renderOtherIncome() {
   const spInfo = wizardContext.statePension;
-  const spDisplay = spInfo.isReceiving
+  const spStartsLater = spInfo.isReceiving && spInfo.startYm && wizardContext.selectedMonth && spInfo.startYm > wizardContext.selectedMonth;
+  const spDisplay = spStartsLater
+    ? `<span style="color: var(--success);">Starts ${spInfo.startDate || spInfo.startYm}: £${Math.round(spInfo.monthlyFull || 0).toLocaleString()}/month (£${Math.round(spInfo.amount).toLocaleString()} this tax year)</span>`
+    : spInfo.isReceiving
     ? `<span style="color: var(--success);">Receiving £${Math.round(spInfo.amount).toLocaleString()}/year</span>`
     : `<span style="color: var(--text-muted);">${spInfo.yearsUntil} years until state pension</span>`;
 

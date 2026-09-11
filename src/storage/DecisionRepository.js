@@ -626,9 +626,15 @@ export async function getStatePensionForTaxYear(taxYear) {
   // Calculate years until SP starts
   const timeUntil = getTimeUntilStatePension(spStartDate);
 
+  // The monthly PAYMENT (weekly × 52 / 12) and the month it starts: a first-year State Pension is paid in
+  // full from its start month, not spread thinly over twelve (6.11.0). `amount` stays the year's total.
+  const sd = parseStatePensionDate(spStartDate);
+  const startYm = sd ? sd.getFullYear() + '-' + String(sd.getMonth() + 1).padStart(2, '0') : null;
   return {
     amount: result.annual,
     monthly: result.monthly,
+    monthlyFull: Math.round((spWeeklyAmount * 52 / 12) * 100) / 100,
+    startYm,
     yearsUntil: timeUntil.years,
     monthsUntil: timeUntil.months,
     isReceiving: result.isReceiving,

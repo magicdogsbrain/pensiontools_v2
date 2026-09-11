@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.0', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'State Pension: the monthly payment from the month it starts',
+    summary: 'In the tax year your State Pension begins, the Decision tool and the tax-year setup used to spread the year\'s partial total over twelve months — £402 a month for a pension that actually pays £997 from November. Now the months before the start show nothing from it and the SIPP covers the gap; from the start month the full monthly payment arrives and the SIPP draw drops. The year\'s tax still uses the true partial total.',
+    changes: ['Monthly recommendation: State Pension shown as the amount actually received that month.', 'Tax-year setup: the confirmation says "£997/month from 9 November 2026 — the months before it are drawn from the SIPP".'],
+    corrections: ['First-year State Pension was averaged over twelve months.'],
+    effects: { decision: ['Only the tax year in which your State Pension starts changes, and only the split between SIPP and State Pension month by month. Later years are unchanged.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.10.5', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Pasting gilts, and reconciling a ladder that is already running',
     summary: 'From the retrospective-adopter walk-through: pasting a gilt ladder into My funds could make the settings save fail outright, a pasted gilt whose code had to be guessed did not match its rung, and the Transition tab told a running plan it had "1 month to go".',

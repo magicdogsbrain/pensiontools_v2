@@ -241,7 +241,9 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     const at = (arr) => (Array.isArray(arr) && arr.length ? arr[Math.min(yi, arr.length - 1)] : null);
     const p10 = at(wc.p10), p50 = at(wc.p50), p90 = at(wc.p90);
     const band = p10 == null ? null : potActual < p10 ? 'below p10' : potActual < p50 ? 'p10–p50' : potActual <= p90 ? 'p50–p90' : 'above p90';
-    pot = { actual: Math.round(potActual), p10: p10 == null ? null : Math.round(p10), p50: p50 == null ? null : Math.round(p50), p90: p90 == null ? null : Math.round(p90), band, flat: p10 != null && p90 != null && Math.abs(p90 - p10) < 1 };
+    // "Bought by contract" only when the cone is flat over the WHOLE run — every cone is flat at year 0 (6.10.4).
+    const flatAll = Array.isArray(wc.p10) && Array.isArray(wc.p90) && wc.p10.length > 1 && wc.p10.every((v, i) => Math.abs((wc.p90[i] ?? v) - v) < 1);
+    pot = { actual: Math.round(potActual), p10: p10 == null ? null : Math.round(p10), p50: p50 == null ? null : Math.round(p50), p90: p90 == null ? null : Math.round(p90), band, flat: flatAll };
   }
   return {
     today: today.toISOString().slice(0, 10), planYear: y, planYears: N, bridge, taxYear, age,

@@ -8072,6 +8072,8 @@
           btn = stage.banner.btn;
           const tb = stage.banner;
           act = () => { switchToTab(tb.tab); if (tb.sub) setTimeout(() => document.querySelector('.sub-tab[data-decisiontab="' + tb.sub + '"]')?.click(), 400); };
+        } else if (stage && stage.locked && !stage.banner) {
+          text = null;   // a running plan is past onboarding: the where-am-I strip speaks, not "start the budget" (6.10.4)
         }
         if (!text) { banner.style.display = 'none'; return; }
         document.getElementById('nextStepText').innerHTML = text;
@@ -8403,6 +8405,16 @@
       showLoading('Saving, running the strategy and writing the plan document…');
       try {
         await saveStressSettingsUI();
+        // Locking IS the commit: the Decision tool must run THIS plan — its pots, floors, ISA, State Pension,
+        // strategy — not the defaults it was created with (a £380k plan was judged against £500k floors, 6.10.4).
+        try {
+          if (!(await planIsLocked())) {
+            const stressNow = await getStressSettingsAsync();
+            const decisionNow = await getDecisionSettingsAsync();
+            await saveDecisionSettings(seedDecisionFromStress(stressNow, decisionNow));
+            invalidateCache();
+          }
+        } catch (e) { console.warn('Decision seed on lock failed (non-fatal):', e); }
         const fresh = await lockPlanIfNeeded('locked from Stress settings');
         await buildPlanDocumentNow('locked from Stress settings');
         await refreshStressLock();

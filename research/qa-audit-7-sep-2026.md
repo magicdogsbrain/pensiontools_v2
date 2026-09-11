@@ -212,3 +212,17 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   from `window._ssTimingBase` (the SAVED settings = £1m defaults on a new plan), so potScale ≈ 8×. Fixed 6.10.2: projection
   from `readAlloc('ss')` + form ISA/funds; save re-runs `renderTiming()` first. Also plan-start year was 2043/44 instead of
   2042/43 because the SP date (birthday) was typed after the block rendered — SP date input now re-renders timing.
+- **P3 QA Approaching 59 lock (gilt rotation, retire at 61, Oct birthday):** "plan starts in 7 months" though retirement is
+  13 months away → 6.10.3: retirement MONTH (`startMonth`) drives the countdown, the stage and the Decision gate; ladders
+  keep the tax year. Lock → committed-saving, document written, Transition lists 24 moves (empty ledger), gate refuses Oct 2026.
+- **P4 QA Retiring now 60 (floor to 80, £900k):** locked+started same day → Running: next-step banner still said "Start the
+  budget walk-through" (fixed 6.10.4: locked + no stage banner → hidden); Transition hidden in Running though nothing bought
+  (6.10.4: shown in Running); where-am-I said "bought by contract" because every cone is flat at year 0 (6.10.4: flat over the
+  whole run only); "Tax Saved −£0.00" floating dust (6.10.4). Decision Sept entry + 26/27 wizard fine; history/PDF clean.
+- **P5 QA Retiring now tight (buckets, £380k cautious):** MC 88%. Decision tool showed Equity min £250k / Bond £200k / Cash £50k
+  = the DEFAULT floors → "24% below target". Root cause: lock-from-Stress never seeded Decision settings (only the target
+  synced). 6.10.4: `lockPlanFromStress` seeds Decision from Stress before locking. Existing locked P&V plans need "Copy all
+  from Stress" — cannot while locked; unlock → copy → re-lock, or the fix below.
+- Convention note (not a bug): people with Jan–Apr birthdays see the first step relabelled to the age they REACH in the
+  tax year (a 61-year-old with a Feb birthday retiring now shows "steps start at 62"). Consistent with the ladder/SP maths;
+  the summary should say so explicitly ("62 in 2026/27").

@@ -36,6 +36,28 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.4', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Locking commits the whole plan to the Decision tool',
+    summary: 'Found by walking seven made-up people through the stages. The big one: locking from the Stress tester froze the settings but never copied the plan\'s pots, floors, ISA and State Pension into the Decision tool, which kept the defaults it was created with — a £380k plan was judged "24% below target" against £500k floors. Locking now seeds the Decision settings from the Stress plan first. Three smaller ones with it.',
+    changes: ['Transition tab stays available while the plan is Running (a plan locked and started the same day still has its ladder to buy; a running ladder needs reconciling now and then).'],
+    corrections: [
+      'Lock from Stress settings: the Decision tool now runs the plan as locked — pots, floors, ISA policy, State Pension, strategy, taxable account — not its defaults. Plans locked before this fix: unlock, then lock again from the Stress settings page.',
+      'A locked, running plan no longer shows the "start the budget walk-through" banner.',
+      'The where-you-are strip no longer calls a pot-strategy plan "bought by contract" in its first year (every cone is flat at year 0; the test now looks at the whole run).',
+      'A "Tax Saved -£0.00" row no longer appears from floating-point dust.'
+    ],
+    effects: { decision: ['Plans locked from the Stress tester after this release run on the plan\'s own pot floors. Earlier locked pot-strategy plans: unlock and re-lock once.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: ['If you locked a Pots & Valves, Buckets, Floor-to-age, Bridge & engine or Ladder & ratchet plan before today and the Decision tool shows pot minimums you never set: unlock (Decision → Settings), then lock again from Stress → Settings.'],
+    notes: [],
+    affects(scenario) {
+      const ds = scenario?.decisionTool?.settings || {};
+      const ss = scenario?.stressTool?.settings || {};
+      if (!ds.locked || !Object.keys(ss).length) return [];
+      const diff = ['equityMin', 'bondMin', 'cashTarget'].some((k) => +ds[k] > 0 && +ss[k] > 0 && Math.abs(+ds[k] - +ss[k]) > 1);
+      return diff ? ['This locked plan\'s Decision pot floors differ from its Stress plan — unlock and re-lock from Stress → Settings to bring them in line.'] : [];
+    }
+  },
+  {
     version: '6.10.3', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Retiring later: the month you retire, not just the tax year',
     summary: 'The plan\'s years are tax years, because the gilt ladder buys whole ones, but a person retires on a birthday. Someone 59 in September with an October birthday, retiring at 61, has plan year 0 in 2027/28 — and retires in October 2027, thirteen months away, not "in seven months". The Timing summary, the stage chip, the "committed, still saving" countdown and the Decision tool\'s gate now all use the retirement month; the ladder and the plan document keep the tax year.',

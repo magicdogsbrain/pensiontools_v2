@@ -7,6 +7,34 @@ import { calcDecisionPWA } from '../src/services/legacyDecision.js';
 // PAYE already deducted £9,364 (payslip to-date £8,755.13 + Aviva £609.35). Target £87,650 incl. £3,656 DB.
 const base = { targetSalary: 87650, brl: 50270, pa: 12570, other: 3656, statePension: 0, isaSavingsAllocation: 0, remainingMonths: 7, grossIncomeToDate: 36523, isTaxEfficient: false };
 
+describe('State Pension in its first year: the monthly payment from its start month, not the partial year spread over twelve (6.11.0)', () => {
+  const settings = { equityMin: 27000, bondMin: 40500, cashTarget: 22500, duration: 28, baseSalary: 36000, protectionFactor: 20, recoveryBuffer: 15000, consecutiveLimit: 3, isaDrawdownStrategy: 'minimiseEarlyTax', firstTaxYear: 2026 };
+  const ty = { pa: 12570, brl: 50270, hrl: 125140, other: 22000, cpi: 0.031, isTaxEfficient: true, isaSavingsAllocation: 0, isaSavingsUsed: 0, grossIncomeToDate: 9167, confirmedSalary: 36000, yearSetupComplete: true, startMonth: 9, remainingMonths: 7, expectedMonthly: { sipp: { gross: 800 } } };
+  // SP starts 9 Nov 2026 at £230/week: the tax year's total is ~£4,829, the monthly payment £996.67
+  const spInfo = { amount: 4829, monthly: 4829 / 12, monthlyFull: 996.67, startYm: '2026-11', isReceiving: true, isFirstYear: true };
+  const deps = (o = {}) => ({ settings, history: [], allTaxYears: { '26/27': ty }, spInfo: { ...spInfo, ...o }, isaBalance: 25000 });
+  it('September: no State Pension yet — the SIPP covers the whole gap', async () => {
+    const r = await calcDecisionPWA('2026-09', 27000, 40500, 22500, deps());
+    expect(r.statePension).toBe(0);
+    expect(r.sippDraw).toBeCloseTo((36000 - 22000) / 12, 0);   // ≈ £1,167 — target less the DB pension only
+  });
+  it('November: the full monthly payment arrives and the SIPP draw drops', async () => {
+    const r = await calcDecisionPWA('2026-11', 27000, 40500, 22500, deps());
+    expect(r.statePension).toBeCloseTo(996.67, 1);
+    expect(r.sippDraw).toBeCloseTo((36000 - 22000) / 12 - 996.67, 0);   // ≈ £170
+  });
+  it('a plan without the new fields behaves as before (year total ÷ 12)', async () => {
+    const r = await calcDecisionPWA('2026-09', 27000, 40500, 22500, deps({ monthlyFull: undefined, startYm: undefined }));
+    expect(r.statePension).toBeCloseTo(4829 / 12, 1);
+  });
+  it('the wizard shows the monthly payment, or nothing before the start month', () => {
+    const base = { targetSalary: 36000, brl: 50270, pa: 12570, other: 22000, statePension: 4829, statePensionMonthlyFull: 996.67, spStartYm: '2026-11', isaSavingsAllocation: 0, remainingMonths: 7, grossIncomeToDate: 9167, isTaxEfficient: false };
+    expect(calculateMonthlyBreakdown({ ...base, startYm: '2026-09' }).statePension.gross).toBe(0);
+    expect(calculateMonthlyBreakdown({ ...base, startYm: '2026-11' }).statePension.gross).toBeCloseTo(996.67, 2);
+    expect(calculateMonthlyBreakdown({ ...base, statePensionMonthlyFull: null }).statePension.gross).toBeCloseTo(4829 / 12, 2);
+  });
+});
+
 describe('mid-year wizard: tax already paid (6.4.1)', () => {
   it('without it, the old assumption stands (earlier income taxed on its own bands)', () => {
     const b = calculateMonthlyBreakdown(base);

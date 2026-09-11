@@ -411,6 +411,9 @@ export function calculateMonthlyBreakdown(params) {
     remainingMonths,
     grossIncomeToDate = 0,
     taxPaidToDate = null,   // PAYE already deducted on that income (6.4.1); null = not known
+    statePensionMonthlyFull = null,   // the monthly PAYMENT once it has started (6.11.0); null = derive from the annual
+    spStartYm = null,                 // 'YYYY-MM' the State Pension starts
+    startYm = null,                   // 'YYYY-MM' this setup starts from
     isTaxEfficient = true
   } = params;
 
@@ -422,7 +425,12 @@ export function calculateMonthlyBreakdown(params) {
   };
 
   const monthlyOtherGross = other / 12;
-  const monthlyStatePensionGross = statePension / 12;
+  // The State Pension is a monthly PAYMENT from its start month — never the year's partial total spread
+  // over twelve (6.11.0). Before the start month there is none; after it, the full monthly.
+  const spStartedByStart = !spStartYm || !startYm || startYm >= spStartYm;
+  const monthlyStatePensionGross = statePension > 0 && statePensionMonthlyFull != null
+    ? (spStartedByStart ? statePensionMonthlyFull : 0)
+    : statePension / 12;
   const monthlyFixedIncomeGross = monthlyOtherGross + monthlyStatePensionGross;
 
   let monthlySippGross, monthlyIsaNet;

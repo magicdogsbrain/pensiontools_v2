@@ -78,7 +78,12 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // State pension comes from decision settings using HMRC forecast data
       // Uses the new spStartDate and spWeeklyAmount fields
       const spInfo = deps.spInfo;
-      const STATE = spInfo.amount || 0;
+      const STATE = spInfo.amount || 0;   // the tax year's TOTAL (partial in the year it starts) — used for the year's tax
+      // What actually arrives THIS month: the full monthly payment once the start month is reached, nothing
+      // before it (6.11.0 — a first-year State Pension was spread over twelve months).
+      const STATE_M = !STATE ? 0
+        : (spInfo.startYm && String(dateStr).slice(0, 7) < spInfo.startYm) ? 0
+        : (spInfo.monthlyFull != null ? spInfo.monthlyFull : STATE / 12);
 
       // Calculate cumulative inflation using each year's CPI (PWA logic)
       let cumInf = 1;
@@ -160,7 +165,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const target = taxYearConfig.confirmedSalary
         ? taxYearConfig.confirmedSalary
         : settings.baseSalary * cumInf;
-      const other = OTHER + STATE;
+      const other = OTHER + STATE_M * 12;   // this month's fixed income, annualised, sizes this month's SIPP draw
       const targetNet = grossToNet(target, PA, BRL, HRL);
 
       // Calculate ISA/SIPP based on year-level tax efficiency mode
@@ -573,7 +578,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const monthlyTax = Math.max(0, annualTax - priorTax) / deliverMonths;
 
       // Net = gross taxable this month - monthly tax + ISA (tax-free) + the sleeve's net of CGT
-      const monthlyTaxable = sipp + OTHER / 12 + STATE / 12;
+      const monthlyTaxable = sipp + OTHER / 12 + STATE_M;
       const monthlyNet = monthlyTaxable - monthlyTax + isa + giaNet;
 
       // ---- Windfalls & bed-and-ISA: ADVICE, never a silent move of money the user holds ----
@@ -663,7 +668,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
 
         // Income sources (monthly)
         other: OTHER / 12,
-        statePension: STATE / 12,
+        statePension: STATE_M,
 
         // Recommended draws
         sippDraw: sipp,

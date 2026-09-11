@@ -358,6 +358,9 @@ function renderIsaRequirement() {
     pa: wizardInputs.pa,
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
+    statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
+    spStartYm: wizardContext.statePension.startYm ?? null,
+    startYm: wizardContext.selectedMonth,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate
   });
@@ -553,6 +556,9 @@ function renderConfirmation() {
     pa: wizardInputs.pa,
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
+    statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
+    spStartYm: wizardContext.statePension.startYm ?? null,
+    startYm: wizardContext.selectedMonth,
     isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
@@ -593,6 +599,12 @@ function renderConfirmation() {
           <div class="wizard-summary-row">
             <span>Tax already paid:</span>
             <span>${fmt(wizardInputs.taxPaidToDate)}</span>
+          </div>
+        ` : ''}
+        ${wizardContext.statePension && wizardContext.statePension.amount > 0 && wizardContext.statePension.startYm && wizardContext.statePension.startYm > wizardContext.selectedMonth ? `
+          <div class="wizard-summary-row">
+            <span>State Pension:</span>
+            <span>${fmt(wizardContext.statePension.monthlyFull || 0)}/month from ${wizardContext.statePension.startDate || wizardContext.statePension.startYm} — the months before it are drawn from the SIPP</span>
           </div>
         ` : ''}
         <div class="wizard-summary-row">
@@ -854,6 +866,9 @@ async function finishWizard() {
     pa: wizardInputs.pa,
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
+    statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
+    spStartYm: wizardContext.statePension.startYm ?? null,
+    startYm: wizardContext.selectedMonth,
     isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
@@ -878,6 +893,9 @@ async function finishWizard() {
     confirmedSalary: wizardInputs.confirmedSalary,
     remainingMonths: wizardContext.remainingMonths,
     statePension: wizardContext.statePension.amount,
+    statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
+    spStartYm: wizardContext.statePension.startYm ?? null,
+    startYm: wizardContext.selectedMonth,
     monthlyBreakdown: breakdown
   });
 

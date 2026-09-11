@@ -55,6 +55,11 @@ export function incomeLayersRows(r, p) {
   const N = p.durationYears;
   const sp = (y) => (y >= (p.spStartYear ?? 99)) ? p.spAnnual * (y === p.spStartYear ? (p.spFirstYearRatio ?? 1) : 1) : 0;
   const other = (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
+  // A lump sum (house sale, inheritance) the bought strategies spend is folded into otherIncomeByYear so the
+  // stack sums; split it back out here so the plan document can say "from the lump sum" rather than "other
+  // income" (6.11.3). used[y] = what the lump paid that year, from the arrivals and the year-end carry.
+  const wf = Array.isArray(p.windfallByYear) ? p.windfallByYear : null, carry = Array.isArray(p.windfallCarryByYear) ? p.windfallCarryByYear : null;
+  const lumpUsed = (y) => (wf && carry) ? Math.max(0, Math.min(other(y), ((y > 0 ? carry[y - 1] : 0) || 0) + (wf[y] || 0) - (carry[y] || 0))) : 0;
   const needAt = (y) => (p.needByYear && p.needByYear[y] != null) ? p.needByYear[y] : (Array.isArray(p.targetSchedule) && p.targetSchedule[y] != null ? p.targetSchedule[y] : p.targetAnnual);
   const p50 = r.cones?.income?.p50 || [], p10 = r.cones?.income?.p10 || [];
   const sig = r.signature || {};
@@ -75,7 +80,8 @@ export function incomeLayersRows(r, p) {
     }
     const total50 = p50[y] ?? 0;   // the engines' income series now includes SP + other income
     const market = Math.max(0, total50 - s - o - contract);
-    rows.push({ age: p.startAge + y, sp: s, other: o, contract, market, need, p10: p10[y] ?? 0 });
+    const lump = lumpUsed(y);
+    rows.push({ age: p.startAge + y, sp: s, other: o, otherPure: o - lump, lump, contract, market, need, p10: p10[y] ?? 0 });
   }
   return rows;
 }

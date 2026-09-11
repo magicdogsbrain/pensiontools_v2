@@ -26,7 +26,8 @@ export function targetHoldings(doc) {
   const d = doc || {};
   const plan = d.strategy?.r?.plan;
   if (d.strategy?.contract && plan && Array.isArray(plan.orders)) {
-    const lines = plan.orders.map((o) => ({
+    // A gilt that pays nothing is not a target (6.11.3): its years are covered by a lump sum expected later or other income.
+    const lines = plan.orders.filter((o) => num(o.pays) > 0).map((o) => ({
       key: 'gilt:' + up(o.tidm || o.sedol || o.name), wrapper: 'SIPP', kind: 'gilt',
       label: o.name, ticker: up(o.tidm), sedol: o.sedol || null, matures: o.matures || null,
       units: Math.round(num(o.nominal)), cost: Math.round(num(o.cost)), pays: Math.round(num(o.pays)),

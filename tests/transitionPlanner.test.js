@@ -139,3 +139,14 @@ describe('sequence and progress', () => {
     expect(p1.doneCount).toBe(1);
   });
 });
+
+describe('zero-pay gilts are not targets (6.11.3)', () => {
+  it('a rung whose years a later lump sum covers is left out of the target', () => {
+    const doc = { strategy: { contract: true, r: { plan: { cash: 30000, cashYears: [{ Y: 2027 }], orders: [
+      { name: 'IL 2029', tidm: 'T29', nominal: 18200, cost: 31507, pays: 32000, taxYears: [2030, 2031] },
+      { name: 'IL 2031', tidm: 'TR31', nominal: 0, cost: 0, pays: 0, taxYears: [2032] }
+    ] } } } };
+    const t = targetHoldings(doc);
+    expect(t.lines.filter((l) => l.kind === 'gilt').map((l) => l.ticker)).toEqual(['T29']);
+  });
+});

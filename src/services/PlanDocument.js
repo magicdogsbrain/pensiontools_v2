@@ -99,11 +99,11 @@ export function buildTimeline({ settings, timing, p, r, layers }) {
       : amountAtAge(layers.steps, age, +s.baseSalary || 0));
     const lr = rows[y] || {};
     const sp = lr.sp ?? ((layers.sp && age >= layers.sp.fromAge) ? layers.sp.annual * (age === layers.sp.fromAge ? layers.sp.firstYearRatio : 1) : 0);
-    const other = lr.other ?? layers.other.reduce((t, o) => t + (age >= o.fromAge && age <= o.toAge ? o.annual : 0), 0);
+    const other = lr.otherPure ?? lr.other ?? layers.other.reduce((t, o) => t + (age >= o.fromAge && age <= o.toAge ? o.annual : 0), 0);
     const yr = r?.plan?.years?.[y] || null;
     out.push({
       y, taxYear: taxYearLabel(timing.firstTaxYear + y), age,
-      gross: Math.round(gross), sp: Math.round(sp), other: Math.round(other),
+      gross: Math.round(gross), sp: Math.round(sp), other: Math.round(other), lump: Math.round(lr.lump || 0),
       contract: Math.round(lr.contract || 0), market: Math.round(lr.market || 0),
       lumpIn: windfalls.filter((w) => w && +w.amount > 0 && +w.year === y).map((w) => ({ label: w.label || 'Lump sum', amount: +w.amount, wrapper: w.wrapper || 'cash' })),
       lumpOut: spends.filter((w) => w && +w.amount > 0 && w.year != null && y >= +w.year && y < +w.year + Math.max(1, +w.years || 1)).map((w) => ({ label: w.label || 'One-off spend', amount: +w.amount / Math.max(1, +w.years || 1) })),

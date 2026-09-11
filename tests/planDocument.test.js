@@ -155,3 +155,15 @@ describe('planDocumentHtml', () => {
     expect(whereAmIHtml(null)).toBe('');
   });
 });
+
+describe('a lump sum the ladder spends is shown as such, not as other income (6.11.3)', () => {
+  it('incomeLayersRows splits the lump\'s use out of other income', async () => {
+    const { incomeLayersRows } = await import('../src/ui/incomeLayersGraphic.js');
+    const p = { durationYears: 4, startAge: 62, spStartYear: 99, spAnnual: 0, needByYear: [30000, 30000, 30000, 30000],
+      otherIncomeByYear: [14000, 30000, 30000, 0], windfallByYear: [0, 60000, 0, 0], windfallCarryByYear: [0, 30000, 0, 0] };
+    const rows = incomeLayersRows({ strategyId: 'floor-the-schedule', cones: {} }, p);
+    expect(rows.map((r) => r.lump)).toEqual([0, 30000, 30000, 0]);
+    expect(rows.map((r) => r.otherPure)).toEqual([14000, 0, 0, 0]);
+    expect(rows[1].other).toBe(30000);   // the stacked graphic still sums
+  });
+});

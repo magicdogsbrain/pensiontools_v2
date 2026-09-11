@@ -117,5 +117,7 @@ describe('matching and merging', () => {
     expect(r.added[0]).toMatchObject({ kind: 'gilt', units: 36000, sedol: 'B3D4RD5', subClass: 'indexLinked' });
     expect(r.unseen.map((u) => u.ticker)).toEqual(['IGLT']);
     expect(r.ledger.find((l) => l.wrapper === 'ISA').value).toBe(60000);   // other wrappers untouched
+    // Firestore refuses `undefined` — no merged line may carry one (a whole settings save failed on this, 6.10.5)
+    for (const l of r.ledger) for (const [k, v] of Object.entries(l)) expect(v, k).not.toBeUndefined();
   });
 });

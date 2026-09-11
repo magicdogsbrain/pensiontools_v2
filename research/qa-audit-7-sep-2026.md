@@ -226,3 +226,8 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
 - Convention note (not a bug): people with Jan–Apr birthdays see the first step relabelled to the age they REACH in the
   tax year (a 61-year-old with a Feb birthday retiring now shows "steps start at 62"). Consistent with the ladder/SP maths;
   the summary should say so explicitly ("62 in 2026/27").
+- **P6 QA Retrospective 70 (full IL ladder, pick-up-from-here, SP in payment):** stage draft-retired, plan starts 2026/27 ✓,
+  MC "Based on 1 simulated futures and 1 real histories" (contract wording — cosmetic). Paste of 3 rungs + CSH2 + VWRP:
+  Settings save FAILED ("Failed to save stress data") — `undefined` fields from mergeLedger (fixed 6.10.5); guessed code
+  T31 vs order TR31 → matched by maturity year (6.10.5); Transition on a running plan said "1 month to go" → rolling
+  6-month reconcile (6.10.5). Reconcile held T27/T29 rung-for-rung ✓, 31% of target held, honest shortfall.

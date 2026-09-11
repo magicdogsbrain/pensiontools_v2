@@ -82,6 +82,11 @@ describe('diffHoldings — ladder', () => {
     expect(d.progressPct).toBeGreaterThan(50);
     expect(d.progressPct).toBeLessThan(100);
   });
+  it('a pasted gilt with only a guessed code (T30) or a name still matches its rung by maturity year (6.10.5)', () => {
+    const d = diffHoldings([{ ticker: 'T30', name: '0 1/8% Index-linked Treasury Gilt 2030', units: 35000, value: 38584, wrapper: 'SIPP' }, { ticker: '', name: 'Treasury 0.125% I/L 22/03/2029', units: 36000, value: 39690, wrapper: 'SIPP', kind: 'gilt' }], targetHoldings(ladderDoc));
+    expect(d.hold.map((h) => h.ticker).sort()).toEqual(['TR29', 'TR30']);
+    expect(d.sell.filter((s) => s.kind === 'gilt')).toEqual([]);   // nothing wrongly marked "not in the plan"
+  });
   it('a rung within 2% counts as held', () => {
     const d = diffHoldings([{ ticker: 'TR29', units: 35500, value: 39000, wrapper: 'SIPP' }], targetHoldings(ladderDoc));
     expect(d.hold.some((h) => h.ticker === 'TR29')).toBe(true);
@@ -112,6 +117,14 @@ describe('sequence and progress', () => {
     expect(s.steps.filter((x) => x.action === 'sell').length).toBe(3);   // one VWRP sale per tranche
     expect(s.funded).toBe(true);
     expect(s.steps.every((x) => /^\d{4}-\d{2}$/.test(x.when))).toBe(true);
+  });
+  it('a plan already running reconciles over a rolling horizon; a future retiree\'s deadline is the retirement month (6.10.5)', () => {
+    const running = sequence(d, { today: new Date(2026, 8, 11), startYear: 2026, contributionsMonthly: 0 });
+    expect(running.startPassed).toBe(true);
+    expect(running.months).toBe(6);
+    const wendy = sequence(d, { today: new Date(2026, 8, 11), startYear: 2027, startMonth: '2027-10', contributionsMonthly: 0 });
+    expect(wendy.startPassed).toBe(false);
+    expect(wendy.months).toBe(13);
   });
   it('reports a shortfall honestly', () => {
     const s = sequence(d, { today: new Date(2026, 8, 10), startYear: 2027, contributionsMonthly: 0 });

@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.5', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Pasting gilts, and reconciling a ladder that is already running',
+    summary: 'From the retrospective-adopter walk-through: pasting a gilt ladder into My funds could make the settings save fail outright, a pasted gilt whose code had to be guessed did not match its rung, and the Transition tab told a running plan it had "1 month to go".',
+    changes: ['Transition on a plan already running: the schedule is spread over the next six months (a reconcile), and a future retiree\'s deadline is the retirement month.', 'Paste holdings on a draft plan that has been stress-tested but not locked: rungs are matched against the last run\'s order sheet.'],
+    corrections: ['Applying a paste could leave empty fields on a holding that the database refuses, and the whole Settings save failed with "Failed to save stress data". Fixed.', 'A pasted gilt known only by name (or a guessed code such as T31) now matches its rung by maturity year, so it reads as held rather than as a sale plus a purchase.'],
+    effects: { stress: ['If a save failed after a paste, paste again — it saves now.'], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.10.4', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Locking commits the whole plan to the Decision tool',
     summary: 'Found by walking seven made-up people through the stages. The big one: locking from the Stress tester froze the settings but never copied the plan\'s pots, floors, ISA and State Pension into the Decision tool, which kept the defaults it was created with — a £380k plan was judged "24% below target" against £500k floors. Locking now seeds the Decision settings from the Stress plan first. Three smaller ones with it.',

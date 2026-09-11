@@ -8533,7 +8533,10 @@
     };
     window.openPasteHoldings = async function (p = 'ss') {
       document.getElementById('pasteHoldingsOverlay')?.remove();
+      // Gilt rungs to match against: the plan document's order sheet, else the last strategy run's (a draft
+      // plan that has been stress-tested but not locked yet — 6.10.5).
       let orders = []; try { const doc = await getActivePlanDocument(); orders = doc?.strategy?.r?.plan?.orders || []; } catch (e) { orders = []; }
+      if (!orders.length && window._latestStrategyStress?.plan?.orders) orders = window._latestStrategyStress.plan.orders;
       window._pasteCtx = { p, orders, matched: null, wrapper: 'SIPP' };
       const ov = document.createElement('div'); ov.id = 'pasteHoldingsOverlay';
       ov.style.cssText = 'position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;';
@@ -8587,7 +8590,7 @@
         const ledger = Array.isArray(ss.taggedFunds) ? ss.taggedFunds : [];
         const diff = diffHoldings(ledger, target);
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
-        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), contributionsMonthly });
+        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
         const tr = await getActiveTransition();
         const prog = transitionProgress(diff, tr.done || {});
         box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '' });

@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.3', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Ladders with a lump sum on the way: no £0 orders, and the lump named',
+    summary: 'When a house sale or an inheritance is expected later, the ladder builders let it pay the years from its arrival (since 6.4). The order sheet still listed a gilt for each of those years — paying £0, with a £20 fee — and the plan document called the money it pays "other income". Now the sheet lists only gilts that pay something and says which tax years the lump covers and when to buy their rungs; the Transition tool no longer asks you to hold those gilts; and the plan document\'s year-by-year table has a "from a lump sum" column.',
+    changes: ['Order sheet: "Nothing to buy for 2032/33 – 2051/52: a lump sum expected later pays them — Sale of the flat (£600,000, plan year 5)".', 'Plan document: lump-sum years show the amount under "From a lump sum", not "Other / DB".'],
+    corrections: ['Zero-pay gilt rows on the order sheet and in the Transition target.'],
+    effects: { decision: [], stress: [], strategies: ['Only plans with a lump sum after year 0 change; the sums are the same.'], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.2', date: '2026-09-11', engineVersion: '6.4.0',
     title: '"Tax saved" means tax-free money used, nothing else',
     summary: 'The History and monthly record compared the year\'s tax with the tax on your TARGET drawn entirely from the SIPP. Any month the SIPP draw fell short of the target for another reason — protection, the run-up before year 0, a month already paid — showed a "saving" that was not one (a September run-up month reported £1,462 a year saved with nothing tax-free in it). The comparison is now the money actually delivered this tax year, had all of it been taxable SIPP income: an ISA draw, a GIA slice or an UFPLS tax-free slice can save tax; nothing else can.',

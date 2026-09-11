@@ -9,7 +9,7 @@
  *
  * Pure: no DOM, no storage.
  */
-import { deriveTiming, taxYearLabel, taxYearStartOf, monthsUntilStart } from './PlanTiming.js';
+import { deriveTiming, taxYearLabel, taxYearStartOf, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
 
 export const APPROACHING_YEARS = 5;   // how far out "approaching retirement" starts (Chris, 10 Sep 2026)
 
@@ -67,8 +67,11 @@ export function deriveStage(scenario, now = new Date()) {
   const hasDocument = !!s.planDocument;
   const t = deriveTiming(stress, now);
   const thisTY = taxYearStartOf(now);
-  const beforeStart = t.firstTaxYear > thisTY;
-  const monthsToStart = monthsUntilStart(t.firstTaxYear, now);
+  // A future retiree is "before the start" until the retirement MONTH (their birthday), not just until the
+  // plan's tax year begins — they may still be working in April of plan year 0 (6.10.3).
+  const nowKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const beforeStart = t.mode === 'future' && t.startMonth ? nowKey < t.startMonth : t.firstTaxYear > thisTY;
+  const monthsToStart = t.mode === 'future' && t.startMonth ? monthsUntilMonth(t.startMonth, now) : monthsUntilStart(t.firstTaxYear, now);
   const reasons = [];
   let key;
   if (t.mode === 'legacy') {
@@ -97,7 +100,7 @@ export function deriveStage(scenario, now = new Date()) {
   return {
     key, label: def.label, chip: chipText(def, monthsToStart, beforeStart),
     leads, readOnly: def.readOnly.slice(), hidden, banner,
-    locked, retired: t.mode === 'retired', timingMode: t.mode, firstTaxYear: t.firstTaxYear, startLabel,
+    locked, retired: t.mode === 'retired', timingMode: t.mode, firstTaxYear: t.firstTaxYear, startLabel, startMonth: t.startMonth || null,
     yearsToStart: t.yearsToStart, monthsToStart, beforeStart, hasRecords, hasDocument, reasons
   };
 }
@@ -114,10 +117,12 @@ function chipText(def, monthsToStart, beforeStart) {
 export function decisionEntryAllowed(stage, entryMonth) {
   if (!stage) return { ok: true };
   if (stage.key === 'committed-saving') {
-    const [y, m] = String(entryMonth || '').split('-').map(Number);
-    const ty = Number.isFinite(y) && Number.isFinite(m) ? (m >= 4 ? y : y - 1) : null;
-    if (ty == null || ty < stage.firstTaxYear) {
-      return { ok: false, reason: 'This plan is locked and starts in ' + stage.startLabel + '. Monthly entries open then — until the start you are still saving, so record your pot on the Accumulation planner instead.' };
+    const key = String(entryMonth || '').slice(0, 7);
+    const gate = stage.startMonth || (stage.firstTaxYear + '-04');
+    if (!/^\d{4}-\d{2}$/.test(key) || key < gate) {
+      const [y, m] = gate.split('-').map(Number);
+      const mon = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+      return { ok: false, reason: 'This plan is locked and you retire in ' + mon + ' ' + y + ' (plan year 0 is ' + stage.startLabel + '). Monthly entries open then — until then you are still saving, so record your pot on the Accumulation planner instead.' };
     }
   }
   return { ok: true };

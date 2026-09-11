@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.3', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Retiring later: the month you retire, not just the tax year',
+    summary: 'The plan\'s years are tax years, because the gilt ladder buys whole ones, but a person retires on a birthday. Someone 59 in September with an October birthday, retiring at 61, has plan year 0 in 2027/28 — and retires in October 2027, thirteen months away, not "in seven months". The Timing summary, the stage chip, the "committed, still saving" countdown and the Decision tool\'s gate now all use the retirement month; the ladder and the plan document keep the tax year.',
+    changes: ['Timing summary for retire-later plans: "You retire in October 2027 at 61, 13 months away; the plan\'s year 0 is tax year 2027/28".', 'A plan locked while still saving stays "committed, still saving" until the retirement month, and the Decision tool opens that month, even if plan year 0\'s April has passed.'],
+    corrections: ['The countdown and the Decision gate used 6 April of plan year 0, which for many people is months before they actually stop work.'],
+    effects: { stress: ['Retire-later plans: the summary line changes; nothing in the numbers.'], decision: ['Committed-while-saving plans: entries open in the retirement month rather than the preceding April.'], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.10.2', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Retiring later: the plan is priced on the pots you typed, not the defaults',
     summary: 'Found while walking new plans through the stages. On a plan created moments earlier, the Timing block projected the pots at retirement from the saved settings — which for a new plan are the £1m defaults — rather than from the pot typed into the form. A £180k saver was stress-tested as a £1.5m one. The block now reads the form as it stands, and the settings save re-derives the timing from the whole form (pots, ages, State Pension date) at the moment of saving.',

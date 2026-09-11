@@ -25,8 +25,21 @@ describe('deriveStage — the persona matrix', () => {
     expect(st.chip).toMatch(/to go/);
     expect(st.banner.text).toContain('2028/29');
     expect(decisionEntryAllowed(st, '2026-10').ok).toBe(false);
-    expect(decisionEntryAllowed(st, '2028-04').ok).toBe(true);
-    expect(decisionEntryAllowed(st, '2028-03').ok).toBe(false);   // March 2028 is still 27/28
+    // No SP date → the birthday is taken as the date the age was recorded (10 Sept): she retires September 2028
+    expect(st.startMonth).toBe('2028-09');
+    expect(decisionEntryAllowed(st, '2028-09').ok).toBe(true);
+    expect(decisionEntryAllowed(st, '2028-08').ok).toBe(false);   // plan year 0 has begun, but she is still working
+  });
+  it('a locked future retiree stays "committed, saving" until the retirement MONTH, not the tax year (6.10.3)', () => {
+    const s = { currentAge: 59, currentAgeAsOf: '2026-09-11', spStartDate: '20 October 2034', retired: false, retireAge: 61 };
+    const inSept27 = deriveStage(sc(s, { locked: true }), new Date(2027, 8, 15));   // plan year 0 (2027/28) has begun, retirement is October
+    expect(inSept27.key).toBe('committed-saving');
+    expect(inSept27.startMonth).toBe('2027-10');
+    expect(inSept27.monthsToStart).toBe(1);
+    expect(decisionEntryAllowed(inSept27, '2027-09').ok).toBe(false);
+    expect(decisionEntryAllowed(inSept27, '2027-09').reason).toMatch(/retire in October 2027/);
+    expect(decisionEntryAllowed(inSept27, '2027-10').ok).toBe(true);
+    expect(deriveStage(sc(s, { locked: true }), new Date(2027, 9, 21)).key).toBe('running');
   });
   it('Chris in September: retired, locked, before the start → Bridge; accumulation hidden', () => {
     const st = deriveStage(sc({ currentAge: 56, currentAgeAsOf: '2026-09-09', retired: true, firstTaxYear: 2027, spStartDate: '21 April 2037' }, { locked: true }), NOW);
@@ -61,7 +74,7 @@ describe('deriveStage — the persona matrix', () => {
 
 describe('arrivalCheck', () => {
   const wendyDoc = { pots: { sipp: 500000, potAtRetirement: { sipp: 620000 } } };
-  const after = deriveStage(sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), new Date(2028, 4, 1));
+  const after = deriveStage(sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), new Date(2028, 9, 1));   // October 2028: retired in September
   it('within 10% → runs as locked', () => {
     const a = arrivalCheck(after, wendyDoc, { sipp: 600000 });
     expect(a.within).toBe(true);

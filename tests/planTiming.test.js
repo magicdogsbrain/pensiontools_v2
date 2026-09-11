@@ -122,6 +122,15 @@ describe('deriveTiming', () => {
     const t = deriveTiming({ ...chris, retired: false, retireAge: 60 }, NOW);
     expect(t).toMatchObject({ mode: 'future', firstTaxYear: 2030, shapeAgeNow: 60, yearsToStart: 4, retireAge: 60 });
   });
+  it('a future retiree has a retirement MONTH as well as a plan tax year (59 in Sept, October birthday, retiring at 61)', () => {
+    const s = { currentAge: 59, currentAgeAsOf: '2026-09-11', spStartDate: '20 October 2034', retired: false, retireAge: 61 };
+    const t = deriveTiming(s, new Date(2026, 8, 11));
+    expect(t.firstTaxYear).toBe(2027);          // 61 is reached in 2027/28 (20 Oct 2027)
+    expect(t.startMonth).toBe('2027-10');       // but they retire in October, 13 months away
+    expect(t.bridgeMonths).toBe(13);
+    expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 13 months away; the plan\'s year 0 is tax year 2027/28');
+    expect(deriveTiming({ ...chris, retired: true, firstTaxYear: 2027 }, NOW).startMonth).toBe('2027-04');
+  });
   it('"retire at 55" when already 56 starts now', () => {
     const t = deriveTiming({ ...chris, retired: false, retireAge: 55 }, NOW);
     expect(t.firstTaxYear).toBe(2026);

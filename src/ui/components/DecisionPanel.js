@@ -71,7 +71,7 @@ function buildTaxSummary(d) {
     const ytdSaved = d.taxSavedYTD || monthlySaved;
     const projectedSaved = d.taxSavedProjectedAnnual || details.taxInfo?.taxSavedAnnual || 0;
 
-    if (projectedSaved > 0) {
+    if (projectedSaved >= 0.5) {   // floating-point dust showed as "-£0.00" (6.10.4)
       html += '<div class="tax-comparison-row saved">';
       html += '<div class="label">Tax Saved</div>';
       html += `<div class="success">-${formatCurrency(monthlySaved)}</div>`;

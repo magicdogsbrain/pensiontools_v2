@@ -94,7 +94,9 @@ export function deriveStage(scenario, now = new Date()) {
   // — a reconcile of what is already held); it has no job while saving far out or once the plan is running.
   const leads = def.leads.slice(), hidden = def.hidden.slice();
   if (['approaching', 'committed-saving', 'bridge', 'draft-retired'].includes(key)) leads.push('transition');
-  if (['saving', 'running', 'unknown'].includes(key)) hidden.push('transition');
+  // Still shown while Running: a plan locked and started the same day has a ladder to buy, and a ladder that
+  // is running still needs reconciling now and then (6.10.4). Hidden only while saving far out.
+  if (['saving', 'unknown'].includes(key)) hidden.push('transition');
   const startLabel = taxYearLabel(t.firstTaxYear);
   const banner = def.banner ? { ...def.banner, text: def.banner.text.replace(/\{start\}/g, startLabel) } : null;
   return {

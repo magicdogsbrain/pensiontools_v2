@@ -145,6 +145,7 @@ export function whereAmIHtml(w) {
   if (w.incomeThisYear && w.incomeThisYear.recorded) parts.push(w.incomeThisYear.recorded + ' month' + (w.incomeThisYear.recorded === 1 ? '' : 's') + ' recorded this tax year: ' + gbp(w.incomeThisYear.drawn) + ' gross so far' + (w.incomeThisYear.perMonth ? ' against ' + gbp(w.incomeThisYear.perMonth) + ' a month planned' : '') + '.');
   if (w.pot && w.pot.actual != null) {
     if (w.pot.flat) parts.push('Pot ' + gbp(w.pot.actual) + '; the plan\'s path is bought by contract (' + gbp(w.pot.p50) + ' expected this year).');
+    else if (w.pot.p10 != null && w.pot.p90 != null && Math.abs(w.pot.p90 - w.pot.p10) < 1) parts.push('Pot ' + gbp(w.pot.actual) + ' at the start of the plan, priced on ' + gbp(w.pot.p50) + '; the cone opens from next year.');
     else if (w.pot.band) parts.push('Pot ' + gbp(w.pot.actual) + ' — ' + (w.pot.band === 'below p10' ? '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(w.pot.p10) + ')' : w.pot.band === 'p10–p50' ? 'between the 1-in-10 bad line (' + gbp(w.pot.p10) + ') and the median (' + gbp(w.pot.p50) + ')' : w.pot.band === 'p50–p90' ? 'between the median (' + gbp(w.pot.p50) + ') and the 1-in-10 good line (' + gbp(w.pot.p90) + ')' : 'above the plan\'s 1-in-10 good line (' + gbp(w.pot.p90) + ')') + '.');
   }
   if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));

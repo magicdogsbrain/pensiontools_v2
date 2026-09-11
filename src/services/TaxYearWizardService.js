@@ -454,7 +454,13 @@ export function calculateMonthlyBreakdown(params) {
   // cause is total tax less the tax already due on that earlier income, spread over the months
   // actually drawn. For a full year with nothing earned before, this is the plain annual figure.
   const months = Math.max(1, Math.min(12, remainingMonths || 12));
-  const drawsThisYear = (monthlySippGross + monthlyFixedIncomeGross) * months;
+  // The State Pension inside the months to come: the year's whole total when it starts on or after the start
+  // month (none of it is in the income to date), the monthly payment × months when it started earlier (6.11.5 —
+  // the monthly figure of 0 before the start month was leaving the year's SP out of the tax altogether).
+  const spInDraws = statePension > 0 && statePensionMonthlyFull != null
+    ? (spStartedByStart ? statePensionMonthlyFull * months : statePension)
+    : monthlyStatePensionGross * months;
+  const drawsThisYear = (monthlySippGross + monthlyOtherGross) * months + spInDraws;
   const priorIncome = months < 12 ? (grossIncomeToDate || 0) : 0;
   // With the tax already paid known (payslips), what is still to come is the year's total less that —
   // right for a retiree drawing under cumulative PAYE since April, whose earlier months already carried

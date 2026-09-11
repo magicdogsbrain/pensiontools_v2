@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.5', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'What is left at the end counts the ISA; a State Pension starting mid-year is taxed',
+    summary: 'Two corrections from today\'s scenario walk. The Stress Tester\'s "typically left at the end" counted the pension pot only, so a plan whose house-sale money had been moved into the ISA over the years read "£0 typically left" with £400,000 in the ISA — it now counts every pot (pension, ISA, taxable account) and says how much is the pension pot. In the tax-year setup, a State Pension starting later in the year was left out of the year\'s tax (£41 a month instead of £179); the confirmation now taxes the whole year\'s State Pension and the "Other income" step says "Starts 9 November 2026: £997/month (£4,834 this tax year)". The wizard\'s suggested income now says it comes from your plan\'s schedule, not "the Budget tool", when it came from the Stress Tester\'s steps.',
+    changes: ['Monte Carlo card: "left at the end" is all pots; the pension-pot figure is shown beside it.'],
+    corrections: ['Year\'s tax in the tax-year setup when the State Pension starts after the start month.', '"From your budget\'s plan" wording when the schedule came from the income steps.'],
+    effects: { decision: ['Only the expected monthly tax shown at setup changes; the monthly recommendation already taxed the year correctly.'], stress: ['Headline "left at the end" rises for plans holding an ISA; nothing in the simulation changed.'], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.4', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Run-up wording finished; lump sums and the pot strategies; rent counts in the run-up',
     summary: 'Three follow-ups from today\'s scenario walk. The Decision tool\'s run-up note still said "the cash you set aside to reach it" — it now says SIPP cash. A plan on Pots & Valves or Buckets with an inheritance on the way showed the inheritance\'s money as "Other / DB" income in the plan document; the pot takes the lump, so the pot pays and the row now says so. And in the run-up year the tax-year setup\'s "the cash to April covers about N payments" ignored income streams such as rent; it now nets them off like the DB pension.',

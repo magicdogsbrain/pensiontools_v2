@@ -33,6 +33,12 @@ describe('State Pension in its first year: the monthly payment from its start mo
     expect(calculateMonthlyBreakdown({ ...base, startYm: '2026-11' }).statePension.gross).toBeCloseTo(996.67, 2);
     expect(calculateMonthlyBreakdown({ ...base, statePensionMonthlyFull: null }).statePension.gross).toBeCloseTo(4829 / 12, 2);
   });
+  it('the year\'s tax still counts the State Pension that arrives later in the year', () => {
+    const b = calculateMonthlyBreakdown({ targetSalary: 24000, brl: 50270, pa: 12570, other: 0, statePension: 4829, statePensionMonthlyFull: 996.67, spStartYm: '2026-11', startYm: '2026-09', isaSavingsAllocation: 0, remainingMonths: 7, grossIncomeToDate: 0, isTaxEfficient: false });
+    expect(b.sipp.gross).toBeCloseTo(2000, 0);                       // before November the SIPP pays the whole £2,000
+    expect(b.statePension.gross).toBe(0);
+    expect(Math.abs(b.totalTax - ((2000 * 7 + 4829 - 12570) * 0.2) / 7)).toBeLessThan(1);   // ≈ £179, not £41
+  });
 });
 
 describe('mid-year wizard: tax already paid (6.4.1)', () => {

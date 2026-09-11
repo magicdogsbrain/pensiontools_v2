@@ -714,7 +714,8 @@ function attachListeners() {
   window._updateWizardSalary = function() {
     // Budget-schedule suggestions don't depend on this year's CPI entry (the schedule is
     // uplifted by PRIOR years' CPI only) — don't clobber them with the chain recompute.
-    if (wizardContext && wizardContext.suggestionSource === 'budget-schedule') return;
+    const fromScheduleAssumed = wizardContext && wizardContext.suggestionSource === 'budget-schedule' && wizardContext.schedulePrevCpiAssumed && wizardContext.scheduleSuggestedBase > 0;
+    if (wizardContext && wizardContext.suggestionSource === 'budget-schedule' && !fromScheduleAssumed) return;
     const cpiInput = document.getElementById('wizCPI');
     const salaryInput = document.getElementById('wizSalary');
     const cpiDisplay = document.getElementById('cpiDisplay');
@@ -730,6 +731,8 @@ function attachListeners() {
       // A bridge-year suggestion is this year's cash spread over the months left — CPI does not move it.
       const suggestedSalary = wizardContext.suggestionSource === 'bridge'
         ? Math.round(wizardContext.suggestedSalary)
+        : fromScheduleAssumed
+        ? Math.round(wizardContext.scheduleSuggestedBase * (1 + cpi))   // last year's CPI was assumed: the typed figure replaces it (6.11.6)
         : Math.round(base * (1 + cpi - declineRate));
 
       // Update displays

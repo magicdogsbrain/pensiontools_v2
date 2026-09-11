@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.6', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Mid-year State Pension taxed in the monthly recommendation; the CPI you type moves a schedule suggestion',
+    summary: 'The monthly recommendation taxed only a share of the year\'s State Pension when it starts part-way through the year (£121 a month instead of £179 for a November start): the whole partial-year amount lands in the months to come, and is now taxed as such. Plans already receiving it, and plans without a start date, are unchanged. In the tax-year setup, when the suggested income came from your plan\'s schedule and last year\'s CPI had never been entered, the CPI you typed changed nothing (the assumed 4% stayed in the uplift) — it now replaces the assumption for last year.',
+    changes: [],
+    corrections: ['Monthly recommendation tax in the year a State Pension starts.', 'Tax-year setup: the typed CPI applies to a schedule-based suggestion when last year\'s CPI was assumed.'],
+    effects: { decision: ['Only the tax year in which your State Pension starts, and only its tax line. Records already saved keep their figures.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.5', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'What is left at the end counts the ISA; a State Pension starting mid-year is taxed',
     summary: 'Two corrections from today\'s scenario walk. The Stress Tester\'s "typically left at the end" counted the pension pot only, so a plan whose house-sale money had been moved into the ISA over the years read "£0 typically left" with £400,000 in the ISA — it now counts every pot (pension, ISA, taxable account) and says how much is the pension pot. In the tax-year setup, a State Pension starting later in the year was left out of the year\'s tax (£41 a month instead of £179); the confirmation now taxes the whole year\'s State Pension and the "Other income" step says "Starts 9 November 2026: £997/month (£4,834 this tax year)". The wizard\'s suggested income now says it comes from your plan\'s schedule, not "the Budget tool", when it came from the Stress Tester\'s steps.',

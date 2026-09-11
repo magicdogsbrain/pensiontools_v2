@@ -633,7 +633,13 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // roughly doubled the "saving" in a mid-year first year (persona test B32).
       // The SIPP part of the target only — the target already includes other income and the State Pension,
       // which are added on their own line below (6.4.2: they were counted twice, inventing a "saving").
-      const inefficientTaxable = Math.max(0, (target - OTHER - STATE) / 12) * deliverMonths * (1 - taxFreeF) + (OTHER + STATE) * fixedShare + preStartIncome;
+      // 6.11.2: "saved" means: the money actually delivered this tax year, had ALL of it been taxable SIPP
+      // income. Only tax-free money can save tax (an ISA draw, the GIA's net, the UFPLS slice); a smaller
+      // SIPP draw for any other reason (protection, the run-up, a month already paid) is not a saving —
+      // comparing with the TARGET drawn from the SIPP reported one whenever the draw fell short of it.
+      const taxFreeThisMonth = (isa || 0) + (giaNet || 0);
+      const taxFreeYTD = thisTaxYearHistory.reduce((s, h) => s + (h.isa || 0) + (h.giaNet != null ? h.giaNet : (h.giaDraw || 0)), 0);
+      const inefficientTaxable = totalAnnualSipp + taxFreeYTD + taxFreeThisMonth * (1 + monthsRemaining) + (OTHER + STATE) * fixedShare + preStartIncome;
       const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - priorTax;
       const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - priorTax)) / deliverMonths);
 

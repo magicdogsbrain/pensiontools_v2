@@ -206,3 +206,9 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   bridge-cash coverage months. Verified on dev as guest: tick/untick, month roll-over, March toast, wizard for October
   → 6 payments to come. Chris's saved September entry (7-payment frame, pre-payment cash) stays valid; to switch to the
   6-payment frame: delete the Sept entry + the 26/27 setup, tick the box, re-enter from October.
+
+## 11 Sep 2026 — persona walk on the QA account (Chris asked for plans at different stages / strategies)
+- **P1 QA Saver 45 (P&V, £180k, retire 62, £30k):** MC said 100% / £1.15m left. Cause: `renderTiming` projected potAtRetirement
+  from `window._ssTimingBase` (the SAVED settings = £1m defaults on a new plan), so potScale ≈ 8×. Fixed 6.10.2: projection
+  from `readAlloc('ss')` + form ISA/funds; save re-runs `renderTiming()` first. Also plan-start year was 2043/44 instead of
+  2042/43 because the SP date (birthday) was typed after the block rendered — SP date input now re-renders timing.

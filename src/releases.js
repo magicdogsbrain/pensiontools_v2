@@ -36,6 +36,16 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.10.2', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'Retiring later: the plan is priced on the pots you typed, not the defaults',
+    summary: 'Found while walking new plans through the stages. On a plan created moments earlier, the Timing block projected the pots at retirement from the saved settings — which for a new plan are the £1m defaults — rather than from the pot typed into the form. A £180k saver was stress-tested as a £1.5m one. The block now reads the form as it stands, and the settings save re-derives the timing from the whole form (pots, ages, State Pension date) at the moment of saving.',
+    changes: ['The Timing block re-renders when the State Pension date is typed, since that date sets the birthday the plan-start year is counted from.'],
+    corrections: ['Retire-later plans saved before this fix may carry a wrong "pot at retirement". Open Stress → Settings and press Save once; the figure is recomputed from the form.', 'The plan-start year could come out a year late when the State Pension date was entered after the Timing block had rendered. Saving now recomputes it.'],
+    effects: { stress: ['Retire-later plans only; already-retired plans are unaffected. After a re-save the cones and ladders price on the right pots.'], strategies: [], decision: [], household: [], budget: [], accumulation: [] },
+    actions: ['If you have a plan with "I will retire at age X": open its Stress settings and press Save Settings once.'],
+    notes: []
+  },
+  {
     version: '6.10.1', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'Stage always shown; ladder CSV without pot targets; printable PDFs',
     summary: 'Three fixes from Chris: a plan whose next-step banner had been dismissed never got its life stage worked out (so the Accumulation tab stayed visible for a retiree and the chip said only "locked"); the Tax Years CSV carried Pots & Valves targets and a rebalance column for gilt-ladder plans; and the Decision PDFs printed the app\'s dark colours and its buttons, which came out illegible on an iPad.',

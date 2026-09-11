@@ -3512,7 +3512,7 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>SP Start Date</label>
-                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderTiming')">
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
@@ -8773,7 +8773,10 @@
       // Retiring later: project today's pots to retirement from the Accumulation planner's inputs.
       if (t.mode === 'future') {
         let acc = {}; try { acc = (typeof getActiveAccumulation === 'function' ? await getActiveAccumulation() : {}) || {}; } catch (e) { acc = {}; }
-        window._tmProjection = projectedPotAtRetirement({ ...s, equityMin: window._ssTimingBase?.equityMin, bondMin: window._ssTimingBase?.bondMin, cashTarget: window._ssTimingBase?.cashTarget, diversifierStart: window._ssTimingBase?.diversifierStart, isaBalance: window._ssTimingBase?.isaBalance }, acc);
+        // Pots from the FORM as it stands (a new plan's saved settings are the £1m defaults — 6.10.2), else the saved ones.
+        let potsNow = null; try { const a = readAlloc('ss'); if (a && (+a.equityMin + +a.bondMin + +a.cashTarget) > 0) potsNow = a; } catch (e) { potsNow = null; }
+        const base = window._ssTimingBase || {};
+        window._tmProjection = projectedPotAtRetirement({ ...s, equityMin: potsNow ? +potsNow.equityMin : base.equityMin, bondMin: potsNow ? +potsNow.bondMin : base.bondMin, cashTarget: potsNow ? +potsNow.cashTarget : base.cashTarget, diversifierStart: potsNow ? (+potsNow.diversifierStart || 0) : base.diversifierStart, isaBalance: +document.getElementById('ssIsaBalance')?.value || base.isaBalance || 0, taggedFunds: (window._taggedFunds && window._taggedFunds.ss && window._taggedFunds.ss.length) ? window._taggedFunds.ss : base.taggedFunds }, acc);
         s = timingSettingsFromForm(); t = deriveTiming(s);
       } else window._tmProjection = null;
       window._ssTiming = { ...t, settings: s };
@@ -10993,6 +10996,9 @@
             const dsB = document.getElementById('dsBaseSalary'); if (dsB) { dsB.value = firstStep || _newBase; try { syncNetFromGross('ds'); } catch (e) { /* form not built yet */ } }
           }
         } catch (e) { console.warn('Decision target sync skipped:', e); }
+        // Timing is derived from the WHOLE form as it stands at save (pots, SP date, ages) — not from the
+        // state when the block last rendered (6.10.2).
+        try { await renderTiming(); } catch (e) { /* timing block optional */ }
         await syncBudgetAgeFromTiming();
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool

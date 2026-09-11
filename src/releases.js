@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.1', date: '2026-09-11', engineVersion: '6.4.0',
+    title: 'The months before year 0 are the run-up, paid from your SIPP cash',
+    summary: 'The app called the months before a plan\'s first tax year "bridge months" and their money "bridge cash", as if it were something separate. It is not: for a retiree who has already stopped work it is the same SIPP cash (a money-market fund such as CSH2) the cash years will use, and nothing bridges anything. They are now the "run-up" and the source reads "SIPP cash". The sums are unchanged.',
+    changes: ['Stage chip, Decision alert, plan document, History source column and the tax-year setup now say "run-up" and "SIPP cash to the first April" instead of "bridge".'],
+    corrections: [],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.0', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'State Pension: the monthly payment from the month it starts',
     summary: 'In the tax year your State Pension begins, the Decision tool and the tax-year setup used to spread the year\'s partial total over twelve months — £402 a month for a pension that actually pays £997 from November. Now the months before the start show nothing from it and the SIPP covers the gap; from the start month the full monthly payment arrives and the SIPP draw drops. The year\'s tax still uses the true partial total.',

@@ -93,17 +93,17 @@ export function planDocumentHtml(doc, r = {}) {
   // Assumptions + how the Decision tool runs it
   const A = d.assumptions || {}, DR = d.decisionRun || {};
   let as = table(['Assumption', 'Value'], [
-    ['Plan starts', esc(DR.year0 || '') + (DR.bridgeMonths > 0 ? ' — ' + DR.bridgeMonths + ' bridge month' + (DR.bridgeMonths === 1 ? '' : 's') + ' before it' : '')],
+    ['Plan starts', esc(DR.year0 || '') + (DR.bridgeMonths > 0 ? ' — ' + DR.bridgeMonths + ' run-up month' + (DR.bridgeMonths === 1 ? '' : 's') + ' before it, drawn from the SIPP cash' : '')],
     ['Duration', esc(String(A.duration || '')) + ' years'],
     ['State Pension', A.spStartDate ? esc(A.spStartDate) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered'],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
-    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · bridge cash ' + gbp(A.bridgeCash) : '')]] : []),
+    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · SIPP cash to the first April ' + gbp(A.bridgeCash) : '')]] : []),
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(A.giltPricesAsOf)]] : []),
     ['Engine', 'v' + esc(d.engineVersion || '') + ' (app v' + esc(d.appVersion || '') + ')']
   ]);
   as += '<div class="section-title" style="font-size:13px;margin-top:10px;">How the Decision tool runs this plan</div><ul>'
-    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '. Months before it are bridge months, paid from the cash set aside to reach it.</li>'
+    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '. Months before it are the run-up: paid from your SIPP cash (the money-market fund the cash years also use); nothing is sold.</li>'
     + '<li>Each month you enter: ' + (DR.monthlyAsks || []).map(esc).join(' · ') + '.</li>'
     + (DR.contract ? '<li>The recommendation is the year\'s rung (or the cash years) divided over the months left. Nothing is sold; pot floors and rebalancing do not apply.</li>'
       : '<li>The recommendation draws to the tax bands, keeps the pots on their glidepath tracks and applies protection in a downturn.</li>')
@@ -139,7 +139,7 @@ export function whereAmIHtml(w) {
     else if (s.expected != null) parts.push('The locked path expects about ' + gbp(s.expected) + ' in the pension pot now. Record this month\'s pot on the Accumulation planner to compare.');
     if (s.contributions > 0) parts.push('Contributions on the locked plan: ' + gbp(s.contributions) + ' a month gross.');
   }
-  else if (w.bridge) parts.push('<strong>Bridge month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan starts in ' + esc(w.planStart) + '. Living on the bridge cash.');
+  else if (w.bridge) parts.push('<strong>Run-up month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan\'s year 0, ' + esc(w.planStart) + '. Drawn from your SIPP cash; the ladder\'s rungs begin at year 0.');
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
   if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
   if (w.incomeThisYear && w.incomeThisYear.recorded) parts.push(w.incomeThisYear.recorded + ' month' + (w.incomeThisYear.recorded === 1 ? '' : 's') + ' recorded this tax year: ' + gbp(w.incomeThisYear.drawn) + ' gross so far' + (w.incomeThisYear.perMonth ? ' against ' + gbp(w.incomeThisYear.perMonth) + ' a month planned' : '') + '.');

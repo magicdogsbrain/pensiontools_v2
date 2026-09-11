@@ -591,7 +591,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Plan year 0 is the plan's saved first tax year — the same anchor as yearNum (6.4.0).
       const planYear = yearNumSigned;
       if (bridgeYear) {
-        alerts.push({ type: 'bridge-year', message: 'Bridge year: your plan starts in ' + taxYearLabel(anchorYear) + ' (' + (-yearNumSigned) + ' tax year' + (yearNumSigned === -1 ? '' : 's') + ' from now). Until then you are spending the money set aside to reach it — the plan\'s pot tracks, rungs and yearly steps are not applied yet.' });
+        alerts.push({ type: 'bridge-year', message: 'Run-up to your plan: year 0 is ' + taxYearLabel(anchorYear) + ' (' + (-yearNumSigned) + ' tax year' + (yearNumSigned === -1 ? '' : 's') + ' from now). Until then you draw from your SIPP cash — the plan\'s pot tracks, rungs and yearly steps are not applied yet.' });
       }
       for (const w of Array.isArray(settings.windfalls) ? settings.windfalls : []) {
         if (!(w.amount > 0) || w.year !== planYear) continue;

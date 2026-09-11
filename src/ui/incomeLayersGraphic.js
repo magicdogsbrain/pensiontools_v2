@@ -79,9 +79,12 @@ export function incomeLayersRows(r, p) {
       default: contract = 0;
     }
     const total50 = p50[y] ?? 0;   // the engines' income series now includes SP + other income
-    const market = Math.max(0, total50 - s - o - contract);
-    const lump = lumpUsed(y);
-    rows.push({ age: p.startAge + y, sp: s, other: o, otherPure: o - lump, lump, contract, market, need, p10: p10[y] ?? 0 });
+    // Only the BOUGHT strategies spend a lump sum year by year; the P&V engine and Buckets take it into the pot,
+    // so for them it is neither other income nor a lump-sum layer — the pot (market) layer pays.
+    const used = lumpUsed(y), bought = r.strategyId !== 'pots-and-valves' && r.strategyId !== 'buckets-in-order';
+    const lump = bought ? used : 0, oStack = bought ? o : o - used;
+    const market = Math.max(0, total50 - s - oStack - contract);
+    rows.push({ age: p.startAge + y, sp: s, other: oStack, otherPure: o - used, lump, contract, market, need, p10: p10[y] ?? 0 });
   }
   return rows;
 }

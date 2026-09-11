@@ -288,3 +288,16 @@ target skips them, plan document has a "From a lump sum" column).
 - Stress 61%. Tax-year setup Sept 2026: SIPP £2,000 for the months before November, SP not shown (correct) — but the
   year's tax was £41/month: the November-start SP was left out of the year's tax. **Fixed 6.11.5** (≈ £179/month).
   Other-income step said "Receiving £4,834/year" → now "Starts 9 November 2026: £997/month (£4,834 this tax year)".
+- Decision Sept 2026 (after 6.11.5): SIPP £2,000, no SP; November: SIPP £1,002 + SP £998 = £2,000 — the 6.11.0 rule
+  end to end. The recommendation's own tax then understated the year (SP share 7/12 of the partial total, £121 vs
+  £179) — **fixed 6.11.6** (engine). Also fixed 6.11.6: **P11** the typed CPI now replaces the assumed 4% for last year
+  in a schedule-based suggestion. **P10** wording fixed 6.11.5.
+
+### QA Part-time 58 (future: retire at 61 in May 2029, part-time £18k years 0–2, Buckets, SIPP £380k, ISA £100k, £34k/yr)
+- Draft chip "Approaching retirement"; Stress 79%; lock → "🔒 locked · Committed, still saving · 3 years to go";
+  Decision gate: "you retire in May 2029 … record your pot on the Accumulation planner instead"; Transition target for a
+  pot strategy: 3 moves, "32 months to go", next buy Shares £204,923. No anomalies.
+
+Open after today: P9 (done 6.11.4), P13 (design question: "100 in 100 futures cut back" for P&V floors = pot),
+the run-up wizard's other-income prefill for income streams that start at plan year 0 (they are shown for the run-up
+year too — arguably right for rent that already exists), and the cone "How your pot changes" excludes the ISA.

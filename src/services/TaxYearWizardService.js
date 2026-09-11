@@ -311,7 +311,7 @@ export async function getWizardData(selectedMonth) {
   // salary × CPI − decline) can't know that. Uplift the year's scheduled figure to nominal with
   // the SAME cpi chain the decision engine compounds (entered CPI per year, 4% assumption for
   // unentered years), and apply the spending profile the stress engine applies on top.
-  let scheduleSuggestedSalary = null;
+  let scheduleSuggestedSalary = null, schedulePrevCpiAssumed = false, scheduleSuggestedBase = null;
   try {
     const stress = await getActiveStressSettings();
     const sched = Array.isArray(stress?.targetSchedule) ? stress.targetSchedule : null;
@@ -323,6 +323,14 @@ export async function getWizardData(selectedMonth) {
       }
       const smile = spendingSmileFactor(planYear, settings.spendingProfile || 'flat');
       scheduleSuggestedSalary = Math.round(sched[planYear] * cumInf * smile);
+      // The CPI typed in the wizard is LAST year's: when last year's CPI was never entered, the chain used the
+      // assumption for it — so the typed figure replaces that factor (6.11.6; it changed nothing before).
+      if (planYear > 0) {
+        const prevKey = taxYearKey(planStartYear + planYear - 1);
+        const prevCpiEntered = (allTaxYears[prevKey] || {}).cpi;
+        schedulePrevCpiAssumed = !prevCpiEntered;
+        scheduleSuggestedBase = prevCpiEntered ? null : sched[planYear] * cumInf / (1 + DECISION_ASSUMED_CPI) * smile;
+      }
     }
   } catch (e) { /* no stress settings / no schedule — chain fallback below */ }
 
@@ -355,6 +363,7 @@ export async function getWizardData(selectedMonth) {
     planYear: planYearSigned,
     bridgeYear,
     bridgeCoverMonths,   // how many of the payments to come the plan's bridge cash covers at the suggested rate (bridge years only)
+    schedulePrevCpiAssumed, scheduleSuggestedBase,   // schedule suggestions: last year's CPI was assumed → the typed CPI re-uplifts from this base
 
     // Current settings
     baseSalary: settings.baseSalary,

@@ -270,3 +270,21 @@ target skips them, plan document has a "From a lump sum" column).
   this year — the per-year schedule you set from the Budget tool" when the schedule came from the Stress income steps.
   **P11 (open)** suggested £32,448 = £30,000 × 1.04² — the CPI typed (3%) is not applied to the skipped years' uplift
   (assumed 4% both years); expected £30,000 × 1.04 × 1.03 = £32,136.
+
+### QA Downsizer 68 (retrospective: retired 3 yrs, SP in payment since Mar 2025, plan start = this tax year, P&V cautious, SIPP £220k, ISA £60k, £28k/yr, house downsized £300k in plan year 3 → gilts, ISA first; £40k kitchen year 1)
+- Timing: "Plan starts 6 April 2026, already running"; lock → "🔒 locked · Running the plan"; Accumulation hidden; the
+  next-step banner is hidden (display none — its stale text is only in the DOM).
+- Stress: 100% lasts BUT "£0 typically left at the end" at every percentile. Reproduced in node: the SIPP is drawn
+  to nil by ~year 20 while the windfall, moved into the ISA by bed-and-ISA, grows to £400–630k. **P14 (fixed 6.11.5)**:
+  the headline counted the pension pot only; now all pots, with the pension-pot figure beside it.
+- **P13 (open, design)**: "100 in 100 futures had to cut back spending" for every P&V plan whose floors equal the
+  starting pot (the presets set equityMin/bondMin/cashTarget = the allocation, so any dip below a floor is
+  "protection"). True to the engine, alarming to read. Ask Chris whether the stat should count only months the draw was
+  actually cut, or the floors should default below the allocation.
+- Decision Sept 2026: SP £998/month (monthlyFull, in payment) + SIPP £1,336 = £2,333; wizard "Receiving £12,272/year".
+- Without the windfall the same plan is 22% — a 5.7% real withdrawal on a cautious mix; not a bug.
+
+### QA SP starts Nov 66 (retired, SP starts 9 Nov 2026, P&V balanced, SIPP £200k, ISA £30k, £24k/yr) — the 6.11.0 check
+- Stress 61%. Tax-year setup Sept 2026: SIPP £2,000 for the months before November, SP not shown (correct) — but the
+  year's tax was £41/month: the November-start SP was left out of the year's tax. **Fixed 6.11.5** (≈ £179/month).
+  Other-income step said "Receiving £4,834/year" → now "Starts 9 November 2026: £997/month (£4,834 this tax year)".

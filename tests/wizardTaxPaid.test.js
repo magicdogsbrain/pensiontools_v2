@@ -18,6 +18,11 @@ describe('State Pension in its first year: the monthly payment from its start mo
     expect(r.statePension).toBe(0);
     expect(r.sippDraw).toBeCloseTo((36000 - 22000) / 12, 0);   // ≈ £1,167 — target less the DB pension only
   });
+  it('September: the year\'s tax counts the whole partial-year State Pension, which all falls in the months to come', async () => {
+    const r = await calcDecisionPWA('2026-09', 27000, 40500, 22500, deps());
+    // SIPP 1,167 × 7 + SP 4,829 (all of it) + DB 22,000 × 7/12 + income to date 9,167 = 35,000 → tax (35,000 − 12,570) × 20% = 4,485 / 7 ≈ £641
+    expect(Math.abs(r.monthlyTax - ((1166.67 * 7 + 4829 + 22000 * 7 / 12 + 9167 - 12570) * 0.2) / 7)).toBeLessThan(2);
+  });
   it('November: the full monthly payment arrives and the SIPP draw drops', async () => {
     const r = await calcDecisionPWA('2026-11', 27000, 40500, 22500, deps());
     expect(r.statePension).toBeCloseTo(996.67, 1);

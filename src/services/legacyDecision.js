@@ -568,7 +568,13 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // In a partial first year the fixed incomes count only for the months left: the earlier months'
       // share is already inside the income to date (6.4.1 — it was double-counted before).
       const fixedShare = deliverMonths / 12;
-      const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + (OTHER + STATE) * fixedShare + preStartIncome;
+      // The State Pension inside the months drawn this year (6.11.6): when it starts on or after the first
+      // month drawn, the year's whole (partial) total lands in these months; when it was already in payment,
+      // the monthly payment × the months drawn (the earlier months' share sits in the income to date). Plans
+      // without the start month keep the old share.
+      const firstDrawYm = (() => { const d = new Date(year, month - 1 - (monthsPassedIncludingThis - 1), 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); })();
+      const spInDraws = !STATE ? 0 : (spInfo.startYm && spInfo.monthlyFull != null) ? (spInfo.startYm >= firstDrawYm ? STATE : spInfo.monthlyFull * deliverMonths) : STATE * fixedShare;
+      const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + OTHER * fixedShare + spInDraws + preStartIncome;
 
       // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.
       const annualTax = calculateTax(annualTaxable, PA, BRL, HRL);
@@ -639,7 +645,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // comparing with the TARGET drawn from the SIPP reported one whenever the draw fell short of it.
       const taxFreeThisMonth = (isa || 0) + (giaNet || 0);
       const taxFreeYTD = thisTaxYearHistory.reduce((s, h) => s + (h.isa || 0) + (h.giaNet != null ? h.giaNet : (h.giaDraw || 0)), 0);
-      const inefficientTaxable = totalAnnualSipp + taxFreeYTD + taxFreeThisMonth * (1 + monthsRemaining) + (OTHER + STATE) * fixedShare + preStartIncome;
+      const inefficientTaxable = totalAnnualSipp + taxFreeYTD + taxFreeThisMonth * (1 + monthsRemaining) + OTHER * fixedShare + spInDraws + preStartIncome;
       const inefficientAnnualTax = calculateTax(inefficientTaxable, PA, BRL, HRL) - priorTax;
       const taxSavedMonthly = Math.max(0, (inefficientAnnualTax - (annualTax - priorTax)) / deliverMonths);
 

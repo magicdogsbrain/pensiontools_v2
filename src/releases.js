@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.11.2', date: '2026-09-11', engineVersion: '6.4.0',
+    title: '"Tax saved" means tax-free money used, nothing else',
+    summary: 'The History and monthly record compared the year\'s tax with the tax on your TARGET drawn entirely from the SIPP. Any month the SIPP draw fell short of the target for another reason — protection, the run-up before year 0, a month already paid — showed a "saving" that was not one (a September run-up month reported £1,462 a year saved with nothing tax-free in it). The comparison is now the money actually delivered this tax year, had all of it been taxable SIPP income: an ISA draw, a GIA slice or an UFPLS tax-free slice can save tax; nothing else can.',
+    changes: [],
+    corrections: ['"Tax saved" reported for months with no tax-free money in them.'],
+    effects: { decision: ['The tax-saved line on new records is nil unless an ISA, GIA or tax-free slice was used; the recommendation and the tax due are unchanged. Old records keep the figure they stored.'], stress: [], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.1', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'The months before year 0 are the run-up, paid from your SIPP cash',
     summary: 'The app called the months before a plan\'s first tax year "bridge months" and their money "bridge cash", as if it were something separate. It is not: for a retiree who has already stopped work it is the same SIPP cash (a money-market fund such as CSH2) the cash years will use, and nothing bridges anything. They are now the "run-up" and the source reads "SIPP cash". The sums are unchanged.',

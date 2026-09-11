@@ -259,9 +259,9 @@ function renderCpiAndSalary() {
 
       <div class="wizard-info-box" id="salaryInfoBox">
         ${fromBridge
-          ? `<p><strong>Bridge year</strong> — your plan starts in ${startLabel}, so this tax year is funded
-             by the cash you set aside to reach it. The suggestion is your plan's first income step, the rate
-             the bridge cash was sized for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the bridge cash covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
+          ? `<p><strong>Run-up year</strong> — your plan's year 0 is ${startLabel}, so this tax year is drawn
+             from your SIPP cash (the money-market fund the cash years also use). The suggestion is your plan's first income step, the rate
+             that cash was sized for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the cash to April covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
           : fromSchedule
           ? `<p><strong>From your budget's plan for this year</strong> — the per-year schedule you set
              from the Budget tool (temporary costs end when they end, one-offs land in their year),

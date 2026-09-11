@@ -3153,7 +3153,7 @@
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
-                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" style="display:flex;flex-direction:column;gap:2px;">SIPP cash to the first April (£)<input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                 </div>
                 <p class="hint" style="margin:6px 0 0;">Priced against <strong>Your pot</strong> above (<span id="giltPotEcho">—</span>); a held ISA is left out. Uses your income shape, your State Pension date, and the latest gilt prices and index ratios.</p>
@@ -7940,7 +7940,7 @@
         : ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
       let csv = cols.map(esc).join(',') + '\n';
       for (const h of rows) csv += (contract
-        ? [h.date, h.strategySource || (h.bridgeYear ? 'bridge cash' : 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
+        ? [h.date, h.strategySource || (h.bridgeYear ? 'SIPP cash (run-up)' : 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
         : [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || '']).map(esc).join(',') + '\n';
       if (!rows.length) csv += '(no monthly records saved for this tax year yet)\n';
       downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
@@ -8745,7 +8745,7 @@
     // "Year N" for a saved Decision record — or "Bridge year" before the plan starts (6.4.2).
     window.recordYearLabel = function (h) {
       const bridge = h?.bridgeYear === true || (window._decisionAnchor > 0 && h?.taxYear ? planYearOf(h.taxYear, window._decisionAnchor) < 0 : false);
-      if (bridge) return 'Bridge year' + (window._decisionAnchor > 0 ? ' (plan starts ' + taxYearLabel(window._decisionAnchor) + ')' : '');
+      if (bridge) return 'Run-up year' + (window._decisionAnchor > 0 ? ' (year 0 is ' + taxYearLabel(window._decisionAnchor) + ')' : '');
       const y = window._decisionAnchor > 0 && h?.taxYear ? planYearOf(h.taxYear, window._decisionAnchor) : (h?.yearNum || 0);
       return 'Year ' + y;
     };
@@ -8990,7 +8990,7 @@
       if (planYearSigned < 0 && CONTRACT_IDS.includes(st.id)) {
         // Bridge month (6.4.2): the plan has not started, so the month is paid from the cash set aside to
         // reach the first April — nothing is sold and no rung is involved yet.
-        floorMonthly = total; floorLabel = 'bridge cash (the plan starts ' + taxYearLabel(timing.firstTaxYear) + ')';
+        floorMonthly = total; floorLabel = 'SIPP cash (the plan\'s year 0 is ' + taxYearLabel(timing.firstTaxYear) + ')';
         note = 'Before your plan starts in ' + taxYearLabel(timing.firstTaxYear) + ': this month comes from the cash you set aside to reach it. Nothing is sold; the ladder\'s first rung is not due yet.';
       }
       else if (st.id === 'full-il-gilt' || st.id === 'gilt-rotation' || st.id === 'floor-the-schedule') {
@@ -9942,7 +9942,7 @@
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Bridge cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">SIPP cash to the first April (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
       if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
@@ -13093,7 +13093,7 @@
                 + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
             + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
         }
-        const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') are bridge months — spent from the cash set aside to reach the start, so there is no plan figure to compare them with.</p>' : '';
+        const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') are the run-up — drawn from your SIPP cash before the plan\'s year 0, so there is no plan figure to compare them with.</p>' : '';
         if (!rows) { box.innerHTML = bridgeNote ? '<div class="settings-section" style="margin-bottom:14px;"><div class="section-title">Plan vs actual</div>' + bridgeNote + '</div>' : ''; return; }
         box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
           + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + new Date(por.savedAt).toLocaleDateString() + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'
@@ -13281,7 +13281,7 @@
       // Format withdrawal source details
       let sourceDetail = h.source || 'Unknown';
       if (contract) {
-        sourceDetail = h.strategySource ? ('From ' + h.strategySource) : (bridge ? 'Bridge cash — before the plan starts; nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
+        sourceDetail = h.strategySource ? ('From ' + h.strategySource) : (bridge ? 'SIPP cash (money-market fund) — the run-up before year 0; nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
       } else if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
         sourceDetail = `Growth (Equity: ${fmt(h.dEquity || 0)}, Bond: ${fmt(h.dBond || 0)})`;
       } else if (h.source === 'Cash') {

@@ -149,7 +149,7 @@ describe('planDocumentHtml', () => {
   it('the where-am-I strip reads as sentences', () => {
     const w = whereAmI(doc, { today: NOW, history: [] , potsToday: 1179421 });
     const h = whereAmIHtml(w);
-    expect(h).toContain('Bridge month');
+    expect(h).toContain('Run-up month');
     expect(h).toContain('2027/28');
     expect(h).toContain('Income step 1 of 3');
     expect(whereAmIHtml(null)).toBe('');

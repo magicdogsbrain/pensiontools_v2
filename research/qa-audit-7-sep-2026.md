@@ -231,3 +231,9 @@ Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
   Settings save FAILED ("Failed to save stress data") — `undefined` fields from mergeLedger (fixed 6.10.5); guessed code
   T31 vs order TR31 → matched by maturity year (6.10.5); Transition on a running plan said "1 month to go" → rolling
   6-month reconcile (6.10.5). Reconcile held T27/T29 rung-for-rung ✓, 31% of target held, honest shortfall.
+- **P7 QA DB heavy (£90k, DB £22k, SP from Nov 2026, £36k):** MC 93%; lock seeds Decision (floors = pots) ✓; wizard shows
+  DB £1,833/mo and SP "Receiving £4,829/year" — the partial first-year SP is spread over 12 months (£402/mo) rather than
+  paid from November: a known approximation, worth a note in the wizard (not fixed).
+- Left in the QA account for Chris to look at: QA Saver 45 (saving), QA Approaching 58 tight (approaching, 61%), QA Approaching
+  59 lock (committed-saving, 13 months), QA Retiring now 60 (running, floor to 80), QA Retiring now tight (running, buckets,
+  88%), QA Retrospective 70 (running ladder, reconcile 33% held), QA DB heavy (running P&V). Fixes shipped 6.10.2–6.10.5.

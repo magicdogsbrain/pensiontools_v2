@@ -99,6 +99,24 @@ export function monthsUntilStart(firstTaxYear, now = new Date()) {
   const start = new Date(+firstTaxYear, 3, 6);
   return Math.max(0, Math.round((start.getTime() - now.getTime()) / (30.44 * MS_PER_DAY)));
 }
+/** Months from `now` until the first of a 'YYYY-MM' month (0 when passed). */
+export function monthsUntilMonth(ym, now = new Date()) {
+  const [y, m] = String(ym || '').split('-').map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return 0;
+  return Math.max(0, (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth()));
+}
+/** The 'YYYY-MM' the person reaches `age` — the birthday month, from the recorded age and the birthday. */
+export function retirementMonth(settings, age, now = new Date()) {
+  const s = settings || {};
+  const a = ageOnDate(s, now, now);
+  if (a == null) return null;
+  const bd = birthdayOf(s, now);
+  // The next birthday from today is age a+1: find the year in which the birthday makes them `age`.
+  const thisYearBd = new Date(now.getFullYear(), bd.month, bd.day);
+  const nextBdYear = thisYearBd.getTime() > now.getTime() ? now.getFullYear() : now.getFullYear() + 1;   // birthday that makes them a+1
+  const year = nextBdYear + (Math.round(+age) - (a + 1));
+  return year + '-' + String(bd.month + 1).padStart(2, '0');
+}
 
 /**
  * Back-fill the timing fields on a plan saved before v6.4.0. Pure and idempotent; the repository
@@ -138,19 +156,24 @@ export function deriveTiming(settings, now = new Date()) {
   const base = { currentAge: null, retireAge: null, potScale: { sipp: 1, isa: 1 }, startOptions: [thisTY, thisTY + 1] };
   if (!(+s.currentAge > 0)) {
     const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : now.getFullYear() + 1;   // the pre-6.4.0 behaviour, unchanged
-    return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), bridgeMonths: monthsUntilStart(firstTaxYear, now) };
+    return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth: firstTaxYear + '-04', bridgeMonths: monthsUntilStart(firstTaxYear, now) };
   }
   const currentAge = ageOnDate(s, now, now);
   if (s.retired === false && +s.retireAge > 0) {
     let firstTaxYear = taxYearOfAge(s, +s.retireAge, now);
     if (!(firstTaxYear >= thisTY)) firstTaxYear = thisTY;   // "retire at 55" at 56: the plan starts now
     const shapeAgeNow = ageInTaxYear(s, firstTaxYear, now);
+    // The plan's YEARS are tax years (the ladder buys whole ones), but the person retires on a birthday:
+    // that month is when saving stops and the Decision tool opens (6.10.3). Someone 59 in September with an
+    // October birthday retiring at 61 has a 2027/28 plan year 0 and retires in October 2027, 13 months away.
+    const startMonth = retirementMonth(s, +s.retireAge, now);
     return { ...base, mode: 'future', firstTaxYear, shapeAgeNow, currentAge, retireAge: +s.retireAge,
-      yearsToStart: firstTaxYear - thisTY, bridgeMonths: monthsUntilStart(firstTaxYear, now), potScale: potScaleOf(s) };
+      yearsToStart: firstTaxYear - thisTY, startMonth, bridgeMonths: monthsUntilMonth(startMonth, now), potScale: potScaleOf(s) };
   }
   const firstTaxYear = +s.firstTaxYear >= thisTY ? +s.firstTaxYear : thisTY + 1;
+  const startMonth = firstTaxYear + '-04';
   return { ...base, mode: 'retired', firstTaxYear, shapeAgeNow: ageInTaxYear(s, firstTaxYear, now), currentAge,
-    yearsToStart: firstTaxYear - thisTY, bridgeMonths: monthsUntilStart(firstTaxYear, now) };
+    yearsToStart: firstTaxYear - thisTY, startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now) };
 }
 
 /** Today's SIPP-side pot as the settings describe it (the allocation pots + diversifiers). */
@@ -220,7 +243,12 @@ export function describeTiming(t, settings, now = new Date()) {
   const when = t.yearsToStart <= 0 && start.getTime() <= now.getTime() ? 'already running'
     : t.bridgeMonths < 24 ? 'in ' + t.bridgeMonths + ' month' + (t.bridgeMonths === 1 ? '' : 's')
     : 'in ' + Math.round(t.bridgeMonths / 12) + ' years';
-  const parts = ['Plan starts 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '), ' + when + '.'];
+  const parts = [];
+  if (t.mode === 'future' && t.startMonth) {
+    const [y, m] = t.startMonth.split('-').map(Number);
+    const mon = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+    parts.push('You retire in ' + mon + ' ' + y + ' at ' + t.retireAge + ', ' + (t.bridgeMonths >= 24 ? Math.round(t.bridgeMonths / 12) + ' years' : t.bridgeMonths + ' month' + (t.bridgeMonths === 1 ? '' : 's')) + ' away; the plan\'s year 0 is tax year ' + taxYearLabel(t.firstTaxYear) + ' (from 6 April ' + t.firstTaxYear + ').');
+  } else parts.push('Plan starts 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '), ' + when + '.');
   parts.push('Income steps start at age ' + t.shapeAgeNow + '.');
   if (s.spStartDate) {
     const sp = parseStatePensionDate(s.spStartDate);

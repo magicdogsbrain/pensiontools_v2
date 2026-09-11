@@ -195,7 +195,10 @@ export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
     const ticker = m.match.ticker || m.ticker || '';
     const key = (l) => (l.wrapper || 'SIPP').toUpperCase() === wrapper && ((ticker && up(l.ticker) === ticker) || (m.sedol && up(l.sedol) === m.sedol));
     const idx = out.findIndex(key);
-    const line = { ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? out[idx].units : null), sedol: m.match.sedol || m.sedol || null, subClass: m.match.subClass || (idx >= 0 ? out[idx].subClass : undefined), kind: m.match.kind === 'gilt' ? 'gilt' : m.match.kind === 'cash' ? 'cash' : undefined };
+    // No `undefined` values: Firestore refuses them and the whole settings save fails (6.10.5).
+    const line = { ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? (out[idx].units ?? null) : null), sedol: m.match.sedol || m.sedol || null };
+    const sc = m.match.subClass || (idx >= 0 ? out[idx].subClass : null); if (sc) line.subClass = sc;
+    const kind = m.match.kind === 'gilt' ? 'gilt' : m.match.kind === 'cash' ? 'cash' : null; if (kind) line.kind = kind;
     if (idx >= 0) { out[idx] = { ...out[idx], ...line }; updated.push(line); seen.add(out[idx]); }
     else { out.push(line); added.push(line); seen.add(out[out.length - 1]); }
   }

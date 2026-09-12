@@ -2054,10 +2054,11 @@
     .scenario-active-btn #planLockChip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
     .header h1 { white-space: nowrap; }
     @media (min-width: 701px) and (max-width: 1100px) {
-      .header { flex-wrap: wrap; row-gap: 8px; padding: 12px 0; margin-bottom: 16px; }
+      .header { flex-wrap: wrap; justify-content: flex-start; gap: 8px 16px; padding: 12px 0; margin-bottom: 16px; }
       .header h1 { font-size: 20px; }
-      .header .scenario-selector { flex: 1 1 auto; min-width: 0; }
-      .header .scenario-active-btn { max-width: 420px; width: 100%; }
+      .header .scenario-selector { flex: 0 1 auto; min-width: 0; max-width: 62%; }
+      .header .scenario-active-btn { width: auto; max-width: 100%; }
+      #betaChip { margin: 0 0 0 10px; }
       .header .header-actions { flex: 1 1 100%; justify-content: flex-end; gap: 8px; }
       .header .user-info { gap: 8px; flex-wrap: nowrap; }
       .header .user-email { max-width: 200px; font-size: 13px; }

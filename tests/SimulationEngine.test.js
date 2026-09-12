@@ -696,7 +696,7 @@ describe('"had to cut back" means income actually unpaid, not protection engaged
     const on = simulate(cfg, monteCarloReturns(cfg, 3), 3);
     expect(on.cutYears).toBeLessThanOrEqual(on.protMonths); // a cut needs an uncaught protection shortfall
     expect(on.cutReal).toBeGreaterThanOrEqual(0);
-    const a = analyzeResults([{ ...on }, { ...on, failed: false, cutYears: 0, cutReal: 0 }, { ...on, failed: true, years: 5 }]);
+    const a = analyzeResults([{ ...on, failed: false }, { ...on, failed: false, cutYears: 0, cutReal: 0 }, { ...on, failed: true, years: 5 }]);
     expect(a.cuts.runsWithCut).toBe((on.cutYears > 0 ? 1 : 0) + 1);   // the failed future always counts; the clean one never
     expect(a.cuts.pctWithCut).toBeCloseTo(a.cuts.runsWithCut / 3 * 100, 5);
   });

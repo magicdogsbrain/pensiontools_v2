@@ -36,6 +36,13 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.4', date: '2026-09-12', engineVersion: '6.4.0',
+    title: 'Tablet header: the version chip is a chip again',
+    summary: 'On an iPad the "what\'s new" version chip had grown to the 44px height of the touch buttons beside it. It is a small chip again.',
+    changes: [], corrections: ['Version chip height on 701–1100px screens.'],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.12.3', date: '2026-09-12', engineVersion: '6.4.0',
     title: 'Tablet header: title, plan button and Beta chip packed left',
     summary: 'Follow-up to 6.12.2: on tablets the title now has room before "Plan:", the plan button stops stretching across the row, and the Beta chip sits beside it rather than at the far edge. The account controls keep their own row underneath.',

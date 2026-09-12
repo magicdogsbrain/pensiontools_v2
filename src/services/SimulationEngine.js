@@ -110,6 +110,10 @@ export function simulate(config, returns, seed = 0) {
 
   // State tracking
   let protMonths = 0;
+  // Income actually CUT (6.12.0): protection trims the SIPP draw and the tax boost catches it up later in the
+  // tax year; only what is never caught up by the year's end is income the future did without. Being "in
+  // protection" is a state the glidepath criterion puts most futures into at some point — not a cut.
+  let cutYears = 0, cutReal = 0, lastYearStdAnnual = 0;
   let maxConsec = 0;
   let curStreak = 0;
   let consecCashDraws = 0;  // trailing consecutive non-growth (cash-side) draws
@@ -165,6 +169,10 @@ export function simulate(config, returns, seed = 0) {
 
     // Reset shortfall + annual SIPP accumulator at start of new tax year
     if (taxYearStart !== lastTaxYearStart) {
+      if (taxYearShortfall > 1e-6 && lastYearStdAnnual > 0) {
+        cutReal += taxYearShortfall / cumInf;
+        if (taxYearShortfall > 0.01 * lastYearStdAnnual) cutYears++;   // more than 1% of the year's planned draw went unpaid
+      }
       taxYearShortfall = 0;
       annualSippSoFar = 0;
       lastTaxYearStart = taxYearStart;
@@ -367,6 +375,7 @@ export function simulate(config, returns, seed = 0) {
     if (prot) {
       taxYearShortfall += (standardMonthDraw - monthDraw);
     }
+    lastYearStdAnnual = standardMonthDraw * 12;
 
     // Apply monthly returns (compounded from annual). Clamp the annual return to > -100%
     // so an extreme synthetic bond return (r < -1) can't make (1+r)^(1/12) = NaN — which
@@ -627,6 +636,10 @@ export function simulate(config, returns, seed = 0) {
     eqSum += (returns.equity[y] ?? 0);
     if (y < 5) { earlySum += (returns.equity[y] ?? 0); earlyN++; }
   }
+  if (taxYearShortfall > 1e-6 && lastYearStdAnnual > 0) {   // the last tax year's uncaught shortfall
+    cutReal += taxYearShortfall / cumInfl;
+    if (taxYearShortfall > 0.01 * lastYearStdAnnual) cutYears++;
+  }
   const finalNominal = equity + bond + cash + diversifier + gia.value;
 
   return {
@@ -647,6 +660,8 @@ export function simulate(config, returns, seed = 0) {
     finalDiversifier: diversifier,
     divUsed,
     protMonths,
+    cutYears,            // tax years in which more than 1% of the planned draw went unpaid (protection not caught up)
+    cutReal,             // the income done without over the run, today's money
     maxConsec,
     hodlUsed,
     hodlUsedMonth,
@@ -1100,6 +1115,14 @@ export function analyzeResults(results) {
     p10Final: percentile(finals, 0.10),
     p90Final: percentile(finals, 0.90),
     avgFinal: successful.reduce((a, r) => a + r.final, 0) / (successful.length || 1),
+
+    // Income actually cut (6.12.0): futures where a tax year's planned income was not paid in full and never
+    // caught up — the honest "had to cut back". A failed future counts too (it ran out).
+    cuts: (() => {
+      const cut = results.filter(r => r.failed || (r.cutYears || 0) > 0);
+      const reals = cut.map(r => r.cutReal || 0).sort((a, b) => a - b);
+      return { runsWithCut: cut.length, pctWithCut: (cut.length / (results.length || 1)) * 100, medianCutReal: percentile(reals, 0.5) || 0, avgCutYears: cut.reduce((a, r) => a + (r.cutYears || 0), 0) / (cut.length || 1) };
+    })(),
 
     // Protection statistics with percentiles
     protection: {

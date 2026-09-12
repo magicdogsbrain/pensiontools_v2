@@ -7163,6 +7163,9 @@
       const protPct = protStats.pctWithProtection != null
         ? protStats.pctWithProtection
         : ((protStats.runsWithProtection || 0) / (results.length || 1)) * 100;
+      // 6.12.0: "cut back" = income actually not paid (see the engine's cutYears), not "protection engaged"
+      const cutPct = stats.cuts ? stats.cuts.pctWithCut : protPct;
+      const noProt = stats.noProtection || null;   // the same futures with protection off: { successRate, cutPct }
       const isMC = containerId === 'mcResults';
       const basis = isMC
         ? `${results.length.toLocaleString()} simulated futures`
@@ -7184,8 +7187,8 @@
               <div class="kn-label">typically left at the end, today's money${isaLeft ? ' <span class="hint">(pension pot ' + formatCurrency(finalPension.p50 || 0) + ', the rest in the ISA)</span>' : ''} ${help('The middle outcome for everything left at the end — pension pot, ISA and any taxable account — in present-day spending power. Futures that ran out count as £0, so this is not flattered by only the lucky runs.')}</div>
             </div>
             <div class="keynum">
-              <div class="kn-val">${protPct.toFixed(0)} in 100</div>
-              <div class="kn-label">futures where the plan had to cut back spending ${help('To ride out a market slump the plan temporarily reduces withdrawals. This is how often that safety response was needed.')}</div>
+              <div class="kn-val">${cutPct.toFixed(0)} in 100</div>
+              <div class="kn-label">futures where income was actually cut${noProt ? ' <span class="hint">(' + Math.round(noProt.cutPct) + ' in 100 without protection)</span>' : ''} ${help('A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up — or the money ran out. Protection trimming the draw in a slump and the tax boost catching it up later in the year is NOT a cut. Protection engaged in ' + protPct.toFixed(0) + ' in 100 futures (the pots dipped below their glidepath at some point).' + (noProt ? ' Without protection, ' + Math.round(noProt.cutPct) + ' in 100 futures ran short and ' + Math.round(noProt.successRate) + '% lasted the whole plan.' : ''))}</div>
             </div>
           </div>
 

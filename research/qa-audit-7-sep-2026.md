@@ -301,3 +301,9 @@ target skips them, plan document has a "From a lump sum" column).
 Open after today: P9 (done 6.11.4), P13 (design question: "100 in 100 futures cut back" for P&V floors = pot),
 the run-up wizard's other-income prefill for income streams that start at plan year 0 (they are shown for the run-up
 year too — arguably right for rent that already exists), and the cone "How your pot changes" excludes the ISA.
+
+**P13 closed (6.12.0, 12 Sep, Chris):** "Protection should kick in when enabled and the pots are below their glide
+paths. That is not cutting back." The tile now counts futures where income was ACTUALLY cut — a tax year more than 1%
+short of the planned draw and never caught up by the tax boost, or the money ran out — and shows the same futures with
+protection off beside it ("x in 100 without protection"), so protection's value is visible. "Protection engaged in z
+in 100 futures" moved into the help text.

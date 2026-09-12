@@ -685,3 +685,19 @@ describe('what is left at the end counts every wrapper (6.11.5)', () => {
     expect(a.finalAllReal.min).toBe(0);             // the failed future
   });
 });
+
+describe('"had to cut back" means income actually unpaid, not protection engaged (6.12.0)', () => {
+  it('with protection off nothing is ever cut; with it on, a cut is a year more than 1% short', async () => {
+    const { simulate, monteCarloReturns, analyzeResults } = await import('../src/services/SimulationEngine.js');
+    const cfg = { years: 20, equityStart: 60000, bondStart: 60000, cashStart: 30000, equityMin: 60000, bondMin: 60000, cashTarget: 30000, baseSalary: 30000, pa: 12570, brl: 50270, hrl: 125140, isaBalance: 0, protectionMult: 0.8, consecutiveLimit: 3, statePension: 0, statePensionYear: 99, other: 0 };
+    const off = simulate({ ...cfg, disableProtection: true }, monteCarloReturns({ ...cfg, disableProtection: true }, 3), 3);
+    expect(off.cutYears).toBe(0);
+    expect(off.cutReal).toBe(0);
+    const on = simulate(cfg, monteCarloReturns(cfg, 3), 3);
+    expect(on.cutYears).toBeLessThanOrEqual(on.protMonths); // a cut needs an uncaught protection shortfall
+    expect(on.cutReal).toBeGreaterThanOrEqual(0);
+    const a = analyzeResults([{ ...on }, { ...on, failed: false, cutYears: 0, cutReal: 0 }, { ...on, failed: true, years: 5 }]);
+    expect(a.cuts.runsWithCut).toBe((on.cutYears > 0 ? 1 : 0) + 1);   // the failed future always counts; the clean one never
+    expect(a.cuts.pctWithCut).toBeCloseTo(a.cuts.runsWithCut / 3 * 100, 5);
+  });
+});

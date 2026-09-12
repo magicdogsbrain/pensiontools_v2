@@ -246,8 +246,18 @@ export function runMonteCarloSimulation(overrides = {}, preloadedSettings = null
   const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
   const results = getStrategy(config.strategyId).engine.runMonteCarlo(config);
   const stats = analyzeResults(results);
-
+  // The same futures with protection off (6.12.0): shows what protection is worth — how many futures
+  // would have run short without the safety response, against how many actually had income cut with it.
+  if (!config.disableProtection) stats.noProtection = withoutProtection(config, 'runMonteCarlo');
   return { results, stats, config };
+}
+
+function withoutProtection(config, method) {
+  try {
+    const r = getStrategy(config.strategyId).engine[method]({ ...config, disableProtection: true });
+    const a = analyzeResults(r);
+    return { successRate: a.successRate, cutPct: a.cuts ? a.cuts.pctWithCut : 100 - a.successRate };
+  } catch (e) { return null; }
 }
 
 /**
@@ -259,6 +269,7 @@ export function runHistoricalSimulation(overrides = {}, preloadedSettings = null
   const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
   const results = getStrategy(config.strategyId).engine.runHistorical(config);
   const stats = analyzeResults(results);
+  if (!config.disableProtection) stats.noProtection = withoutProtection(config, 'runHistorical');
 
   return { results, stats, config };
 }

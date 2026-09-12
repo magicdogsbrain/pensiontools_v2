@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.0', date: '2026-09-12', engineVersion: '6.4.0',
+    title: '"Had to cut back" now means income actually cut — and what protection is worth',
+    summary: 'The Stress Tester\'s "futures where the plan had to cut back spending" counted every future in which protection engaged at all. Protection engages whenever the pots dip below their glidepath, which with the usual floors is almost every future — so the tile read "100 in 100" for plans that paid every pound. A cut is now a tax year in which more than 1% of the planned income went unpaid and was never caught up by the tax boost, or the money ran out. Beside it, the same futures are run with protection switched off, so you can see how many would have run short without it.',
+    changes: ['Monte Carlo and Historical cards: "N in 100 futures where income was actually cut (M in 100 without protection)"; how often protection engaged is in the help text.'],
+    corrections: ['"100 in 100 had to cut back" on plans whose floors equal their allocation.'],
+    effects: { decision: [], stress: ['The tile changes on every plan; the simulation itself is unchanged. Each run now also runs once with protection off, so it takes about twice as long.'], strategies: [], household: [], budget: [], accumulation: [] },
+    actions: [], notes: []
+  },
+  {
     version: '6.11.6', date: '2026-09-11', engineVersion: '6.4.0',
     title: 'Mid-year State Pension taxed in the monthly recommendation; the CPI you type moves a schedule suggestion',
     summary: 'The monthly recommendation taxed only a share of the year\'s State Pension when it starts part-way through the year (£121 a month instead of £179 for a November start): the whole partial-year amount lands in the months to come, and is now taxed as such. Plans already receiving it, and plans without a start date, are unchanged. In the tax-year setup, when the suggested income came from your plan\'s schedule and last year\'s CPI had never been entered, the CPI you typed changed nothing (the assumed 4% stayed in the uplift) — it now replaces the assumption for last year.',

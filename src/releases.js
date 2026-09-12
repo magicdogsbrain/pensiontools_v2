@@ -36,6 +36,13 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.2', date: '2026-09-12', engineVersion: '6.4.0',
+    title: 'The header on an iPad, and the plan name back in its button',
+    summary: 'The stage chip inside the plan button had squeezed the plan\'s NAME to nothing at every screen size, so the button read "🔒 locked · Running the plan" with no plan name. On an iPad mini in either orientation the title also wrapped onto two lines and the account controls spilled into three ragged rows. The name now keeps its space (the chip shortens instead), the title stays on one line, and on tablets the account controls sit in their own row under the title and plan button.',
+    changes: ['Header layout for 701–1100px wide screens.'], corrections: ['Plan name hidden by the stage chip.'],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.12.1', date: '2026-09-12', engineVersion: '6.4.0',
     title: 'The protection-off comparison says what it compares',
     summary: 'The new cut tile\'s bracket read "(52 in 100 without protection)" beside "85 in 100" — as if protection made things worse. Without protection nothing trims the draw, so the only way to fall short is to run out; the bracket now reads "(without protection: 52 in 100 ran out, 48% lasted)" against the plan\'s own chance of lasting.',

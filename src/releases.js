@@ -36,6 +36,13 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.1', date: '2026-09-12', engineVersion: '6.4.0',
+    title: 'The protection-off comparison says what it compares',
+    summary: 'The new cut tile\'s bracket read "(52 in 100 without protection)" beside "85 in 100" — as if protection made things worse. Without protection nothing trims the draw, so the only way to fall short is to run out; the bracket now reads "(without protection: 52 in 100 ran out, 48% lasted)" against the plan\'s own chance of lasting.',
+    changes: ['Monte Carlo and Historical cards: clearer protection-off bracket.'], corrections: [],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.12.0', date: '2026-09-12', engineVersion: '6.4.0',
     title: '"Had to cut back" now means income actually cut — and what protection is worth',
     summary: 'The Stress Tester\'s "futures where the plan had to cut back spending" counted every future in which protection engaged at all. Protection engages whenever the pots dip below their glidepath, which with the usual floors is almost every future — so the tile read "100 in 100" for plans that paid every pound. A cut is now a tax year in which more than 1% of the planned income went unpaid and was never caught up by the tax boost, or the money ran out. Beside it, the same futures are run with protection switched off, so you can see how many would have run short without it.',

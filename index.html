@@ -7188,7 +7188,7 @@
             </div>
             <div class="keynum">
               <div class="kn-val">${cutPct.toFixed(0)} in 100</div>
-              <div class="kn-label">futures where income was actually cut${noProt ? ' <span class="hint">(' + Math.round(noProt.cutPct) + ' in 100 without protection)</span>' : ''} ${help('A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up — or the money ran out. Protection trimming the draw in a slump and the tax boost catching it up later in the year is NOT a cut. Protection engaged in ' + protPct.toFixed(0) + ' in 100 futures (the pots dipped below their glidepath at some point).' + (noProt ? ' Without protection, ' + Math.round(noProt.cutPct) + ' in 100 futures ran short and ' + Math.round(noProt.successRate) + '% lasted the whole plan.' : ''))}</div>
+              <div class="kn-label">futures where income was actually cut${noProt ? ' <span class="hint">(without protection: ' + Math.round(noProt.cutPct) + ' in 100 ran out, ' + Math.round(noProt.successRate) + '% lasted)</span>' : ''} ${help('A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up — or the money ran out. Protection trimming the draw in a slump and the tax boost catching it up later in the year is NOT a cut. Protection engaged in ' + protPct.toFixed(0) + ' in 100 futures (the pots dipped below their glidepath at some point).' + (noProt ? ' Without protection, ' + Math.round(noProt.cutPct) + ' in 100 futures ran short and ' + Math.round(noProt.successRate) + '% lasted the whole plan.' : ''))}</div>
             </div>
           </div>
 

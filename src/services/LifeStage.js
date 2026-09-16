@@ -90,13 +90,12 @@ export function deriveStage(scenario, now = new Date()) {
   }
   if (locked) reasons.push('plan locked' + (hasDocument ? ' with a plan document' : ''));
   const def = STAGES[key];
-  // The transition tool (6.8.0) leads from Approaching to the plan start (and for a retiree still designing
-  // — a reconcile of what is already held); it has no job while saving far out or once the plan is running.
+  // The transition tool (6.8.0) LEADS from Approaching to the plan start (and for a retiree still designing —
+  // a reconcile of what is already held). It is never hidden (6.13.0): it is the home of the holdings record
+  // ("What you hold"), which a saver records long before there is anything to transition, and a plan that is
+  // Running still needs reconciling now and then (6.10.4) — so Saving and Getting started show it without leading with it.
   const leads = def.leads.slice(), hidden = def.hidden.slice();
   if (['approaching', 'committed-saving', 'bridge', 'draft-retired'].includes(key)) leads.push('transition');
-  // Still shown while Running: a plan locked and started the same day has a ladder to buy, and a ladder that
-  // is running still needs reconciling now and then (6.10.4). Hidden only while saving far out.
-  if (['saving', 'unknown'].includes(key)) hidden.push('transition');
   const startLabel = taxYearLabel(t.firstTaxYear);
   const banner = def.banner ? { ...def.banner, text: def.banner.text.replace(/\{start\}/g, startLabel) } : null;
   return {

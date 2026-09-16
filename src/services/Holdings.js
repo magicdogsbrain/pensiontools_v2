@@ -1,16 +1,19 @@
 /**
- * Holdings — "tickers in, proportions modelled" (6.7.0).
+ * Holdings — "tickers in, proportions modelled" (6.7.0; ledger moved 6.13.0).
  *
- * The plan's holdings ledger IS the tagged-funds list on the Stress settings (`taggedFunds`: one row per
- * holding with wrapper, ticker or name, value; now also `ocf` % and `contribution` £/month). This module
- * turns it into what the Accumulation planner and the plan document need: the proportions by bucket and
- * wrapper, the value-weighted cost, the mix's expected real return, and where new money goes. It never
- * models a fund's own return — a world tracker is a world tracker.
+ * The plan's holdings ledger is `scenario.holdings` (services/HoldingsRecord.js): one line per holding with
+ * wrapper, ticker or name, value, `ocf` % and `contribution` £/month. Every function here takes that record
+ * or its `lines` array. It is NOT the Stress tester's `taggedFunds` — that list is the funds a strategy is
+ * TESTED on, a strategy input, and is never read as holdings. This module turns the ledger into what the
+ * Accumulation planner and the plan document need: the proportions by bucket and wrapper, the value-weighted
+ * cost, the mix's expected real return, and where new money goes. It never models a fund's own return — a
+ * world tracker is a world tracker.
  *
  * Pure: no DOM, no storage.
  */
 import { tagPortfolio } from './PortfolioTagger.js';
 import { SUB_ASSET_PROFILES, BUCKETS } from './SubAssetModel.js';
+import { holdingsLines } from './HoldingsRecord.js';
 
 export const ASSUMED_CPI = 0.025;   // long-run CPI used to state expected returns in real terms (FCA-style)
 
@@ -18,7 +21,7 @@ const num = (v) => (Number.isFinite(+v) ? +v : 0);
 
 /** Split multi-asset holdings the way the tagger does, returning one row per sub-class slice. */
 export function slices(holdings) {
-  const t = tagPortfolio(holdings || []);
+  const t = tagPortfolio(holdingsLines(holdings));
   return t.tagged;   // already split by mix where the catalogue says so
 }
 
@@ -29,7 +32,7 @@ export function slices(holdings) {
  *   contributions: { monthly, byBucket: {…fractions}, byWrapper }, untagged: [] }}
  */
 export function proportions(holdings) {
-  const list = (holdings || []).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0));
+  const list = holdingsLines(holdings).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0));
   const t = tagPortfolio(list.map((h) => ({ ...h, value: num(h.value) })));
   const byWrapper = { SIPP: 0, ISA: 0, GIA: 0, CASH: 0 };
   const bucketValues = { shares: 0, bonds: 0, diversifiers: 0, cash: 0 };
@@ -72,5 +75,5 @@ export function describeMix(p) {
 
 /** Ledger total for the pension pot the Accumulation planner projects (SIPP-wrapped holdings). */
 export function pensionPotFromHoldings(holdings) {
-  return (holdings || []).reduce((t, h) => t + (((h.wrapper || 'SIPP').toUpperCase() === 'SIPP') ? num(h.value) : 0), 0);
+  return holdingsLines(holdings).reduce((t, h) => t + ((h && (h.wrapper || 'SIPP').toUpperCase() === 'SIPP') ? num(h.value) : 0), 0);
 }

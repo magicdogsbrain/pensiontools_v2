@@ -26,6 +26,7 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } fr
 import { simpleHash } from '../utils/MathUtils.js';
 import { defaultBudget } from '../services/BudgetModel.js';
 import { deriveTiming } from '../services/PlanTiming.js';
+import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -466,6 +467,10 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
   const { id, createdAt, lastModified, ...data } = source;
   data.planDetails = { ...data.planDetails, name: newName };
   data.isActive = false;
+  // The copy is the same person: the holdings record (what they actually hold) travels with it, so the
+  // copy's Transition tool and Accumulation planner have a ledger from the start. Normalised so an old
+  // record is written back in today's shape (6.13.0).
+  if (data.holdings) data.holdings = normaliseHoldings(data.holdings);
   // A copy starts as a DRAFT: nothing has been recorded against the copy's settings yet, even if
   // the history came along (it is kept for reference and shows as "under previous settings" once
   // the settings diverge). The plan of record is rebuilt when the copy locks.
@@ -762,6 +767,26 @@ export async function saveActiveTransition(transition) {
   if (!scenario) throw new Error('No active scenario');
   await saveScenario(scenario.id, { transition });
   if (cachedActiveScenario) cachedActiveScenario.transition = transition;
+}
+
+/**
+ * Holdings record (6.13.0): what the person ACTUALLY holds — the one ledger for the Transition tool, the
+ * Accumulation planner, the plan document's holdings snapshot and the retire sweep. Stored at the scenario
+ * root (services/HoldingsRecord.js has the shape). It is never derived from the Stress tester's `taggedFunds`:
+ * that list is a strategy input — the funds a strategy is tested on are not assumed to be what the person
+ * holds (owner's ruling, 16 Sep 2026). Absent → the empty record, not a fallback.
+ */
+export async function getActiveHoldings() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario && scenario.holdings && typeof scenario.holdings === 'object' ? normaliseHoldings(scenario.holdings) : emptyHoldings();
+}
+export async function saveActiveHoldings(record) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const holdings = normaliseHoldings(record);   // every field present, null not undefined — Firestore-safe
+  await saveScenario(scenario.id, { holdings });
+  if (cachedActiveScenario) cachedActiveScenario.holdings = holdings;
+  return holdings;
 }
 
 /** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */

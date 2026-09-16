@@ -22,7 +22,36 @@ export function planDocumentHeaderHtml(doc) {
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
     + '<div class="rpt-sub">Locked ' + esc(dateGB(d.lockedAt)) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
     + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + esc(d.strategy?.name || d.strategy?.id || '—') + '</td><td>Plan starts</td><td>' + esc(d.decisionRun?.year0 || '—') + '</td></tr>'
-    + '<tr><td>Pot today</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? ' + ISA ' + gbp(d.pots.isa) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
+    + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? ' + ISA ' + gbp(d.pots.isa) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
+}
+
+const SOURCE_TEXT = { typed: 'typed in', paste: 'pasted from a platform page or export', imported: 'imported from the Stress tester\'s fund list', none: 'no source' };
+
+/**
+ * "What you held when the plan was locked" — from `holdingsAtLock` (6.13.0), every strategy. What the person
+ * HELD, as distinct from the pots and funds the strategy was tested on. A document written before 6.13.0 has
+ * no snapshot; a plan locked with nothing on record says so.
+ */
+export function holdingsAtLockHtml(doc) {
+  const H = doc && doc.holdingsAtLock;
+  // A document refreshed after a LATER holdings record carries that record, not the lock-time one: say so, or "what
+  // you held when locked" is a false claim (6.13.0). Both dates are UTC day strings (lockedAt is an ISO instant,
+  // updatedAt a 'YYYY-MM-DD' cut from one), so the date parts compare directly.
+  const day = (v) => { const s = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null; };
+  const dayGB = (s) => new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const lockDay = day(doc && doc.lockedAt), recDay = day(H && H.updatedAt);
+  const title = lockDay && recDay && recDay > lockDay ? 'What you hold (recorded ' + dayGB(recDay) + ', after the plan was locked on ' + dayGB(lockDay) + ')' : 'What you held when the plan was locked';
+  let h = '<div class="section-title" style="font-size:13px;margin-top:10px;">' + esc(title) + '</div>';
+  if (!H) return h + '<p class="hint">This document was written before holdings were recorded separately from the funds a strategy is tested on. Refresh the plan document to add them.</p>';
+  const lines = Array.isArray(H.lines) ? H.lines : [];
+  if (!lines.length) return h + '<p class="hint">No holdings were on record when the plan was locked. Record what you hold on the Transition tab (What you hold — paste it from your platform or type the lines) — the Transition tool works from that record, not from the funds the strategy was tested on.</p>';
+  const byWrapper = {}; let total = 0;
+  for (const l of lines) { const v = +l.value || 0; total += v; byWrapper[l.wrapper || 'SIPP'] = (byWrapper[l.wrapper || 'SIPP'] || 0) + v; }
+  const anyUnits = lines.some((l) => l.units != null), anyAsOf = lines.some((l) => l.asOf);
+  h += table(['Holding', 'Wrapper', ...(anyUnits ? ['Units'] : []), 'Value', ...(anyAsOf ? ['As of'] : [])],
+    lines.map((l) => [esc(l.name || l.ticker || l.sedol || '') + (l.ticker && l.name ? ' <span class="hint">' + esc(l.ticker) + '</span>' : ''), esc(l.wrapper || ''), ...(anyUnits ? [l.units != null ? Math.round(+l.units).toLocaleString('en-GB') : '—'] : []), l.value != null ? gbp(l.value) : '—', ...(anyAsOf ? [esc(l.asOf || '')] : [])]));
+  h += '<p class="hint">Total ' + gbp(total) + ' — ' + Object.entries(byWrapper).map(([w, v]) => esc(w) + ' ' + gbp(v)).join(' · ') + (H.updatedAt ? '; recorded ' + esc(H.updatedAt) : '') + (SOURCE_TEXT[H.source] ? ' (' + SOURCE_TEXT[H.source] + ')' : '') + '.</p>';
+  return h;
 }
 
 /**
@@ -75,20 +104,24 @@ export function planDocumentHtml(doc, r = {}) {
   }
   h += section('2. Strategy — ' + (d.strategy?.name || d.strategy?.id || ''), st, { sub: 'the verdict, the cones, and the shopping list as they stood at lock' });
 
-  // Portfolio
-  let pf = '';
+  // Portfolio: what you HELD (the holdings record) first; then the pots and funds the strategy was TESTED on —
+  // the two are different things and the document never presents the second as the first (6.13.0).
+  let pf = holdingsAtLockHtml(d);
   const P = d.pots || {};
-  pf += table(['Pot', 'Today'], [['SIPP', gbp(P.sipp)], ['ISA' + (P.isaPolicy === 'hold' ? ' (held — never drawn for income)' : ''), gbp(P.isa)], ['Taxable account (GIA)' + (P.taxableMix ? ', held as ' + esc(String(typeof P.taxableMix === 'string' ? P.taxableMix : 'a mix')) : ''), gbp(P.gia)]]);
+  pf += '<div class="section-title" style="font-size:13px;margin-top:14px;">Pots the plan was priced on</div>'
+    + table(['Pot', 'Priced on'], [['SIPP', gbp(P.sipp)], ['ISA' + (P.isaPolicy === 'hold' ? ' (held — never drawn for income)' : ''), gbp(P.isa)], ['Taxable account (GIA)' + (P.taxableMix ? ', held as ' + esc(String(typeof P.taxableMix === 'string' ? P.taxableMix : 'a mix')) : ''), gbp(P.gia)]]);
   if (P.potAtRetirement && (P.potAtRetirement.sipp || P.potAtRetirement.isa)) pf += '<p class="hint">Retiring later: priced on pots at retirement of SIPP ' + gbp(P.potAtRetirement.sipp) + (P.potAtRetirement.isa ? ' and ISA ' + gbp(P.potAtRetirement.isa) : '') + ' in today\'s money (' + esc(P.potAtRetirement.source || 'projection') + ').</p>';
   if (d.strategy?.contract) {
-    pf += '<p>A contract strategy: the holding IS the ladder in section 2 — the order sheet lists every gilt and the cash years, and "what arrives when" shows the rung that pays each tax year. Nothing is sold; each year\'s matured rung pays that year.</p>';
+    pf += '<p>A contract strategy: the plan\'s target holding IS the ladder in section 2 — the order sheet lists every gilt and the cash years, and "what arrives when" shows the rung that pays each tax year. Nothing is sold; each year\'s matured rung pays that year. The Transition tool takes you from what you held (above) to the order sheet.</p>';
   } else if (d.targetMix?.length) {
     pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Target mix by plan year</div>'
       + table(['Plan year', 'Shares', 'Bonds', 'Cash'], d.targetMix.map((m) => [String(m.y), m.equity + '%', m.bond + '%', m.cash + '%']))
-      + '<p class="hint">Cash is held flat; shares and bonds glide inside the growth sleeve' + (P.allocation?.allocMode === 'funds' ? '. Your tagged funds set the starting split.' : '.') + '</p>';
-    if (P.allocation?.taggedFunds?.length) pf += table(['Fund', 'Wrapper', 'Value at lock'], P.allocation.taggedFunds.map((f) => [esc(f.name || f.ticker || ''), esc(f.wrapper || ''), gbp(f.value)]));
+      + '<p class="hint">Cash is held flat; shares and bonds glide inside the growth sleeve' + (P.allocation?.allocMode === 'funds' ? '. The funds below set the starting split.' : '.') + '</p>';
+    if (P.allocation?.taggedFunds?.length) pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Funds the strategy was tested on</div>'
+      + table(['Fund', 'Wrapper', 'Value in the test'], P.allocation.taggedFunds.map((f) => [esc(f.name || f.ticker || ''), esc(f.wrapper || ''), gbp(f.value)]))
+      + '<p class="hint">The Stress tester\'s own list — an input to the test, not a record of what you hold.</p>';
   }
-  h += section('3. Portfolio — what you hold and what the plan buys', pf);
+  h += section('3. Portfolio — what you held, and what the plan was priced on', pf);
 
   // Assumptions + how the Decision tool runs it
   const A = d.assumptions || {}, DR = d.decisionRun || {};
@@ -111,9 +144,12 @@ export function planDocumentHtml(doc, r = {}) {
   h += section('4. Assumptions and how the Decision tool runs it', as);
 
   // Getting there (6.7.0): the locked accumulation path for a plan that starts later
-  if (d.accumulation && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
+  if (d.accumulation && d.accumulation.potNow == null) {
+    // Locked with no pot on record (6.13.0): the path could not be drawn — say what to do, never invent one.
+    h += section('4b. Getting there — the locked accumulation path', '<p>The plan was locked without a pension pot on record' + (d.accumulation.totalMonthly ? ' (' + gbp(d.accumulation.totalMonthly) + ' a month going in)' : '') + '. Record what you hold on the Transition tab (or the pot today on the Accumulation planner) and refresh the plan document; the path from today to age ' + esc(String(d.accumulation.retireAge || '')) + ' is then drawn from your own pot, not from the pots the strategy was tested on.</p>');
+  } else if (d.accumulation && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
     const A = d.accumulation; const hasMix = A.path[0].potMix != null;
-    let gt = '<p>Pension pot ' + gbp(A.potNow) + ' today' + (A.totalMonthly ? ', ' + gbp(A.totalMonthly) + ' a month going in' : '') + (A.mixText ? ', held as ' + esc(A.mixText) : '') + '. In today\'s money:</p>'
+    let gt = '<p>Pension pot ' + gbp(A.potNow) + ' today' + (A.potSource === 'holdings' ? ' (from what you hold)' : A.potSource === 'accumulation' ? ' (the pot today on the Accumulation planner)' : '') + (A.totalMonthly ? ', ' + gbp(A.totalMonthly) + ' a month going in' : '') + (A.mixText ? ', held as ' + esc(A.mixText) : '') + '. In today\'s money:</p>'
       + table(['Age', 'Cautious (2%)', 'Middle (5%)', ...(hasMix ? ['Your mix'] : []), 'Strong (8%)', 'Paid in'], A.path.map((r) => [String(r.age), gbp(r.potLow), gbp(r.potMid), ...(hasMix ? [gbp(r.potMix)] : []), gbp(r.potHigh), gbp(r.contributedToDate)]))
       + '<p class="hint">Record your pot each month on the Accumulation planner; the "where you are" strip reads it against ' + (hasMix ? 'the "your mix" line' : 'the middle line') + '. When the plan starts, the first Decision entry checks the pot you arrive with against the pot the plan was priced on.</p>';
     h += section('4b. Getting there — the locked accumulation path', gt);
@@ -135,7 +171,8 @@ export function whereAmIHtml(w) {
     // Still saving for a plan locked in advance (6.7.0)
     const s = w.saving;
     parts.push('<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong> — the plan starts in ' + esc(w.planStart) + '.');
-    if (s.actual != null && s.expected != null) parts.push('Pension pot ' + gbp(s.actual) + (s.recordedAt ? ' (recorded ' + esc(s.recordedAt) + ')' : '') + ' against ' + gbp(s.expected) + ' on the locked path — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '.');
+    if (s.pathMissing) parts.push('The plan was locked without a pension pot on record, so there is no locked path to read against' + (s.actual != null ? ' — your pot today is ' + gbp(s.actual) + (s.actualSource === 'holdings' ? ' from what you hold' : '') : '') + '. Record what you hold and refresh the plan document.');
+    else if (s.actual != null && s.expected != null) parts.push('Pension pot ' + gbp(s.actual) + (s.recordedAt ? ' (' + (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(s.recordedAt) + ')' : s.actualSource === 'holdings' ? ' (from what you hold)' : '') + ' against ' + gbp(s.expected) + ' on the locked path — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '.');
     else if (s.expected != null) parts.push('The locked path expects about ' + gbp(s.expected) + ' in the pension pot now. Record this month\'s pot on the Accumulation planner to compare.');
     if (s.contributions > 0) parts.push('Contributions on the locked plan: ' + gbp(s.contributions) + ' a month gross.');
   }

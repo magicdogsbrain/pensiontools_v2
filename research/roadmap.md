@@ -238,3 +238,7 @@ _Last updated: 2026-08-17 — access method (drawdown/UFPLS) + phased access shi
 - **v6.8.0 — Transition tool (SHIPPED 10 Sep 2026; CSV import still to do)**: target from the plan document (order sheet / target mix × model portfolio, per wrapper),
   diff vs the ledger in units and £, dated sequencing (cash years first, near rungs first, tranches, ISA/CGT/MPAA aware,
   decision-point branches), execution tick-off, reconcile mode for part-held ladders; AJ Bell CSV import as 6.8.x.
+
+
+### 16 Sep 2026 — holdings vs strategy inputs (6.13.0)
+The v6.7.0 note above promised `scenario.holdings`; the shipped code attached the ledger to `stressTool.settings.taggedFunds` instead. 6.13.0 creates the record for real: `scenario.holdings` (HoldingsRecord.js), edited on the Transition tab, never written by strategy code, never frozen. The Stress list is now per strategy (`stressTool.settings.strategyState`) and named "Funds to test". Open: an explicit "test on what I hold" copy action (Chris has not asked for it); Decision `taggedFunds` copy still exists as the target-split input.

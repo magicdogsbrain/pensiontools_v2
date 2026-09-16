@@ -315,3 +315,13 @@ run-up note added 6.12.5. (3) "It thinks I have PACW, CGT and PNL": his My funds
 £600k, CGT £240k, PNL £240k, CSH2 £120k, GHYS £60k ISA) typed while the plan was still "Chris Test 1"; Transition
 reads that list. Provenance note added 6.12.5; paste matcher hardened (ticker code must agree with the name). The lock
 blocked saving My funds ("settings are frozen") — 6.12.6 lets the holdings list save while locked; nothing else.
+
+**16 Sep 2026 — Chris's ruling on holdings vs strategy inputs → 6.13.0.** "The stress tester is a decumulation tool
+only … the portfolio in an active strategy in the stress tester must NEVER be assumed to be what the person has at the
+moment … no stray data in the strategies they deselected (backups fine) … Transition needs what you have and your
+locked strategy; the 'what you have' part is not really done." Map (6 agents): taggedFunds served as P&V test
+allocation AND holdings ledger (Transition, Accumulation, PlanDocument, RetireSweep, isaMix); strategyParams a flat bag
+spread forward by every switch path (7 writers); useSpecStrategy wiped taggedFunds; GlidepathService anchors the tent on
+"tagged = real holdings". Built: scenario.holdings record (HoldingsRecord.js + repository), StrategyState.js (per-strategy
+stash/restore, cleanParams), time-aware Transition target + RotationStatus.js, What-you-hold card on Transition; Stress
+list renamed "Funds to test"; one-time offer to copy an existing Stress list into holdings (never automatic).

@@ -36,6 +36,41 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.13.0', date: '2026-09-16', engineVersion: '6.4.0',
+    title: 'What you hold is its own record; each strategy keeps its own inputs',
+    summary: 'One list in the Stress tester\'s Settings, "My funds", was doing two jobs: the portfolio a pot strategy is TESTED on, and the record of what you actually hold that the Transition tool, the Accumulation planner and the plan document read. A test list from an old experiment was being read as holdings. The two are now separate. WHAT YOU HOLD is recorded on the Transition tab (paste it from your platform or type the lines), belongs to the plan, is never written by any strategy and is never frozen by the lock. The Stress list is renamed FUNDS TO TEST and says what it is; every strategy keeps its own funds, alloc mode and dials — switching strategy puts them away and switching back restores them, so nothing from a deselected strategy bleeds into another. Transition reads what you hold against the locked plan: rungs already paid drop out of the target, and a ladder fully in place reads "Complete — nothing to do", with a rotation watch line only on the rotation strategy.',
+    changes: [
+      'Transition tab: a "What you hold" card — paste from your platform, add, edit or remove lines; every change saves when you leave the box. The moves, the schedule and "complete" read from it.',
+      'Accumulation planner and the Decision tool\'s "enter per fund" links read what you hold — and only that.',
+      'Plan document: "What you held when the plan was locked" for every strategy; the pot-strategy fund table is retitled "Funds the strategy was tested on".',
+      'Stress tester → Settings: "Test on a list of funds" replaces "Use my own funds"; the list is per strategy.',
+      'Strategies pages and what-ifs: adopting a strategy restores its own dials, never another\'s.'
+    ],
+    corrections: [
+      'The Stress tester\'s fund list was read as what you hold (Transition, Accumulation, plan document, retire spin).',
+      'Strategy dials from a deselected strategy persisted in the saved plan and could reach another strategy\'s run and the plan document.',
+      'Adopting Pots & Valves or Buckets with allocation dials wiped the fund list.'
+    ],
+    effects: {
+      decision: ['"Enter per fund" lists what you hold; it is empty until you record it on the Transition tab.'],
+      stress: ['A plan whose fund list was really its holdings: nothing is assumed — the Transition tab asks once whether to copy it into what you hold. Strategy runs are unchanged.'],
+      strategies: ['Each strategy\'s dials are its own from the first save after this release; stray keys from earlier switches are dropped then.'],
+      household: [], budget: [], accumulation: ['Proportions and the pension pot today read what you hold; empty until you record it.']
+    },
+    actions: ['On the Transition tab, record what you hold: paste your platform\'s holdings table, or copy the Stress list across if it really is what you hold.'],
+    notes: ['Nothing is deleted: the Stress tester\'s list stays as the funds that strategy is tested on.'],
+    affects: (scenario) => {
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      const out = [];
+      if (s && Array.isArray(s.taggedFunds) && s.taggedFunds.length) {
+        const n = s.taggedFunds.length;
+        out.push('This plan\'s Stress tester fund list (' + n + ' fund' + (n === 1 ? '' : 's') + ') is now "Funds to test" for its current strategy only. Nothing is assumed about what you hold: record that on the Transition tab, or accept its one-time offer to copy this list across if it really is what you hold.');
+      }
+      if (s && s.strategyParams && Object.keys(s.strategyParams).length > 0) out.push('This plan\'s strategy dials become the current strategy\'s own on its next save; anything left behind by an earlier strategy is put under that strategy, not dropped.');
+      return out;
+    }
+  },
+  {
     version: '6.12.6', date: '2026-09-16', engineVersion: '6.4.0',
     title: 'My funds can be corrected while the plan is locked',
     summary: 'A locked plan froze the whole of the Stress tester\'s Settings, including the My funds list — so a wrong or stale line (a test entry, a mis-read paste) could not be removed without unlocking. What you hold is not a plan setting: Save Settings on a locked plan now saves the My funds list and nothing else, and the Transition and Accumulation pages update from it.',

@@ -9,8 +9,25 @@ describe('deriveStage — the persona matrix', () => {
     const st = deriveStage(sc({ currentAge: 45, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 }), NOW);
     expect(st.key).toBe('saving');
     expect(st.leads).toContain('accumulation');
-    expect(st.hidden).toEqual(['transition']);   // nothing to transition yet (6.8.0)
+    expect(st.hidden).toEqual([]);   // Transition stays visible: it is where holdings are recorded (6.13.0); it does not lead yet
+    expect(st.leads).not.toContain('transition');
     expect(st.yearsToStart).toBeGreaterThan(APPROACHING_YEARS);
+  });
+  it('the Transition tab is never hidden — it holds the What-you-hold record; it only LEADS from Approaching to the start', () => {
+    for (const [stress, decision, at] of [
+      [{ currentAge: 45, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 }, {}, NOW],          // saving
+      [{ shapeAgeNow: 57 }, {}, NOW],                                                                       // unknown (legacy draft)
+      [{}, {}, NOW],                                                                                        // empty
+      [{ currentAge: 56, currentAgeAsOf: '2026-09-09', retired: true, firstTaxYear: 2027 }, { locked: true }, new Date(2027, 4, 1)]   // running
+    ]) expect(deriveStage(sc(stress, decision), at).hidden).not.toContain('transition');
+    for (const key of ['approaching', 'committed-saving', 'bridge', 'draft-retired']) {
+      const st = { approaching: deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW),
+        'committed-saving': deriveStage(sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW),
+        bridge: deriveStage(sc({ currentAge: 56, currentAgeAsOf: '2026-09-09', retired: true, firstTaxYear: 2027 }, { locked: true }), NOW),
+        'draft-retired': deriveStage(sc({ currentAge: 68, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 }), NOW) }[key];
+      expect(st.key).toBe(key);
+      expect(st.leads).toContain('transition');
+    }
   });
   it('approaching: retire at 60 at 57 → Approaching (within five years)', () => {
     const st = deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW);

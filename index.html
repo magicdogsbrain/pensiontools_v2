@@ -2408,7 +2408,7 @@
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
                 <button type="button" id="dsModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ds','risk')">Pick a risk level</button>
-                <button type="button" id="dsModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ds','funds')">Use my own funds</button>
+                <button type="button" id="dsModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ds','funds')">Test on a list of funds</button>
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -2496,9 +2496,9 @@
             <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
             <div id="dsFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                The Decision Tool works from your real portfolio. Add your holdings — each is tagged to a bucket and sub-class (change any of them). Your target allocation updates automatically as you add, edit or remove funds.
+                <strong>Funds to test.</strong> The portfolio this plan's target split is built from — each fund is tagged to a bucket and sub-class (change any of them), and the target allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab, and the monthly entry's <em>enter per fund</em> links read it.
               </p>
-              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="dsFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ds', this.value)" data-on-focus="showFundSearch('ds', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ds')},150)" style="width:100%;">
                 <div id="dsFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
@@ -3144,7 +3144,7 @@
                 <div id="tmPotWrap" style="display:none;margin-top:6px;">
                   <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
                   <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement; the pots entered below are what you hold today.">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
+                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement, projected from the pots entered below — the pots the strategy is tested on, not a record of what you hold (that is the Transition tab).">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
                     <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA at retirement (£)<input type="number" id="tmPotIsa" step="1000" style="width:120px;" data-on-input="renderTiming()"></label>
                   </div>
                 </div>
@@ -3239,7 +3239,7 @@
                 </div>
                 <p id="lrCostLine" class="hint" style="margin:8px 0 0;"></p>
                 <div id="lrGiltTable" style="margin-top:8px;"></div>
-                <p class="hint" style="margin:8px 0 0;">The ladder is modelled with <strong>index-linked</strong> gilts so the income keeps its real value (conventional gilts are cheaper but lose inflation protection); the sleeve is modelled as a broad equity holding. The gilts named in the illustration are simply the nearest maturities in issue — not a selection. "Use my own funds" tagging is a Pots &amp; Valves feature.</p>
+                <p class="hint" style="margin:8px 0 0;">The ladder is modelled with <strong>index-linked</strong> gilts so the income keeps its real value (conventional gilts are cheaper but lose inflation protection); the sleeve is modelled as a broad equity holding. The gilts named in the illustration are simply the nearest maturities in issue — not a selection. "Test on a list of funds" tagging is a Pots &amp; Valves feature.</p>
               </div>
 
               <div id="ssFfParams" style="display:none; margin-top:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
@@ -3287,7 +3287,7 @@
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
                 <button type="button" id="ssModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ss','risk')">Pick a risk level</button>
-                <button type="button" id="ssModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ss','funds')">Use my own funds</button>
+                <button type="button" id="ssModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ss','funds')">Test on a list of funds</button>
               </div>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -3408,9 +3408,9 @@
             <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
             <div id="ssFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                Add your holdings — each fund is tagged to a bucket and sub-class (change any of them). Your allocation updates automatically as you add, edit or remove funds.
+                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
               </p>
-              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Copy the holdings table from your platform page or export and paste it — any layout">📋 Paste holdings from your platform</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
                 <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
                 <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
@@ -3694,9 +3694,9 @@
 
           <div class="settings-section" id="acHoldingsSection">
             <div class="section-title">What you hold <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— tickers in, proportions modelled</span></div>
-            <p class="hint" style="margin:0 0 8px;">Your holdings are entered once, under <strong>My funds</strong> in the Stress tester's Settings (fund, value, wrapper, cost, £/month in). The planner works on the proportions they roll up to — shares, bonds, diversifiers, cash — and where new money goes. It never guesses a fund's own return.</p>
+            <p class="hint" style="margin:0 0 8px;">What you hold is recorded once, on the <strong>Transition</strong> tab (paste it from your platform or type the lines). The planner works on the proportions they roll up to — shares, bonds, diversifiers, cash — and where new money goes. It never guesses a fund's own return.</p>
             <div id="acHoldings"></div>
-            <div class="row-flex" style="margin-top:8px;"><button type="button" class="risk-btn" data-on-click="openMyFunds()">Edit my holdings</button></div>
+            <div class="row-flex" style="margin-top:8px;"><button type="button" class="risk-btn" data-on-click="openMyFunds()">Record what I hold</button></div>
           </div>
 
           <div class="settings-section" id="acRecordSection">
@@ -4143,7 +4143,10 @@
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
     import { parsePaste, matchRows, mergeLedger } from './src/services/HoldingsPaste.js';
-    import { getActiveTransition, saveActiveTransition } from './src/storage/ScenarioRepository.js';
+    import { getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
+    import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
+    import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
+    import { rotationStatus } from './src/services/RotationStatus.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4727,7 +4730,8 @@
         refreshDsPlanStartNote(decisionSettings);
         writeAlloc('ds', decisionSettings.equityMin ?? 250000, decisionSettings.bondMin ?? 200000, decisionSettings.cashTarget ?? 50000, decisionSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
-        window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));  // restore the plan's funds
+        window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));
+        try { window._holdingsLines = ((await getActiveHoldings()).lines || []).slice(); } catch (e) { window._holdingsLines = []; }   // what you hold (6.13.0)  // restore the plan's funds
         setAllocMode('ds', decisionSettings.allocMode || ((decisionSettings.taggedFunds && decisionSettings.taggedFunds.length) ? 'funds' : 'risk'));
         updateEntryTagPrompt();                                              // nudge to tag if none yet
         document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
@@ -4762,7 +4766,10 @@
         syncNetFromGross('ss');
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
-        window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // restore tagged holdings
+        window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // the funds this strategy is tested on
+        // 6.13.0: each strategy's own inputs. A pre-6.13 flat bag is sorted into strategyState in memory here (each stray
+        // key goes under the strategy that owns it) and persisted by the next Save — nothing is dropped.
+        window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(stressSettings).strategyState || {}));
         // A saved fund list means the plan is in "My funds" mode; otherwise "Risk level".
         setAllocMode('ss', stressSettings.allocMode || ((stressSettings.taggedFunds && stressSettings.taggedFunds.length) ? 'funds' : 'risk'));
         document.getElementById('ssDuration').value = stressSettings.duration;
@@ -4774,7 +4781,7 @@
         document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
-        applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', stressSettings.strategyParams || {});
+        applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', activeParams(stressSettings));   // this strategy's own keys only (6.13.0)
         window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(stressSettings);
@@ -4994,7 +5001,7 @@
     // at 5/10/15 for Ladder & Ratchet, State Pension at 67.
     const DEMO_PLANS = {
       '1m': { name: 'r/FiredUK — £1M, £40k rising', tab: 'strategies', page: 'overview',
-        stress: { configured: true, equityMin: 700000, bondMin: 200000, cashTarget: 100000, diversifierStart: 0, isaBalance: 0, isaDrawdownStrategy: 'hold', baseSalary: 40000, duration: 39, shapeAgeNow: 56, currentAge: 56, statePension: 11973, statePensionYear: 11, riskMode: 'risk', strategyId: 'pots-and-valves', strategyParams: { ladderYears: 15, triggerMode: 'calendar', bandThreshold: 1.2, cashYears: 3, bridgeAge: 67 } } },
+        stress: { configured: true, equityMin: 700000, bondMin: 200000, cashTarget: 100000, diversifierStart: 0, isaBalance: 0, isaDrawdownStrategy: 'hold', baseSalary: 40000, duration: 39, shapeAgeNow: 56, currentAge: 56, statePension: 11973, statePensionYear: 11, riskMode: 'risk', strategyId: 'pots-and-valves', strategyParams: {} } },
     };
     DEMO_PLANS['default'] = DEMO_PLANS['1m'];   // one guest story: the £1M example, from the landing button too
     async function startGuest(demoKey) {
@@ -5281,6 +5288,8 @@
             await renderHistory();
             await renderTaxYears();
             await initializeAllInputsFromSettings();
+            window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
+            try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
             await renderScenarioSelector();
           } catch (error) {
             console.error('Error switching scenario:', error);
@@ -5333,6 +5342,8 @@
               await renderHistory();
               await renderTaxYears();
               await initializeAllInputsFromSettings();
+            window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
+            try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
               await renderScenarioSelector();
             } catch (error) {
               console.error('Error deleting scenario:', error);
@@ -6382,7 +6393,7 @@
       else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
       c.isaBalance = isa;
       c.strategyId = id;
-      c.strategyParams = { ...(s.strategyParams || {}), sippTotal: pot, isaTotal: isa };
+      c.strategyParams = { ...restoredParamsFor(s, id), sippTotal: pot, isaTotal: isa };   // the tried strategy's own dials, never the active strategy's bag (6.13.0)
       const pol = document.getElementById('tryIsaPolicy').value; if (pol) c.isaDrawdownStrategy = pol; else if (document.getElementById('tryIsaPolicy').selectedIndex === 2) c.isaDrawdownStrategy = 'bridge';
       if (document.getElementById('tryIncomeMode').value === 'flat') { c.baseSalary = +document.getElementById('tryIncome').value || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
       c.duration = Math.max(5, Math.min(35, +document.getElementById('tryYears').value || 35));
@@ -6425,12 +6436,12 @@
     };
     window.useTriedStrategyUI = async function () {
       if (!_tryLast) return;
-      const ok = await appConfirm('Switch this plan\'s strategy to ' + STRATEGY_NAMES[_tryLast.id] + '?\n\nOnly the strategy (and its dials) changes. Pot, ISA, income and years stay as saved in Settings — change those there if the what-if used different figures.', { okLabel: 'Switch strategy' });
+      const ok = await appConfirm('Switch this plan\'s strategy to ' + STRATEGY_NAMES[_tryLast.id] + '?\n\nThe strategy, its dials, its allocation mode and its "funds to test" list change: the current strategy\'s are put away and come back if you switch back. Pot, ISA, income and years stay as saved in Settings — change those there if the what-if used different figures.', { okLabel: 'Switch strategy' });
       if (!ok) return;
       try {
-        const { sippTotal, isaTotal, ...params } = _tryLast.params;
+        const { sippTotal, isaTotal, ...rest } = _tryLast.params; const params = cleanParams(_tryLast.id, rest);
         await setActiveStrategyChecked(_tryLast.id, params);
-        await saveStressSettings({ strategyId: _tryLast.id, strategyParams: params });
+        await switchStressStrategy(_tryLast.id, params);
         window._ssStrategy = _tryLast.id;
         showToast('Strategy switched to ' + STRATEGY_NAMES[_tryLast.id], 'success');
         await updateStrategyNote();
@@ -7403,7 +7414,7 @@
         bdAmt.toLocaleString() + ' bonds' + divAmtTxt + ' &middot; £' + cshAmt.toLocaleString() + ' cash</span>' + isaTxt;
       const glideEl = document.getElementById(p + 'EquityGlide');
       const on = !!(glideEl && glideEl.checked);
-      // Endgame picker: only for a tagged plan with the tent on (your holdings are the start).
+      // Endgame picker: only for a tagged plan with the tent on (the funds to test are the start).
       const endgameEl = document.getElementById(p + 'GlideEndgame');
       if (endgameEl) {
         if (on && custom) { endgameEl.style.display = 'block'; endgameEl.innerHTML = glideEndgameSelectorHtml(p); }
@@ -7422,7 +7433,7 @@
       const duration = (durEl && +durEl.value) || 35;
       const riseYears = Math.max(5, duration - 20);
       const cash = preset.cash, div = preset.diversifiers || 0, growth = 1 - cash - div;
-      // Tagged (custom) allocation → START-anchored glide (your holdings are the start, equity rises);
+      // Tagged (custom) allocation → START-anchored glide (the funds to test are the start, equity rises);
       // otherwise the chosen mix is the endgame (start lower). Matches tentGlideForSettings in the engine.
       const customAlloc = window._customAlloc[p];
       const custom = !!customAlloc;
@@ -7453,10 +7464,10 @@
       const swatch = c => `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:middle;"></span>`;
       const divTxt = div > 0 ? ' · ' + dvPct + '% diversifiers' : '';
       const divLegend = div > 0 ? ' &nbsp; ' + swatch(dw) + ' Diversifiers' : '';
-      const startHdr = custom ? 'Now (your funds)' : 'Starts';
+      const startHdr = custom ? 'Now (funds to test)' : 'Starts';
       const endHdr = custom ? ('Rises to' + (endgame && endgame.label ? ' (' + endgame.label + ')' : '')) : 'Then holds (' + preset.label + ')';
       const midTxt = custom
-        ? 'rises from your holdings, levels off at year ' + riseYears
+        ? 'rises from the funds to test, levels off at year ' + riseYears
         : 'reaches your mix at year ' + riseYears + ', then holds';
       return '<div style="font-weight:600;margin-bottom:6px;">How your mix glides over ' + duration + ' years</div>' +
         svg +
@@ -7503,7 +7514,7 @@
     function glideEndgameSelectorHtml(p) {
       const cur = (window._customAlloc[p] && window._customAlloc[p].glideEndgame && window._customAlloc[p].glideEndgame.key) || '';
       const btn = (key, label) => '<button type="button" class="risk-btn' + (cur === key ? ' active' : '') + '" style="padding:6px 12px;" data-on-click="setGlideEndgame(\'' + p + '\',\'' + key + '\')">' + label + '</button>';
-      return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;"><strong>Glide towards</strong> — your funds are the start; the tent raises shares over time to this level:</div>' +
+      return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;"><strong>Glide towards</strong> — the funds to test are the start; the tent raises shares over time to this level:</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + btn('cautious', 'Cautious') + btn('balanced', 'Balanced') + btn('adventurous', 'Adventurous') + '</div>';
     }
     window.setGlideEndgame = function(p, key) {
@@ -7517,7 +7528,7 @@
       const startRatio = custom.equity / ((custom.equity + custom.bond) || 1);
       const endRatio = preset.equity / ((preset.equity + preset.bond) || 1);
       if (endRatio <= startRatio) {
-        showToast('That endgame isn’t more share-heavy than your holdings — the glide would flatten or decline, not rise.', 'warning', 5000);
+        showToast('That endgame isn’t more share-heavy than the funds to test — the glide would flatten or decline, not rise.', 'warning', 5000);
       }
       updateAllocDisplay(p);
     };
@@ -7776,7 +7787,7 @@
       const alloc = allocationFromTags(t);
       const prev = window._customAlloc[p] || {};
       window._customAlloc[p] = {
-        label: 'Your funds',
+        label: 'Funds to test',
         equity: t.total ? t.buckets.shares / t.total : 0,
         bond: t.total ? t.buckets.bonds / t.total : 0,
         diversifiers: t.total ? t.buckets.diversifiers / t.total : 0,
@@ -7809,7 +7820,7 @@
       if (s && s.subAsset && s.subAsset.bondWeights && Object.keys(s.subAsset.bondWeights).length) {
         const total = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
         window._customAlloc[p] = {
-          label: 'Your funds',
+          label: 'Funds to test',
           equity: total ? s.equityMin / total : 0, bond: total ? s.bondMin / total : 0,
           diversifiers: total ? (s.diversifierStart || 0) / total : 0, cash: total ? s.cashTarget / total : 0,
           equityMin: s.equityMin, bondMin: s.bondMin, cashTarget: s.cashTarget,
@@ -7849,7 +7860,9 @@
     // --- Per-bucket "enter this month's fund values" popup (Decision Monthly Entry) ----------------
     window._fundModal = { fieldId: null, subtotal: 0 };
     window.openFundBucketModal = function(bucket, fieldId, title) {
-      const bucketFunds = funds('ds').filter(f => {
+      // 6.13.0: the funds to type values for are what you HOLD (the plan record); the Decision list is the fallback.
+      const srcFunds = window._holdingsLines || [];   // what you HOLD only — a strategy's funds-to-test list is never holdings
+      const bucketFunds = srcFunds.filter(f => {
         const k = effectiveSubClass(f);
         return f.ticker && k && SUB_ASSET_PROFILES[k] && SUB_ASSET_PROFILES[k].bucket === bucket;
       });
@@ -7857,7 +7870,7 @@
       document.getElementById('fundModalTitle').textContent = title;
       const rows = document.getElementById('fundModalRows');
       if (!bucketFunds.length) {
-        rows.innerHTML = '<p style="color:var(--text-muted);">No ' + title.toLowerCase() + ' tagged yet. Define your holdings in <strong>Settings → Build from my funds</strong>, then come back — or just type the total into the box.</p>';
+        rows.innerHTML = '<p style="color:var(--text-muted);">No ' + title.toLowerCase() + ' recorded yet. Record what you hold on the <strong>Transition</strong> tab, then come back — or just type the total into the box.</p>';
       } else {
         rows.innerHTML = bucketFunds.map(f => {
           const cat = liveCatalogueEntry(f.ticker);
@@ -7888,22 +7901,20 @@
     window.updateEntryTagPrompt = function() {
       const el = document.getElementById('entryTagPrompt');
       if (!el) return;
-      const hasTags = funds('ds').filter(f => f.ticker).length > 0;
+      const hasTags = (window._holdingsLines || []).filter(f => f.ticker).length > 0;
       if (hasTags) { el.style.display = 'none'; el.innerHTML = ''; return; }
       el.style.display = 'block';
-      el.innerHTML = '<div class="alert alert-info" style="font-size:13px;">The Decision Tool works from your real portfolio. Tag your funds in <strong>Settings → “Build from my funds”</strong> to enter values per fund via the <em>enter per fund ▸</em> links. You can still type bucket totals directly.</div>';
+      el.innerHTML = '<div class="alert alert-info" style="font-size:13px;">Record what you hold on the <strong>Transition</strong> tab (paste it from your platform) and the <em>enter per fund ▸</em> links let you type each fund\'s value here. Or just type the bucket totals.</div>';
     };
 
     // Decision tab: fill the monthly fund values from the tagged funds — the Decision plan's own list
     // first, then the Stress list / saved settings as a fallback.
     window.fillDecisionFromTaggedFunds = async function() {
-      let holdings = funds('ds').filter(f => f.ticker && f.value > 0);
-      if (!holdings.length) holdings = funds('ss').filter(f => f.ticker && f.value > 0);
+      // What you hold (the plan record) first; the Decision tool's own list as the fallback. Never the Stress tester's
+      // funds-to-test list — that is the portfolio a strategy is tested on, not what you have (6.13.0).
+      let holdings = []; try { holdings = ((await getActiveHoldings()).lines || []).filter(f => f.ticker && f.value > 0); } catch (e) { holdings = []; }
       if (!holdings.length) {
-        try { const s = await getStressSettingsAsync(); holdings = (s.taggedFunds || []).filter(f => f.ticker && f.value > 0); } catch (e) { /* ignore */ }
-      }
-      if (!holdings.length) {
-        showToast('No tagged funds yet — tag your holdings in Settings → "Build from my funds", then come back.', 'info', 6000);
+        showToast('Nothing recorded yet — record what you hold on the Transition tab (paste it from your platform), then come back.', 'info', 6000);
         return;
       }
       const t = tagPortfolio(holdings);
@@ -8423,7 +8434,8 @@
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
       let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
       let accumulation = null; try { accumulation = await getActiveAccumulation(); } catch (e) { accumulation = null; }
-      const doc = buildPlanDocument({ planName: name, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation });
+      let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; }
+      const doc = buildPlanDocument({ planName: name, holdings, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation });
       if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
       await saveActivePlanDocument(doc);
       window._planDocLast = doc;
@@ -8485,7 +8497,8 @@
       let ladderPos = null;
       try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
       let accHistory = []; try { if (doc.accumulation) accHistory = await getActiveAccumulationHistory(); } catch (e) { accHistory = []; }
-      return whereAmI(doc, { today: new Date(), history, ladderPos, accHistory });
+      let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; }
+      return whereAmI(doc, { today: new Date(), history, ladderPos, accHistory, holdings });
     }
     window.renderPlanDocumentPage = async function () {
       const box = document.getElementById('planDocumentPage'); if (!box) return;
@@ -8542,7 +8555,8 @@
         const acc = { ...(await getActiveAccumulation()), ...readAccumulationInputs() };
         const t = deriveTiming(settings);
         if (!(t.currentAge > 0)) { box.innerHTML = '<div class="alert alert-warning">Enter your age today in the Stress tester\'s Timing block first — the spin needs to know how many years of saving are left.</div>'; return; }
-        const payload = { settings, accumulation: acc, incomeOverride, mcRuns: 200, stride: 6 };
+        let holdingsLines = []; try { holdingsLines = (await getActiveHoldings()).lines || []; } catch (e) { holdingsLines = []; }
+        const payload = { settings, accumulation: acc, holdings: holdingsLines, incomeOverride, mcRuns: 200, stride: 6 };
         let out;
         try { out = await runInWorker('sweep', payload, (pr) => { box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning ' + budEsc(pr.name || '') + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…</div>'; }); }
         catch (e) { console.warn('sweep worker unavailable, running inline', e); const m = await import('./src/services/RetireSweep.js'); out = m.sweepRetirementAges(payload); }
@@ -8561,7 +8575,7 @@
 
     // ---- Paste your holdings (6.9.0): any platform page or export → the ledger, with a preview ----
     window._pasteCtx = null;
-    window.pasteHoldingsFromTransition = function () { openMyFunds(); setTimeout(() => openPasteHoldings('ss'), 700); };
+    window.pasteHoldingsFromTransition = function () { pasteHoldings(); };
     window.openPasteHoldingsNear = function (btn) {
       const root = btn && btn.closest ? btn.closest('#ssFundsMode, #dsFundsMode, #stress-stresssettings, #decision-decisionsettings') : null;
       const p = root && root.id && root.id.startsWith('ds') || (root && root.id === 'decision-decisionsettings') ? 'ds' : 'ss';
@@ -8577,9 +8591,9 @@
       const ov = document.createElement('div'); ov.id = 'pasteHoldingsOverlay';
       ov.style.cssText = 'position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;';
       ov.innerHTML = '<div class="card" style="max-width:900px;width:100%;">'
-        + '<h2 style="margin-top:0;">Paste your holdings</h2>'
-        + '<p class="hint">Open your platform\'s holdings page (or its export), select the table, copy, and paste it below. Any layout works: the tool looks for a name, units, value, and a SEDOL or ticker. Nothing you paste leaves this browser; only the resulting list is saved with your plan.</p>'
-        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">These holdings are in<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option></select></label></div>'
+        + '<h2 style="margin-top:0;">' + (p === 'hold' ? 'Paste what you hold' : 'Paste a list to test') + '</h2>'
+        + '<p class="hint">Open your platform\'s holdings page (or its export), select the table, copy, and paste it below. Any layout works: the tool looks for a name, units, value, and a SEDOL or ticker. Nothing you paste leaves this browser; ' + (p === 'hold' ? 'the resulting list is saved with your plan as what you hold.' : 'the resulting list becomes the funds this strategy is tested on — it does not change what you hold, and is kept only when you Save Settings.') + '</p>'
+        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + (p === 'hold' ? 'These holdings are in' : 'Treat this list as held in') + '<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option></select></label></div>'
         + '<textarea id="pasteText" rows="8" style="width:100%;font-family:monospace;font-size:12px;" placeholder="Investment,Units,Value&#10;Vanguard FTSE All-World UCITS ETF,500,£52,600.00&#10;Treasury 0.125% I/L 22/03/2030,35000,£38,584.00"></textarea>'
         + '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="previewPasteHoldings()">Preview</button><button type="button" class="secondary" data-on-click="document.getElementById(\'pasteHoldingsOverlay\').remove()">Cancel</button></div>'
         + '<div id="pastePreview" style="margin-top:10px;"></div></div>';
@@ -8596,43 +8610,105 @@
       const box = document.getElementById('pastePreview'); if (!box) return;
       if (!matched.length) { box.innerHTML = '<div class="alert alert-warning">' + parsed.warnings.map(budEsc).join('<br>') + '</div>'; return; }
       const conf = (m) => m.match.kind === 'none' ? '<span style="color:var(--danger,#f87171);">not recognised — pick a category after applying</span>' : budEsc(m.match.kind === 'gilt' ? 'gilt rung (' + m.match.confidence + ')' : m.match.kind === 'cash' ? 'money market / cash' : 'fund (' + m.match.confidence + ')');
-      const ledger = funds(ctx.p);
+      const ledger = ctx.p === 'hold' ? ((window._holdingsDraft && window._holdingsDraft.lines) || []) : funds(ctx.p);
       const merged = mergeLedger(ledger, matched, { wrapper });
       let h = '<div class="table-scroll-container"><table><thead><tr><th>Pasted</th><th>Read as</th><th>Units</th><th>Value</th><th>Match</th></tr></thead><tbody>'
         + matched.map((m) => '<tr><td>' + budEsc(m.name || m.ticker || m.sedol || '') + '</td><td>' + budEsc(m.match.name || m.match.ticker || '—') + (m.match.ticker ? ' <span class="hint">' + budEsc(m.match.ticker) + '</span>' : '') + '</td><td>' + (m.units != null ? Math.round(m.units).toLocaleString() : '—') + '</td><td>' + (m.value != null ? gbp(m.value) : '—') + '</td><td>' + conf(m) + '</td></tr>').join('')
         + '</tbody></table></div>';
       h += '<p class="hint" style="margin-top:6px;">Applying will ' + (merged.updated.length ? 'update ' + merged.updated.length + ' line' + (merged.updated.length === 1 ? '' : 's') + ' you already have' : 'update nothing') + (merged.added.length ? ', add ' + merged.added.length : '') + (merged.unseen.length ? ', and leave ' + merged.unseen.length + ' ' + wrapper + ' line' + (merged.unseen.length === 1 ? '' : 's') + ' not in the paste (' + merged.unseen.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ') — remove them yourself if they were sold' : '') + '.' + (parsed.warnings.length ? ' ' + parsed.warnings.map(budEsc).join(' ') : '') + '</p>';
-      h += '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="applyPasteHoldings()">Apply to my funds</button></div>';
+      h += '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="applyPasteHoldings()">' + (ctx.p === 'hold' ? 'Apply to what I hold' : 'Apply to the funds to test') + '</button></div>';
       box.innerHTML = h;
     };
-    window.applyPasteHoldings = function () {
+    window.applyPasteHoldings = async function () {
       const ctx = window._pasteCtx; if (!ctx || !ctx.matched) return;
+      if (ctx.p === 'hold') {
+        // What you hold: saved straight to the plan record (6.13.0) — no Save Settings, no lock involved.
+        const rec = window._holdingsDraft || emptyHoldings();
+        const merged = mergeLedger(rec.lines || [], ctx.matched, { wrapper: ctx.wrapper });
+        document.getElementById('pasteHoldingsOverlay')?.remove();
+        try { await persistHoldings({ ...rec, lines: merged.ledger }, 'paste'); showToast('What you hold updated: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added.', 'success', 6000); }
+        catch (e) { showToast('Could not save what you hold: ' + e.message, 'error'); }
+        return;
+      }
       const merged = mergeLedger(funds(ctx.p), ctx.matched, { wrapper: ctx.wrapper });
       window._taggedFunds[ctx.p] = merged.ledger;
       renderFunds(ctx.p);
       document.getElementById('pasteHoldingsOverlay')?.remove();
-      showToast('Holdings applied: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added. Check the categories, then Save Settings.', 'success', 6000);
+      showToast('Funds to test applied: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added. Check the categories, then Save Settings.', 'success', 6000);
     };
 
     // ---- Transition tool (6.8.0): from what you hold to the plan document's target ----
-    window.loadTransitionUI = async function () {
+    window.loadTransitionUI = async function (recOverride) {
       const box = document.getElementById('transitionPage'); if (!box) return;
       box.innerHTML = '<p class="hint">Working out the moves…</p>';
       try {
         const stage = window._lifeStage || await refreshLifeStage();
         const doc = await getActivePlanDocument();
-        const target = targetHoldings(doc);
-        const ss = await getStressSettingsAsync();
-        const ledger = Array.isArray(ss.taggedFunds) ? ss.taggedFunds : [];
+        const today = new Date();
+        const ssLive = await getStressSettingsAsync();
+        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
+        // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
+        const rec = recOverride || await getActiveHoldings();
+        window._holdingsDraft = JSON.parse(JSON.stringify(rec)); try { window._holdingsDraftFor = await getActiveScenarioId(); } catch (e) { window._holdingsDraftFor = null; } window._holdingsLines = (rec.lines || []).slice();
+        const ledger = rec.lines || [];
+        const ss = ssLive;
+        const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
+        const offer = (!ledger.length && !rec.offerDismissed && testList.length) ? { taggedFunds: testList } : null;
         const diff = diffHoldings(ledger, target);
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
         const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
         const tr = await getActiveTransition();
         const prog = transitionProgress(diff, tr.done || {});
-        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '' });
+        let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
+        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: !!diff.complete });
         window._transitionLast = { diff, seq };
       } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }
     };
+    // ---- What you hold (6.13.0): the plan-level record, edited on the Transition tab. No strategy code writes it,
+    // no engine reads it, the lock never freezes it. ----
+    function todayIso() { return new Date().toISOString().slice(0, 10); }
+    async function persistHoldings(rec, source) {
+      const planNow = await getActiveScenarioId();
+      if (window._holdingsDraftFor && planNow && window._holdingsDraftFor !== planNow) { await loadTransitionUI(); throw new Error('the plan changed — the Transition tab has been reloaded, please redo the edit'); }
+      const out = normaliseHoldings({ ...rec, source: source || rec.source || 'typed' });
+      out.updatedAt = out.lines.length ? todayIso() : null;   // "when the lines were last recorded" — no lines, no date
+      if (!out.lines.length) out.source = 'none';
+      await saveActiveHoldings(out);
+      window._holdingsDraft = JSON.parse(JSON.stringify(out)); window._holdingsLines = (out.lines || []).slice();
+      try { await loadTransitionUI(); } catch (e) { /* view optional */ }
+      try { await renderAccumulationHoldings(); } catch (e) { /* view optional */ }
+      try { updateEntryTagPrompt(); } catch (e) { /* decision form optional */ }
+      return out;
+    }
+    window.updHolding = function (i, k, v) {
+      const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return;
+      d.lines[i][k] = (k === 'value' || k === 'units' || k === 'ocf' || k === 'contribution') ? (v === '' ? null : +v) : v;
+      // Fires on change (leaving the box): save at once, like Remove and Paste, so nothing is lost on a tab change.
+      persistHoldings(d, d.source === 'paste' || d.source === 'imported' ? d.source : 'typed').catch(function (e) { showToast('Could not save what you hold: ' + e.message, 'error'); });
+    };
+    window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines) return; d.lines.splice(i, 1); await persistHoldings(d); };
+    window.addHoldingLine = async function () {
+      // The card's inline add row (hlTicker/hlName/hlWrapper/hlValue/hlUnits) when filled in; else an empty editable row.
+      const d = window._holdingsDraft || (window._holdingsDraft = emptyHoldings());
+      const g = (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+      const ticker = g('hlTicker'), name = g('hlName'), wrapper = g('hlWrapper') || 'SIPP', value = g('hlValue'), units = g('hlUnits');
+      const line = { wrapper, ticker: ticker.toUpperCase(), name, sedol: null, units: units === '' ? null : +units, value: value === '' ? null : +value, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
+      d.lines.push(line);
+      if (ticker || name) { await persistHoldings(d, d.source === 'paste' || d.source === 'imported' ? d.source : 'typed'); return; }   // a filled row saves at once
+      await loadTransitionUI(d);   // an empty row to type into, kept until Save
+    };
+    window.saveHoldingsUI = async function () {
+      try { const out = await persistHoldings(window._holdingsDraft || emptyHoldings(), 'typed'); showToast('What you hold saved — ' + (out.lines || []).length + ' line' + ((out.lines || []).length === 1 ? '' : 's') + '.', 'success'); }
+      catch (e) { showToast('Could not save what you hold: ' + e.message, 'error'); }
+    };
+    window.importHoldingsFromStress = async function () {
+      try { const ss = await getStressSettingsAsync(); const rec = { ...emptyHoldings(), lines: linesFromTaggedFunds(ss.taggedFunds || []) }; await persistHoldings(rec, 'imported'); showToast('Copied into what you hold. Check the lines — remove any that are not yours.', 'success', 6000); }
+      catch (e) { showToast('Could not copy the list: ' + e.message, 'error'); }
+    };
+    window.dismissHoldingsOffer = async function () {
+      try { const rec = await getActiveHoldings(); await persistHoldings({ ...rec, offerDismissed: true }); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
+    };
+    window.pasteHoldings = function () { openPasteHoldings('hold'); };
     window.toggleTransitionDone = async function (key, checked) {
       try {
         const tr = await getActiveTransition(); const done = { ...(tr.done || {}) };
@@ -8644,22 +8720,23 @@
 
     // ---- Accumulation: what you hold + the monthly pot record (6.7.0) ----
     window.openMyFunds = function () {
-      openToolSettingsTab('stress');
-      setTimeout(() => { const el = document.getElementById('ssFundsMode'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' }); }, 500);
+      // 6.13.0: what you hold lives on the Transition tab (the plan-level record), not in the Stress settings.
+      switchToTab('transition');
+      setTimeout(() => { const el = document.getElementById('holdingsCard'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' }); }, 500);
     };
     window.renderAccumulationHoldings = async function () {
       const el = document.getElementById('acHoldings'); if (!el) return;
       try {
-        const ss = await getStressSettingsAsync();
-        const hp = holdingsProportions(ss.taggedFunds || []);
-        if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">No holdings entered yet. Add them under My funds in the Stress tester\'s Settings and the planner will show your proportions here.</p>'; return; }
+        const rec = await getActiveHoldings();
+        const hp = holdingsProportions(rec.lines || []);
+        if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">Nothing recorded yet. Record what you hold on the Transition tab (paste it from your platform) and the planner will show your proportions here.</p>'; return; }
         const pct = (v) => Math.round(v * 100) + '%';
         let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + budEsc(describeMix(hp)) + '</div>';
         h += '<div class="table-scroll-container"><table><thead><tr><th>Asset class</th><th>Value</th><th>Share</th></tr></thead><tbody>'
           + hp.subClasses.map((s) => '<tr><td>' + budEsc(s.label) + ' <span class="hint">(' + budEsc(s.bucket) + ')</span></td><td>' + gbp(s.value) + '</td><td>' + pct(s.weight) + '</td></tr>').join('')
           + '<tr><td><strong>Total</strong> — SIPP ' + gbp(hp.byWrapper.SIPP) + (hp.byWrapper.ISA ? ' · ISA ' + gbp(hp.byWrapper.ISA) : '') + (hp.byWrapper.GIA ? ' · GIA ' + gbp(hp.byWrapper.GIA) : '') + '</td><td><strong>' + gbp(hp.total) + '</strong></td><td></td></tr></tbody></table></div>';
         if (hp.contributions.monthly > 0) h += '<p class="hint" style="margin:6px 0 0;">New money: ' + gbp(hp.contributions.monthly) + ' a month — ' + ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => hp.contributions.byBucket[b] > 0.004).map((b) => pct(hp.contributions.byBucket[b]) + ' ' + b).join(', ') + '.</p>';
-        if (hp.untagged.length) h += '<p class="hint" style="margin:6px 0 0;">Not counted (unknown category): ' + hp.untagged.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ' — pick a category for them under My funds.</p>';
+        if (hp.untagged.length) h += '<p class="hint" style="margin:6px 0 0;">Not counted (unknown category): ' + hp.untagged.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ' — the fund catalogue does not know them yet.</p>';
         el.innerHTML = h;
         // Pot today from the ledger, when the box is empty
         const pn = document.getElementById('acPotNow'); if (pn && !(+pn.value > 0) && hp.byWrapper.SIPP > 0) { pn.value = Math.round(hp.byWrapper.SIPP); }
@@ -8675,7 +8752,7 @@
           + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
         if (strip) {
           const doc = await getActivePlanDocument();
-          if (doc && doc.accumulation) { const w = whereAmI(doc, { today: new Date(), accHistory: hist }); strip.innerHTML = w ? whereAmIHtml(w) : ''; }
+          if (doc && doc.accumulation) { let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } const w = whereAmI(doc, { today: new Date(), accHistory: hist, holdings }); strip.innerHTML = w ? whereAmIHtml(w) : ''; }
           else strip.innerHTML = window._lifeStage && ['saving', 'approaching'].includes(window._lifeStage.key) ? '<p class="hint">Lock the plan (Stress tester → Settings) and this strip reads each month\'s pot against the locked path.</p>' : '';
         }
       } catch (e) { el.innerHTML = '<p class="hint">Could not read the records: ' + budEsc(e.message) + '</p>'; }
@@ -8851,12 +8928,12 @@
       g('tmPotWrap').style.display = t.mode === 'future' ? 'block' : 'none';
       if (t.mode === 'future' && window._tmProjection) {
         const p = window._tmProjection; const gbpR = (v) => '£' + Math.round(v).toLocaleString();
-        g('tmProjectionLine').innerHTML = 'Pots at retirement in today\'s money, middle band' + (p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)') + ': SIPP <strong>' + gbpR(p.sipp) + '</strong> (cautious ' + gbpR(p.low) + ', strong ' + gbpR(p.high) + ') · ISA <strong>' + gbpR(p.isa) + '</strong>. Every strategy is priced on these; the pots below are what you hold today.';
+        g('tmProjectionLine').innerHTML = 'Pots at retirement in today\'s money, middle band' + (p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)') + ': SIPP <strong>' + gbpR(p.sipp) + '</strong> (cautious ' + gbpR(p.low) + ', strong ' + gbpR(p.high) + ') · ISA <strong>' + gbpR(p.isa) + '</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.';
       }
       let summary = t.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is assumed to start next April (' + taxYearLabel(t.firstTaxYear) + ') with the steps from age ' + t.shapeAgeNow + '.'
         : describeTiming(t, s);
-      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. Funds entered under "My funds" are today\'s holdings: they set the starting mix only; the plan is priced on the pots at retirement.';
+      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
       g('tmSummary').textContent = summary;
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
@@ -9189,9 +9266,11 @@
           + '• The borrowed floor is recorded and shown on this plan until it is bought back.\n\n'
           + 'Do this only AFTER the sale has actually gone through.', { okText: 'Switch the plan' });
         if (!ok) return;
-        const prm = { ...(settings.strategyParams || {}), floorToAge: cutAge,
-          borrowedFloor: { soldAt: new Date().toISOString().slice(0, 10), tidms: blk.orders.map((o) => o.tidm), nominals: blk.orders.map((o) => o.nominal), years: soldYears, proceeds: Math.round(proceeds), trigger: eq ? { level: eq.level, ath: eq.ath } : null } };
-        await saveStressSettings({ strategyId: 'floor-to-age', strategyParams: prm });
+        // The rotation is the pre-agreed escape of the locked plan: the plan moves to Floor to an age with the sold block recorded.
+        const bf = { soldAt: new Date().toISOString().slice(0, 10), tidms: blk.orders.map((o) => o.tidm), nominals: blk.orders.map((o) => o.nominal), years: soldYears, proceeds: Math.round(proceeds), trigger: eq ? { level: eq.level, ath: eq.ath } : null };
+        await switchStressStrategy('floor-to-age', { floorToAge: cutAge, borrowedFloor: bf });
+        // The plan document records the escape too, so Transition and the rotation watch read "fired" whatever strategy is live.
+        try { const doc = await getActivePlanDocument(); if (doc) await saveActivePlanDocument({ ...doc, rotation: { firedAt: bf.soldAt, borrowedFloor: bf } }); } catch (e) { /* document optional */ }
         try { await setActiveStrategyChecked('floor-to-age', { floorToAge: cutAge }); } catch (e) {}
         invalidateStressCache(); _ladderPosCache = null;
         showToast('Plan switched to Floor to an age (' + cutAge + '). The borrowed floor is on record.', 'success');
@@ -9408,7 +9487,20 @@
         .filter((sec, i, arr) => sec && arr.indexOf(sec) === i);
     }
 
+    // 6.13.0: switching strategy in Settings puts the outgoing strategy's inputs (dials, funds to test, alloc mode)
+    // away under strategyState and brings this one's back — or starts it clean. Nothing bleeds between them.
+    function stashAndRestoreStrategy(prev, id) {
+      const sw = switchStrategy({ strategyId: prev, strategyParams: readStrategyParams(), allocMode: allocMode('ss'), taggedFunds: funds('ss').map((f) => ({ ...f })), strategyState: window._ssStrategyState || {} }, id, { savedAt: todayIso() });
+      window._ssStrategyState = sw.strategyState;
+      window._ssSavedParams = { ...sw.strategyParams };
+      window._taggedFunds.ss = (sw.taggedFunds || []).map((f) => ({ ...f }));
+      window._ssStrategy = id;
+      try { setAllocMode('ss', sw.allocMode || 'risk'); } catch (e) { /* form not built yet */ }
+      try { applyStrategyToUI(id, window._ssSavedParams); } catch (e) { /* form not built yet */ }
+    }
     window.pickStrategy = function (id) {
+      const prev = window._ssStrategy;
+      if (!window._ssApplying && prev && prev !== id) stashAndRestoreStrategy(prev, id);
       window._ssStrategy = id;
       document.querySelectorAll('#ssStrategyPick .risk-btn').forEach((b) => b.classList.toggle('active', b.dataset.strat === id));
       document.getElementById('ssStrategyBlurb').textContent = STRATEGY_BLURBS[id] || '';
@@ -9489,8 +9581,9 @@
         showLoading('Copying plan…');
         const copy = await duplicateScenario(activeId, newName);
         await switchScenario(copy?.id || copy);
-        await setActiveStrategyChecked(id, readStrategyParams());
-        await saveStressSettings({ strategyId: id, strategyParams: readStrategyParams() });
+        const prm = cleanParams(id, readStrategyParams());
+        await setActiveStrategyChecked(id, prm);
+        await switchStressStrategy(id, prm);
         showToast(newName + ' created — this copy models ' + (names[id] || id) + '; your original plan is untouched.', 'success', 6000);
         location.reload();
       } catch (e) {
@@ -9602,8 +9695,7 @@
           isaTotal: +document.getElementById('stratIsaFf').value || 0
         };
       }
-      // Pots & Valves has no dials, but the saved params still carry values other strategies use
-      // (e.g. essentialsAnnual from the Budget hand-off) — keep them, do not wipe them on Save.
+      // Pots & Valves has no dials (6.13.0: other strategies' values live under strategyState now, not here).
       return { ...saved };
     }
 
@@ -9613,11 +9705,15 @@
       // over from the PREVIOUS plan (e.g. an £800k test plan) silently became this plan's pot.
       for (const fid of ['stratSipp', 'stratIsa', 'stratSippFf', 'stratIsaFf', 'miniSipp', 'miniIsa']) { const e = document.getElementById(fid); if (e) e.value = ''; }
       { const se = document.getElementById('miniSipp'), ie = document.getElementById('miniIsa'), fe = document.getElementById('miniFloorToAge'); if (se) se.value = params && params.sippTotal ? params.sippTotal : ''; if (ie) ie.value = params && params.isaTotal != null ? params.isaTotal : ''; if (fe) fe.value = params && params.floorToAge ? params.floorToAge : ''; }
-      pickStrategy(id || 'pots-and-valves');
+      window._ssApplying = true; try { pickStrategy(id || 'pots-and-valves'); } finally { window._ssApplying = false; }
       if (id === 'bridge-and-engine' && params) { const a = document.getElementById('miniBridgeAge'), b = document.getElementById('miniBridgeCash'); if (a && params.bridgeAge) a.value = params.bridgeAge; if (b && params.cashYears != null) b.value = params.cashYears; }
       if (id === 'buckets-in-order' && params) { const e = document.getElementById('bucketBand'); if (e && params.bucketBand) e.value = params.bucketBand; }
       if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; }
       if (id === 'gilt-rotation' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; if (c && params.rotateCutAge) c.value = params.rotateCutAge; }
+      if (id === 'full-il-gilt' || id === 'gilt-rotation') {   // shared inputs: a clean start must not inherit the other gilt strategy's typed values (6.13.0)
+        const p = params || {}; const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut');
+        if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (b && p.bridgeCash == null) b.value = LADDER_DEFAULTS.bridgeCash || 0; if (c && p.rotateCutAge == null) c.value = 75;
+      }
       if (id === 'ladder-and-ratchet' && params) {
         if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
         if (params.isaTotal) document.getElementById('stratIsa').value = params.isaTotal;
@@ -9947,11 +10043,33 @@
     }
     window.setGiltFrame = function (n) { window._stratFrame = Math.max(1, Math.min(4, n)); const p = window._giltPlanCache; if (!p) return; document.getElementById('giltMachine').innerHTML = giltLadderSvg(p, window._stratFrame); document.getElementById('giltStepper').innerHTML = stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame'); };
     window.setGiltDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; const box = document.getElementById('stratPage'); box.innerHTML = await fullGiltPageHtml(); };
+    // ---- Strategy switch from a Strategies page or a what-if (6.13.0): stash the outgoing strategy's inputs, restore
+    // this strategy's own (or start clean), then apply the dials on top. Nothing of the deselected strategy survives. ----
+    function restoredParamsFor(s, id) {
+      if (s.strategyId === id) return cleanParams(id, s.strategyParams || {});
+      return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
+    }
+    async function switchStressStrategy(id, extraParams = {}, extraPatch = {}) {
+      const s = await getStressSettingsAsync();
+      const sw = switchStrategy(s, id, { savedAt: todayIso() });
+      const strategyParams = cleanParams(id, { ...sw.strategyParams, ...extraParams });
+      // A restored "funds" list IS the allocation the engine reads: re-derive equityMin/bondMin/cashTarget/subAsset
+      // from it (DOM-free twin of rebuildCustomAllocFromFunds) so the run does not keep the outgoing strategy's pots.
+      let allocPatch = {};
+      const restoredList = (sw.taggedFunds || []).filter((f) => f && f.ticker && +f.value > 0);
+      if (sw.allocMode === 'funds' && restoredList.length && !('equityMin' in extraPatch)) {
+        try { const t = tagPortfolio(restoredList); const a = allocationFromTags(t); allocPatch = { equityMin: a.equityStart, bondMin: a.bondStart, cashTarget: a.cashStart, diversifierStart: a.diversifierStart || 0, subAsset: a.subAsset || null, isaBalance: Math.round(t.isaTotal || 0) }; } catch (e) { allocPatch = {}; }
+      }
+      await saveStressSettings({ strategyId: id, strategyParams, strategyState: sw.strategyState, allocMode: sw.allocMode, taggedFunds: sw.taggedFunds, ...allocPatch, ...extraPatch });
+      window._ssStrategyState = sw.strategyState; window._ssSavedParams = { ...strategyParams }; window._ssStrategy = id;
+      window._taggedFunds.ss = (extraPatch.taggedFunds || sw.taggedFunds || []).map((f) => ({ ...f }));
+      return strategyParams;
+    }
     window.useFullGiltStrategy = async function () {
       const d = window._stratDials;
-      const s = await getStressSettingsAsync();
-      await saveStressSettings({ strategyId: 'full-il-gilt', strategyParams: { ...(s.strategyParams || {}), cashYears: d.cashYears ?? (s.strategyParams?.cashYears ?? 2), bridgeCash: d.bridgeCash ?? (s.strategyParams?.bridgeCash ?? 0) } });
-      try { await setActiveStrategyChecked('full-il-gilt', {}); } catch (e) {}
+      const s = await getStressSettingsAsync(); const cur = restoredParamsFor(s, 'full-il-gilt');
+      try { await setActiveStrategyChecked('full-il-gilt', {}); } catch (e) { return; }   // a locked plan refuses — nothing is written
+      await switchStressStrategy('full-il-gilt', { cashYears: d.cashYears ?? (cur.cashYears ?? 2), bridgeCash: d.bridgeCash ?? (cur.bridgeCash ?? 0) });
       showToast('Full index-linked gilt ladder is now this plan\'s strategy. The Stress Tester runs it; Settings holds the dials.', 'success');
     };
     /** CPI factor per plan year for a historical start (Shiller monthly CPI, world-independent). */
@@ -9963,7 +10081,7 @@
     async function fullGiltPageHtml() {
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const over = { ...settings, strategyParams: { ...(settings.strategyParams || {}), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
+      const over = { ...settings, strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
       const p = strategyPlanFor(over);
       const r = stressTestStrategy('full-il-gilt', p);
       const plan = r.plan; window._giltPlanCache = plan;
@@ -10013,16 +10131,17 @@
     window.setFtaFrame = function (n) { window._ftaFrame = Math.max(1, Math.min(4, n)); const d = window._ftaCache; if (!d) return; document.getElementById('ftaMachine').innerHTML = floorToAgeSvg(d, window._ftaFrame); document.getElementById('ftaStepper').innerHTML = stepperHtml(FTA_FRAMES, window._ftaFrame, 'setFtaFrame'); };
     window.setFtaDial = async function (v) { window._stratDials.floorToAge = +v || 80; document.getElementById('stratPage').innerHTML = await floorToAgePageHtml(); };
     window.useFloorToAgeStrategy = async function () {
-      const s = await getStressSettingsAsync();
-      await saveStressSettings({ strategyId: 'floor-to-age', strategyParams: { ...(s.strategyParams || {}), floorToAge: window._stratDials.floorToAge ?? (s.strategyParams?.floorToAge ?? 80) } });
-      try { await setActiveStrategyChecked('floor-to-age', {}); } catch (e) {}
+      const s = await getStressSettingsAsync(); const cur = restoredParamsFor(s, 'floor-to-age');
+      try { await setActiveStrategyChecked('floor-to-age', {}); } catch (e) { return; }   // a locked plan refuses — nothing is written
+      await switchStressStrategy('floor-to-age', { floorToAge: window._stratDials.floorToAge ?? (cur.floorToAge ?? 80) });
       showToast('Floor to an age is now this plan\'s strategy.', 'success');
     };
     async function floorToAgePageHtml() {
       const settings = await getStressSettingsAsync();
       window._ftaBorrowedLine = borrowedFloorLineHtml(settings);   // rendered into the page below
-      const age = window._stratDials.floorToAge ?? (settings.strategyParams?.floorToAge ?? 80);
-      const over = { ...settings, strategyParams: { ...(settings.strategyParams || {}), floorToAge: age } };
+      const ftaBase = restoredParamsFor(settings, 'floor-to-age');
+      const age = window._stratDials.floorToAge ?? (ftaBase.floorToAge ?? 80);
+      const over = { ...settings, strategyParams: { ...ftaBase, floorToAge: age } };
       const p = strategyPlanFor(over);
       const r = stressTestStrategy('floor-to-age', p);
       let h = '<div class="card"><h2>Floor to an age, then decide <span class="hint" style="font-weight:normal;font-size:13px;">— certainty now, options later</span></h2>';
@@ -10222,12 +10341,12 @@
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;
     window.setSpecFrame = function (n) { window._specFrame = Math.max(1, Math.min(4, n)); const m = window._specMachine; if (!m) return; document.getElementById('specMachine').innerHTML = m.fn(m.d, window._specFrame); document.getElementById('specStepper').innerHTML = stepperHtml(m.frames, window._specFrame, 'setSpecFrame'); };
-    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const prm = { ...(s.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule', 'rotateCutAge', 'rotateTrigger']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = { strategyId: id, strategyParams: prm }; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, taggedFunds: [], riskMode: 'risk' }); } if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; await saveStressSettings(patch); try { await setActiveStrategyChecked(id, {}); } catch (e) {} showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
+    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const cur = restoredParamsFor(s, id); const prm = {}; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule', 'rotateCutAge', 'rotateTrigger']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = {}; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, allocMode: 'risk' }); } if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; try { await setActiveStrategyChecked(id, {}); } catch (e) { return; } await switchStressStrategy(id, { ...cur, ...prm }, patch);  showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
     async function specStrategyPageHtml(id) {
       const spec = STRATEGY_PAGES[id];
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const prm = { ...(settings.strategyParams || {}) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
+      const prm = { ...restoredParamsFor(settings, id) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
       let over = { ...settings, strategyParams: prm };
       if (d.protectionOn != null) over.disableProtection = !d.protectionOn; if (d.cutPct != null) over.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) over.consecutiveLimit = d.consecutiveLimit;
       if (id === 'pots-and-valves' || id === 'buckets-in-order') over = applyAllocDials(over);
@@ -10705,7 +10824,7 @@
 
       // 6.7.0: a fourth line at the holder's own mix (from the holdings ledger), net of cost; pot today from the ledger when set.
       let mixRealReturn = null;
-      try { const ss = await getStressSettingsAsync(); const hp = holdingsProportions(ss.taggedFunds || []); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
+      try { const hp = holdingsProportions(await getActiveHoldings()); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
       window._acMixOn = Number.isFinite(mixRealReturn);
       const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn });
       const last = rows[rows.length - 1];
@@ -10949,7 +11068,8 @@
         document.getElementById('ssDbAmount').value = s.dbAmount || 0;
         document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
-        applyStrategyToUI(s.strategyId || 'pots-and-valves', s.strategyParams || {});
+        window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));   // legacy flat bag sorted per strategy (6.13.0)
+        applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(s);
@@ -11004,15 +11124,10 @@
         return;
       }
       // 6.5.0: a locked plan's Stress settings are frozen too (one lock for both tools).
-      if (!window._ssLockBypass && await planIsLocked()) {
-        // 6.12.6: the plan's SETTINGS are frozen, but what you HOLD is not a setting. The My funds list is the
-        // Transition and Accumulation ledger, so a wrong or stale line can be removed without unlocking.
-        const held = funds('ss').filter(f => f.ticker && f.value > 0);
-        await saveStressSettings({ taggedFunds: held });
-        try { invalidateStressCache(); } catch (e) { /* cache optional */ }
-        try { if (typeof loadTransitionUI === 'function') await loadTransitionUI(); } catch (e) { /* view optional */ }
-        try { if (typeof renderAccumulationHoldings === 'function') await renderAccumulationHoldings(); } catch (e) { /* view optional */ }
-        showToast('Holdings saved (' + held.length + ' line' + (held.length === 1 ? '' : 's') + '). The plan is locked, so every other setting stays as it was — unlock it or duplicate the plan to change those.', 'success', 7000);
+      if (await planIsLocked()) {
+        // 6.5.0: a locked plan's Stress settings are frozen (one lock for both tools). What you HOLD is not a
+        // setting — it is recorded on the Transition tab and stays editable (6.13.0).
+        showToast('This plan is locked — its settings are frozen for both tools. Unlock it (the banner explains what changes) or duplicate the plan to try something else. What you hold is recorded on the Transition tab and can always be updated.', 'info', 7000);
         return;
       }
 
@@ -11043,7 +11158,7 @@
         // Stepped income compiles to the canonical per-year schedule the engine reads. It must WIN over
         // the budget-schedule keep/clear logic below (a later duplicate key used to null it out).
         const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
-        await setActiveStrategyChecked(window._ssStrategy || 'pots-and-valves', readStrategyParams());
+        await setActiveStrategyChecked(window._ssStrategy || 'pots-and-valves', cleanParams(window._ssStrategy || 'pots-and-valves', readStrategyParams()));
         // ONE target: the income shape's first step is the Decision tool's year-0 target too (and the
         // shape itself its schedule). Only while the plan is a draft — a locked plan's target stays put.
         try {
@@ -11061,7 +11176,8 @@
         await saveStressSettings({
           configured: true,  // user has been through Settings — routing can go straight to the tool
           strategyId: window._ssStrategy || 'pots-and-valves',
-          strategyParams: readStrategyParams(),
+          strategyParams: cleanParams(window._ssStrategy || 'pots-and-valves', readStrategyParams()),   // this strategy's own keys only (6.13.0)
+          strategyState: window._ssStrategyState || {},                                                 // every strategy's put-away inputs
           incomeShape: window._ssIncomeShape,
           incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
           // Timing (6.4.0): age today + retired / retire-at-age → the saved first tax year and the derived
@@ -11927,8 +12043,13 @@
         const dur = stressNow.duration || 35;
         const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => Math.round(amountAtAge(steps, ageNow + y, gross)));   // slope-aware (IncomeSchedule)
         const essentialsGross = Math.round(grossUpAnnual(s.essentialAnnualNet || 0));
-        const prm = { ...(stressNow.strategyParams || {}) }; if (!prm.essentialsAnnual && essentialsGross) prm.essentialsAnnual = essentialsGross;
-        await saveStressSettings({ baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule, strategyParams: prm });
+        // essentialsAnnual is a Floor & Flex dial: it goes into THAT strategy's put-away inputs (6.13.0), and into the
+        // live params only when Floor & Flex is the plan's strategy — no stray key for the others.
+        const stState = JSON.parse(JSON.stringify(stressNow.strategyState || {}));
+        if (essentialsGross) { const ff = stState['floor-and-flex'] || (stState['floor-and-flex'] = { strategyParams: {}, allocMode: 'risk', taggedFunds: [], savedAt: todayIso() }); if (!ff.strategyParams.essentialsAnnual) ff.strategyParams.essentialsAnnual = essentialsGross; }
+        const prm = { ...(stressNow.strategyParams || {}) }; if (stressNow.strategyId === 'floor-and-flex' && !prm.essentialsAnnual && essentialsGross) prm.essentialsAnnual = essentialsGross;
+        await saveStressSettings({ baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule, strategyParams: prm, strategyState: stState });
+        window._ssStrategyState = JSON.parse(JSON.stringify(stState));
         // Double-count caution: this budget already shapes spending by age AND the profile
         // is 'Declining' — the generic drift would cut the late years twice.
         const b = window._budget;

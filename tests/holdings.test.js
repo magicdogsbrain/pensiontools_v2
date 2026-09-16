@@ -85,24 +85,40 @@ describe('projection at your own mix + a point on the path', () => {
 
 describe('the locked accumulation path in the plan document, and the saver\'s where-am-I', () => {
   const NOW = new Date(2026, 8, 10);
-  const settings = { currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60, taggedFunds: ledger, equityMin: 0, bondMin: 0, cashTarget: 0, baseSalary: 40000, duration: 30, incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 40000 }] };
+  // The Stress settings carry a DIFFERENT list as taggedFunds (the funds to test) and pot floors: neither may be read as holdings.
+  const settings = { currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60, taggedFunds: [{ ticker: 'VWRP', value: 999999, wrapper: 'SIPP' }], equityMin: 500000, bondMin: 200000, cashTarget: 50000, baseSalary: 40000, duration: 30, incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 40000 }] };
   const accumulation = { netMonthly: 1200, salary: 60000, schemeType: 'ras', employerMonthly: 375 };
+  const holdings = { version: 1, updatedAt: '2026-09-10', source: 'typed', offerDismissed: false, lines: ledger };
   it('buildAccumulationPath: two years, from the SIPP holdings, at the ledger\'s mix', () => {
     const t = deriveTiming(settings, NOW);
-    const a = buildAccumulationPath({ settings, timing: t, accumulation });
+    const a = buildAccumulationPath({ settings, timing: t, accumulation, holdings });
     expect(a.years).toBe(2);
     expect(a.potNow).toBe(320000);
+    expect(a.potSource).toBe('holdings');
     expect(a.totalMonthly).toBeGreaterThan(1500);      // gross-up of £1,200 net plus employer £375
     expect(a.path.length).toBe(3);
     expect(a.path[2].potMix).toBeGreaterThan(320000);
     expect(a.mixText).toMatch(/shares/);
+    expect(buildAccumulationPath({ settings, timing: t, accumulation, holdings: ledger }).potNow).toBe(320000);   // lines alone work too
+  });
+  it('the tested pots are NOT holdings (6.13.0): no record and no pot today → potNow null, empty path; pot today is the fallback', () => {
+    const t = deriveTiming(settings, NOW);
+    const none = buildAccumulationPath({ settings, timing: t, accumulation });
+    expect(none.potNow).toBeNull();
+    expect(none.path).toEqual([]);
+    expect(none.totalMonthly).toBeGreaterThan(1500);   // contributions are still known
+    const fromAcc = buildAccumulationPath({ settings, timing: t, accumulation: { ...accumulation, potNow: 250000 } });
+    expect(fromAcc.potNow).toBe(250000);
+    expect(fromAcc.potSource).toBe('accumulation');
+    expect(fromAcc.path[0].potMix).toBeUndefined();    // no mix without holdings
   });
   it('no path for someone already retired', () => {
-    expect(buildAccumulationPath({ settings: { ...settings, retired: true, retireAge: null }, timing: deriveTiming({ ...settings, retired: true, retireAge: null }, NOW), accumulation })).toBeNull();
+    expect(buildAccumulationPath({ settings: { ...settings, retired: true, retireAge: null }, timing: deriveTiming({ ...settings, retired: true, retireAge: null }, NOW), accumulation, holdings })).toBeNull();
   });
   it('whereAmI reads the latest pot record against the path', () => {
-    const doc = buildPlanDocument({ planName: 'Wendy Real', settings, p: null, r: null, accumulation, lockedAt: NOW.toISOString(), now: NOW });
+    const doc = buildPlanDocument({ planName: 'Wendy Real', settings, p: null, r: null, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
     expect(doc.accumulation.path.length).toBe(3);
+    expect(doc.holdingsAtLock.lines.length).toBe(3);
     const later = new Date(2027, 8, 10);   // a year on
     const w = whereAmI(doc, { today: later, accHistory: [{ date: '2027-09', sipp: 380000, isa: 110000, total: 490000 }] });
     expect(w.bridge).toBe(true);
@@ -115,10 +131,26 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(h).toContain('£380,000');
     expect(h).toContain('locked path');
   });
-  it('without a record it asks for one', () => {
-    const doc = buildPlanDocument({ planName: 'Wendy Real', settings, accumulation, lockedAt: NOW.toISOString(), now: NOW });
+  it('without a record it asks for one; today\'s holdings record stands in when passed', () => {
+    const doc = buildPlanDocument({ planName: 'Wendy Real', settings, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
     const w = whereAmI(doc, { today: new Date(2027, 0, 10) });
     expect(w.saving.actual).toBeNull();
     expect(whereAmIHtml(w)).toMatch(/Record this month's pot/);
+    const w2 = whereAmI(doc, { today: new Date(2027, 0, 10), holdings: { ...holdings, updatedAt: '2027-01-05', lines: [{ ticker: 'VLS80', value: 350000, wrapper: 'SIPP' }] } });
+    expect(w2.saving.actual).toBe(350000);
+    expect(w2.saving.actualSource).toBe('holdings');
+    expect(w2.saving.recordedAt).toBe('2027-01-05');
+    expect(whereAmIHtml(w2)).toContain('holdings as of 2027-01-05');
+  });
+  it('locked with no pot on record: the strip and the document ask for the pot instead of comparing with nothing', () => {
+    const doc = buildPlanDocument({ planName: 'Wendy Real', settings, accumulation, lockedAt: NOW.toISOString(), now: NOW });
+    expect(doc.accumulation.potNow).toBeNull();
+    const w = whereAmI(doc, { today: new Date(2027, 0, 10) });
+    expect(w.saving.pathMissing).toBe(true);
+    expect(w.saving.expected).toBeNull();
+    expect(whereAmIHtml(w)).toMatch(/locked without a pension pot on record/);
+    const w2 = whereAmI(doc, { today: new Date(2027, 0, 10), holdings: ledger });
+    expect(w2.saving.actual).toBe(320000);
+    expect(whereAmIHtml(w2)).toContain('£320,000');
   });
 });

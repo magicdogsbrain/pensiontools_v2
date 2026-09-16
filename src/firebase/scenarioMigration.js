@@ -16,11 +16,29 @@
  *
  * `normalizeScenario` folds both back into the canonical nested shape, giving
  * phantom fields (latest edits) priority over the creation-time nested defaults.
+ *
+ * Every OTHER root key travels untouched (6.13.0): strategy, planDocument and its archive,
+ * journey, transition, holdings, accumulationTool, budgetTool, household, id, createdAt,
+ * lastModified — and the parts of decisionTool/stressTool outside settings/history/taxYears
+ * (planOfRecord and its archive). The previous fixed-key rebuild threw all of those away, and
+ * the follow-up `setDoc` (no merge) made the loss permanent.
  */
 
-/** First defined value among the candidates (in priority order). */
-function pick(...vals) {
-  return vals.find((v) => v !== undefined);
+/** The pre-restructure top-level fields; they are folded in and then dropped. */
+const LEGACY_KEYS = ['decisionSettings', 'stressSettings', 'name', 'description', 'taxYears'];
+
+const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+
+/** Set `value` at a dotted path, cloning each map on the way so the raw document is never mutated. */
+function setPath(obj, path, value) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i];
+    cur[k] = isObj(cur[k]) ? { ...cur[k] } : {};
+    cur = cur[k];
+  }
+  cur[parts[parts.length - 1]] = value;
 }
 
 /**
@@ -36,46 +54,27 @@ export function normalizeScenario(raw) {
   }
 
   const dottedKeys = Object.keys(raw).filter((k) => k.includes('.'));
-  const hasLegacy =
-    'decisionSettings' in raw ||
-    'stressSettings' in raw ||
-    'name' in raw ||
-    'description' in raw ||
-    'taxYears' in raw;
+  const hasLegacy = LEGACY_KEYS.some((k) => k in raw);
 
   const migrated = dottedKeys.length > 0 || hasLegacy;
   if (!migrated) {
     return { scenario: raw, migrated: false };
   }
 
-  const nestedDecision = raw.decisionTool || {};
-  const nestedStress = raw.stressTool || {};
-  const nestedPlan = raw.planDetails || {};
-
-  const clean = {
-    isActive: raw.isActive ?? false,
-    enabledTools: raw.enabledTools || ['stress', 'decision'],
-    planDetails: {
-      // priority: phantom (latest) > nested (creation) > legacy top-level
-      name: pick(raw['planDetails.name'], nestedPlan.name, raw.name) ?? 'My Plan',
-      description:
-        pick(raw['planDetails.description'], nestedPlan.description, raw.description) ?? ''
-    },
-    decisionTool: {
-      settings:
-        pick(raw['decisionTool.settings'], nestedDecision.settings, raw.decisionSettings) ?? {},
-      history: pick(raw['decisionTool.history'], nestedDecision.history) ?? [],
-      taxYears:
-        pick(raw['decisionTool.taxYears'], nestedDecision.taxYears, raw.taxYears) ?? {}
-    },
-    stressTool: {
-      settings: pick(raw['stressTool.settings'], nestedStress.settings, raw.stressSettings) ?? {}
-    }
-  };
-
-  if (raw.id !== undefined) clean.id = raw.id;
-  if (raw.createdAt !== undefined) clean.createdAt = raw.createdAt;
-  if (raw.lastModified !== undefined) clean.lastModified = raw.lastModified;
+  // 1. Every ordinary root key as it stands (nested = creation-time values).
+  const clean = {};
+  for (const [k, v] of Object.entries(raw)) if (!k.includes('.') && !LEGACY_KEYS.includes(k)) clean[k] = v;
+  // 2. Phantom dotted fields are the LATEST edits: fold each onto its path, winning over the nested value.
+  for (const k of dottedKeys) setPath(clean, k, raw[k]);
+  // 3. Legacy top-level fields fill only what is still missing, and the canonical shape is guaranteed.
+  clean.isActive = clean.isActive ?? false;
+  clean.enabledTools = clean.enabledTools || ['stress', 'decision'];
+  const pd = isObj(clean.planDetails) ? clean.planDetails : {};
+  clean.planDetails = { ...pd, name: pd.name ?? raw.name ?? 'My Plan', description: pd.description ?? raw.description ?? '' };
+  const dt = isObj(clean.decisionTool) ? clean.decisionTool : {};
+  clean.decisionTool = { ...dt, settings: dt.settings ?? raw.decisionSettings ?? {}, history: dt.history ?? [], taxYears: dt.taxYears ?? raw.taxYears ?? {} };
+  const st = isObj(clean.stressTool) ? clean.stressTool : {};
+  clean.stressTool = { ...st, settings: st.settings ?? raw.stressSettings ?? {} };
 
   return { scenario: clean, migrated: true };
 }

@@ -147,7 +147,9 @@ export async function loadScenario(scenarioId) {
  * @returns {Promise<void>}
  */
 export async function saveScenario(scenarioId, data) {
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { list[i] = { ...list[i], ...data, lastModified: new Date().toISOString() }; guestSave(list); } return; }
+  // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
+  // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);

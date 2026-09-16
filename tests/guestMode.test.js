@@ -40,4 +40,22 @@ describe('guest mode — everything works, nothing leaves the tab', () => {
     leaveGuestMode(); clearGuestData();
     expect(isLoggedIn()).toBe(false);
   });
+  it('a guest save with dot-notation keys is folded onto its path, as updateDoc would read it (6.13.0)', async () => {
+    enterGuestMode(); clearGuestData();
+    const id = await createScenario({ planDetails: { name: 'P' }, isActive: true, stressTool: { settings: { baseSalary: 1, equityMin: 7 } }, decisionTool: { settings: { locked: false }, history: [{ m: 1 }], taxYears: {} } });
+    await saveScenario(id, { 'decisionTool.settings': { locked: true, lockedAt: 't' }, 'stressTool.settings.baseSalary': 2, holdings: { lines: [] } });
+    const [s] = await loadAllScenarios();
+    expect(Object.keys(s).some((k) => k.includes('.'))).toBe(false);
+    expect(s.decisionTool.settings).toEqual({ locked: true, lockedAt: 't' });
+    expect(s.decisionTool.history).toEqual([{ m: 1 }]);
+    expect(s.stressTool.settings).toEqual({ baseSalary: 2, equityMin: 7 });
+    expect(s.holdings).toEqual({ lines: [] });
+    expect(s.planDetails.name).toBe('P');
+    expect(s.id).toBe(id);
+    expect(typeof s.lastModified).toBe('string');
+    // a plain (undotted) save still merges at the root and is left as it is
+    await saveScenario(id, { planDetails: { name: 'Q' } });
+    expect((await loadAllScenarios())[0].planDetails.name).toBe('Q');
+    leaveGuestMode(); clearGuestData();
+  });
 });

@@ -13,9 +13,11 @@ import { planFromSettings, stressTestStrategy } from '../strategies/stressTest.j
 import { createSimulationConfigFromSettings } from '../storage/StressRepository.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
+import { holdingsLines } from './HoldingsRecord.js';
 import { deriveTiming, taxYearLabel } from './PlanTiming.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
+export const NO_POT_MESSAGE = 'Record what you hold (or the pot today on the Accumulation planner) first — the spin projects from your own pension pot, never from the pots the strategy is tested on.';
 
 /** Candidate ages: from next year to the later of 75 and the plan's own retirement age. */
 export function candidateAges(currentAge, retireAge = null, { step = 1, max = 75, min = 55 } = {}) {
@@ -25,16 +27,24 @@ export function candidateAges(currentAge, retireAge = null, { step = 1, max = 75
   return out;
 }
 
-/** Pot at a candidate age in today's money — the same projection the Accumulation planner shows. */
-export function potAtAge({ settings, accumulation, currentAge, age }) {
+/**
+ * Pot at a candidate age in today's money — the same projection the Accumulation planner shows.
+ * `holdings` is the holdings record (or its lines) — what the person holds; the pension pot is its
+ * SIPP-wrapped total, else the Accumulation planner's "pot today", else null. Never the Stress settings'
+ * equityMin/bondMin/cashTarget or taggedFunds: those are the pots a strategy is TESTED on (6.13.0).
+ * @returns {{ potNow, totalMonthly, years, pot, low, high, basis }} — pot/low/high/basis null when no pot is on record
+ */
+export function potAtAge({ settings, accumulation, currentAge, age, holdings = null }) {
   const a = accumulation || {};
-  const holdings = Array.isArray(settings?.taggedFunds) ? settings.taggedFunds : [];
-  const prop = holdings.length ? holdingsProportions(holdings) : null;
-  const potNow = pensionPotFromHoldings(holdings) || num(a.potNow) || (num(settings?.equityMin) + num(settings?.bondMin) + num(settings?.cashTarget) + num(settings?.diversifierStart));
+  const lines = holdingsLines(holdings);
+  const prop = lines.length ? holdingsProportions(lines) : null;
+  const fromLedger = pensionPotFromHoldings(lines);
+  const potNow = fromLedger > 0 ? fromLedger : (num(a.potNow) > 0 ? num(a.potNow) : null);
   let totalMonthly = 0;
   try { if (num(a.netMonthly) > 0 || num(a.employerMonthly) > 0) totalMonthly = contributionBreakdown({ netMonthly: num(a.netMonthly), salary: num(a.salary), schemeType: a.schemeType || 'ras', employerMonthly: num(a.employerMonthly) }).totalMonthly || 0; } catch (e) { totalMonthly = 0; }
   if (!(totalMonthly > 0) && prop && prop.contributions.monthly > 0) totalMonthly = prop.contributions.monthly;
   const years = Math.max(0, age - currentAge);
+  if (potNow == null) return { potNow: null, totalMonthly, years, pot: null, low: null, high: null, basis: null };
   const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: num(a.escalationPct), mixRealReturn: prop && prop.total > 0 ? prop.expectedReal : null });
   const last = rows[rows.length - 1];
   return { potNow, totalMonthly, years, pot: Math.round(last.potMix != null ? last.potMix : last.potMid), low: Math.round(last.potLow), high: Math.round(last.potHigh), basis: last.potMix != null ? 'your mix' : 'FCA middle band' };
@@ -42,10 +52,11 @@ export function potAtAge({ settings, accumulation, currentAge, age }) {
 
 /**
  * Run the sweep.
- * @param {object} o { settings, accumulation, ages?, incomeOverride? (flat £/yr gross), mcRuns=200, stride=6, onProgress(i, n, age), now }
+ * @param {object} o { settings, accumulation, holdings (the holdings record or its lines), ages?, incomeOverride? (flat £/yr gross),
+ *                     mcRuns=200, stride=6, onProgress(i, n, age), now }
  * @returns {{ rows: [{ age, taxYear, yearsAway, pot, low, high, success, coverage, ruin, worst12, affordable }], income, basis, target }}
  */
-export function sweepRetirementAges({ settings, accumulation = null, ages = null, incomeOverride = null, mcRuns = 200, stride = 6, onProgress = null, now = new Date() } = {}) {
+export function sweepRetirementAges({ settings, accumulation = null, holdings = null, ages = null, incomeOverride = null, mcRuns = 200, stride = 6, onProgress = null, now = new Date() } = {}) {
   const s0 = settings || {};
   const t0 = deriveTiming(s0, now);
   const currentAge = t0.currentAge || Math.floor(num(s0.currentAge)) || 0;
@@ -53,11 +64,13 @@ export function sweepRetirementAges({ settings, accumulation = null, ages = null
   const list = ages || candidateAges(currentAge, t0.retireAge);
   const steps = Array.isArray(s0.incomeSteps) && s0.incomeSteps.length ? s0.incomeSteps : null;
   const income = incomeOverride > 0 ? incomeOverride : (steps ? num(steps[0].amount) : num(s0.baseSalary));
+  // No pot on record → nothing to project from. Say so rather than spin on the tested pots.
+  if (list.length && potAtAge({ settings: s0, accumulation, holdings, currentAge, age: list[0] }).potNow == null) return { rows: [], income, basis: null, currentAge, error: NO_POT_MESSAGE };
   const rows = [];
   let basis = null;
   list.forEach((age, i) => {
     if (onProgress) { try { onProgress(i, list.length, age); } catch (e) { /* progress is optional */ } }
-    const pa = potAtAge({ settings: s0, accumulation, currentAge, age });
+    const pa = potAtAge({ settings: s0, accumulation, holdings, currentAge, age });
     basis = pa.basis;
     // The plan as if retiring at `age`: a fresh saver's frame so the steps start at that age.
     const yearsToAge = Math.max(0, age - currentAge);

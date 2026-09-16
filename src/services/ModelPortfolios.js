@@ -7,7 +7,7 @@
  * (30% short gilts / 20% longer gilts / 20% index-linked / 30% IG corporate) and the
  * diversifiers sleeve mirrors DEFAULT_DIVERSIFIER_WEIGHTS (50% gold / 50% trend-macro).
  * Every ticker is in the app's fund catalogue with the same sub-class tag, so tagging exactly
- * these funds in "Use my own funds" reproduces the preset.
+ * these funds under "Test on a list of funds" reproduces the preset.
  */
 
 import { DEFAULT_BOND_WEIGHTS, DEFAULT_DIVERSIFIER_WEIGHTS } from './SubAssetReturns.js';
@@ -63,6 +63,6 @@ export function modelPortfolio(risk, { diversifiers = false } = {}) {
   }
   return {
     rows,
-    note: 'An example of the KIND of funds matching this mix — not a recommendation. Any similar fund doing the same job works; compare ongoing charges, and prefer £-hedged bond share classes. Tagging exactly these funds in "Use my own funds" reproduces this preset.'
+    note: 'An example of the KIND of funds matching this mix — not a recommendation. Any similar fund doing the same job works; compare ongoing charges, and prefer £-hedged bond share classes. Tagging exactly these funds under "Test on a list of funds" reproduces this preset.'
   };
 }

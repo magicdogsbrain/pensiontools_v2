@@ -34,7 +34,7 @@ function wrapperSelect(i, current) {
 }
 
 /**
- * The "What you hold" card: the holdings record as an editable table, the one-time offer to take the Stress
+ * The "What you hold" card: the holdings record as an editable table (no import from the Stress
  * tester's fund list as a starting point, and the paste / save buttons.
  * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [] }, offer?: { taggedFunds: [] }|null }} a
  */
@@ -44,16 +44,9 @@ export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
   let h = '<div class="card" id="holdingsCard"><h2>What you hold</h2>';   // the shell scrolls here from "what you hold" links elsewhere
   h += '<p class="hint">Your actual holdings, by wrapper — what the Transition tool, the Accumulation planner and the plan document read. Not the funds a strategy is tested on.'
     + (rec.updatedAt ? ' Recorded ' + esc(dateGB(rec.updatedAt)) + (SOURCE_TEXT[rec.source] ? ', ' + esc(SOURCE_TEXT[rec.source]) : '') + '.' : '') + '</p>';
-  const offerLines = offer && Array.isArray(offer.taggedFunds) ? offer.taggedFunds.filter(valued) : [];
-  if (!lines.length && offerLines.length && !rec.offerDismissed) {
-    const names = offerLines.map((f) => f.ticker || f.name || '?').slice(0, 6).map(esc).join(', ') + (offerLines.length > 6 ? ', …' : '');
-    h += '<div class="alert alert-info"><strong>Your Stress tester\'s fund list has ' + offerLines.length + ' line' + (offerLines.length === 1 ? '' : 's') + ' (' + names + '). Is that what you actually hold?</strong>'
-      + '<br><span class="hint">The Stress tester tests a strategy on that list; this record is what you own. Take it as a starting point and correct it, or start from scratch.</span>'
-      + '<div class="row-flex" style="margin-top:8px;gap:8px;"><button type="button" data-on-click="importHoldingsFromStress()">Yes — that is what I hold</button>'
-      + '<button type="button" class="risk-btn" data-on-click="dismissHoldingsOffer()">No — start from scratch</button></div></div>';
-  } else if (!lines.length) {
-    h += '<p class="hint">Nothing recorded yet — paste from your platform or add lines.</p>';
-  }
+  // No offer to copy the Stress tester's fund list (6.13.1): that list is the portfolio a strategy is TESTED on and is
+  // never a candidate for what you hold — even as a question. The record starts empty; paste or type it.
+  if (!lines.length) h += '<p class="hint">Nothing recorded yet — paste from your platform or add lines.</p>';
   if (lines.length) {
     const rows = lines.map((l, i) => {
       const L = l || {};

@@ -8653,7 +8653,7 @@
         const ledger = rec.lines || [];
         const ss = ssLive;
         const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
-        const offer = (!ledger.length && !rec.offerDismissed && testList.length) ? { taggedFunds: testList } : null;
+        const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
         const diff = diffHoldings(ledger, target);
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
         const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
@@ -8700,13 +8700,6 @@
     window.saveHoldingsUI = async function () {
       try { const out = await persistHoldings(window._holdingsDraft || emptyHoldings(), 'typed'); showToast('What you hold saved — ' + (out.lines || []).length + ' line' + ((out.lines || []).length === 1 ? '' : 's') + '.', 'success'); }
       catch (e) { showToast('Could not save what you hold: ' + e.message, 'error'); }
-    };
-    window.importHoldingsFromStress = async function () {
-      try { const ss = await getStressSettingsAsync(); const rec = { ...emptyHoldings(), lines: linesFromTaggedFunds(ss.taggedFunds || []) }; await persistHoldings(rec, 'imported'); showToast('Copied into what you hold. Check the lines — remove any that are not yours.', 'success', 6000); }
-      catch (e) { showToast('Could not copy the list: ' + e.message, 'error'); }
-    };
-    window.dismissHoldingsOffer = async function () {
-      try { const rec = await getActiveHoldings(); await persistHoldings({ ...rec, offerDismissed: true }); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
     };
     window.pasteHoldings = function () { openPasteHoldings('hold'); };
     window.toggleTransitionDone = async function (key, checked) {

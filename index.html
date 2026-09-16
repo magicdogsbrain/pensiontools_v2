@@ -11005,7 +11005,14 @@
       }
       // 6.5.0: a locked plan's Stress settings are frozen too (one lock for both tools).
       if (!window._ssLockBypass && await planIsLocked()) {
-        showToast('This plan is locked — its settings are frozen for both tools. Unlock it (the banner explains what changes) or duplicate the plan to try something else.', 'info', 6000);
+        // 6.12.6: the plan's SETTINGS are frozen, but what you HOLD is not a setting. The My funds list is the
+        // Transition and Accumulation ledger, so a wrong or stale line can be removed without unlocking.
+        const held = funds('ss').filter(f => f.ticker && f.value > 0);
+        await saveStressSettings({ taggedFunds: held });
+        try { invalidateStressCache(); } catch (e) { /* cache optional */ }
+        try { if (typeof loadTransitionUI === 'function') await loadTransitionUI(); } catch (e) { /* view optional */ }
+        try { if (typeof renderAccumulationHoldings === 'function') await renderAccumulationHoldings(); } catch (e) { /* view optional */ }
+        showToast('Holdings saved (' + held.length + ' line' + (held.length === 1 ? '' : 's') + '). The plan is locked, so every other setting stays as it was — unlock it or duplicate the plan to change those.', 'success', 7000);
         return;
       }
 

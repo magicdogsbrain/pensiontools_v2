@@ -221,3 +221,15 @@ describe('household pairing with a deterministic partner', () => {
     expect(r.potFan[0].p50).toBe(140);
   });
 });
+
+describe('householdIncomeTimeline — already retired in the run-up (6.12.5)', () => {
+  it('a retired person whose ladder starts next April is not "still working" this year', () => {
+    const alex = { retired: true, currentAge: 56, currentAgeAsOf: '2026-09-16', shapeAgeNow: 57, baseSalary: 83650, duration: 35, spStartDate: '17 April 2037', spWeeklyAmount: 230 };
+    const sam = { retired: false, currentAge: 55, currentAgeAsOf: '2026-09-16', shapeAgeNow: 56, baseSalary: 30000, duration: 35, spStartDate: '1 June 2038', spWeeklyAmount: 230 };
+    const rows = householdIncomeTimeline(alex, sam, 3);
+    expect(rows[0].workingA).toBe(false);          // Alex retired in 2025: drawing now
+    expect(rows[0].needA).toBe(83650);             // his run-up need is the first step
+    expect(rows[0].workingB).toBe(true);           // Sam stops next June
+    expect(rows[1].workingB).toBe(false);
+  });
+});

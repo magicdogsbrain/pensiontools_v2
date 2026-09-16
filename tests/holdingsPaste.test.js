@@ -121,3 +121,18 @@ describe('matching and merging', () => {
     for (const l of r.ledger) for (const [k, v] of Object.entries(l)) expect(v, k).not.toBeUndefined();
   });
 });
+
+describe('a stray code in the ticker column cannot out-vote the fund\'s own name (6.12.5)', () => {
+  it('"CGT" beside an index-linked gilt is not Capital Gearing Trust; "PNL" beside Vanguard FTSE All-World is not Personal Assets', async () => {
+    const { matchRows } = await import('../src/services/HoldingsPaste.js');
+    const m = matchRows([
+      { ticker: 'CGT', name: '0 1/8% Index-linked Treasury Gilt 2031', value: 20000 },
+      { ticker: 'PNL', name: 'Vanguard FTSE All-World UCITS ETF Acc', value: 10000 },
+      { ticker: 'CGT', name: 'Capital Gearing Trust', value: 5000 }
+    ]);
+    expect(m[0].match.kind).toBe('gilt');
+    expect(m[1].match.ticker).not.toBe('PNL');
+    expect(m[1].match.name).toMatch(/All-World/);
+    expect(m[2].match.ticker).toBe('CGT');
+  });
+});

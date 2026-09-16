@@ -147,6 +147,15 @@ export function parsePaste(text) {
  * Match parsed rows to the catalogue and to the plan's gilt order sheet.
  * @param {object} o { catalogue = FUND_CATALOGUE, orders = [] (plan document order sheet), wrapper }
  */
+/** Do a pasted name and a catalogue name describe the same thing? Any shared word of 4+ letters, or the ticker itself in the name. */
+export function namesAgree(pasted, catalogueName, ticker) {
+  const words = (t) => new Set(String(t || '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length >= 4 && !/^(FUND|TRUST|ACC|DIST|INC|GBP|CLASS|UNITS|SHARES|INDEX|ETF|PLC|THE|AND)$/.test(w)));
+  const a = words(pasted), b = words(catalogueName);
+  if (ticker && String(pasted).toUpperCase().includes(String(ticker).toUpperCase())) return true;
+  for (const w of a) if (b.has(w)) return true;
+  return b.size === 0;   // a catalogue name with no distinctive word cannot disagree
+}
+
 export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapper = 'SIPP' } = {}) {
   const byTicker = new Map(catalogue.map((f) => [up(f.ticker), f]));
   const norm = (s) => up(s).replace(/[^A-Z0-9]/g, '');
@@ -161,6 +170,9 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
     }
     if (!match) {
       let c = r.ticker && byTicker.get(r.ticker);
+      // A stray code in the ticker column (a statement's "CGT" or "P&L" heading, a platform's own reference) must
+      // not out-vote the fund's own name: the catalogue fund's name has to share a word with the pasted name (6.12.5).
+      if (c && r.name && !namesAgree(r.name, c.name, c.ticker)) c = null;
       if (!c && r.name) {
         // Name match: strip the noise words both sides, then the longest catalogue name contained in the
         // pasted name (or containing it) wins; Acc / Dist decided by the pasted name, Acc by default.

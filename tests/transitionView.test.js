@@ -35,18 +35,12 @@ function page(doc, holdings, { today = new Date(2026, 8, 10), offer = null, stag
 const handlers = (html) => [...html.matchAll(/data-on-(?:click|input|change)="([^"]*)"/g)].map((m) => m[1].replace(/&#39;/g, "'").replace(/&quot;/g, '"'));
 
 describe('What you hold — the holdings record card', () => {
-  it('offers the Stress tester\'s fund list once when the record is empty, with the two handlers', () => {
-    const offer = { taggedFunds: [{ ticker: 'TR29', value: 39690, wrapper: 'SIPP' }, { ticker: 'TR30', value: 38584, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 60000, wrapper: 'SIPP' }] };
-    const { html } = page(ladderDoc, emptyRecord, { offer });
-    expect(html).toContain('Your Stress tester\'s fund list has 3 lines (TR29, TR30, CSH2). Is that what you actually hold?');
-    expect(html).toContain('data-on-click="importHoldingsFromStress()"');
-    expect(html).toContain('data-on-click="dismissHoldingsOffer()"');
-    expect(html).not.toContain('Nothing recorded yet');
-  });
-  it('no offer once dismissed, or once the record has lines', () => {
-    const offer = { taggedFunds: [{ ticker: 'TR29', value: 39690 }] };
-    expect(page(ladderDoc, { ...emptyRecord, offerDismissed: true }, { offer }).html).not.toContain('importHoldingsFromStress');
-    expect(page(ladderDoc, { ...emptyRecord, lines: [line({ ticker: 'TR29', units: 36000, value: 39690 })] }, { offer }).html).not.toContain('importHoldingsFromStress');
+  it('never offers the Stress tester\'s fund list as what you hold — not even as a question (6.13.1)', () => {
+    const offer = { taggedFunds: [{ ticker: 'TR29', value: 39690, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 50000, wrapper: 'SIPP' }] };
+    const html = page(ladderDoc, emptyRecord, { offer }).html;
+    expect(html).not.toContain('importHoldingsFromStress');
+    expect(html).not.toContain('actually hold');
+    expect(html).toContain('Nothing recorded yet');
   });
   it('empty and no offer: says so, and the transition warns that everything reads as "to buy"', () => {
     const { html } = page(ladderDoc, emptyRecord);

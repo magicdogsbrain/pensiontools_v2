@@ -124,9 +124,12 @@ export function householdIncomeTimeline(setA, setB, labelYears = null) {
   // `year` is CALENDAR years from today; each plan's own year is that less its start offset.
   for (let c = 0; c <= years; c++) {
     const yA = c - offA, yB = c - offB;
-    const workingA = yA < 0, workingB = yB < 0;
-    const needA = (!workingA && yA <= durA) ? targetForYear(setA, yA) : 0;
-    const needB = (!workingB && yB <= durB) ? targetForYear(setB, yB) : 0;
+    // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired.
+    // Someone already retired whose ladder starts next April is drawing the run-up from their SIPP cash —
+    // their need counts from today (6.12.5; Chris, 16 Sep 2026: "Household seems to think I'm still working").
+    const workingA = yA < 0 && !isRetired(setA), workingB = yB < 0 && !isRetired(setB);
+    const needA = (!workingA && yA <= durA) ? targetForYear(setA, Math.max(0, yA)) : 0;
+    const needB = (!workingB && yB <= durB) ? targetForYear(setB, Math.max(0, yB)) : 0;
     const spA = (!workingA && yA >= a.startYear) ? a.annual : 0;
     const spB = (!workingB && yB >= b.startYear) ? b.annual : 0;
     const db = (setA.dbAmount > 0 && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
@@ -144,6 +147,9 @@ export function householdIncomeTimeline(setA, setB, labelYears = null) {
 }
 
 /** Calendar years until this plan's income starts (0 for someone already retired). */
+/** The Timing block's "I have already retired" (saved as retired: true; older plans may hold the string). */
+function isRetired(settings) { return settings && (settings.retired === true || settings.retired === 'true'); }
+
 export function startOffset(settings) {
   const now = currentAgeNow(settings), start = +settings.shapeAgeNow || 0;
   return (now > 0 && start > now) ? Math.round(start - now) : 0;

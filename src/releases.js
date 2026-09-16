@@ -36,6 +36,15 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.5', date: '2026-09-16', engineVersion: '6.4.0',
+    title: 'Already retired: Household and Transition say so',
+    summary: 'Three things for someone already retired whose ladder starts next April. Household called them "still working" until year 0 — it now reads the Timing block\'s "already retired" and counts their run-up need from today (a partner who really is still working keeps "still working"). Transition now opens with "You are already retired: the months until 2027/28 are the run-up, paid from your SIPP cash" so "months to go" is not read as a retirement date, and says where the holdings it shows come from (My funds) and how to remove one that is not yours. Pasting a statement: a stray code in the ticker column ("CGT", "P&L") can no longer tag a line as a fund whose name it does not share.',
+    changes: ['Transition: run-up note and the source of the holdings list.'],
+    corrections: ['Household "still working" for retired plans in the run-up.', 'Paste matcher: ticker-column codes must agree with the fund name.'],
+    effects: { decision: [], stress: [], strategies: [], household: ['Retired plans\' run-up years now show their need and State Pension instead of "still working".'], budget: [], accumulation: [] },
+    actions: ['If your My funds list shows funds you do not hold, remove them under Stress tester → Settings → My funds.'], notes: []
+  },
+  {
     version: '6.12.4', date: '2026-09-12', engineVersion: '6.4.0',
     title: 'Tablet header: the version chip is a chip again',
     summary: 'On an iPad the "what\'s new" version chip had grown to the 44px height of the touch buttons beside it. It is a small chip again.',

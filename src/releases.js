@@ -36,6 +36,13 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.12.6', date: '2026-09-16', engineVersion: '6.4.0',
+    title: 'My funds can be corrected while the plan is locked',
+    summary: 'A locked plan froze the whole of the Stress tester\'s Settings, including the My funds list — so a wrong or stale line (a test entry, a mis-read paste) could not be removed without unlocking. What you hold is not a plan setting: Save Settings on a locked plan now saves the My funds list and nothing else, and the Transition and Accumulation pages update from it.',
+    changes: ['Stress tester → Settings → Save on a locked plan: holdings saved, other settings left as they were.'], corrections: [],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.12.5', date: '2026-09-16', engineVersion: '6.4.0',
     title: 'Already retired: Household and Transition say so',
     summary: 'Three things for someone already retired whose ladder starts next April. Household called them "still working" until year 0 — it now reads the Timing block\'s "already retired" and counts their run-up need from today (a partner who really is still working keeps "still working"). Transition now opens with "You are already retired: the months until 2027/28 are the run-up, paid from your SIPP cash" so "months to go" is not read as a retirement date, and says where the holdings it shows come from (My funds) and how to remove one that is not yours. Pasting a statement: a stray code in the ticker column ("CGT", "P&L") can no longer tag a line as a fund whose name it does not share.',

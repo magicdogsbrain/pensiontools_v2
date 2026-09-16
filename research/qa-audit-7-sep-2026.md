@@ -307,3 +307,11 @@ paths. That is not cutting back." The tile now counts futures where income was A
 short of the planned draw and never caught up by the tax boost, or the money ran out — and shows the same futures with
 protection off beside it ("x in 100 without protection"), so protection's value is visible. "Protection engaged in z
 in 100 futures" moved into the help text.
+
+**16 Sep 2026 — Chris on Chris Real (retired Apr 2025, ladder year 0 = 2027/28):** (1) Household called him "still
+working" in 2026 — `workingA = planYear < 0` ignored the Timing block's "already retired"; fixed 6.12.5 (need counts
+from today; Wendy, not retired, keeps "still working" until her start). (2) Transition read as if he had not retired —
+run-up note added 6.12.5. (3) "It thinks I have PACW, CGT and PNL": his My funds list holds five test lines (pacw
+£600k, CGT £240k, PNL £240k, CSH2 £120k, GHYS £60k ISA) typed while the plan was still "Chris Test 1"; Transition
+reads that list. Provenance note added 6.12.5; paste matcher hardened (ticker code must agree with the name). The lock
+blocked saving My funds ("settings are frozen") — 6.12.6 lets the holdings list save while locked; nothing else.

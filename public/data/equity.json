@@ -1,10 +1,10 @@
 {
- "generated_at": "2026-09-16T11:56:24.822Z",
+ "generated_at": "2026-09-17T11:57:58.365Z",
  "source": "FRED SP500 (S&P Dow Jones Indices; fallback Yahoo ^GSPC). Price index, ~10y window; all-time high carried forward across refreshes.",
  "symbol": "S&P 500 (price index)",
- "date": "2026-09-15",
- "level": 7585.73,
+ "date": "2026-09-16",
+ "level": 7551.81,
  "ath": 7798.99,
  "athDate": "2026-08-13",
- "drawdown": -0.027344566411804605
+ "drawdown": -0.03169384753666815
 }

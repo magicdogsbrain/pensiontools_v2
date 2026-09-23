@@ -68,7 +68,7 @@ export function planRunning(doc, today = new Date()) {
  *   `rotated` says the equity fund it bought is the plan now). `cash.spending` = true once the plan is running: the cash
  *   years are being spent, so the value is what the years still ahead need, for information.
  */
-export function targetHoldings(doc, { today = new Date(), params = null } = {}) {
+export function targetHoldings(doc, { today = new Date(), params = null, runUpMonthly = 0 } = {}) {
   const d = doc || {};
   const plan = d.strategy?.r?.plan;
   const thisTY = taxYearStartOf(today);
@@ -115,7 +115,9 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
     let runUp = { months: 0, monthly: 0, value: 0 };
     if (!running && bridgeCash > 0) {
       const t0 = Array.isArray(d.timeline) && d.timeline[0] ? d.timeline[0] : null;
-      const monthly = t0 ? Math.max(0, (num(t0.gross) - num(t0.sp) - num(t0.other)) / 12) : 0;
+      // The person's ACTUAL monthly draw when the Decision tool knows it (this tax year's expected SIPP payment, or the
+      // last recorded month) — else the plan's year-0 draw. Chris draws £7,000, not the £6,667 the first step implies.
+      const monthly = num(runUpMonthly) > 0 ? num(runUpMonthly) : (t0 ? Math.max(0, (num(t0.gross) - num(t0.sp) - num(t0.other)) / 12) : 0);
       const startTs = Date.UTC(firstTaxYear || thisTY + 1, 3, 6);
       const months = Math.max(0, Math.round((startTs - today.getTime()) / (30.44 * 86400000)));
       runUp = { months, monthly: Math.round(monthly), value: Math.round(Math.min(bridgeCash, monthly * months)) };
@@ -125,7 +127,16 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
       if (Array.isArray(plan.years) && plan.years.length) cashValue = Math.round(plan.years.filter((y) => y.from === 'cash' && +y.Y >= thisTY).reduce((t, y) => t + num(y.need), 0));
       else if (cashYears.length) cashValue = Math.round(cashYearsMoney * yearsLeft.length / cashYears.length);
     }
-    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash for the cash years' + (cashYears.length ? ' (' + (running ? yearsLeft : cashYears.map((c) => +c.Y)).map(taxYearLabel).join(', ') + ')' : '') + (runUp.value > 0 ? ' + the ' + runUp.months + ' run-up month' + (runUp.months === 1 ? '' : 's') + ' still to pay (' + gbp(runUp.value) + ')' : ''), value: cashValue, runUp, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
+    // A plain breakdown of the cash to hold now, row by row, for the page to show as a small table (6.13.3).
+    const breakdown = [];
+    if (runUp.value > 0) breakdown.push({ label: 'Run-up: ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' × ' + gbp(runUp.monthly) + ' until the ladder pays', amount: runUp.value });
+    for (const c of cashYears) {
+      if (running && +c.Y < thisTY) continue;
+      const row = Array.isArray(d.timeline) ? d.timeline.find((x) => x && taxYearLabel(+c.Y) === x.taxYear) : null;
+      const lump = row && num(row.lump) > 0 ? num(row.lump) : 0;
+      breakdown.push({ label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)) });
+    }
+    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash (e.g. CSH2)', value: cashValue, runUp, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
     let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
     if (bridgeCash > 0 && !running) note += runUp.value > 0 ? ' The run-up is paid from the same cash: ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' at about ' + gbp(runUp.monthly) + ' are still to come, so ' + gbp(runUp.value) + ' of the ' + gbp(bridgeCash) + ' set aside is in the target; the rest has been spent as designed.' : ' The ' + gbp(bridgeCash) + ' of bridge cash for the run-up has been spent as designed, so it is no longer a target.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';

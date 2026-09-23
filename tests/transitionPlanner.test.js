@@ -287,7 +287,7 @@ describe('spare cash, bridge cash and bank cash (6.13.0)', () => {
     const withBridge = (extra) => ({ ...ladderDoc, ...extra, strategy: { ...ladderDoc.strategy, params: extra.params || {}, r: { plan: { ...ladderDoc.strategy.r.plan, cash: 110000 } } } });
     const a = tgt(withBridge({ assumptions: { bridgeCash: 50000 } }));
     expect(a.cash).toMatchObject({ value: 60000, bridgeCash: 50000, spending: false });
-    expect(a.note).toContain('The £50,000 of bridge cash for the run-up is spent before the start, so it is not a target.');
+    expect(a.note).toMatch(/run-up is paid from the same cash|bridge cash for the run-up has been spent/);
     // from the strategy params when the document has no assumptions block
     expect(tgt(withBridge({ params: { bridgeCash: 50000 } })).cash).toMatchObject({ value: 60000, bridgeCash: 50000 });
     // no bridge anywhere → the whole of plan.cash, as before
@@ -390,5 +390,22 @@ describe('a fired rotation (6.13.0): sold rungs are not targets, the equity fund
     const d = diffHoldings([...held, { ticker: 'VWRP', value: 65000, wrapper: 'SIPP' }, { ticker: 'TR40', units: 5000, value: 5000, wrapper: 'SIPP' }], viaRecord);
     expect(d.keep.map((k) => k.ticker)).toEqual(['VWRP']);
     expect(d.sell.map((s) => s.ticker)).toEqual(['TR40']);
+  });
+});
+
+describe('run-up months still to pay are part of the pre-start cash target (6.13.2)', () => {
+  it('6 months at £6,667 adds £40,000 on top of the cash years, capped at the bridge cash; nothing once running', async () => {
+    const { targetHoldings } = await import('../src/services/TransitionPlanner.js');
+    const doc = { timing: { firstTaxYear: 2027 }, assumptions: { bridgeCash: 50000 }, timeline: [{ y: 0, gross: 83650, sp: 0, other: 3650 }],
+      strategy: { contract: true, r: { plan: { firstTaxYear: 2027, cash: 203646, cashYears: [{ Y: 2027, cost: 80000 }, { Y: 2028, cost: 0 }, { Y: 2029, cost: 73646 }], orders: [] } } } };
+    const t = targetHoldings(doc, { today: new Date(Date.UTC(2026, 9, 6)) });   // 6 October 2026: six months to 6 April 2027
+    expect(t.cash.runUp.months).toBe(6);
+    expect(t.cash.runUp.value).toBe(40000);
+    expect(t.cash.value).toBe(153646 + 40000);
+    expect(t.cash.label).toContain('6 run-up months still to pay');
+    const capped = targetHoldings({ ...doc, assumptions: { bridgeCash: 20000 } }, { today: new Date(Date.UTC(2026, 9, 6)) });
+    expect(capped.cash.runUp.value).toBe(20000);
+    const running = targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) });
+    expect(running.cash.runUp.value).toBe(0);
   });
 });

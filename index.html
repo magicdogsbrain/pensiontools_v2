@@ -8651,7 +8651,12 @@
         const doc = await getActivePlanDocument();
         const today = new Date();
         const ssLive = await getStressSettingsAsync();
-        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
+        // The person's actual monthly draw (this tax year's expected SIPP payment from the Decision tool, else the last
+        // recorded month) sizes the run-up cash — not the plan's first step (6.13.3).
+        let runUpMonthly = 0;
+        try { const y = taxYearStartOf(today); const key = String(y % 100).padStart(2, '0') + '/' + String((y + 1) % 100).padStart(2, '0'); const cfg = await getTaxYearConfigAsync(key); runUpMonthly = +(cfg && cfg.expectedMonthly && cfg.expectedMonthly.sipp && cfg.expectedMonthly.sipp.gross) || 0;
+          if (!runUpMonthly) { const hist = await getHistoryAsync(); const last = Array.isArray(hist) && hist.length ? hist[hist.length - 1] : null; runUpMonthly = last ? (+last.sippDraw || +last.sipp || 0) : 0; } } catch (e) { runUpMonthly = 0; }
+        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null, runUpMonthly });   // live params: a fired rotation's sold block drops out of the target
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
         const rec = recOverride || await getActiveHoldings();
         window._holdingsDraft = JSON.parse(JSON.stringify(rec)); try { window._holdingsDraftFor = await getActiveScenarioId(); } catch (e) { window._holdingsDraftFor = null; } window._holdingsLines = (rec.lines || []).slice();

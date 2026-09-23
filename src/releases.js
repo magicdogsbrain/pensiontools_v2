@@ -36,6 +36,14 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.13.3', date: '2026-09-23', engineVersion: '6.4.0',
+    title: 'Transition in plain words for someone already retired',
+    summary: 'For a retiree whose ladder starts next April the page talked about "the plan starting" and "months to go" as if a retirement date were coming, and sized the run-up on the plan\'s first step (£6,667) rather than the £7,000 a month actually drawn. It now opens with "You are already retired. Your gilt ladder pays from tax year 2027/28 (6 months away). Until then you draw £7,000 a month from your SIPP cash", uses the Decision tool\'s actual monthly payment for the run-up, and shows a small table of the cash to hold now: the run-up months, each cash year, and how much of a year a lump sum pays.',
+    changes: ['Transition: "Cash to hold now" table; the cash line is simply "Money-market fund / cash (e.g. CSH2)".', 'Stage label: "Retired — run-up to the plan\'s first tax year".'],
+    corrections: ['Run-up sized on the plan\'s first step instead of the actual monthly draw.'],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.13.2', date: '2026-09-23', engineVersion: '6.4.0',
     title: 'Transition: the run-up months count as cash to hold; readable input boxes',
     summary: 'Before a plan\'s year 0 the cash target on the Transition tab covered the cash years only, so someone six months from the start with £40,000 of run-up draws still to pay saw that money as spare. The months still to pay are now part of the target (each month\'s draw from the plan\'s year-0 row, capped at the cash set aside), and drop out as they pass. The What-you-hold card\'s boxes were browser-default white with grey text; they now match the rest of the app.',

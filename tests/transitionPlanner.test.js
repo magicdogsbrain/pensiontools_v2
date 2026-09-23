@@ -26,7 +26,7 @@ describe('targetHoldings', () => {
     expect(t.lines.map((l) => l.ticker)).toEqual(['TR29', 'TR30', 'TR32']);
     expect(t.lines[0].units).toBe(36000);
     expect(t.cash.value).toBe(60000);
-    expect(t.cash.label).toContain('2027/28');
+    expect(t.cash.breakdown.map((b) => b.label).join(' ')).toContain('2027/28');
   });
   it('a pot plan targets the year-0 mix in pounds', () => {
     const t = tgt(potDoc);
@@ -402,10 +402,24 @@ describe('run-up months still to pay are part of the pre-start cash target (6.13
     expect(t.cash.runUp.months).toBe(6);
     expect(t.cash.runUp.value).toBe(40000);
     expect(t.cash.value).toBe(153646 + 40000);
-    expect(t.cash.label).toContain('6 run-up months still to pay');
+    expect(t.cash.breakdown[0].label).toContain('Run-up: 6 months');
     const capped = targetHoldings({ ...doc, assumptions: { bridgeCash: 20000 } }, { today: new Date(Date.UTC(2026, 9, 6)) });
     expect(capped.cash.runUp.value).toBe(20000);
     const running = targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) });
     expect(running.cash.runUp.value).toBe(0);
+  });
+});
+
+describe('the run-up uses the actual monthly draw and the cash target has a plain breakdown (6.13.3)', () => {
+  it('£7,000 a month when the Decision tool knows it; rows for the run-up and each cash year', async () => {
+    const { targetHoldings } = await import('../src/services/TransitionPlanner.js');
+    const doc = { timing: { firstTaxYear: 2027 }, assumptions: { bridgeCash: 50000 }, timeline: [{ y: 0, taxYear: '2027/28', gross: 83650, sp: 0, other: 3650 }, { y: 1, taxYear: '2028/29', gross: 83650, sp: 0, other: 3650, lump: 80000 }],
+      strategy: { contract: true, r: { plan: { firstTaxYear: 2027, cash: 203646, cashYears: [{ Y: 2027, cost: 80000 }, { Y: 2028, cost: 0 }, { Y: 2029, cost: 73646 }], orders: [] } } } };
+    const t = targetHoldings(doc, { today: new Date(Date.UTC(2026, 9, 6)), runUpMonthly: 7000 });
+    expect(t.cash.runUp.monthly).toBe(7000);
+    expect(t.cash.runUp.value).toBe(42000);
+    expect(t.cash.breakdown.map((b) => b.amount)).toEqual([42000, 80000, 0, 73646]);
+    expect(t.cash.breakdown[2].label).toContain('paid by a lump sum');
+    expect(t.cash.label).toBe('Money-market fund / cash (e.g. CSH2)');
   });
 });

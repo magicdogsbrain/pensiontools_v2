@@ -30,7 +30,7 @@ export const STAGES = Object.freeze({
     banner: { text: 'Your plan is locked and starts in {start}. Keep saving and buying the target portfolio; the Decision tool opens when the plan starts.', btn: 'Open the plan document', tab: 'decision', sub: 'plandoc' }
   },
   bridge: {
-    key: 'bridge', label: 'Run-up to the plan start', chip: 'run-up',
+    key: 'bridge', label: 'Retired — run-up to the plan\'s first tax year', chip: 'run-up',
     leads: ['decision'], readOnly: ['stress', 'strategies'], hidden: ['accumulation'],
     banner: { text: 'Retired, drawing from your SIPP cash until the plan\'s first tax year, {start}. Record each month in the Decision tool; the ladder\'s rungs and the plan\'s tracks begin in {start}.', btn: 'Open the Decision tool', tab: 'decision' }
   },

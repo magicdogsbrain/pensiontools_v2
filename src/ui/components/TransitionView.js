@@ -108,11 +108,20 @@ export function transitionHtml(a) {
       + (rotation && rotation.applies ? ' Only the rotation watch below remains.' : '') + '</div>';
   } else {
     const tone = prog.held >= 98 ? 'alert-success' : prog.held >= 50 ? 'alert-info' : 'alert-warning';
-    h += '<div class="alert ' + tone + '"><strong>' + prog.held + '% of the target is held</strong>' + (prog.total ? ' · ' + prog.doneCount + ' of ' + prog.total + ' moves ticked off' : ' · nothing to do') + (seq && seq.startPassed ? ' · plan running (year 0 is ' + esc(startLabel) + ') — schedule spread over the next ' + seq.months + ' months' : (startLabel ? ' · plan starts ' + esc(startLabel) : '') + (seq ? ' · ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + ' to go' : '')) + '.'
+    h += '<div class="alert ' + tone + '"><strong>' + prog.held + '% of the target is held</strong>' + (prog.total ? ' · ' + prog.doneCount + ' of ' + prog.total + ' moves ticked off' : ' · nothing to do') + (seq && seq.startPassed ? ' · the ladder has been paying since tax year ' + esc(startLabel) + ' — schedule spread over the next ' + seq.months + ' months' : (startLabel ? ' · the ladder\'s first tax year is ' + esc(startLabel) : '') + (seq ? ' · ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + ' to go' : '')) + '.'
       + (prog.next ? '<br>Next: <strong>' + esc(prog.next.action) + ' ' + esc(prog.next.label) + '</strong>' + (prog.next.units ? ', ' + units(prog.next.units) + ' units' : '') + (prog.next.amount ? ' (' + gbp(prog.next.amount) + ')' : '') + '.' : '') + '</div>';
   }
   // Already retired, ladder not yet started (the run-up): say so, or "months to go" reads as "you have not retired yet".
-  if (stage && stage.key === 'bridge') h += '<p class="hint">You are already retired: the months until ' + esc(startLabel || 'the plan\'s year 0') + ' are the run-up, paid from your SIPP cash. The moves below are ' + (target && target.kind === 'ladder' ? 'the rungs and cash to have in place before the ladder\'s first tax year' : 'the target mix to have in place before the plan\'s first tax year') + ' — not a retirement date.</p>';
+  if (stage && stage.key === 'bridge') {
+    const ru = target && target.cash && target.cash.runUp ? target.cash.runUp : null;
+    h += '<p><strong>You are already retired.</strong> ' + (target && target.kind === 'ladder' ? 'Your gilt ladder pays from tax year ' : 'Your plan\'s first tax year is ') + esc(startLabel || '?')
+      + (stage.monthsToStart > 0 ? ' (' + stage.monthsToStart + ' month' + (stage.monthsToStart === 1 ? '' : 's') + ' away)' : '') + '. Until then you draw' + (ru && ru.monthly ? ' ' + gbp(ru.monthly) + ' a month' : '') + ' from your SIPP cash. Nothing here is a retirement date.</p>';
+  }
+  if (target && target.cash && Array.isArray(target.cash.breakdown) && target.cash.breakdown.length && !diff.cashInfo) {
+    const held = diff.totals ? diff.totals.cashHeld : 0, tgt = target.cash.value || 0;
+    h += '<div class="section-title" style="margin-top:10px;">Cash to hold now (money-market fund, e.g. CSH2)</div>'
+      + table(['What for', 'Amount'], [...target.cash.breakdown.map((b) => [esc(b.label), gbp(b.amount)]), ['<strong>Total to hold</strong>', '<strong>' + gbp(tgt) + '</strong>'], ['You hold', gbp(held)], [held >= tgt ? 'Spare' : 'Short', gbp(Math.abs(held - tgt))]]);
+  }
   if (!ledgerCount) h += '<div class="alert alert-warning">Nothing recorded under <strong>What you hold</strong> yet — everything below reads as "to buy". Paste from your platform or add lines above and this page updates.</div>';
   // The plan is running: cash is being spent, so it is reported, not diffed
   if (diff.cashInfo) {

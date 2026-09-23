@@ -114,7 +114,7 @@ describe('status — complete, run-up, rotation', () => {
     const { html, diff } = page(ladderDoc, rec, { stage: { key: 'bridge', startLabel: '2027/28', firstTaxYear: 2027, startMonth: '2027-04' } });
     expect(diff.complete).toBe(false);
     expect(html).toContain('% of the target is held');
-    expect(html).toContain('You are already retired: the months until 2027/28 are the run-up');
+    expect(html).toContain('You are already retired.');
     expect(html).toContain('>Buy<');
     expect(html).toContain('>Sell<');
     expect(html).toContain('Totals: buy');

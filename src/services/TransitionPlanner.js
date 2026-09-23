@@ -109,13 +109,25 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
     // is already spent, which is exactly why this is information and not a move). From `years` when the plan carries
     // them, else the cash years' money pro-rated by the years left.
     let cashValue = Math.round(cashYearsMoney);
+    // Before the start the run-up months still to pay are cash to hold NOW too (6.13.2): each month's draw from the
+    // year-0 row of the plan's timeline (gross less State Pension and other income), for the months left to the start,
+    // capped at the bridge cash the plan set aside. Spent months drop out as they pass.
+    let runUp = { months: 0, monthly: 0, value: 0 };
+    if (!running && bridgeCash > 0) {
+      const t0 = Array.isArray(d.timeline) && d.timeline[0] ? d.timeline[0] : null;
+      const monthly = t0 ? Math.max(0, (num(t0.gross) - num(t0.sp) - num(t0.other)) / 12) : 0;
+      const startTs = Date.UTC(firstTaxYear || thisTY + 1, 3, 6);
+      const months = Math.max(0, Math.round((startTs - today.getTime()) / (30.44 * 86400000)));
+      runUp = { months, monthly: Math.round(monthly), value: Math.round(Math.min(bridgeCash, monthly * months)) };
+      cashValue += runUp.value;
+    }
     if (running) {
       if (Array.isArray(plan.years) && plan.years.length) cashValue = Math.round(plan.years.filter((y) => y.from === 'cash' && +y.Y >= thisTY).reduce((t, y) => t + num(y.need), 0));
       else if (cashYears.length) cashValue = Math.round(cashYearsMoney * yearsLeft.length / cashYears.length);
     }
-    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash for the cash years' + (cashYears.length ? ' (' + (running ? yearsLeft : cashYears.map((c) => +c.Y)).map(taxYearLabel).join(', ') + ')' : ''), value: cashValue, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
+    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash for the cash years' + (cashYears.length ? ' (' + (running ? yearsLeft : cashYears.map((c) => +c.Y)).map(taxYearLabel).join(', ') + ')' : '') + (runUp.value > 0 ? ' + the ' + runUp.months + ' run-up month' + (runUp.months === 1 ? '' : 's') + ' still to pay (' + gbp(runUp.value) + ')' : ''), value: cashValue, runUp, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
     let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
-    if (bridgeCash > 0 && !running) note += ' The ' + gbp(bridgeCash) + ' of bridge cash for the run-up is spent before the start, so it is not a target.';
+    if (bridgeCash > 0 && !running) note += runUp.value > 0 ? ' The run-up is paid from the same cash: ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' at about ' + gbp(runUp.monthly) + ' are still to come, so ' + gbp(runUp.value) + ' of the ' + gbp(bridgeCash) + ' set aside is in the target; the rest has been spent as designed.' : ' The ' + gbp(bridgeCash) + ' of bridge cash for the run-up has been spent as designed, so it is no longer a target.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';
     if (sold.length) note += ' The rotation fired' + (bf.soldAt ? ' on ' + dateGB(bf.soldAt) : '') + ': ' + sold.length + ' rung' + (sold.length === 1 ? ' was' : 's were') + ' sold and the proceeds bought the equity fund, so ' + (sold.length === 1 ? 'it is no longer a target' : 'they are no longer targets') + ' and the fund is kept.';
     return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note };

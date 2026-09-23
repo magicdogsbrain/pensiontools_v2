@@ -36,6 +36,13 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.13.2', date: '2026-09-23', engineVersion: '6.4.0',
+    title: 'Transition: the run-up months count as cash to hold; readable input boxes',
+    summary: 'Before a plan\'s year 0 the cash target on the Transition tab covered the cash years only, so someone six months from the start with £40,000 of run-up draws still to pay saw that money as spare. The months still to pay are now part of the target (each month\'s draw from the plan\'s year-0 row, capped at the cash set aside), and drop out as they pass. The What-you-hold card\'s boxes were browser-default white with grey text; they now match the rest of the app.',
+    changes: ['Transition cash line: "… + the 6 run-up months still to pay (£40,000)".'], corrections: ['What-you-hold input styling.'],
+    effects: { decision: [], stress: [], strategies: [], household: [], budget: [], accumulation: [] }, actions: [], notes: []
+  },
+  {
     version: '6.13.1', date: '2026-09-16', engineVersion: '6.4.0',
     title: 'No question about the Stress tester\'s list',
     summary: '6.13.0 asked, once, whether the Stress tester\'s fund list was what you hold. Even the question treated that list as a candidate for your holdings, and for a gilt-ladder plan the list is not used at all. The question is gone: what you hold starts empty and you paste or type it.',

@@ -2047,6 +2047,11 @@
   </style>
 
     <style id="mobileShell">
+    /* What you hold card (6.13.2): its inputs are built as HTML strings without .form-group, so they fell back to the
+       browser's white boxes with grey text — give them the app's own field look. */
+    #holdingsCard input, #holdingsCard select { padding: 6px 8px; background: var(--card-alt); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
+    #holdingsCard input:focus, #holdingsCard select:focus { outline: none; border-color: var(--primary); }
+    #holdingsCard input::placeholder { color: var(--text-muted); }
     /* ===== Header on tablets (701–1100px, iPad mini both ways) and the plan name (6.12.2) =====
        The stage chip inside the plan button was squeezing the plan NAME to zero width, the title wrapped
        onto two lines, and the account controls spilled into three ragged rows beside it. */

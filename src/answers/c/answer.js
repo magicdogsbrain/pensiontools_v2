@@ -10,7 +10,8 @@
  * @param {object} inputs  checked inputs (brief 4.1). Unchecked inputs are checked here again.
  * @param {import('../shared/contract.js').Env & { mix?: { equity: number, bond: number, cash: number } }} env
  *   `mix` (tests only, with `futureReturns`): hold the pots in an exact mix instead of a risk level, so a made-up
- *   future with a known return has an answer in closed form.
+ *   future with a known return has an answer in closed form. `solver: 'reference'` (tests only): search with the
+ *   reference solver (bandReference.js, today's engine run by run) instead of the fast path — the same result.
  * @returns {import('../shared/contract.js').AnswerC}
  */
 import { SCHEMA_C } from './schema.js';
@@ -23,10 +24,27 @@ import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { enginePlan, configsAt, breakdownAt, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
 import { createBandSolver, bandIndexes, STEP } from '../shared/band.js';
+import { createReferenceBandSolver } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
 import { sentencesFor, sentencesWithoutPots, assumedFor, warningsFor, finishTexts } from './sentences.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
+
+/**
+ * The three amounts the last search found, kept for the next search on the same household and seed: the first
+ * figure's 100 futures are the first 100 of the final 1,000, so its amounts say where the final search should
+ * look first. A hint only — the search settles on the same amounts with or without it (band.js); this is the
+ * one thing the answer keeps between calls, and it never reaches a result.
+ */
+let remembered = null;
+const estimateKey = (plan, env) => JSON.stringify([plan.years, env.seed ?? 0, typeof env.futureReturns === 'function', configsAt(plan, 1e7).map((c) => c.config)]);
+function rememberedEstimate(plan, env) {
+  if (!remembered || remembered.key !== estimateKey(plan, env)) return null;
+  return remembered.k;
+}
+function rememberEstimate(plan, env, k) {
+  remembered = { key: estimateKey(plan, env), k: { ...k } };
+}
 const round2 = (x) => Math.round(x * 100) / 100;
 const noNegZero = (x) => (Object.is(x, -0) ? 0 : x);
 
@@ -296,8 +314,12 @@ export function answerCReal(inputs, env) {
   if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n);
 
   const futures = futuresList(n, plan.years, env);
-  const solver = createBandSolver(plan, futures, { onProgress: typeof env.onProgress === 'function' ? env.onProgress : undefined });
+  const onProgress = typeof env.onProgress === 'function' ? env.onProgress : undefined;
+  const solver = env.solver === 'reference'
+    ? createReferenceBandSolver(plan, futures, { onProgress })
+    : createBandSolver(plan, futures, { onProgress, estimate: rememberedEstimate(plan, env) });
   const { k, fails } = solver.solve();
+  if (env.solver !== 'reference') rememberEstimate(plan, env, k);
   const monthly = { careful: amountAt(k.careful), middling: amountAt(k.middling), good: amountAt(k.good) };
   const lasted = { careful: (n - fails.careful) / n, middling: (n - fails.middling) / n, good: (n - fails.good) / n };
   const ageOfMonth = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));

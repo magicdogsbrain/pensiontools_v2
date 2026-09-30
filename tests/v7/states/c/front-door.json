@@ -1,0 +1,42 @@
+{
+  "route": {
+    "screen": "front",
+    "q": null,
+    "step": null,
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

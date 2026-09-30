@@ -1,0 +1,56 @@
+name: approve screenshots
+
+# The "Approve screenshots" button (V7 test plan 8.2). Run by hand from the Actions page on the branch whose
+# pictures are to be accepted. It makes the 25 pictures on the CI machine — the official container, the
+# only place pictures are ever made or compared, so the typefaces are the same every time — and commits them
+# to e2e/screens.spec.js-snapshots/ as one commit, "Screenshots approved: <run>". GitHub shows old and new
+# side by side in that commit. Baselines change in NO other way: never run --update-snapshots on a Mac.
+#
+# The first set is taken only after the owner has looked at the screens on a real phone and said yes.
+# Comparing pictures on every push is switched on afterwards with SCREENS_GATE=1 (see RELEASING.md).
+on:
+  workflow_dispatch:
+
+# The only workflow allowed to write to the repository, and only the pictures.
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root
+      TZ: Europe/London
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:build
+      - run: npm run e2e:approve
+      - name: Commit the approved pictures
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/screens.spec.js-snapshots/
+          if git diff --cached --quiet; then echo "No picture changed."; exit 0; fi
+          git commit -m "Screenshots approved: run ${{ github.run_number }}"
+          git push origin HEAD:${{ github.ref_name }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: approved-screenshots
+          path: e2e/screens.spec.js-snapshots/
+          retention-days: 30

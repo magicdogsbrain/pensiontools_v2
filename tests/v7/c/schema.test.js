@@ -11,7 +11,6 @@ import { LUMP_SUM_ALLOWANCE } from '../../../src/services/PensionAccess.js';
 import { TAX_DEFAULTS } from '../../../src/constants.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
 import { initialState } from '../../../src/v7/state/initial.js';
-import STUB from '../stubs/c-result.json';
 
 const TYPES = ['money', 'age', 'choice', 'yesNo'];
 const byPath = new Map(SCHEMA_C.fields.map((f) => [f.path, f]));
@@ -121,46 +120,28 @@ describe('rules.js — the UK figures agree with today\'s engine', () => {
   });
 });
 
-// ---- The stub answer and the stub screen. Delete this block at joining up, with tests/v7/stubs/. -----------------
-describe('the stub answer (package 1; replaced by package 2)', () => {
-  const inputs = STUB.inputs;
+// ---- The answer function's contract, on the real function (once the package-1 stub; joined up). ----------------
+describe('the answer function', () => {
+  const inputs = { household: 'single', you: { pot: 250000, age: 58 } };
   const sentencesOf = (r) => [...Object.values(r.sentences).flatMap((s) => (Array.isArray(s) ? s : [s])), ...r.assumed, ...r.warnings];
 
-  it('the hand-made result is plain data and every sentence is its parts joined', () => {
-    expect(JSON.parse(JSON.stringify(STUB))).toEqual(STUB);
-    for (const s of sentencesOf(STUB)) expect(partsText(s.parts, STUB), s.id).toBe(s.text);
-    expect(STUB.sentences.head.text).toBe('About £1,380 a month');
-    expect(STUB.monthly).toEqual({ careful: 1380, middling: 1590, good: 1860 });
-    expect(STUB.runOutAge.middling).toBe(76);
-  });
-
-  it('every key in a sentence leads to a number in the result', () => {
-    for (const s of sentencesOf(STUB)) for (const p of s.parts) if (p && p.key) expect(typeof get(STUB, p.key), `${s.id}: ${p.key}`).toBe('number');
-  });
-
-  it('the shown figures of each phase add up exactly, and the phases have no gaps', () => {
-    STUB.phases.forEach((ph, i) => {
-      expect(ph.shown.fromPots + ph.shown.statePension + ph.shown.finalSalary).toBe(ph.shown.takeHome);
-      if (i > 0) expect(ph.fromAge).toBe(STUB.phases[i - 1].toAge);
-    });
-    expect(STUB.phases.at(-1).toAge).toBe(STUB.inputs.endAge);
-  });
-
-  it('a default line always names its field', () => {
-    for (const a of STUB.assumed) if (a.source === 'default') expect(typeof a.field, a.id).toBe('string');
-  });
-
-  it('answerC returns it with inputs and the basis filled in, the same twice', () => {
+  it('returns plain data with inputs and the basis filled in, the same twice, every sentence its parts joined', () => {
     const couple = { household: 'couple', you: { pot: 400000, age: 62 }, partner: { age: 60 } };
     const r = answerC(couple, TEST_ENV);
     expect(r.status).toBe('ok');
     expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false } });
     expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, failuresAllowed: 4 });
     for (const s of sentencesOf(r)) expect(partsText(s.parts, r), s.id).toBe(s.text);
+    for (const s of sentencesOf(r)) for (const p of s.parts) if (p && p.key) expect(typeof get(r, p.key), `${s.id}: ${p.key}`).toBe('number');
+    for (const a of r.assumed) if (a.source === 'default') expect(typeof a.field, a.id).toBe('string');
+    r.phases.forEach((ph, i) => {
+      expect(ph.shown.fromPots + ph.shown.statePension + ph.shown.finalSalary).toBe(ph.shown.takeHome);
+      if (i > 0) expect(ph.fromAge).toBe(r.phases[i - 1].toAge);
+    });
+    expect(r.phases.at(-1).toAge).toBe(r.inputs.endAge);
     expect(r.sentences.line.text).toContain('£400,000');
     expect(answerC(couple, TEST_ENV)).toEqual(r);
     expect(JSON.parse(JSON.stringify(r))).toEqual(r);
-    expect(answerC(inputs, { ...TEST_ENV, futures: 1000 })).toEqual(STUB);
   });
 
   it('never throws: bad inputs and a missing date come back as status invalid', () => {
@@ -172,7 +153,7 @@ describe('the stub answer (package 1; replaced by package 2)', () => {
   });
 });
 
-describe('the stub screen and the first state (package 1; replaced by packages 3 and 4)', () => {
+describe('the first state and the screen by name', () => {
   it('initialState is plain data in the agreed shape', () => {
     const s = initialState({ today: '2026-09-30', build: 'test' });
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);

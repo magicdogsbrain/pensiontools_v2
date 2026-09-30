@@ -3,6 +3,9 @@
  * Represents a monthly drawdown decision with all calculations
  */
 
+import { TAX_DEFAULTS } from '../constants.js';
+import { calculateTax } from '../services/TaxCalculator.js';
+
 /**
  * Creates a Decision result object
  * @param {object} params - Decision parameters
@@ -99,20 +102,14 @@ export function decisionToHistory(decision) {
   // Calculate tax on taxable income (SIPP + Other + State)
   const monthlyTaxable = (decision.sippDraw || 0) + (decision.other || 0) + (decision.statePension || 0);
   const annualTaxable = monthlyTaxable * 12;
-  const pa = decision.pa || 12570;
-  const brl = decision.brl || 50270;
-  const hrl = decision.hrl || 125140;
+  const pa = decision.pa || TAX_DEFAULTS.PERSONAL_ALLOWANCE;
+  const brl = decision.brl || TAX_DEFAULTS.BASIC_RATE_LIMIT;
+  const hrl = decision.hrl || TAX_DEFAULTS.HIGHER_RATE_LIMIT;
 
-  let annualTax = 0;
-  if (annualTaxable > pa) {
-    if (annualTaxable <= brl) {
-      annualTax = (annualTaxable - pa) * 0.2;
-    } else if (annualTaxable <= hrl) {
-      annualTax = (brl - pa) * 0.2 + (annualTaxable - brl) * 0.4;
-    } else {
-      annualTax = (brl - pa) * 0.2 + (hrl - brl) * 0.4 + (annualTaxable - hrl) * 0.45;
-    }
-  }
+  // The one tax sum (TaxCalculator): the allowance is withdrawn above £100,000 and the 45% rate
+  // starts at `hrl` of TAXABLE income. Until 6.16.0 this was a hand-written copy with neither
+  // (at £110,000 a year it said £31,432 where the tax is £33,432).
+  const annualTax = calculateTax(annualTaxable, pa, brl, hrl);
   // Prefer the ENGINE's per-month tax (partial-year aware: mid-year starts spread the year's tax
   // over the months actually drawn, net of pre-start income). The local recomputation above is a
   // fallback for legacy callers only — it annualises this month × 12, which is wrong in a partial

@@ -1,0 +1,45 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {
+        "you.pot": "250,000",
+        "you.age": "58"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "failed",
+      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.17.0",
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

@@ -197,11 +197,15 @@ export function generateGlidepathSchedule(settings, assumedInflation = INFLATION
   // as StressRepository does for the simulation, so this table matches what actually runs.
   const glide = settings.equityGlideEnabled ? tentGlideForSettings(settings) : null;
 
-  // The 4th bucket and the emergency reserve are part of the plan's pot too. Both are held
-  // flat by the engine (diversifiers as a crisis reserve, HODL behind the glass), so they
-  // appear as constant columns — but leaving them OUT (the old behaviour) made a tagged
-  // portfolio's total look £480K short and inflated the shares% to 83% when it is 50%.
-  const diversifier = settings.diversifierStart || 0;
+  // The 4th bucket and the emergency reserve are part of the plan's pot too — leaving them OUT
+  // (the old behaviour) made a tagged portfolio's total look £480K short and inflated the
+  // shares% to 83% when it is 50%. The break-glass HODL reserve is held flat behind the glass.
+  // The diversifiers sleeve has a glidepath of its own (owner, 30 Sep 2026: "same as shares and
+  // bonds"): its starting value raised by inflation and run down to nothing at the end of the
+  // plan — the SAME figure the protection test compares against (ProtectionStrategy.
+  // diversifierGlidepath, which is this calculateGlidepath call) and the "which pot pays"
+  // ranking uses in both engines. Until 6.16.0 this column showed the starting value, flat.
+  const diversifierStart = settings.diversifierStart || 0;
   const hodl = settings.hodlEnabled ? (settings.hodlValue || 0) : 0;
 
   for (let year = 0; year <= settings.duration; year++) {
@@ -215,6 +219,9 @@ export function generateGlidepathSchedule(settings, assumedInflation = INFLATION
       equityMin = growthMin * share;
       bondMin = growthMin * (1 - share);
     }
+
+    // The bond tent above re-divides shares + bonds only, so it leaves the sleeve's line alone.
+    const diversifier = calculateGlidepath(diversifierStart, year, settings.duration, cumInf, true);
 
     schedule.push({
       year,

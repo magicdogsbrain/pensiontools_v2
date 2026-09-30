@@ -36,6 +36,33 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.17.0', date: '2026-09-30', engineVersion: '6.17.0',
+    title: 'Diversifiers run down everywhere, tax-free plans run twice as fast, and a preview of the next version',
+    summary: 'Three engine changes and a first look at the next version of PensionTools. Your diversifiers sleeve now runs down over the plan like shares and bonds in the Glidepath table and in the "which pot pays" decision, as it already did in the protection test. Plans that take a quarter of each withdrawal tax-free run about twice as fast, with identical results. The last copies of the old tax sum are gone. And a preview of the next version is at pensiontools.uk/v7/ — one question so far, "I\'ve got about £X, what is that a month?" — separate from this app and unable to touch a saved plan.',
+    changes: [
+      'Glidepath table and "which pot pays": the diversifiers sleeve is measured against a target that rises with prices and runs down to nothing by the end of the plan, in the simulations and in the monthly advice alike. Before, the two could name different pots to pay the same month.',
+      'Plans with a quarter of each withdrawal tax-free: the monthly sum is worked out exactly instead of by a search. A £250,000, 37-year plan takes 0.27 s for 1,000 futures instead of 0.54 s. Results are unchanged to the penny.',
+      'The tax-year wizard uses the 45% threshold you enter.',
+      'Preview of the next version at /v7/: answers "what is that a month" for one person or a couple in under two minutes, with every assumption listed. Nothing you type there is saved. It is unlinked and not yet finished.'
+    ],
+    corrections: [
+      'A saved Decision record or panel made without the engine\'s own tax figure used an old sum that ignored the withdrawal of the allowance above £100,000: at £110,000 a year the tax is £33,432, not £31,432.',
+      'The Budget tool\'s before-tax income for a take-home above £72,568 was too low: £80,000 take-home needs £118,580 before tax, not £112,387.'
+    ],
+    effects: {
+      decision: ['Plans with a diversifiers sleeve: the sleeve is ranked against its run-down target when choosing which pot pays. Months already recorded keep their figures.'],
+      stress: ['Plans with a diversifiers sleeve move a little: on a £300,000 plan with a £45,000 sleeve the chance of running out is unchanged and the typical amount left moves by under 2%. Other plans: unchanged.'],
+      strategies: ['Glidepath table: the diversifiers column now falls over the plan; year 30 shows £0 rather than the starting value. A locked plan\'s document keeps its figures.'],
+      household: [], budget: ['Before-tax income is corrected above £72,568 of take-home.'], accumulation: []
+    },
+    actions: ['If your plan has a diversifiers sleeve, re-run the stress test.'],
+    notes: ['The preview at /v7/ is the first of several steps; it cannot open or save a plan yet.'],
+    affects: (scenario) => {
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      return (s && +s.diversifierStart > 0) ? ['This plan has a diversifiers sleeve: the Glidepath table and "which pot pays" now use its run-down target. Re-run the stress test.'] : [];
+    }
+  },
+  {
     version: '6.16.0', date: '2026-09-30', engineVersion: '6.16.0',
     title: 'Income tax above £100,000 is now worked out correctly',
     summary: 'If your taxable income in any year goes above £100,000, the app was charging too little tax. Above £100,000 you lose £1 of tax-free allowance for every £2 of income; the app taxed that lost allowance at 20% when the rule is 40%. It is now right to the penny against the published rates. If your income never goes above £100,000 in any year of your plan, nothing has changed.',

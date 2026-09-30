@@ -1,0 +1,439 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {
+        "you.pot": "0",
+        "you.age": "58"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "final",
+      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":0,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.17.0",
+      "result": {
+        "status": "guaranteed-only",
+        "inputs": {
+          "household": "single",
+          "you": {
+            "pot": 0,
+            "age": 58,
+            "statePension": {
+              "kind": "full"
+            },
+            "finalSalary": {
+              "has": false
+            }
+          },
+          "start": {
+            "kind": "now"
+          },
+          "savings": 0,
+          "risk": "balanced",
+          "endAge": 95,
+          "take": null
+        },
+        "monthly": {
+          "careful": 1045.63,
+          "middling": 1045.63,
+          "good": 1045.63
+        },
+        "yearly": {
+          "careful": 12547.56,
+          "middling": 12547.56,
+          "good": 12547.56
+        },
+        "lasted": {
+          "careful": 1,
+          "middling": 1,
+          "good": 1
+        },
+        "runOutAge": {
+          "careful": 95,
+          "middling": 95,
+          "good": 95
+        },
+        "whose": "you",
+        "guaranteed": {
+          "monthlyAfterTax": 1045.63
+        },
+        "phases": [
+          {
+            "fromAge": 58,
+            "toAge": 67,
+            "ages": {
+              "you": {
+                "from": 58,
+                "to": 67
+              }
+            },
+            "takeHome": 0,
+            "fromPension": 0,
+            "fromSavings": 0,
+            "fromPots": 0,
+            "statePension": 0,
+            "finalSalary": 0,
+            "tax": 0,
+            "byPerson": [
+              {
+                "who": "you",
+                "statePension": 0,
+                "finalSalary": 0,
+                "fromPension": 0,
+                "fromSavings": 0,
+                "tax": 0,
+                "takeHome": 0,
+                "higherRate": false,
+                "locked": false
+              }
+            ],
+            "beforeStatePension": true,
+            "shown": {
+              "takeHome": 0,
+              "fromPots": 0,
+              "statePension": 0,
+              "finalSalary": 0
+            }
+          },
+          {
+            "fromAge": 67,
+            "toAge": 95,
+            "ages": {
+              "you": {
+                "from": 67,
+                "to": 95
+              }
+            },
+            "takeHome": 1045.63,
+            "fromPension": 0,
+            "fromSavings": 0,
+            "fromPots": 0,
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "tax": 0,
+            "byPerson": [
+              {
+                "who": "you",
+                "statePension": 1045.63,
+                "finalSalary": 0,
+                "fromPension": 0,
+                "fromSavings": 0,
+                "tax": 0,
+                "takeHome": 1045.63,
+                "higherRate": false,
+                "locked": false
+              }
+            ],
+            "beforeStatePension": false,
+            "shown": {
+              "takeHome": 1046,
+              "fromPots": 0,
+              "statePension": 1046,
+              "finalSalary": 0
+            }
+          }
+        ],
+        "take": null,
+        "assumed": [
+          {
+            "id": "state-pension-full",
+            "field": "you.statePension.kind",
+            "source": "default",
+            "value": 12547.6,
+            "text": "The full State Pension of £1,046 a month from age 67. Yours may be different — check your forecast.",
+            "parts": [
+              "The full State Pension",
+              " of ",
+              {
+                "fixed": "£1,046"
+              },
+              " a month from age ",
+              {
+                "fixed": "67"
+              },
+              ".",
+              " Yours may be different — check your forecast."
+            ]
+          },
+          {
+            "id": "state-pension-age",
+            "field": null,
+            "source": "rule",
+            "value": 67,
+            "text": "Your State Pension age of 67 comes from your age.",
+            "parts": [
+              "Your State Pension age of ",
+              {
+                "fixed": "67"
+              },
+              " comes from your age."
+            ]
+          },
+          {
+            "id": "start",
+            "field": "start.kind",
+            "source": "default",
+            "value": 58,
+            "text": "The money is taken from now, when you are 58.",
+            "parts": [
+              "The money is taken from now, when you are ",
+              {
+                "key": "phases.0.ages.you.from",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "plan-to",
+            "field": "endAge",
+            "source": "default",
+            "value": 95,
+            "text": "The money needs to last until you are 95.",
+            "parts": [
+              "The money needs to last until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "todays-prices",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "All figures are in today's prices.",
+            "parts": [
+              "All figures are in today's prices."
+            ]
+          },
+          {
+            "id": "no-final-salary",
+            "field": "you.finalSalary.has",
+            "source": "default",
+            "value": false,
+            "text": "No final-salary pension.",
+            "parts": [
+              "No final-salary pension."
+            ]
+          },
+          {
+            "id": "tax-rules",
+            "field": null,
+            "source": "rule",
+            "value": "2026/27",
+            "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+            "parts": [
+              "Tax rules for ",
+              {
+                "fixed": "2026/27"
+              },
+              " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+              {
+                "fixed": "£100,000"
+              },
+              " point where the allowance starts to be withdrawn stays fixed."
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "id": "nothing-to-draw",
+            "severity": "note",
+            "text": "There is no pot to draw on, so this is your State Pension only.",
+            "parts": [
+              "There is no pot to draw on, so this is ",
+              "your State Pension",
+              " only."
+            ]
+          },
+          {
+            "id": "state-pension-assumed",
+            "severity": "note",
+            "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
+            "parts": [
+              "This assumes the full State Pension. If yours is lower, so is the figure."
+            ]
+          }
+        ],
+        "sentences": {
+          "head": {
+            "id": "c.head",
+            "text": "£1,046 a month",
+            "parts": [
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              " a month"
+            ]
+          },
+          "sub": {
+            "id": "c.sub",
+            "text": "after tax, from age 67 until you are 95, going up each year with prices",
+            "parts": [
+              "after tax, ",
+              "from age ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", going up each year with prices"
+            ]
+          },
+          "line": {
+            "id": "c.nothing.pensions",
+            "text": "There is no pot to draw on, so this is your State Pension only: £1,046 a month after tax.",
+            "parts": [
+              "There is no pot to draw on, so this is ",
+              "your State Pension",
+              " only: ",
+              {
+                "key": "guaranteed.monthlyAfterTax",
+                "kind": "money"
+              },
+              " a month after tax."
+            ]
+          },
+          "bad": {
+            "id": "c.bad",
+            "text": "A bad case (the worst 1 in 10) makes no difference here: none of this depends on markets.",
+            "parts": [
+              "A bad case (the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              ") makes no difference here: none of this depends on markets."
+            ]
+          },
+          "range": {
+            "id": "c.range",
+            "text": "Careful, middling and good are all the same here: £1,046 a month.",
+            "parts": [
+              "Careful, middling and good are all the same here: ",
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              " a month."
+            ]
+          },
+          "madeOf": [
+            {
+              "id": "c.madeOf.none",
+              "text": "Until 67: nothing yet.",
+              "parts": [
+                "Until ",
+                {
+                  "key": "phases.1.fromAge",
+                  "kind": "age"
+                },
+                ": nothing yet."
+              ]
+            },
+            {
+              "id": "c.madeOf.mixed",
+              "text": "From 67: £1,046 State Pension.",
+              "parts": [
+                "From ",
+                {
+                  "key": "phases.1.fromAge",
+                  "kind": "age"
+                },
+                ": ",
+                {
+                  "key": "phases.1.shown.statePension",
+                  "kind": "money"
+                },
+                " ",
+                "State Pension",
+                "."
+              ]
+            }
+          ],
+          "nothing": {
+            "id": "c.nothing.pensions",
+            "text": "There is no pot to draw on, so this is your State Pension only: £1,046 a month after tax.",
+            "parts": [
+              "There is no pot to draw on, so this is ",
+              "your State Pension",
+              " only: ",
+              {
+                "key": "guaranteed.monthlyAfterTax",
+                "kind": "money"
+              },
+              " a month after tax."
+            ]
+          }
+        },
+        "basis": {
+          "today": "2026-09-30",
+          "futures": 1000,
+          "seed": 0,
+          "failuresAllowed": 100,
+          "historyEnd": "2023-06",
+          "engineVersion": "6.17.0",
+          "startAge": 58,
+          "endAge": 95,
+          "accessAge": 55,
+          "start": "2026-09",
+          "years": 37,
+          "split": [
+            {
+              "who": "you",
+              "share": 0
+            }
+          ],
+          "strategyId": "pots-and-valves",
+          "cutsSwitchedOff": true
+        },
+        "units": {
+          "money": "todays-prices",
+          "tax": "after-tax",
+          "period": "month",
+          "who": "household"
+        }
+      },
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

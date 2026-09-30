@@ -2,6 +2,7 @@
  * BudgetModel — pure math for the net-first budgeting tool (Stage 0).
  */
 
+import { calculateTax } from '../src/services/TaxCalculator.js';
 import { describe, it, expect } from 'vitest';
 import { parseBudgetCsv, budgetToCsv, budgetSharePctAtAge, targetScheduleFromBudget,
   PLSA_2024,
@@ -93,13 +94,8 @@ describe('BudgetModel — one-off / lumpy schedule', () => {
 });
 
 describe('BudgetModel — interim net→gross uplift', () => {
-  const taxOf = (gross) => {
-    const { pa, brl, hrl } = DEFAULT_TAX_BANDS;
-    if (gross <= pa) return 0;
-    if (gross <= brl) return (gross - pa) * 0.2;
-    if (gross <= hrl) return (brl - pa) * 0.2 + (gross - brl) * 0.4;
-    return (brl - pa) * 0.2 + (hrl - brl) * 0.4 + (gross - hrl) * 0.45;
-  };
+  // The one tax sum (allowance withdrawn above £100,000) — this was a local copy without the withdrawal.
+  const taxOf = (gross) => calculateTax(gross, DEFAULT_TAX_BANDS.pa, DEFAULT_TAX_BANDS.brl, DEFAULT_TAX_BANDS.hrl);
 
   it('round-trips: gross − tax(gross) == requested net', () => {
     for (const net of [10000, 20000, 30000, 45000, 60000, 130000]) {

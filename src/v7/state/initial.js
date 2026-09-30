@@ -4,11 +4,16 @@
  * @param {object} o
  * @param {string} o.today                'YYYY-MM-DD' — read once by effects/clock.js, never here
  * @param {'prod'|'test'} [o.build]
- * @param {object|null} [o.draft]         what draftStore kept for this tab: { c: { values, touched, asked } }
+ * @param {object|null} [o.draft]         what draftStore kept for this tab: { c: { values, touched, asked, revealed } }
  */
 import { VERSION } from '../../constants.js';
 
-export const emptyDraft = () => ({ values: {}, touched: [], asked: false });
+/**
+ * A question's draft: `values` as typed; `touched` the fields that have been left; `asked` whether "Show what it
+ * pays" has been pressed; `revealed` the fields that came onto the form AFTER it was last pressed (a partner's
+ * boxes opened after a first answer) — they show an error only once left, until the button is pressed again.
+ */
+export const emptyDraft = () => ({ values: {}, touched: [], asked: false, revealed: [] });
 export const emptyAnswer = () => ({ status: 'idle', inputsKey: null, result: null, before: null, progress: null, slow: false });
 
 export function initialState({ today, build = 'prod', draft = null } = {}) {
@@ -21,6 +26,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     }
     if (Array.isArray(kept.touched)) c.touched = kept.touched.filter((p) => typeof p === 'string');
     c.asked = kept.asked === true;
+    if (Array.isArray(kept.revealed)) c.revealed = kept.revealed.filter((p) => typeof p === 'string');
   }
   return {
     route:   { screen: 'front', q: null, step: null, planId: null, focus: null },

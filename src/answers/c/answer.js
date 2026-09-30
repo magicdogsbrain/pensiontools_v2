@@ -1,52 +1,346 @@
 /**
- * STUB (V7 package 1) — replaced by package 2's real function at joining up.
+ * Question C — "I've got about £X — what is that a month?" (build brief 4.3).
  *
- * Checks the inputs, then returns the hand-made answer in tests/v7/stubs/c-result.json (the figures of worked
- * example 1: careful £1,380, middling £1,590, run-out age 76; `good` is made up) with `inputs` and the `basis`
- * fields that come from `env` filled in. The figures do NOT follow the inputs — only the shape is real.
- * Every sentence's text is rebuilt from its parts, so text === parts joined still holds for any inputs.
+ * answerC(inputs, env): the household model, today's engine on the same futures for
+ * every input, the band, the breakdown, the sentences. Pure: the same inputs and env give the same result on
+ * every device. Reads no clock, storage, network or screen. Never throws for a bad value: returns status
+ * 'invalid' with the problems.
  *
- * Pure. Same inputs and env → the same result. Never throws for a bad value: returns status 'invalid'.
+
  * @param {object} inputs  checked inputs (brief 4.1). Unchecked inputs are checked here again.
- * @param {import('../shared/contract.js').Env} env
+ * @param {import('../shared/contract.js').Env & { mix?: { equity: number, bond: number, cash: number } }} env
+ *   `mix` (tests only, with `futureReturns`): hold the pots in an exact mix instead of a risk level, so a made-up
+ *   future with a known return has an answer in closed form.
  * @returns {import('../shared/contract.js').AnswerC}
  */
 import { SCHEMA_C } from './schema.js';
-import { checkInputs } from '../shared/validate.js';
-import { partsText, money } from '../shared/format.js';
+import { checkInputs, defaults, flatten } from '../shared/validate.js';
+import { RULES } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
-import STUB from '../../../tests/v7/stubs/c-result.json' with { type: 'json' };
+import { calculateTax } from '../../services/TaxCalculator.js';
+import { simulate } from '../../services/SimulationEngine.js';
+import { validateHousehold, firstOpenAge } from '../shared/household.js';
+import { enginePlan, configsAt, breakdownAt, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
+import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
+import { createBandSolver, bandIndexes, STEP } from '../shared/band.js';
+import { toHousehold } from './toHousehold.js';
+import { sentencesFor, sentencesWithoutPots, assumedFor, warningsFor, finishTexts } from './sentences.js';
 
-export function answerC(inputs, env) {
+const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
+const round2 = (x) => Math.round(x * 100) / 100;
+const noNegZero = (x) => (Object.is(x, -0) ? 0 : x);
+
+function envProblems(env) {
   const problems = [];
   if (!env || typeof env.today !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(env.today)) problems.push({ field: 'env.today', messageId: 'required' });
   if (!env || !Number.isInteger(env.futures) || env.futures < 1) problems.push({ field: 'env.futures', messageId: 'required' });
-  if (problems.length) return { status: 'invalid', problems };
-
-  const checked = checkInputs(SCHEMA_C, inputs, env);
-  if (!checked.ok) {
-    return { status: 'invalid', problems: Object.entries(checked.errors).map(([field, messageId]) => ({ field, messageId })) };
-  }
-
-  const result = JSON.parse(JSON.stringify(STUB));
-  result.inputs = checked.inputs;
-  result.basis.today = env.today;
-  result.basis.start = env.today.slice(0, 7);
-  result.basis.futures = env.futures;
-  result.basis.failuresAllowed = Math.floor(env.futures / 10);
-  result.basis.seed = env.seed ?? 0;
-  result.basis.engineVersion = VERSION;
-
-  const futuresLine = result.assumed.find((a) => a.id === 'futures');
-  if (futuresLine) {
-    futuresLine.value = env.futures;
-    futuresLine.parts = ['Tested against ', { fixed: money(env.futures).slice(1) }, ' possible futures built from market history since ', { fixed: '1871' }, '.'];
-  }
-  const retext = (s) => { s.text = partsText(s.parts, result); };
-  for (const s of Object.values(result.sentences)) (Array.isArray(s) ? s : [s]).forEach(retext);
-  result.assumed.forEach(retext);
-  result.warnings.forEach(retext);
-
-  if (typeof env.onProgress === 'function') env.onProgress(env.futures, env.futures);
-  return result;
+  return problems;
 }
+
+/**
+ * The three amounts of a step count k: whole £10 a month. The search never goes below the take-home the household
+ * has anyway at the start (the solver's lowest step is that figure rounded down to £10), so the smallest answer is
+ * that take-home rounded down — a whole £10 like every other amount, while the first phase shows the take-home itself.
+ */
+function amountAt(k) {
+  return k * STEP;
+}
+
+/** The phases of the result from the adapter's breakdown (£ a year → £ a month). */
+function phasesOf(plan, H) {
+  const per = breakdownAt(plan, H);
+  return per.map((p) => {
+    const ages = {};
+    for (const person of plan.people) ages[person.who] = { from: person.ageAtStart + p.from, to: person.ageAtStart + p.to };
+    const raw = p.byPerson.map((b) => ({
+      who: b.who, statePension: b.statePension / 12, finalSalary: b.finalSalary / 12,
+      fromPension: b.fromPension / 12, fromSavings: b.fromSavings / 12, tax: b.tax / 12, takeHome: b.takeHome / 12
+    }));
+    const byPerson = raw.map((b, i) => ({
+      ...Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === 'number' ? round2(v) : v])),
+      higherRate: Boolean(p.byPerson[i].higherRate),       // some of what this person draws is taxed at 40%
+      locked: Boolean(p.byPerson[i].locked)                // their pension is closed in this phase (under the earliest pension age)
+    }));
+    const sum = (f) => raw.reduce((s, b) => s + b[f], 0);
+    const takeHome = round2(p.takeHome / 12);
+    const statePension = round2(sum('statePension'));
+    const finalSalary = round2(sum('finalSalary'));
+    const fromPension = round2(sum('fromPension'));
+    const fromSavings = round2(sum('fromSavings'));
+    const tax = round2(sum('tax'));
+    const shownTake = Math.round(takeHome);
+    let shownSp = Math.round(statePension);
+    let shownFs = Math.round(finalSalary);
+    let shownPots = shownTake - shownSp - shownFs;
+    if (shownPots < 0) { const cut = Math.min(-shownPots, shownFs); shownFs -= cut; shownPots += cut; }
+    if (shownPots < 0) { shownSp += shownPots; shownPots = 0; }
+    return {
+      fromAge: plan.startAge + p.from, toAge: plan.startAge + p.to, ages,
+      takeHome, fromPension, fromSavings, fromPots: round2(sum('fromPension') + sum('fromSavings')),
+      statePension, finalSalary, tax,
+      byPerson,
+      beforeStatePension: p.beforeStatePension,
+      shown: { takeHome: shownTake, fromPots: shownPots, statePension: shownSp, finalSalary: shownFs }
+    };
+  });
+}
+
+/**
+ * The fields whose value is the input list's default. The shell hands the answer checked inputs with every default
+ * filled in, so "what was assumed" is decided by value: a figure equal to the default is shown as the assumption it
+ * is, whether it was typed or left alone. The same answer either way.
+ */
+function defaultedFields(inputs, env) {
+  const flat = flatten(inputs);
+  const d = defaults(SCHEMA_C, flat, env);
+  return Object.keys(d).filter((path) => path in flat && flat[path] === d[path]);
+}
+
+/** The facts the sentences need beyond the numbers. */
+function factsOf(plan, checked, household, fullSp, env) {
+  const inputs = checked.inputs;
+  const used = defaultedFields(inputs, env);
+  const people = plan.people.map((p) => {
+    const raw = inputs[p.who] || {};
+    const fs = p.finalSalary.filter((f) => f.amount > 0);
+    // the age their pension opens: on the start if it is closed there (a warning names them), else the first age it could
+    const lock = plan.lockedUntil.find((l) => l.who === p.who);
+    const accessAge = lock ? lock.untilAge : firstOpenAge(p.ageToday, env.today);
+    return {
+      who: p.who, pot: p.pension > 0, savings: p.isa > 0,
+      sp: p.statePension.amount > 0, spPaidAtStart: p.statePension.inPayment, spPaidToday: p.statePension.amount > 0 && p.statePension.startAge <= p.ageToday,
+      spAge: p.statePension.startAge, spDefault: (raw.statePension || {}).kind === 'full',
+      fs: fs.length > 0, fsPaidAtStart: fs.some((f) => f.startAge <= p.ageAtStart), fsAge: fs.length ? fs[0].startAge : null,
+      fsDefault: used.includes(p.who + '.finalSalary.has'), potDefault: used.includes(p.who + '.pot'),
+      pensionOverLimit: p.pension > RULES.taxFreeLimit / RULES.taxFreeShare,
+      // under the earliest pension age today, with a pension pot: the pension cannot be touched before `accessAge`
+      underAccessAge: p.pension > 0 && p.ageToday < accessAge, accessAge, startsAtAccessAge: p.ageAtStart === accessAge
+    };
+  });
+  const pensions = plan.people.map((p) => p.pension);
+  const totalPension = pensions.reduce((s, v) => s + v, 0);
+  const oneName = plan.people.length === 2 && totalPension > 0 && plan.people.some((p, i) => p.pension / totalPension > ONE_NAME_SHARE
+    && plan.periods[0].byPerson[1 - i].gross < BANDS.pa);
+  return {
+    couple: plan.people.length === 2, startsNow: plan.yearsFromNow === 0, yearsFromNow: plan.yearsFromNow, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor,
+    lockedUntil: plan.lockedUntil.map((l) => ({ who: l.who, untilAge: l.untilAge, years: l.years })),
+    accessFrom: RULES.pensionAccess.from, capped: plan.capped,
+    people, savings: inputs.savings || 0, fullStatePensionAYear: fullSp, usedDefault: used,
+    anyPension: totalPension > 0, anyPots: plan.totalPots > 0, totalPots: plan.totalPots,
+    lockedSavingsMonths: 0, oneName, madeUpFutures: typeof env.futureReturns === 'function', historyStartYear: historyStartYear(),
+    allStartedAge: Math.max(...plan.people.flatMap((p) => [p.statePension.amount > 0 ? p.statePension.startAge - p.ageAtStart + plan.startAge : 0, ...p.finalSalary.map((f) => (f.amount > 0 ? f.startAge - p.ageAtStart + plan.startAge : 0))]))
+  };
+}
+
+function basisOf(plan, env, n) {
+  return {
+    today: env.today, futures: n, seed: env.seed ?? 0, failuresAllowed: Math.floor(n / 10),
+    historyEnd: historyEnd(), engineVersion: VERSION,
+    startAge: plan.startAge, endAge: plan.endAge, accessAge: plan.accessAge, start: plan.start, years: plan.years,
+    split: plan.people.map((p) => ({ who: p.who, share: p.share })), strategyId: 'pots-and-valves', cutsSwitchedOff: true
+  };
+}
+
+/**
+ * One month of one person, in pounds of that month, from the engine's own trace. With `incomes` (incomesByMonth), the
+ * final-salary pension is the household's — rising as the household says it does, not as the engine was told (see
+ * toEngine.js) — and the tax is worked out again on it.
+ */
+function rowsFromEngine(plan, person, config, future, incomes = null) {
+  const r = simulate({ ...config, trace: true }, future.returns, future.seed);
+  const t = r.trace || [];
+  const rows = [];
+  let lsa = config.accessMethod === 'ufpls' ? RULES.taxFreeLimit : 0;
+  const finals = r.finalEquity + r.finalBond + r.finalCash + (r.finalIsa || 0);
+  t.forEach((row, i) => {
+    const pi = row.planInputs || {};
+    const potStart = row.equityStart + row.bondStart + row.cashStart + row.isaStart;
+    const potEnd = i + 1 < t.length ? t[i + 1].equityStart + t[i + 1].bondStart + t[i + 1].cashStart + t[i + 1].isaStart : finals;
+    const last = i === t.length - 1;
+    const ranOut = last && r.failed;
+    const f = lsa > 0 ? RULES.taxFreeShare : 0;
+    let fromPension = row.effectiveSipp || 0;
+    let fromSavings = (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0);
+    if (ranOut) {
+      fromSavings = Math.min(fromSavings, row.isaStart);
+      fromPension = Math.max(0, potStart - potEnd - fromSavings);
+    }
+    const draw = fromPension + fromSavings;
+    const growth = potEnd - potStart + draw;
+    const taxFree = f * fromPension;
+    const taxable = fromPension - taxFree;
+    const statePension = (pi.statePension || 0) / 12;
+    const finalSalary = incomes ? incomes[row.month].finalSalary : ((pi.fixed || 0) - (pi.statePension || 0) - (pi.other || 0)) / 12;
+    const tax = pi.pa > 0 ? calculateTax(12 * (taxable + statePension + finalSalary), pi.pa, pi.brl, pi.hrl) / 12 : 0;
+    rows.push({
+      who: person.who, m: row.month, age: person.ageAtStart + row.year, priceIndex: row.cumInf,
+      potStart, growth, draw, fromPension, fromSavings, taxFree, taxable, statePension, finalSalary, tax,
+      afterTax: statePension + finalSalary + draw - tax, potEnd,
+      ...(ranOut ? { ranOut: true } : {}), ...((row.isaRescue || 0) > 0 || (row.giaRescue || 0) > 0 ? { rescued: true } : {})
+    });
+    lsa = Math.max(0, lsa - f * (row.sippMonthly || 0));
+  });
+  return { rows, failed: r.failed, failMonth: r.failMonth };
+}
+
+/** A person's State Pension and final-salary pension each month of a future, in the pounds of the day, with the tax on them. */
+function incomesByMonth(plan, person, future) {
+  const price = priceIndexByYear(future.returns, plan.years);
+  const capped = cappedIndexByYear(future.returns, plan.years, 0.05);
+  const out = [];
+  for (let y = 0; y < plan.years; y++) {
+    const sp = person.statePension.amount > 0 && y >= person.statePension.startYear ? person.statePension.amount * price[y] / 12 : 0;
+    let fs = 0;
+    for (const f of person.finalSalary) {
+      if (!(f.amount > 0) || y < f.startYear) continue;
+      fs += f.increases === 'none' ? f.amount / 12 : f.increases === 'prices' ? f.amount * price[y] / 12 : f.amount * capped[y] / 12;
+    }
+    const bands = { pa: BANDS.pa * price[y], brl: BANDS.brl * price[y], hrl: BANDS.hrl * price[y] };
+    for (let mm = 0; mm < 12; mm++) out.push({ y, priceIndex: price[y], statePension: sp, finalSalary: fs, bands });
+  }
+  return out;
+}
+
+/** The months of a person with nothing to draw: their incomes and tax, on the future's prices. */
+function rowsWithoutPots(plan, person, future) {
+  return incomesByMonth(plan, person, future).map((inc, m) => {
+    const tax = calculateTax(12 * (inc.statePension + inc.finalSalary), inc.bands.pa, inc.bands.brl, inc.bands.hrl) / 12;
+    return { who: person.who, m, age: person.ageAtStart + inc.y, priceIndex: inc.priceIndex, potStart: 0, growth: 0, draw: 0, fromPension: 0, fromSavings: 0, taxFree: 0, taxable: 0, statePension: inc.statePension, finalSalary: inc.finalSalary, tax, afterTax: inc.statePension + inc.finalSalary - tax, potEnd: 0 };
+  });
+}
+
+/** A person with savings only: the engine's months (the ISA, drawn for their share) with their pensions and tax added by the adapter. */
+function rowsSavingsOnly(plan, person, config, future) {
+  const r = rowsFromEngine(plan, person, config, future);
+  const incomes = incomesByMonth(plan, person, future);
+  r.rows = r.rows.map((row) => {
+    const inc = incomes[row.m];
+    const tax = calculateTax(12 * (inc.statePension + inc.finalSalary), inc.bands.pa, inc.bands.brl, inc.bands.hrl) / 12;
+    return { ...row, statePension: inc.statePension, finalSalary: inc.finalSalary, tax, afterTax: inc.statePension + inc.finalSalary + row.draw - tax };
+  });
+  return r;
+}
+
+/** One row a month for a person with two runs (a pension closed at the start, and their savings): the two added. */
+function addRows(lists) {
+  const SUM = ['potStart', 'growth', 'draw', 'fromPension', 'fromSavings', 'taxFree', 'taxable', 'statePension', 'finalSalary', 'tax', 'afterTax', 'potEnd'];
+  const byMonth = new Map();
+  for (const rows of lists) {
+    for (const r of rows) {
+      const had = byMonth.get(r.m);
+      if (!had) { byMonth.set(r.m, { ...r }); continue; }
+      for (const f of SUM) had[f] += r[f];
+      if (r.ranOut) had.ranOut = true;
+      if (r.rescued) had.rescued = true;
+    }
+  }
+  return [...byMonth.values()].sort((a, b) => a.m - b.m);
+}
+
+/** Every person's months for one future at one household amount, in you-then-partner order. */
+function traceOf(plan, future, monthly) {
+  const configs = configsAt(plan, monthly * 12);
+  const rows = [];
+  let failMonth = null;
+  for (const person of plan.people) {
+    const mine = configs.filter((x) => x.index === person.index);
+    if (!mine.length) { rows.push(...rowsWithoutPots(plan, person, future)); continue; }
+    // a person with savings only: the adapter adds their pensions and tax; a pension run carries them itself, and
+    // the savings run beside a closed pension carries nothing but the savings
+    const runs = mine.map((c) => (person.kind === 'savings' ? rowsSavingsOnly(plan, person, c.config, future)
+      : rowsFromEngine(plan, person, c.config, future, c.role === 'pension' ? incomesByMonth(plan, person, future) : null)));
+    rows.push(...(runs.length === 1 ? runs[0].rows : addRows(runs.map((r) => r.rows))));
+    for (const r of runs) if (r.failed && (failMonth === null || r.failMonth < failMonth)) failMonth = r.failMonth;
+  }
+  // The household's run ends the month anyone's pot cannot pay: nothing after that month is shown.
+  const kept = failMonth === null ? rows : rows.filter((r) => r.m <= failMonth);
+  return { futureId: future.id, runOutMonth: failMonth, rows: kept };
+}
+
+/**
+ * The result when there is no pot to draw on: the three amounts are the take-home once every State Pension and
+ * final-salary pension has started (brief 4.3 point 7) — the one figure the sentences, the rail and the screen
+ * all read; the phases say what is paid before then.
+ */
+function withoutPots(plan, checked, household, fullSp, env, n) {
+  const status = plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
+  const phases = phasesOf(plan, 0);
+  const monthly = round2(plan.guaranteedAYear / 12);
+  const three = (v) => ({ careful: v, middling: v, good: v });
+  const result = {
+    status, inputs: checked.inputs,
+    monthly: three(monthly), yearly: three(round2(monthly * 12)), lasted: three(1), runOutAge: three(plan.endAge), whose: plan.whose,
+    guaranteed: { monthlyAfterTax: monthly },
+    phases, take: null, assumed: [], warnings: [], sentences: {},
+    basis: basisOf(plan, env, n), units: UNITS
+  };
+  const facts = factsOf(plan, checked, household, fullSp, env);
+  result.sentences = sentencesWithoutPots(result, facts);
+  result.assumed = assumedFor(result, facts);
+  result.warnings = warningsFor(result, facts);
+  return finishTexts(result);
+}
+
+export function answerCReal(inputs, env) {
+  const problems = envProblems(env);
+  if (problems.length) return { status: 'invalid', problems };
+  const checked = checkInputs(SCHEMA_C, inputs, env);
+  if (!checked.ok) return { status: 'invalid', problems: Object.entries(checked.errors).map(([field, messageId]) => ({ field, messageId })) };
+
+  const { household, fullStatePensionAYear } = toHousehold(checked.inputs, env);
+  const hp = validateHousehold(household, env.today);
+  if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
+
+  const plan = enginePlan(household, env);
+  const n = env.futures;
+  if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n);
+
+  const futures = futuresList(n, plan.years, env);
+  const solver = createBandSolver(plan, futures, { onProgress: typeof env.onProgress === 'function' ? env.onProgress : undefined });
+  const { k, fails } = solver.solve();
+  const monthly = { careful: amountAt(k.careful), middling: amountAt(k.middling), good: amountAt(k.good) };
+  const lasted = { careful: (n - fails.careful) / n, middling: (n - fails.middling) / n, good: (n - fails.good) / n };
+  const ageOfMonth = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
+  const badAge = (months) => { const ages = months.map(ageOfMonth).sort((a, b) => a - b); return ages[Math.floor(n / 10)]; };
+  const runOut = { careful: solver.runOutMonthsAt(k.careful), middling: solver.runOutMonthsAt(k.middling), good: solver.runOutMonthsAt(k.good) };
+  const runOutAge = { careful: badAge(runOut.careful), middling: badAge(runOut.middling), good: badAge(runOut.good) };
+
+  let take = null;
+  if (typeof checked.inputs.take === 'number') {
+    const perMonth = checked.inputs.take;
+    const months = solver.runOutMonthsAtMonthly(perMonth);
+    const failed = months.filter((m) => m !== null).length;
+    take = { perMonth, lasted: (n - failed) / n, runOutAge: badAge(months), covered: failed <= Math.floor(n / 10) };
+  }
+
+  const result = {
+    status: 'ok', inputs: checked.inputs,
+    monthly, yearly: { careful: round2(monthly.careful * 12), middling: round2(monthly.middling * 12), good: round2(monthly.good * 12) },
+    lasted, runOutAge, whose: plan.whose,
+    guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
+    phases: phasesOf(plan, monthly.careful * 12), take, assumed: [], warnings: [], sentences: {},
+    basis: basisOf(plan, env, n), units: UNITS
+  };
+  const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
+  if (plan.startMoved && plan.totalIsa > 0 && monthly.careful > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / monthly.careful));
+  result.sentences = sentencesFor(result, facts);
+  result.assumed = assumedFor(result, facts);
+  result.warnings = warningsFor(result, facts);
+  finishTexts(result);
+
+  if (env.trace) {
+    const at = bandIndexes(n);
+    const most = futures.map((f, i) => solver.most(i) * STEP);
+    const byMost = futures.map((f, i) => i).sort((a, b) => most[a] - most[b] || a - b);
+    const byMiddling = futures.map((f, i) => i).sort((a, b) => (runOut.middling[a] ?? Infinity) - (runOut.middling[b] ?? Infinity) || a - b);
+    result.trace = {
+      atCareful: traceOf(plan, futures[byMost[at.careful]], monthly.careful),
+      atMiddling: traceOf(plan, futures[byMiddling[at.careful]], monthly.middling),
+      futures: futures.map((f, i) => ({ id: f.id, most: most[i], runOutMonth: { careful: runOut.careful[i], middling: runOut.middling[i], good: runOut.good[i] } })),
+      evaluations: solver.evaluations
+    };
+  }
+  return JSON.parse(JSON.stringify(result, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
+}
+
+export const answerC = answerCReal;

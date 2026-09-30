@@ -19,8 +19,19 @@
  * and track the ISA pot's depletion themselves.
  */
 
-import { grossToNet, netToGross } from './TaxCalculator.js';
+import { grossToNet, netToGross, taxKinks } from './TaxCalculator.js';
 import { ISA_STRATEGIES } from './IsaDrawdown.js';
+
+// The tax kinks for the bands last asked about. A simulation asks twelve months running with the
+// same bands, so the list is worked out once a tax year, not once a month. (A remembered pure
+// value: the same bands always give the same list.)
+let kinksFor = { pa: NaN, brl: NaN, hrl: NaN, kinks: [] };
+function kinksOf(pa, brl, hrl) {
+  if (kinksFor.pa !== pa || kinksFor.brl !== brl || kinksFor.hrl !== hrl) {
+    kinksFor = { pa, brl, hrl, kinks: taxKinks(pa, brl, hrl) };
+  }
+  return kinksFor.kinks;
+}
 
 /**
  * @param {object} p
@@ -93,19 +104,38 @@ export function planDrawdown({
   // A gross draw G contributes taxable (1-f)·G and tax-free f·G. The net delivered by taxable
   // amount T (on top of fixed income F) is:
   //   net(T) = T·f/(1-f) + grossToNet(F+T) - grossToNet(F)
-  // which is continuous and strictly increasing in T, so we invert by bisection.
+  // which is continuous and strictly increasing in T. Tax is a straight line between the incomes
+  // where its slope changes (TaxCalculator.taxKinks: the allowance, the 20%/40%/45% edges and the
+  // two ends of the £100,000 taper), so net(T) is a straight line between the matching values of
+  // T — and "the T that delivers this net" is read off exactly: walk up the kinks to the first one
+  // that delivers at least the net needed, and interpolate on that stretch. No search.
+  // (Until 6.16.0 this was an 80-step bisection, run up to twice a month; tests/
+  // DrawdownStrategy.closedForm.test.js keeps that search as the reference, equal within a penny.)
   const targetNet = grossToNet(targetGross, pa, brl, hrl);
   const netF = grossToNet(fixedIncome, pa, brl, hrl);
   const netOfTaxable = (T) => T * f / (1 - f) + grossToNet(fixedIncome + T, pa, brl, hrl) - netF;
+  // The kinks above the fixed income, as taxable amounts T, with net(T) worked out only as far up
+  // as a question needs (most months stop at the first or second) and kept for the second question.
+  const kinks = kinksOf(pa, brl, hrl);
+  const knotT = [0], knotNet = [0];
+  let nextKink = 0;
   const solveTaxableForNet = (needNet) => {
     if (needNet <= 0) return 0;
-    let lo = 0, hi = Math.max(1000, needNet * (1 - f) * 1.5);
-    while (netOfTaxable(hi) < needNet && hi < 1e12) hi *= 2;
-    for (let i = 0; i < 80; i++) {
-      const mid = (lo + hi) / 2;
-      if (netOfTaxable(mid) < needNet) lo = mid; else hi = mid;
+    for (let i = 1; ; i++) {
+      if (i === knotT.length) {
+        // extend by one knot: the next kink above the fixed income, or — past the last kink, where
+        // the line runs on for ever at the top rate — a point well beyond it to give the slope
+        while (nextKink < kinks.length && kinks[nextKink] - fixedIncome <= knotT[i - 1]) nextKink++;
+        const T = nextKink < kinks.length ? kinks[nextKink] - fixedIncome : knotT[i - 1] + 1e6;
+        knotT.push(T);
+        knotNet.push(netOfTaxable(T));
+      }
+      const beyondLast = nextKink >= kinks.length && i === knotT.length - 1;
+      if (knotNet[i] >= needNet || beyondLast) {
+        const t0 = knotT[i - 1], n0 = knotNet[i - 1];
+        return t0 + (needNet - n0) * (knotT[i] - t0) / (knotNet[i] - n0);
+      }
     }
-    return (lo + hi) / 2;
   };
 
   // Step 1: SIPP whose TAXABLE part fills up to the BRL, clamped so net never overshoots the

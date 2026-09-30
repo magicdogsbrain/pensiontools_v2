@@ -509,13 +509,17 @@ export function simulate(config, returns, seed = 0) {
     const sourcingInputs = {
       draw: monthDraw,
       equity, bond, cash,
-      diversifier, diversifierTarget: config.diversifierStart || 0,
+      // The sleeve is ranked against its glidepath for the month (dvGlide: inflated and run down
+      // like the two floors beside it) — the figure the protection test above uses. Until 6.16.0
+      // it was ranked against its starting value, flat in pounds.
+      diversifier, diversifierTarget: dvGlide,
       hodl,
       eqMin, bdMin, csTarget,
       inProtection: prot
     };
     // "Buckets in order": equities pay while at/above their absolute £ trajectory (the opening
     // equity pot inflated and depleted like the floors); else cash, then the defensive sleeve.
+    if (traceRow) traceRow.diversifierTarget = sourcingInputs.diversifierTarget;   // what the sleeve was ranked against
     const sourcing = config.sourcingMode === 'ordered'
       ? planSourcingOrdered({ ...sourcingInputs, eqPath: calculateGlidepath(config.equityStart || 0, year, config.duration, cumInf, true), bdTarget: calculateGlidepath(config.bondStart || 0, year, config.duration, cumInf, true), band: config.bucketBand ?? 0.10 })
       : planSourcing(sourcingInputs);

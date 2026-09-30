@@ -1,0 +1,536 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {
+        "you.pot": "180,000",
+        "you.age": "68",
+        "you.statePension.kind": "forecast",
+        "you.statePension.yearly": "11,000",
+        "you.finalSalary.has": true,
+        "you.finalSalary.yearly": "6,000",
+        "you.finalSalary.fromAge": "60",
+        "risk": "cautious",
+        "take": "2,200"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "final",
+      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"cautious\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":2200,\"you\":{\"age\":68,\"finalSalary\":{\"fromAge\":60,\"has\":true,\"yearly\":6000},\"pot\":180000,\"statePension\":{\"kind\":\"forecast\",\"yearly\":11000}}}|2026-09-30|6.17.0",
+      "result": {
+        "status": "ok",
+        "inputs": {
+          "household": "single",
+          "you": {
+            "pot": 180000,
+            "age": 68,
+            "statePension": {
+              "kind": "forecast",
+              "yearly": 11000
+            },
+            "finalSalary": {
+              "has": true,
+              "yearly": 6000,
+              "fromAge": 60
+            }
+          },
+          "start": {
+            "kind": "now"
+          },
+          "savings": 0,
+          "risk": "cautious",
+          "endAge": 95,
+          "take": 2200
+        },
+        "monthly": {
+          "careful": 1860,
+          "middling": 1990,
+          "good": 2140
+        },
+        "yearly": {
+          "careful": 22320,
+          "middling": 23880,
+          "good": 25680
+        },
+        "lasted": {
+          "careful": 0.901,
+          "middling": 0.517,
+          "good": 0.101
+        },
+        "runOutAge": {
+          "careful": 95,
+          "middling": 88,
+          "good": 84
+        },
+        "whose": "you",
+        "guaranteed": {
+          "monthlyAfterTax": 1342.83
+        },
+        "phases": [
+          {
+            "fromAge": 68,
+            "toAge": 95,
+            "ages": {
+              "you": {
+                "from": 68,
+                "to": 95
+              }
+            },
+            "takeHome": 1860,
+            "fromPension": 608.43,
+            "fromSavings": 0,
+            "fromPots": 608.43,
+            "statePension": 916.67,
+            "finalSalary": 500,
+            "tax": 165.1,
+            "byPerson": [
+              {
+                "who": "you",
+                "statePension": 916.67,
+                "finalSalary": 500,
+                "fromPension": 608.43,
+                "fromSavings": 0,
+                "tax": 165.1,
+                "takeHome": 1860,
+                "higherRate": false,
+                "locked": false
+              }
+            ],
+            "beforeStatePension": false,
+            "shown": {
+              "takeHome": 1860,
+              "fromPots": 443,
+              "statePension": 917,
+              "finalSalary": 500
+            }
+          }
+        ],
+        "take": {
+          "perMonth": 2200,
+          "lasted": 0.053,
+          "runOutAge": 83,
+          "covered": false
+        },
+        "assumed": [
+          {
+            "id": "all-pension",
+            "field": "savings",
+            "source": "default",
+            "value": 0,
+            "text": "We've treated all of it as pension money.",
+            "parts": [
+              "We've treated all of it as pension money."
+            ]
+          },
+          {
+            "id": "quarter-tax-free",
+            "field": null,
+            "source": "rule",
+            "value": 0.25,
+            "text": "A quarter of each pension withdrawal is tax-free.",
+            "parts": [
+              "A quarter of each pension withdrawal is tax-free."
+            ]
+          },
+          {
+            "id": "risk",
+            "field": "risk",
+            "source": "entered",
+            "value": "cautious",
+            "text": "Cautious: about a third in shares, the rest in bonds and cash.",
+            "parts": [
+              "Cautious: about a third in shares, the rest in bonds and cash."
+            ]
+          },
+          {
+            "id": "steady",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "You take the same amount every month, and it rises with prices. No cuts in bad years.",
+            "parts": [
+              "You take the same amount every month, and it rises with prices. No cuts in bad years."
+            ]
+          },
+          {
+            "id": "start",
+            "field": "start.kind",
+            "source": "default",
+            "value": 68,
+            "text": "The money is taken from now, when you are 68.",
+            "parts": [
+              "The money is taken from now, when you are ",
+              {
+                "key": "phases.0.ages.you.from",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "plan-to",
+            "field": "endAge",
+            "source": "default",
+            "value": 95,
+            "text": "The money needs to last until you are 95.",
+            "parts": [
+              "The money needs to last until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "todays-prices",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "All figures are in today's prices.",
+            "parts": [
+              "All figures are in today's prices."
+            ]
+          },
+          {
+            "id": "final-salary-rises",
+            "field": null,
+            "source": "rule",
+            "value": "pricesCapped5",
+            "text": "Your final-salary pension rises with prices, up to 5% a year.",
+            "parts": [
+              "Your final-salary pension",
+              " rises with prices, up to ",
+              {
+                "fixed": "5"
+              },
+              "% a year."
+            ]
+          },
+          {
+            "id": "tax-rules",
+            "field": null,
+            "source": "rule",
+            "value": "2026/27",
+            "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+            "parts": [
+              "Tax rules for ",
+              {
+                "fixed": "2026/27"
+              },
+              " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+              {
+                "fixed": "£100,000"
+              },
+              " point where the allowance starts to be withdrawn stays fixed."
+            ]
+          },
+          {
+            "id": "futures",
+            "field": null,
+            "source": "rule",
+            "value": 1000,
+            "text": "Tested against 1,000 possible futures built from market history since 1871.",
+            "parts": [
+              "Tested against ",
+              {
+                "fixed": "1,000"
+              },
+              " possible futures built from market history since ",
+              {
+                "fixed": "1871"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "no-charges",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "Fund and platform charges are not taken off.",
+            "parts": [
+              "Fund and platform charges are not taken off."
+            ]
+          }
+        ],
+        "warnings": [],
+        "sentences": {
+          "head": {
+            "id": "c.head",
+            "text": "About £1,860 a month",
+            "parts": [
+              "About ",
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              " a month"
+            ]
+          },
+          "sub": {
+            "id": "c.sub",
+            "text": "after tax, from now until you are 95, going up each year with prices",
+            "parts": [
+              "after tax, ",
+              "from now",
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", going up each year with prices"
+            ]
+          },
+          "line": {
+            "id": "c.line",
+            "text": "With a pot of £180,000, your State Pension and your final-salary pension, you could have about £1,860 a month after tax, from now until you are 95. That amount lasted in 9 futures out of 10.",
+            "parts": [
+              "With ",
+              "a pot of ",
+              {
+                "key": "inputs.you.pot",
+                "kind": "money"
+              },
+              ", ",
+              "your State Pension",
+              " and ",
+              "your final-salary pension",
+              ", ",
+              "you",
+              " could have about ",
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              " a month after tax, ",
+              "from now",
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ". That amount lasted ",
+              "in ",
+              {
+                "fixed": "9"
+              },
+              " futures out of ",
+              {
+                "fixed": "10"
+              },
+              "."
+            ]
+          },
+          "bad": {
+            "id": "c.bad",
+            "text": "In a bad case (the worst 1 in 10), £1,860 a month only just lasts to 95. If you took £1,990 a month instead, a bad case would run out at age 88. After that you would have £1,343 a month from your State Pension and your final-salary pension.",
+            "parts": [
+              "In a bad case (the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              "), ",
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              " a month only just lasts to ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ".",
+              " If you took ",
+              {
+                "key": "monthly.middling",
+                "kind": "money"
+              },
+              " a month instead, a bad case would run out ",
+              "at age ",
+              {
+                "key": "runOutAge.middling",
+                "kind": "age"
+              },
+              ".",
+              " After that you would have ",
+              {
+                "key": "guaranteed.monthlyAfterTax",
+                "kind": "money"
+              },
+              " a month from ",
+              "your State Pension and your final-salary pension",
+              "."
+            ]
+          },
+          "range": {
+            "id": "c.range",
+            "text": "You could take: careful £1,860, middling £1,990, good £2,140 a month.",
+            "parts": [
+              "You could take: careful ",
+              {
+                "key": "monthly.careful",
+                "kind": "money"
+              },
+              ", middling ",
+              {
+                "key": "monthly.middling",
+                "kind": "money"
+              },
+              ", good ",
+              {
+                "key": "monthly.good",
+                "kind": "money"
+              },
+              " a month."
+            ]
+          },
+          "madeOf": [
+            {
+              "id": "c.madeOf.paid",
+              "text": "Your State Pension (£917 a month) + £500 final-salary pension + £443 from your pot.",
+              "parts": [
+                "Your ",
+                "State Pension",
+                " (",
+                {
+                  "key": "phases.0.shown.statePension",
+                  "kind": "money"
+                },
+                " a month)",
+                " + ",
+                {
+                  "key": "phases.0.shown.finalSalary",
+                  "kind": "money"
+                },
+                " final-salary pension",
+                " + ",
+                {
+                  "key": "phases.0.shown.fromPots",
+                  "kind": "money"
+                },
+                " from ",
+                "your pot",
+                "."
+              ]
+            },
+            {
+              "id": "c.madeOf.tax",
+              "text": "Tax of £165 a month is already taken off.",
+              "parts": [
+                "Tax of ",
+                {
+                  "key": "phases.0.tax",
+                  "kind": "money"
+                },
+                " a month is already taken off."
+              ]
+            }
+          ],
+          "take": {
+            "id": "c.take",
+            "text": "Taking £2,200 a month, the money lasted to 95 in only 1 future out of 10. In a bad case (the worst 1 in 10) it would run out at age 83.",
+            "parts": [
+              "Taking ",
+              {
+                "key": "take.perMonth",
+                "kind": "money"
+              },
+              " a month, the money lasted to ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              " ",
+              "in only ",
+              {
+                "fixed": "1"
+              },
+              " future out of ",
+              {
+                "fixed": "10"
+              },
+              ". In a bad case (the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              ") it would run out ",
+              "at age ",
+              {
+                "key": "take.runOutAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          }
+        },
+        "basis": {
+          "today": "2026-09-30",
+          "futures": 1000,
+          "seed": 0,
+          "failuresAllowed": 100,
+          "historyEnd": "2023-06",
+          "engineVersion": "6.17.0",
+          "startAge": 68,
+          "endAge": 95,
+          "accessAge": 55,
+          "start": "2026-09",
+          "years": 27,
+          "split": [
+            {
+              "who": "you",
+              "share": 1
+            }
+          ],
+          "strategyId": "pots-and-valves",
+          "cutsSwitchedOff": true
+        },
+        "units": {
+          "money": "todays-prices",
+          "tax": "after-tax",
+          "period": "month",
+          "who": "household"
+        }
+      },
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

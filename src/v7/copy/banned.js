@@ -1,0 +1,200 @@
+/**
+ * The banned-words list, as data (research/v7/rail-screens-language.md 3.2 — the content is that section's,
+ * entry for entry). Nothing in the app imports this file, so it is not shipped; tests/v7/wording/wording.test.js
+ * runs it over the words in src/v7/copy/, over the sentence templates, and over every drawn state.
+ *
+ * Each entry:
+ *   id     a short name, quoted in the failure message
+ *   re     what to look for
+ *   scope  where it is banned (SCOPES below)
+ *   say    what to write instead
+ *   allow  exact text that is let through, tested against the sentence that holds the match
+ *   kind: 'explain' + needs — the word is allowed only if this explanation is on the same screen
+ *
+ * A change to this list is a change like any other: it needs the owner's sign-off, and a release note if it
+ * alters what users read.
+ */
+export const SCOPES = {
+  all: 'Every word V7 shows: the strings files, the sentence templates, and every drawn screen',
+  first: "The front door; every question's steps up to and including its first answer; \"What next?\"",
+  front: 'The front door only',
+  retired: 'Anything a person who has already stopped work may be shown — which is all of question C',
+  planner: 'Steps that work something out (questions A–F), as opposed to records',
+  record: 'Month by month, What you hold, Where you are, the plan document',
+  result: 'Sentences and headlines that state an answer'
+};
+
+/** Strings the visitor is quoted as saying (the six questions) are tagged `question` and skip these entries only. */
+export const QUESTION_EXEMPT = ['certainty'];
+
+export const BANNED = [
+  // ---- names that have been replaced -------------------------------------------------------
+  { id: 'stress-tester',   re: /stress[\s-]?tester/i,                       scope: 'all',
+    say: 'Drawdown Planner' },
+  { id: 'stress-test',     re: /\bstress[\s-]?test(s|ed|ing)?\b/i,          scope: 'all',
+    say: 'try it against the bad times',
+    allow: [/stress[\s-]test(ed)? against history/i] },
+  { id: 'decision-tool',   re: /\bdecision[\s-]?tool\b/i,                   scope: 'all',
+    say: 'Month by month' },
+  { id: 'accumulation',    re: /\baccumulat(e|es|ed|ing|ion)\b/i,           scope: 'all',
+    say: 'saving / while you are saving' },
+  { id: 'decumulation',    re: /\bdecumulat(e|es|ed|ing|ion)\b/i,           scope: 'all',
+    say: 'taking money from your pension / drawdown' },
+  { id: 'transition',      re: /\btransition(s|ed|ing)?\b/i,                scope: 'all',
+    say: "Moving to your plan's mix" },
+  { id: 'scenario',        re: /\bscenarios?\b/i,                           scope: 'all',
+    say: 'plan' },
+  { id: 'budget-tool',     re: /\bbudget (tool|planner)\b/i,                scope: 'all',
+    say: 'What you spend' },
+  { id: 'holdings-ledger', re: /\bholdings? (ledger|record)\b/i,            scope: 'all',
+    say: 'What you hold' },
+  { id: 'hold-in-planner', re: /\b(your |current |my )?holdings?\b/i,       scope: 'planner',
+    say: 'what you intend to hold in retirement',
+    allow: [/What you hold/] },
+  { id: 'plan-of-record',  re: /\bplan of record\b/i,                       scope: 'all',
+    say: 'your locked plan' },
+  { id: 'guest-mode',      re: /\bguest( mode| plan| user)?\b/i,            scope: 'all',
+    say: 'without an account' },
+  { id: 'tabs',            re: /\b(sub-?)?tabs?\b/i,                        scope: 'all',
+    say: 'the name of the step' },
+  { id: 'wizard',          re: /\b(wizard|onboarding|dashboard)\b/i,        scope: 'all',
+    say: 'leave it out' },
+  { id: 'tool-names',      re: /\b(tools?|planner|calculator|tester)\b/i,   scope: 'front',
+    say: 'the question itself',
+    allow: [/PensionTools/] },
+  // Written as a string so that the import-rule test, which reads code for the names of browser storage, does
+  // not take the banned words themselves for a use of them. The pattern is the guide's, letter for letter.
+  { id: 'tech',            re: new RegExp('\\b(schema\\w*|checksum|migrat\\w+|firestore|firebase|localStorage|sessionStorage|cache[ds]?|payload|sync(ed|ing)?)\\b', 'i'),
+    scope: 'all', say: 'say what happened to the plan, in plain words' },
+
+  // ---- time ---------------------------------------------------------------------------------
+  { id: 'plan-year',       re: /\bplan[\s-]?years?\b/i,                     scope: 'all',
+    say: 'an age ("at 61") or a tax year ("2029/30")' },
+  { id: 'year-n',          re: /\byear\s?\d{1,2}\b(?!\d)/i,                 scope: 'all',
+    say: 'an age ("at 61") or a tax year ("2029/30")' },
+  { id: 'bridge',          re: /\bbridg(e|es|ed|ing)\b/i,                   scope: 'all',
+    say: 'the years before your State Pension starts / before your ladder pays',
+    allow: [/Bridge & engine/] },                       // a strategy's name — see open question 6
+  { id: 'run-up',          re: /\brun[\s-]?up\b/i,                          scope: 'all',
+    say: 'give the dates' },
+  { id: 'countdown',       re: /\bcount[\s-]?down\b/i,                      scope: 'all',
+    say: 'give the date' },
+  { id: 'time-to-wait',    re: /\b\d+\s+(more\s+)?(years?|months?|weeks?|days?)\s+(to go|to wait|until|till|away|from now|before (your|the) (plan|ladder))\b/i,
+    scope: 'retired', say: 'a date: "pays from April 2027"' },
+  { id: 'to-go',           re: /\bto go\b/i,                                scope: 'retired',
+    say: 'a date' },
+  { id: 'plan-starts',     re: /\b(plan|drawdown) (start(s|ed|ing)?|begin(s)?|start date)\b/i, scope: 'retired',
+    say: '"your ladder pays from {date}" or "from {date}"' },
+  { id: 'to-retirement',   re: /\b(years?|months?|time|long) (to|until|till|before) (retirement|you retire)\b/i,
+    scope: 'retired', say: 'leave it out — they have retired' },
+  { id: 'when-you-retire', re: /\b(when|once|after|before|until) you (retire|stop work(ing)?)\b/i, scope: 'retired',
+    say: '"since you stopped work", or leave it out' },
+  { id: 'retire-date',     re: /\b(retirement|retiring|stop(ping)? work) (date|age|in \d|at \d)/i, scope: 'retired',
+    say: 'leave it out — they have retired' },
+
+  // ---- jargon, banned outright --------------------------------------------------------------
+  { id: 'db-dc',           re: /\b(DB|DC)\b/,                               scope: 'all',
+    say: 'final-salary pension / pension pot' },
+  { id: 'defined',         re: /\bdefined[\s-](benefit|contribution)\b/i,   scope: 'all',
+    say: 'final-salary pension / pension pot' },
+  { id: 'initials',        re: /\b(UFPLS|PCLS|LSA|LSDBA|MPAA|SWR|FAD|TFC|PLSA)\b/, scope: 'all',
+    say: 'the thing in words: "tax-free cash", "taking it in slices"' },
+  { id: 'initials-first',  re: /\b(SIPP|GIA|CGT|IHT|CPI|RPI|NI|ETF|OCF)\b/,  scope: 'first',
+    say: 'pension pot / ordinary investment account / tax on gains / prices' },
+  { id: 'crystallise',     re: /\b(un)?crystalli[sz](e|ed|es|ing|ation)\b/i, scope: 'all',
+    say: 'start taking' },
+  { id: 'wrapper',         re: /\b(tax[\s-])?wrappers?\b/i,                 scope: 'all',
+    say: 'type of account (pension, ISA or ordinary account)' },
+  { id: 'sequence-risk',   re: /\bsequenc(e|ing)([\s-]of[\s-]returns?)?([\s-]risk)?\b/i, scope: 'all',
+    say: 'a bad run of markets early on' },
+  { id: 'commutation',     re: /\bcommut(e|ed|ation)\b/i,                   scope: 'all',
+    say: 'swapping pension for a lump sum' },
+  { id: 'percentile',      re: /\b(percentiles?|quantiles?|deciles?|p(5|10|25|50|75|90|95))\b/i, scope: 'all',
+    say: 'the worst 1 in 10 / middling / the best 1 in 10' },
+  { id: 'median',          re: /\b(median|mean|average case|expected case|base case)\b/i, scope: 'all',
+    say: 'middling' },
+  { id: 'worst-case',      re: /\bworst[\s-]case\b/i,                       scope: 'all',
+    say: 'a bad case (the worst 1 in 10)' },
+  { id: 'success-rate',    re: /\b(success|failure|survival|ruin)\b[\s-]?(rate|probability|chance)?/i, scope: 'result',
+    say: '"lasted in N futures out of 10"' },
+  { id: 'percent-chance',  re: /\d\s?%\s+(chance|probability|likelihood|of (the )?(futures|simulations|runs|cases|time))/i,
+    scope: 'first', say: '"in N futures out of 10"' },
+  { id: 'simulations',     re: /\b(monte[\s-]?carlo|simulations?|sims|paths|trials|iterations|cohorts?|bootstrap\w*)\b/i,
+    scope: 'all', say: 'futures ("possible futures") / "people who stopped work in 1973"' },
+  { id: 'equities',        re: /\bequit(y|ies)\b/i,                         scope: 'all',
+    say: 'shares', allow: [/equity release/i] },
+  { id: 'fixed-income',    re: /\bfixed[\s-]income\b/i,                     scope: 'all',
+    say: 'bonds' },
+  { id: 'asset-class',     re: /\b(asset (allocation|class(es)?)|sub-?asset\w*|sleeves?)\b/i, scope: 'all',
+    say: 'mix of shares, bonds and cash' },
+  { id: 'volatility',      re: /\b(volatil(e|ity)|drawdown risk|standard deviation)\b/i, scope: 'all',
+    say: 'ups and downs' },
+  { id: 'real-terms',      re: /\b(in )?(real terms|real income|nominal|inflation[\s-]adjusted|today['’]s money)\b/i, scope: 'all',
+    say: "at today's prices / going up with prices" },
+  { id: 'net-gross',       re: /\b(net|gross)\b/i,                          scope: 'all',
+    say: 'after tax / before tax' },
+  { id: 'longevity',       re: /\b(longevity|mortality|life expectancy)\b/i, scope: 'all',
+    say: 'how long you might live' },
+  { id: 'rebalance',       re: /\b(re-?balanc(e|es|ed|ing)|glide[\s-]?paths?)\b/i, scope: 'first',
+    say: 'moving gradually from shares to bonds' },
+
+  // ---- allowed only with its explanation on the same screen ---------------------------------
+  { id: 'bad-case',        kind: 'explain', re: /\bbad case\b/i,            scope: 'all',
+    needs: /the worst 1 in 10/ },
+  { id: 'good-case',       kind: 'explain', re: /\bgood case\b/i,           scope: 'all',
+    needs: /the best 1 in 10/ },
+  { id: 'annuity',         kind: 'explain', re: /\bannuit(y|ies)\b/i,       scope: 'first',
+    needs: /guaranteed income for life/i },
+  { id: 'gilt',            kind: 'explain', re: /\bgilts?\b/i,              scope: 'first',
+    needs: /UK government bonds?/i },
+  { id: 'index-linked',    kind: 'explain', re: /\bindex[\s-]linked\b/i,    scope: 'first',
+    needs: /(go(es|ing)? up|rise(s)?) with prices/i },
+  { id: 'ladder',          kind: 'explain', re: /\bladder\b/i,              scope: 'first',
+    needs: /bonds? that pay out one year after another/i },
+  { id: 'drawdown',        kind: 'explain', re: /\bdrawdown\b/,             scope: 'front',
+    needs: /taking money from your pension/i },          // lower case only: "Drawdown Planner" is a name
+
+  // ---- advice boundary ----------------------------------------------------------------------
+  { id: 'recommend',       re: /\b(recommend(s|ed|ing|ation|ations)?|advis(e|es|ed|ing)|our advice|we suggest)\b/i, scope: 'all',
+    say: '"what the plan says" / "one option is"',
+    allow: [/not financial advice/i, /financial advis[eo]r/i] },
+  { id: 'you-should',      re: /\byou (should|ought to|had better|must)\b/i, scope: 'planner',
+    say: '"you could"' },
+  { id: 'best-for-you',    re: /\b(best|right|ideal|optimal|optimum) (option|choice|strategy|way|answer|plan)( for you)?\b/i, scope: 'all',
+    say: 'describe what each does; do not rank for the person' },
+  { id: 'safe',            re: /\b(safe(ly)?|safest|guaranteed?|certain(ly)?|risk[\s-]free|secure)\b/i, scope: 'result',
+    say: '"lasted in 9 futures out of 10"',
+    allow: [/guaranteed income for life/i] },
+  { id: 'certainty',       re: /\b(will|won['’]t|will not|is going to) (last|run out|pay|be enough|grow|fall|rise)\b/i, scope: 'result',
+    say: '"could", "would", "lasted"' },
+
+  // ---- money and number shape ---------------------------------------------------------------
+  { id: 'money-short',     re: /£\s?[\d,.]+\s?(k|m|bn|mn|K|M)\b/,           scope: 'all',
+    say: 'the figure in full: £250,000', allow: [], note: 'chart axis labels only' },
+  { id: 'per',             re: /(\bper (month|year|annum|week)\b|\b(pm|pcm|pa|p\.a\.|p\/m|p\/a)\b|\/(mo|month|yr|year)\b)/i, scope: 'all',
+    say: '"a month" / "a year"' },
+  { id: 'pence',           re: /£[\d,]+\.\d{2}\b/,                          scope: 'planner',
+    say: 'whole pounds (pence only in records)' },
+  { id: 'odd-decimals',    re: /(£[\d,]+\.\d\b|£[\d,]+\.\d{3,}|\d\.\d{3,})/, scope: 'all',
+    say: 'round it (3.5)' },
+  { id: 'minus-zero',      re: /[-−]\s?£\s?0(\.00)?\b(?![\d,.])/,            scope: 'all',
+    say: '£0' },
+  { id: 'minus-inside',    re: /£\s?[-−]/,                                  scope: 'all',
+    say: '−£250 (the minus before the pound sign)' },
+  { id: 'range-dash',      re: /£[\d,]+\s?[-–—]\s?£?[\d,]+/,                scope: 'all',
+    say: '"£1,050 to £1,650"' },
+  { id: 'double-about',    re: /\babout\b[^.]*\b(about|around|roughly|approximately|circa|c\.)\b/i, scope: 'all',
+    say: 'one "about" a sentence' },
+  { id: 'approx',          re: /(\b(approx\w*|circa|roughly|around £|c\.\s?£)|~\s?£)/i, scope: 'all',
+    say: '"about"' },
+  { id: 'about-record',    re: /\b(about|around|roughly) £/i,               scope: 'record',
+    say: 'the exact figure — records are not estimates' },
+
+  // ---- broken output ------------------------------------------------------------------------
+  { id: 'junk',            re: /(undefined|\bNaN\b|\bnull\b|\[object|Infinity|\{[a-zA-Z_.]+\}|\$\{)/, scope: 'all',
+    say: 'a bug — fix the code, not the words' },
+  { id: 'one-plural',      re: /\b1 (months|years|futures|pots|gilts|plans|steps|days|weeks|people)\b/, scope: 'all',
+    say: '1 month, 1 year …' },
+  { id: 'empty-money',     re: /£(?!\s*[\d\[−-])/,                          scope: 'all',
+    say: 'a bug — a pound sign with no figure' },
+];

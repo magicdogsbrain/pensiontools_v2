@@ -11,6 +11,8 @@ export const RULES = {
   taxFreeShare: 0.25,
   taxFreeLimit: 268275,                // = LUMP_SUM_ALLOWANCE in PensionAccess.js
   personalAllowance: 12570, basicRateLimit: 50270, higherRateLimit: 125140,   // = TAX_DEFAULTS
+  taperFrom: 100000,                   // = TAX_DEFAULTS.PA_TAPER_THRESHOLD: the engine keeps this point fixed while the bands rise with prices
+  savingsGrowth: 0.03,                 // = ISA_DEFAULTS.RETURN: savings (ISA money) grow at this fixed rate a year in the engine
   maxYears: 45,
   smallPot: 30000
 };

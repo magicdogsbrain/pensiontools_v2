@@ -7,7 +7,7 @@
  *    cash side. All-or-nothing switching is the nonstandard choice — removed.
  *  - CASH-SIDE ORDER by relative overweight vs target (G-K Portfolio Management Rule: sell what
  *    held its value, protect what's depressed): cash first, then the sleeve most overweight
- *    against its target (diversifiers vs their flat start, bonds vs floor, equity vs floor),
+ *    against its target (diversifiers vs their glidepath, bonds vs floor, equity vs floor),
  *    HODL strictly last (break-glass). After a crash this reproduces the old fixed order
  *    (diversifiers → bonds → equity) but adapts when e.g. bonds rallied instead.
  *  - REFILL cash only, from growth surplus (Evensky's cash-flow reserve, Benz's bucket 1;
@@ -29,7 +29,10 @@ export const SOURCING_DEFAULTS = {
  * @param {number} p.draw - this month's SIPP-side draw (already protection-adjusted)
  * @param {number} p.equity,p.bond,p.cash - current pot values
  * @param {number} [p.diversifier=0] - diversifiers sleeve value
- * @param {number} [p.diversifierTarget=0] - its held-flat target (start value)
+ * @param {number} [p.diversifierTarget] - the sleeve's target THIS month: its glidepath — the
+ *   starting value raised by inflation and run down over the plan like the shares and bonds floors
+ *   (ProtectionStrategy.diversifierGlidepath), the same figure the protection test and the
+ *   Glidepath table use. Both engines pass it. Left out: the sleeve reads as exactly on target.
  * @param {number} [p.hodl=0] - break-glass reserve
  * @param {number} p.eqMin,p.bdMin - growth floors this month
  * @param {number} p.csTarget - cash floor (real-value target)
@@ -72,8 +75,11 @@ export function planSourcing(p) {
   remaining -= takeCash;
 
   if (remaining > 1e-9) {
+    // The sleeve's target is treated exactly as the two floors are: a target that has run down to
+    // nothing reads as £1 (as a floor of nothing does), not as "the sleeve is on target".
+    const divTarget = p.diversifierTarget != null ? Math.max(1, p.diversifierTarget) : (div || 1);
     const sleeves = [
-      { key: 'fromDiversifier', value: div, target: p.diversifierTarget || div || 1 },
+      { key: 'fromDiversifier', value: div, target: divTarget },
       { key: 'fromBond', value: Math.max(0, p.bond - out.fromBond), target: Math.max(1, p.bdMin) },
       { key: 'fromEquity', value: Math.max(0, p.equity - out.fromEquity), target: Math.max(1, p.eqMin) }
     ].filter((s) => s.value > 0)

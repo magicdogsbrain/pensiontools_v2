@@ -1,0 +1,292 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {
+        "you.pot": "0",
+        "you.age": "68",
+        "you.statePension.kind": "none"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "final",
+      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"statePension\":{\"kind\":\"none\"}}}|2026-09-30|6.17.0",
+      "result": {
+        "status": "none",
+        "inputs": {
+          "household": "single",
+          "you": {
+            "pot": 0,
+            "age": 68,
+            "statePension": {
+              "kind": "none"
+            },
+            "finalSalary": {
+              "has": false
+            }
+          },
+          "start": {
+            "kind": "now"
+          },
+          "savings": 0,
+          "risk": "balanced",
+          "endAge": 95,
+          "take": null
+        },
+        "monthly": {
+          "careful": 0,
+          "middling": 0,
+          "good": 0
+        },
+        "yearly": {
+          "careful": 0,
+          "middling": 0,
+          "good": 0
+        },
+        "lasted": {
+          "careful": 1,
+          "middling": 1,
+          "good": 1
+        },
+        "runOutAge": {
+          "careful": 95,
+          "middling": 95,
+          "good": 95
+        },
+        "whose": "you",
+        "guaranteed": {
+          "monthlyAfterTax": 0
+        },
+        "phases": [
+          {
+            "fromAge": 68,
+            "toAge": 95,
+            "ages": {
+              "you": {
+                "from": 68,
+                "to": 95
+              }
+            },
+            "takeHome": 0,
+            "fromPension": 0,
+            "fromSavings": 0,
+            "fromPots": 0,
+            "statePension": 0,
+            "finalSalary": 0,
+            "tax": 0,
+            "byPerson": [
+              {
+                "who": "you",
+                "statePension": 0,
+                "finalSalary": 0,
+                "fromPension": 0,
+                "fromSavings": 0,
+                "tax": 0,
+                "takeHome": 0,
+                "higherRate": false,
+                "locked": false
+              }
+            ],
+            "beforeStatePension": false,
+            "shown": {
+              "takeHome": 0,
+              "fromPots": 0,
+              "statePension": 0,
+              "finalSalary": 0
+            }
+          }
+        ],
+        "take": null,
+        "assumed": [
+          {
+            "id": "start",
+            "field": "start.kind",
+            "source": "default",
+            "value": 68,
+            "text": "The money is taken from now, when you are 68.",
+            "parts": [
+              "The money is taken from now, when you are ",
+              {
+                "key": "phases.0.ages.you.from",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "plan-to",
+            "field": "endAge",
+            "source": "default",
+            "value": 95,
+            "text": "The money needs to last until you are 95.",
+            "parts": [
+              "The money needs to last until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "todays-prices",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "All figures are in today's prices.",
+            "parts": [
+              "All figures are in today's prices."
+            ]
+          },
+          {
+            "id": "no-final-salary",
+            "field": "you.finalSalary.has",
+            "source": "default",
+            "value": false,
+            "text": "No final-salary pension.",
+            "parts": [
+              "No final-salary pension."
+            ]
+          },
+          {
+            "id": "tax-rules",
+            "field": null,
+            "source": "rule",
+            "value": "2026/27",
+            "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+            "parts": [
+              "Tax rules for ",
+              {
+                "fixed": "2026/27"
+              },
+              " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+              {
+                "fixed": "£100,000"
+              },
+              " point where the allowance starts to be withdrawn stays fixed."
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "id": "nothing-to-draw",
+            "severity": "note",
+            "text": "There is no pot to draw on.",
+            "parts": [
+              "There is no pot to draw on."
+            ]
+          }
+        ],
+        "sentences": {
+          "head": {
+            "id": "c.head",
+            "text": "Nothing to work out yet",
+            "parts": [
+              "Nothing to work out yet"
+            ]
+          },
+          "sub": {
+            "id": "c.sub",
+            "text": "there is no pot and no pension income in these figures",
+            "parts": [
+              "there is no pot and no pension income in these figures"
+            ]
+          },
+          "line": {
+            "id": "c.nothing",
+            "text": "With no pot and no pension income there is nothing to work out here. If your money is in ISAs or cash, put it under \"Add more detail\".",
+            "parts": [
+              "With no pot and no pension income there is nothing to work out here. If your money is in ISAs or cash, put it under \"Add more detail\"."
+            ]
+          },
+          "bad": {
+            "id": "c.bad",
+            "text": "A bad case (the worst 1 in 10) makes no difference here: nothing in these figures depends on markets.",
+            "parts": [
+              "A bad case (the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              ") makes no difference here: nothing in these figures depends on markets."
+            ]
+          },
+          "range": {
+            "id": "c.range",
+            "text": "There is no careful, middling or good amount to show.",
+            "parts": [
+              "There is no careful, middling or good amount to show."
+            ]
+          },
+          "madeOf": [],
+          "nothing": {
+            "id": "c.nothing",
+            "text": "With no pot and no pension income there is nothing to work out here. If your money is in ISAs or cash, put it under \"Add more detail\".",
+            "parts": [
+              "With no pot and no pension income there is nothing to work out here. If your money is in ISAs or cash, put it under \"Add more detail\"."
+            ]
+          }
+        },
+        "basis": {
+          "today": "2026-09-30",
+          "futures": 1000,
+          "seed": 0,
+          "failuresAllowed": 100,
+          "historyEnd": "2023-06",
+          "engineVersion": "6.17.0",
+          "startAge": 68,
+          "endAge": 95,
+          "accessAge": 55,
+          "start": "2026-09",
+          "years": 27,
+          "split": [
+            {
+              "who": "you",
+              "share": 0
+            }
+          ],
+          "strategyId": "pots-and-valves",
+          "cutsSwitchedOff": true
+        },
+        "units": {
+          "money": "todays-prices",
+          "tax": "after-tax",
+          "period": "month",
+          "who": "household"
+        }
+      },
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

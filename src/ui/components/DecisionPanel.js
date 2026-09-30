@@ -5,6 +5,17 @@
 
 import { formatCurrency, formatPercent } from '../../utils/FormatUtils.js';
 import { AlertSeverity } from '../../models/Decision.js';
+import { TAX_DEFAULTS } from '../../constants.js';
+import { calculateTax } from '../../services/TaxCalculator.js';
+
+/**
+ * A year's income tax on twelve months like this one — the FALLBACK for a decision that carries no
+ * engine tax figure. The one tax sum (TaxCalculator): until 6.16.0 the panel had two hand-written
+ * copies that stopped at 40% and did not withdraw the allowance above £100,000.
+ */
+function fallbackAnnualTax(d, annualTaxable) {
+  return calculateTax(annualTaxable, d.pa || TAX_DEFAULTS.PERSONAL_ALLOWANCE, d.brl || TAX_DEFAULTS.BASIC_RATE_LIMIT, d.hrl || TAX_DEFAULTS.HIGHER_RATE_LIMIT);
+}
 
 /**
  * Renders the decision output panel
@@ -26,13 +37,8 @@ function buildTaxSummary(d) {
   const isTaxEfficientYear = d.isTaxEfficientYear ?? d.taxEfficient;
   const monthlyTaxable = (d.sippDraw || 0) + (d.other || 0) + (d.statePension || 0);
   const annualTaxable = monthlyTaxable * 12;
-  const pa = d.pa || 12570;
-  const brl = d.brl || 50270;
   // Engine figure first (partial-year aware); the flat 12× estimate only when the engine gave none.
-  let annualTax = d.monthlyTax != null ? d.monthlyTax * 12 : 0;
-  if (d.monthlyTax == null && annualTaxable > pa) {
-    annualTax = annualTaxable <= brl ? (annualTaxable - pa) * 0.2 : (brl - pa) * 0.2 + (annualTaxable - brl) * 0.4;
-  }
+  const annualTax = d.monthlyTax != null ? d.monthlyTax * 12 : fallbackAnnualTax(d, annualTaxable);
   let html = '';
   // Tax information - enhanced with monthly, YTD, and projected
   html += '<div class="tax-info">';
@@ -299,18 +305,9 @@ export function buildDecisionHTML(decision) {
   // Taxable income = SIPP + Other + State (ISA is tax-free)
   const monthlyTaxable = d.sippDraw + d.other + d.statePension;
   const annualTaxable = monthlyTaxable * 12;
-  const pa = d.pa || 12570;
-  const brl = d.brl || 50270;
 
-  // Tax calculation: 0% up to PA, 20% from PA to BRL, 40% above BRL
-  let annualTax = 0;
-  if (annualTaxable > pa) {
-    if (annualTaxable <= brl) {
-      annualTax = (annualTaxable - pa) * 0.2;
-    } else {
-      annualTax = (brl - pa) * 0.2 + (annualTaxable - brl) * 0.4;
-    }
-  }
+  // Fallback tax for a decision with no engine figure: the one tax sum (see fallbackAnnualTax).
+  const annualTax = fallbackAnnualTax(d, annualTaxable);
 
   // Net = gross taxable - tax + ISA (tax-free). The ENGINE's monthly tax wins when present — it is
   // partial-year aware; the flat 12× estimate here overstated tax on a mid-year start.

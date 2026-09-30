@@ -831,8 +831,8 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 25.83,
-          "avgMonths": 43.55,
+          "avgConsecutive": 25.86,
+          "avgMonths": 43.56,
           "maxConsecutive": 235,
           "maxMonths": 344,
           "p50Months": 11,
@@ -845,7 +845,7 @@
         "successRate": 99,
         "survival": {
           "max": 30,
-          "min": 29.25,
+          "min": 29.58,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -859,10 +859,10 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 273297.19,
-          "p10": 603409.63,
+          "min": 328128.8,
+          "p10": 669043.86,
           "p25": 1531190.1,
-          "p5": 408814.71,
+          "p5": 470553.38,
           "p50": 3430779.26,
           "p75": 4703204.82,
           "p90": 5644619.84,
@@ -921,8 +921,8 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 25.83,
-          "avgMonths": 43.55,
+          "avgConsecutive": 25.86,
+          "avgMonths": 43.56,
           "maxConsecutive": 235,
           "maxMonths": 344,
           "p50Months": 11,
@@ -935,7 +935,7 @@
         "successRate": 99,
         "survival": {
           "max": 30,
-          "min": 29.25,
+          "min": 29.58,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -949,10 +949,10 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 273297.19,
-          "p10": 603409.63,
+          "min": 328128.8,
+          "p10": 669043.86,
           "p25": 1531190.1,
-          "p5": 408814.71,
+          "p5": 470553.38,
           "p50": 3430779.26,
           "p75": 4703204.82,
           "p90": 5644619.84,

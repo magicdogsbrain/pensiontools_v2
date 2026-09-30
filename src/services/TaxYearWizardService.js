@@ -5,6 +5,8 @@
 
 import { getTaxYear, getRemainingTaxYearMonths, parseMonth } from '../utils/DateUtils.js';
 import { DECISION_ASSUMED_CPI } from './InflationModel.js';
+import { calculateTax } from './TaxCalculator.js';
+import { TAX_DEFAULTS } from '../constants.js';
 import { spendingDeclineRateForYear, spendingSmileFactor } from './SpendingModel.js';
 import {
   getTaxYearConfigAsync,
@@ -111,18 +113,16 @@ export function calculateIsaNeeded(params) {
     targetAnnualGross,    // Target annual gross salary
     brl,                  // Basic Rate Limit
     pa = 12570,           // Personal Allowance
+    hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT, // taxable income above which 45% applies
     other = 0,            // Annual other taxable income
     statePension = 0,     // Annual state pension
     remainingMonths,      // Months remaining in tax year
     grossIncomeToDate = 0 // Income already received before starting pension
   } = params;
 
-  // Helper to calculate tax on gross income
-  const calcTax = (gross) => {
-    if (gross <= pa) return 0;
-    if (gross <= brl) return (gross - pa) * 0.2;
-    return (brl - pa) * 0.2 + (gross - brl) * 0.4;
-  };
+  // Tax on a gross income: the ONE sum in TaxCalculator (6.16.0). The copy that lived here stopped at
+  // 40% — no 45% band and no loss of the allowance above £100,000.
+  const calcTax = (gross) => calculateTax(gross, pa, brl, hrl);
 
   // Remaining BRL headroom after income-to-date
   const remainingBrlHeadroom = Math.max(0, brl - grossIncomeToDate);
@@ -416,6 +416,7 @@ export function calculateMonthlyBreakdown(params) {
     targetSalary,
     brl,
     pa = 12570,
+    hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT,   // taxable income above which 45% applies
     other = 0,
     statePension = 0,
     isaSavingsAllocation = 0,
@@ -428,12 +429,9 @@ export function calculateMonthlyBreakdown(params) {
     isTaxEfficient = true
   } = params;
 
-  // Helper to calculate tax on gross income
-  const calcTax = (gross) => {
-    if (gross <= pa) return 0;
-    if (gross <= brl) return (gross - pa) * 0.2;
-    return (brl - pa) * 0.2 + (gross - brl) * 0.4;
-  };
+  // Tax on a gross income: the ONE sum in TaxCalculator (6.16.0). The copy that lived here stopped at
+  // 40% — no 45% band and no loss of the allowance above £100,000.
+  const calcTax = (gross) => calculateTax(gross, pa, brl, hrl);
 
   const monthlyOtherGross = other / 12;
   // The State Pension is a monthly PAYMENT from its start month — never the year's partial total spread

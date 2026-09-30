@@ -8,4 +8,4 @@
  *           inflation and run down over the plan, like shares and bonds (it was flat in pounds); every
  *           protection comparison, entering and leaving, is made in whole pennies — in both engines.
  */
-export const ENGINE_VERSION = '6.15.0';
+export const ENGINE_VERSION = '6.16.0';

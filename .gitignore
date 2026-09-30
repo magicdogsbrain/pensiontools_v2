@@ -23,6 +23,10 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Browser tests (Playwright)
+test-results/
+playwright-report/
+
 # Local reference material & personal files — documents/spreadsheets/archives are never app code.
 # (App image assets like icons/favicons are kept; they're served by the PWA.)
 *.pdf

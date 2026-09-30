@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // V7's screens are .jsx drawn by Preact (tests/v7/); the same two settings as vite.config.js and vite.v7.config.js.
+  esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
   test: {
     globals: true,
     environment: 'jsdom',

@@ -5,7 +5,8 @@ export default defineConfig({
   base: './',
   publicDir: 'public',
   // Never ship console output: several logs carried the user's financial data (security audit H1).
-  esbuild: { drop: ['console', 'debugger'] },
+  // jsx: only so tests can read V7's .jsx files; the current app has none, so its bundle is unchanged.
+  esbuild: { drop: ['console', 'debugger'], jsx: 'automatic', jsxImportSource: 'preact' },
   build: {
     outDir: 'docs',
     emptyOutDir: true,

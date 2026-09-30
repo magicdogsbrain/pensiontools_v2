@@ -1,0 +1,92 @@
+{
+ "id": "Fz7Qm2xLr8TnVb4KdWc1",
+ "budgetTool": {
+  "settings": {
+   "currentAge": 45,
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retirementAge": 60,
+   "sharedWithPartner": false,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-09-28T18:42:10.000Z",
+ "decisionTool": {
+  "history": [],
+  "settings": {
+   "baseSalary": 30000,
+   "bedAndIsa": true,
+   "bondMin": 200000,
+   "cashTarget": 50000,
+   "consecutiveLimit": 3,
+   "duration": 35,
+   "equityMin": 250000,
+   "giaTaxBand": "basic",
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "spStartDate": null,
+   "spWeeklyAmount": 0,
+   "statePension": 0,
+   "statePensionYear": 0,
+   "taxableMix": "equity",
+   "taxableStart": 0
+  },
+  "taxYears": {}
+ },
+ "enabledTools": [
+  "stress",
+  "decision"
+ ],
+ "isActive": true,
+ "lastModified": "2026-09-28T18:42:10.000Z",
+ "planDetails": {
+  "description": "",
+  "name": "My Plan"
+ },
+ "strategy": {
+  "engineVersion": "6.4.0",
+  "id": "pots-and-valves",
+  "lockedAt": "2026-09-28T18:42:10.000Z",
+  "params": {}
+ },
+ "stressTool": {
+  "settings": {
+   "baseSalary": 30000,
+   "bondMin": 200000,
+   "brl": 50270,
+   "cashTarget": 50000,
+   "consecutiveLimit": 3,
+   "currentAge": null,
+   "currentAgeAsOf": null,
+   "disableProtection": false,
+   "duration": 35,
+   "equityMin": 250000,
+   "firstTaxYear": null,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "other": 0,
+   "pa": 12570,
+   "potAtRetirement": null,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "retireAge": null,
+   "retired": null,
+   "statePension": 12000,
+   "statePensionYear": 12,
+   "taxMode": "inflates"
+  }
+ }
+}

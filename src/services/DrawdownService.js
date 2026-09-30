@@ -23,7 +23,7 @@ import { spendingSmileFactor } from './SpendingModel.js';
  * @param {number} assumedInflation - Assumed annual inflation
  * @returns {object[]} Schedule of annual withdrawals
  */
-export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025) {
+export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025, now = new Date()) {
   const schedule = [];
   const yearlyInflation = [];
 
@@ -37,7 +37,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // Same SP derivation as the Monte-Carlo config (shared helper): date-based when a real SP
   // date is set, legacy statePension/statePensionYear fields otherwise.
   // Tax-year indexed: the Decision tool's plan years are tax years (see spTaxYearConfigFromSettings).
-  const spCfg = spTaxYearConfigFromSettings(settings);
+  const spCfg = spTaxYearConfigFromSettings(settings, now);
   const spStartYear = spCfg ? spCfg.spStartYear : (settings.statePensionYear ?? Infinity);
   const spAnnualBase = spCfg ? spCfg.spWeeklyAmount * 52 : (settings.statePension || 0);
   const spFirstYearRatio = spCfg ? spCfg.spFirstYearRatio : 1;

@@ -27,9 +27,9 @@ export async function loadLiveEquity(url = './data/equity.json') {
 export function equityDrawdown() { const e = activeEquity(); return e && e.ath > 0 ? e.level / e.ath - 1 : null; }
 
 /** Stale after a week — the index only updates on trading days and the fetch runs Tue-Sat. */
-export function isEquityStale() {
+export function isEquityStale(nowMs = Date.now()) {
   const e = activeEquity(); if (!e || !e.generated_at) return true;
-  return (Date.now() - Date.parse(e.generated_at)) > 7 * 24 * 3600 * 1000;
+  return (nowMs - Date.parse(e.generated_at)) > 7 * 24 * 3600 * 1000;
 }
 
 export function equityProvenance() {

@@ -22,8 +22,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: node scripts/fetch-gilt-data.mjs
-      - name: Commit if changed
+      # Gate: the fetched data is bundled into the app (src/data/*Snapshot.js) and main publishes,
+      # so the whole suite runs against the NEW data before anything is committed. A failing step
+      # stops the job here: nothing is committed or pushed, the run goes red and GitHub emails the
+      # owner. Yesterday's data stays live until the cause is fixed and the job re-run.
+      - run: npm ci
+      - name: Test against the fetched data
+        run: npx vitest run
+      - name: Commit if changed (only reached when the suite passed)
         run: |
           git config user.name "pensiontools-data-bot"
           git config user.email "bot@users.noreply.github.com"

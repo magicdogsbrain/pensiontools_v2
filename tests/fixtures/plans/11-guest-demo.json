@@ -1,0 +1,101 @@
+{
+ "id": "guest-k3v9x1qa",
+ "budgetTool": {
+  "settings": {
+   "currentAge": 45,
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retirementAge": 60,
+   "sharedWithPartner": false,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-09-29T20:15:00.000Z",
+ "decisionTool": {
+  "history": [],
+  "settings": {
+   "baseSalary": 30000,
+   "bedAndIsa": true,
+   "bondMin": 200000,
+   "cashTarget": 50000,
+   "consecutiveLimit": 3,
+   "duration": 35,
+   "equityMin": 250000,
+   "giaTaxBand": "basic",
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "spStartDate": null,
+   "spWeeklyAmount": 0,
+   "statePension": 0,
+   "statePensionYear": 0,
+   "taxableMix": "equity",
+   "taxableStart": 0
+  },
+  "taxYears": {}
+ },
+ "enabledTools": [
+  "budget",
+  "stress",
+  "decision",
+  "accumulation",
+  "household"
+ ],
+ "isActive": true,
+ "lastModified": "2026-09-29T20:15:00.000Z",
+ "planDetails": {
+  "description": "A guest plan — nothing is saved. Change anything.",
+  "name": "r/FiredUK — £1M, £40k rising"
+ },
+ "strategy": {
+  "engineVersion": "6.4.0",
+  "id": "pots-and-valves",
+  "lockedAt": "2026-09-29T20:15:00.000Z",
+  "params": {}
+ },
+ "stressTool": {
+  "settings": {
+   "baseSalary": 40000,
+   "bondMin": 200000,
+   "brl": 50270,
+   "cashTarget": 100000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "currentAge": 56,
+   "currentAgeAsOf": null,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 39,
+   "equityMin": 700000,
+   "firstTaxYear": null,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "hold",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "other": 0,
+   "pa": 12570,
+   "potAtRetirement": null,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "retireAge": null,
+   "retired": null,
+   "riskMode": "risk",
+   "shapeAgeNow": 56,
+   "statePension": 11973,
+   "statePensionYear": 11,
+   "strategyId": "pots-and-valves",
+   "strategyParams": {},
+   "taxMode": "inflates"
+  }
+ }
+}

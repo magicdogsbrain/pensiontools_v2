@@ -16,8 +16,9 @@ import snapshot from '../data/giltsSnapshot.js';
 
 export const FLAT_REAL_YIELD_FALLBACK = 0.023;
 
-/** Normalise any dataset shape (fetched JSON, bundled snapshot, admin CSV rows) to one form. */
-function normalise(data) {
+/** Normalise any dataset shape (fetched JSON, bundled snapshot, admin CSV rows) to one form.
+ * `now` only matters for a dataset WITHOUT a realCurve (an admin CSV): its fallback curve is years-from-now per gilt. */
+function normalise(data, now = new Date()) {
   if (!data) return null;
   const mapGilt = (g) => {
       const maturityYear = typeof g.maturity === 'number' ? g.maturity : +String(g.maturity).slice(0, 4);
@@ -43,7 +44,7 @@ function normalise(data) {
   const nominalCurve = (data.boeNominalCurve && data.boeNominalCurve.length ? data.boeNominalCurve : (data.nominalCurve || []))
     .filter((p) => Number.isFinite(p.years) && Number.isFinite(p.yield)).sort((a, b) => a.years - b.years);
   const realCurve = (data.realCurve || gilts.filter((g) => g.realYield != null && g.lag === 3)
-    .map((g) => ({ years: g.maturity - new Date().getFullYear(), yield: g.realYield })))
+    .map((g) => ({ years: g.maturity - now.getFullYear(), yield: g.realYield })))
     .filter((p) => Number.isFinite(p.years) && Number.isFinite(p.yield))
     .sort((a, b) => a.years - b.years);
   return {
@@ -65,8 +66,8 @@ let _override = null;   // admin-published
 let _live = null;       // fetched at runtime
 
 /** Admin CSV import applies here (persisted via AdminConfigService admin/linkers). */
-export function setLinkersOverride(data) { _override = data && data.gilts ? normalise(data) : null; }
-export function setLiveGilts(data) { _live = data && data.gilts ? normalise(data) : null; }
+export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; }
+export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; }
 export function activeLinkers() { return _override || _live || BUNDLED; }
 
 /** Fetch the nightly file (same origin, relative to the app) — silent fallback to the snapshot. */
@@ -87,12 +88,12 @@ export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
 }
 
 /** Provenance line for the UI: what the numbers are priced from and when. */
-export function dataProvenance() {
+export function dataProvenance(nowMs = Date.now()) {
   const a = activeLinkers();
   return {
     as_of: a.as_of, curve_as_of: a.curve_as_of, curve_source: a.curve_source, generated_at: a.generated_at, source: a.source, notice: a.notice,
     index_ratio_settlement: a.index_ratio_settlement || null, reference_rpi: a.reference_rpi || null,
-    stale: isStale(), hasCurve: a.realCurve.length > 0, curvePoints: a.realCurve.length
+    stale: isStale(nowMs), hasCurve: a.realCurve.length > 0, curvePoints: a.realCurve.length
   };
 }
 

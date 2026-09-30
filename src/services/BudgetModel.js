@@ -610,10 +610,10 @@ function parseCsvText(text) {
 }
 
 /** Age laundering: values > 1000 are calendar years → convert using currentAge (mirror of the UI). */
-function launderAge(v, currentAge) {
+function launderAge(v, currentAge, now = new Date()) {
   const n = evalAmountExpr(v);
   if (n == null) return null;
-  if (n > 1000 && currentAge) return Math.round(currentAge + (n - new Date().getFullYear()));
+  if (n > 1000 && currentAge) return Math.round(currentAge + (n - now.getFullYear()));
   return n;
 }
 
@@ -623,7 +623,7 @@ function launderAge(v, currentAge) {
  * amounts go through evalAmountExpr (so "=200*12" and "1,200" both work).
  * ids are NOT assigned here — the caller assigns fresh UI ids.
  */
-export function parseBudgetCsv(text) {
+export function parseBudgetCsv(text, now = new Date()) {   // `now`: a calendar YEAR typed in an age column becomes an age relative to this year
   const warnings = [];
   const raw = parseCsvText(text);
   if (!raw.length) return { settings: {}, lines: [], oneOffs: [], warnings: ['Empty file'] };
@@ -665,7 +665,7 @@ export function parseBudgetCsv(text) {
       else if (key === 'plsatier') settings.plsaTier = (amountRaw || '').toLowerCase() || undefined;
       else if (key === 'headroom£/mo' || key === 'headroommo') settings.targetHeadroomMonthly = amount;
       else if (key === 'splitchange') {
-        const fromAge = launderAge(col(row, 'From age'), settings.currentAge);
+        const fromAge = launderAge(col(row, 'From age'), settings.currentAge, now);
         if (fromAge != null && amount != null) splitPhases.push({ fromAge, mySharePct: amount });
         else warnings.push('Row ' + (r + 1) + ': split change needs From age and Amount (%)');
       } else warnings.push('Row ' + (r + 1) + ': unknown setting "' + item + '" skipped');
@@ -676,8 +676,8 @@ export function parseBudgetCsv(text) {
         annual: amount == null ? null : (period === 'mo' ? Math.round(amount * 12 * 100) / 100 : amount),
         paidBy,
         mySharePct: sharePct ?? null,
-        fromAge: launderAge(col(row, 'From age'), settings.currentAge),
-        toAge: launderAge(col(row, 'To age'), settings.currentAge),
+        fromAge: launderAge(col(row, 'From age'), settings.currentAge, now),
+        toAge: launderAge(col(row, 'To age'), settings.currentAge, now),
         hint: col(row, 'Notes') || '',
         breakdown: []
       };
@@ -690,7 +690,7 @@ export function parseBudgetCsv(text) {
         label: item,
         tier: /disc/i.test(col(row, 'Section')) ? 'discretionary' : 'essential',
         amount,
-        atAge: launderAge(col(row, 'At age'), settings.currentAge),
+        atAge: launderAge(col(row, 'At age'), settings.currentAge, now),
         everyYears: evalAmountExpr(col(row, 'Every N years')),
         paidBy,
         mySharePct: sharePct ?? null,

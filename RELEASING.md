@@ -6,6 +6,20 @@ test enforces it: `tests/releases.test.js` fails when `package.json`'s version h
 entry, or when an entry is missing a section. So you cannot bump without explaining, or explain
 without bumping.
 
+## Before anything reaches main
+
+`main` is the publishing branch, so three things stand between a change and a user:
+
+- **CI on every push and pull request** (`.github/workflows/test.yml`): `npm ci`, the full suite,
+  then `npm run build`. A red run means do not release from that commit.
+- **The nightly data bot is gated** (`.github/workflows/update-gilt-data.yml`): it fetches gilt and
+  equity data, runs the full suite against the new data, and commits only if it passes. On failure
+  nothing is pushed, the run goes red and GitHub emails you; yesterday's data stays live.
+- **Two test tiers.** `npm run test:fast` while working (skips files named `*.slow.test.js`, a few
+  seconds); `npm run test:all` before a release (everything, about a minute; the same as
+  `npx vitest run`). A test file that takes more than a few seconds gets the `.slow.test.js` suffix;
+  nothing else changes, because the include glob matches both.
+
 ## Version numbers
 
 - `package.json` `version` is the ONE source. `src/constants.js` imports it; the header chip, the
@@ -30,7 +44,7 @@ without bumping.
    - `notes[]` — rules used, data notes, known limits still open, engine version.
    - `affects(scenario)` — optional plan-specific bullets (must tolerate `{}`; see the 6.1.0 entry).
    - `engineVersion` — the `ENGINE_VERSION` shipping with it.
-3. `npx vitest run` — all green (the release test checks the contract).
+3. `npm run test:all` (= `npx vitest run`) — all green (the release test checks the contract).
 4. `npm run build` (rebuilds `docs/` and stamps `docs/sw.js`).
 5. Commit as `Release vX.Y.Z — <title>` and tag: `git tag vX.Y.Z`.
 6. `git push --follow-tags origin main` (GitHub Pages mirror updates itself).

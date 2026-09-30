@@ -1,0 +1,783 @@
+{
+ "id": "Ae2HsK9dMx4UoPj6CvBq",
+ "budgetTool": {
+  "settings": {
+   "currentAge": 45,
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retirementAge": 60,
+   "sharedWithPartner": false,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-03-02T10:00:00.000Z",
+ "decisionTool": {
+  "history": [
+   {
+    "accessMethod": "drawdown",
+    "adjBond": 260000,
+    "adjCash": 90000,
+    "adjEquity": 520000,
+    "belowTrack": false,
+    "bond": 262000,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "cash": 90000,
+    "consecutiveDraws": 0,
+    "cumulativeIsaSavingsUsed": 0,
+    "dBond": 538.4615384615385,
+    "dCash": 0,
+    "dEquity": 2961.5384615384614,
+    "date": "2026-04",
+    "equity": 531000,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "mode": "Tax-Efficient",
+    "monthlyNet": 3009.5,
+    "monthlyTax": 490.5,
+    "other": 0,
+    "pa": 12570,
+    "protectionInducedTaxEfficiency": false,
+    "reason": "",
+    "rebal": "",
+    "recycleNet": 0,
+    "remainingMonths": 12,
+    "settingsChecksum": "7a99648c",
+    "sipp": 3500,
+    "source": "Growth",
+    "state": 0,
+    "stdSipp": 3500,
+    "taxFree": 0,
+    "taxPaidMonthly": 490.5,
+    "taxPaidYTD": 490.5,
+    "taxProjectedAnnual": 5886,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "total": 883000,
+    "yearNum": 0,
+    "yearlyIsaSavingsAllocation": 0
+   },
+   {
+    "accessMethod": "drawdown",
+    "adjBond": 260000,
+    "adjCash": 90000,
+    "adjEquity": 520000,
+    "belowTrack": false,
+    "bond": 263100,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "cash": 88200,
+    "consecutiveDraws": 0,
+    "cumulativeIsaSavingsUsed": 0,
+    "dBond": 459.7457627118644,
+    "dCash": 0,
+    "dEquity": 3040.2542372881358,
+    "date": "2026-05",
+    "equity": 540500,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "mode": "Tax-Efficient",
+    "monthlyNet": 3009.5,
+    "monthlyTax": 490.5,
+    "other": 0,
+    "pa": 12570,
+    "protectionInducedTaxEfficiency": false,
+    "reason": "",
+    "rebal": "",
+    "recycleNet": 0,
+    "remainingMonths": 11,
+    "settingsChecksum": "7a99648c",
+    "sipp": 3500,
+    "source": "Growth",
+    "state": 0,
+    "stdSipp": 3500,
+    "taxFree": 0,
+    "taxPaidMonthly": 490.5,
+    "taxPaidYTD": 981,
+    "taxProjectedAnnual": 5886,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "total": 891800,
+    "yearNum": 0,
+    "yearlyIsaSavingsAllocation": 0
+   },
+   {
+    "accessMethod": "drawdown",
+    "adjBond": 260000,
+    "adjCash": 90000,
+    "adjEquity": 520000,
+    "belowTrack": false,
+    "bond": 261700,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "cash": 89400,
+    "consecutiveDraws": 0,
+    "cumulativeIsaSavingsUsed": 0,
+    "dBond": 619.7916666666666,
+    "dCash": 0,
+    "dEquity": 2880.2083333333335,
+    "date": "2026-06",
+    "equity": 527900,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "mode": "Tax-Efficient",
+    "monthlyNet": 3009.5,
+    "monthlyTax": 490.5,
+    "other": 0,
+    "pa": 12570,
+    "protectionInducedTaxEfficiency": false,
+    "reason": "",
+    "rebal": "",
+    "recycleNet": 0,
+    "remainingMonths": 10,
+    "settingsChecksum": "7a99648c",
+    "sipp": 3500,
+    "source": "Growth",
+    "state": 0,
+    "stdSipp": 3500,
+    "taxFree": 0,
+    "taxPaidMonthly": 490.5,
+    "taxPaidYTD": 1471.5,
+    "taxProjectedAnnual": 5886,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "total": 879000,
+    "yearNum": 0,
+    "yearlyIsaSavingsAllocation": 0
+   }
+  ],
+  "planOfRecord": {
+   "assumedCpi": 0.04,
+   "baseSalary": 42000,
+   "drawdown": [
+    {
+     "isaBalance": 30000,
+     "isaDraw": 0,
+     "sippDraw": 42000,
+     "spendable": 36114,
+     "tax": 5886,
+     "year": 0
+    },
+    {
+     "isaBalance": 30900,
+     "isaDraw": 0,
+     "sippDraw": 43680,
+     "spendable": 37458,
+     "tax": 6222,
+     "year": 1
+    },
+    {
+     "isaBalance": 31827,
+     "isaDraw": 0,
+     "sippDraw": 45427,
+     "spendable": 38856,
+     "tax": 6571,
+     "year": 2
+    },
+    {
+     "isaBalance": 32782,
+     "isaDraw": 0,
+     "sippDraw": 47244,
+     "spendable": 40309,
+     "tax": 6935,
+     "year": 3
+    },
+    {
+     "isaBalance": 33765,
+     "isaDraw": 0,
+     "sippDraw": 49134,
+     "spendable": 41821,
+     "tax": 7313,
+     "year": 4
+    },
+    {
+     "isaBalance": 34778,
+     "isaDraw": 498,
+     "sippDraw": 50270,
+     "spendable": 43228,
+     "tax": 7540,
+     "year": 5
+    },
+    {
+     "isaBalance": 35309,
+     "isaDraw": 1724,
+     "sippDraw": 50270,
+     "spendable": 44454,
+     "tax": 7540,
+     "year": 6
+    },
+    {
+     "isaBalance": 34592,
+     "isaDraw": 2999,
+     "sippDraw": 50270,
+     "spendable": 45729,
+     "tax": 7540,
+     "year": 7
+    },
+    {
+     "isaBalance": 32541,
+     "isaDraw": 4326,
+     "sippDraw": 50270,
+     "spendable": 47056,
+     "tax": 7540,
+     "year": 8
+    },
+    {
+     "isaBalance": 29061,
+     "isaDraw": 5705,
+     "sippDraw": 33229,
+     "spendable": 48435,
+     "tax": 7540,
+     "year": 9
+    },
+    {
+     "isaBalance": 24057,
+     "isaDraw": 7140,
+     "sippDraw": 32547,
+     "spendable": 49870,
+     "tax": 7540,
+     "year": 10
+    },
+    {
+     "isaBalance": 17424,
+     "isaDraw": 8632,
+     "sippDraw": 31838,
+     "spendable": 51362,
+     "tax": 7540,
+     "year": 11
+    },
+    {
+     "isaBalance": 9055,
+     "isaDraw": 9055,
+     "sippDraw": 32982,
+     "spendable": 52914,
+     "tax": 8292,
+     "year": 12
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 49997,
+     "spendable": 54528,
+     "tax": 15405,
+     "year": 13
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 51997,
+     "spendable": 56206,
+     "tax": 16524,
+     "year": 14
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 54077,
+     "spendable": 57952,
+     "tax": 17688,
+     "year": 15
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 56240,
+     "spendable": 59767,
+     "tax": 18898,
+     "year": 16
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 58490,
+     "spendable": 61655,
+     "tax": 20157,
+     "year": 17
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 60829,
+     "spendable": 63619,
+     "tax": 21466,
+     "year": 18
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 63262,
+     "spendable": 65661,
+     "tax": 22827,
+     "year": 19
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 65793,
+     "spendable": 67784,
+     "tax": 24243,
+     "year": 20
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 68425,
+     "spendable": 69993,
+     "tax": 25715,
+     "year": 21
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 71162,
+     "spendable": 72290,
+     "tax": 27247,
+     "year": 22
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 74008,
+     "spendable": 74327,
+     "tax": 29191,
+     "year": 23
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 76968,
+     "spendable": 76397,
+     "tax": 31261,
+     "year": 24
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 80047,
+     "spendable": 78551,
+     "tax": 33415,
+     "year": 25
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 83249,
+     "spendable": 80790,
+     "tax": 35654,
+     "year": 26
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 86579,
+     "spendable": 83119,
+     "tax": 37983,
+     "year": 27
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 90042,
+     "spendable": 85581,
+     "tax": 40364,
+     "year": 28
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 93644,
+     "spendable": 88352,
+     "tax": 42632,
+     "year": 29
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 97389,
+     "spendable": 91233,
+     "tax": 44989,
+     "year": 30
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 101285,
+     "spendable": 94230,
+     "tax": 47441,
+     "year": 31
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 105336,
+     "spendable": 97347,
+     "tax": 49991,
+     "year": 32
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 109550,
+     "spendable": 100589,
+     "tax": 52643,
+     "year": 33
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 113932,
+     "spendable": 103960,
+     "tax": 55402,
+     "year": 34
+    },
+    {
+     "isaBalance": 0,
+     "isaDraw": 0,
+     "sippDraw": 118489,
+     "spendable": 107466,
+     "tax": 58270,
+     "year": 35
+    }
+   ],
+   "engineVersion": "6.4.0",
+   "glidepath": [
+    {
+     "totalMin": 870000,
+     "year": 0
+    },
+    {
+     "totalMin": 881623,
+     "year": 1
+    },
+    {
+     "totalMin": 892784,
+     "year": 2
+    },
+    {
+     "totalMin": 903426,
+     "year": 3
+    },
+    {
+     "totalMin": 913492,
+     "year": 4
+    },
+    {
+     "totalMin": 922918,
+     "year": 5
+    },
+    {
+     "totalMin": 931636,
+     "year": 6
+    },
+    {
+     "totalMin": 939575,
+     "year": 7
+    },
+    {
+     "totalMin": 946659,
+     "year": 8
+    },
+    {
+     "totalMin": 952806,
+     "year": 9
+    },
+    {
+     "totalMin": 957930,
+     "year": 10
+    },
+    {
+     "totalMin": 961939,
+     "year": 11
+    },
+    {
+     "totalMin": 964736,
+     "year": 12
+    },
+    {
+     "totalMin": 966218,
+     "year": 13
+    },
+    {
+     "totalMin": 966275,
+     "year": 14
+    },
+    {
+     "totalMin": 964791,
+     "year": 15
+    },
+    {
+     "totalMin": 961642,
+     "year": 16
+    },
+    {
+     "totalMin": 956697,
+     "year": 17
+    },
+    {
+     "totalMin": 949819,
+     "year": 18
+    },
+    {
+     "totalMin": 940859,
+     "year": 19
+    },
+    {
+     "totalMin": 929662,
+     "year": 20
+    },
+    {
+     "totalMin": 916065,
+     "year": 21
+    },
+    {
+     "totalMin": 899892,
+     "year": 22
+    },
+    {
+     "totalMin": 880960,
+     "year": 23
+    },
+    {
+     "totalMin": 859073,
+     "year": 24
+    },
+    {
+     "totalMin": 834026,
+     "year": 25
+    },
+    {
+     "totalMin": 805601,
+     "year": 26
+    },
+    {
+     "totalMin": 773567,
+     "year": 27
+    },
+    {
+     "totalMin": 737681,
+     "year": 28
+    },
+    {
+     "totalMin": 697687,
+     "year": 29
+    },
+    {
+     "totalMin": 653313,
+     "year": 30
+    },
+    {
+     "totalMin": 604273,
+     "year": 31
+    },
+    {
+     "totalMin": 550264,
+     "year": 32
+    },
+    {
+     "totalMin": 490968,
+     "year": 33
+    },
+    {
+     "totalMin": 426048,
+     "year": 34
+    },
+    {
+     "totalMin": 355148,
+     "year": 35
+    }
+   ],
+   "savedAt": "2026-04-10T08:05:00.000Z",
+   "settingsChecksum": "7a99648c"
+  },
+  "settings": {
+   "baseSalary": 42000,
+   "bedAndIsa": true,
+   "bondMin": 260000,
+   "cashTarget": 90000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "duration": 35,
+   "equityMin": 520000,
+   "giaTaxBand": "basic",
+   "isaBalance": 30000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "locked": true,
+   "lockedAt": "2026-04-10T08:05:00.000Z",
+   "lockedBy": "first monthly entry",
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "spStartDate": null,
+   "spWeeklyAmount": 0,
+   "statePension": 11973,
+   "statePensionYear": 9,
+   "taxableMix": "equity",
+   "taxableStart": 0
+  },
+  "taxYears": {
+   "26/27": {
+    "brl": 50270,
+    "cgtExemptionUsed": 0,
+    "confirmedSalary": 42000,
+    "cpi": 0.04,
+    "expectedMonthly": {
+     "isa": {
+      "gross": 0,
+      "net": 0,
+      "tax": 0
+     },
+     "other": {
+      "gross": 0,
+      "net": 0,
+      "tax": 0
+     },
+     "sipp": {
+      "gross": 3500,
+      "net": 3009.5,
+      "tax": 490.50000000000006
+     },
+     "statePension": {
+      "gross": 0,
+      "net": 0,
+      "tax": 0
+     },
+     "totalGross": 3500,
+     "totalNet": 3009.5,
+     "totalTax": 490.5
+    },
+    "grossIncomeToDate": 0,
+    "hrl": 125140,
+    "isTaxEfficient": true,
+    "isaSavingsAllocation": 0,
+    "isaSavingsUsed": 0,
+    "other": 0,
+    "pa": 12570,
+    "remainingMonths": 12,
+    "startMonth": 4,
+    "statePension": 0,
+    "taxEfficiencyChoice": "efficient",
+    "taxPaidToDate": null,
+    "yearSetupComplete": true
+   }
+  }
+ },
+ "enabledTools": [
+  "stress",
+  "decision"
+ ],
+ "isActive": true,
+ "lastModified": "2026-06-10T08:05:00.000Z",
+ "planDetails": {
+  "description": "",
+  "name": "Plan A"
+ },
+ "strategy": {
+  "engineVersion": "6.4.0",
+  "id": "pots-and-valves",
+  "lockedAt": "2026-03-02T10:00:00.000Z",
+  "params": {}
+ },
+ "stressTool": {
+  "settings": {
+   "baseSalary": 42000,
+   "bondMin": 260000,
+   "brl": 50270,
+   "cashTarget": 90000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 35,
+   "equityGlideEnabled": false,
+   "equityMin": 520000,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "incomeShape": "phases",
+   "incomeSteps": [
+    {
+     "amount": 42000,
+     "fromAge": 58
+    },
+    {
+     "amount": 36000,
+     "fromAge": 72
+    }
+   ],
+   "isaBalance": 30000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "other": 0,
+   "pa": 12570,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "shapeAgeNow": 58,
+   "spendingProfile": "declining",
+   "statePension": 11973,
+   "statePensionYear": 9,
+   "strategyId": "pots-and-valves",
+   "strategyParams": {},
+   "taggedFunds": [],
+   "targetSchedule": [
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    42000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000,
+    36000
+   ],
+   "taxMode": "inflates"
+  }
+ }
+}

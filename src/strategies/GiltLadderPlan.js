@@ -30,11 +30,11 @@ export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
  *  pot, startAge, durationYears, amountAtAge(age) → gross £/yr today's money,
  *  spAnnual, spStartAge, spFirstYearRatio (share of the first year SP is paid), firstTaxYear (Apr of),
  *  linkers: [{ name, tidm, isin, maturityDateIso, cleanPrice, indexRatio, lag }], cashYears, bridgeCash,
- *  todayIso
+ *  todayIso ('YYYY-MM-DD', the pricing date) or now (a Date) — either pins the clock; neither = today
  */
 export function buildGiltLadder(p) {
   const o = { ...LADDER_DEFAULTS, ...(p.options || {}) };
-  const today = Date.parse(p.todayIso || new Date().toISOString().slice(0, 10));
+  const today = Date.parse(p.todayIso || (p.now || new Date()).toISOString().slice(0, 10));
   const il = (p.linkers || []).filter((g) => g.lag === 3 && g.cleanPrice != null && g.maturityDateIso)
     .sort((a, b) => a.maturityDateIso.localeCompare(b.maturityDateIso));
   const cashYears = Math.max(0, p.cashYears ?? o.cashYears);

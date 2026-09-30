@@ -1,11 +1,23 @@
 /**
  * Phase B integration gate (strategy-engine brief §3): the golden matrix run through the SAME
  * code paths the app uses — settings → createSimulationConfigFromSettings → runMonteCarlo —
- * with the FULL per-run output vector hashed. Byte-identical pre/post the strategy-interface
- * refactor. Golden regeneration of these hashes is an explicit commit with justification.
+ * with the FULL per-run output vector pinned. Regenerating the pin is an explicit commit with
+ * justification:  UPDATE_APP_PATHS=1 npx vitest run tests/integration/appPaths.test.js
+ *
+ * The pin is the VALUES, compared with a tolerance — not a hash of rounded values (what it was until
+ * 6.14.0). Math.pow's last bit is not fixed by the language: V8 11 (Node 20) and V8 13 (Node 24) disagree
+ * on about 1 in 120 of the engine's monthly factors (1.2318^(1/12) = 1.017524831903414 vs …4143), so every
+ * simulated amount carries a difference of about one part in 10^12 between JS engines. A hash of
+ * toFixed(6) pins the JS engine, not the plan: one value in 6,400 sat on a rounding boundary
+ * (57020.5674575 → …457 on one, …458 on the other) and the 6.14.0 hash passed on Node 24 and failed on
+ * Node 20. Rounding harder or differently only MOVES the boundary (12 significant figures repairs that
+ * config and breaks another). A tolerance has no boundary — see recordDiffs in tests/fixtures/plans/checks.mjs.
+ *   - EXACT: whether and when the run failed, the months in protection — and every whole number. A branch
+ *     that flips (a month in protection, a different pot paying) moves these or moves money by pounds.
+ *   - money: equal within one part in 10^9 of the figure, or a millionth of a pound, whichever is larger —
+ *     a thousand times the engine-to-engine drift, a millionth of the smallest real change.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -51,43 +63,66 @@ const SETTINGS = {
 };
 
 const RUNS = 25;
-const PIN_FILE = path.join(__dirname, 'fixtures', 'appPaths.sha.json');
+const PIN_FILE = path.join(__dirname, 'fixtures', 'appPaths.pin.json');
+const REL_TOL = 1e-9, ABS_TOL = 1e-6;
+const EXACT = new Set(['failed', 'years', 'failMonth', 'protMonths']);
 
-function stable(obj) {
-  return JSON.stringify(obj, (k, v) => (typeof v === 'number' && !Number.isInteger(v) ? +v.toFixed(6) : v));
+const vectorOf = (r) => ({
+  failed: r.failed, years: r.years, failMonth: r.failMonth,
+  final: r.final, finalReal: r.finalReal,
+  finalEquity: r.finalEquity, finalBond: r.finalBond, finalCash: r.finalCash,
+  finalIsa: r.finalIsa, finalDiversifier: r.finalDiversifier, finalHodl: r.finalHodl,
+  protMonths: r.protMonths, hodlUsed: r.hodlUsed, divUsed: r.divUsed,
+  totalTaxReal: r.totalTaxReal, pclsTaken: r.pclsTaken,
+  potByYear: r.potByYear, isaByYear: r.isaByYear
+});
+
+/** Differences between a computed vector set and the pinned one, as readable lines; [] = the same output. */
+function vectorDiffs(actual, pinned, where = '', out = [], key = '') {
+  const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+  if (isNum(actual) && isNum(pinned)) {
+    const tol = EXACT.has(key) ? 0 : Math.max(ABS_TOL, REL_TOL * Math.max(Math.abs(actual), Math.abs(pinned)));
+    if (Math.abs(actual - pinned) > tol) out.push(`${where}: ${actual} (pinned ${pinned})`);
+  } else if (Array.isArray(actual) && Array.isArray(pinned)) {
+    if (actual.length !== pinned.length) out.push(`${where}: ${actual.length} items (pinned ${pinned.length})`);
+    else actual.forEach((x, i) => vectorDiffs(x, pinned[i], `${where}[${i}]`, out, key));
+  } else if (actual && pinned && typeof actual === 'object' && typeof pinned === 'object') {
+    for (const k of new Set([...Object.keys(actual), ...Object.keys(pinned)])) vectorDiffs(actual[k], pinned[k], where ? `${where}.${k}` : k, out, k);
+  } else if (actual !== pinned) out.push(`${where}: ${JSON.stringify(actual)} (pinned ${JSON.stringify(pinned)})`);
+  return out;
 }
 
-describe('Phase B gate: app-path golden hashes', () => {
-  const hashes = {};
+describe('Phase B gate: app-path golden vectors', () => {
+  const vectors = {};
   for (const [name, settings] of Object.entries(SETTINGS)) {
-    it(`hashes full MC output vector: ${name}`, () => {
+    it(`runs the full MC output vector: ${name}`, () => {
       const cfg = createSimulationConfigFromSettings({}, settings);
-      const runs = runMonteCarlo(cfg, RUNS);
-      const h = createHash('sha256');
-      for (const r of runs) {
-        h.update(stable({
-          failed: r.failed, years: r.years, failMonth: r.failMonth,
-          final: r.final, finalReal: r.finalReal,
-          finalEquity: r.finalEquity, finalBond: r.finalBond, finalCash: r.finalCash,
-          finalIsa: r.finalIsa, finalDiversifier: r.finalDiversifier, finalHodl: r.finalHodl,
-          protMonths: r.protMonths, hodlUsed: r.hodlUsed, divUsed: r.divUsed,
-          totalTaxReal: r.totalTaxReal, pclsTaken: r.pclsTaken,
-          potByYear: r.potByYear, isaByYear: r.isaByYear
-        }));
-      }
-      hashes[name] = h.digest('hex');
-      expect(hashes[name]).toMatch(/^[0-9a-f]{64}$/);
+      // through JSON, as the pin is stored: what is compared is what a file can hold
+      vectors[name] = JSON.parse(JSON.stringify(runMonteCarlo(cfg, RUNS).map(vectorOf)));
+      expect(vectors[name]).toHaveLength(RUNS);
     });
   }
 
-  it('matches the pinned hashes (regenerate ONLY with an explicit justified commit)', () => {
-    if (!fs.existsSync(PIN_FILE)) {
+  it('matches the pinned vectors (regenerate ONLY with an explicit justified commit)', () => {
+    if (process.env.UPDATE_APP_PATHS === '1') {
       fs.mkdirSync(path.dirname(PIN_FILE), { recursive: true });
-      fs.writeFileSync(PIN_FILE, JSON.stringify(hashes, null, 2));
-      console.log('PINNED first run:', PIN_FILE);
+      const body = Object.entries(vectors).map(([name, runs]) => ` ${JSON.stringify(name)}: [\n${runs.map((r) => '  ' + JSON.stringify(r)).join(',\n')}\n ]`).join(',\n');
+      fs.writeFileSync(PIN_FILE, `{\n${body}\n}\n`);
+      console.log('PINNED:', PIN_FILE);
       return;
     }
+    // A missing pin is a failure, not a first run: a gate that pins whatever it finds protects nothing.
     const pinned = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8'));
-    expect(hashes).toEqual(pinned);
+    expect(Object.keys(vectors)).toEqual(Object.keys(pinned));
+    expect(vectorDiffs(vectors, pinned)).toEqual([]);
+  });
+
+  it('the comparison is exact where a branch shows and tolerant only of last-bit drift', () => {
+    const run = { failed: false, failMonth: null, protMonths: 7, final: 57020.56745749808, potByYear: [500000, 57020.56745749808] };
+    expect(vectorDiffs({ a: [run] }, { a: [{ ...run, final: 57020.567457501, potByYear: [500000, 57020.567457501] }] })).toEqual([]);   // Node 20 vs Node 24
+    expect(vectorDiffs({ a: [run] }, { a: [{ ...run, final: 57020.57 }] })).toHaveLength(1);           // a quarter of a penny is a change
+    expect(vectorDiffs({ a: [run] }, { a: [{ ...run, protMonths: 8 }] })).toHaveLength(1);            // one month in protection
+    expect(vectorDiffs({ a: [run] }, { a: [{ ...run, failed: true, failMonth: 200 }] })).toHaveLength(2);
+    expect(vectorDiffs({ a: [run] }, { a: [{ ...run, potByYear: [500000] }] })).toHaveLength(1);
   });
 });

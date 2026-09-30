@@ -638,10 +638,10 @@
       "reason": "Healthy | Tax-Inefficient",
       "stdSipp": 12500,
       "taxInfo": {
-        "annualTax": 51189,
+        "annualTax": 53703,
         "annualTaxable": 150000,
         "headroomToBRL": -99730,
-        "monthlyNet": 8234.25
+        "monthlyNet": 8024.75
       },
       "totalGrowth": 1250000
     },
@@ -660,7 +660,7 @@
     "isaDraw": 0,
     "isaSavingsUsedThisMonth": 0,
     "lsaRemaining": null,
-    "monthlyTax": 4265.75,
+    "monthlyTax": 4475.25,
     "other": 0,
     "pa": 12570,
     "pclsSuggestion": 0,
@@ -677,13 +677,13 @@
     "stdSipp": 12500,
     "taxEfficient": false,
     "taxFree": 0,
-    "taxPaidYTD": 4265.75,
-    "taxProjectedAnnual": 51189,
+    "taxPaidYTD": 4475.25,
+    "taxProjectedAnnual": 53703,
     "taxSavedMonthly": 0,
     "taxSavedProjectedAnnual": 0,
     "taxSavedYTD": 0,
     "taxYear": "26/27",
-    "totalMonthlyNet": 8234.25,
+    "totalMonthlyNet": 8024.75,
     "yearNumber": 0,
     "yearlyIsaSavingsAllocation": 0
   },

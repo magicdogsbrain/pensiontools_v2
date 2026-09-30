@@ -36,6 +36,28 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.16.0', date: '2026-09-30', engineVersion: '6.16.0',
+    title: 'Income tax above £100,000 is now worked out correctly',
+    summary: 'If your taxable income in any year goes above £100,000, the app was charging too little tax. Above £100,000 you lose £1 of tax-free allowance for every £2 of income; the app taxed that lost allowance at 20% when the rule is 40%. It is now right to the penny against the published rates. If your income never goes above £100,000 in any year of your plan, nothing has changed.',
+    changes: [
+      'Tax above £100,000 follows the published rules exactly: the 20% band stays £37,700 wide, 40% applies up to £125,140 and 45% above.',
+      'The tax-year set-up in the Decision tool uses the same single tax sum as the rest of the app; its own copy stopped at 40%.',
+      'A new check compares the app\'s tax with hand-worked figures for fourteen incomes from £0 to £200,000, to the penny, every time the app is tested.'
+    ],
+    corrections: [
+      'Too little tax: £1,000 a year at £110,000, and £2,514 a year at £125,140 and above. At £150,000 the app said £51,189; the right figure is £53,703.',
+      'The tax-year set-up wizard ignored the loss of the allowance and the 45% rate: at £150,000 it said £47,432.'
+    ],
+    effects: {
+      decision: ['Only tax years with taxable income above £100,000: the tax shown is higher and the take-home lower. Months already recorded keep their figures.'],
+      stress: ['Plans that draw more than £100,000 in a year change slightly. So do long plans whose income passes £100,000 in later years\' money, because the £100,000 point is held fixed (it has not moved since 2010) while other bands rise with prices. On a £59,450-a-year plan the lifetime tax rose by under 1%.'],
+      strategies: ['As for the Stress tester. A locked plan\'s document keeps its figures.'],
+      household: [], budget: [], accumulation: []
+    },
+    actions: ['If a lump-sum withdrawal or a high-income year is part of your plan, re-run it to see the corrected tax.'],
+    notes: ['The Budget\'s quick take-home estimate is still approximate above £100,000.']
+  },
+  {
     version: '6.15.0', date: '2026-09-30', engineVersion: '6.15.0',
     title: 'Diversifiers get a glidepath, protection to the penny, an offer for out-of-date drafts, and plan download',
     summary: 'The diversifiers sleeve now has a glidepath like shares and bonds, and the protection test is made in whole pennies. A draft plan whose start year has gone by offers to move to this tax year instead of reading as "already running". You can download a copy of a plan to your own computer. Every saved plan is now stamped with a version so that future changes to how plans are stored can be made safely.',

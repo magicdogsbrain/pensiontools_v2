@@ -121,3 +121,52 @@ describe('other income from the Stress plan (rent, DB, streams)', () => {
     expect(hasOtherIncomePlan({ dbAmount: 5000 })).toBe(true);
   });
 });
+
+// 6.16.0: the wizard used its own tax sum, which stopped at 40% (no 45% band, no loss of the allowance above
+// £100,000). It now uses the one sum in TaxCalculator; figures worked by hand from the published rates.
+import { calculateIsaNeeded } from '../src/services/TaxYearWizardService.js';
+import { calculateTax } from '../src/services/TaxCalculator.js';
+
+describe('the wizard taxes high incomes by the published rules (one tax sum)', () => {
+  const bands = { brl: 50270, pa: 12570 };
+  const inefficient = (targetSalary, extra = {}) => calculateMonthlyBreakdown({ ...bands, targetSalary, other: 0, statePension: 0, isaSavingsAllocation: 0, isTaxEfficient: false, remainingMonths: 12, grossIncomeToDate: 0, ...extra });
+
+  it.each([
+    [80000, 19432],      // 7,540 + 29,730 at 40% — unchanged from before
+    [100000, 27432],     // 7,540 + 49,730 at 40% — unchanged from before
+    [110000, 33432],     // allowance 7,570; was 31,432
+    [125140, 42516],     // allowance gone; was 37,488
+    [150000, 53703],     // 42,516 + 24,860 at 45%; was 47,432
+  ])('a full year on £%i is taxed £%i', (gross, tax) => {
+    const r = inefficient(gross);
+    expect(Math.round(r.totalTax * 12 * 100)).toBe(tax * 100);
+    expect(r.totalTax * 12).toBeCloseTo(calculateTax(gross, 12570, 50270, 125140), 6);
+    expect(r.totalNet * 12).toBeCloseTo(gross - tax, 6);
+  });
+
+  it('nothing moves at or below £100,000: the old sum and the new agree', () => {
+    const old = (g) => (g <= 12570 ? 0 : g <= 50270 ? (g - 12570) * 0.2 : 7540 + (g - 50270) * 0.4);
+    for (let g = 0; g <= 100000; g += 1234.5) expect(inefficient(g).totalTax * 12).toBeCloseTo(old(g), 6);
+  });
+
+  it('a mid-year start on top of a high salary to date: the draws carry the allowance they cost', () => {
+    // £90,000 earned before, £30,000 drawn over 6 months → £120,000 for the year.
+    const r = inefficient(60000, { remainingMonths: 6, grossIncomeToDate: 90000 });
+    const yearTax = 7540 + (120000 - 2570 - 37700) * 0.4;   // allowance 2,570 left
+    const already = 7540 + (90000 - 50270) * 0.4;
+    expect(r.totalTax * 6).toBeCloseTo(yearTax - already, 6);
+  });
+
+  it('the ISA needed to stay at the basic-rate limit is measured against the true take-home of the target', () => {
+    const r = calculateIsaNeeded({ ...bands, targetAnnualGross: 150000, remainingMonths: 12 });
+    expect(r.taxAtTarget).toBeCloseTo(53703, 6);
+    expect(r.taxAtBrl).toBeCloseTo(7540, 6);
+    expect(r.isaNeededAnnual).toBeCloseTo((150000 - 53703) - (50270 - 7540), 6);
+    // the header example in the service (target 59,450) is untouched
+    expect(calculateIsaNeeded({ ...bands, targetAnnualGross: 59450, remainingMonths: 12 }).isaNeededAnnual).toBeCloseTo(5508, 6);
+  });
+
+  it('a different 45% threshold can be passed in', () => {
+    expect(inefficient(150000, { hrl: 200000 }).totalTax * 12).toBeCloseTo(calculateTax(150000, 12570, 50270, 200000), 6);
+  });
+});

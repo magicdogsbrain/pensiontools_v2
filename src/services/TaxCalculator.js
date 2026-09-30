@@ -10,45 +10,60 @@ import { TAX_DEFAULTS } from '../constants.js';
  * @param {number} gross - Gross taxable income
  * @param {number} pa - Personal Allowance
  * @param {number} brl - Basic Rate Limit
- * @param {number} hrl - Higher Rate Limit (for PA taper)
+ * @param {number} hrl - Higher Rate Limit: taxable income above which the additional rate applies
  * @returns {number} Total tax payable
  */
 export function calculateTax(gross, pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
   if (gross <= 0) return 0;
 
-  // Apply PA taper for high earners
+  // The personal allowance is withdrawn for high incomes: £1 for every £2 above £100,000.
   let effectivePA = pa;
   if (gross > TAX_DEFAULTS.PA_TAPER_THRESHOLD) {
     const reduction = (gross - TAX_DEFAULTS.PA_TAPER_THRESHOLD) * TAX_DEFAULTS.PA_TAPER_RATE;
     effectivePA = Math.max(0, pa - reduction);
   }
 
-  // Taxable income after PA
+  // Taxable income after the (possibly reduced) allowance
   const taxable = Math.max(0, gross - effectivePA);
 
-  // Basic rate band (up to BRL - PA originally, but we use BRL as the threshold)
-  const basicBand = Math.max(0, brl - effectivePA);
-  const higherBand = hrl - brl;
+  // The bands are widths of TAXABLE income and do NOT move when the allowance is withdrawn:
+  //   20% on the first (brl - pa) of taxable income — £37,700 on the standard figures;
+  //   40% from there up to `hrl` of taxable income (£125,140);
+  //   45% above that.
+  // So as the allowance shrinks, the point where 40% starts falls with it (gov.uk/income-tax-rates).
+  // Until 6.15.0 the 20% band was widened by the allowance lost (brl - effectivePA), which
+  // understated tax on every income above £100,000 (by £1,000 at £110,000; £2,514 from £125,140).
+  const basicBand = Math.max(0, brl - pa);
+  const additionalFrom = Math.max(basicBand, hrl);
 
-  let tax = 0;
-
-  // Basic rate (20%)
-  const basicTaxable = Math.min(taxable, basicBand);
-  tax += basicTaxable * TAX_DEFAULTS.BASIC_RATE;
-
-  // Higher rate (40%)
+  let tax = Math.min(taxable, basicBand) * TAX_DEFAULTS.BASIC_RATE;
   if (taxable > basicBand) {
-    const higherTaxable = Math.min(taxable - basicBand, higherBand);
-    tax += higherTaxable * TAX_DEFAULTS.HIGHER_RATE;
+    tax += (Math.min(taxable, additionalFrom) - basicBand) * TAX_DEFAULTS.HIGHER_RATE;
   }
-
-  // Additional rate (45%)
-  if (taxable > basicBand + higherBand) {
-    const additionalTaxable = taxable - basicBand - higherBand;
-    tax += additionalTaxable * TAX_DEFAULTS.ADDITIONAL_RATE;
+  if (taxable > additionalFrom) {
+    tax += (taxable - additionalFrom) * TAX_DEFAULTS.ADDITIONAL_RATE;
   }
 
   return tax;
+}
+
+/**
+ * Every gross income at which the slope of calculateTax can change, in ascending order (duplicates
+ * and points on a straight stretch are harmless). Between two neighbouring values the tax — and so
+ * grossToNet — is an exact straight line, which is what lets a "gross for this net" question be
+ * answered by one interpolation instead of a search (see DrawdownStrategy.planDrawdown).
+ * @returns {number[]}
+ */
+export function taxKinks(pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
+  const ts = TAX_DEFAULTS.PA_TAPER_THRESHOLD, r = TAX_DEFAULTS.PA_TAPER_RATE;
+  const te = ts + pa / r;                       // the allowance is all gone from here
+  const basicBand = Math.max(0, brl - pa);
+  const additionalFrom = Math.max(basicBand, hrl);
+  // gross at which taxable income reaches x: below the taper, inside it, and beyond it
+  const at = (x) => [x + pa, (x + pa + r * ts) / (1 + r), x];
+  return [ts, te, ...at(0), ...at(basicBand), ...at(additionalFrom)]
+    .filter((g) => g > 0 && Number.isFinite(g))
+    .sort((a, b) => a - b);
 }
 
 /**

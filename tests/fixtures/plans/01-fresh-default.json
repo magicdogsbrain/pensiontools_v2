@@ -52,7 +52,7 @@
   "name": "My Plan"
  },
  "strategy": {
-  "engineVersion": "6.4.0",
+  "engineVersion": "6.13.4",
   "id": "pots-and-valves",
   "lockedAt": "2026-09-28T18:42:10.000Z",
   "params": {}

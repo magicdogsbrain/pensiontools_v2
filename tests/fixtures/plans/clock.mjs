@@ -2,16 +2,17 @@
  * Pinned process environment for the plan corpus — import this FIRST, before any app module.
  *
  * The engines read `new Date()` and compute tax years, birthdays and the State Pension's first-year share from
- * LOCAL dates, so an answer depends on today's date AND on the machine's time zone (a plan evaluated under UTC
- * differs from Europe/London by a few pounds on a multi-million cone). A pin that only holds on one laptop is
- * not a pin, so the corpus is always evaluated in a plain Node process with:
+ * LOCAL dates, so an answer depends on today's date and — until 6.13.4 — on the machine's time zone (a plan
+ * evaluated under UTC differed from Europe/London by a few pounds on a multi-million cone: day counts taken
+ * from milliseconds across a clock change; fixed, and tests/planCorpus.test.js holds the zones equal). The zone
+ * is still pinned, because "today" is a local date. The corpus is always evaluated in a plain Node process with:
  *   - TZ = Europe/London (a UK product; set here, at runtime, which Node honours on the main thread — it does
  *     NOT inside vitest's worker threads, which is why the tests spawn run.mjs instead of evaluating in-process);
  *   - Date pinned to whatever `at()` was last given;
  *   - Math.random seeded (guest scenario ids);
  *   - a sessionStorage for the guest store; console.log/warn silenced (the repositories log every save).
  */
-process.env.TZ = 'Europe/London';
+process.env.TZ = process.env.CORPUS_TZ || 'Europe/London';   // CORPUS_TZ: only for the test that proves the zone no longer matters
 
 const RealDate = Date;
 let nowMs = RealDate.parse('2026-01-01T09:00:00.000Z');

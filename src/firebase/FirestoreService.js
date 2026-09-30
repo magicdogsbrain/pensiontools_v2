@@ -16,7 +16,8 @@
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, writeBatch, query, where } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config.js';
 import { getCurrentUser , isGuest } from './AuthService.js';
-import { normalizeScenario } from './scenarioMigration.js';
+import { normalizeScenario, upgradeScenario } from './scenarioMigration.js';
+import { isNewerSchema, PlanNewerThanAppError, PLAN_NEWER_EVENT } from '../storage/schema.js';
 
 /**
  * Get current user's document path
@@ -45,30 +46,93 @@ function getUserCollection(collectionName) {
 // SCENARIOS
 // ============================================================================
 
+// ---- Schema version bookkeeping (6.15.0) -------------------------------------------------------------
+// Which plans this session has seen to be NEWER than this code (a tab left open across a deploy), and which
+// could not be upgraded. Kept here, by id, and never on the plan object: a flag on the object could be copied
+// into a duplicate and saved.
+const newerPlanIds = new Set();
+const upgradeErrors = new Map();
+
+function flagNewer(scenarioId) {
+  const first = !newerPlanIds.has(scenarioId);
+  newerPlanIds.add(scenarioId);
+  if (first) {
+    try { if (typeof window !== 'undefined' && typeof CustomEvent === 'function') window.dispatchEvent(new CustomEvent(PLAN_NEWER_EVENT, { detail: { scenarioId } })); }
+    catch (e) { /* no window (tests, node): the flag is still readable */ }
+  }
+}
+/** Record what an upgrade found out about a plan; returns the plan the app should use. */
+function noteUpgrade(id, u) {
+  if (u.newer) flagNewer(id); else newerPlanIds.delete(id);
+  if (u.error) { upgradeErrors.set(id, u.error); console.error('Plan ' + id + ' could not be upgraded (schema ' + u.from + '); it is left as saved and opened as it is:', u.error); }
+  else upgradeErrors.delete(id);
+  return u.scenario;
+}
+
+/** True when this plan was saved by a newer version of the app than this code: every save of it is refused. */
+export function isScenarioNewerThanApp(scenarioId) { return newerPlanIds.has(scenarioId); }
+/** The error from this plan's last upgrade attempt, or null. The plan was left as saved and opened as it is. */
+export function scenarioUpgradeError(scenarioId) { return upgradeErrors.get(scenarioId) || null; }
+/** Switching the active plan touches one root flag that no schema change moves; it is the one write still allowed. */
+const onlyActiveFlag = (data) => { const k = Object.keys(data || {}); return k.length === 1 && k[0] === 'isActive'; };
+
 /**
- * Normalise a raw scenario doc and, if it contained phantom dot-notation or
- * legacy fields, rewrite the cleaned document once (full replace) to purge the
- * junk fields and recover the user's data. Self-healing and idempotent.
+ * Upgrade a raw scenario doc — normalise it (phantom dot-notation / legacy fields) and move it up the schema
+ * chain (src/storage/migrations.js) — and, if anything changed, rewrite the document once.
+ *
+ * The rewrite is a FULL replace (no merge): that is what purges phantom top-level fields. Nothing is dropped
+ * by it because both normalizeScenario and the chain keep every key they do not know (tested).
+ *
+ * No write at all when a migration step failed (the stored plan stays exactly as it is and opens as it is;
+ * the next load tries again) or when the plan is newer than this code.
  * @param {object} raw - Raw scenario data including `id`
- * @returns {Promise<object>} Normalised scenario (with id)
+ * @returns {Promise<object>} The scenario the app should use (with id)
  */
 async function migrateAndPersistScenario(raw) {
-  const { scenario, migrated } = normalizeScenario(raw);
-  if (migrated) {
+  const u = upgradeScenario(raw);
+  const scenario = noteUpgrade(raw.id, u);
+  if (u.write) {
     const user = getCurrentUser();
     if (user && db) {
       try {
         const { id, ...clean } = scenario;
-        // Full replace (no merge) removes the phantom/legacy top-level fields.
         await setDoc(doc(db, 'users', user.uid, 'scenarios', id), clean);
       } catch (error) {
-        // Migration write is best-effort; the in-memory normalised data is still
-        // returned so the app works even if the rewrite fails.
+        // The write is best-effort; the upgraded data is still returned so the app works, and the next
+        // load upgrades and writes again (every step is idempotent).
         console.error('Scenario migration write failed:', error);
       }
     }
   }
   return scenario;
+}
+
+/**
+ * The guest store, upgraded: the same normalise + chain as a signed-in read (until 6.15.0 guest reads skipped
+ * both), written back to the tab's store when something changed.
+ */
+function guestUpgraded() {
+  const list = guestList();
+  let dirty = false;
+  const out = list.map((raw) => {
+    if (!raw || typeof raw !== 'object') return raw;
+    const u = upgradeScenario(raw);
+    noteUpgrade(raw.id, u);
+    if (u.write) dirty = true;
+    return u.write ? u.scenario : raw;
+  });
+  if (dirty) guestSave(out);
+  return dirty ? out : list;
+}
+
+/**
+ * A plan about to be CREATED (a new plan, a duplicate, a guest plan handed into an account, a demo import)
+ * is written in today's shape: a hand-off stash has no expiry, so a plan stashed under an old version can
+ * arrive here long after. If it cannot be upgraded it is created as it is and upgraded on a later load.
+ */
+function readyToCreate(data) {
+  if (!data || typeof data !== 'object') return data;
+  return upgradeScenario(data).scenario;
 }
 
 /**
@@ -89,7 +153,7 @@ export function guestHasData() { return guestList().length > 0; }
 export function guestSnapshot() { try { return JSON.parse(JSON.stringify(guestList())); } catch (e) { return []; } }
 
 export async function loadAllScenarios() {
-  if (isGuest()) return guestList().map((x) => ({ ...x }));
+  if (isGuest()) return guestUpgraded().map((x) => ({ ...x }));
   if (!isFirebaseConfigured()) return [];
 
   const collRef = getUserCollection('scenarios');
@@ -115,7 +179,7 @@ export async function loadAllScenarios() {
  * @returns {Promise<object|null>}
  */
 export async function loadScenario(scenarioId) {
-  if (isGuest()) { const x = guestList().find((y) => y.id === scenarioId); return x ? { ...x } : null; }
+  if (isGuest()) { const x = guestUpgraded().find((y) => y.id === scenarioId); return x ? { ...x } : null; }
   if (!isFirebaseConfigured()) return null;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -142,14 +206,23 @@ export async function loadScenario(scenarioId) {
  * "decisionTool.settings", which is the bug this replaces. The scenario document
  * always exists before this is called (created via createScenario/addDoc).
  *
+ * Newer-than-code guard (6.15.0): a tab left open across a deploy still runs the OLD code, and would write
+ * old-shape settings over a plan a newer version has already upgraded. So before every write the STORED
+ * plan's schemaVersion is read; if it is greater than this code's, nothing is written and a
+ * PlanNewerThanAppError is thrown (code 'plan-newer-than-app'; isScenarioNewerThanApp(id) is true from then
+ * on, and the window event 'pt:plan-newer-than-app' fires once). The one exception is a write of the
+ * `isActive` flag alone, so the person can still switch to another plan.
+ *
  * @param {string} scenarioId - Scenario document ID
  * @param {object} data - Scenario data (may use dot-notation keys for nested updates)
  * @returns {Promise<void>}
  */
 export async function saveScenario(scenarioId, data) {
+  const guarded = !onlyActiveFlag(data);
+  if (guarded && newerPlanIds.has(scenarioId)) throw new PlanNewerThanAppError(scenarioId);
   // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
   // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -157,10 +230,19 @@ export async function saveScenario(scenarioId, data) {
 
   // A write that never settles (a stalled WebChannel) used to leave every Save / wizard Confirm on
   // "Saving…" for ever. Bound it, retry once, then fail loudly so the caller can show an error.
-  const write = () => updateDoc(docRef, { ...data, lastModified: new Date().toISOString() });
+  const write = async () => {
+    if (guarded) {
+      // A failed version READ (offline, a stalled channel) must not block the save: treat it as "not newer" and
+      // let the write go ahead as it did before 6.15.0. Only a plan actually seen to be newer is refused.
+      let stored = null; try { stored = await getDoc(docRef); } catch (e) { stored = null; }
+      if (stored && stored.exists() && isNewerSchema(stored.data())) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); }
+    }
+    return updateDoc(docRef, { ...data, lastModified: new Date().toISOString() });
+  };
   try {
     await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long');
   } catch (first) {
+    if (first instanceof PlanNewerThanAppError) throw first;   // not a connection problem: never retried
     console.error('Error saving scenario (first attempt):', first);
     try { await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long'); }
     catch (error) { console.error('Error saving scenario:', error); throw error; }
@@ -180,6 +262,7 @@ function withTimeout(promise, ms, message) {
  * @returns {Promise<string>} New scenario document ID
  */
 export async function createScenario(data) {
+  data = readyToCreate(data);
   if (isGuest()) { const id = 'guest-' + Math.random().toString(36).slice(2, 10); const list = guestList(); list.push({ ...data, id, createdAt: new Date().toISOString(), lastModified: new Date().toISOString() }); guestSave(list); return id; }
   if (!isFirebaseConfigured()) return null;
 

@@ -2215,6 +2215,9 @@
               <button id="scenarioNewBtn">+ New Plan</button>
               <button id="scenarioDuplicateBtn">Duplicate</button>
             </div>
+            <div class="scenario-dropdown-actions" style="padding-top:0;">
+              <button type="button" id="scenarioExportBtn" title="Save a copy of this plan on your own computer. Nothing is sent anywhere." data-on-click="exportActivePlan()">Download this plan (JSON)</button>
+            </div>
           </div>
         </div>
         <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
@@ -2240,6 +2243,10 @@
 
       <!-- Tabs -->
       <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
+<div id="planNewerBanner" role="alert" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--danger, #dc2626); border-radius:var(--radius); background:rgba(220,38,38,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span style="flex:1; min-width:220px;">This plan was updated by a newer version of the app — reload the page. Nothing you change here will be saved until you do.</span>
+        <button type="button" class="risk-btn" data-on-click="reloadPage()">Reload the page</button>
+      </div>
 <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
@@ -2665,7 +2672,7 @@
                   <input type="number" id="dsProtEscalate" value="12" min="0" max="60">
                 </div>
                 <div class="form-group">
-                  <label>Cash Draws Before Protection</label>
+                  <label>Months Below Glidepath Before Protection</label>
                   <input type="number" id="dsConsecutiveLimit" value="3">
                 </div>
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
@@ -2943,6 +2950,7 @@
           <div class="card">
             <h2>Stress Tester Settings</h2>
             <div id="ssLockBanner" class="lock-banner" style="display:none;"></div>
+            <div id="ssStaleDraftBanner" class="lock-banner amending stale-draft-banner" style="display:none;"></div>
 
             <!-- Legacy net-first target box: superseded by "Your income shape" (step 1 = this figure). Kept hidden so the save/load + net⇄gross plumbing (ssNetSpend/ssBaseSalary) keeps working. -->
             <div class="settings-section" style="display:none;">
@@ -3140,6 +3148,7 @@
               </div>
               <div id="ssTimingBlock" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">When your plan starts <span class="hint" style="font-weight:normal;">— year 0 for every tool, the gilt ladders and the Decision tool</span></div>
+                <div id="tmStaleDraftBanner" class="lock-banner amending stale-draft-banner" style="display:none;"></div>
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have already retired</label>
@@ -3564,7 +3573,7 @@
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Cash Draws Before Protection</label>
+                  <label>Months Below Glidepath Before Protection</label>
                   <input type="number" id="ssConsecutiveLimit" value="3">
                 </div>
                 <div class="form-group">
@@ -4144,9 +4153,11 @@
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
     import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
-    import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
+    import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices } from './src/services/PlanTiming.js';
+    import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
+    import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4230,7 +4241,7 @@
 
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
-    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
+    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -8107,7 +8118,21 @@
     // ---- Next-step guide rail ---------------------------------------------------------------
     // One sentence + one button, computed from actual plan state. Disappears once the journey
     // (budget → target → stress → decision) is complete, and can be dismissed per plan.
+    // ---- A plan saved by a NEWER version of the app than this tab is running (6.15.0) ----
+    // A tab left open across a release must not save over a plan the newer version has already upgraded:
+    // every save of it is refused (FirestoreService.saveScenario). This banner says so, once, in plain words.
+    function showPlanNewerBanner() {
+      const b = document.getElementById('planNewerBanner'); if (!b) return;
+      let newer = false; try { newer = isPlanNewerThanApp(); } catch (e) { newer = false; }
+      b.style.display = newer ? 'flex' : 'none';
+    }
+    window.showPlanNewerBanner = showPlanNewerBanner;
+    window.reloadPage = function () { location.reload(); };
+    // Fired the first time a plan is seen to be newer (on load, or by a refused save). The active plan may not
+    // be cached yet when it fires during a load, so look again shortly after.
+    window.addEventListener('pt:plan-newer-than-app', () => { showPlanNewerBanner(); setTimeout(showPlanNewerBanner, 1500); });
     window.updateNextStepBanner = async function () {
+      showPlanNewerBanner();
       const banner = document.getElementById('nextStepBanner');
       if (!banner) return;
       try {
@@ -8256,6 +8281,7 @@
         + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioActiveBtn\').click();">&#128194; Switch plan</button>'
         + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioNewBtn\').click();">&#10133; New plan</button>'
         + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'scenarioDuplicateBtn\').click();">&#128203; Duplicate this plan</button>'
+        + '<button type="button" data-on-click="closeMobileSheet(); exportActivePlan();">&#11015; Download this plan (JSON)</button>'
         + (adminVis ? '<button type="button" data-on-click="closeMobileSheet(); openAdminPanel();">&#9881; Administration</button>' : '')
         + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'resetBtn\').click();">&#9888; Reset all my data</button>'
         + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>'
@@ -8432,6 +8458,7 @@
       const banner = document.getElementById('ssLockBanner'), saveBtn = document.getElementById('ssSaveBtn'), lockBtn = document.getElementById('ssLockBtn');
       if (!banner || !saveBtn) return;
       let locked = false; try { locked = await planIsLocked(); } catch (e) { locked = false; }
+      renderStaleDraftBanner().catch(() => {});   // a locked plan is never offered the start-year update
       if (!locked) {
         banner.style.display = 'none'; setStressSettingsEnabled(true);
         saveBtn.textContent = 'Save Settings'; saveBtn.classList.remove('btn-locked');
@@ -8945,7 +8972,9 @@
       // Start-year choice (already retired): this tax year or next.
       const sel = g('tmStartYear');
       if (sel) {
-        const opts = t.startOptions.map((Y) => '<option value="' + Y + '"' + (Y === t.firstTaxYear ? ' selected' : '') + '>' + (Y === t.startOptions[0] ? 'this tax year' : 'next 6 April') + ' — ' + taxYearLabel(Y) + '</option>').join('');
+        // This tax year, next 6 April — and a saved year that is neither ("2027/28 (saved)"), so the control is never blank (6.15.0).
+        const savedStart = +(window._ssTimingBase || {}).firstTaxYear || 0;
+        const opts = startYearChoices(t, savedStart).map((c) => '<option value="' + c.year + '"' + (c.year === t.firstTaxYear ? ' selected' : '') + '>' + c.label + '</option>').join('');
         if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; }
         sel.value = String(t.firstTaxYear);
       }
@@ -8988,6 +9017,79 @@
       g('tmPotSipp').value = ov?.sipp || ''; g('tmPotIsa').value = ov?.isa || '';
       if (!future && !(s?.firstTaxYear > 0) && s?.shapeAgeNow) g('shapeAgeNow').value = s.shapeAgeNow;   // legacy: keep the saved start age
       await renderTiming();
+      await renderStaleDraftBanner();
+    };
+    // ---- A draft whose start year has passed (6.15.0) ----
+    // Owner decision: offer to update it to today; never delete or move it automatically. ONE sentence, shown in
+    // the Timing block and at the top of the settings; "Leave it" is remembered for that saved year. A locked
+    // plan is never offered this (its start year is the plan of record). Rule: PlanTiming.staleDraft.
+    async function currentStaleDraft() {
+      let locked = true; try { locked = await planIsLocked(); } catch (e) { locked = true; }   // cannot tell → do not offer
+      let hasRecords = true; try { hasRecords = ((await getHistoryAsync()) || []).length > 0; } catch (e) { hasRecords = true; }   // months recorded = really running, not a draft
+      const s = window._ssTimingBase || {};
+      return staleDraft(s, { locked, hasRecords, now: new Date() });
+    }
+    async function renderStaleDraftBanner() {
+      const spots = document.querySelectorAll('.stale-draft-banner'); if (!spots.length) return;
+      let sd = null; try { sd = await currentStaleDraft(); } catch (e) { sd = null; }
+      spots.forEach((el) => {
+        if (!sd) { el.style.display = 'none'; el.innerHTML = ''; return; }
+        el.style.display = 'flex';
+        el.innerHTML = '<span>' + budEsc(staleDraftMessage(sd)) + '</span>'
+          + '<span style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" data-on-click="updateStaleDraft()">Update the plan</button>'
+          + '<button type="button" class="secondary" data-on-click="dismissStaleDraft()">Leave it</button></span>';
+      });
+    }
+    window.renderStaleDraftBanner = renderStaleDraftBanner;
+    // Update = choose the suggested year in the form, re-derive the timing, and save through the ordinary
+    // Save path (so the income steps, the per-year targets and the Decision tool's year 0 all move with it).
+    window.updateStaleDraft = async function () {
+      const sd = await currentStaleDraft();
+      if (!sd) { await renderStaleDraftBanner(); return; }
+      const g = (id) => document.getElementById(id);
+      const sel = g('tmStartYear'); if (!sel) return;
+      if (sd.mode === 'future') { g('tmFuture').checked = false; g('tmRetired').checked = true; }   // the retire age has passed: the plan starts now
+      if (![...sel.options].some((o) => +o.value === sd.suggestedYear)) { const o = document.createElement('option'); o.value = String(sd.suggestedYear); o.textContent = sd.suggestedLabel; sel.appendChild(o); }
+      sel.value = String(sd.suggestedYear);
+      await renderTiming();
+      await saveStressSettingsUI();
+      let after = null; try { after = await getStressSettingsAsync(); } catch (e) { after = null; }
+      if (after && +after.firstTaxYear === sd.suggestedYear && after.retired !== false) {
+        await loadStressSettings();   // refresh the form, the drop-down and this banner from what was saved
+        showToast('Plan updated: it now starts in ' + sd.suggestedLabel + '.', 'success');
+      }
+    };
+    window.dismissStaleDraft = async function () {
+      const sd = await currentStaleDraft();
+      if (sd) {
+        try { await saveStressSettings({ staleDraftDismissedFor: sd.savedYear }); }
+        catch (e) { showToast('Could not save that choice: ' + e.message, 'error'); return; }
+        window._ssTimingBase = { ...(window._ssTimingBase || {}), staleDraftDismissedFor: sd.savedYear };
+      }
+      await renderStaleDraftBanner();
+    };
+    // ---- Download this plan (6.15.0) ----
+    // The active plan exactly as it is stored, as a file on the user's own machine. A read: nothing is sent
+    // anywhere and the plan, its lock and its dates are untouched. The document holds no uid or email (the
+    // uid is only in its Firestore path); planExportJson strips any such field regardless.
+    window.exportActivePlan = async function () {
+      try {
+        const dd = document.getElementById('scenarioDropdown'); if (dd) dd.classList.remove('open');
+        const plans = await loadAllScenarios();
+        let activeId = null; try { activeId = await getActiveScenarioId(); } catch (e) { activeId = null; }
+        const active = plans.find((p) => p.id === activeId) || plans.find((p) => p.isActive) || plans[0];
+        if (!active) { showToast('There is no plan to download yet.', 'warning'); return; }
+        const name = planExportFileName(active.planDetails && active.planDetails.name);
+        const url = URL.createObjectURL(new Blob([planExportJson(active)], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.style.display = 'none';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast('Saved ' + name + ' to your downloads. It contains this plan\'s figures — keep it private.', 'success', 6000);
+      } catch (e) {
+        console.error('Plan export failed:', e);
+        showToast('Could not download the plan: ' + e.message, 'error');
+      }
     };
     function timingFieldsForSave() {
       const t = window._ssTiming;
@@ -10369,7 +10471,7 @@
         tag: 'one flexible portfolio, rules decide which pot pays', frames: PV_FRAMES,
         intro: 'Your money sits in pots — shares, bonds, cash, diversifiers, ISA — each with a floor. Every month the pot that can best afford it pays your income; in a bad run the safe pots take over and, if it persists, the draw is cut. In good markets the pots refill. It is the only strategy here that is allowed to pay you less.',
         machine: (r, p) => ({ fn: potsValvesSvg, d: { pots: r.signature.pots, floors: r.signature.floors, protection: r.signature.protection, wealthCone: r.cones.wealth, incomeCone: r.cones.income, planIncome: p.targetAnnual, startAge: p.startAge } }),
-        dials: (prm, s) => allocDials(s) + '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)) + dial('Cash months before it cuts', 'consecutiveLimit', 'type="number" min="1" max="24"', s.consecutiveLimit ?? 3) + '<span class="hint">Allocation and risk level: in Settings.</span>',
+        dials: (prm, s) => allocDials(s) + '<label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" ' + (s.disableProtection ? '' : 'checked') + ' data-on-change="setSpecDialChecked(\'protectionOn\', this.checked)"> Cut spending in bad runs</label>' + dial('Cut %', 'cutPct', 'type="number" min="0" max="60" step="5"', Math.round((1 - (s.protectionMult ?? 0.8)) * 100)) + dial('Months below glidepath before it cuts', 'consecutiveLimit', 'type="number" min="1" max="24"', s.consecutiveLimit ?? 3) + '<span class="hint">Allocation and risk level: in Settings.</span>',
         verdict: (r, p) => '<strong>Ran out in ' + r.ruin.mc.toFixed(1) + '% of ' + r.n.mc.toLocaleString() + ' futures</strong> (' + r.ruin.hist.toFixed(1) + '% of histories). Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' (median ' + gbp(Math.round(r.worst12.median)) + '). ' + (r.signature.protection.enabled ? 'Spending cuts are ON (up to ' + r.signature.protection.cutPct + '%): a median ' + Math.round((r.signature.protMonthsMedian || 0) / 12) + ' years on reduced income in history.' : 'Spending cuts are OFF: the plan pays in full until it cannot.'),
         decades: (r, p) => pnvDecadesHtml(r, p),
         shines: ['Nothing is bought; everything keeps growing — the most money over a lifetime, on average', 'Monthly guidance on what to draw and from where', 'Markets are kind more often than not'],

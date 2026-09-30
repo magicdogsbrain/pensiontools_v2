@@ -36,6 +36,37 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.15.0', date: '2026-09-30', engineVersion: '6.15.0',
+    title: 'Diversifiers get a glidepath, protection to the penny, an offer for out-of-date drafts, and plan download',
+    summary: 'The diversifiers sleeve now has a glidepath like shares and bonds, and the protection test is made in whole pennies. A draft plan whose start year has gone by offers to move to this tax year instead of reading as "already running". You can download a copy of a plan to your own computer. Every saved plan is now stamped with a version so that future changes to how plans are stored can be made safely.',
+    changes: [
+      'Protection (Pots & Valves): the diversifiers glidepath rises with inflation and runs down over the plan, exactly like shares and bonds. Before, it was flat in pounds.',
+      'Protection is judged in whole pennies: a pot sitting on its glidepath to the penny is on it, not below it.',
+      'A draft whose start year has passed asks: "This plan was set to start in 2027/28, which has passed. Update it to start now?" Update moves it to this tax year; Leave it keeps it and does not ask again. Nothing is moved or deleted automatically. Locked plans and plans with recorded months are never asked.',
+      'Download this plan: the plan menu saves the active plan to your computer as a file. It holds your figures but no account ID or email.',
+      'Every plan is saved with a version number. An older plan is brought up to date once when opened; if that fails the saved plan is left exactly as it was.',
+      'A tab left open on an older version of the app will not save over a plan a newer version has updated; it asks you to reload.'
+    ],
+    corrections: [
+      'One protection month in the tests was decided by a rounding error of less than a billionth of a pound.',
+      'A diversifiers sleeve that had fallen behind inflation still read as on target.',
+      'The "Plan starts" drop-down could be blank; it now shows the saved year.',
+      'Labels that still described protection as counting cash draws.'
+    ],
+    effects: {
+      decision: ['Plans with a diversifiers sleeve: protection may start or end in a different month. Months already recorded keep their figures. A locked plan\'s settings, recorded months and plan document are not touched by the version stamp.'],
+      stress: ['Plans without a diversifiers sleeve: no change (13 test plans gave identical figures). With a sleeve, results move a little in either direction: on a £300k plan with a £45k sleeve, futures entering protection went from 63 to 62 in 100.'],
+      strategies: ['Buckets in order and the bought strategies are unchanged.'],
+      household: [], budget: [], accumulation: []
+    },
+    actions: ['If your plan has a diversifiers sleeve, re-run the stress test to see the updated figures.'],
+    notes: ['Still open: the Glidepath table shows the diversifiers column flat, and "which pot pays" ranks the sleeve against its starting value. Both will follow the new glidepath in a later release.'],
+    affects: (scenario) => {
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      return (s && +s.diversifierStart > 0) ? ['This plan has a diversifiers sleeve: its protection results will move a little. Re-run the stress test.'] : [];
+    }
+  },
+  {
     version: '6.14.0', date: '2026-09-30', engineVersion: '6.14.0',
     title: 'Protection by the glidepath rule, start years that stay put, and locked ladders that stay locked',
     summary: 'Five things the new automatic tests found. Protection mode for Pots & Valves now follows one plain rule: a month counts when shares plus bonds plus diversifiers add up to less than the sum of their glidepaths, and protection switches on after the set number of such months in a row. Which pot paid that month no longer matters, and the diversifiers sleeve is counted. A plan\'s start year is now saved the first time it is worked out, so an old plan no longer moves a year every 6 April. A locked gilt ladder shows the ladder in its plan document, not one re-priced at today\'s gilt prices. A plan with no age entered is no longer treated as a 45-year-old. And pasting holdings can no longer merge a gilt into a fund.',

@@ -69,7 +69,12 @@ export function buildDecisionContext(config, trace, returns) {
     // The engine's own default (one source): this was a literal 10000 left behind when the default
     // moved to 15000, which by itself made the two engines leave protection in different months.
     recoveryBuffer: config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER,
-    consecutiveLimit: config.consecutiveLimit ?? 3
+    consecutiveLimit: config.consecutiveLimit ?? 3,
+    // The diversifiers sleeve and the bond tent, when the run has them: both engines put the sleeve's
+    // starting value on its own glidepath (inflated, run down like shares and bonds) and re-divide the
+    // shares + bonds floors by the tent's share for the year.
+    ...(config.diversifierStart ? { diversifierStart: config.diversifierStart } : {}),
+    ...(config.equityGlide ? { equityGlide: config.equityGlide } : {})
   };
 
   return { settings, allTaxYears };
@@ -135,7 +140,8 @@ export async function replayStateful(config, seed) {
       history,          // stateful: protection/boost/YTD see prior months
       allTaxYears,
       spInfo: { amount: t.planInputs.statePension },
-      isaBalance: t.isaStart
+      isaBalance: t.isaStart,
+      ...(config.diversifierStart ? { diversifier: t.diversifierStart } : {})
     });
     // Append a history entry in the shape the Decision engine reads back.
     // (The pot values and that month's glidepaths are what the saved record really carries — see
@@ -145,7 +151,10 @@ export async function replayStateful(config, seed) {
       equity: dec.equity, bond: dec.bond, cash: dec.cash,
       adjEquity: dec.adjEquityMin, adjBond: dec.adjBondMin, adjCash: dec.adjCashTarget,
       inProtection: dec.inProtection, sipp: dec.sippDraw, stdSipp: dec.stdSipp,
-      isa: dec.isaDraw, boostAmount: dec.boostAmount
+      isa: dec.isaDraw, boostAmount: dec.boostAmount,
+      // The sleeve's value that month, so a past month is re-judged against the sleeve's glidepath for
+      // ITS plan year (no saved verdict here on purpose: this exercises the re-judging path).
+      ...(config.diversifierStart ? { diversifier: t.diversifierStart } : {})
     });
     rows.push({
       month: t.month, date: dateStr,

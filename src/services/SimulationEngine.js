@@ -13,7 +13,7 @@ import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
-import { assessProtection, growthVsGlide, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
+import { assessProtection, growthVsGlide, diversifierGlidepath, isBelow, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
@@ -227,16 +227,19 @@ export function simulate(config, returns, seed = 0) {
       bdMin = growthMin * (1 - glideShare);
     }
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
+    // The diversifiers sleeve's glidepath: its starting value inflated and run down exactly as the
+    // shares and bonds floors above (the bond tent only re-divides those two, so it leaves this alone).
+    const dvGlide = diversifierGlidepath(config.diversifierStart, year, config.duration, cumInf);
 
     // Assess protection for THIS month on the start-of-month pot values (before this month's
     // returns) — the same inputs and rule the Decision engine uses (shared ProtectionStrategy).
     // The owner's rule: a month counts when the growth pots — shares + bonds + diversifiers — add
     // up to less than the sum of their glidepaths; protection starts in the month that completes
-    // consecutiveLimit such months in a row. Which pot paid the income plays no part. The
-    // diversifiers sleeve is held flat, so its glidepath is its starting value.
+    // consecutiveLimit such months in a row. Which pot paid the income plays no part. Compared in
+    // whole pennies (sourcing leaves pots exactly on their floors, so equality is routine).
     const vsGlide = growthVsGlide({
       equity, bond, diversifier,
-      equityGlide: eqMin, bondGlide: bdMin, diversifierGlide: config.diversifierStart || 0
+      equityGlide: eqMin, bondGlide: bdMin, diversifierGlide: dvGlide
     });
     const minGrowth = eqMin + bdMin;   // shares + bonds floors only: the tax-boost surplus test below
     const wasInProtection = prot;
@@ -249,7 +252,7 @@ export function simulate(config, returns, seed = 0) {
     const ordered = config.sourcingMode === 'ordered';
     const buffer = config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER;
     const trackLine = eqMin + bdMin + csTarget - buffer;
-    if (ordered) consecBelowTrack = (equity + bond + cash) < trackLine ? consecBelowTrack + 1 : 0;
+    if (ordered) consecBelowTrack = isBelow(equity + bond + cash, trackLine) ? consecBelowTrack + 1 : 0;
     prot = config.disableProtection ? false : assessProtection({
       totalGrowth: ordered ? equity + bond + cash : vsGlide.growth,
       minGrowth: ordered ? trackLine : vsGlide.glide,
@@ -378,7 +381,8 @@ export function simulate(config, returns, seed = 0) {
       boostAmount: 0,
       inProtection: prot,
       diversifierStart: diversifier,  // start-of-month diversifiers sleeve
-      growthPots: vsGlide.growth, growthGlide: vsGlide.glide, belowGlide: vsGlide.below,   // the protection comparison, as judged this month
+      diversifierGlide: dvGlide,      // the sleeve's glidepath this month (inflated, run down like shares and bonds)
+      growthPots: vsGlide.growth, growthGlide: vsGlide.glide, belowGlide: vsGlide.below,   // the protection comparison, as judged this month (whole pennies)
       consecBelowGlideBefore: belowGlideRunBefore,   // the unbroken run of below-glide months before this one
       planInputs                      // exact planDrawdown inputs used this month
     } : null;

@@ -146,3 +146,14 @@ doing the building that should compress, but it is a large job and the estimate 
 5. "A bad case" = the worst one in ten, not the worst in history.
 6. Couples: a short first set of questions, with the option to answer in full detail at any point.
 7. 7.0 includes "am I saving enough" (it is built second, so it is inside the cutover).
+
+## 8. Later decisions and backlog (30 Sep 2026)
+
+- Protection (Pots & Valves): a month counts when shares + bonds + diversifiers are below the sum of their
+  glidepaths; X such months in a row switches it on (shipped 6.14.0). The diversifier target rises with inflation
+  and runs down like the shares and bonds targets (owner, 30 Sep — to build). Protection is not applied to a bought
+  ladder's monthly figure (reviewer's rule — owner to confirm).
+- A draft whose start year has passed: offer to update it to today. No automatic deletion.
+- **Backlog, not now:** what to do with accounts that are never used and plans that are never opened. All data is
+  in Firebase; any clean-up needs a server-side job with an admin key, a warning to the user first, and a line in
+  the privacy policy. The owner dropped automatic deletion for now.

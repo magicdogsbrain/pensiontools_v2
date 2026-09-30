@@ -55,16 +55,13 @@ describe('pasting a statement', () => {
     expect(m[2].match.ticker).toBe('CGT');
   });
 
-  // TODO(live finding, 30 Sep 2026 — not fixed here, src is out of this step's scope): the 6.12.5 fix stops the stray
-  // code choosing the FUND, but a gilt matched by name alone (no rung for its year on the order sheet, or no order sheet)
-  // still KEEPS the stray code as its ticker: matchRows' name-only branch is `ticker: r.ticker || 'T' + yy`
-  // (src/services/HoldingsPaste.js). Two consequences, both reproduced:
-  //   1. the saved line reads ticker "CGT", name "0 1/8% Index-linked Treasury Gilt 2031" — the owner's "it thinks I
-  //      have CGT" survives on the What-you-hold card;
-  //   2. pasted beside a real Capital Gearing Trust line, mergeLedger keys both on SIPP+CGT and folds them into ONE
-  //      line: { ticker: 'CGT', name: 'Capital Gearing Trust', value: 5000, units: 18000, kind: 'gilt' } — the gilt's
-  //      £20,000 is gone and the trust is marked a gilt with the gilt's units.
-  it.skip('R6.12.5-c (LIVE) — a gilt matched by name alone does not keep the stray code as its ticker, and never merges with the real fund', () => {
+  // Was a LIVE finding on 30 Sep 2026 (catalogue, Finding 2), fixed in 6.13.5: the 6.12.5 fix stopped the stray code
+  // choosing the FUND, but a gilt matched by name alone KEPT it as its ticker (`ticker: r.ticker || 'T' + yy`), so
+  //   1. the saved line read ticker "CGT", name "0 1/8% Index-linked Treasury Gilt 2031";
+  //   2. beside a real Capital Gearing Trust line, mergeLedger keyed both on SIPP+CGT and folded them into ONE line:
+  //      { ticker: 'CGT', name: 'Capital Gearing Trust', value: 5000, units: 18000, kind: 'gilt' } — £20,000 gone.
+  // Each half of the fix (matchRows, mergeLedger) is replayed on its own in tests/replay/residuals.test.js.
+  it('R6.12.5-c (was LIVE) — a gilt matched by name alone does not keep the stray code as its ticker, and never merges with the real fund', () => {
     const m = matchRows([
       { ticker: 'CGT', name: '0 1/8% Index-linked Treasury Gilt 2031', value: 20000, units: 18000 },
       { ticker: 'CGT', name: 'Capital Gearing Trust', value: 5000 }

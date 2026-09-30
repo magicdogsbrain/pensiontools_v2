@@ -14,7 +14,8 @@ import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
 import { tagPortfolio } from '../services/PortfolioTagger.js';
 import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
-import { migrateTiming, potScaleOf } from '../services/PlanTiming.js';
+import { pinTiming, timingPinPatch, potScaleOf } from '../services/PlanTiming.js';
+import { budgetAgesKnown } from '../services/BudgetModel.js';
 export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
@@ -24,6 +25,10 @@ import {
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedStressDB = null;
+// The one-off write of a plan's derived start (see loadStressDBAsync). Resolved when there is none in flight.
+let timingPinWrite = Promise.resolve();
+/** Resolves once a pending write of the plan's start has settled (tests; nothing in the app needs to wait). */
+export function timingPinSettled() { return timingPinWrite; }
 
 /**
  * Default stress database structure
@@ -119,11 +124,14 @@ export async function loadStressDBAsync() {
 
     if (stressSettings) {
       // "Age today" is maintained on the Budget page; a copy frozen in the Stress settings at the last
-      // save goes stale every birthday and shifts the State Pension a plan year. Prefer the newer figure.
+      // save goes stale every birthday and shifts the State Pension a plan year. Prefer the newer figure —
+      // but only an age a person gave: a Budget nobody has opened carries 45 / 60 placeholders, and folding
+      // those in made every plan with no age of its own a 45-year-old's (budgetAgesKnown, 6.13.5).
       let budget = null;
+      const stored = { ...stressSettings };   // as saved, before the Budget's age is folded in below (the timing pin is written onto THIS)
       try {
         const b = await getActiveBudget();
-        if (b && +b.currentAge > 0 && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
+        if (b && budgetAgesKnown(b) && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
         budget = b || null;
       } catch (e) { /* no budget yet */ }
       const db = {
@@ -133,6 +141,17 @@ export async function loadStressDBAsync() {
         checksum: null
       };
       cachedStressDB = migrateStressDB(db);
+      // 6.13.5: the plan's start is written into the saved plan the first time it is derived, and only then —
+      // for drafts AND locked plans (a locked plan cannot be re-saved from its form, so "persisted on the next
+      // save" never came and its start moved a year every 6 April). Only the timing fields are added to what is
+      // stored (never the Budget's age — that stays the Budget's); the Decision settings, and so a locked plan's
+      // checksum, are not touched. Not awaited: a slow connection must not hold up the page; if the write fails
+      // the next load tries again.
+      const pin = timingPinPatch(stored, cachedStressDB.settings);
+      if (pin) {
+        timingPinWrite = saveActiveStressSettings({ ...stored, ...pin })
+          .catch((e) => { console.warn('Could not save the plan start (will retry on the next load):', e); });
+      }
       return cachedStressDB;
     }
   } catch (error) {
@@ -223,8 +242,9 @@ function migrateStressDB(db) {
     ms.spendingMigratedFrom = 'declining';
   }
   // 6.4.0: the plan's start (first tax year, retired / retire-at-age) is saved rather than implied by
-  // today's date. Derived once from the age today + the income shape's start age; persisted on save.
-  migrated.settings = migrateTiming(migrated.settings, db.budget || null);
+  // today's date. Derived once from the age today + the income shape's start age; written back by the load
+  // path the first time (6.13.5 — see loadStressDBAsync), not "on the next save".
+  migrated.settings = pinTiming(migrated.settings, db.budget || null);
 
   migrated.lastModified = db.lastModified;
   migrated.checksum = db.checksum;

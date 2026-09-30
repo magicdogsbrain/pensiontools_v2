@@ -156,6 +156,9 @@ export function namesAgree(pasted, catalogueName, ticker) {
   return b.size === 0;   // a catalogue name with no distinctive word cannot disagree
 }
 
+/** Does a ticker-column cell look like a gilt's exchange code (T31, TR31, TG54, TN28, T26A)? "CGT", "PNL" do not. */
+export function isGiltCode(ticker) { return /^T[A-Z]?\d{2}[A-Z]?$/.test(up(ticker)); }
+
 export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapper = 'SIPP' } = {}) {
   const byTicker = new Map(catalogue.map((f) => [up(f.ticker), f]));
   const norm = (s) => up(s).replace(/[^A-Z0-9]/g, '');
@@ -188,15 +191,31 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
       }
       if (c) match = { kind: 'catalogue', ticker: up(c.ticker), name: c.name, subClass: c.subClass, confidence: r.ticker && byTicker.has(r.ticker) ? 'ticker' : 'name' };
     }
-    if (!match && giltFromName(r.name)) { const g = giltFromName(r.name); match = { kind: 'gilt', ticker: r.ticker || ('T' + String(g.year || '').slice(2)), name: r.name, sedol: r.sedol, confidence: 'name-only', subClass: g.il ? 'indexLinked' : 'longGilts' }; }
+    if (!match && giltFromName(r.name)) {
+      const g = giltFromName(r.name);
+      // The ticker column is kept only when it IS a gilt code (TR31, T31, TG54). Anything else there — a statement's
+      // "CGT" or "P&L" heading — is not this gilt's code: use the one derived from its maturity year, or none, so the
+      // line can never be keyed on a fund's ticker and folded into that fund (6.13.5; the rest of the 6.12.5 fix).
+      const ticker = isGiltCode(r.ticker) ? r.ticker : (g.year ? 'T' + String(g.year).slice(2) : '');
+      match = { kind: 'gilt', ticker, name: r.name, sedol: r.sedol, confidence: 'name-only', subClass: g.il ? 'indexLinked' : 'longGilts' };
+    }
     if (!match && /\bCASH\b|MONEY MARKET|CSH2|LIQUIDITY|OVERNIGHT|ULTRASHORT|TREASURY BILL|STERLING LIQUID/i.test(r.name)) match = { kind: 'cash', ticker: 'CSH2', name: r.name, subClass: 'moneyMarket', confidence: 'name' };
     return { ...r, wrapper, match: match || { kind: 'none', confidence: 'none' } };
   });
 }
 
+const CATALOGUE_TICKERS = new Set(FUND_CATALOGUE.map((f) => up(f.ticker)));
+/** Is a ledger line a gilt? true / false when it says so or is a catalogue fund; null when it cannot be told. */
+function lineIsGilt(l) {
+  if (l.kind === 'gilt') return true;
+  if (l.kind) return false;
+  if ((l.subClass === 'indexLinked' || l.subClass === 'longGilts') && isGiltCode(l.ticker)) return true;   // a line saved before `kind` was kept: index-linked or conventional
+  return CATALOGUE_TICKERS.has(up(l.ticker)) ? false : null;
+}
+
 /**
  * Merge matched rows into the ledger: update lines we recognise (by ticker, else SEDOL), add the rest,
- * and report lines in the same wrapper that were not in the paste (probably sold).
+ * and report lines in the same wrapper that were not in the paste (probably sold). A gilt and a fund are never merged.
  */
 export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
   const out = (ledger || []).map((l) => ({ ...l }));
@@ -204,8 +223,14 @@ export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
   const seen = new Set();
   for (const m of matched) {
     if (m.match.kind === 'none' && !m.name) { skipped.push(m); continue; }
-    const ticker = m.match.ticker || m.ticker || '';
-    const key = (l) => (l.wrapper || 'SIPP').toUpperCase() === wrapper && ((ticker && up(l.ticker) === ticker) || (m.sedol && up(l.sedol) === m.sedol));
+    // A gilt never takes a pasted ticker-column cell that is not a gilt code (matchRows already drops it; this holds
+    // for a match built any other way too).
+    const isGilt = m.match.kind === 'gilt';
+    const ticker = m.match.ticker || (isGilt && !isGiltCode(m.ticker) ? '' : m.ticker) || '';
+    // Lines of different kind are never one line: a gilt does not update a fund, nor a fund a gilt, whatever
+    // ticker or SEDOL they appear to share. A ledger line that says nothing and is not a catalogue fund may be either.
+    const sameKind = (l) => { const g = lineIsGilt(l); return g == null || m.match.kind === 'none' || g === isGilt; };
+    const key = (l) => (l.wrapper || 'SIPP').toUpperCase() === wrapper && sameKind(l) && ((ticker && up(l.ticker) === ticker) || (m.sedol && up(l.sedol) === m.sedol));
     const idx = out.findIndex(key);
     // No `undefined` values: Firestore refuses them and the whole settings save fails (6.10.5).
     const line = { ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? (out[idx].units ?? null) : null), sedol: m.match.sedol || m.sedol || null };

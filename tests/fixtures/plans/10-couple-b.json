@@ -138,6 +138,7 @@
    "isaDrawdownStrategy": "minimiseEarlyTax",
    "isaMin": 0,
    "isaReturn": 0.03,
+   "legacyFirstTaxYear": 2027,
    "other": 0,
    "pa": 12570,
    "potAtRetirement": {

@@ -115,8 +115,13 @@ describe('deriveTiming', () => {
     expect(t.yearsToStart).toBe(0);
     expect(t.bridgeMonths).toBe(0);
   });
-  it('a saved start year in the past falls forward to next April', () => {
-    expect(deriveTiming({ ...chris, retired: true, firstTaxYear: 2024 }, NOW).firstTaxYear).toBe(2027);
+  // 6.13.5: this used to "fall forward to next April" (2027) — which is the April slide: a plan that started in
+  // 2027/28 jumped to 2029/30 the day its second year began. A saved start is the plan's anchor for good.
+  it('a saved start year in the past is kept: the plan is running, it does not start again next April', () => {
+    const t = deriveTiming({ ...chris, retired: true, firstTaxYear: 2024 }, NOW);
+    expect(t.firstTaxYear).toBe(2024);
+    expect(t.yearsToStart).toBe(0);
+    expect(t.bridgeMonths).toBe(0);
   });
   it('retire at 60 → 2030/31, four years out', () => {
     const t = deriveTiming({ ...chris, retired: false, retireAge: 60 }, NOW);

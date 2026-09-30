@@ -110,6 +110,51 @@ export function ladderPosition(plan, o = {}) {
 function fmt(v) { return '£' + Math.round(v).toLocaleString('en-GB'); }
 
 /**
+ * The ladder stored in a plan document — the orders, units and costs fixed when the plan was locked. Null when
+ * there is no document, it holds no ladder, or it was written for a different strategy than `strategyId`.
+ */
+export function documentLadder(doc, strategyId = null) {
+  const plan = doc && doc.strategy && doc.strategy.r ? doc.strategy.r.plan : null;
+  if (!plan || !Array.isArray(plan.years) || !plan.years.length || !Array.isArray(plan.orders)) return null;
+  if (strategyId && doc.strategy.id && doc.strategy.id !== strategyId) return null;
+  return plan;
+}
+
+/**
+ * The ladder to show as "your plan" (6.13.5): for a LOCKED plan the one in its plan document, never a rebuild —
+ * `rebuild` is not even called. Rebuilding from the live settings and today's gilt prices (what every screen did
+ * before) moved the order sheet, the costs and the spare away from the document a little every day. A draft has
+ * no document, so it keeps live pricing: `rebuild()` is the ladder.
+ * @param {object|null} doc        the active plan document (null = a draft)
+ * @param {string|null} strategyId the plan's strategy; a document written for another strategy is ignored
+ * @param {function}    rebuild    () => buildGiltLadder() output at today's prices
+ * @returns {{ plan: object|null, source: 'document'|'live', pricedOn: string|null }}
+ */
+export function ladderForDisplay(doc, strategyId, rebuild) {
+  const locked = documentLadder(doc, strategyId);
+  if (locked) return { plan: locked, source: 'document', pricedOn: (doc.assumptions && doc.assumptions.giltPricesAsOf) || String(doc.lockedAt || doc.createdAt || '').slice(0, 10) || null };
+  const live = typeof rebuild === 'function' ? rebuild() : null;
+  return { plan: live && Array.isArray(live.years) && live.years.length ? live : null, source: 'live', pricedOn: null };
+}
+
+/**
+ * The one sentence allowed to mention today's prices next to a locked ladder — labelled as a comparison.
+ * `cmp` is GiltLadderPlan.repriceLadder(); `pricedOn` the day the document's ladder was priced. '' when there
+ * is nothing left to compare (every rung paid).
+ */
+export function repriceComparisonText(cmp, pricedOn = null) {
+  if (!cmp || !(cmp.rungs > 0)) return '';
+  const day = (iso) => { const d = new Date(iso + 'T12:00:00'); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : iso; };
+  const diff = Math.round(cmp.difference);
+  const n = cmp.rungs + ' gilt' + (cmp.rungs === 1 ? '' : 's') + (cmp.paid > 0 ? ' still to be paid' : '');
+  return 'Comparison only: at today\'s prices (' + day(cmp.asOf) + ') the ' + n + ' on this ladder would cost ' + fmt(cmp.todayCost) + ' to buy — '
+    + (Math.abs(diff) < 1 ? 'the same as' : fmt(Math.abs(diff)) + (diff > 0 ? ' more than' : ' less than')) + ' the ' + fmt(cmp.lockedCost) + ' they were priced at'
+    + (pricedOn ? ' on ' + day(pricedOn) : ' when the plan was locked') + '.'
+    + (cmp.unpriced.length ? ' ' + cmp.unpriced.join(', ') + ' could not be priced today and ' + (cmp.unpriced.length === 1 ? 'is' : 'are') + ' left out of both figures.' : '')
+    + ' Your plan is the locked one: its orders, units and amounts do not change with the market.';
+}
+
+/**
  * Borrowed-floor status — after a rotation, what it would cost TODAY to put the sold income
  * back. Pure: (borrowedFloor record, yieldForYear) → status. The record is written by the
  * guided switch (index.html executeRotation) into strategyParams.borrowedFloor.

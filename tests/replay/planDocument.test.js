@@ -89,7 +89,8 @@ describe('the document as it is saved', () => {
   // pot = 1,179,422 (should be 300,000), isa = 0 (should be 80,000) and params = { floorToAge, cashYears }. That `p` is
   // what the strategy card is drawn from and what every bought strategy in the ranked comparison is priced on.
   // Evidence: run this test un-skipped — the stored document contains "pot":1179422 and "params":{"floorToAge":80,"cashYears":3}.
-  it.skip('R6.13.0-b (LIVE) — the plan stored in a Pots & Valves document carries nothing a deselected strategy left behind', async () => {
+  // FIXED in 6.13.5: planFromSettings reads activeParams(settings) for a Pots & Valves plan.
+  it('R6.13.0-b (was LIVE) — the plan stored in a Pots & Valves document carries nothing a deselected strategy left behind', async () => {
     const doc = await build();
     expect(doc.strategy.p.pot).toBe(300000);
     expect(doc.strategy.p.isa).toBe(80000);

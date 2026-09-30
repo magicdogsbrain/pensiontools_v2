@@ -2677,7 +2677,7 @@
               </div>
               <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
               <div class="alert alert-info" style="margin-top: 12px;">
-                <strong>Protection Mode:</strong> Triggers after consecutive cash draws. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
+                <strong>Protection Mode:</strong> Switches on after the set number of months in a row with your growth pots (shares + bonds + diversifiers) below the sum of their glidepaths. Reduces withdrawal by the protection factor until growth funds recover above minimums + recovery buffer.
               </div>
             </div>
 
@@ -4008,6 +4008,10 @@
       oneOffSchedule,
       grossUpAnnual,
       defaultBudget,
+      budgetAgesKnown,
+      budgetAgeToday,
+      budgetRetirementAge,
+      markBudgetAgesSet,
       evalAmountExpr,
       budgetToCsv,
       parseBudgetCsv,
@@ -4138,7 +4142,8 @@
 
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
-    import { ladderPosition, taxYearOf, borrowedFloorStatus } from './src/services/LadderPosition.js';
+    import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText } from './src/services/LadderPosition.js';
+    import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear } from './src/services/PlanTiming.js';
     import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
@@ -4877,6 +4882,7 @@
         try {
           const b = await getBudgetAsync();
           b.currentAge = parseInt(wizardData.currentAge) || b.currentAge;
+          if (parseInt(wizardData.currentAge) > 0) markBudgetAgesSet(b);   // an age given in the wizard is the person's own (6.13.5)
           b.retirementAge = retire;
           b.endAge = endAge;
           b.retired = !!wizardData.retired;
@@ -5863,9 +5869,14 @@
       const giaNow = parseFloat(document.getElementById('entryGia')?.value) || 0;
       const giaBasisRaw = document.getElementById('entryGiaBasis')?.value;
       if ([equity, bond, cash, isaNow, giaNow].some((v) => v < 0)) throw new Error('A fund value cannot be negative — enter what each pot actually holds (£0 if empty).');
-      const settings = await getDecisionSettingsAsync();
+      // A COPY (6.13.5): the anchor read from the Stress plan below used to be written onto the cached Decision
+      // settings themselves, so it changed a locked plan's settings checksum for the rest of the session (every
+      // record saved was stamped with it) and was saved for good by the next partial save.
+      const settings = { ...(await getDecisionSettingsAsync()) };
       // Plan year 0 (6.4.0): the Decision copy carries the plan's first tax year once seeded/synced; a
-      // copy that pre-dates the sync takes it from the Stress plan's Timing block so both tools agree.
+      // copy that pre-dates the sync takes it from the Stress plan's Timing block so both tools agree —
+      // and that start is now saved with the Stress plan the first time it is derived, so it no longer
+      // moves on 6 April.
       if (!(+settings.firstTaxYear > 0)) {
         try { const ss = await getStressSettingsAsync(); const t = deriveTiming(ss); if (t.mode !== 'legacy' || +ss.firstTaxYear > 0) settings.firstTaxYear = t.firstTaxYear; } catch (e) { /* fallback: first tax year set up */ }
       }
@@ -5887,9 +5898,15 @@
           stratDeps = { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 };
         }
       } catch (e) { /* P&V default */ }
+      // 6.13.5 — protection mode is a Pots & Valves rule (growth pots against their glidepaths). A contract strategy
+      // (a bought gilt ladder) has no pot floors to obey: its month is paid from cash / a matured rung, and the pots
+      // typed in are the ladder itself, not growth pots to be measured against the Decision floors. Without this the
+      // new count ("shares + bonds below the sum of their glidepaths") cut a ladder plan's run-up month by 10%.
+      let engineSettings = decisionSettings;
+      try { const st = await getActiveStrategy(); if (st && CONTRACT_IDS.includes(st.id)) engineSettings = { ...decisionSettings, disableProtection: true }; } catch (e) { /* P&V default */ }
       const decision = await calcDecisionPWA(dateStr, equity, bond, cash, {
         ...stratDeps,
-        settings: decisionSettings,
+        settings: engineSettings,
         history: await getHistoryAsync(),
         allTaxYears: await getAllTaxYearsAsync(),
         spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)),
@@ -6345,17 +6362,25 @@
       target.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[settings.strategyId] || settings.strategyId) + ' over every history and 1,000 futures…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        let p, r;
-        try {
-          const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings), strategyId: settings.strategyId, essentialsAnnual: undefined });
-          p = res.p; r = res.r;
-        } catch (e) {
-          console.warn('engine worker unavailable, running inline', e);
-          p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
-          r = stressTestStrategy(settings.strategyId, p);
+        let p, r, lockedNote = '';
+        // 6.13.5 — a locked gilt-ladder plan shows the result stored in its plan document: the ladder is NOT rebuilt
+        // from today's gilt prices (the order sheet, cost and spare used to move every day). Today's prices appear
+        // only in the labelled comparison line. Drafts, and every other strategy, run live as before.
+        const locked = await lockedPlanLadder(settings);
+        if (locked && locked.doc.strategy.p) {
+          p = locked.doc.strategy.p; r = locked.doc.strategy.r; lockedNote = lockedLadderNoteHtml(locked);
+        } else {
+          try {
+            const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings), strategyId: settings.strategyId, essentialsAnnual: undefined });
+            p = res.p; r = res.r;
+          } catch (e) {
+            console.warn('engine worker unavailable, running inline', e);
+            p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
+            r = stressTestStrategy(settings.strategyId, p);
+          }
         }
         window._latestStrategyStress = r;
-        const html = strategyResultCard(r, p);
+        const html = lockedNote + strategyResultCard(r, p);
         if (targetId === 'strategyRunResults') target.innerHTML = html;
         else { const ld = target.querySelector('.loading'); if (ld) ld.remove(); target.innerHTML = (target.innerHTML || '') + html; }   // keep the intro notice, drop our own spinner
       } catch (e) {
@@ -8949,7 +8974,7 @@
       if (!g('tmAge')) return;
       window._ssTimingBase = s || {};
       let age = +s?.currentAge || 0;
-      if (!age) { try { const b = await getBudgetAsync(); age = +b?.currentAge || 0; if (age) { window._ssTimingBase = { ...window._ssTimingBase, currentAge: age, currentAgeAsOf: b.currentAgeAsOf || new Date().toISOString().slice(0, 10) }; } } catch (e) { /* no budget */ } }
+      if (!age) { try { const b = await getBudgetAsync(); age = budgetAgeToday(b) || 0;   /* only an age a person gave — never the blank Budget's 45 placeholder (6.13.5) */ if (age) { window._ssTimingBase = { ...window._ssTimingBase, currentAge: age, currentAgeAsOf: b.currentAgeAsOf || new Date().toISOString().slice(0, 10) }; } } catch (e) { /* no budget */ } }
       g('tmAge').value = age || '';
       // A plan saved before 6.4.0 has no flag: infer it the way the repository migration does (a start
       // age clearly ahead of today = retiring later), so the radios match what the engines will assume.
@@ -9128,19 +9153,43 @@
     }
 
 
-    // The ladder plan of record, and where today sits in it. Cached per (settings, tax year) —
+    // 6.13.5 — a LOCKED plan's ladder is the one in its plan document: the orders, units and costs fixed when the
+    // plan was locked. It is never rebuilt from the live settings and today's gilt prices (it used to be, on every
+    // view, so the order sheet, the costs and the month's figure drifted away from the document day by day — and
+    // once a rung had matured the rebuild could not even find the gilt). Drafts have no document: live pricing.
+    async function lockedPlanLadder(settings) {
+      try {
+        const doc = await getActivePlanDocument();
+        const plan = documentLadder(doc, settings && settings.strategyId);
+        return plan ? { doc, plan, pricedOn: doc.assumptions?.giltPricesAsOf || String(doc.lockedAt || doc.createdAt || '').slice(0, 10) || null } : null;
+      } catch (e) { return null; }
+    }
+    // The only place today's prices may appear beside a locked ladder: one sentence, labelled as a comparison.
+    function lockedLadderNoteHtml(locked) {
+      if (!locked) return '';
+      let cmp = ''; try { cmp = repriceComparisonText(repriceLadder(locked.plan, activeLinkers().gilts), locked.pricedOn); } catch (e) { cmp = ''; }
+      const when = locked.pricedOn ? new Date(locked.pricedOn + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+      return '<div class="alert alert-info" style="font-size:13px;margin:8px 0;">🔒 <strong>This is your locked plan\'s ladder</strong> — the orders, units and costs in the plan document' + (when ? ', priced on ' + budEsc(when) : '') + '. It is not re-priced when gilt prices move.'
+        + (cmp ? '<br><span class="hint">' + budEsc(cmp) + '</span>' : '') + '</div>';
+    }
+    // The ladder plan of record, and where today sits in it. Cached per (plan document or settings, tax year) —
     // buildGiltLadder is deterministic, so this is safe to memoise for the session.
     let _ladderPosCache = null;
     async function ladderPositionForPlan(settings, dateStr, extra) {
       try {
         const sid = settings.strategyId;
         const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : new Date();
-        const key = sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + (settings.firstTaxYear || 0) + '|' + (settings.duration || 0) + '|' + taxYearOf(today);
+        const locked = await lockedPlanLadder(settings);
+        const key = (locked ? 'doc|' + (locked.doc.createdAt || '') : 'live') + '|' + sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + (settings.firstTaxYear || 0) + '|' + (settings.duration || 0) + '|' + taxYearOf(today);
         if (!_ladderPosCache || _ladderPosCache.key !== key) {
-          const p = strategyPlanFor(settings);
-          const r = stressTestStrategy(sid === 'floor-the-schedule' ? 'floor-the-schedule' : 'full-il-gilt', p);   // gilt-rotation pre-trigger IS the full ladder
-          if (!r || !r.plan || !Array.isArray(r.plan.years) || !r.plan.years.length) return null;
-          _ladderPosCache = { key, plan: r.plan };
+          // Locked: the document's ladder (the rebuild below is never run). Draft: built from the settings at today's prices.
+          const shown = ladderForDisplay(locked ? locked.doc : null, sid, () => {
+            const p = strategyPlanFor(settings);
+            const r = stressTestStrategy(sid === 'floor-the-schedule' ? 'floor-the-schedule' : 'full-il-gilt', p);   // gilt-rotation pre-trigger IS the full ladder
+            return r && r.plan;
+          });
+          if (!shown.plan) return null;
+          _ladderPosCache = { key, plan: shown.plan, source: shown.source };
         }
         return ladderPosition(_ladderPosCache.plan, {
           today,
@@ -9855,7 +9904,7 @@
         row('"Bonds" pot', 'A blended sleeve: 15% index-linked, 30% nominal gilts, 20% property, 10% commodities, 10% cash, 15% equity beta; shifts toward linkers when last year\'s inflation > 4.5%', 'A model of a diversified "steadier" fund, not a gilt index. Nominal gilts lose when inflation exceeds 4%; the equity–bond correlation turns positive in inflation shocks (2022).'),
         row('Cash', 'Nominal return = max(0, last year\'s inflation − 1%)', 'Cash lags inflation and never goes negative in nominal terms — FCA-style real return of about −1%.'),
         row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs.'),
-        row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' consecutive cash draws; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
+        row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' months in a row with shares + bonds + diversifiers below their glidepaths; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
       ]) + '</details>';
 
       h += '<details><summary>5 · Gilt ladders and live data</summary>' + table([
@@ -10084,10 +10133,17 @@
     async function fullGiltPageHtml() {
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const over = { ...settings, strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
-      const p = strategyPlanFor(over);
-      const r = stressTestStrategy('full-il-gilt', p);
+      const over = { ...settings, strategyId: 'full-il-gilt', strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
+      // 6.13.5 — on a locked full-ladder plan this page shows the ladder in the plan document, not a rebuild at
+      // today's prices. Turning a dial is a what-if: that IS priced today, and says so.
+      const dialled = d.cashYears != null || d.bridgeCash != null;
+      const locked = settings.strategyId === 'full-il-gilt' ? await lockedPlanLadder(settings) : null;
+      const fromDoc = !!(locked && locked.doc.strategy.p && !dialled);
+      const p = fromDoc ? locked.doc.strategy.p : strategyPlanFor(over);
+      const r = fromDoc ? locked.doc.strategy.r : stressTestStrategy('full-il-gilt', p);
       const plan = r.plan; window._giltPlanCache = plan;
+      const lockedNote = fromDoc ? lockedLadderNoteHtml(locked)
+        : (locked && dialled) ? '<div class="alert alert-warning" style="font-size:13px;margin:8px 0;"><strong>A what-if at today\'s prices — not your locked plan.</strong> You have turned a dial, so this ladder is rebuilt and priced today. Your plan\'s own orders, units and costs are in the plan document and have not changed.</div>' : '';
       const prov = dataProvenance();
       const prm = over.strategyParams;
       const shape = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
@@ -10122,8 +10178,8 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div><ul><li>Sell the remaining gilts any day at market price (gilts are liquid).</li><li>Or swap them for an RPI-linked annuity at 75 or 80 — one transaction, income for life, no admin.</li></ul></div>'
         + '</div></div>';
       // Block 5 — honest numbers
-      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + giltOrderSheetHtml(plan)
-        + '<p class="hint" style="margin-top:8px;">Prices as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>';
+      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + lockedNote + giltOrderSheetHtml(plan)
+        + '<p class="hint" style="margin-top:8px;">' + (fromDoc ? 'This order sheet is the one in your plan document, priced on ' + budEsc(locked.pricedOn || '—') + '. For a ladder built today: prices' : 'Prices') + ' as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>';
       // Block 6 — the rotation watch (the same rule the Gilt ladder + rotation strategy models)
       h += '<div class="strat-block"><div class="section-title">6 · The one optional extra: a rotation watch</div><p class="hint" style="margin:0 0 6px;">You can run this ladder with one pre-agreed escape — see the <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="showStrategyPage(\'gilt-rotation\')">Gilt ladder + rotation</button> page for the modelled version.</p>' + rotationWatchHtml(plan) + '</div>';
       h += '</div>';
@@ -10144,7 +10200,7 @@
       window._ftaBorrowedLine = borrowedFloorLineHtml(settings);   // rendered into the page below
       const ftaBase = restoredParamsFor(settings, 'floor-to-age');
       const age = window._stratDials.floorToAge ?? (ftaBase.floorToAge ?? 80);
-      const over = { ...settings, strategyParams: { ...ftaBase, floorToAge: age } };
+      const over = { ...settings, strategyId: 'floor-to-age', strategyParams: { ...ftaBase, floorToAge: age } };
       const p = strategyPlanFor(over);
       const r = stressTestStrategy('floor-to-age', p);
       let h = '<div class="card"><h2>Floor to an age, then decide <span class="hint" style="font-weight:normal;font-size:13px;">— certainty now, options later</span></h2>';
@@ -10350,7 +10406,7 @@
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
       const prm = { ...restoredParamsFor(settings, id) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
-      let over = { ...settings, strategyParams: prm };
+      let over = { ...settings, strategyId: id, strategyParams: prm };   // the what-if names its own strategy: planFromSettings reads the dials as that strategy's (6.13.5)
       if (d.protectionOn != null) over.disableProtection = !d.protectionOn; if (d.cutPct != null) over.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) over.consecutiveLimit = d.consecutiveLimit;
       if (id === 'pots-and-valves' || id === 'buckets-in-order') over = applyAllocDials(over);
       const p = strategyPlanFor(over, prm.essentialsAnnual);
@@ -10741,6 +10797,7 @@
           const theirs = await getBudgetAsync();
           if (mine && theirs) {
             theirs.currentAge = mine.partnerAge || theirs.currentAge;
+            if (+mine.partnerAge > 0) markBudgetAgesSet(theirs);   // the partner's age was given on this plan's Budget (6.13.5)
             theirs.retirementAge = mine.partnerRetirementAge || theirs.retirementAge;
             theirs.retired = !!mine.partnerRetired;
             theirs.sharedWithPartner = true;
@@ -10774,8 +10831,8 @@
         const saved = await getActiveAccumulation();
         const budget = await getBudgetAsync();
         const set = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== 0) el.value = v; };
-        set('acAge', saved.currentAge ?? budget.currentAge);
-        set('acRetireAge', saved.retirementAge ?? budget.retirementAge);
+        set('acAge', saved.currentAge ?? budgetAgeToday(budget));   // not the blank Budget's 45 / 60 placeholders (6.13.5)
+        set('acRetireAge', saved.retirementAge ?? budgetRetirementAge(budget));
         set('acSalary', saved.salary);
         set('acPotNow', saved.potNow);
         set('acNetMonthly', saved.netMonthly);
@@ -11648,7 +11705,14 @@
       window._budget.endAge = +document.getElementById('budEndAge').value || 100;
     }
 
-    window.onBudgetHorizonChange = function () { syncHorizonFromInputs(); updateBudgetSummary(); };
+    window.onBudgetHorizonChange = function () {
+      // 6.13.5 — an age a person has just typed is theirs, no longer the blank Budget's 45 / 60 placeholder. Marked only
+      // when an age box actually changed (this also runs when the end age alone is edited).
+      const a0 = window._budget.currentAge, r0 = window._budget.retirementAge;
+      syncHorizonFromInputs();
+      if (window._budget.currentAge !== a0 || window._budget.retirementAge !== r0) markBudgetAgesSet(window._budget);
+      updateBudgetSummary();
+    };
 
     window.updateBudgetLine = function (id, field, value) {
       const line = window._budget.lines.find((l) => l.id === id);
@@ -12040,7 +12104,7 @@
         // budget's age bands and one-offs are not turned into a schedule any more.
         const stressNow = await getStressSettingsAsync();
         // Income starts at retirement — or NOW if already retired (year 0 is today for a retiree).
-        const ageNow = stressNow.shapeAgeNow || Math.max(+window._budget.retirementAge || 0, +window._budget.currentAge || 0) || 57;
+        const ageNow = stressNow.shapeAgeNow || Math.max(budgetRetirementAge(window._budget) || 0, budgetAgeToday(window._budget) || 0) || 57;   // placeholders are not an age (6.13.5)
         const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? JSON.parse(JSON.stringify(stressNow.incomeSteps)) : [];
         if (steps.length) steps[0] = { fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
         const dur = stressNow.duration || 35;
@@ -13653,7 +13717,7 @@
             </div>
             ${h.consecutiveDraws > 0 ? `
               <div class="history-field">
-                <label>Consecutive Cash Draws</label>
+                <label>Months in a row paid from cash</label>
                 <span class="value warning">${h.consecutiveDraws}</span>
               </div>
             ` : ''}

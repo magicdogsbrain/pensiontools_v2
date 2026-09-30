@@ -3,16 +3,16 @@
   "cases": {
     "base / SP from year 5": {
       "mc": {
-        "failCount": 24,
+        "failCount": 25,
         "finalValue": {
-          "min": 4770.39,
-          "p10": 151789.62,
-          "p25": 619363.24,
-          "p5": 51753.3,
-          "p50": 1612077.14,
-          "p75": 3696770.58,
-          "p90": 9588456.19,
-          "p95": 12386953.89
+          "min": 1647.04,
+          "p10": 174369.35,
+          "p25": 646011.51,
+          "p5": 59844.63,
+          "p50": 1603379.25,
+          "p75": 3681310.01,
+          "p90": 9560160.97,
+          "p95": 12382017.22
         },
         "hodl": {
           "avgUsed": 0,
@@ -21,22 +21,22 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 43.56,
-          "avgMonths": 68.94,
-          "maxConsecutive": 318,
-          "maxMonths": 348,
+          "avgConsecutive": 43.06,
+          "avgMonths": 67.39,
+          "maxConsecutive": 316,
+          "maxMonths": 349,
           "p50Months": 17,
           "p90Months": 253,
-          "p95Months": 284,
-          "pctWithProtection": 71.5,
-          "runsWithProtection": 143
+          "p95Months": 277,
+          "pctWithProtection": 71,
+          "runsWithProtection": 142
         },
-        "successCount": 176,
-        "successRate": 88,
+        "successCount": 175,
+        "successRate": 87.5,
         "survival": {
           "max": 30,
           "min": 23.5,
-          "p10": 29.92,
+          "p10": 29.75,
           "p25": 30,
           "p5": 27.92,
           "p50": 30,
@@ -47,16 +47,16 @@
         "total": 200
       },
       "hist": {
-        "failCount": 7,
+        "failCount": 8,
         "finalValue": {
-          "min": 5397.86,
-          "p10": 215100.61,
-          "p25": 641559.73,
-          "p5": 40644.19,
-          "p50": 2206430.94,
-          "p75": 3510798.27,
-          "p90": 4189401.32,
-          "p95": 4529128.97
+          "min": 4740.12,
+          "p10": 223427.87,
+          "p25": 968854.88,
+          "p5": 124240.25,
+          "p50": 2276333.45,
+          "p75": 3548935.28,
+          "p90": 4199266.05,
+          "p95": 4610329.21
         },
         "hodl": {
           "avgUsed": 0,
@@ -65,24 +65,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 55.99,
-          "avgMonths": 75.96,
-          "maxConsecutive": 286,
-          "maxMonths": 317,
-          "p50Months": 22,
-          "p90Months": 250,
-          "p95Months": 290,
-          "pctWithProtection": 69.12,
-          "runsWithProtection": 47
+          "avgConsecutive": 55.21,
+          "avgMonths": 74.72,
+          "maxConsecutive": 285,
+          "maxMonths": 315,
+          "p50Months": 29,
+          "p90Months": 247,
+          "p95Months": 289,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
         },
-        "successCount": 61,
-        "successRate": 89.71,
+        "successCount": 60,
+        "successRate": 88.24,
         "survival": {
           "max": 30,
           "min": 26.17,
-          "p10": 29.92,
+          "p10": 29.83,
           "p25": 30,
-          "p5": 27.67,
+          "p5": 27.58,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -93,16 +93,16 @@
     },
     "frozen tax thresholds": {
       "mc": {
-        "failCount": 24,
+        "failCount": 25,
         "finalValue": {
-          "min": 4770.39,
-          "p10": 151789.62,
-          "p25": 619363.24,
-          "p5": 51753.3,
-          "p50": 1612077.14,
-          "p75": 3696770.58,
-          "p90": 9588456.19,
-          "p95": 12386953.89
+          "min": 1647.04,
+          "p10": 174369.35,
+          "p25": 646011.51,
+          "p5": 59844.63,
+          "p50": 1603379.25,
+          "p75": 3684002.56,
+          "p90": 9560160.97,
+          "p95": 12382017.22
         },
         "hodl": {
           "avgUsed": 0,
@@ -111,22 +111,22 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 43.56,
-          "avgMonths": 68.93,
-          "maxConsecutive": 318,
-          "maxMonths": 348,
+          "avgConsecutive": 43.06,
+          "avgMonths": 67.39,
+          "maxConsecutive": 316,
+          "maxMonths": 349,
           "p50Months": 17,
-          "p90Months": 253,
-          "p95Months": 284,
-          "pctWithProtection": 71.5,
-          "runsWithProtection": 143
+          "p90Months": 252,
+          "p95Months": 277,
+          "pctWithProtection": 71,
+          "runsWithProtection": 142
         },
-        "successCount": 176,
-        "successRate": 88,
+        "successCount": 175,
+        "successRate": 87.5,
         "survival": {
           "max": 30,
           "min": 23.5,
-          "p10": 29.92,
+          "p10": 29.75,
           "p25": 30,
           "p5": 27.92,
           "p50": 30,
@@ -137,16 +137,16 @@
         "total": 200
       },
       "hist": {
-        "failCount": 7,
+        "failCount": 8,
         "finalValue": {
-          "min": 5397.86,
-          "p10": 216351.64,
-          "p25": 641559.73,
-          "p5": 40644.19,
-          "p50": 2225514.84,
-          "p75": 3510798.27,
-          "p90": 4189401.32,
-          "p95": 4529128.97
+          "min": 4740.12,
+          "p10": 214383.47,
+          "p25": 968854.88,
+          "p5": 124240.25,
+          "p50": 2276333.45,
+          "p75": 3548935.28,
+          "p90": 4199266.05,
+          "p95": 4610329.21
         },
         "hodl": {
           "avgUsed": 0,
@@ -155,24 +155,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 56,
-          "avgMonths": 76.09,
-          "maxConsecutive": 286,
-          "maxMonths": 317,
-          "p50Months": 22,
-          "p90Months": 250,
-          "p95Months": 290,
-          "pctWithProtection": 69.12,
-          "runsWithProtection": 47
+          "avgConsecutive": 55.21,
+          "avgMonths": 74.81,
+          "maxConsecutive": 285,
+          "maxMonths": 315,
+          "p50Months": 29,
+          "p90Months": 247,
+          "p95Months": 289,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
         },
-        "successCount": 61,
-        "successRate": 89.71,
+        "successCount": 60,
+        "successRate": 88.24,
         "survival": {
           "max": 30,
           "min": 26.17,
-          "p10": 29.92,
+          "p10": 29.83,
           "p25": 30,
-          "p5": 27.67,
+          "p5": 27.58,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -277,29 +277,29 @@
         "finalValue": {
           "min": 0,
           "p10": 0,
-          "p25": 293102.18,
+          "p25": 277807.39,
           "p5": 0,
-          "p50": 1300373.69,
-          "p75": 3242711.24,
+          "p50": 1300666.95,
+          "p75": 3231786.53,
           "p90": 9302924.19,
           "p95": 11378262.71
         },
         "hodl": {
-          "avgUsed": 283871.59,
+          "avgUsed": 251506.53,
           "maxUsed": 990333.07,
-          "pctUsingHodl": 11.5,
-          "runsUsingHodl": 23
+          "pctUsingHodl": 13,
+          "runsUsingHodl": 26
         },
         "protection": {
-          "avgConsecutive": 46.15,
-          "avgMonths": 72.57,
-          "maxConsecutive": 358,
-          "maxMonths": 358,
-          "p50Months": 15,
-          "p90Months": 265,
-          "p95Months": 327,
-          "pctWithProtection": 72.5,
-          "runsWithProtection": 145
+          "avgConsecutive": 45.91,
+          "avgMonths": 71.32,
+          "maxConsecutive": 357,
+          "maxMonths": 357,
+          "p50Months": 17,
+          "p90Months": 264,
+          "p95Months": 322,
+          "pctWithProtection": 72,
+          "runsWithProtection": 144
         },
         "successCount": 199,
         "successRate": 99.5,
@@ -320,30 +320,30 @@
         "failCount": 0,
         "finalValue": {
           "min": 0,
-          "p10": 10.66,
-          "p25": 378933.57,
+          "p10": 0,
+          "p25": 364291.38,
           "p5": 0,
-          "p50": 2105230.45,
+          "p50": 2138466.99,
           "p75": 3285583.49,
           "p90": 4020499.16,
           "p95": 4544022.6
         },
         "hodl": {
-          "avgUsed": 426638.62,
-          "maxUsed": 598754.33,
-          "pctUsingHodl": 8.82,
-          "runsUsingHodl": 6
+          "avgUsed": 291343.56,
+          "maxUsed": 606437.57,
+          "pctUsingHodl": 13.24,
+          "runsUsingHodl": 9
         },
         "protection": {
-          "avgConsecutive": 58.85,
-          "avgMonths": 79.99,
+          "avgConsecutive": 58.96,
+          "avgMonths": 78.62,
           "maxConsecutive": 310,
-          "maxMonths": 342,
-          "p50Months": 23,
-          "p90Months": 275,
-          "p95Months": 317,
-          "pctWithProtection": 67.65,
-          "runsWithProtection": 46
+          "maxMonths": 341,
+          "p50Months": 28,
+          "p90Months": 274,
+          "p95Months": 316,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
         },
         "successCount": 68,
         "successRate": 100,
@@ -363,16 +363,16 @@
     },
     "no State Pension configured (spWeeklyAmount 0)": {
       "mc": {
-        "failCount": 81,
+        "failCount": 82,
         "finalValue": {
-          "min": 7477.32,
-          "p10": 79459.71,
-          "p25": 324168.11,
-          "p5": 50322.34,
-          "p50": 1320225.47,
+          "min": 6594.88,
+          "p10": 79032.79,
+          "p25": 338640.25,
+          "p5": 34032.09,
+          "p50": 1544194.58,
           "p75": 4676996.53,
           "p90": 8554937.66,
-          "p95": 10417564.48
+          "p95": 10371326.53
         },
         "hodl": {
           "avgUsed": 0,
@@ -381,24 +381,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 59.88,
-          "avgMonths": 92.4,
-          "maxConsecutive": 315,
-          "maxMonths": 328,
-          "p50Months": 47,
-          "p90Months": 251,
-          "p95Months": 272,
-          "pctWithProtection": 80,
-          "runsWithProtection": 160
+          "avgConsecutive": 59.44,
+          "avgMonths": 89.37,
+          "maxConsecutive": 313,
+          "maxMonths": 331,
+          "p50Months": 42,
+          "p90Months": 248,
+          "p95Months": 268,
+          "pctWithProtection": 77.5,
+          "runsWithProtection": 155
         },
-        "successCount": 119,
-        "successRate": 59.5,
+        "successCount": 118,
+        "successRate": 59,
         "survival": {
           "max": 30,
           "min": 18.83,
           "p10": 24.67,
           "p25": 28.58,
-          "p5": 22.58,
+          "p5": 22.67,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -409,13 +409,13 @@
       "hist": {
         "failCount": 24,
         "finalValue": {
-          "min": 31055.4,
-          "p10": 330114.42,
-          "p25": 666253.48,
-          "p5": 113752.12,
+          "min": 19317.45,
+          "p10": 315251.11,
+          "p25": 658278.32,
+          "p5": 65079.81,
           "p50": 1683819.52,
           "p75": 2576096.12,
-          "p90": 3318840.6,
+          "p90": 3290503.36,
           "p95": 3742611.82
         },
         "hodl": {
@@ -425,24 +425,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 67.06,
-          "avgMonths": 91.16,
-          "maxConsecutive": 310,
-          "maxMonths": 344,
-          "p50Months": 33,
+          "avgConsecutive": 66.41,
+          "avgMonths": 89.09,
+          "maxConsecutive": 309,
+          "maxMonths": 341,
+          "p50Months": 34,
           "p90Months": 254,
-          "p95Months": 285,
-          "pctWithProtection": 72.06,
-          "runsWithProtection": 49
+          "p95Months": 283,
+          "pctWithProtection": 69.12,
+          "runsWithProtection": 47
         },
         "successCount": 44,
         "successRate": 64.71,
         "survival": {
           "max": 30,
           "min": 20.42,
-          "p10": 22.42,
+          "p10": 22.33,
           "p25": 29,
-          "p5": 21,
+          "p5": 20.92,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -453,16 +453,16 @@
     },
     "DROPPED-SP BUG: legacy statePension set but no spStartYear": {
       "mc": {
-        "failCount": 81,
+        "failCount": 82,
         "finalValue": {
-          "min": 7477.32,
-          "p10": 79459.71,
-          "p25": 324168.11,
-          "p5": 50322.34,
-          "p50": 1320225.47,
+          "min": 6594.88,
+          "p10": 79032.79,
+          "p25": 338640.25,
+          "p5": 34032.09,
+          "p50": 1544194.58,
           "p75": 4676996.53,
           "p90": 8554937.66,
-          "p95": 10417564.48
+          "p95": 10371326.53
         },
         "hodl": {
           "avgUsed": 0,
@@ -471,24 +471,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 59.88,
-          "avgMonths": 92.4,
-          "maxConsecutive": 315,
-          "maxMonths": 328,
-          "p50Months": 47,
-          "p90Months": 251,
-          "p95Months": 272,
-          "pctWithProtection": 80,
-          "runsWithProtection": 160
+          "avgConsecutive": 59.44,
+          "avgMonths": 89.37,
+          "maxConsecutive": 313,
+          "maxMonths": 331,
+          "p50Months": 42,
+          "p90Months": 248,
+          "p95Months": 268,
+          "pctWithProtection": 77.5,
+          "runsWithProtection": 155
         },
-        "successCount": 119,
-        "successRate": 59.5,
+        "successCount": 118,
+        "successRate": 59,
         "survival": {
           "max": 30,
           "min": 18.83,
           "p10": 24.67,
           "p25": 28.58,
-          "p5": 22.58,
+          "p5": 22.67,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -499,13 +499,13 @@
       "hist": {
         "failCount": 24,
         "finalValue": {
-          "min": 31055.4,
-          "p10": 330114.42,
-          "p25": 666253.48,
-          "p5": 113752.12,
+          "min": 19317.45,
+          "p10": 315251.11,
+          "p25": 658278.32,
+          "p5": 65079.81,
           "p50": 1683819.52,
           "p75": 2576096.12,
-          "p90": 3318840.6,
+          "p90": 3290503.36,
           "p95": 3742611.82
         },
         "hodl": {
@@ -515,24 +515,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 67.06,
-          "avgMonths": 91.16,
-          "maxConsecutive": 310,
-          "maxMonths": 344,
-          "p50Months": 33,
+          "avgConsecutive": 66.41,
+          "avgMonths": 89.09,
+          "maxConsecutive": 309,
+          "maxMonths": 341,
+          "p50Months": 34,
           "p90Months": 254,
-          "p95Months": 285,
-          "pctWithProtection": 72.06,
-          "runsWithProtection": 49
+          "p95Months": 283,
+          "pctWithProtection": 69.12,
+          "runsWithProtection": 47
         },
         "successCount": 44,
         "successRate": 64.71,
         "survival": {
           "max": 30,
           "min": 20.42,
-          "p10": 22.42,
+          "p10": 22.33,
           "p25": 29,
-          "p5": 21,
+          "p5": 20.92,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -545,13 +545,13 @@
       "mc": {
         "failCount": 0,
         "finalValue": {
-          "min": 123977.36,
-          "p10": 460856.95,
-          "p25": 843366.2,
-          "p5": 317404.25,
+          "min": 116719.07,
+          "p10": 460992.85,
+          "p25": 851242.83,
+          "p5": 318258.08,
           "p50": 1548962.17,
           "p75": 2594258.42,
-          "p90": 3975759.54,
+          "p90": 3975327.81,
           "p95": 4952167.5
         },
         "hodl": {
@@ -561,15 +561,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 16.19,
-          "avgMonths": 24.14,
-          "maxConsecutive": 150,
-          "maxMonths": 171,
-          "p50Months": 10,
-          "p90Months": 79,
-          "p95Months": 111,
-          "pctWithProtection": 60.5,
-          "runsWithProtection": 121
+          "avgConsecutive": 16.04,
+          "avgMonths": 24.23,
+          "maxConsecutive": 149,
+          "maxMonths": 168,
+          "p50Months": 9,
+          "p90Months": 77,
+          "p95Months": 115,
+          "pctWithProtection": 58.5,
+          "runsWithProtection": 117
         },
         "successCount": 200,
         "successRate": 100,
@@ -589,13 +589,13 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 372147.06,
-          "p10": 479936.68,
-          "p25": 807536.99,
-          "p5": 450598.03,
+          "min": 364457.98,
+          "p10": 481088.61,
+          "p25": 800493.45,
+          "p5": 442094.4,
           "p50": 1444392.16,
           "p75": 2892829.25,
-          "p90": 3870210.91,
+          "p90": 3865211.69,
           "p95": 4258265.25
         },
         "hodl": {
@@ -605,15 +605,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 19.47,
-          "avgMonths": 28.95,
+          "avgConsecutive": 19.5,
+          "avgMonths": 28.72,
           "maxConsecutive": 118,
-          "maxMonths": 151,
+          "maxMonths": 145,
           "p50Months": 10,
-          "p90Months": 95,
-          "p95Months": 122,
-          "pctWithProtection": 58.97,
-          "runsWithProtection": 46
+          "p90Months": 94,
+          "p95Months": 117,
+          "pctWithProtection": 57.69,
+          "runsWithProtection": 45
         },
         "successCount": 78,
         "successRate": 100,
@@ -635,10 +635,10 @@
       "mc": {
         "failCount": 0,
         "finalValue": {
-          "min": 282361.12,
+          "min": 288867.95,
           "p10": 1125938.35,
-          "p25": 2089975.52,
-          "p5": 966372.31,
+          "p25": 2088876.11,
+          "p5": 962776.47,
           "p50": 3845468.63,
           "p75": 7193139.24,
           "p90": 15290392.63,
@@ -651,15 +651,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 17.08,
-          "avgMonths": 24.98,
+          "avgConsecutive": 17.51,
+          "avgMonths": 27.79,
           "maxConsecutive": 181,
-          "maxMonths": 206,
+          "maxMonths": 234,
           "p50Months": 9,
-          "p90Months": 83,
-          "p95Months": 116,
-          "pctWithProtection": 56.5,
-          "runsWithProtection": 113
+          "p90Months": 93,
+          "p95Months": 128,
+          "pctWithProtection": 57,
+          "runsWithProtection": 114
         },
         "successCount": 200,
         "successRate": 100,
@@ -679,11 +679,11 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 1988015.39,
-          "p10": 2543326.28,
-          "p25": 3417511,
-          "p5": 2134895.88,
-          "p50": 4957466.85,
+          "min": 1986960.34,
+          "p10": 2542369.4,
+          "p25": 3414308.38,
+          "p5": 2130043.09,
+          "p50": 4955914.4,
           "p75": 6406547.43,
           "p90": 7384795.68,
           "p95": 8764481.55
@@ -695,15 +695,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 21.74,
-          "avgMonths": 31.19,
+          "avgConsecutive": 22.34,
+          "avgMonths": 32.84,
           "maxConsecutive": 124,
-          "maxMonths": 154,
+          "maxMonths": 153,
           "p50Months": 10,
-          "p90Months": 118,
-          "p95Months": 127,
-          "pctWithProtection": 54.41,
-          "runsWithProtection": 37
+          "p90Months": 117,
+          "p95Months": 126,
+          "pctWithProtection": 57.35,
+          "runsWithProtection": 39
         },
         "successCount": 68,
         "successRate": 100,
@@ -723,16 +723,16 @@
     },
     "partial first State-Pension year (ratio 0.5)": {
       "mc": {
-        "failCount": 24,
+        "failCount": 26,
         "finalValue": {
-          "min": 2481.08,
-          "p10": 138817.48,
-          "p25": 591191.41,
-          "p5": 40192.2,
-          "p50": 1566658.31,
-          "p75": 3657211.47,
-          "p90": 9499204.99,
-          "p95": 12273146.26
+          "min": 1274.43,
+          "p10": 185812.24,
+          "p25": 618577.23,
+          "p5": 58185.74,
+          "p50": 1576054.77,
+          "p75": 3627506.89,
+          "p90": 9470923.25,
+          "p95": 12239216.71
         },
         "hodl": {
           "avgUsed": 0,
@@ -741,24 +741,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 43.87,
-          "avgMonths": 70.08,
-          "maxConsecutive": 316,
-          "maxMonths": 352,
-          "p50Months": 18,
-          "p90Months": 258,
-          "p95Months": 282,
-          "pctWithProtection": 72,
-          "runsWithProtection": 144
+          "avgConsecutive": 43.48,
+          "avgMonths": 68.47,
+          "maxConsecutive": 314,
+          "maxMonths": 348,
+          "p50Months": 17,
+          "p90Months": 255,
+          "p95Months": 280,
+          "pctWithProtection": 71.5,
+          "runsWithProtection": 143
         },
-        "successCount": 176,
-        "successRate": 88,
+        "successCount": 174,
+        "successRate": 87,
         "survival": {
           "max": 30,
           "min": 23.42,
-          "p10": 29.92,
+          "p10": 29.83,
           "p25": 30,
-          "p5": 27.92,
+          "p5": 27.83,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -769,11 +769,11 @@
       "hist": {
         "failCount": 8,
         "finalValue": {
-          "min": 10658.34,
-          "p10": 214215.5,
+          "min": 3450.93,
+          "p10": 214641.29,
           "p25": 940541.59,
-          "p5": 139855.36,
-          "p50": 2233067.55,
+          "p5": 107506.95,
+          "p50": 2242786.83,
           "p75": 3509451.49,
           "p90": 4135239.42,
           "p95": 4583490.33
@@ -785,24 +785,24 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 56.29,
-          "avgMonths": 77.04,
-          "maxConsecutive": 283,
-          "maxMonths": 313,
-          "p50Months": 22,
-          "p90Months": 250,
-          "p95Months": 289,
-          "pctWithProtection": 69.12,
-          "runsWithProtection": 47
+          "avgConsecutive": 55.76,
+          "avgMonths": 75.59,
+          "maxConsecutive": 281,
+          "maxMonths": 311,
+          "p50Months": 29,
+          "p90Months": 247,
+          "p95Months": 288,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
         },
         "successCount": 60,
         "successRate": 88.24,
         "survival": {
           "max": 30,
           "min": 26,
-          "p10": 29.67,
+          "p10": 29.5,
           "p25": 30,
-          "p5": 27.33,
+          "p5": 27.25,
           "p50": 30,
           "p75": 30,
           "p90": 30,
@@ -816,12 +816,12 @@
         "failCount": 2,
         "finalValue": {
           "min": 0,
-          "p10": 366999.54,
-          "p25": 1105250.65,
-          "p5": 223322.15,
-          "p50": 2402316.87,
+          "p10": 369346.5,
+          "p25": 1108290.93,
+          "p5": 214650.11,
+          "p50": 2455096.05,
           "p75": 5042260.3,
-          "p90": 12215822.77,
+          "p90": 12203941.29,
           "p95": 14076229.31
         },
         "hodl": {
@@ -831,21 +831,21 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 26.04,
-          "avgMonths": 43.02,
-          "maxConsecutive": 274,
-          "maxMonths": 324,
-          "p50Months": 10,
-          "p90Months": 140,
-          "p95Months": 206,
-          "pctWithProtection": 64.5,
-          "runsWithProtection": 129
+          "avgConsecutive": 25.83,
+          "avgMonths": 43.55,
+          "maxConsecutive": 235,
+          "maxMonths": 344,
+          "p50Months": 11,
+          "p90Months": 151,
+          "p95Months": 210,
+          "pctWithProtection": 62.5,
+          "runsWithProtection": 125
         },
         "successCount": 198,
         "successRate": 99,
         "survival": {
           "max": 30,
-          "min": 29.17,
+          "min": 29.25,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -859,11 +859,11 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 303530.41,
-          "p10": 622193.38,
-          "p25": 1518993.46,
-          "p5": 436161.81,
-          "p50": 3408846.7,
+          "min": 273297.19,
+          "p10": 603409.63,
+          "p25": 1531190.1,
+          "p5": 408814.71,
+          "p50": 3430779.26,
           "p75": 4703204.82,
           "p90": 5644619.84,
           "p95": 6307704.14
@@ -875,15 +875,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 34.18,
-          "avgMonths": 48.15,
+          "avgConsecutive": 34.26,
+          "avgMonths": 47.31,
           "maxConsecutive": 160,
-          "maxMonths": 232,
-          "p50Months": 14,
-          "p90Months": 155,
-          "p95Months": 212,
-          "pctWithProtection": 61.76,
-          "runsWithProtection": 42
+          "maxMonths": 215,
+          "p50Months": 13,
+          "p90Months": 150,
+          "p95Months": 203,
+          "pctWithProtection": 64.71,
+          "runsWithProtection": 44
         },
         "successCount": 68,
         "successRate": 100,
@@ -906,12 +906,12 @@
         "failCount": 2,
         "finalValue": {
           "min": 0,
-          "p10": 366999.54,
-          "p25": 1105250.65,
-          "p5": 223322.15,
-          "p50": 2402316.87,
+          "p10": 369346.5,
+          "p25": 1108290.93,
+          "p5": 214650.11,
+          "p50": 2455096.05,
           "p75": 5042260.3,
-          "p90": 12215822.77,
+          "p90": 12203941.29,
           "p95": 14076229.31
         },
         "hodl": {
@@ -921,21 +921,21 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 26.04,
-          "avgMonths": 43.02,
-          "maxConsecutive": 274,
-          "maxMonths": 324,
-          "p50Months": 10,
-          "p90Months": 140,
-          "p95Months": 206,
-          "pctWithProtection": 64.5,
-          "runsWithProtection": 129
+          "avgConsecutive": 25.83,
+          "avgMonths": 43.55,
+          "maxConsecutive": 235,
+          "maxMonths": 344,
+          "p50Months": 11,
+          "p90Months": 151,
+          "p95Months": 210,
+          "pctWithProtection": 62.5,
+          "runsWithProtection": 125
         },
         "successCount": 198,
         "successRate": 99,
         "survival": {
           "max": 30,
-          "min": 29.17,
+          "min": 29.25,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -949,11 +949,11 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 303530.41,
-          "p10": 622193.38,
-          "p25": 1518993.46,
-          "p5": 436161.81,
-          "p50": 3408846.7,
+          "min": 273297.19,
+          "p10": 603409.63,
+          "p25": 1531190.1,
+          "p5": 408814.71,
+          "p50": 3430779.26,
           "p75": 4703204.82,
           "p90": 5644619.84,
           "p95": 6307704.14
@@ -965,15 +965,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 34.18,
-          "avgMonths": 48.15,
+          "avgConsecutive": 34.26,
+          "avgMonths": 47.31,
           "maxConsecutive": 160,
-          "maxMonths": 232,
-          "p50Months": 14,
-          "p90Months": 155,
-          "p95Months": 212,
-          "pctWithProtection": 61.76,
-          "runsWithProtection": 42
+          "maxMonths": 215,
+          "p50Months": 13,
+          "p90Months": 150,
+          "p95Months": 203,
+          "pctWithProtection": 64.71,
+          "runsWithProtection": 44
         },
         "successCount": 68,
         "successRate": 100,
@@ -995,13 +995,13 @@
       "mc": {
         "failCount": 5,
         "finalValue": {
-          "min": 26009.54,
-          "p10": 319480.58,
-          "p25": 861313.98,
-          "p5": 175900.51,
-          "p50": 1996225.02,
-          "p75": 4233624.1,
-          "p90": 10259430.43,
+          "min": 26480.37,
+          "p10": 336083.16,
+          "p25": 860774.38,
+          "p5": 164312.56,
+          "p50": 2007752.83,
+          "p75": 4222159.5,
+          "p90": 10245347.9,
           "p95": 12141068.26
         },
         "hodl": {
@@ -1011,21 +1011,21 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 38.06,
-          "avgMonths": 59.17,
+          "avgConsecutive": 37.85,
+          "avgMonths": 58.59,
           "maxConsecutive": 334,
-          "maxMonths": 343,
+          "maxMonths": 339,
           "p50Months": 14,
-          "p90Months": 201,
-          "p95Months": 271,
-          "pctWithProtection": 70.5,
-          "runsWithProtection": 141
+          "p90Months": 196,
+          "p95Months": 261,
+          "pctWithProtection": 69,
+          "runsWithProtection": 138
         },
         "successCount": 195,
         "successRate": 97.5,
         "survival": {
           "max": 30,
-          "min": 26.33,
+          "min": 26.42,
           "p10": 30,
           "p25": 30,
           "p5": 30,
@@ -1039,10 +1039,10 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 148664.13,
-          "p10": 437168.48,
-          "p25": 985076.67,
-          "p5": 271261.71,
+          "min": 136628.83,
+          "p10": 422993.42,
+          "p25": 1010947.09,
+          "p5": 259683.16,
           "p50": 2654208.85,
           "p75": 3924195.33,
           "p90": 4977369.68,
@@ -1055,15 +1055,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 45.09,
-          "avgMonths": 63.78,
+          "avgConsecutive": 45.5,
+          "avgMonths": 62.5,
           "maxConsecutive": 226,
-          "maxMonths": 304,
-          "p50Months": 14,
-          "p90Months": 207,
-          "p95Months": 268,
-          "pctWithProtection": 69.12,
-          "runsWithProtection": 47
+          "maxMonths": 297,
+          "p50Months": 18,
+          "p90Months": 201,
+          "p95Months": 264,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
         },
         "successCount": 68,
         "successRate": 100,
@@ -1085,13 +1085,13 @@
       "mc": {
         "failCount": 0,
         "finalValue": {
-          "min": 187390.39,
-          "p10": 603725.28,
-          "p25": 972138.01,
-          "p5": 417840.79,
+          "min": 189068.4,
+          "p10": 605483.57,
+          "p25": 974497.66,
+          "p5": 419866.06,
           "p50": 1660427.01,
           "p75": 2716327.72,
-          "p90": 4179294.79,
+          "p90": 4175088.55,
           "p95": 5238864.51
         },
         "hodl": {
@@ -1101,15 +1101,15 @@
           "runsUsingHodl": 0
         },
         "protection": {
-          "avgConsecutive": 15.88,
-          "avgMonths": 22.89,
-          "maxConsecutive": 138,
-          "maxMonths": 149,
-          "p50Months": 10,
-          "p90Months": 72,
-          "p95Months": 105,
-          "pctWithProtection": 60.5,
-          "runsWithProtection": 121
+          "avgConsecutive": 15.85,
+          "avgMonths": 23.29,
+          "maxConsecutive": 137,
+          "maxMonths": 146,
+          "p50Months": 9,
+          "p90Months": 73,
+          "p95Months": 107,
+          "pctWithProtection": 58.5,
+          "runsWithProtection": 117
         },
         "successCount": 200,
         "successRate": 100,
@@ -1129,13 +1129,13 @@
       "hist": {
         "failCount": 0,
         "finalValue": {
-          "min": 578340.25,
-          "p10": 666341.19,
+          "min": 567110.08,
+          "p10": 661902.95,
           "p25": 1006860.6,
-          "p5": 585754.27,
+          "p5": 584616.84,
           "p50": 1579960.98,
           "p75": 3036710.28,
-          "p90": 4092683.26,
+          "p90": 4087671.6,
           "p95": 4398584.37
         },
         "hodl": {
@@ -1146,14 +1146,14 @@
         },
         "protection": {
           "avgConsecutive": 19.06,
-          "avgMonths": 27.74,
+          "avgMonths": 27.59,
           "maxConsecutive": 118,
-          "maxMonths": 143,
+          "maxMonths": 142,
           "p50Months": 10,
-          "p90Months": 92,
-          "p95Months": 121,
-          "pctWithProtection": 58.97,
-          "runsWithProtection": 46
+          "p90Months": 89,
+          "p95Months": 117,
+          "pctWithProtection": 57.69,
+          "runsWithProtection": 45
         },
         "successCount": 78,
         "successRate": 100,

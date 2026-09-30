@@ -191,8 +191,10 @@ async function decideMonth(ym, pots, { pre64 = false } = {}) {
   const st = await Scn.getActiveStrategy();
   const sp = { ...(ss.strategyParams || {}), ...(settings.strategyParams || {}), ...(st.params || {}) };
   const stratDeps = st.id === 'buckets-in-order' ? { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 } : {};
+  // 6.13.5: protection mode is a Pots & Valves rule; a contract strategy has no pot floors to obey (as calcDecisionWithDeps).
+  const engineSettings = CONTRACT_STRATEGIES.includes(st.id) ? { ...decisionSettings, disableProtection: true } : decisionSettings;
   const decision = await calcDecisionPWA(ym, pots.equity, pots.bond, pots.cash, {
-    ...stratDeps, settings: decisionSettings, history: await Dec.getHistoryAsync(), allTaxYears: await Dec.getAllTaxYearsAsync(),
+    ...stratDeps, settings: engineSettings, history: await Dec.getHistoryAsync(), allTaxYears: await Dec.getAllTaxYearsAsync(),
     spInfo: await Dec.getStatePensionForTaxYear(getTaxYearFromDate(ym)),
     isaBalance: pots.isa || 0, diversifier: 0, giaBalance: pots.gia || 0, giaBasis: pots.giaBasis ?? null
   });

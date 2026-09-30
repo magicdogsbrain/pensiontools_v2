@@ -139,9 +139,53 @@ export function migrateTiming(settings, budget = null, now = new Date()) {
     : inferredFuture ? false
     : (budget && typeof budget.retired === 'boolean') ? budget.retired
     : true;
+  // A start year that is already SAVED is kept as it is, even once it has passed (6.13.5): only a year derived
+  // here, from today's date, may be pulled forward.
   let fty = +s.firstTaxYear > 0 ? +s.firstTaxYear : retired ? thisTY + 1 : taxYearOfAge(s, +s.retireAge || shape, now);
-  if (!(fty >= thisTY)) fty = thisTY + 1;
+  if (!(+s.firstTaxYear > 0) && !(fty >= thisTY)) fty = thisTY + 1;
   return { ...s, firstTaxYear: fty, retired, retireAge: retired ? null : (+s.retireAge || shape) };
+}
+
+/** 'YYYY-MM-DD' of a Date's LOCAL calendar day (the format `currentAgeAsOf` is saved in). */
+function localDay(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+/**
+ * The timing fields that are written into the saved plan the FIRST time they are derived, and never derived
+ * again (6.13.5). Until then a plan saved before 6.4.0 — and a locked one can never be re-saved from its form —
+ * had its start re-derived from today's date on every load, so on 6 April (or 1 January, with no age recorded)
+ * it moved a year and every figure with it.
+ *  - firstTaxYear, retired, retireAge: what migrateTiming back-fills. (A "retire at an age" plan keeps deriving
+ *    its year from that age and the age today — that is its saved anchor — so its year is not pinned.)
+ *  - currentAgeAsOf: an age with no date was read as "this age today" for ever, so the person never got older
+ *    and the start age crept up a year every year.
+ *  - legacyFirstTaxYear: a plan with no age at all started "the calendar year after today". That year is pinned
+ *    under its own name: `firstTaxYear` on such a plan would also re-anchor the Decision tool's recorded years
+ *    and switch the State Pension to tax-year counting, and a pin must not change any figure on the day it lands.
+ */
+export const TIMING_PIN_KEYS = ['firstTaxYear', 'retired', 'retireAge', 'currentAgeAsOf', 'legacyFirstTaxYear'];
+
+/** migrateTiming plus the two pins it does not make (the age's date, the no-age start year). Pure, idempotent. */
+export function pinTiming(settings, budget = null, now = new Date()) {
+  const m = migrateTiming(settings, budget, now);
+  if (+m.currentAge > 0) return m.currentAgeAsOf ? m : { ...m, currentAgeAsOf: localDay(now) };
+  if (+m.firstTaxYear > 0 || +m.legacyFirstTaxYear > 0) return m;
+  return { ...m, legacyFirstTaxYear: now.getFullYear() + 1 };
+}
+
+/**
+ * What the load path must write back: the pinned fields of `loaded` (the settings after pinTiming) that the
+ * stored settings do not already hold. Null when there is nothing to write — every load after the first.
+ */
+export function timingPinPatch(stored, loaded) {
+  const s = stored || {}, l = loaded || {};
+  const patch = {};
+  for (const k of TIMING_PIN_KEYS) {
+    if (k === 'firstTaxYear' && l.retired === false) continue;   // derived from retireAge + the dated age, which ARE pinned
+    if (k === 'currentAgeAsOf' && (+s.currentAge || 0) !== (+l.currentAge || 0)) continue;   // the age is the Budget's, folded in on load: its date belongs there
+    if (l[k] === undefined || (l[k] ?? null) === (s[k] ?? null)) continue;
+    patch[k] = l[k];
+  }
+  return Object.keys(patch).length ? patch : null;
 }
 
 /**
@@ -155,7 +199,9 @@ export function deriveTiming(settings, now = new Date()) {
   const thisTY = taxYearStartOf(now);
   const base = { currentAge: null, retireAge: null, potScale: { sipp: 1, isa: 1 }, startOptions: [thisTY, thisTY + 1] };
   if (!(+s.currentAge > 0)) {
-    const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : now.getFullYear() + 1;   // the pre-6.4.0 behaviour, unchanged
+    // The pre-6.4.0 start ("the calendar year after today") — pinned the first time the plan is loaded (6.13.5,
+    // `legacyFirstTaxYear`), so it no longer moves on 1 January.
+    const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : +s.legacyFirstTaxYear > 0 ? +s.legacyFirstTaxYear : now.getFullYear() + 1;
     return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth: firstTaxYear + '-04', bridgeMonths: monthsUntilStart(firstTaxYear, now) };
   }
   const currentAge = ageOnDate(s, now, now);
@@ -170,10 +216,13 @@ export function deriveTiming(settings, now = new Date()) {
     return { ...base, mode: 'future', firstTaxYear, shapeAgeNow, currentAge, retireAge: +s.retireAge,
       yearsToStart: firstTaxYear - thisTY, startMonth, bridgeMonths: monthsUntilMonth(startMonth, now), potScale: potScaleOf(s) };
   }
-  const firstTaxYear = +s.firstTaxYear >= thisTY ? +s.firstTaxYear : thisTY + 1;
+  // The saved start year is the plan's anchor for good (6.13.5). It used to be honoured only while it was this
+  // tax year or later: a plan that started in 2027/28 jumped to 2029/30 on 6 April 2028, the day its second year
+  // began — and one saved as "this tax year" jumped two years on its first 6 April.
+  const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : thisTY + 1;
   const startMonth = firstTaxYear + '-04';
   return { ...base, mode: 'retired', firstTaxYear, shapeAgeNow: ageInTaxYear(s, firstTaxYear, now), currentAge,
-    yearsToStart: firstTaxYear - thisTY, startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now) };
+    yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now) };
 }
 
 /** Today's SIPP-side pot as the settings describe it (the allocation pots + diversifiers). */

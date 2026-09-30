@@ -99,7 +99,7 @@ export function contributionBreakdown({ netMonthly = 0, salary = 0, schemeType =
  * Rule warnings for a contribution plan. mpaaTriggered comes from the DECISION TOOL's history
  * (any saved decision with a UFPLS tax-free slice) — the cross-check no consumer tool does.
  */
-export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTriggered = false, currentAge = 0, retirementAge = 0, projectedPotHigh = 0 }) {
+export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTriggered = false, currentAge = 0, retirementAge = 0, projectedPotHigh = 0, now = new Date() }) {
   const R = ACCUMULATION_RULES;
   const out = [];
   if (mpaaTriggered && annualGrossTotal > R.MPAA) {
@@ -112,7 +112,7 @@ export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTri
     out.push({ severity: 'warning', message: 'High income: above £200k threshold income the Annual Allowance may taper (£1 lost per £2 of adjusted income over £260k, floor £10,000).' });
   }
   if (retirementAge > 0 && retirementAge < R.NMPA_NEW) {
-    const reaches55 = new Date().getFullYear() + Math.max(0, 55 - currentAge);
+    const reaches55 = now.getFullYear() + Math.max(0, 55 - currentAge);
     if (reaches55 >= 2028 || retirementAge < 55) {
       out.push({ severity: 'warning', message: 'Access age: the normal minimum pension age rises to 57 on 6 April 2028. Retiring before 57 means bridging from ISA/other savings until the pension can be touched.' });
     }

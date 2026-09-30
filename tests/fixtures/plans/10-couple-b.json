@@ -1,0 +1,174 @@
+{
+ "id": "Rb2CoupleBenK5mVy8Ju",
+ "accumulationTool": {
+  "settings": {
+   "currentAge": 58,
+   "employerMonthly": 210,
+   "escalationPct": 0,
+   "netMonthly": 400,
+   "potNow": 221000,
+   "retirementAge": 62,
+   "salary": 41000,
+   "schemeType": "ras"
+  }
+ },
+ "budgetTool": {
+  "settings": {
+   "currentAge": 58,
+   "currentAgeAsOf": "2026-08-22",
+   "derived": {
+    "allInComfortableAnnual": 0,
+    "allInComfortableMonthly": 0,
+    "comfortableAnnualNet": 0,
+    "comfortableMonthlyNet": 0,
+    "essentialAnnualNet": 0,
+    "essentialMonthlyNet": 0,
+    "householdComfortableAnnual": 0,
+    "householdComfortableMonthly": 0,
+    "partnerAllInAnnual": 0,
+    "partnerAllInMonthly": 0,
+    "periodicAnnualAverage": 0,
+    "periodicMonthlyAverage": 0,
+    "sharedWithPartner": true,
+    "suggestedGrossAnnual": 0
+   },
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retired": false,
+   "retirementAge": 62,
+   "sharedWithPartner": true,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-08-22T15:00:00.000Z",
+ "decisionTool": {
+  "history": [],
+  "settings": {
+   "baseSalary": 18000,
+   "bedAndIsa": true,
+   "bondMin": 200000,
+   "cashTarget": 50000,
+   "consecutiveLimit": 3,
+   "duration": 35,
+   "equityMin": 250000,
+   "firstTaxYear": 2029,
+   "giaTaxBand": "basic",
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "spStartDate": null,
+   "spWeeklyAmount": 0,
+   "statePension": 0,
+   "statePensionYear": 0,
+   "targetSchedule": null,
+   "taxableMix": "equity",
+   "taxableStart": 0
+  },
+  "taxYears": {}
+ },
+ "enabledTools": [
+  "budget",
+  "stress",
+  "decision",
+  "accumulation",
+  "household"
+ ],
+ "household": {
+  "partnerScenarioId": "Ra1CoupleAshaQ7wXz4N"
+ },
+ "isActive": false,
+ "journey": [
+  {
+   "at": "2026-08-22T15:00:00.000Z",
+   "label": "Approaching retirement",
+   "stage": "approaching"
+  }
+ ],
+ "lastModified": "2026-08-22T15:00:00.000Z",
+ "planDetails": {
+  "description": "Working to 62",
+  "name": "Ours — Ben"
+ },
+ "strategy": {
+  "engineVersion": "6.4.0",
+  "id": "pots-and-valves",
+  "lockedAt": "2026-08-22T15:00:00.000Z",
+  "params": {}
+ },
+ "stressTool": {
+  "settings": {
+   "accessMethod": "drawdown",
+   "allocMode": "risk",
+   "bandFillRecycle": false,
+   "baseSalary": 18000,
+   "bedAndIsa": true,
+   "bondMin": 60000,
+   "brl": 50270,
+   "cashTarget": 11000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "currentAge": 58,
+   "currentAgeAsOf": "2026-08-22",
+   "dbAmount": 0,
+   "dbIndexation": "lpi5",
+   "dbStartYear": 0,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 32,
+   "equityGlideEnabled": false,
+   "equityMin": 150000,
+   "extraIncomes": [],
+   "extraWithdrawals": [],
+   "firstTaxYear": 2029,
+   "giaTaxBand": "basic",
+   "glideEndgame": null,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "incomeShape": "flat",
+   "incomeSteps": [],
+   "isaBalance": 9000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "other": 0,
+   "pa": 12570,
+   "potAtRetirement": {
+    "isa": 9955,
+    "sipp": 278542,
+    "source": "accumulation"
+   },
+   "protectionEscalateMonths": 12,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "retireAge": 62,
+   "retired": false,
+   "shapeAgeNow": 62,
+   "spStartDate": "17 January 2035",
+   "spWeeklyAmount": 230.25,
+   "spendingProfile": "flat",
+   "statePension": 12000,
+   "statePensionYear": 12,
+   "strategyId": "pots-and-valves",
+   "strategyParams": {},
+   "strategyState": {},
+   "subAsset": null,
+   "taggedFunds": [],
+   "targetSchedule": null,
+   "taxMode": "inflates",
+   "taxableMix": "equity",
+   "taxableStart": 0,
+   "ufplsThenPcls": false,
+   "ufplsYears": null,
+   "windfalls": []
+  }
+ }
+}

@@ -98,8 +98,8 @@ function targetForYear(settings, year) {
 }
 
 /** State Pension start year + annual amount (today's money) from either settings format. */
-function spFor(settings) {
-  const cfg = spSimConfigFromSettings(settings);
+function spFor(settings, now = new Date()) {
+  const cfg = spSimConfigFromSettings(settings, now);
   if (cfg) return { startYear: cfg.spStartYear, annual: cfg.spWeeklyAmount * 52 };
   if (settings.statePension > 0) {
     // Same fallback as the simulation config: no SP date => 67 − income-start age.
@@ -114,12 +114,12 @@ function spFor(settings) {
  * must come from the pots — with the bridge years (before both SPs are in payment) flagged.
  * @returns {Array<{year, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, bridge}>}
  */
-export function householdIncomeTimeline(setA, setB, labelYears = null) {
+export function householdIncomeTimeline(setA, setB, labelYears = null, now = new Date()) {   // `now`: injectable clock (tests)
   const durA = setA.duration || 35;
   const durB = setB.duration || 35;
-  const offA = startOffset(setA), offB = startOffset(setB);
+  const offA = startOffset(setA, now), offB = startOffset(setB, now);
   const years = labelYears ?? Math.max(durA + offA, durB + offB);
-  const a = spFor(setA), b = spFor(setB);
+  const a = spFor(setA, now), b = spFor(setB, now);
   const rows = [];
   // `year` is CALENDAR years from today; each plan's own year is that less its start offset.
   for (let c = 0; c <= years; c++) {
@@ -150,8 +150,8 @@ export function householdIncomeTimeline(setA, setB, labelYears = null) {
 /** The Timing block's "I have already retired" (saved as retired: true; older plans may hold the string). */
 function isRetired(settings) { return settings && (settings.retired === true || settings.retired === 'true'); }
 
-export function startOffset(settings) {
-  const now = currentAgeNow(settings), start = +settings.shapeAgeNow || 0;
+export function startOffset(settings, clock = new Date()) {
+  const now = currentAgeNow(settings, clock), start = +settings.shapeAgeNow || 0;
   return (now > 0 && start > now) ? Math.round(start - now) : 0;
 }
 
@@ -239,13 +239,13 @@ export function runSurvivorCheck({
  * Display-only — "you choose, we model": if one partner pays 40% while the other has unused
  * 20% band, shifting who funds spending saves the rate difference on the shifted slice.
  */
-export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner') {
+export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner', now = new Date()) {
   // Year-0 taxable position from the REAL withdrawal policy (planDrawdown): the SIPP fills to
   // the basic-rate limit and the ISA tops up the rest tax-free, so a large-ISA plan with a
   // big target still pays no 40% tax — the old naive "target − fixed = taxable" version
   // claimed higher-rate tax that was never actually paid.
   const pos = (set) => {
-    const sp = spFor(set);
+    const sp = spFor(set, now);
     const fixed = (sp.startYear <= 0 ? sp.annual : 0) + (set.other || 0)
       + (set.dbAmount > 0 && (set.dbStartYear || 0) <= 0 ? set.dbAmount : 0);
     const target = targetForYear(set, 0);

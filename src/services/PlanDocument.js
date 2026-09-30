@@ -44,7 +44,7 @@ export function trimResult(r) {
 /** The plan object without its function-valued fields. */
 export function trimPlan(p) {
   if (!p) return null;
-  const { pnvCfg, yieldForYear, ...rest } = p;
+  const { pnvCfg, yieldForYear, now, ...rest } = p;   // `now` is a test/replay clock (planFromSettings { now }), never part of the saved plan
   return plainClone(rest);
 }
 
@@ -59,7 +59,7 @@ export function slopeLabel(st, hasNext) {
  * The income-shape layers from SETTINGS (not the form): what `incomeStaircaseSvg` needs, plus the
  * guaranteed floor per plan year. Twin of the on-form assembly in renderIncomeShapePreview.
  */
-export function shapeLayersFromSettings(settings, timing = deriveTiming(settings), { budgetGross = 0, essentials = 0 } = {}) {
+export function shapeLayersFromSettings(settings, timing = deriveTiming(settings), { budgetGross = 0, essentials = 0, now } = {}) {
   const s = settings || {};
   const ageNow = timing.shapeAgeNow || +s.shapeAgeNow || 57;
   const dur = Math.max(1, +s.duration || 35);
@@ -67,7 +67,7 @@ export function shapeLayersFromSettings(settings, timing = deriveTiming(settings
   let sp = null;
   const wk = +s.spWeeklyAmount || 0;
   if (wk > 0 && s.spStartDate) {
-    const cfg = spSimConfigFromSettings({ ...s, shapeAgeNow: ageNow, firstTaxYear: timing.firstTaxYear });
+    const cfg = spSimConfigFromSettings({ ...s, shapeAgeNow: ageNow, firstTaxYear: timing.firstTaxYear }, now);   // undefined → today
     if (cfg) sp = { annual: wk * 52, fromAge: ageNow + cfg.spStartYear, firstYearRatio: cfg.spFirstYearRatio ?? 1 };
   }
   const other = [];
@@ -171,7 +171,7 @@ export function buildAccumulationPath({ settings = {}, timing, accumulation = nu
 export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, holdings = null, now = new Date() } = {}) {
   const timing = deriveTiming(settings, now);
   const H = normaliseHoldings(holdings);   // absent → the empty record; never the Stress tester's fund list
-  const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials });
+  const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials, now });
   const N = Math.max(1, Math.min(45, p?.durationYears || +settings.duration || 35));
   const strategyId = r?.strategyId || settings.strategyId || 'pots-and-valves';
   const contract = CONTRACT_STRATEGIES.includes(strategyId);

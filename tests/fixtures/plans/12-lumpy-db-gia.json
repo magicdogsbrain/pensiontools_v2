@@ -1,0 +1,362 @@
+{
+ "id": "Yk7DvB4nQe9SxTg1LmCw",
+ "budgetTool": {
+  "settings": {
+   "currentAge": 59,
+   "currentAgeAsOf": "2026-09-11",
+   "derived": {
+    "allInComfortableAnnual": 0,
+    "allInComfortableMonthly": 0,
+    "comfortableAnnualNet": 0,
+    "comfortableMonthlyNet": 0,
+    "essentialAnnualNet": 0,
+    "essentialMonthlyNet": 0,
+    "householdComfortableAnnual": 0,
+    "householdComfortableMonthly": 0,
+    "partnerAllInAnnual": 0,
+    "partnerAllInMonthly": 0,
+    "periodicAnnualAverage": 0,
+    "periodicMonthlyAverage": 0,
+    "sharedWithPartner": false,
+    "suggestedGrossAnnual": 0
+   },
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retired": true,
+   "retirementAge": 60,
+   "sharedWithPartner": false,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-09-11T13:30:00.000Z",
+ "decisionTool": {
+  "history": [],
+  "settings": {
+   "baseSalary": 48000,
+   "bedAndIsa": true,
+   "bondMin": 200000,
+   "cashTarget": 50000,
+   "consecutiveLimit": 3,
+   "duration": 35,
+   "equityMin": 250000,
+   "firstTaxYear": 2027,
+   "giaTaxBand": "basic",
+   "isaBalance": 0,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "spStartDate": null,
+   "spWeeklyAmount": 0,
+   "statePension": 0,
+   "statePensionYear": 0,
+   "targetSchedule": [
+    48000,
+    48000,
+    48000,
+    48000,
+    48000,
+    48000,
+    42000,
+    41200,
+    40400,
+    39600,
+    38800,
+    38000,
+    37200,
+    36400,
+    35600,
+    34800,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000
+   ],
+   "taxableMix": "equity",
+   "taxableStart": 0
+  },
+  "taxYears": {}
+ },
+ "enabledTools": [
+  "budget",
+  "stress",
+  "decision",
+  "accumulation"
+ ],
+ "holdings": {
+  "lines": [
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "iShares Core MSCI World",
+    "ocf": 0.2,
+    "sedol": null,
+    "subClass": "worldGrowth",
+    "ticker": "SWDA",
+    "units": 3150,
+    "value": 281900,
+    "wrapper": "SIPP"
+   },
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "Vanguard UK Gilt",
+    "ocf": 0.05,
+    "sedol": null,
+    "subClass": "longGilts",
+    "ticker": "VGOV",
+    "units": 7400,
+    "value": 119800,
+    "wrapper": "SIPP"
+   },
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "Amundi Smart Overnight Return",
+    "ocf": 0.1,
+    "sedol": null,
+    "subClass": "moneyMarket",
+    "ticker": "CSH2",
+    "units": 335,
+    "value": 40200,
+    "wrapper": "SIPP"
+   },
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "iShares Core MSCI World",
+    "ocf": 0.2,
+    "sedol": null,
+    "subClass": "worldGrowth",
+    "ticker": "SWDA",
+    "units": 670,
+    "value": 59950,
+    "wrapper": "ISA"
+   },
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "Vanguard FTSE All-World (Acc)",
+    "ocf": 0.19,
+    "sedol": null,
+    "subClass": "worldGrowth",
+    "ticker": "VWRP",
+    "units": 410,
+    "value": 50100,
+    "wrapper": "GIA"
+   },
+   {
+    "asOf": "2026-09-10",
+    "contribution": null,
+    "kind": "fund",
+    "name": "iShares UK Gilts 0-5yr",
+    "ocf": 0.07,
+    "sedol": null,
+    "subClass": "shortGilts",
+    "ticker": "IGLS",
+    "units": 270,
+    "value": 34900,
+    "wrapper": "GIA"
+   }
+  ],
+  "offerDismissed": false,
+  "source": "paste",
+  "updatedAt": "2026-09-11",
+  "version": 1
+ },
+ "isActive": true,
+ "journey": [
+  {
+   "at": "2026-09-11T13:30:00.000Z",
+   "label": "Retired, designing the plan",
+   "stage": "draft-retired"
+  }
+ ],
+ "lastModified": "2026-09-11T13:30:00.000Z",
+ "planDetails": {
+  "description": "DB pension, rent, lumps in and out, and a GIA",
+  "name": "Everything at once"
+ },
+ "strategy": {
+  "engineVersion": "6.4.0",
+  "id": "pots-and-valves",
+  "lockedAt": "2026-09-11T13:30:00.000Z",
+  "params": {}
+ },
+ "stressTool": {
+  "settings": {
+   "accessMethod": "drawdown",
+   "allocMode": "risk",
+   "bandFillRecycle": false,
+   "baseSalary": 48000,
+   "bedAndIsa": true,
+   "bondMin": 120000,
+   "brl": 50270,
+   "cashTarget": 40000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "currentAge": 59,
+   "currentAgeAsOf": "2026-09-11",
+   "dbAmount": 9400,
+   "dbIndexation": "lpi5",
+   "dbStartYear": 5,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 32,
+   "equityGlideEnabled": false,
+   "equityMin": 280000,
+   "extraIncomes": [
+    {
+     "annual": 7200,
+     "endYear": 14,
+     "indexation": "cpi",
+     "label": "Rental flat",
+     "startYear": 0
+    },
+    {
+     "annual": 12000,
+     "endYear": 3,
+     "indexation": "level",
+     "label": "Part-time consulting",
+     "startYear": 0
+    }
+   ],
+   "extraWithdrawals": [
+    {
+     "amount": 25000,
+     "label": "New roof",
+     "year": 2
+    },
+    {
+     "amount": 36000,
+     "label": "Camper van",
+     "year": 6,
+     "years": 3
+    }
+   ],
+   "firstTaxYear": 2027,
+   "giaTaxBand": "higher",
+   "glideEndgame": null,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "incomeShape": "phases",
+   "incomeSteps": [
+    {
+     "amount": 48000,
+     "fromAge": 60
+    },
+    {
+     "amount": 42000,
+     "fromAge": 66,
+     "glideToNext": true
+    },
+    {
+     "amount": 34000,
+     "fromAge": 76
+    }
+   ],
+   "isaBalance": 60000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "other": 1200,
+   "pa": 12570,
+   "potAtRetirement": null,
+   "protectionEscalateMonths": 12,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 12000,
+   "retireAge": null,
+   "retired": true,
+   "shapeAgeNow": 60,
+   "spStartDate": "25 July 2034",
+   "spWeeklyAmount": 224.9,
+   "spendingProfile": "flat",
+   "statePension": 12000,
+   "statePensionYear": 12,
+   "strategyId": "pots-and-valves",
+   "strategyParams": {},
+   "strategyState": {},
+   "subAsset": null,
+   "taggedFunds": [],
+   "targetSchedule": [
+    48000,
+    48000,
+    48000,
+    48000,
+    48000,
+    48000,
+    42000,
+    41200,
+    40400,
+    39600,
+    38800,
+    38000,
+    37200,
+    36400,
+    35600,
+    34800,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000,
+    34000
+   ],
+   "taxMode": "inflates",
+   "taxableMix": "balanced",
+   "taxableStart": 85000,
+   "ufplsThenPcls": false,
+   "ufplsYears": null,
+   "windfalls": [
+    {
+     "amount": 120000,
+     "label": "Inherited pension",
+     "wrapper": "pension",
+     "year": 4
+    },
+    {
+     "amount": 90000,
+     "label": "Downsizing",
+     "wrapper": "cash",
+     "year": 9
+    }
+   ]
+  }
+ }
+}

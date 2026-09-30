@@ -244,11 +244,11 @@ export function validateIsaInput(isaEntered, isaNeeded, brlExhausted) {
  * @param {object} allTaxYears  the Decision tool's tax-year configs, keyed "27/28"
  * @param {string} currentTaxYear  the year being set up now (used when nothing is set up yet)
  */
-export function planYearBaseline(allTaxYears, currentTaxYear) {
+export function planYearBaseline(allTaxYears, currentTaxYear, now = new Date()) {
   const yearOf = (k) => 2000 + parseInt(String(k).split('/')[0], 10);
   const keys = Object.keys(allTaxYears || {}).filter((k) => /^\d{2}\/\d{2}$/.test(k) && Number.isFinite(yearOf(k)));
   if (keys.length) return Math.min(...keys.map(yearOf));
-  return currentTaxYear ? yearOf(currentTaxYear) : new Date().getFullYear();
+  return currentTaxYear ? yearOf(currentTaxYear) : now.getFullYear();
 }
 
 /** True when the plan actually carries an other-income projection worth trusting. */

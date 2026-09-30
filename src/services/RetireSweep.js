@@ -84,7 +84,7 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
     let r = null, affordable = true;
     try {
       const cfg = createSimulationConfigFromSettings({}, s);
-      const p = planFromSettings(s, cfg, {});
+      const p = planFromSettings(s, cfg, { now });   // one clock for the timing, the plan and the ladder pricing
       p.mcRuns = mcRuns; p.stride = stride;
       r = stressTestStrategy(s0.strategyId || 'pots-and-valves', p);
       affordable = r.affordable !== false;

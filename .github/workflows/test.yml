@@ -1,0 +1,34 @@
+name: test
+
+# The safety net: the whole suite plus a production build on every push and every pull request,
+# on any branch. main publishes (GitHub Pages serves docs/ from it), so a red run here is the
+# signal that something reached a branch it should not have.
+on:
+  push:
+  pull_request:
+
+# Read-only token: this job never writes to the repo.
+permissions:
+  contents: read
+
+# A newer push to the same ref makes the older run pointless; cancel it.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Everything, slow tier included (*.slow.test.js) — same as `npm run test:all`.
+      - run: npx vitest run
+      # The build writes docs/ in the runner only; nothing is committed. It is here because a
+      # bundle that does not build is a release that cannot ship, and tests do not exercise Vite.
+      - run: npm run build

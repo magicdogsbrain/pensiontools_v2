@@ -8,6 +8,8 @@
     "build": "vite build && node scripts/stamp-sw.mjs",
     "preview": "vite preview",
     "test": "vitest",
+    "test:fast": "vitest run --exclude \"**/*.slow.test.js\"",
+    "test:all": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src/**/*.js"

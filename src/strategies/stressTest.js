@@ -2,7 +2,7 @@
  * ONE stress test for every strategy — the single source of truth behind both the Stress tab
  * (when a plan is locked to a strategy) and the Strategies compare table. Whatever strategy the
  * user switches to, the numbers they see come from THIS function on THIS plan, so the compare
- * row and the locked-plan result can never disagree (tests/strategySwitch.test.js pins it).
+ * row and the locked-plan result can never disagree (tests/strategySwitch.slow.test.js pins it).
  *
  * All three strategies run on the same real-terms Shiller history (every window) and the same
  * block-bootstrapped Monte-Carlo futures (deterministic seeds). Each returns the same shape:
@@ -105,12 +105,14 @@ export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
  * simulation config (createSimulationConfigFromSettings). Honours the strategy parameters the
  * user saved in Settings (ladder years, bolted draw, essentials, horizon, sleeve rate) and the
  * plan's real State Pension start year — never a hard-coded "year 10".
+ * `now` (optional) pins the clock: it reaches deriveTiming here and, carried on the plan as `p.now`, the gilt-ladder
+ * pricing date — so a test (or a replay of a locked plan) gets the same numbers on any day. Omitted = today, as before.
  */
-export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge } = {}) {
+export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge, now } = {}) {
   const params = settings.strategyParams || {};
   // WHEN the plan starts (one saved anchor, see PlanTiming): the first tax year, the age the steps
   // start at, and — for someone retiring later — how much today's pots grow before then.
-  const timing = deriveTiming(settings);
+  const timing = deriveTiming(settings, now);
   if (!(startAge > 0)) startAge = timing.shapeAgeNow || 57;
   const alloc = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0);
   // The strategy settings can pin the SIPP/ISA totals fed to the ladder; otherwise the plan's pots.
@@ -164,7 +166,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
     pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
-    yieldForYear
+    yieldForYear,
+    ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
   };
 }
 
@@ -544,8 +547,10 @@ function fullGiltTest(p, configs) {
   const N = p.durationYears;
   const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
   const amountAtAge = (age) => { const k = age - p.startAge; return sched ? (sched[Math.min(k, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual; };
-  const firstTaxYear = p.firstTaxYear || new Date().getFullYear() + 1;
+  const now = p.now || new Date();   // injected clock (planFromSettings { now }) or today
+  const firstTaxYear = p.firstTaxYear || now.getFullYear() + 1;
   const plan = buildGiltLadder({
+    todayIso: p.todayIso || now.toISOString().slice(0, 10),   // the pricing date: years-to-maturity picks each rung's spread band
     pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0

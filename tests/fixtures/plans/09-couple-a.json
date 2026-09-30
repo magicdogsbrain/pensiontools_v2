@@ -85,7 +85,7 @@
   "name": "Ours — Asha"
  },
  "strategy": {
-  "engineVersion": "6.4.0",
+  "engineVersion": "6.13.4",
   "id": "pots-and-valves",
   "lockedAt": "2026-08-22T15:00:00.000Z",
   "params": {}

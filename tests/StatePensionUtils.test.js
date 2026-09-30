@@ -118,3 +118,35 @@ describe('spTaxYearFirstRatio (ladder rungs are per tax year)', () => {
     expect(spTaxYearFirstRatio({})).toBeNull();
   });
 });
+
+// Day counts are whole CALENDAR days, not milliseconds (6.13.4). 6 April is in summer time and a winter date is
+// not, so in the UK "14 March to 6 April" is an hour short of 23 days in milliseconds: the ratio was 22.958/366
+// under Europe/London and 23/366 under UTC, and the same plan gave answers a few pounds apart. These are exact
+// fractions, so they fail under ANY zone with a clock change if milliseconds creep back in.
+describe('State Pension day counts do not depend on the time zone or the clock change', () => {
+  it('first tax-year share is an exact fraction of whole days (winter and summer start dates)', async () => {
+    const { spTaxYearFirstRatio, spTaxYearConfigFromSettings } = await import('../src/utils/StatePensionUtils.js');
+    expect(spTaxYearFirstRatio({ spStartDate: '14 March 2032' })).toBe(23 / 366);        // 31/32 holds 29 Feb 2032
+    expect(spTaxYearFirstRatio({ spStartDate: '9 November 2036' })).toBe(148 / 365);
+    expect(spTaxYearFirstRatio({ spStartDate: '21 April 2037' })).toBe(350 / 365);
+    expect(spTaxYearFirstRatio({ spStartDate: '6 April 2037' })).toBe(1);
+    expect(spTaxYearConfigFromSettings({ spStartDate: '14 March 2032', spWeeklyAmount: 221.2, firstTaxYear: 2027 }, NOW).spFirstYearRatio).toBe(23 / 366);
+  });
+  it('the Decision tool\'s first-year weeks are whole days ÷ 7', () => {
+    const r = calculateStatePensionForTaxYear({ taxYear: '31/32', spStartDate: '14 March 2032', weeklyAmount: 200, taxYearConfigs: {} });
+    expect(r.isFirstYear).toBe(true);
+    expect(r.annual).toBe(200 * 22 / 7);   // 14 March → 5 April = 22 days
+  });
+  it('a plan with no saved start year: the calendar-year share counts the start day itself, summer or winter', async () => {
+    const { spSimConfigFromSettings } = await import('../src/utils/StatePensionUtils.js');
+    expect(spSimConfigFromSettings({ spStartDate: '1 July 2035', spWeeklyAmount: 200 }, NOW).spFirstYearRatio).toBe((365 - 182) / 365);
+    expect(spSimConfigFromSettings({ spStartDate: '1 February 2035', spWeeklyAmount: 200 }, NOW).spFirstYearRatio).toBe((365 - 32) / 365);
+  });
+  it('an ISO date is the same calendar day as the same date typed in words, in any zone', async () => {
+    const { parseStatePensionDate, formatStatePensionDate } = await import('../src/utils/StatePensionUtils.js');
+    const iso = parseStatePensionDate('2037-04-06'), words = parseStatePensionDate('6 April 2037');
+    expect(iso.getTime()).toBe(words.getTime());
+    expect(formatStatePensionDate('2037-04-06')).toBe('6 April 2037');
+    expect([iso.getFullYear(), iso.getMonth(), iso.getDate(), iso.getHours()]).toEqual([2037, 3, 6, 0]);
+  });
+});

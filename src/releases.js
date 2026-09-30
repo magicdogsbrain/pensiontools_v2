@@ -36,6 +36,52 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.13.4', date: '2026-09-30', engineVersion: '6.13.4', announce: true,
+    title: 'Monte Carlo results are now identical on every device',
+    summary: 'Monte Carlo results are now identical on every device. Until today the same plan could show slightly different Monte Carlo figures on a phone, a Mac and a Windows PC: the random futures were drawn with a formula built on the sine function, and browsers and processors do not all agree on the last decimal place of a sine. The formula magnified that last digit into a different set of random futures, so the fan charts differed by about 0.5% to 3% between machines. The random futures now come from a standard whole-number generator that every browser and processor computes exactly alike. Because the set of random futures is a new one, Monte Carlo figures move slightly this once, by no more than re-running with a different random seed would move them. Nothing about how a plan is modelled has changed.',
+    changes: [
+      'The same plan now gives the same Monte Carlo answer on every device and browser, to the pound.',
+      'The same plan now gives the same answer in every time zone (it could differ by £1 to £15 on a cone between a device set to UK time and one set to another zone).'
+    ],
+    corrections: [
+      'Monte Carlo figures differed from one device to another (about 0.5% to 3% on the fan charts), because the random numbers came from a sine-based formula whose last digit varies between browsers and processors.',
+      'The share of the State Pension paid in its first tax year was measured in hours rather than whole days, so a start date in winter came out one hour short of the days to 6 April (clocks change in between): about £1 of State Pension in that one year.',
+      'A plan with no start tax year saved (made before v6.4.0, with no age entered) and a State Pension date in summer time counted one day too many of State Pension in the year it starts: about £30, in that one year only.',
+      'Gilt rotation measured each gilt\'s time to maturity from a 6 April one hour out.',
+      'A State Pension date typed as 2037-04-21 could be read as the day before on a device set to a time zone west of the UK.'
+    ],
+    effects: {
+      stress: [
+        'Monte Carlo figures move slightly the next time a plan is run, because the random futures are a new set. On the plans we test with: chance of success within 0.3 of a percentage point; median end pot within about 1%; the poor-markets line (the worst 1 in 10) within about 6%. The Monte Carlo tab\'s own run can move a little more on a plan near the edge: up to about 2 points on the chance of success and about 7% on the median end pot. That is the ordinary spread between one set of 1,000 random futures and another, not a change to the model.',
+        'Historical results move by a smaller amount: the bond fund\'s year-to-year variation comes from the same random numbers.',
+        'From now on the figures do not change from one device to another.'
+      ],
+      strategies: [
+        'Pots & Valves and Buckets in order: ruin rate, fan charts and end-pot figures move slightly, by the amounts above. The ranking of strategies in the comparison can change only where two were already within that margin of each other.',
+        'The gilt-ladder strategies (full ladder, rotation, floors, ladder & ratchet, bridge & engine) already used a whole-number generator: their figures move by a few pounds at most, from the State Pension day-count correction.',
+        'A locked plan\'s plan document is untouched. It is the record of the plan as you committed it, with the figures and the engine version of that day, and it is never recalculated.'
+      ],
+      decision: ['Nothing is re-judged. Recorded months keep their figures. In the one tax year a State Pension starts, a winter start date pays about £1 more over the year than before.'],
+      accumulation: ['The Monte Carlo range for the pot at retirement moves slightly, for the same reason.'],
+      household: ['Joint Monte Carlo results move slightly, for the same reason.'],
+      budget: []
+    },
+    actions: ['Nothing to do. If you keep your own note of a Monte Carlo figure, expect it to read slightly differently on the next run and then to stay put on every device.'],
+    notes: [
+      'Generator: sfc32 (32-bit whole-number arithmetic only), seeded by hashing the run number. Run i still draws its market years with seed i × 12345 and its bond variation with seed i, as before.',
+      'Device-to-device agreement is to well under a penny rather than to the last binary digit: the power, logarithm and cosine functions used elsewhere in the model can still differ in their last digit between browsers, but nothing magnifies that difference.',
+      'Engine version 6.13.4 (was 6.4.0). Plans locked earlier keep the engine version they were locked under.'
+    ],
+    affects(scenario) {
+      const out = [];
+      const ss = scenario?.stressTool?.settings || {};
+      const id = ss.strategyId || scenario?.strategy?.id || 'pots-and-valves';
+      if (ss.configured && (id === 'pots-and-valves' || id === 'buckets-in-order')) out.push('This plan\'s Monte Carlo figures will read slightly differently the next time it is run (chance of success typically within half a percentage point), and then the same on every device.');
+      if (scenario?.planDocument) out.push('This plan\'s plan document is unchanged: it keeps the figures it was locked with.');
+      return out;
+    }
+  },
+  {
     version: '6.13.3', date: '2026-09-23', engineVersion: '6.4.0',
     title: 'Transition in plain words for someone already retired',
     summary: 'For a retiree whose ladder starts next April the page talked about "the plan starting" and "months to go" as if a retirement date were coming, and sized the run-up on the plan\'s first step (£6,667) rather than the £7,000 a month actually drawn. It now opens with "You are already retired. Your gilt ladder pays from tax year 2027/28 (6 months away). Until then you draw £7,000 a month from your SIPP cash", uses the Decision tool\'s actual monthly payment for the run-up, and shows a small table of the cash to hold now: the run-up months, each cash year, and how much of a year a lump sum pays.',

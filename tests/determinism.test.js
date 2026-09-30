@@ -7,7 +7,8 @@
  *      listed here, each of which is a tax-year fact. A new path appearing in one of these lists is a new
  *      dependence on today's date — decide whether it is meant before adding it;
  *  (c) no module under src/services or src/strategies calls Math.random (every random stream is seeded), and
- *      none reads the wall clock except as the DEFAULT of an injectable parameter.
+ *      none reads the wall clock except as the DEFAULT of an injectable parameter;
+ *  (d) the seeded random stream is pinned to literal values, so it is the same on every engine and CPU.
  *
  * Market data is the bundled snapshot (nothing here calls loadLiveGilts), so the gilt prices are pinned by the repo.
  */
@@ -26,6 +27,7 @@ import { projectAccumulation, contributionWarnings } from '../src/services/Accum
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
 import { targetHoldings } from '../src/services/TransitionPlanner.js';
 import { sweepRetirementAges } from '../src/services/RetireSweep.js';
+import { seededRng, gaussianRandom } from '../src/utils/MathUtils.js';
 
 // ---- fixtures: one person, three timing situations -------------------------------------------------------------
 const base = {
@@ -161,6 +163,59 @@ const walk = (dir) => readdirSync(dir).flatMap((f) => { const p = join(dir, f); 
 // Comments out (block, then line — a `//` inside a string literal would be cut short, which can only hide the tail of that line's string).
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1'));
 const FILES = ['src/services', 'src/strategies'].flatMap((d) => walk(join(ROOT, d)));
+
+// ---- (d) the random stream is the same on every machine ---------------------------------------------------------
+// seededRng is 32-bit integer arithmetic (sfc32), which the language defines exactly — so these literal values
+// hold on every JS engine, engine version and CPU. They were taken on Apple-silicon Node 24 and checked on
+// x64 Node 20. If one fails on a new platform, Monte Carlo results differ there: that is the bug 6.13.4 fixed
+// (the old generator was Math.sin(s) × 10000, whose last bit is not the same everywhere). If the generator is
+// ever changed on purpose, every Monte Carlo figure moves: that is an engine-version bump and a release note.
+describe('(d) seededRng: one stream, bit for bit, everywhere', () => {
+  const first3 = (seed) => { const r = seededRng(seed); return [r(), r(), r()]; };
+  it('pinned values for whole-number, zero, fractional and negative seeds', () => {
+    expect(first3(0)).toEqual([0.5174256332684308, 0.33256870321929455, 0.884305405896157]);
+    expect(first3(1)).toEqual([0.9243202137295157, 0.15361752454191446, 0.83528659096919]);
+    expect(first3(12345)).toEqual([0.21150362212210894, 0.803150819381699, 0.0739903652574867]);
+    expect(first3(0.5)).toEqual([0.7093786436598748, 0.5029148706234992, 0.6268857596442103]);
+    expect(first3(-1)).toEqual([0.20918031875044107, 0.8690698267892003, 0.5977415908128023]);
+    expect(first3(900000)).toEqual([0.43689159769564867, 0.4229296713601798, 0.20508807455189526]);
+    const r = seededRng(7); let x; for (let i = 0; i < 100000; i++) x = r();
+    expect(x).toBe(0.15308063314296305);   // still in step after 100,000 draws
+  });
+  it('a seed that is not a finite number is seed 0; -0 is 0; the same seed repeats', () => {
+    for (const bad of [NaN, Infinity, -Infinity, undefined, 'abc', -0]) expect(first3(bad), String(bad)).toEqual(first3(0));
+    expect(first3(42)).toEqual(first3(42));
+  });
+  it('every draw is in [0, 1); a zero seed is not stuck; neighbouring seeds are unrelated streams', () => {
+    const r = seededRng(0); const seen = new Set();
+    for (let i = 0; i < 10000; i++) { const u = r(); expect(u >= 0 && u < 1).toBe(true); seen.add(u); }
+    expect(seen.size).toBeGreaterThan(9990);
+    // Run i's market years use seed i × 12345 and its bond noise seed i: first draws across runs must be spread evenly.
+    for (const step of [1, 12345]) {
+      const bins = new Array(10).fill(0);
+      for (let i = 0; i < 5000; i++) bins[Math.floor(seededRng(i * step)() * 10)]++;
+      for (const b of bins) { expect(b).toBeGreaterThan(400); expect(b).toBeLessThan(600); }
+    }
+    let sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0; const n = 5000;
+    for (let i = 0; i < n; i++) { const x = seededRng(i)(), y = seededRng(i + 1)(); sx += x; sy += y; sxy += x * y; sxx += x * x; syy += y * y; }
+    const corr = (sxy / n - (sx / n) * (sy / n)) / Math.sqrt((sxx / n - (sx / n) ** 2) * (syy / n - (sy / n) ** 2));
+    expect(Math.abs(corr)).toBeLessThan(0.05);
+  });
+  it('uniform and, through gaussianRandom, standard normal', () => {
+    const r = seededRng(2026); let m = 0; const n = 200000;
+    for (let i = 0; i < n; i++) m += r();
+    expect(m / n).toBeCloseTo(0.5, 2);
+    const g = seededRng(2027); let gm = 0, gv = 0;
+    for (let i = 0; i < n; i++) { const z = gaussianRandom(0, 1, g); gm += z; gv += z * z; }
+    expect(gm / n).toBeCloseTo(0, 2);
+    expect(Math.sqrt(gv / n)).toBeCloseTo(1, 2);
+  });
+  it('no calculation module draws randomness from Math.sin', () => {
+    const hits = [];
+    for (const f of [...FILES, join(ROOT, 'src/utils/MathUtils.js')]) code(readFileSync(f, 'utf8')).forEach((l, i) => { if (/Math\s*\.\s*sin\b/.test(l)) hits.push(relative(ROOT, f) + ':' + (i + 1)); });
+    expect(hits).toEqual([]);
+  });
+});
 
 describe('(c) static scan of src/services and src/strategies', () => {
   it('finds the modules', () => { expect(FILES.length).toBeGreaterThan(30); });

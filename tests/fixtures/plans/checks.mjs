@@ -68,6 +68,52 @@ const r0 = (x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x) :
 const r2 = (x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x * 100) / 100 : x);
 
 /**
+ * Compare an evaluated record with its pinned copy (snapshot.json, or the owner's <name>.pinned.json).
+ * Returns the differences as readable lines; [] means "the same plan, the same answers".
+ *
+ * EXACT for everything that is not a simulated amount: names, flags, stage, strategy, ages, tax years, the two
+ * checksums (already on 12 significant figures — see sig12), counts, holdings totals (sums of what was typed)
+ * and the ruin rates (a count of failed futures out of N: if one future flips, that is a real change).
+ *
+ * A TOLERANCE for the simulated money in the headline — the cones, the end pots, the worst 12 months, the
+ * median spent — and for `coverage` (a continuous percentage):
+ *     money:     equal when within £1, or within one part in a million of the figure, whichever is larger
+ *     coverage:  equal when within 0.01 of a percentage point
+ * Why a tolerance at all: those figures come out of thousands of Math.pow / Math.log / Math.cos calls, and the
+ * language does not fix the last bit of any of them — Node 20 and Node 24 already disagree on 0.95^n (see
+ * sig12), and browsers differ again. The drift is about one part in 10^13 of a figure, but the record stores
+ * whole pounds, and a figure sitting on £…·50 rounds up on one machine and down on the other: a £1 difference
+ * that is not a change to anything.
+ * Why a tolerance and not "round both to the nearest £10": rounding only MOVES the cliff (…4.99 and …5.01 land
+ * on different tens), so it can still fail on a last-bit difference, while hiding every real change under £10.
+ * A tolerance has no cliff and hides only a change under £1 (under £4 on a £4m figure). Real changes are not
+ * that small: the clock-change hour in the State Pension's first-year share — one hour of pension, once —
+ * moved these figures by £1 to £15 and fails this comparison on every plan it touched.
+ * The random stream itself is integer arithmetic (MathUtils.seededRng) and identical everywhere, so nothing
+ * here is absorbing Monte Carlo noise.
+ */
+const MONEY_PATH = /^headline\.(worst12Min|worst12Median|terminalP\d+|spentMedian|cone\.(wealthP\d+|incomeP\d+)\[\d+\])$|^where\.stepAmount$/;
+const COVERAGE_PATH = /^headline\.coverage$/;
+export const MONEY_ABS_TOL = 1, MONEY_REL_TOL = 1e-6, COVERAGE_TOL = 0.01;
+export function recordDiffs(actual, pinned, path = '', out = []) {
+  const show = (v) => (v === undefined ? 'undefined' : JSON.stringify(v));
+  const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+  if (isNum(actual) && isNum(pinned)) {
+    const d = Math.abs(actual - pinned);
+    // 1e-9: the slack for the subtraction itself (0.01 is not exactly representable)
+    const tol = MONEY_PATH.test(path) ? Math.max(MONEY_ABS_TOL, MONEY_REL_TOL * Math.max(Math.abs(actual), Math.abs(pinned)))
+      : COVERAGE_PATH.test(path) ? COVERAGE_TOL : null;
+    if (tol == null ? actual !== pinned : d > tol + 1e-9) out.push(path + ': ' + show(actual) + ' (pinned ' + show(pinned) + ')');
+  } else if (Array.isArray(actual) && Array.isArray(pinned)) {
+    if (actual.length !== pinned.length) out.push(path + ': ' + actual.length + ' items (pinned ' + pinned.length + ')');
+    else actual.forEach((x, i) => recordDiffs(x, pinned[i], path + '[' + i + ']', out));
+  } else if (isObj(actual) && isObj(pinned)) {
+    for (const k of [...new Set([...Object.keys(actual), ...Object.keys(pinned)])].sort()) recordDiffs(actual[k], pinned[k], path ? path + '.' + k : k, out);
+  } else if (actual !== pinned) out.push((path || '(record)') + ': ' + show(actual) + ' (pinned ' + show(pinned) + ')');
+  return out;
+}
+
+/**
  * Freeze the market: the gilt universe and the equity level come from the committed copies in market/, not
  * from src/data/*Snapshot.js, which the nightly data job rewrites. Returns the `as_of` dates for the record.
  */
@@ -117,7 +163,7 @@ export function seedGuestStore(scenario) {
   invalidateScenarioCache(); invalidateDecisionCache(); invalidateStressCache();
 }
 
-/** The strategy headline, rounded so the pin survives a last-bit float difference but not a real change. */
+/** The strategy headline in whole pounds / 2 dp — readable in a diff. Compared with recordDiffs(), which is what makes the pin survive a last-bit float difference but not a real change (rounding alone does not: see there). */
 export function headlineOf(r, p) {
   if (!r.affordable) return { affordable: false, reason: r.reason ?? null };
   const N = p.durationYears;

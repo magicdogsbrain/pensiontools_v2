@@ -20,6 +20,7 @@ import { readFileSync, readdirSync, existsSync, writeFileSync, mkdtempSync, rmSy
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { recordDiffs } from './fixtures/plans/checks.mjs';
 
 const LOCAL_DIR = resolve(__dirname, 'fixtures', 'local');
 const RUNNER = resolve(__dirname, 'fixtures', 'plans', 'run.mjs');
@@ -76,7 +77,9 @@ if (!files.length) {
       // No pin yet and not asked to write one: fail rather than pass silently — an unpinned plan is no net.
       expect(pinned, 'no pinned answers for ' + file + ' — run once with PIN_OWNER_PLAN=1 to write ' + pinPath).not.toBeNull();
       expect(answers.market, 'the corpus market data (tests/fixtures/plans/market) was re-pinned after these answers were taken — re-pin with PIN_OWNER_PLAN=1 and review the diff').toEqual(pinned.market);
-      expect(answers.plans).toEqual(pinned.plans);
+      // Exact, except simulated money (within £1 or one part in a million): the pin may have been taken on another machine or Node version.
+      expect(Object.keys(answers.plans).sort()).toEqual(Object.keys(pinned.plans).sort());
+      expect(Object.keys(answers.plans).flatMap((k) => recordDiffs(answers.plans[k], pinned.plans[k]).map((d) => k + ' — ' + d))).toEqual([]);
     });
   });
 }

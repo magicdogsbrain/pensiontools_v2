@@ -92,7 +92,10 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   const split = splitLadderAtAge(plan, cutAge);
   // years to maturity per sold order (from the plan's first tax year)
   const firstTY = plan.firstTaxYear;
-  for (const o of split.soldOrders) o.yearsToMaturity = Math.max(0.1, (new Date(o.matures) - new Date(firstTY - 1, 3, 6)) / (365.25 * 864e5));
+  // Both ends in UTC: `matures` is an ISO date (midnight UTC), so the 6 April it is measured from must be
+  // too — a local 6 April is an hour (UK) to half a day (elsewhere) off, which moved the cones by a few pounds
+  // between time zones.
+  for (const o of split.soldOrders) o.yearsToMaturity = Math.max(0.1, (Date.parse(o.matures) - Date.UTC(firstTY - 1, 3, 6)) / (365.25 * 864e5));
   const keptSet = new Set(split.soldOrders.map((o) => o.tidm));
   const costByYear = {}; for (const o of plan.orders) if (!keptSet.has(o.tidm)) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
   const keptWealthByYear = [];

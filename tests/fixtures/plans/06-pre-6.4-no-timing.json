@@ -457,7 +457,7 @@
      "year": 35
     }
    ],
-   "engineVersion": "6.4.0",
+   "engineVersion": "6.13.4",
    "glidepath": [
     {
      "totalMin": 870000,
@@ -692,7 +692,7 @@
   "name": "Plan A"
  },
  "strategy": {
-  "engineVersion": "6.4.0",
+  "engineVersion": "6.13.4",
   "id": "pots-and-valves",
   "lockedAt": "2026-03-02T10:00:00.000Z",
   "params": {}

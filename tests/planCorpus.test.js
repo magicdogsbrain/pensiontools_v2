@@ -16,8 +16,14 @@
  *
  * Clock, time zone and market data are pinned: every engine reads `new Date()` with local-date maths, and the
  * gilt file is rewritten nightly. The evaluation therefore runs in a child Node process (fixtures/plans/run.mjs
- * → clock.mjs) — a vitest worker thread cannot set its own time zone, and the answers differ by a few pounds
- * between UTC and Europe/London.
+ * → clock.mjs) — a vitest worker thread cannot set its own time zone. (Until 6.13.4 the answers differed by a
+ * few pounds between UTC and Europe/London — a clock-change hour in the State Pension's first-year share; the
+ * "time zone does not move an answer" block below now holds them equal across zones.)
+ *
+ * Portability: the snapshot was written on one machine and is compared on another (the owner's Apple-silicon
+ * Mac, the Linux x64 CI runner, different Node versions). The random stream is integer arithmetic and identical
+ * everywhere (MathUtils.seededRng); what is left is last-bit noise in Math.pow/log/cos, which recordDiffs()
+ * tolerates on simulated money only.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -27,6 +33,7 @@ import { join, resolve } from 'node:path';
 
 import { normalizeScenario } from '../src/firebase/scenarioMigration.js';
 import { sortLegacyParams, activeParams, allowedKeys } from '../src/services/StrategyState.js';
+import { recordDiffs } from './fixtures/plans/checks.mjs';
 
 const PLANS_DIR = resolve(__dirname, 'fixtures', 'plans');
 const load = (f) => JSON.parse(readFileSync(join(PLANS_DIR, f), 'utf8'));
@@ -183,6 +190,64 @@ describe.each(names)('plan corpus — %s', (n) => {
     expect(failures(n, 4)).toEqual([]);
   });
   it('matches the committed snapshot (checksum + headline) — regenerate with build.mjs only for an explained change', () => {
-    expect(run.plans[n].record).toEqual(snapshot.plans[n]);
+    // Exact, except simulated money (within £1 or one part in a million) — see recordDiffs for why and why not rounding.
+    expect(recordDiffs(run.plans[n].record, snapshot.plans[n])).toEqual([]);
+  });
+});
+
+// The same plan, the same instant, another time zone: the same answers, to the last digit (same machine, so no
+// tolerance). Until 6.13.4 these differed by £1–£15 — State Pension first-year shares and gilt maturities were
+// measured in milliseconds between LOCAL dates, which are an hour out across a clock change. One plan of each
+// kind that was affected: a pot strategy with a State Pension date, the gilt ladder, a saver whose age was
+// recorded on a date, a legacy plan with no timing, and gilt rotation.
+describe('plan corpus — the time zone does not move an answer', () => {
+  const some = ['02-pnv-draft', '03-gilt-ladder-runup', '05-saver-committed', '06-pre-6.4-no-timing', '07-pre-6.13-flat-params'];
+  const zones = ['UTC', 'America/Los_Angeles', 'Pacific/Auckland'];
+  const byZone = {};
+  beforeAll(() => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-corpus-tz-'));
+    try {
+      for (const z of zones) {
+        const out = join(dir, 'out.json');
+        execFileSync(process.execPath, [join(PLANS_DIR, 'run.mjs'), '--now', snapshot.corpusNow, '--out', out, ...some.map((n) => join(PLANS_DIR, n + '.json'))], { stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, CORPUS_TZ: z } });
+        byZone[z] = JSON.parse(readFileSync(out, 'utf8'));
+      }
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }, 180000);
+  it.each(zones)('%s gives exactly the Europe/London answers', (z) => {
+    for (const n of some) expect(byZone[z].plans[n].record, n).toEqual(run.plans[n].record);
+  });
+});
+
+describe('plan corpus — the comparison with the snapshot', () => {
+  const rec = () => JSON.parse(JSON.stringify(snapshot.plans['02-pnv-draft']));
+  it('an identical record has no differences', () => {
+    expect(recordDiffs(rec(), snapshot.plans['02-pnv-draft'])).toEqual([]);
+  });
+  it('tolerates a last-bit rounding flip on simulated money: £1, or one part in a million on a large figure', () => {
+    const r = rec();
+    r.headline.terminalP50 += 1; r.headline.terminalP10 -= 1; r.headline.cone.wealthP50[2] += 1;
+    r.headline.terminalP90 = Math.round(r.headline.terminalP90 * (1 + 0.9e-6));
+    r.headline.coverage = Math.round((r.headline.coverage - 0.01) * 100) / 100;
+    expect(recordDiffs(r, snapshot.plans['02-pnv-draft'])).toEqual([]);
+  });
+  it('does NOT tolerate a real change: £2 on a cone, a ruin rate, a checksum, a stage, a lost key', () => {
+    const pin = snapshot.plans['02-pnv-draft'];
+    const one = (mut) => { const r = rec(); mut(r); return recordDiffs(r, pin).length; };
+    expect(pin.headline.terminalP50).toBeLessThan(1e6);   // so £2 is outside the relative tolerance too
+    expect(one((r) => { r.headline.terminalP50 += 2; })).toBe(1);
+    expect(one((r) => { r.headline.cone.wealthP10[1] -= 2; })).toBe(1);
+    expect(one((r) => { r.headline.terminalP90 = Math.round(r.headline.terminalP90 * 1.00001); })).toBe(1);
+    expect(one((r) => { r.headline.coverage -= 0.03; })).toBe(1);
+    expect(one((r) => { r.headline.ruinMc += 0.1; })).toBe(1);
+    expect(one((r) => { r.headline.ruinHist += 0.01; })).toBe(1);
+    expect(one((r) => { r.decisionChecksum += 'x'; })).toBe(1);
+    expect(one((r) => { r.stressChecksum = '0'; })).toBe(1);
+    expect(one((r) => { r.stage = 'running'; })).toBe(1);
+    expect(one((r) => { r.startAge += 1; })).toBe(1);
+    expect(one((r) => { r.holdings.total += 0.01; })).toBe(1);
+    expect(one((r) => { delete r.headline.spentMedian; })).toBe(1);
+    expect(one((r) => { r.headline.cone.years.pop(); })).toBe(1);
+    expect(one((r) => { r.headline = null; })).toBe(1);
   });
 });

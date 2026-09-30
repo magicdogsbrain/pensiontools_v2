@@ -36,8 +36,12 @@ export function parseStatePensionDate(dateStr) {
   const s = dateStr.trim().replace(/\s+/g, ' ');
 
   // Try ISO format (2037-04-21)
+  // Built from its parts as a LOCAL date, like every other format below. `new Date('2037-04-21')` is
+  // midnight UTC, which is the evening of the 20th anywhere west of Greenwich — a different calendar day
+  // (and, on 6 April, a different tax year) from the same date typed as "21 April 2037".
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const d = new Date(s);
+    const [year, month, day] = s.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
     if (!isNaN(d.getTime())) return d;
   }
 
@@ -105,6 +109,17 @@ export function parseStatePensionDate(dateStr) {
  * @param {Date|string} date - Date to format
  * @returns {string} Formatted date like "21 April 2037"
  */
+/**
+ * Calendar-day number of a date's LOCAL year/month/day (days since 1970-01-01, a whole number).
+ * Day counts between two dates must be taken from these, never from a millisecond difference:
+ * 6 April is in summer time and a winter date is not, so in the UK "14 March to 6 April" is
+ * 23 days less an hour in milliseconds but exactly 23 days in UTC — the same plan then gave
+ * answers a few pounds apart in different time zones, and a Math.floor of the quotient lost a day.
+ */
+export function calendarDayNumber(d) {
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+}
+
 export function formatStatePensionDate(date) {
   const d = typeof date === 'string' ? parseStatePensionDate(date) : date;
   if (!d || isNaN(d.getTime())) return '';
@@ -233,8 +248,8 @@ export function calculateStatePensionForTaxYear(params) {
 
   if (isFirstYear) {
     // Calculate weeks from SP start to end of tax year
-    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksInYear = Math.max(0, (taxYearEnd.getTime() - startDate.getTime()) / msPerWeek);
+    // Whole calendar days (see calendarDayNumber) — not milliseconds, which are an hour short across a clock change.
+    const weeksInYear = Math.max(0, (calendarDayNumber(taxYearEnd) - calendarDayNumber(startDate)) / 7);
     const proRataAnnual = inflatedWeekly * weeksInYear;
 
     return {
@@ -399,7 +414,9 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
     spStartYear = Math.floor((Math.round(yearsUntilSp * 12) + 1) / 12);
   }
   const daysInYear = 365;
-  const dayOfYear = Math.floor((spDate - new Date(spDate.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
+  // Calendar days, not milliseconds: a summer date is an hour "short" of a whole number of days from
+  // 1 January wherever clocks change, and the old Math.floor of that lost a day (UK) or did not (UTC).
+  const dayOfYear = calendarDayNumber(spDate) - calendarDayNumber(new Date(spDate.getFullYear(), 0, 0));
   const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;
   return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: firstYearRatio };
 }
@@ -422,7 +439,7 @@ export function spTaxYearFirstRatio(settings) {
   if (!spDate) return null;
   const ty = (spDate.getMonth() > 3 || (spDate.getMonth() === 3 && spDate.getDate() >= 6)) ? spDate.getFullYear() : spDate.getFullYear() - 1;
   const yStart = new Date(ty, 3, 6), yEnd = new Date(ty + 1, 3, 6);
-  return Math.max(0, Math.min(1, (yEnd - spDate) / (yEnd - yStart)));
+  return Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
 }
 
 export function spTaxYearConfigFromSettings(settings, now = new Date()) {
@@ -433,6 +450,6 @@ export function spTaxYearConfigFromSettings(settings, now = new Date()) {
   // Plan year 0 is the plan's saved first tax year (6.4.0) — "today" only when the plan has none.
   const spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear > 0 ? +settings.firstTaxYear : tyStart(now)));
   const yStart = new Date(tyStart(spDate), 3, 6), yEnd = new Date(tyStart(spDate) + 1, 3, 6);
-  const spFirstYearRatio = Math.max(0, Math.min(1, (yEnd - spDate) / (yEnd - yStart)));
+  const spFirstYearRatio = Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
   return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio };
 }

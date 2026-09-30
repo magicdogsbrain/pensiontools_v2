@@ -20,8 +20,10 @@ import {
   saveScenario,
   createScenario,
   deleteScenarioDoc,
-  setActiveScenarioDoc
+  setActiveScenarioDoc,
+  isScenarioNewerThanApp
 } from '../firebase/FirestoreService.js';
+import { SCHEMA_VERSION, isNewerSchema } from './schema.js';
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { defaultBudget } from '../services/BudgetModel.js';
@@ -302,6 +304,9 @@ export function ensureStrategyBlock(scenario) {
 
 export function getDefaultScenario(name = 'My Plan', description = '', enabledTools = ['stress', 'decision']) {
   return {
+    // The saved-plan schema version (6.15.0, ./schema.js). At the ROOT — never inside a settings map, so it
+    // never enters decisionSettingsChecksum. New plans, duplicates and partner plans are born current.
+    schemaVersion: SCHEMA_VERSION,
     planDetails: { name, description },
     enabledTools,
     isActive: true,
@@ -377,6 +382,21 @@ export async function getActiveScenarioAsync() {
     console.error('Error getting active scenario:', error);
     return null;
   }
+}
+
+/**
+ * True when the plan was saved by a NEWER version of the app than this code — a tab left open across a
+ * deploy (6.15.0). Every save of such a plan is refused (saveScenario throws a PlanNewerThanAppError and
+ * writes nothing); the shell shows "This plan was updated by a newer version of the app — reload the page".
+ * Synchronous, so a banner can ask on every render: with no argument it answers for the active plan as last
+ * loaded (false when nothing is loaded). A save that discovers it (the stored copy moved on after this tab
+ * loaded it) flips it to true.
+ * @param {object} [scenario] - a loaded scenario; default: the active plan
+ * @returns {boolean}
+ */
+export function isPlanNewerThanApp(scenario = cachedActiveScenario) {
+  if (!scenario || typeof scenario !== 'object') return false;
+  return isNewerSchema(scenario) || (scenario.id != null && isScenarioNewerThanApp(scenario.id));
 }
 
 /**

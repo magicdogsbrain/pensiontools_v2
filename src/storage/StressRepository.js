@@ -182,6 +182,9 @@ export async function saveStressDB(db) {
     cachedStressDB = db;
   } catch (error) {
     console.error('Error saving stress data:', error);
+    // A plan saved by a newer version of the app (a tab left open across a release): pass the refusal on as it
+    // is, so the screen can say "reload the page" instead of a generic failure (6.15.0).
+    if (error && error.code === 'plan-newer-than-app') throw error;
     throw new Error('Failed to save stress data');
   }
 }

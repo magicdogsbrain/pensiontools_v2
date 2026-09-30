@@ -19,9 +19,20 @@
  *   are on or above their glidepaths does not count (until 6.13.4 the count was of consecutive
  *   cash-sourced draws, and the diversifiers were left out of the comparison).
  *
- * The diversifiers sleeve is "held flat": its glidepath is its starting value, every month (the
- * same target WithdrawalSourcing ranks it against). The break-glass HODL reserve is not a growth
- * pot and is on neither side.
+ * THE DIVERSIFIERS SLEEVE'S GLIDEPATH (owner, 30 Sep 2026: "same as shares and bonds"): the sleeve's
+ * starting value, raised by inflation and run down in a straight line to nothing at the end of the
+ * plan — exactly how the shares and bonds glidepaths move (GlidepathService.calculateGlidepath with
+ * the growth-fund flag; see diversifierGlidepath below). Until 6.14.0 it was the starting value,
+ * flat in pounds. The bond tent re-divides the shares + bonds total between those two only, so it
+ * does not touch the sleeve's line. The break-glass HODL reserve is not a growth pot and is on
+ * neither side. (WithdrawalSourcing still ranks the sleeve against its flat starting value when it
+ * chooses which pot pays — a separate question from this comparison.)
+ *
+ * WHOLE PENNIES: both sides are rounded to the penny before they are compared (pennies / isBelow).
+ * Sourcing leaves pots sitting EXACTLY on their floors, so the comparison is regularly made at
+ * equality, where the last binary digit of a sum of three pots decided the month (one case turned
+ * on 2.9e-11 of a pound). A pot on its glidepath to the penny is on it, not below it. The same
+ * penny comparison decides leaving (above glidepaths + buffer), in both engines.
  *
  * Buckets in order has its own comparison (the WHOLE pot against the whole track, cash included,
  * with a dead band) and passes that through the same function: only what is compared differs.
@@ -30,6 +41,7 @@
  */
 
 import { DRAWDOWN_DEFAULTS } from '../constants.js';
+import { calculateGlidepath } from './GlidepathService.js';
 
 export const PROTECTION_DEFAULTS = {
   CONSECUTIVE_LIMIT: 3,   // consecutive months below the glidepaths (the current month included) to enter
@@ -40,6 +52,30 @@ export const PROTECTION_DEFAULTS = {
   RECOVERY_BUFFER: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER
 };
 
+/** An amount in whole pennies — what every protection comparison is made in. */
+export function pennies(amount) {
+  return Math.round((amount || 0) * 100);
+}
+
+/** Is `amount` less than `line`, to the penny? (A pot on its line to the penny is ON it.) */
+export function isBelow(amount, line) {
+  return pennies(amount) < pennies(line);
+}
+
+/**
+ * The diversifiers sleeve's glidepath for a plan year: its starting value raised by inflation and
+ * run down in a straight line to nothing at the end of the plan — the identical treatment to the
+ * shares and bonds glidepaths. ONE definition for both engines.
+ * @param {number} startValue - the sleeve's starting value (settings/config diversifierStart)
+ * @param {number} year - plan year (0-indexed)
+ * @param {number} duration - plan length in years
+ * @param {number} cumulativeInflation - cumulative inflation factor for that year
+ * @returns {number}
+ */
+export function diversifierGlidepath(startValue, year, duration, cumulativeInflation) {
+  return calculateGlidepath(startValue || 0, year, duration, cumulativeInflation, true);
+}
+
 /**
  * The two sides of the owner's comparison for one month: what the growth pots add up to, and what
  * their glidepaths add up to. ONE definition for both engines, so neither can leave a pot out.
@@ -47,13 +83,13 @@ export const PROTECTION_DEFAULTS = {
  * @param {number} p.equity, p.bond - shares and bonds pots
  * @param {number} [p.diversifier=0] - diversifiers sleeve
  * @param {number} p.equityGlide, p.bondGlide - this month's glidepath value of each
- * @param {number} [p.diversifierGlide=0] - the sleeve's held-flat target (its starting value)
- * @returns {{growth: number, glide: number, below: boolean}}
+ * @param {number} [p.diversifierGlide=0] - the sleeve's glidepath this month (diversifierGlidepath)
+ * @returns {{growth: number, glide: number, below: boolean}} below: growth is less than glide, in whole pennies
  */
 export function growthVsGlide({ equity, bond, diversifier = 0, equityGlide, bondGlide, diversifierGlide = 0 }) {
   const growth = (equity || 0) + (bond || 0) + (diversifier || 0);
   const glide = (equityGlide || 0) + (bondGlide || 0) + (diversifierGlide || 0);
-  return { growth, glide, below: growth < glide };
+  return { growth, glide, below: isBelow(growth, glide) };
 }
 
 /**
@@ -77,13 +113,14 @@ export function assessProtection({
 }) {
   let inProtection = false;
 
+  // Both tests in whole pennies (see the header): equality to the penny is "on the line".
   // Continue protection from last month until the growth pots recover above their glidepaths + buffer.
   if (wasInProtection) {
-    inProtection = totalGrowth <= minGrowth + recoveryBuffer;
+    inProtection = pennies(totalGrowth) <= pennies(minGrowth + recoveryBuffer);
   }
 
   // Enter when this month is below the glidepaths and completes the run (+1 = this month).
-  if (!inProtection && totalGrowth < minGrowth && (consecBelowGlide || 0) + 1 >= consecutiveLimit) {
+  if (!inProtection && isBelow(totalGrowth, minGrowth) && (consecBelowGlide || 0) + 1 >= consecutiveLimit) {
     inProtection = true;
   }
 

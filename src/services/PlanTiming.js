@@ -306,3 +306,51 @@ export function describeTiming(t, settings, now = new Date()) {
   if (+s.duration > 0) parts.push('Plan runs to age ' + (t.shapeAgeNow + (+s.duration) - 1) + '.');
   return parts.join(' ');
 }
+
+/**
+ * A DRAFT whose start year has passed (owner decision, 6.15.0: "offer to update it to today; no automatic
+ * deletion"). Since 6.13.5 a saved start year is never moved, so a plan drafted for 2027/28 and opened in 2029
+ * reads as "already running" although nothing was ever committed. Pure; the screen decides what to do with it.
+ *
+ *  - Locked plans are never stale: their start year is the plan of record (null).
+ *  - Nor is a plan with months already recorded in the Decision tool (an unlocked plan keeps its records): it
+ *    really is running, and moving its year 0 would turn its recorded months into run-up months.
+ *  - Already retired (or no age recorded): stale when the saved year is before the current tax year.
+ *  - Retiring later at an age: the year is derived from that age, so the plan is stale once the tax year in
+ *    which the age is reached has passed.
+ *  - "Leave it" is remembered per saved year in `staleDraftDismissedFor`: no second offer for that year.
+ * The suggestion is always the current tax year ("start now").
+ *
+ * @returns {null | { savedYear: number, savedLabel: string, suggestedYear: number, suggestedLabel: string, mode: 'retired'|'future'|'legacy' }}
+ */
+export function staleDraft(settings, { locked = false, hasRecords = false, now = new Date() } = {}) {
+  if (locked || hasRecords) return null;
+  const s = settings || {};
+  const thisTY = taxYearStartOf(now);
+  const hasAge = +s.currentAge > 0;
+  let savedYear = 0, mode = 'retired';
+  if (hasAge && s.retired === false && +s.retireAge > 0) { mode = 'future'; savedYear = taxYearOfAge(s, +s.retireAge, now) || 0; }
+  else if (+s.firstTaxYear > 0) { savedYear = +s.firstTaxYear; if (!hasAge) mode = 'legacy'; }
+  else if (!hasAge && +s.legacyFirstTaxYear > 0) { mode = 'legacy'; savedYear = +s.legacyFirstTaxYear; }
+  if (!(savedYear > 0) || savedYear >= thisTY) return null;
+  if (+s.staleDraftDismissedFor === savedYear) return null;
+  return { savedYear, savedLabel: taxYearLabel(savedYear), suggestedYear: thisTY, suggestedLabel: taxYearLabel(thisTY), mode };
+}
+
+/** The banner's one sentence. */
+export function staleDraftMessage(sd) {
+  return 'This plan was set to start in ' + sd.savedLabel + ', which has passed. Update it to start now (' + sd.suggestedLabel + ')?';
+}
+
+/**
+ * The start-year drop-down's options: this tax year and next 6 April, plus — so the control is never blank —
+ * a saved (or currently chosen) year that is neither, labelled "2027/28 (saved)".
+ * @returns {{ year: number, label: string, saved: boolean }[]} in year order
+ */
+export function startYearChoices(timing, savedYear = null) {
+  const two = (timing && timing.startOptions) || [];
+  const extra = [...new Set([+savedYear, +(timing && timing.firstTaxYear)].filter((Y) => Y > 0 && !two.includes(Y)))];
+  const out = two.map((Y, i) => ({ year: Y, label: (i === 0 ? 'this tax year' : 'next 6 April') + ' — ' + taxYearLabel(Y), saved: false }));
+  if (timing && timing.mode !== 'future') for (const Y of extra) out.push({ year: Y, label: taxYearLabel(Y) + ' (saved)', saved: true });
+  return out.sort((a, b) => a.year - b.year);
+}

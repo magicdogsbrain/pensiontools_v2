@@ -2173,7 +2173,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-4F0fp0lL.js"></script>
+  <script type="module" crossorigin src="./assets/main-c5bexiDm.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2216,6 +2216,9 @@
               <button id="scenarioNewBtn">+ New Plan</button>
               <button id="scenarioDuplicateBtn">Duplicate</button>
             </div>
+            <div class="scenario-dropdown-actions" style="padding-top:0;">
+              <button type="button" id="scenarioExportBtn" title="Save a copy of this plan on your own computer. Nothing is sent anywhere." data-on-click="exportActivePlan()">Download this plan (JSON)</button>
+            </div>
           </div>
         </div>
         <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
@@ -2241,6 +2244,10 @@
 
       <!-- Tabs -->
       <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
+<div id="planNewerBanner" role="alert" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--danger, #dc2626); border-radius:var(--radius); background:rgba(220,38,38,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span style="flex:1; min-width:220px;">This plan was updated by a newer version of the app — reload the page. Nothing you change here will be saved until you do.</span>
+        <button type="button" class="risk-btn" data-on-click="reloadPage()">Reload the page</button>
+      </div>
 <div id="nextStepBanner" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--accent); border-radius:var(--radius); background:rgba(99,102,241,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span id="nextStepText" style="flex:1; min-width:220px;"></span>
         <button type="button" id="nextStepBtn" class="risk-btn" style="border-color:#6366f1;"></button>
@@ -2666,7 +2673,7 @@
                   <input type="number" id="dsProtEscalate" value="12" min="0" max="60">
                 </div>
                 <div class="form-group">
-                  <label>Cash Draws Before Protection</label>
+                  <label>Months Below Glidepath Before Protection</label>
                   <input type="number" id="dsConsecutiveLimit" value="3">
                 </div>
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
@@ -2944,6 +2951,7 @@
           <div class="card">
             <h2>Stress Tester Settings</h2>
             <div id="ssLockBanner" class="lock-banner" style="display:none;"></div>
+            <div id="ssStaleDraftBanner" class="lock-banner amending stale-draft-banner" style="display:none;"></div>
 
             <!-- Legacy net-first target box: superseded by "Your income shape" (step 1 = this figure). Kept hidden so the save/load + net⇄gross plumbing (ssNetSpend/ssBaseSalary) keeps working. -->
             <div class="settings-section" style="display:none;">
@@ -3141,6 +3149,7 @@
               </div>
               <div id="ssTimingBlock" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-alt);">
                 <div class="section-title" style="font-size:13px;">When your plan starts <span class="hint" style="font-weight:normal;">— year 0 for every tool, the gilt ladders and the Decision tool</span></div>
+                <div id="tmStaleDraftBanner" class="lock-banner amending stale-draft-banner" style="display:none;"></div>
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have already retired</label>
@@ -3565,7 +3574,7 @@
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Cash Draws Before Protection</label>
+                  <label>Months Below Glidepath Before Protection</label>
                   <input type="number" id="ssConsecutiveLimit" value="3">
                 </div>
                 <div class="form-group">

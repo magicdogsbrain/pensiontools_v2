@@ -34,6 +34,7 @@
 import { describe, it, expect } from 'vitest';
 import { stressConfigs } from '../golden/matrix.js';
 import { replayStateful, summarize } from './harness.js';
+import { equityGlideFromRisk } from '../../src/services/GlidepathService.js';
 
 const SEEDS = 20;
 const EPS = 0.01;
@@ -117,4 +118,39 @@ describe('cross-validation v2: full replay with protection on', () => {
     expect(h).toHaveProperty('isa');
     expect(h).toHaveProperty('taxYear');
   });
+});
+
+// The diversifiers sleeve (6.15.0): its glidepath is its starting value raised by inflation and run down over
+// the plan like the shares and bonds glidepaths, in BOTH engines, and the comparison is made in whole pennies.
+// Replayed with the sleeve alone and with the bond tent on as well (the tent re-divides shares and bonds only).
+describe('cross-validation v2: a diversifiers sleeve on its own glidepath', () => {
+  const sleeve = {
+    ...stressConfigs[0].config,
+    equityStart: 150000, bondStart: 90000, cashStart: 15000, equityMin: 150000, bondMin: 90000, cashTarget: 15000,
+    diversifierStart: 45000, baseSalary: 18000, duration: 30, years: 30,
+    disableProtection: false, consecutiveLimit: 3, recoveryBuffer: 15000
+  };
+  const cases = [
+    ['sleeve', sleeve],
+    ['sleeve + bond tent', { ...sleeve, equityGlide: equityGlideFromRisk(150000, 90000) }],
+    ['sleeve, no State Pension (a plan under strain)', { ...sleeve, statePension: 0, statePensionYear: 99, spStartYear: undefined, spWeeklyAmount: undefined }]
+  ];
+  for (const [name, cfg] of cases) {
+    it(`the two engines call every month's protection state the same: ${name}`, async () => {
+      let months = 0, prot = 0, mismatch = 0, nonFinite = 0;
+      for (let seed = 0; seed < 10; seed++) {
+        const res = await replayStateful(cfg, seed);
+        for (const r of res.rows) {
+          months++;
+          if (r.simProt) prot++;
+          if (r.simProt !== r.decProt) mismatch++;
+          if (!Number.isFinite(r.decSipp) || !Number.isFinite(r.decIsa)) nonFinite++;
+        }
+      }
+      expect(months).toBeGreaterThan(2000);
+      expect(prot).toBeGreaterThan(50);          // protection really was exercised
+      expect(nonFinite).toBe(0);
+      expect(mismatch).toBe(0);
+    });
+  }
 });

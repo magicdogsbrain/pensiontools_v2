@@ -53,6 +53,59 @@ without bumping.
 8. If the release adds a data category, a processor or analytics: update
    `compliance/PRIVACY_POLICY.md` + `public/privacy.html` FIRST (see `compliance/GDPR_TODO.md`).
 
+## Saved-plan schema version (`schemaVersion`)
+
+Every saved plan carries one whole number at its ROOT, `schemaVersion` (absent = 0, every plan saved
+before 6.15.0). `src/storage/schema.js` holds the one constant, `SCHEMA_VERSION`; the ordered chain
+of upgrades is `MIGRATIONS` in `src/storage/migrations.js`. On every load (signed in, guest, and
+when a plan is created — a new plan, a copy, a guest plan brought into an account) the plan is
+normalised and then moved up the chain, and written back once if anything changed.
+`tests/migrations.test.js` enforces the contract: `SCHEMA_VERSION` must equal the last entry's `to`
+and the chain must be contiguous from 1 — so you cannot bump without a migration, or add a
+migration without bumping.
+
+**When to add one.** Only when the SHAPE of a saved plan changes: a key renamed, moved or split, a
+value that must be written down once instead of worked out on every load. A new optional key that
+is read with a default needs no migration.
+
+**How to add one.**
+
+1. Bump `SCHEMA_VERSION` by one in `src/storage/schema.js`.
+2. Append ONE entry to `MIGRATIONS`: `{ to: <new version>, name: '<plain English>', up(scenario, { now }) }`.
+   Never edit an entry that has shipped — plans in the wild have already been through it.
+3. Add a fixture of the OLD shape to `tests/fixtures/plans/` (see `build.mjs`), so the corpus keeps
+   a plan that has to make the journey, and update the "this release is schema version N" test.
+4. Say what it does to saved plans in the release note's `effects{}`.
+
+**Rules for every step** (the runner refuses a step that breaks the ones marked *enforced*, and
+the plan is then left exactly as it was):
+
+- Pure and synchronous. No storage, no DOM; the clock is the `now` passed in. The result must not
+  depend on today's date (the tests run each fixture either side of 6 April).
+- Patch paths; keep every key you do not know. Never rebuild an object from a fixed list of keys —
+  the write-back is a full replace, so anything left out is gone for good. No root key may
+  disappear (*enforced*).
+- Idempotent: run on its own output it changes nothing.
+- Never touch `planDocument`, `planDocumentArchive`, `decisionTool.planOfRecord`,
+  `decisionTool.planOfRecordArchive` or `decisionTool.history` (*enforced*). They are the record of
+  what was committed; change how they are READ instead.
+- **Never add, rename or remove a key inside `decisionTool.settings` of a plan that is locked or
+  has records** (*enforced*). That map is what `decisionSettingsChecksum` hashes; move it and every
+  recorded month shows as "under previous settings". Put new things at the root or under a new map.
+- A step that throws abandons the whole chain for that plan: nothing is written, the plan opens as
+  it is, and the next load tries again. There is no backup collection — this rule is the safety.
+
+**Old tabs.** A tab left open across a deploy still runs the old code. Every save first reads the
+stored plan's `schemaVersion`; if it is greater than the tab's `SCHEMA_VERSION` the save is refused
+and the app shows "This plan was updated by a newer version of the app — reload the page". This
+guard shipped in 6.15.0, so only bundles from 6.15.0 onward are protected: do not ship schema
+version 2 until 6.15.0 has been live long enough for older tabs to have been closed.
+
+**Still done the old way** (worked out on load, outside the chain): the plan's start year
+(`PlanTiming.pinTiming`, written back by `StressRepository.loadStressDBAsync` since 6.14.0 — it
+depends on today's date and the Budget's age, so it cannot be a pure step), the "Declining with
+age" spending bake, and the merge of default Stress settings.
+
 ## How users see it
 
 - The "What's new" pop-up appears once per announced release, after the app has loaded. Signed-in

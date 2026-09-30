@@ -22,7 +22,11 @@
  * lastModified — and the parts of decisionTool/stressTool outside settings/history/taxYears
  * (planOfRecord and its archive). The previous fixed-key rebuild threw all of those away, and
  * the follow-up `setDoc` (no merge) made the loss permanent.
+ *
+ * 6.15.0: `upgradeScenario` is what every read path now calls — normalizeScenario (which produces a
+ * well-formed version-0 document) and then the versioned chain in src/storage/migrations.js.
  */
+import { migrateScenario } from '../storage/migrations.js';
 
 /** The pre-restructure top-level fields; they are folded in and then dropped. */
 const LEGACY_KEYS = ['decisionSettings', 'stressSettings', 'name', 'description', 'taxYears'];
@@ -77,4 +81,27 @@ export function normalizeScenario(raw) {
   clean.stressTool = { ...st, settings: st.settings ?? raw.stressSettings ?? {} };
 
   return { scenario: clean, migrated: true };
+}
+
+/**
+ * Everything a read path does to a stored plan before the app sees it (6.15.0): normalise, then move it up
+ * the schema chain. Pure — the caller does the write.
+ *
+ * @param {object} raw - the stored document (may include `id`)
+ * @param {{ now?: Date|string }} [opts] - the clock, for the migration steps
+ * @returns {{ scenario: object, write: boolean, from: number, to: number, newer: boolean, error: Error|null }}
+ *   - `write`: the stored document should be replaced by `scenario` (it was normalised and/or migrated).
+ *     Never true when the chain failed or the plan is newer than this code: a failed migration leaves the
+ *     stored plan untouched, and an old tab must not write over a newer plan.
+ *   - `error`: a step failed. `scenario` is then the plan as it stands (normalised in memory only).
+ *   - `newer`: the plan was saved by a newer version of the app than this code; it must not be saved from here.
+ */
+export function upgradeScenario(raw, { now } = {}) {
+  const n = normalizeScenario(raw);
+  const m = migrateScenario(n.scenario, now === undefined ? {} : { now });
+  return {
+    scenario: m.scenario,
+    write: !m.error && !m.newer && (n.migrated || m.changed),
+    from: m.from, to: m.to, newer: m.newer, error: m.error
+  };
 }

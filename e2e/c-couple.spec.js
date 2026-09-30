@@ -5,9 +5,18 @@
  * partner's boxes appear, the answer shows that it is being worked out again and then the couple's figures.
  * "Answer in full detail" opens and comes back to the same figures. Changing the partner's pot changes every
  * place the household figure is shown, together.
+ *
+ * The waits are set from a measurement, not blindly: the couple's answer (F2, the first figure of 100 futures and
+ * the final of 1,000) measured on the page's main thread with the processor slowed four times — 1.4 s in
+ * Chromium on 30 September 2026 (scratch benchmark: reference path 13.9 s) — times three, plus half a second for
+ * a cold worker. The whole journey asks for three answers.
  */
 import { test, expect, v7, waitsFor, fixtureTyping, drawnValues, BUILT, FINAL_ENV } from './helpers/app.js';
 import { money } from '../src/answers/shared/format.js';
+
+const MEASURED_COUPLE_MS = 1_400;                        // first + final figure, processor slowed four times
+const ANSWER_MS = MEASURED_COUPLE_MS * 3 + 500;          // one answer's wait: 4.7 s
+const JOURNEY_MS = 3 * ANSWER_MS + 15_000;               // three answers, the typing and the screens between: ~29 s
 
 /** A money box, once left, shows whole pounds with their commas: "400000" typed reads "400,000". */
 const tidy = (typed) => money(Number(String(typed).replace(/[£,\s]/g, ''))).slice(1);
@@ -16,6 +25,7 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
   test.beforeEach(() => waitsFor('screens', 'shell'));
 
   test('adds a partner after the first answer; nothing is lost; the household figure moves together', async ({ page }) => {
+    test.setTimeout(JOURNEY_MS);
     const F2 = fixtureTyping('F2');
     const alone = { 'you.pot': F2['you.pot'], 'you.age': F2['you.age'] };
     const app = v7(page, 'test');
@@ -25,7 +35,7 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
       await app.fill(alone);
       await app.click('c.action.show');
       await app.at('c.answer');
-      await app.ready(120_000);
+      await app.ready(ANSWER_MS);
     }, { answer: () => app.engine(FINAL_ENV) });
     const single = app.engine(FINAL_ENV);
     await expect(page.locator('[data-headline="monthly.careful"] [data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(single.monthly.careful));
@@ -60,8 +70,8 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
     await test.step('asks again: working, then the couple\'s figures', async () => {
       await app.click('c.action.show');
       await app.at('c.answer');
-      await expect(page.locator('#app')).toHaveAttribute('data-answer', /^(first|final)$/, { timeout: 60_000 });
-      await app.ready(120_000);
+      await expect(page.locator('#app')).toHaveAttribute('data-answer', /^(first|final)$/, { timeout: ANSWER_MS });
+      await app.ready(ANSWER_MS);
       await app.note();
     });
 
@@ -93,7 +103,7 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
       await app.set('partner.pot', String(Number(F2['partner.pot'] || 0) + 100000));
       await app.click('c.action.show');
       await app.at('c.answer');
-      await app.ready(120_000);
+      await app.ready(ANSWER_MS);
       await app.note();
       const more = app.engine(FINAL_ENV);
       if (BUILT.answer) expect(more.monthly.careful).toBeGreaterThan(couple.monthly.careful);

@@ -157,3 +157,16 @@ doing the building that should compress, but it is a large job and the estimate 
 - **Backlog, not now:** what to do with accounts that are never used and plans that are never opened. All data is
   in Firebase; any clean-up needs a server-side job with an admin key, a warning to the user first, and a line in
   the privacy policy. The owner dropped automatic deletion for now.
+
+## 9. Progress log
+
+- 30 Sep 2026: steps 1–2 shipped (6.13.4 portable random generator; 6.14.0 owner's protection rule + four fixes;
+  6.15.0 diversifier glidepath, penny-exact protection, stale-draft offer, plan download, schemaVersion 1;
+  6.16.0 income tax above £100,000 corrected; 6.17.0 sleeve target everywhere, 2x faster tax-free plans).
+  Step 3 first slice shipped unlinked at /v7/ (question C, single or couple, Chrome/Safari/Firefox identical,
+  three simulated users walked it; 2,470 tests). Owner's real plan still not exported to tests/fixtures/local.
+- Decisions taken under the standing go-ahead: £100,000 taper point stays fixed in pounds; final-salary pension
+  in the quick answer rises with prices capped at 5% and the pot pays only its own share (the literal "pot makes
+  the cap good" reading collapsed small pots); "good" = best 1 in 10.
+- Next: door A (when can I stop) and door B (saving years engine) — the largest new engine; then D; then E and
+  holdings; then month-by-month carry-over and cutover.

@@ -1,0 +1,4 @@
+{
+  "about": "Accepted accessibility exceptions for the browser tests (test plan 8.3). Each names an axe rule, optionally one element (the selector axe reports), and ALWAYS a reason. It starts empty and should stay that way: fix the screen, not the list.",
+  "exceptions": []
+}

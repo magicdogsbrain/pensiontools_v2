@@ -128,7 +128,7 @@ describe('rule 2 — screens and components work out nothing', () => {
   const allowed = (t) =>
     t === 'preact' || t.startsWith('preact/') ||
     under(t, 'src/v7/components') || under(t, 'src/v7/screens') || under(t, 'src/v7/copy') || under(t, 'src/v7/styles') ||
-    t === 'src/v7/router/routes.js' || t === 'src/v7/state/select.js' ||
+    t === 'src/v7/router/routes.js' || t === 'src/v7/state/select.js' || t === 'src/v7/rail/index.js' ||
     t === 'src/answers/shared/format.js' || /^src\/answers\/[a-z]+\/schema\.js$/.test(t);
   const files = V7.filter(isScreenLayer);
   it.each(files)('%s', (file) => {

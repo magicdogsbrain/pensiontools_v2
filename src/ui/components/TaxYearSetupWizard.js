@@ -359,6 +359,7 @@ function renderIsaRequirement() {
     targetAnnualGross: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
@@ -557,6 +558,7 @@ function renderConfirmation() {
     targetSalary: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
@@ -870,6 +872,7 @@ async function finishWizard() {
     targetSalary: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,

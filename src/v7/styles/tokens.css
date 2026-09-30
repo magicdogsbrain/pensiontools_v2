@@ -1,1 +1,45 @@
-/* V7 styles — tokens.css. Placeholder made by package 1 so v7/index.html can link it; package 4 owns and fills it. */
+/*
+ * V7 tokens — one theme, dark first, taken from today's app (index.html :root). Every colour V7 uses is here and
+ * nowhere else; tests/v7/styles/contrast.test.js checks every --text-* on every --surface-* at 4.5:1, every
+ * --fill-X against its --on-X at 4.5:1 and against the surfaces at 3:1, and --line-strong / --focus at 3:1.
+ *
+ * The second (light) theme waits (build brief 2.4 #58).
+ */
+:root {
+  /* surfaces: what text sits on */
+  --surface-page:   #0f0f1a;   /* today's --bg */
+  --surface-card:   #1a1a2e;   /* today's --card */
+  --surface-raised: #252540;   /* today's --card-alt */
+
+  /* text */
+  --text:           #e0e0e0;   /* today's --text */
+  --text-muted:     #a6a6b8;   /* today's --text-muted (#8b8b9b) lifted to meet 4.5:1 on the raised surface */
+  --text-link:      #7eb8da;   /* today's --primary */
+  --text-danger:    #ff8a80;   /* today's --danger (#f85149) lifted for the raised surface */
+  --text-warning:   #f0c674;   /* today's --warning */
+  --text-success:   #5fd37a;   /* today's --success (#2ea043) lifted for the raised surface */
+
+  /* filled controls and the words on them */
+  --fill-primary:   #7eb8da;
+  --on-primary:     #0f0f1a;
+  --fill-choice:    #a5b4fc;   /* a chosen chip: today's --accent (#6366f1) is under 3:1 on the raised surface, so a lighter indigo */
+  --on-choice:      #0f0f1a;
+
+  /* lines */
+  --line:           #2a2a4a;   /* today's --border: decoration only */
+  --line-strong:    #8e8ea8;   /* the edge of a box: 3:1 on every surface (the white-on-grey lesson) */
+  --focus:          #f0c674;   /* the focus ring */
+
+  /* shape and rhythm */
+  --radius:         12px;
+  --radius-sm:      8px;
+  --target:         44px;      /* the least a control may be tall or wide on a phone */
+  --gutter:         16px;
+  --measure:        68ch;
+  --font:           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-mono:      ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --size:           17px;
+  --size-small:     15px;
+  --size-figure:    2.4rem;
+  --line-height:    1.5;
+}

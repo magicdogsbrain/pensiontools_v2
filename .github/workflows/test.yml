@@ -32,3 +32,45 @@ jobs:
       # The build writes docs/ in the runner only; nothing is committed. It is here because a
       # bundle that does not build is a release that cannot ship, and tests do not exercise Vite.
       - run: npm run build
+
+  browser:
+    # The browser job (V7 build brief, package 5): both builds, served with the real security headers, walked
+    # in real browsers. A SEPARATE job: it does not wait for `test`, `test` does not wait for it, and the
+    # nightly data update (update-gilt-data.yml) never runs it — so a browser problem cannot block the data
+    # bot. Pictures are made and uploaded with the report; they are not compared until the owner approves a
+    # first set (the picture gate: see e2e/screens.spec.js and RELEASING.md).
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Europe/London
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # The browsers are cached by the exact Playwright version in package.json; the system libraries are not
+      # in the cache, so they are installed either way.
+      - id: pw
+        run: echo "v=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: pwcache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.v }}
+      - if: steps.pwcache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium webkit firefox
+      - if: steps.pwcache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium webkit firefox
+      # The published build (dist/prod, the current app and V7 exactly as deployed) and V7's test build (dist/test).
+      - run: npm run e2e:build
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

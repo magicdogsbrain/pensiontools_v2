@@ -8,7 +8,7 @@
  *   validate(schema, inputs, env)         → { ok, errors }
  *
  * messageIds: 'required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption', and each rule id of the schema.
- * Money text accepts "£", commas and spaces. Ages are whole years.
+ * Money text accepts "£", commas and spaces, and the short forms "420k" and "0.42m". Ages are whole years.
  */
 import { addYears, accessAgeOn } from './rules.js';
 
@@ -68,7 +68,20 @@ function parseText(field, raw) {
   if (typeof raw === 'number') return Number.isFinite(raw) ? { value: raw } : { error: 'notANumber' };
   const t = String(raw).replace(/[£,\s]/g, '');
   if (field.type === 'age') return /^\d{1,3}$/.test(t) ? { value: Number(t) } : { error: 'notANumber' };
-  return /^\d{1,12}(\.\d{1,2})?$/.test(t) ? { value: Number(t) } : { error: 'notANumber' };   // money
+  return parseMoney(t);
+}
+
+/**
+ * Money as people write it, once "£", commas and spaces are gone: "420000", "420000.50", and the short forms
+ * "420k" (thousands) and "0.42m" (millions), upper or lower case. Never more than two decimal places in the result.
+ */
+function parseMoney(t) {
+  const m = /^(\d{1,12}(?:\.\d{1,6})?)([kKmM])?$/.exec(t);
+  if (!m) return { error: 'notANumber' };
+  const scale = m[2] ? (m[2].toLowerCase() === 'k' ? 1000 : 1000000) : 1;
+  const value = Math.round(Number(m[1]) * scale * 100) / 100;
+  if (!m[2] && !/^\d{1,12}(\.\d{1,2})?$/.test(m[1])) return { error: 'notANumber' };   // pence only, in full figures
+  return { value };
 }
 
 /** A real value (from code, not a text box) → the value, or a messageId. */

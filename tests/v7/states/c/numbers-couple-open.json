@@ -1,0 +1,51 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "numbers",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "c": {
+      "values": {
+        "household": "couple",
+        "you.pot": "400,000",
+        "you.age": "62",
+        "you.finalSalary.has": true,
+        "you.finalSalary.yearly": "9,000",
+        "you.finalSalary.fromAge": "65",
+        "partner.age": "60",
+        "partner.pot": "150,000"
+      },
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

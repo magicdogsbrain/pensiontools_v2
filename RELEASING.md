@@ -20,6 +20,52 @@ without bumping.
   `npx vitest run`). A test file that takes more than a few seconds gets the `.slow.test.js` suffix;
   nothing else changes, because the include glob matches both.
 
+## The browser job (V7, from the first slice)
+
+Beside the vitest job, `.github/workflows/test.yml` runs a **separate** `browser` job on every push: it
+builds the published bundle and V7's test build (`npm run e2e:build` → `dist/prod`, `dist/test`), serves
+them with the real headers of `public/_headers` (`e2e/helpers/serve.mjs`, so a script the security policy
+would block is found before deployment), and walks them in Chromium, WebKit and Firefox with Playwright
+(`e2e/*.spec.js`, `playwright.config.js`). The two jobs do not wait for each other, and the nightly data
+update never runs the browser job — a Playwright problem cannot block the data bot. Browsers are cached
+by the exact Playwright version in `package.json`; every container tag in the workflows must equal it
+(`tests/v7/e2eRules.test.js` checks).
+
+- **While the V7 stubs stand**, the scripts that need a part not built yet are *skipped with the reason*
+  (`e2e/helpers/app.js` `BUILT` / `waitsFor`); the moment a stub is replaced they run. Nothing to switch on.
+- **At home**: `npm run e2e:build && npm run e2e` (about 10 seconds per script; the first run needs
+  `npx playwright install chromium webkit firefox`). `npm run e2e -- c-forum-guest` for one journey.
+  The report is `playwright-report/index.html`; `test-results/` holds traces of failures, the pictures
+  (`test-results/screens/`) and the counted first answer (`test-results/first-answer/<project>.json`).
+- **Pictures** (`e2e/screens.spec.js`, 25 of them): made and uploaded with the report on every push, **not
+  compared** until the owner has looked at the three screens on a real phone and approved a first set.
+  To approve: run the **"approve screenshots"** workflow from the Actions page on the branch (one button).
+  It makes the pictures in the official Playwright container — the only place pictures are ever made or
+  compared, so the typefaces are the same every time — and commits them to `e2e/screens.spec.js-snapshots/`
+  as "Screenshots approved: <run>". Never run `--update-snapshots` on a Mac: its pictures would not match
+  the CI machine's. Once a set is approved, comparing on every push is switched on by adding
+  `SCREENS_GATE: '1'` to the environment of a job that runs `screens.spec.js` **in the same container**
+  (the plain runner's typefaces differ; move the picture step into a container job when the gate goes on).
+- **While another package's screens are mid-change**, `E2E_IGNORE=<regexp>` drops matching screen-check
+  problems locally so the rest of a journey can be seen. Never in a workflow (the rules test checks).
+- **The night run** (`.github/workflows/nightly.yml`, 02:30 UTC, and by hand): the long random runs
+  (`NIGHTLY=1 FC_RUNS=2000 npx vitest run tests/v7`), the full sameness list in three browsers, and the
+  journeys in WebKit at phone and iPad widths and in Firefox. A red night sends the usual email; the
+  failing input goes into `tests/v7/c/found.cases.json`.
+- **The wait budget** (first figure within 3 s, final within 15 s with the processor slowed four times) is
+  measured by `c-forum-guest.spec.js` at full speed and multiplied by four, because Chromium can slow a
+  page's processor but not a worker's; the figures are in `test-results/first-answer/`.
+
+### Before a V7 release: the stopwatch line and the real-phone look
+
+The machine's count guards against creep (a sixth box, a fourth screen, a slow first run); it does not
+prove a real person finishes in two minutes. Once per release the owner:
+
+1. Times one real person (or himself, cold) from arriving at `/v7/` to the first figure, and writes the
+   figure here in the release commit: **stopwatch: __ s (who, device, date)**.
+2. Opens the three screens (front door, your numbers, the answer) on a real phone and a real iPad, since
+   Playwright's WebKit is close to Safari but is not it, and says yes before the first pictures are approved.
+
 ## Version numbers
 
 - `package.json` `version` is the ONE source. `src/constants.js` imports it; the header chip, the

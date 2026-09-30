@@ -512,6 +512,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // downturn BEFORE the depressed growth pots — the same rule the Stress engine uses. Absent/0 →
       // every branch below is byte-identical to the 3-bucket behaviour (golden-safe).
       const diversifier = diversifierNow;
+      const sleeveTargetNow = diversifierGlideFor(diversifier);
 
       // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
       // Identical module and numbers to the Stress engine — one rules engine, two surfaces:
@@ -519,7 +520,12 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       const sourcingInputs = {
         draw: sipp,
         equity, bond, cash,
-        diversifier, diversifierTarget: deps.diversifierTarget || diversifier || 0,
+        // The sleeve is ranked against its glidepath for this plan year — the same figure the
+        // protection test above and the Stress engine use (a sleeve value entered on a plan with
+        // no sleeve in its settings reads as exactly on target). Until 6.16.0 this was the value
+        // held, so the sleeve always read as "on target" here while the Stress engine ranked it
+        // against its flat starting value: the two could name different pots.
+        diversifier, diversifierTarget: sleeveTargetNow,
         hodl: 0,
         eqMin: adjEquity, bdMin: adjBond, csTarget: adjCash,
         inProtection
@@ -795,7 +801,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         drawFromCash: dCash,
         // Diversifier fields emitted ONLY when the sleeve is in use, so 3-bucket (golden) output
         // is byte-identical.
-        ...(diversifier > 0 ? { drawFromDiversifier: dDiversifier, diversifier } : {}),
+        ...(diversifier > 0 ? { drawFromDiversifier: dDiversifier, diversifier, diversifierTarget: sleeveTargetNow } : {}),
 
         // Rebalancing
         rebalanceNeeded: rebal !== '',

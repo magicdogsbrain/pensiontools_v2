@@ -12,6 +12,8 @@
  * engine. No engine is touched in Stage 0.
  */
 
+import { netToGross } from './TaxCalculator.js';
+
 // PLSA "Retirement Living Standards" 2024 — annual spend (home owned outright, excludes care). Shown as
 // benchmark chips so a user can sanity-check their own number. Source: retirementlivingstandards.org.uk.
 export const PLSA_2024 = {
@@ -355,18 +357,17 @@ export function oneOffSchedule(budget, fromAge = budget.currentAge, toAge = budg
 /**
  * Interim net→gross uplift for the hand-off to the (still gross-anchored) plan target. Finds the gross
  * income whose take-home equals `netAnnual`, assuming it is all taxable income under the given bands.
- * APPROXIMATE by design (no PA taper, no ISA / State Pension offset) — Stage 1 replaces it with the real
- * per-year, multi-source solve.
+ * Uses the one tax sum (TaxCalculator.netToGross), so the personal allowance is withdrawn above £100,000
+ * — until 6.16.0 this was a hand-written copy without the withdrawal, which understated the before-tax
+ * income for any take-home above £72,568 (a take-home of £100,000 read as £147,591 before tax; it
+ * is £156,733). Still APPROXIMATE by design in what it leaves out (no ISA / State Pension offset) —
+ * Stage 1 replaces it with the real per-year, multi-source solve.
  */
 export function grossUpAnnual(netAnnual, bands = DEFAULT_TAX_BANDS) {
   const net = num(netAnnual);
   const { pa, brl, hrl } = bands;
-  if (net <= pa) return net; // within the personal allowance → no tax
-  const netAtBrl = brl - 0.2 * (brl - pa); // take-home at the basic-rate ceiling
-  if (net <= netAtBrl) return pa + (net - pa) / 0.8;
-  const netAtHrl = netAtBrl + 0.6 * (hrl - brl); // take-home at the higher-rate ceiling
-  if (net <= netAtHrl) return brl + (net - netAtBrl) / 0.6;
-  return hrl + (net - netAtHrl) / 0.55; // additional rate
+  if (net <= pa) return net; // within the personal allowance → no tax (exactly, not to a search's last digit)
+  return netToGross(net, pa, brl, hrl);
 }
 
 /**

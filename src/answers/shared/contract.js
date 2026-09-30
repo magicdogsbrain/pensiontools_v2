@@ -40,6 +40,8 @@
  * @property {number} fromSavings
  * @property {number} tax
  * @property {number} takeHome
+ * @property {boolean} higherRate        Some of what this person draws is taxed at 40% (the higher-rate warning).
+ * @property {boolean} locked            Their pension is closed in this phase: they are under the earliest pension age (nothing drawn from it).
  *
  * @typedef {object} Phase                  For the careful amount; £ a month, today's prices.
  * @property {number} fromAge               Ages of `whose`.

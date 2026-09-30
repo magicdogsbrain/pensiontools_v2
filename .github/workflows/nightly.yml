@@ -1,0 +1,46 @@
+name: nightly
+
+# The night run (V7 test plan 10.2): the long random runs, the luck check and the date sweep in the ordinary
+# suite (NIGHTLY=1, FC_RUNS=2000), then the browser tests in all three engines — the full sameness list, and
+# the journeys in WebKit (the nearest thing to the owner's iPad and phone) and Firefox. 02:30 UTC, before the
+# data update at 06:30. A red night sends GitHub's usual email; the failing input goes into found.cases.json.
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+# Read-only token: this job never writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # The official container: the three browsers, their system libraries and the same typefaces every time.
+    # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root            # Firefox refuses to start in a container without this
+      TZ: Europe/London
+      NIGHTLY: '1'
+      FC_RUNS: '2000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:build
+      - run: npx vitest run tests/v7
+      - run: npx playwright test --project='sameness-*' --project='nightly-*'
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: nightly-browser-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

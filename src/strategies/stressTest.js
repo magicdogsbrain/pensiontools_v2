@@ -23,6 +23,7 @@ import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
+import { activeParams } from '../services/StrategyState.js';
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
@@ -109,7 +110,11 @@ export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
  * pricing date — so a test (or a replay of a locked plan) gets the same numbers on any day. Omitted = today, as before.
  */
 export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge, now } = {}) {
-  const params = settings.strategyParams || {};
+  // A Pots & Valves plan owns no dials and is sized on its allocation (6.13.5): a "Total in your SIPP", ISA total or
+  // essentials figure left in the flat bag by a deselected strategy (any plan saved before 6.13.0 and not re-saved
+  // — a locked one cannot be) must not size it. Bought strategies read their bag as it is: three of them read dials
+  // StrategyState files under another strategy. A what-if for another strategy must name it in settings.strategyId.
+  const params = settings.strategyId === 'pots-and-valves' ? activeParams(settings) : (settings.strategyParams || {});
   // WHEN the plan starts (one saved anchor, see PlanTiming): the first tax year, the age the steps
   // start at, and — for someone retiring later — how much today's pots grow before then.
   const timing = deriveTiming(settings, now);

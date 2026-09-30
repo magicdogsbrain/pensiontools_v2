@@ -5,6 +5,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -12,6 +13,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -40,6 +44,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-04",
@@ -86,6 +91,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -93,6 +99,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -121,6 +130,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -167,6 +177,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -174,6 +185,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -202,6 +216,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2027-03",
@@ -248,6 +263,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -255,6 +271,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -283,6 +302,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -329,6 +349,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -336,6 +357,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -364,6 +388,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -410,6 +435,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -417,6 +443,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -445,6 +474,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -491,6 +521,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -498,6 +529,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -526,6 +560,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -572,6 +607,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -579,6 +615,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -607,6 +646,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -653,6 +693,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -660,6 +701,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -688,6 +732,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 459,
     "date": "2026-07",
@@ -734,6 +779,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -741,6 +787,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -769,6 +818,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -815,6 +865,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -822,6 +873,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 8000,
@@ -850,6 +904,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -890,19 +945,23 @@
     "yearNumber": 0,
     "yearlyIsaSavingsAllocation": 0
   },
-  "protection ENTERS (3 prior cash draws, funds below min)": {
+  "protection ENTERS (2 recorded months below the glidepaths + this month = 3)": {
     "accessMethod": "drawdown",
     "adjBondMin": 480000,
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": true,
     "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
     "boostEligible": false,
     "brl": 50270,
     "calculationDetails": {
-      "consec": 3,
+      "consec": 2,
+      "consecBelowGlide": 2,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -931,7 +990,8 @@
       "totalGrowth": 1000000
     },
     "cash": 120000,
-    "consecutiveCashDraws": 3,
+    "consecutiveBelowGlide": 3,
+    "consecutiveCashDraws": 2,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
     "drawFromBond": 0,
@@ -971,12 +1031,99 @@
     "yearNumber": 0,
     "yearlyIsaSavingsAllocation": 0
   },
-  "protection CONTINUES (last month in protection, still below min+buffer)": {
+  "protection NOT entered: only 1 recorded month below the glidepaths before this one": {
     "accessMethod": "drawdown",
     "adjBondMin": 480000,
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": true,
+    "belowTrack": false,
+    "bond": 450000,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "calculationDetails": {
+      "consec": 1,
+      "consecBelowGlide": 1,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
+      "inputs": {
+        "BRL": 50270,
+        "OTHER": 0,
+        "PA": 12570,
+        "STATE": 0,
+        "baseSalary": 59450,
+        "confirmedSalary": 59450,
+        "cumInf": 1,
+        "grossIncomeToDate": 0,
+        "isTaxEfficientYear": true,
+        "targetGross": 59450,
+        "taxYear": "26/27",
+        "yearNum": 0,
+        "yearlyIsaSavingsAllocation": 0
+      },
+      "minGrowth": 1080000,
+      "mode": "Tax-Efficient",
+      "reason": "Below min | Tax-Efficient",
+      "stdSipp": 4189.17,
+      "taxInfo": {
+        "annualTax": 6826.5,
+        "annualTaxable": 46702.5,
+        "headroomToBRL": 3567.5,
+        "monthlyNet": 3620.29
+      },
+      "totalGrowth": 1000000
+    },
+    "cash": 120000,
+    "consecutiveBelowGlide": 2,
+    "consecutiveCashDraws": 1,
+    "cumulativeIsaSavingsUsed": 0,
+    "date": "2026-07",
+    "drawFromBond": 0,
+    "drawFromCash": 4189.17,
+    "drawFromEquity": 0,
+    "equity": 550000,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaDraw": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "lsaRemaining": null,
+    "monthlyTax": 568.88,
+    "other": 0,
+    "pa": 12570,
+    "pclsSuggestion": 0,
+    "protectionInducedTaxEfficiency": false,
+    "protectionReason": null,
+    "rebalanceActions": [],
+    "rebalanceNeeded": false,
+    "recycleGross": 0,
+    "recycleNet": 0,
+    "remainingMonths": 9,
+    "sippDraw": 4189.17,
+    "source": "Cash",
+    "statePension": 0,
+    "stdSipp": 4189.17,
+    "taxEfficient": true,
+    "taxFree": 0,
+    "taxPaidYTD": 2275.5,
+    "taxProjectedAnnual": 6826.5,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "totalMonthlyNet": 3620.29,
+    "yearNumber": 0,
+    "yearlyIsaSavingsAllocation": 0
+  },
+  "protection NOT entered: 3 prior months paid from CASH with the growth pots on their glidepaths": {
+    "accessMethod": "drawdown",
+    "adjBondMin": 480000,
+    "adjCashTarget": 120000,
+    "adjEquityMin": 600000,
+    "alerts": [],
+    "belowGlide": true,
     "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
@@ -984,6 +1131,181 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 3,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
+      "inputs": {
+        "BRL": 50270,
+        "OTHER": 0,
+        "PA": 12570,
+        "STATE": 0,
+        "baseSalary": 59450,
+        "confirmedSalary": 59450,
+        "cumInf": 1,
+        "grossIncomeToDate": 0,
+        "isTaxEfficientYear": true,
+        "targetGross": 59450,
+        "taxYear": "26/27",
+        "yearNum": 0,
+        "yearlyIsaSavingsAllocation": 0
+      },
+      "minGrowth": 1080000,
+      "mode": "Tax-Efficient",
+      "reason": "Below min | Tax-Efficient",
+      "stdSipp": 4189.17,
+      "taxInfo": {
+        "annualTax": 6826.5,
+        "annualTaxable": 46702.5,
+        "headroomToBRL": 3567.5,
+        "monthlyNet": 3620.29
+      },
+      "totalGrowth": 1000000
+    },
+    "cash": 120000,
+    "consecutiveBelowGlide": 1,
+    "consecutiveCashDraws": 3,
+    "cumulativeIsaSavingsUsed": 0,
+    "date": "2026-07",
+    "drawFromBond": 0,
+    "drawFromCash": 4189.17,
+    "drawFromEquity": 0,
+    "equity": 550000,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaDraw": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "lsaRemaining": null,
+    "monthlyTax": 568.88,
+    "other": 0,
+    "pa": 12570,
+    "pclsSuggestion": 0,
+    "protectionInducedTaxEfficiency": false,
+    "protectionReason": null,
+    "rebalanceActions": [],
+    "rebalanceNeeded": false,
+    "recycleGross": 0,
+    "recycleNet": 0,
+    "remainingMonths": 9,
+    "sippDraw": 4189.17,
+    "source": "Cash",
+    "statePension": 0,
+    "stdSipp": 4189.17,
+    "taxEfficient": true,
+    "taxFree": 0,
+    "taxPaidYTD": 2275.5,
+    "taxProjectedAnnual": 6826.5,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "totalMonthlyNet": 3620.29,
+    "yearNumber": 0,
+    "yearlyIsaSavingsAllocation": 0
+  },
+  "protection NOT entered: 3 prior cash draws on records with no pot values (cannot be judged)": {
+    "accessMethod": "drawdown",
+    "adjBondMin": 480000,
+    "adjCashTarget": 120000,
+    "adjEquityMin": 600000,
+    "alerts": [],
+    "belowGlide": true,
+    "belowTrack": false,
+    "bond": 450000,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "calculationDetails": {
+      "consec": 3,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
+      "inputs": {
+        "BRL": 50270,
+        "OTHER": 0,
+        "PA": 12570,
+        "STATE": 0,
+        "baseSalary": 59450,
+        "confirmedSalary": 59450,
+        "cumInf": 1,
+        "grossIncomeToDate": 0,
+        "isTaxEfficientYear": true,
+        "targetGross": 59450,
+        "taxYear": "26/27",
+        "yearNum": 0,
+        "yearlyIsaSavingsAllocation": 0
+      },
+      "minGrowth": 1080000,
+      "mode": "Tax-Efficient",
+      "reason": "Below min | Tax-Efficient",
+      "stdSipp": 4189.17,
+      "taxInfo": {
+        "annualTax": 6826.5,
+        "annualTaxable": 46702.5,
+        "headroomToBRL": 3567.5,
+        "monthlyNet": 3620.29
+      },
+      "totalGrowth": 1000000
+    },
+    "cash": 120000,
+    "consecutiveBelowGlide": 1,
+    "consecutiveCashDraws": 3,
+    "cumulativeIsaSavingsUsed": 0,
+    "date": "2026-07",
+    "drawFromBond": 0,
+    "drawFromCash": 4189.17,
+    "drawFromEquity": 0,
+    "equity": 550000,
+    "inProtection": false,
+    "isTaxEfficientYear": true,
+    "isa": 0,
+    "isaDraw": 0,
+    "isaSavingsUsedThisMonth": 0,
+    "lsaRemaining": null,
+    "monthlyTax": 568.88,
+    "other": 0,
+    "pa": 12570,
+    "pclsSuggestion": 0,
+    "protectionInducedTaxEfficiency": false,
+    "protectionReason": null,
+    "rebalanceActions": [],
+    "rebalanceNeeded": false,
+    "recycleGross": 0,
+    "recycleNet": 0,
+    "remainingMonths": 9,
+    "sippDraw": 4189.17,
+    "source": "Cash",
+    "statePension": 0,
+    "stdSipp": 4189.17,
+    "taxEfficient": true,
+    "taxFree": 0,
+    "taxPaidYTD": 2275.5,
+    "taxProjectedAnnual": 6826.5,
+    "taxSavedMonthly": 0,
+    "taxSavedProjectedAnnual": 0,
+    "taxSavedYTD": 0,
+    "taxYear": "26/27",
+    "totalMonthlyNet": 3620.29,
+    "yearNumber": 0,
+    "yearlyIsaSavingsAllocation": 0
+  },
+  "protection CONTINUES (last month in protection, still below min+buffer)": {
+    "accessMethod": "drawdown",
+    "adjBondMin": 480000,
+    "adjCashTarget": 120000,
+    "adjEquityMin": 600000,
+    "alerts": [],
+    "belowGlide": true,
+    "belowTrack": false,
+    "bond": 450000,
+    "boostAmount": 0,
+    "boostEligible": false,
+    "brl": 50270,
+    "calculationDetails": {
+      "consec": 3,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1012,6 +1334,7 @@
       "totalGrowth": 1000000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 1,
     "consecutiveCashDraws": 3,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1069,6 +1392,7 @@
         "type": "rebalance"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 380000,
     "boostAmount": 0,
@@ -1076,6 +1400,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1080000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1104,6 +1431,7 @@
       "totalGrowth": 1080000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1158,6 +1486,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 150,
@@ -1165,6 +1494,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1193,6 +1525,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-08",
@@ -1245,6 +1578,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -1252,6 +1586,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1078989.86,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1280,6 +1617,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2029-07",
@@ -1326,6 +1664,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -1333,6 +1672,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1361,6 +1703,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1407,6 +1750,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -1414,6 +1758,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1442,6 +1789,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1494,6 +1842,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 600,
@@ -1501,6 +1850,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1529,6 +1881,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2027-01",
@@ -1575,6 +1928,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -1582,6 +1936,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1610,6 +1967,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 7459,
     "date": "2026-07",
@@ -1656,6 +2014,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": true,
     "belowTrack": false,
     "bond": 450000,
     "boostAmount": 0,
@@ -1663,6 +2022,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 3,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1000000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1691,6 +2053,7 @@
       "totalGrowth": 1000000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 1,
     "consecutiveCashDraws": 3,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1743,6 +2106,7 @@
         "type": "low-cash"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 480000,
     "boostAmount": 0,
@@ -1750,6 +2114,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1080000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1778,6 +2145,7 @@
       "totalGrowth": 1080000
     },
     "cash": 0,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1824,6 +2192,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -1831,6 +2200,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1859,6 +2231,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -1911,6 +2284,7 @@
         "type": "rebalance"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 560000,
     "boostAmount": 0,
@@ -1918,6 +2292,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1110000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -1946,6 +2323,7 @@
       "totalGrowth": 1110000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -2000,6 +2378,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -2007,6 +2386,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -2035,6 +2417,7 @@
       "totalGrowth": 1250000
     },
     "cash": 100000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -2087,6 +2470,7 @@
         "type": "tax-boost"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 66.67,
@@ -2094,6 +2478,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 3,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -2122,6 +2509,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 3,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2026-07",
@@ -2174,6 +2562,7 @@
         "type": "cash-replenish"
       }
     ],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -2181,6 +2570,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 0,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -2209,6 +2601,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 0,
     "date": "2061-07",
@@ -2255,6 +2648,7 @@
     "adjCashTarget": 120000,
     "adjEquityMin": 600000,
     "alerts": [],
+    "belowGlide": false,
     "belowTrack": false,
     "bond": 550000,
     "boostAmount": 0,
@@ -2262,6 +2656,9 @@
     "brl": 50270,
     "calculationDetails": {
       "consec": 0,
+      "consecBelowGlide": 0,
+      "growthGlide": 1080000,
+      "growthPots": 1250000,
       "inputs": {
         "BRL": 50270,
         "OTHER": 0,
@@ -2290,6 +2687,7 @@
       "totalGrowth": 1250000
     },
     "cash": 120000,
+    "consecutiveBelowGlide": 0,
     "consecutiveCashDraws": 0,
     "cumulativeIsaSavingsUsed": 459,
     "date": "2026-07",

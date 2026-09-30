@@ -13,7 +13,7 @@ import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
-import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
+import { assessProtection, growthVsGlide, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { bondBucketReturn, diversifierBucketReturn, updateTrendMomentum, trendSignalFromMomentum } from './SubAssetReturns.js';
@@ -116,7 +116,7 @@ export function simulate(config, returns, seed = 0) {
   let cutYears = 0, cutReal = 0, lastYearStdAnnual = 0;
   let maxConsec = 0;
   let curStreak = 0;
-  let consecCashDraws = 0;  // trailing consecutive non-growth (cash-side) draws
+  let consecBelowGlide = 0; // Pots & Valves: consecutive months BEFORE this one in which the growth pots (shares + bonds + diversifiers) sat below the sum of their glidepaths
   let consecBelowTrack = 0; // Buckets in order: trailing consecutive months the WHOLE SIPP sat below the whole glidepath track
   let prot = false;  // Protection mode flag
   let failed = false;
@@ -228,15 +228,22 @@ export function simulate(config, returns, seed = 0) {
     }
     const csTarget = calculateGlidepath(config.cashTarget, year, config.duration, cumInf, false);
 
-    // Assess protection for THIS month on the start-of-month growth-pot value (before this
-    // month's returns) — the same inputs and rule the Decision engine uses (shared
-    // ProtectionStrategy). Reduces the SIPP draw during a sustained downturn.
-    const minGrowth = eqMin + bdMin;
+    // Assess protection for THIS month on the start-of-month pot values (before this month's
+    // returns) — the same inputs and rule the Decision engine uses (shared ProtectionStrategy).
+    // The owner's rule: a month counts when the growth pots — shares + bonds + diversifiers — add
+    // up to less than the sum of their glidepaths; protection starts in the month that completes
+    // consecutiveLimit such months in a row. Which pot paid the income plays no part. The
+    // diversifiers sleeve is held flat, so its glidepath is its starting value.
+    const vsGlide = growthVsGlide({
+      equity, bond, diversifier,
+      equityGlide: eqMin, bondGlide: bdMin, diversifierGlide: config.diversifierStart || 0
+    });
+    const minGrowth = eqMin + bdMin;   // shares + bonds floors only: the tax-boost surplus test below
     const wasInProtection = prot;
-    // Buckets in order spends cash first BY DESIGN, so "consecutive cash draws" is always true and the
-    // per-pot floors carry no distress signal (cash below target is the plan working). Its health is
-    // the whole SIPP against the whole track — all three inflated, depleting minimums — and the
-    // persistence test counts months below that track instead of cash draws. Same buffer on exit.
+    // Buckets in order spends cash first BY DESIGN, so the per-pot floors carry no distress signal
+    // (cash below target is the plan working). Its health is the whole SIPP against the whole
+    // track — all three inflated, depleting minimums — and the persistence test counts months
+    // below that track. Same buffer on exit.
     // The pot starts ON the track, so a dead band of one recovery buffer is applied on the way in as
     // well as on the way out (enter below track − buffer, exit above track): no cut in a benign market.
     const ordered = config.sourcingMode === 'ordered';
@@ -244,13 +251,16 @@ export function simulate(config, returns, seed = 0) {
     const trackLine = eqMin + bdMin + csTarget - buffer;
     if (ordered) consecBelowTrack = (equity + bond + cash) < trackLine ? consecBelowTrack + 1 : 0;
     prot = config.disableProtection ? false : assessProtection({
-      totalGrowth: ordered ? equity + bond + cash : equity + bond,
-      minGrowth: ordered ? trackLine : minGrowth,
-      consecCashDraws: ordered ? Math.max(0, consecBelowTrack - 1) : consecCashDraws,
+      totalGrowth: ordered ? equity + bond + cash : vsGlide.growth,
+      minGrowth: ordered ? trackLine : vsGlide.glide,
+      consecBelowGlide: ordered ? Math.max(0, consecBelowTrack - 1) : consecBelowGlide,
       wasInProtection,
       consecutiveLimit: config.consecutiveLimit,
       recoveryBuffer: config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER
     });
+    // The run carried into next month: this month joins it when below, and breaks it when not.
+    const belowGlideRunBefore = consecBelowGlide;
+    consecBelowGlide = vsGlide.below ? consecBelowGlide + 1 : 0;
     if (prot) { protMonths++; curStreak++; }
     else { maxConsec = Math.max(maxConsec, curStreak); curStreak = 0; }
 
@@ -367,6 +377,9 @@ export function simulate(config, returns, seed = 0) {
       giaNet: giaTopNet,              // net paid from the taxable sleeve this month (top-up; rescue added below)
       boostAmount: 0,
       inProtection: prot,
+      diversifierStart: diversifier,  // start-of-month diversifiers sleeve
+      growthPots: vsGlide.growth, growthGlide: vsGlide.glide, belowGlide: vsGlide.below,   // the protection comparison, as judged this month
+      consecBelowGlideBefore: belowGlideRunBefore,   // the unbroken run of below-glide months before this one
       planInputs                      // exact planDrawdown inputs used this month
     } : null;
     if (traceRow) trace.push(traceRow);
@@ -558,10 +571,6 @@ export function simulate(config, returns, seed = 0) {
       }
     }
     const source = sourcing.source;
-
-    // Track consecutive non-growth (cash-side) draws for next month's protection assessment,
-    // matching the Decision engine's trailing-Cash count (Growth resets, anything else counts).
-    consecCashDraws = source === 'Growth' ? 0 : consecCashDraws + 1;
 
     // Deplete the ISA pot by this month's tax-free top-up (bounded by the balance).
     // When it empties, planDrawdown() draws more taxable SIPP next month, so the SIPP

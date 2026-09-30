@@ -18,6 +18,7 @@
 
 import { simulateTraced, monteCarloReturns } from '../../src/services/SimulationEngine.js';
 import { calcDecisionPWA, getTaxYearFromDate } from '../../src/services/legacyDecision.js';
+import { PROTECTION_DEFAULTS } from '../../src/services/ProtectionStrategy.js';
 
 /** "YYYY-MM" for sim month m, counting from April 2026 (month 0). */
 export function aprilDate(m) {
@@ -65,7 +66,9 @@ export function buildDecisionContext(config, trace, returns) {
     duration: config.duration,
     isaDrawdownStrategy: config.isaDrawdownStrategy,
     protectionFactor: Math.round((1 - (config.protectionMult ?? 0.8)) * 100),
-    recoveryBuffer: config.recoveryBuffer ?? 10000,
+    // The engine's own default (one source): this was a literal 10000 left behind when the default
+    // moved to 15000, which by itself made the two engines leave protection in different months.
+    recoveryBuffer: config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER,
     consecutiveLimit: config.consecutiveLimit ?? 3
   };
 
@@ -135,8 +138,12 @@ export async function replayStateful(config, seed) {
       isaBalance: t.isaStart
     });
     // Append a history entry in the shape the Decision engine reads back.
+    // (The pot values and that month's glidepaths are what the saved record really carries — see
+    // decisionToHistory — and what the protection count is worked out from.)
     history.push({
       date: dateStr, taxYear: dec.taxYear, source: dec.source,
+      equity: dec.equity, bond: dec.bond, cash: dec.cash,
+      adjEquity: dec.adjEquityMin, adjBond: dec.adjBondMin, adjCash: dec.adjCashTarget,
       inProtection: dec.inProtection, sipp: dec.sippDraw, stdSipp: dec.stdSipp,
       isa: dec.isaDraw, boostAmount: dec.boostAmount
     });

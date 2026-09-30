@@ -18,8 +18,11 @@ const settings = { equityMin: 300000, bondMin: 200000, cashTarget: 50000, durati
 const taxYear = (o = {}) => ({ pa: 12570, brl: 50270, hrl: 125140, other: 0, cpi: 0.03, isTaxEfficient: false, isaSavingsAllocation: 0, isaSavingsUsed: 0, grossIncomeToDate: 0, confirmedSalary: 36000, yearSetupComplete: true, startMonth: 4, remainingMonths: 12, ...o });
 const noSp = { amount: 0, isReceiving: false };
 const deps = (ty, o = {}) => ({ settings, history: [], allTaxYears: { '26/27': ty }, spInfo: noSp, isaBalance: 0, ...o });
-// Three cash-funded months behind us and the growth pots under their floors: the protection trigger.
-const cashMonths = ['2026-04', '2026-05', '2026-06'].map((date) => ({ date, taxYear: '26/27', source: 'Cash', sipp: 3000, stdSipp: 3000, inProtection: false }));
+// Three months behind us with the growth pots (shares + bonds) under the sum of their glidepaths, and still under
+// them now: the protection trigger (the owner's rule — it is the pots against their glidepaths that count, not
+// which pot paid; each record carries its pot values and that month's glidepaths, as a saved record does).
+const cashMonths = ['2026-04', '2026-05', '2026-06'].map((date) => ({ date, taxYear: '26/27', source: 'Cash', sipp: 3000, stdSipp: 3000, inProtection: false,
+  equity: 200000, bond: 150000, cash: 60000, adjEquity: 300000, adjBond: 200000, adjCash: 50000 }));
 
 describe('calculation reason and the History row', () => {
   it('C7 — the reason never repeats itself ("Protection | Protection")', async () => {

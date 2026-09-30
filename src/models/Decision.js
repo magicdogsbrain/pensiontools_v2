@@ -172,6 +172,11 @@ export function decisionToHistory(decision) {
     mode: decision.taxEfficient ? 'Tax-Efficient' : 'Standard',
     inProtection: decision.inProtection,
     belowTrack: !!decision.belowTrack,
+    // Pots & Valves (6.13.5): this month's verdict on the owner's protection rule — the growth pots (shares + bonds +
+    // diversifiers) added up to less than the sum of their glidepaths. Saved because the record does not carry the
+    // diversifiers' value: without it a later month would have to judge this one as if the sleeve were on target.
+    // Only when the engine gave a verdict (a record from a legacy caller stays without one and is judged from its pots).
+    ...(typeof decision.belowGlide === 'boolean' ? { belowGlide: decision.belowGlide } : {}),
     reason: decision.protectionReason || '',
     consecutiveDraws: decision.consecutiveCashDraws || 0,
 

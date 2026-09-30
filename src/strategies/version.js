@@ -5,4 +5,4 @@
  *   6.13.4  the Monte Carlo random stream changed (sfc32 replaces the sine generator — src/utils/MathUtils.js),
  *           and State Pension first-year shares count calendar days (no clock-change hour).
  */
-export const ENGINE_VERSION = '6.13.4';
+export const ENGINE_VERSION = '6.14.0';

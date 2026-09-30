@@ -36,6 +36,32 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.14.0', date: '2026-09-30', engineVersion: '6.14.0',
+    title: 'Protection by the glidepath rule, start years that stay put, and locked ladders that stay locked',
+    summary: 'Five things the new automatic tests found. Protection mode for Pots & Valves now follows one plain rule: a month counts when shares plus bonds plus diversifiers add up to less than the sum of their glidepaths, and protection switches on after the set number of such months in a row. Which pot paid that month no longer matters, and the diversifiers sleeve is counted. A plan\'s start year is now saved the first time it is worked out, so an old plan no longer moves a year every 6 April. A locked gilt ladder shows the ladder in its plan document, not one re-priced at today\'s gilt prices. A plan with no age entered is no longer treated as a 45-year-old. And pasting holdings can no longer merge a gilt into a fund.',
+    changes: [
+      'Protection (Pots & Valves): months in a row with the growth pots below their glidepaths, diversifiers included. Leaving protection is unchanged. The simulations and the monthly advice now agree on every month.',
+      'Protection is not applied to the monthly figure of a bought gilt ladder: its income is already paid for.',
+      'Locked gilt-ladder plans: order sheet, costs, spare and monthly figure come from the plan document everywhere. One line marked "Comparison only" shows what the remaining gilts would cost today.',
+      'Opening a plan saves its start year once if it was never saved.'
+    ],
+    corrections: [
+      'A retired plan last saved before 6.4 moved its start year, ages and every ladder rung on 6 April; a saved start year that had passed was thrown away.',
+      'A locked gilt ladder drifted from its plan document as gilt prices moved.',
+      'The blank Budget\'s placeholder age of 45 was read as the user\'s age.',
+      'A pasted gilt recognised by name could be folded into a fund line sharing a stray code.',
+      'An old Pots & Valves plan could be sized on a pot total left behind by a deselected ladder.'
+    ],
+    effects: {
+      decision: ['Pots & Valves plans: protection may start a month or two earlier or later than before. Gilt-ladder plans: the monthly figure is never trimmed by protection. Records already saved keep their figures; a locked plan\'s settings fingerprint does not change.'],
+      stress: ['Pots & Valves results move a little. Without a diversifiers sleeve, the share of futures entering protection changes by about one point and the chance of lasting did not change on the plans tested. With a sleeve the change is larger: on a £300k plan with a £45k sleeve, futures entering protection fell from 77 to 63 in 100.'],
+      strategies: ['Buckets in order and the bought strategies are unchanged. A locked plan\'s document keeps the figures it was locked with.'],
+      household: [], budget: ['The age boxes still show 45 and 60 until you change them, but they no longer count as your age.'], accumulation: []
+    },
+    actions: ['If your plan shows age 45 and you never entered it, correct your age in the Timing block.'],
+    notes: ['These were found by the automatic tests added in September 2026, which now run before every change is published.']
+  },
+  {
     version: '6.13.4', date: '2026-09-30', engineVersion: '6.13.4', announce: true,
     title: 'Monte Carlo results are now identical on every device',
     summary: 'Monte Carlo results are now identical on every device. Until today the same plan could show slightly different Monte Carlo figures on a phone, a Mac and a Windows PC: the random futures were drawn with a formula built on the sine function, and browsers and processors do not all agree on the last decimal place of a sine. The formula magnified that last digit into a different set of random futures, so the fan charts differed by about 0.5% to 3% between machines. The random futures now come from a standard whole-number generator that every browser and processor computes exactly alike. Because the set of random futures is a new one, Monte Carlo figures move slightly this once, by no more than re-running with a different random seed would move them. Nothing about how a plan is modelled has changed.',

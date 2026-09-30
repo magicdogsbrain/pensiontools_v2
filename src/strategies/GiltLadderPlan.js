@@ -84,3 +84,42 @@ export function buildGiltLadder(p) {
     reason: uncovered.length ? `no index-linked gilt covers ${uncovered.map((y) => y.Y).join(', ')}` : total > p.pot ? `it costs ${Math.round(total).toLocaleString()} — ${Math.round(total - p.pot).toLocaleString()} more than the pot` : null
   };
 }
+
+/**
+ * What the rungs of an EXISTING ladder would cost to buy today — a comparison, never the plan (6.13.5).
+ *
+ * A locked plan's ladder is the one priced when it was locked (it sits in the plan document). Rebuilding it
+ * from today's prices gave a different order sheet every day, and after a year or two a nonsense one (a gilt
+ * that has matured is no longer in the list to buy). This takes the locked orders as they are and prices the
+ * same gilts, for the same income, at today's clean price, index ratio and dealing spread:
+ *   - a rung that has already matured is paid, not bought: it is left out of both sides and counted in `paid`;
+ *   - a gilt that is not in today's list cannot be priced: left out of both sides and named in `unpriced`.
+ * So with the prices of the day the ladder was built, `todayCost === lockedCost` exactly.
+ *
+ * @param {object} plan     buildGiltLadder() output as stored in the plan document
+ * @param {Array}  linkers  today's linker universe ([{ tidm, cleanPrice, indexRatio, ... }])
+ * @param {object} [o]      { todayIso | now, options } — the pricing date, as buildGiltLadder takes it
+ * @returns {null | { asOf, rungs, paid, unpriced: string[], lockedCost, todayCost, difference, orders: [] }}
+ */
+export function repriceLadder(plan, linkers, o = {}) {
+  if (!plan || !Array.isArray(plan.orders)) return null;
+  const opt = { ...LADDER_DEFAULTS, ...(o.options || {}) };
+  const asOf = o.todayIso || (o.now || new Date()).toISOString().slice(0, 10);
+  const today = Date.parse(asOf);
+  const byTidm = new Map((linkers || []).filter((g) => g && g.tidm && g.cleanPrice != null).map((g) => [g.tidm, g]));
+  const orders = [], unpriced = [];
+  let paid = 0, lockedCost = 0, todayCost = 0;
+  for (const ord of plan.orders) {
+    if (!(ord.pays > 0)) continue;                                   // a rung that buys nothing is not an order
+    if (Date.parse(ord.matures) <= today) { paid++; continue; }
+    const g = byTidm.get(ord.tidm);
+    if (!g) { unpriced.push(ord.tidm); continue; }
+    const t = (Date.parse(ord.matures) - today) / (365.25 * 864e5);
+    // The same units pay more pounds as the index ratio grows: the income bought is unchanged in real terms.
+    const uplift = ord.indexRatio > 0 && g.indexRatio > 0 ? g.indexRatio / ord.indexRatio : 1;
+    const cost = ord.pays * uplift * g.cleanPrice / 100 * (1 + spreadFor(t, opt)) + opt.dealFee;
+    lockedCost += ord.cost; todayCost += cost;
+    orders.push({ tidm: ord.tidm, name: ord.name, matures: ord.matures, lockedCost: ord.cost, todayCost: cost });
+  }
+  return { asOf, rungs: orders.length, paid, unpriced, lockedCost, todayCost, difference: todayCost - lockedCost, orders };
+}

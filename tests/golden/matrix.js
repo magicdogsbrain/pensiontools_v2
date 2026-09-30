@@ -57,6 +57,12 @@ const withSP = { amount: 11960, isReceiving: true, isFirstYear: false };
 const healthy = { equity: 700000, bond: 550000, cash: 120000 };
 const belowMin = { equity: 550000, bond: 450000, cash: 120000 };
 const strandedBucket = { equity: 700000, bond: 380000, cash: 120000 }; // net surplus ~0 but equity has +100k
+// Saved-record shapes for the protection count: the pot values and that month's glidepaths (year 0:
+// the entered floors, £600,000 + £480,000), as decisionToHistory writes them.
+const glide0 = { adjEquity: 600000, adjBond: 480000, adjCash: 120000 };
+const recHealthy = { ...healthy, ...glide0 };
+const recBelow = { ...belowMin, ...glide0 };
+const recOnGlide = { equity: 600000, bond: 480000, cash: 110000, ...glide0 };   // on the glidepaths: cash pays, but not "below"
 
 export const decisionCases = [
   {
@@ -149,8 +155,41 @@ export const decisionCases = [
       spInfo: noSP
     }
   },
+  // The owner's protection rule (30 Sep 2026): a month counts when the growth pots (shares + bonds +
+  // diversifiers) add up to less than the sum of their glidepaths — NOT when its income was paid from
+  // cash. The records carry the pot values and that month's glidepaths, as saved records do.
   {
-    name: 'protection ENTERS (3 prior cash draws, funds below min)',
+    name: 'protection ENTERS (2 recorded months below the glidepaths + this month = 3)',
+    input: { dateStr: '2026-07', ...belowMin },
+    deps: {
+      settings: baseSettings,
+      history: [hist('2026-04', 'Growth', recHealthy), hist('2026-05', 'Cash', recBelow), hist('2026-06', 'Cash', recBelow)],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'protection NOT entered: only 1 recorded month below the glidepaths before this one',
+    input: { dateStr: '2026-07', ...belowMin },
+    deps: {
+      settings: baseSettings,
+      history: [hist('2026-04', 'Cash', recBelow), hist('2026-05', 'Growth', recHealthy), hist('2026-06', 'Cash', recBelow)],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'protection NOT entered: 3 prior months paid from CASH with the growth pots on their glidepaths',
+    input: { dateStr: '2026-07', ...belowMin },
+    deps: {
+      settings: baseSettings,
+      history: [hist('2026-04', 'Cash', recOnGlide), hist('2026-05', 'Cash', recOnGlide), hist('2026-06', 'Cash', recOnGlide)],
+      allTaxYears: { '26/27': ty() },
+      spInfo: noSP
+    }
+  },
+  {
+    name: 'protection NOT entered: 3 prior cash draws on records with no pot values (cannot be judged)',
     input: { dateStr: '2026-07', ...belowMin },
     deps: {
       settings: baseSettings,

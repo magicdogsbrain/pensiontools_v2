@@ -15,7 +15,7 @@ import { DECISION_ASSUMED_CPI } from './InflationModel.js';
 import { grossToNet, calculateTax } from './TaxCalculator.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { planDrawdown } from './DrawdownStrategy.js';
-import { assessProtection, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
+import { assessProtection, growthVsGlide, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
@@ -85,30 +85,33 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         : (spInfo.startYm && String(dateStr).slice(0, 7) < spInfo.startYm) ? 0
         : (spInfo.monthlyFull != null ? spInfo.monthlyFull : STATE / 12);
 
-      // Calculate cumulative inflation using each year's CPI (PWA logic)
-      let cumInf = 1;
-      for (let i = 0; i < yearNum; i++) {
-        const yStr = taxYearKey(anchorYear + i);   // walk the tax years from the plan's start
-        const yearCPI = (allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI; // entered CPI is authoritative; unentered assumes 4%
-        cumInf *= 1 + yearCPI;
-      }
-
-      // Calculate glidepath minimums
-      // Depleting fund minimums. With the rising-equity glidepath ("bond tent") on, the entered
-      // equity/bond split is overridden: only their TOTAL matters, re-divided by the glide's target
-      // share for this year (identical formula to the Stress engine, so the two stay in lockstep).
-      // Cash is left alone. Glide off (equityGlide falsy) → byte-identical to the old behaviour.
-      let adjEquity = calculateGlidepath(settings.equityMin, yearNum, settings.duration, cumInf, true);
-      let adjBond = calculateGlidepath(settings.bondMin, yearNum, settings.duration, cumInf, true);
-      const adjCash = Math.round(calculateGlidepath(settings.cashTarget, yearNum, settings.duration, cumInf, false));
-      const glideShare = glideShareForYear(settings.equityGlide, yearNum, settings.duration);
-      if (glideShare != null) {
-        const growthMin = adjEquity + adjBond;
-        adjEquity = growthMin * glideShare;
-        adjBond = growthMin * (1 - glideShare);
-      }
-      adjEquity = Math.round(adjEquity);
-      adjBond = Math.round(adjBond);
+      // Glidepath minimums for a plan year — ONE routine for this month and for any recorded month
+      // whose own glidepaths were not saved with it (the protection count below), so the two can
+      // never be worked out differently.
+      // Cumulative inflation uses each year's CPI (PWA logic). Depleting fund minimums. With the
+      // rising-equity glidepath ("bond tent") on, the entered equity/bond split is overridden: only
+      // their TOTAL matters, re-divided by the glide's target share for the year (identical formula
+      // to the Stress engine, so the two stay in lockstep). Cash is left alone. Glide off
+      // (equityGlide falsy) → byte-identical to the old behaviour.
+      const glidepathsForYear = (yn) => {
+        let ci = 1;
+        for (let i = 0; i < yn; i++) {
+          const yStr = taxYearKey(anchorYear + i);   // walk the tax years from the plan's start
+          const yearCPI = (allTaxYears[yStr] || {}).cpi || DECISION_ASSUMED_CPI; // entered CPI is authoritative; unentered assumes 4%
+          ci *= 1 + yearCPI;
+        }
+        let e = calculateGlidepath(settings.equityMin, yn, settings.duration, ci, true);
+        let b = calculateGlidepath(settings.bondMin, yn, settings.duration, ci, true);
+        const c = Math.round(calculateGlidepath(settings.cashTarget, yn, settings.duration, ci, false));
+        const share = glideShareForYear(settings.equityGlide, yn, settings.duration);
+        if (share != null) {
+          const growthMin = e + b;
+          e = growthMin * share;
+          b = growthMin * (1 - share);
+        }
+        return { cumInf: ci, adjEquity: Math.round(e), adjBond: Math.round(b), adjCash: c, growthGlideExact: e + b };
+      };
+      const { cumInf, adjEquity, adjBond, adjCash, growthGlideExact } = glidepathsForYear(yearNum);
 
       const totalGrowth = equity + bond;
       const minGrowth = adjEquity + adjBond;
@@ -117,11 +120,51 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Get prior history for protection mode calculation
       const priorHistory = history.filter(h => h.date < dateStr);
 
-      // Count consecutive Cash draws from history
+      // Consecutive months paid from cash — REPORTED on the record (it is what the user sees in the
+      // history), but since the owner's ruling it plays no part in switching protection on.
       for (let i = priorHistory.length - 1; i >= 0; i--) {
-        // Any non-Growth month counts toward the streak (Cash, Mixed, Diversifier…) — the SAME
-        // rule the stress engine applies, so both engines see identical protection triggers.
         if (priorHistory[i].source && priorHistory[i].source !== 'Growth') consec++;
+        else break;
+      }
+
+      // THE PROTECTION COUNT (the owner's rule, identical in the Stress engine): consecutive months in
+      // which the growth pots — shares + bonds + diversifiers — added up to less than the sum of their
+      // glidepaths. The diversifiers sleeve is held flat: its glidepath is its starting value.
+      const diversifierNow = deps.diversifier || 0;
+      const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
+      // The sleeve's target: the one handed in, else the plan's saved starting value; a plan that has
+      // neither (a sleeve value typed in with no sleeve in the settings) reads it as on target.
+      // No sleeve value entered this month (the entry box is optional and reads 0 when left alone) → the sleeve is on
+      // NEITHER side: a plan with a sleeve in its settings must not read as "below by the whole sleeve" — and be cut —
+      // just because the box was left empty.
+      const diversifierGlideFor = (held) => (held > 0 ? (num(deps.diversifierTarget) || num(settings.diversifierStart) || held) : 0);
+      // This month is judged against the glidepaths to the penny, as the Stress engine does (the
+      // figures shown on screen are the same ones rounded to the pound): a growth pot drawn down to
+      // exactly its floor is ON its glidepath, and rounding the floor up must not tip it under.
+      const vsGlide = growthVsGlide({ equity, bond, diversifier: diversifierNow, equityGlide: growthGlideExact, bondGlide: 0, diversifierGlide: diversifierGlideFor(diversifierNow) });
+      // A recorded month: the verdict saved with it when there is one. Otherwise the pot values on the
+      // record against the glidepaths saved with it — or, for a record without them, against the
+      // glidepaths worked out for its date exactly as above. The saved glidepaths are two figures each
+      // rounded to the pound, so their sum can sit up to £1 above the true line: a month counts only
+      // when the pots are below it by more than that (a pot sitting exactly on its floor is not below).
+      // A record that does not carry the sleeve's value is read as having had it on its target. A
+      // record with no pot values at all cannot be judged and ends the run.
+      const recordBelowGlide = (h) => {
+        if (typeof h.belowGlide === 'boolean') return h.belowGlide;
+        const e = num(h.equity), b = num(h.bond);
+        if (e == null || b == null) return false;
+        const d = num(h.diversifier);
+        const sleeve = { diversifier: d ?? 0, diversifierGlide: d == null ? 0 : diversifierGlideFor(d) };
+        const ge = num(h.adjEquity), gb = num(h.adjBond);
+        if (ge != null && gb != null) {
+          return e + b + sleeve.diversifier < ge + gb + sleeve.diversifierGlide - 1;
+        }
+        const g = glidepathsForYear(Math.max(0, getYearNum(h.date, anchorYear)));
+        return growthVsGlide({ equity: e, bond: b, equityGlide: g.growthGlideExact, bondGlide: 0, ...sleeve }).below;
+      };
+      let consecBelowGlide = 0;
+      for (let i = priorHistory.length - 1; i >= 0; i--) {
+        if (recordBelowGlide(priorHistory[i])) consecBelowGlide++;
         else break;
       }
 
@@ -136,18 +179,18 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Shared protection decision (same module the Stress engine uses). disableProtection is
       // honoured the same way the Stress engine honours it (previously decision-side had no off
       // switch, so seeded plans could disagree about whether protection fired at all).
-      // Buckets in order (deps.sourcingMode 'ordered') spends cash first by design, so the cash-draw
-      // streak is always satisfied and the per-pot floors say nothing: judge the WHOLE SIPP against the
-      // whole track and count the recorded months below it (belowTrack is saved on each record).
+      // Buckets in order (deps.sourcingMode 'ordered') spends cash first by design, so the per-pot
+      // floors say nothing: judge the WHOLE SIPP against the whole track and count the recorded
+      // months below it (belowTrack is saved on each record).
       const ordered = deps.sourcingMode === 'ordered';
       const trackLine = adjEquity + adjBond + adjCash - (settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER);   // dead band, as the Stress engine
       const belowTrack = ordered && (equity + bond + cash) < trackLine;
       let consecBelow = 0;
       for (let i = priorHistory.length - 1; i >= 0; i--) { if (priorHistory[i].belowTrack) consecBelow++; else break; }
       const inProtection = settings.disableProtection ? false : assessProtection({
-        totalGrowth: ordered ? equity + bond + cash : totalGrowth,
-        minGrowth: ordered ? trackLine : minGrowth,
-        consecCashDraws: ordered ? (belowTrack ? consecBelow : -1) : consec,
+        totalGrowth: ordered ? equity + bond + cash : vsGlide.growth,
+        minGrowth: ordered ? trackLine : vsGlide.glide,
+        consecBelowGlide: ordered ? (belowTrack ? consecBelow : -1) : consecBelowGlide,
         wasInProtection: priorHistory.length > 0 && priorHistory[priorHistory.length - 1].inProtection,
         consecutiveLimit: settings.consecutiveLimit || 3,
         recoveryBuffer: settings.recoveryBuffer || PROTECTION_DEFAULTS.RECOVERY_BUFFER
@@ -460,7 +503,7 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
       // Diversifiers sleeve (opt-in via deps.diversifier). Held flat; tapped as a crisis reserve in a
       // downturn BEFORE the depressed growth pots — the same rule the Stress engine uses. Absent/0 →
       // every branch below is byte-identical to the 3-bucket behaviour (golden-safe).
-      const diversifier = deps.diversifier || 0;
+      const diversifier = diversifierNow;
 
       // ---- Which pot pays: the SHARED sourcing rules (WithdrawalSourcing) ----
       // Identical module and numbers to the Stress engine — one rules engine, two surfaces:
@@ -695,6 +738,8 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
         recycleGross,                      // band-fill: extra monthly SIPP gross included in sippDraw (£0 = off/none)
         recycleNet,                        // band-fill: net of that to contribute to the ISA this month
         belowTrack,                        // Buckets in order: this month the whole SIPP sat below the whole track (drives its cut streak)
+        belowGlide: vsGlide.below,         // Pots & Valves: this month the growth pots (shares + bonds + diversifiers) added up to less than their glidepaths — the month counts towards protection
+        consecutiveBelowGlide: vsGlide.below ? consecBelowGlide + 1 : 0,   // the unbroken run of such months, this one included (protection starts when it reaches consecutiveLimit)
         // Taxable sleeve (GIA) — emitted ONLY when in use, so plans without one are byte-identical.
         ...(giaBalance > 0 || windfallAdvice.length ? {
           giaBalance,                      // what the taxable account held at the start of the month
@@ -758,6 +803,9 @@ export async function calcDecisionPWA(dateStr, equity, bond, cash, deps) {
           totalGrowth,
           minGrowth,
           consec,
+          growthPots: vsGlide.growth,      // shares + bonds + diversifiers: what protection compares…
+          growthGlide: vsGlide.glide,      // …with the sum of their glidepaths
+          consecBelowGlide,                // recorded months in a row below, before this one
           stdSipp: sipp, // Current SIPP draw
           // Input values for debugging
           inputs: {

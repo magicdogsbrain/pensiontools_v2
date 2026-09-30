@@ -510,12 +510,25 @@ export function typicalSanityFlag(label, annual, budget) {
   return null;
 }
 
-/** A blank budget for a new plan. */
-export function defaultBudget(currentAge = 45, retirementAge = 60, endAge = 100) {
+/**
+ * The ages a blank budget shows until the user gives their own. They are PLACEHOLDERS for the Budget page's two
+ * boxes and for this module's own arithmetic — never an age the rest of the app may plan on (see budgetAgesKnown).
+ */
+export const DEFAULT_BUDGET_AGES = Object.freeze({ currentAge: 45, retirementAge: 60 });
+
+/**
+ * A blank budget for a new plan. Called with no ages it carries the placeholders and no `agesSetByUser` marker;
+ * called with ages it is a budget whose ages were given, and says so.
+ */
+export function defaultBudget(currentAge, retirementAge, endAge = 100) {
+  const given = currentAge != null || retirementAge != null;
   return {
     version: 1,
-    currentAge: num(currentAge),
-    retirementAge: num(retirementAge),
+    currentAge: num(currentAge ?? DEFAULT_BUDGET_AGES.currentAge),
+    retirementAge: num(retirementAge ?? DEFAULT_BUDGET_AGES.retirementAge),
+    // `agesSetByUser: true` once a person has given the ages (Budget page edit, setup wizard, the Stress tester's
+    // Timing block). Absent on a blank budget, so merging a saved budget over these defaults never un-marks it.
+    ...(given ? { agesSetByUser: true } : {}),
     endAge: num(endAge),
     // Optional partner cost-sharing (single-person plan; partner-paid lines drop out of the owner's need).
     sharedWithPartner: false,
@@ -525,6 +538,38 @@ export function defaultBudget(currentAge = 45, retirementAge = 60, endAge = 100)
     lines: [],
     oneOffs: []
   };
+}
+
+/**
+ * Did a person give this budget its ages, or are they the blank budget's 45 / 60 placeholders?
+ * Known when: the marker says so; or the age carries the date it was entered (`currentAgeAsOf`, written only with a
+ * real age by the Timing block); or either age differs from the placeholders (a budget saved before the marker
+ * existed, whose ages somebody changed). An unmarked 45 / 60 is UNKNOWN — a plan must ask, never assume 45.
+ * Only `true` counts: a missing or false marker means "not marked", not "proved unset" — every budget saved
+ * before 6.13.5 is unmarked, and one whose ages were changed is recognised by the ages themselves.
+ */
+export function budgetAgesKnown(budget) {
+  const b = budget || {};
+  if (!(num(b.currentAge) > 0)) return false;
+  if (b.agesSetByUser === true) return true;
+  if (b.currentAgeAsOf) return true;
+  return num(b.currentAge) !== DEFAULT_BUDGET_AGES.currentAge || num(b.retirementAge) !== DEFAULT_BUDGET_AGES.retirementAge;
+}
+
+/** The budget's "age today", or null when nobody has given one. Consumers outside the Budget page read THIS. */
+export function budgetAgeToday(budget) {
+  return budgetAgesKnown(budget) ? num(budget.currentAge) : null;
+}
+
+/** The budget's retirement age, or null when nobody has given one. */
+export function budgetRetirementAge(budget) {
+  return budgetAgesKnown(budget) && num(budget.retirementAge) > 0 ? num(budget.retirementAge) : null;
+}
+
+/** Stamp a budget whose ages a person has just given (mutates and returns it). Call wherever the ages are written. */
+export function markBudgetAgesSet(budget) {
+  if (budget && num(budget.currentAge) > 0) budget.agesSetByUser = true;
+  return budget;
 }
 
 // ---------------------------------------------------------------------------------------------

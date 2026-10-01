@@ -10,7 +10,7 @@
  *
  * Bundled market history only: no live prices are read.
  */
-import { bootstrapPaths, annualNominal, dataMeta } from '../../strategies/ladderEngine.js';
+import { bootstrapPaths, annualNominal, dataMeta, getEquityHaircut } from '../../strategies/ladderEngine.js';
 
 /** The engine reads a rise in prices of exactly nought as "not given" and uses 2.5%. This is the smallest rise it takes as given. */
 const FLAT_PRICES = 1e-12;
@@ -83,4 +83,14 @@ export function cappedIndexByYear(returns, years, cap = 0.05) {
   const out = [1];
   for (let y = 1; y < years; y++) out.push(out[y - 1] * (1 + Math.min(returns.inflation[y] || 0.025, cap)));
   return out;
+}
+
+/**
+ * What the futures are made of, said where every answer lists what it assumed (the reviewers' finding, 1 Oct 2026: the
+ * first thing a reader asks): stretches of US share returns (the S&P, dividends in) and US price rises from the bundled
+ * Shiller history, the share returns cut by this much a year to stand for shares around the world (ladderEngine.js
+ * WORLD_EQUITY_HAIRCUT) — as a percentage to one place: '1.5'.
+ */
+export function shareCutPercent() {
+  return (getEquityHaircut() * 100).toFixed(1);
 }

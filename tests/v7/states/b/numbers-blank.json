@@ -1,0 +1,76 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "b",
+    "step": "numbers",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

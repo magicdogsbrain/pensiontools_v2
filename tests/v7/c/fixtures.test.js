@@ -1,5 +1,6 @@
 /**
- * The three worked fixtures (test plan 4; build brief 6, P2): F1 the forum guest, F2 a couple, F3 already retired.
+ * The worked fixtures (test plan 4; build brief 6, P2): F1 the forum guest, F2 a couple, F3 already retired; and
+ * (step 4 brief J8) F4 the owner's case — still paying in, the money from 67, worked on the lives.
  * Each file holds the inputs, the env, the pinned answer (numbers filled by the first green run) and an
  * `approved` line for the owner. The test fails if a sentence or a displayed figure changes, and if the file
  * has no `approved` block. Set V7_PIN=1 to re-pin after a change the owner has accepted.
@@ -15,7 +16,7 @@ import { answerC, checkAnswer } from './invariants.js';
 import { money } from '../../../src/answers/shared/format.js';
 
 const DIR = resolve(process.cwd(), 'tests/v7/fixtures/c');
-const FILES = ['F1-forum-guest.json', 'F2-couple.json', 'F3-retired.json'];
+const FILES = ['F1-forum-guest.json', 'F2-couple.json', 'F3-retired.json', 'F4-still-paying-in.json'];
 const fixtures = FILES.map((f) => ({ file: f, path: resolve(DIR, f), data: JSON.parse(readFileSync(resolve(DIR, f), 'utf8')) }));
 
 /** What is pinned: everything but the trace and the engine version (which moves with every release). */
@@ -41,7 +42,7 @@ function diffs(actual, pinned, path = '', out = []) {
 
 const RETIRED_BANNED = [/when you retire/i, /until you retire/i, /when you stop work/i, /years to go/i, /months to go/i, /plan starts/i, /countdown/i, /to retirement/i, /\bin \d+ (years|months)\b/i, /stop work/i];
 
-describe('the three worked fixtures', () => {
+describe('the worked fixtures', () => {
   for (const fx of fixtures) {
     describe(`${fx.data.id} — ${fx.data.name}`, () => {
       const env = { ...TEST_ENV, ...fx.data.env, trace: true };
@@ -102,5 +103,6 @@ describe('the three worked fixtures', () => {
     expect(fixtures[0].data.inputs).toEqual({ you: { pot: 250000, age: 58 } });
     expect(fixtures[1].data.inputs.household).toBe('couple');
     expect(fixtures[2].data.inputs.you.age).toBe(68);
+    expect(fixtures[3].data.inputs).toEqual({ you: { pot: 275000, age: 55, payIn: { has: 'yes', own: 500, employer: 300 } }, start: { kind: 'age', age: 67 } });
   });
 });

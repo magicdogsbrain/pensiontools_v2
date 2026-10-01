@@ -1,7 +1,9 @@
 /**
  * Question C, step 1 — "What have you got?" (rail-screens-language.md 2.2). The short form: two numbers to type,
- * three settings that start sensible; "Add a partner" and "Add more detail" open on this same step. Computes
- * nothing: every box is drawn from the input list and the state by Field.
+ * "Are you still paying into this pension?" (the owner's report, 1 Oct 2026: the most likely situation, so on this
+ * form, never under more detail — "Yes" opens your part and your employer's part inside it), and the settings that
+ * start sensible; "Add a partner" and "Add more detail" open on this same step. Computes nothing: every box is drawn
+ * from the input list (SCHEMA_C, in its order) and the state by Field.
  */
 import { AskForm, Field, PersonBlock, formView, focusField, Button, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';

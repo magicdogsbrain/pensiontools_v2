@@ -1,13 +1,19 @@
 /**
- * The reducer (V7 build brief 4.6). Pure: (state, action) → state. It never changes the state it is given, and
- * returns the very same object when an action changes nothing (a stale result, an action it does not know).
+ * The reducer (V7 build brief 4.6; step 4 brief 4.11). Pure: (state, action) → state. It never changes the state it
+ * is given, and returns the very same object when an action changes nothing (a stale result, an action it does not know).
  *
  * No action can change `plan` or `session` in this slice. An unknown action type — or one with a field that is not
  * on the input list — throws in the test build and is ignored in the published build.
+ *
+ * Step 4: every question that is open has its draft and answer (C's shapes unchanged; A's and B's drafts carry
+ * `carriedFrom`, their answers `detail` and `extending`). `draft/carry` copies one question's figures into another's
+ * draft by the declared map and opens the place the map names; `answer/extend` marks an optional step's extra pass.
+ * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraft, emptyAnswer } from './initial.js';
-import { parsedDraft, appliedPaths, SCHEMAS } from './select.js';
+import { emptyDraftFor, emptyAnswerFor } from './initial.js';
+import { parsedDraft, appliedPaths, isCurrent, SCHEMAS } from './select.js';
+import { CARRY, CARRY_OPENS, carryKey } from './carry.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 
@@ -20,6 +26,57 @@ const tidyRoute = (r) => parse(format(r));
 const withDraft = (state, q, draft) => ({ ...state, draft: { ...state.draft, [q]: draft } });
 const withAnswer = (state, q, answer) => ({ ...state, answers: { ...state.answers, [q]: answer } });
 const hasField = (q, path) => !!SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.path === path);
+const closeRail = (ui) => (ui.railOpen ? { ...ui, railOpen: false } : ui);
+/** A's and B's answers carry detail and extending; C's do not, and keep C's shape. */
+const hasDetail = (answer) => !!answer && 'extending' in answer;
+const detailOf = (result) => (result && result.basis && typeof result.basis.detail === 'string' ? result.basis.detail : null);
+/** Whole pounds as a person would type them: 480000 → '480,000'. The same on every device (no toLocaleString). */
+const asTyped = (n) => String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const get = (obj, key) => String(key).split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+
+/**
+ * draft/carry { from, to }: a new state with draft[to] filled by CARRY[from→to] (state/carry.js) and the route at
+ * CARRY_OPENS, or null when there is no such carry. Each entry writes its target field only when it has something:
+ *   a typed field of the source → copied as it is (text, or yes/no), skipped when nothing is typed there;
+ *   { result: key }           → the figure at that key of the source's answer — only an answer for what is typed now,
+ *                               first or final — written as text ('480,000'); with no such figure the box is emptied,
+ *                               so it is never left holding a figure from before;
+ *   { fixed: text }           → that text.
+ * Every field written (or emptied) is marked touched; the target's carriedFrom (A's, B's) says where from. The source
+ * draft and every answer are untouched.
+ */
+function carried(state, from, to) {
+  const k = carryKey(from, to);
+  const map = Object.prototype.hasOwnProperty.call(CARRY, k) ? CARRY[k] : null;
+  const source = state.draft[from];
+  const target = state.draft[to];
+  if (!map || !source || !target || from === to) return null;
+  const values = { ...target.values };
+  const touched = [...target.touched];
+  const mark = (path) => { if (!touched.includes(path)) touched.push(path); };
+  const answer = state.answers[from];
+  const readable = !!answer && (answer.status === 'first' || answer.status === 'final') && isCurrent(state, from);
+  for (const [src, toPath] of map) {
+    if (!hasField(to, toPath)) return null;
+    if (typeof src === 'string') {
+      const v = source.values[src];
+      if (typeof v !== 'string' && typeof v !== 'boolean') continue;
+      values[toPath] = v;
+    } else if (src && 'result' in src) {
+      const n = readable ? get(answer.result, src.result) : undefined;
+      if (typeof n === 'number' && Number.isFinite(n)) values[toPath] = asTyped(n);
+      else delete values[toPath];
+    } else if (src && 'fixed' in src) {
+      values[toPath] = String(src.fixed);
+    } else continue;
+    mark(toPath);
+  }
+  const draft = { ...target, values, touched };
+  if ('carriedFrom' in target) draft.carriedFrom = from;
+  const opens = CARRY_OPENS[k];
+  const route = opens ? tidyRoute({ screen: 'step', q: opens.q, step: opens.step, planId: null, focus: opens.focus }) : state.route;
+  return { ...withDraft(state, to, draft), route, ui: closeRail(state.ui) };
+}
 
 export function reduce(state, action) {
   const refuse = (why) => {
@@ -33,7 +90,7 @@ export function reduce(state, action) {
 
   switch (action.type) {
     case A.ROUTE_SET:
-      return { ...state, route: tidyRoute(action.route), ui: state.ui.railOpen ? { ...state.ui, railOpen: false } : state.ui };
+      return { ...state, route: tidyRoute(action.route), ui: closeRail(state.ui) };
 
     // ---- what was typed -------------------------------------------------------------------------------------
     case A.DRAFT_SET: {
@@ -43,7 +100,10 @@ export function reduce(state, action) {
       if (typeof action.value === 'string' || typeof action.value === 'boolean') values[action.path] = action.value;
       else delete values[action.path];
       // Setting household to 'single' keeps the partner's values: "Remove" then "Add" loses nothing.
-      const next = withDraft(state, q, { ...draft, values });
+      // A's and B's "we have brought your figures over" goes once any box is changed.
+      const changed = values[action.path] !== draft.values[action.path] || (action.path in values) !== (action.path in draft.values);
+      const carriedGone = changed && 'carriedFrom' in draft && draft.carriedFrom !== null;
+      const next = withDraft(state, q, carriedGone ? { ...draft, values, carriedFrom: null } : { ...draft, values });
       if (!draft.asked) return next;
       // After "Show what it pays": a field this change brings onto the form (a partner's boxes) is "revealed" —
       // it shows no error until it has been left or the button is pressed again.
@@ -61,13 +121,23 @@ export function reduce(state, action) {
       if (!draft) return refuse(`draft/ask: no question "${q}"`);
       // Pressing the button asks for every field on the form as it stands: nothing is "revealed" any more.
       const next = draft.asked && !(draft.revealed || []).length ? state : withDraft(state, q, { ...draft, asked: true, revealed: [] });
-      const canAnswer = parsedDraft(state, q).ok && BUILT[q] && BUILT[q].steps.some((s) => s.id === 'answer');
-      if (!canAnswer) return next;
-      return { ...next, route: tidyRoute({ screen: 'step', q, step: 'answer', planId: null, focus: null }), ui: next.ui.railOpen ? { ...next.ui, railOpen: false } : next.ui };
+      const parsed = parsedDraft(state, q);
+      const canAnswer = parsed.ok && BUILT[q] && BUILT[q].steps.some((s) => s.id === 'answer');
+      if (!canAnswer) {
+        // A figure that needs another look inside "Add more detail" (C's "make it last to age" before the start age, the
+        // reviewers' dead end): the block opens, so the box and its sentence are on screen for the form to focus.
+        const inMore = SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.group === 'more' && parsed.errors[f.path]);
+        return inMore && !next.ui.open.includes('more') ? { ...next, ui: { ...next.ui, open: [...next.ui.open, 'more'] } } : next;
+      }
+      return { ...next, route: tidyRoute({ screen: 'step', q, step: 'answer', planId: null, focus: null }), ui: closeRail(next.ui) };
     }
     case A.DRAFT_RESET: {
       if (!draft) return refuse(`draft/reset: no question "${q}"`);
-      return withAnswer(withDraft(state, q, emptyDraft()), q, emptyAnswer());
+      return withAnswer(withDraft(state, q, emptyDraftFor(q)), q, emptyAnswerFor(q));
+    }
+    case A.DRAFT_CARRY: {
+      const next = carried(state, action.from, action.to);
+      return next || refuse(`draft/carry: no carry from "${action.from}" to "${action.to}"`);
     }
 
     // ---- the answer -----------------------------------------------------------------------------------------
@@ -78,38 +148,60 @@ export function reduce(state, action) {
       // amount to take had been named, how long that lasted — for "Before / Now".
       const wasFinal = answer.status === 'final' && answer.result && answer.result.monthly && typeof answer.result.monthly.careful === 'number';
       const oldTake = wasFinal && answer.result.take && typeof answer.result.take.perMonth === 'number' ? answer.result.take : null;
+      // A and B keep the last final answer's own "Now:" sentence (a.change / b.change), which the screen shows as "Before:",
+      // and the inputs it was worked out from, so the screen can name what was changed since ("the stop age from 60 to 61").
+      const changeOf = answer.status === 'final' && answer.result && answer.result.sentences && answer.result.sentences.change;
+      const keptInputs = answer.result && answer.result.inputs && typeof answer.result.inputs === 'object' ? { inputs: answer.result.inputs } : {};
       const before = wasFinal
         ? { monthly: { careful: answer.result.monthly.careful }, take: oldTake ? { perMonth: oldTake.perMonth, runOutAge: oldTake.runOutAge, covered: oldTake.covered === true } : null }
-        : answer.before;
-      return withAnswer(state, q, { ...answer, status: 'working', inputsKey: action.inputsKey, before, progress: null, slow: false });
+        : q !== 'c' && changeOf && typeof changeOf.text === 'string'
+          ? { change: { id: changeOf.id, text: changeOf.text, parts: changeOf.parts }, ...keptInputs }
+          : answer.before;
+      const working = { ...answer, status: 'working', inputsKey: action.inputsKey, before, progress: null, slow: false };
+      if (hasDetail(answer)) working.extending = false;                                                                       // a change mid-extend ends it
+      return withAnswer(state, q, working);
     }
     case A.ANSWER_PROGRESS: {
       if (!answer) return refuse(`answer/progress: no question "${q}"`);
       if (action.inputsKey === null || action.inputsKey !== answer.inputsKey) return state;
-      if (answer.status !== 'working' && answer.status !== 'first') return state;
+      if (answer.status !== 'working' && answer.status !== 'first' && !answer.extending) return state;
       return withAnswer(state, q, { ...answer, progress: { done: Number(action.done) || 0, total: Number(action.total) || 0 } });
     }
     case A.ANSWER_FIRST: {
       if (!answer) return refuse(`answer/first: no question "${q}"`);
       if (action.inputsKey === null || action.inputsKey !== answer.inputsKey || answer.status !== 'working') return state;   // stale
-      return withAnswer(state, q, { ...answer, status: 'first', result: action.result, progress: null });
+      const first = { ...answer, status: 'first', result: action.result, progress: null };
+      if (hasDetail(answer)) first.detail = detailOf(action.result);
+      return withAnswer(state, q, first);
     }
     case A.ANSWER_FINAL: {
       if (!answer) return refuse(`answer/final: no question "${q}"`);
       if (action.inputsKey === null || action.inputsKey !== answer.inputsKey) return state;                                  // stale
-      if (answer.status !== 'working' && answer.status !== 'first') return state;
-      return withAnswer(state, q, { ...answer, status: 'final', result: action.result, progress: null, slow: false });
+      // A final figure arrives for a run under way, or for an optional step's extra pass on a final answer.
+      if (answer.status !== 'working' && answer.status !== 'first' && !(answer.status === 'final' && answer.extending)) return state;
+      const final = { ...answer, status: 'final', result: action.result, progress: null, slow: false };
+      if (hasDetail(answer)) { final.detail = detailOf(action.result); final.extending = false; }
+      return withAnswer(state, q, final);
     }
     case A.ANSWER_FAILED: {
       if (!answer) return refuse(`answer/failed: no question "${q}"`);
       if (action.inputsKey === null || action.inputsKey !== answer.inputsKey) return state;                                  // stale
-      if (answer.status !== 'working' && answer.status !== 'first') return state;
-      return withAnswer(state, q, { ...answer, status: 'failed', progress: null, slow: false });                             // the draft is untouched
+      if (answer.status !== 'working' && answer.status !== 'first' && !(answer.status === 'final' && answer.extending)) return state;
+      const failed = { ...answer, status: 'failed', progress: null, slow: false };                                           // the draft is untouched
+      if (hasDetail(answer)) failed.extending = false;
+      return withAnswer(state, q, failed);
     }
     case A.ANSWER_SLOW: {
       if (!answer) return refuse(`answer/slow: no question "${q}"`);
-      if ((answer.status !== 'working' && answer.status !== 'first') || answer.slow) return state;
+      if ((answer.status !== 'working' && answer.status !== 'first' && !answer.extending) || answer.slow) return state;
       return withAnswer(state, q, { ...answer, slow: true });
+    }
+    case A.ANSWER_EXTEND: {
+      // An optional step's extra pass (A's ages, B's choices): only on a final answer for the key, not already extending.
+      if (!hasDetail(answer)) return refuse(`answer/extend: question "${q}" has no optional pass`);
+      if (typeof action.inputsKey !== 'string' || action.inputsKey !== answer.inputsKey) return state;                      // stale
+      if (answer.status !== 'final' || answer.extending) return state;
+      return withAnswer(state, q, { ...answer, extending: true, progress: null, slow: false });
     }
     case A.ANSWER_RETRY: {
       if (!answer) return refuse(`answer/retry: no question "${q}"`);
@@ -153,14 +245,23 @@ export function reduce(state, action) {
       const ok = s && s.route && s.env && typeof s.env.today === 'string' && DATE.test(s.env.today) && s.draft && s.draft.c && s.answers && s.answers.c && s.ui;
       if (!ok) return refuse('state/replace: not a V7 state');
       const copy = JSON.parse(JSON.stringify(s));
+      // Every question open here gets its draft and answer, in its own shape; one the state handed in leaves out is empty.
+      const drafts = {};
+      const answers = {};
+      for (const id of Object.keys(state.draft)) {
+        const d = copy.draft[id] && typeof copy.draft[id] === 'object' ? copy.draft[id] : {};
+        drafts[id] = { ...emptyDraftFor(id), ...d, revealed: Array.isArray(d.revealed) ? d.revealed : [] };
+        const a = copy.answers[id] && typeof copy.answers[id] === 'object' ? copy.answers[id] : {};
+        answers[id] = { ...emptyAnswerFor(id), ...a };
+      }
       return {
         route: tidyRoute(copy.route),
         env: { today: copy.env.today, build: 'test', appVersion: typeof copy.env.appVersion === 'string' ? copy.env.appVersion : state.env.appVersion,
                historyEnd: typeof copy.env.historyEnd === 'string' ? copy.env.historyEnd : null },
         session: { kind: 'none' },                   // fixed in this slice, whatever was handed in
         plan: null,                                  // fixed in this slice
-        draft: { c: { ...emptyDraft(), ...copy.draft.c, revealed: Array.isArray(copy.draft.c.revealed) ? copy.draft.c.revealed : [] } },
-        answers: { c: { ...emptyAnswer(), ...copy.answers.c } },
+        draft: drafts,
+        answers,
         ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false }
       };
     }

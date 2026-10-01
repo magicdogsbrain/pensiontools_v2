@@ -7,8 +7,12 @@
  *  - the "Change" links under what was assumed put the cursor in the right box;
  *  - Escape closes the phone rail list;
  *  - nothing traps the Tab key.
+ *
+ * Step 4 (test plan 11.1, 11.3): A's and B's boxes in the order they are drawn (no box skipped, none reached out of
+ * turn), the percent box and the yes/no for part-time used from the keyboard, Enter asks and the cursor lands on the
+ * answer, A's table of every age reachable with each row naming its age, and Escape closing the phone rail.
  */
-import { test, expect, v7, waitsFor, ADDRESSES } from './helpers/app.js';
+import { test, expect, v7, waitsFor, fixtureTyping, mustFill, ADDRESSES, NEEDS, SCHEMAS } from './helpers/app.js';
 import { SCHEMA_C } from '../src/answers/c/schema.js';
 
 /** What has the cursor: its test id (a radio reports its field, not its option), and whether a ring shows. */
@@ -113,6 +117,23 @@ test.describe('keyboard: question C', () => {
     }
   });
 
+  test('"Try a change": after Enter on − or +, the cursor is still on that button once the answer is in', async ({ page }) => {
+    // A button greyed out while the answer is worked out drops the cursor to the page (review of A and B, 1 Oct 2026):
+    // it rests with aria-disabled instead, and keeps its place.
+    const app = v7(page, 'test');
+    await app.open('#/c/numbers');
+    await app.fill({ 'you.pot': '250000', 'you.age': '58' });
+    await app.click('c.action.show');
+    await app.ready(120_000);
+    for (const id of ['c.try.pot.up', 'c.try.pot.down', 'c.try.start.up']) {
+      await app.id(id).focus();
+      await page.keyboard.press('Enter');
+      await app.ready(120_000);
+      await expect.poll(async () => { const f = await focused(page); return f ? f.id : null; }, { message: `${id} keeps the cursor once the answer is in` }).toBe(id);
+      await expect(app.id(id)).not.toHaveAttribute('aria-disabled', 'true');
+    }
+  });
+
   test.describe('on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
@@ -130,5 +151,156 @@ test.describe('keyboard: question C', () => {
       // The cursor goes back to where it was.
       await expect(line).toBeFocused();
     });
+  });
+});
+
+// ---- Step 4: questions A and B ------------------------------------------------------------------------------
+
+/** The short form's boxes of question q that apply with nothing typed (no `when` beyond the defaults), not under "more". */
+function shortForm(q) {
+  // `household` is buttons (add / remove a partner) and `payIn.kind` may be drawn as a "Split it up" button pair, not boxes.
+  const skip = new Set(['household', 'you.payIn.kind']);
+  return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && !f.path.startsWith('partner.') && f.group !== 'try')
+    .filter((f) => !f.when || Object.entries(f.when).every(([p, v]) => { const d = SCHEMAS[q].fields.find((x) => x.path === p); return d && d.default === v; }))
+    .map((f) => `${q}.${f.path}`);
+}
+
+for (const q of ['a', 'b']) {
+  test.describe(`keyboard: question ${q.toUpperCase()}`, () => {
+    test.beforeEach(() => waitsFor(...NEEDS[q]));
+
+    test('Tab visits every box of the short form in the order it is drawn, then the button; Enter gives the answer', async ({ page }) => {
+      const app = v7(page, 'test', q);
+      await app.open(`#/${q}/numbers`);
+      await app.ready();
+      const wanted = shortForm(q);
+      // The order on the page: every box of the form, in document order (a radio group is one stop).
+      const drawn = await page.$$eval(`#app [data-testid^="${q}."]`, (els) => els.filter((el) => /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)).map((el) => el.getAttribute('data-testid')));
+      const fieldOf = (id) => wanted.find((p) => id === p || id.startsWith(p + '.'));
+      const docOrder = [];
+      for (const id of drawn) { const f = fieldOf(id); if (f && !docOrder.includes(f)) docOrder.push(f); }
+      expect([...docOrder].sort(), 'every box of the short form is drawn').toEqual([...wanted].sort());
+      const expectedOrder = [];
+      for (const id of drawn) { const f = fieldOf(id); if (f && !expectedOrder.includes(f)) expectedOrder.push(f); }
+
+      await page.locator(`#app [data-testid="${drawn[0]}"]`).focus();
+      const order = [];
+      for (let i = 0; i < 80; i++) {
+        const f = await focused(page);
+        if (!f || !f.inApp) break;
+        expect(f.ring, `${f.id} shows where the cursor is`).toBe(true);
+        const field = fieldOf(f.id);
+        if (field && order[order.length - 1] !== field) order.push(field);
+        if (f.id === `${q}.action.show`) { order.push(f.id); break; }
+        await page.keyboard.press('Tab');
+      }
+      expect(order.filter((id) => wanted.includes(id)), 'Tab follows the drawn order').toEqual(expectedOrder);
+      expect(order[order.length - 1]).toBe(`${q}.action.show`);
+
+      // Typed with the keyboard alone (the things that must be filled in), and asked for with Enter.
+      const typing = fixtureTyping(q === 'a' ? 'A1' : 'B3');
+      for (const path of mustFill(q, typing)) {
+        if (path === 'spend.level') continue;
+        await app.id(`${q}.${path}`).focus();
+        await page.keyboard.type(typing[path]);
+      }
+      await page.keyboard.press('Enter');
+      await app.at(`${q}.answer`);
+      await app.ready(120_000);
+      // The cursor lands on the answer: its main heading, or inside the headline.
+      const at = await page.evaluate(() => { const el = document.activeElement; return el ? { tag: el.tagName, inHeadline: !!el.closest('[data-headline]') } : null; });
+      expect(at && (at.tag === 'H1' || at.inHeadline), 'the cursor is on the answer').toBe(true);
+    });
+
+    test('"Try a change": after Enter on − or +, the cursor stays on that button', async ({ page }) => {
+      const app = v7(page, 'test', q);
+      await app.open(`#/${q}/numbers`);
+      const typing = fixtureTyping(q === 'a' ? 'A1' : 'B3');
+      await app.fill(Object.fromEntries(mustFill(q, typing).map((p) => [p, typing[p]])));
+      await app.click(`${q}.action.show`);
+      await app.ready(120_000);
+      for (const id of [`${q}.try.spend.down`, `${q}.try.stop.up`, ...(q === 'b' ? ['b.try.payIn.up'] : ['a.try.pot.up'])]) {
+        await app.id(id).focus();
+        await page.keyboard.press('Enter');
+        await app.ready(120_000);
+        await expect.poll(async () => { const f = await focused(page); return f ? f.id : null; }, { message: `${id} keeps the cursor` }).toBe(id);
+      }
+    });
+
+    test('the percent box and the yes/no boxes work from the keyboard', async ({ page }) => {
+      const app = v7(page, 'test', q);
+      await app.open(`#/${q}/numbers`);
+      await app.ready();
+      await app.click(`${q}.action.moreDetail`);
+      // The charge a year while saving: a percent, typed with or without its sign.
+      const charge = app.id(`${q}.charge`);
+      await expect(charge).toBeVisible();
+      await charge.focus();
+      await page.keyboard.press('ControlOrMeta+a');
+      await page.keyboard.type('1.5');
+      await expect(charge).toHaveValue(/^1\.5 ?%?$/);
+      const box = await charge.boundingBox();
+      expect(box.height, 'the percent box and its sign are one control 44 px tall').toBeGreaterThanOrEqual(43.5);
+      if (q === 'a') {
+        // Part-time: a yes/no radio group, reached by Tab and changed with the arrow keys; "yes" opens its two boxes.
+        const no = app.id('a.partTime.has.no');
+        await no.focus();
+        await page.keyboard.press('ArrowRight');
+        await expect(app.id('a.partTime.has.yes')).toBeChecked();
+        await expect(app.id('a.partTime.yearly')).toBeVisible();
+        await expect(app.id('a.partTime.years')).toBeVisible();
+      }
+    });
+
+    test.describe('on a phone', () => {
+      test.use({ viewport: { width: 390, height: 844 } });
+
+      test('Escape closes the rail list', async ({ page }) => {
+        const app = v7(page, 'test', q);
+        await app.open(`#/${q}/numbers`);
+        await app.ready();
+        const line = app.id('rail.line');
+        await expect(line).toBeVisible();
+        await line.focus();
+        await page.keyboard.press('Enter');
+        await expect(app.id(`rail.${q}.answer`)).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(app.id(`rail.${q}.answer`)).toBeHidden();
+        await expect(line).toBeFocused();
+      });
+    });
+  });
+}
+
+test.describe('keyboard: A\'s table of every age', () => {
+  test.beforeEach(() => waitsFor(...NEEDS.a, 'extend'));
+
+  test('is reachable by Tab, and every row names its age', async ({ page }) => {
+    const app = v7(page, 'test', 'a');
+    await app.open('#/a/numbers');
+    const typing = fixtureTyping('A1');
+    await app.fill(Object.fromEntries(mustFill('a', typing).map((p) => [p, typing[p]])));
+    await app.click('a.action.show');
+    await app.ready(120_000);
+    await app.rail('ages');
+    await app.partialThenFinal();
+    const rows = page.locator('#app [data-table="ages"] [data-age]');
+    const n = await rows.count();
+    expect(n).toBeGreaterThan(0);
+    for (let i = 0; i < n; i++) {
+      const age = await rows.nth(i).getAttribute('data-age');
+      const said = await rows.nth(i).evaluate((el) => `${el.getAttribute('aria-label') || ''} ${el.innerText}`);
+      expect(said, `row ${i} names its age`).toContain(age);
+    }
+    // Tab reaches the table (a row, or a control inside it) from the top of the page.
+    await page.locator('#app h1').first().focus();
+    let reached = false;
+    for (let i = 0; i < 120 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await page.evaluate(() => !!(document.activeElement && document.activeElement.closest('[data-table="ages"]')));
+      const f = await focused(page);
+      if (!f || !f.inApp) break;
+    }
+    expect(reached, 'the table of every age is reached by Tab').toBe(true);
   });
 });

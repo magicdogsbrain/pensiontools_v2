@@ -17,7 +17,20 @@
  *
  * A config the replica does not cover (fastEligible false) is run by `simulate` as before.
  *
- *   createFastRunner(plan, futures) → { run(r, i, config, needMonth?) → { failed, failMonth }, eligible }
+ *   createFastRunner(plan, futures, opts?) → { run(r, i, config) → { failed, failMonth, … }, eligible }
+ *
+ * Questions A and B (step 4 brief 4.5, 4.6) add, each a no-op when not asked for:
+ *   - prepareFutureFrom(life, offsetMonths, years): a future's drivers read from a life (lives.js) at the stop — the
+ *     price level from 1, shares and the life's bond stream continued, the first year's cash from the true previous
+ *     year. At offset 0 it is prepareFuture to the bit (the bond stream IS the engine's).
+ *   - createFastRunner(plan, futures, { potsFor, driversFor }): start values per run per future (the pots differ by
+ *     future), and drivers supplied by the caller.
+ *   - the locked run (config.lockedMonths, config.lockedSchedule): a pension closed for its first months inside its
+ *     holder's one run. While closed the run draws nothing from the pension sleeves (they grow untouched), the month's
+ *     target is the savings-only target and the ISA pays it exactly as a savings-only run's ISA does; a shortfall the
+ *     ISA cannot meet is a run-out. From the month it opens the ordinary path runs. `simulate` cannot run it, so the
+ *     runner refuses to hand one to `simulate`. tests/v7/saving/locked.test.js proves it against a chain of `simulate`.
+ *   - fastEligible accepts an income that ends (extraIncomes[].endYear), a finite isaReturn and lockedMonths.
  */
 import { seededRng, gaussianRandom } from '../../utils/MathUtils.js';
 import { simulate } from '../../services/SimulationEngine.js';
@@ -32,12 +45,12 @@ const LSA = 268275;                       // the UFPLS lifetime Lump Sum Allowan
 const DEFAULT_HRL = 125140;
 
 /** SimulationEngine.cashNominalReturn, as written there. */
-function cashNominalReturn(prevInflation) {
+export function cashNominalReturn(prevInflation) {
   return Math.max(0, prevInflation + CASH_REAL_SPREAD);
 }
 
-/** SimulationEngine.calculateBondReturn, as written there (it is not exported). */
-function calculateBondReturn(inf, eqReturn, prevInf, rng) {
+/** SimulationEngine.calculateBondReturn, as written there (it is not exported). Also the saving years' bond model (lives.js). */
+export function calculateBondReturn(inf, eqReturn, prevInf, rng) {
   let linkerWeight = 0.15;
   let nomBondWeight = 0.30;
   let propertyWeight = 0.20;
@@ -95,7 +108,7 @@ function equityBondRho(inf, eqReturn) {
 }
 
 /** SimulationEngine's monthly factor from an annual return. */
-const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
+export const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 
 /**
  * WithdrawalSourcing.planSourcing for the shape here — no diversifiers, no HODL, never in protection — with
@@ -161,12 +174,14 @@ export function fastEligible(c) {
     && finite(c.pa) && finite(c.brl) && (c.hrl === undefined || finite(c.hrl)) && c.taxMode === 'inflates'
     && c.disableProtection === true
     && !c.hodlEnabled && isZero(c.hodlStart)
-    && isZero(c.diversifierStart) && c.subAsset === undefined && c.isaMix === undefined && c.isaReturn === undefined
+    && isZero(c.diversifierStart) && c.subAsset === undefined && c.isaMix === undefined && (c.isaReturn === undefined || finite(c.isaReturn))
     && c.isaDrawdownStrategy === undefined && ISA_DEFAULTS.DRAWDOWN_STRATEGY === 'minimiseEarlyTax' && (c.isaBalance === undefined || finite(c.isaBalance))
     && isZero(c.taxableStart) && emptyList(c.windfalls)
     && (c.accessMethod === 'ufpls' || c.accessMethod === 'drawdown') && !c.ufplsYears && !c.ufplsThenPcls && !c.bandFillRecycle
     && (c.dbAmount === undefined || finite(c.dbAmount)) && (!(c.dbAmount > 0) || c.dbIndexation === 'cpi')
-    && (c.extraIncomes === undefined || (Array.isArray(c.extraIncomes) && c.extraIncomes.every((e) => e && e.indexation === 'cpi' && finite(e.annual) && (e.endYear === undefined || e.endYear === null))))
+    && (c.extraIncomes === undefined || (Array.isArray(c.extraIncomes) && c.extraIncomes.every((e) => e && e.indexation === 'cpi' && finite(e.annual) && (e.endYear === undefined || e.endYear === null || Number.isInteger(e.endYear)))))
+    && (c.lockedMonths === undefined || (Number.isInteger(c.lockedMonths) && c.lockedMonths >= 0
+      && (c.lockedSchedule === undefined ? c.lockedMonths === 0 : (Array.isArray(c.lockedSchedule) && c.lockedSchedule.length === c.years && c.lockedSchedule.every(finite)))))
     && c.equityGlide === undefined && c.sourcingMode === undefined
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
     && c.trace !== true;
@@ -177,7 +192,7 @@ export function fastEligible(c) {
  * stream is the engine's, seeded as the engine seeds it), the monthly growth factors, and the price level at
  * the start of each year, all worked out as the engine works them out.
  */
-function prepareFuture(future, years) {
+export function prepareFuture(future, years) {
   const returns = future.returns;
   const months = years * 12;
   const rng = seededRng(future.seed);
@@ -200,6 +215,49 @@ function prepareFuture(future, years) {
   // The bond model's months are drawn as a run first needs them (bondMonthsTo), a year at a time: a run that
   // ends early never pays for the years after it, and the stream is the engine's whatever the order of the runs.
   return { cumInf, mEq, mCash, inf, eq, prevInf, mBond: new Float64Array(months), bondMonths: 0, rng, months };
+}
+
+/**
+ * A future's drivers read from a life at a stop (step 4 brief 4.6): the same fields as prepareFuture. The years are the
+ * life's years S … S + years − 1 (offsetMonths = 12S); the price level is 1 in the first of them; the bond model's
+ * months are the life's stream from the offset on (drawn once for the whole life, lives.js); the first year's cash rate
+ * reads the year before the stop (the life's true previous year, `prevInflation`; at offset 0 the engine's own rule).
+ * @param {{ returns: { equity: object, inflation: object }, stream: Float64Array }} life
+ * @param {number} offsetMonths   a whole number of years, in months
+ * @param {number} years
+ * @param {{ prevInflation?: number }} [opts]   default: the life's inflation in the year before the stop (offset > 0)
+ */
+export function prepareFutureFrom(life, offsetMonths, years, opts = {}) {
+  const S = offsetMonths / 12;
+  if (!Number.isInteger(S) || S < 0) throw new Error(`prepareFutureFrom: offset ${offsetMonths} is not a whole number of years`);
+  const returns = life.returns;
+  const months = years * 12;
+  if (!(life.stream && life.stream.length >= offsetMonths + months)) throw new Error('prepareFutureFrom: the life is shorter than the drawing years');
+  const cumInf = new Float64Array(years);
+  const mEq = new Float64Array(years);
+  const mCash = new Float64Array(years);
+  const inf = new Float64Array(years);
+  const eq = new Float64Array(years);
+  const prevInf = new Float64Array(years);
+  const before = Number.isFinite(opts.prevInflation) ? opts.prevInflation : S > 0 ? (returns.inflation[S - 1] || 0.025) : null;
+  let c = 1;
+  for (let y = 0; y < years; y++) {
+    if (y > 0) { const infForYear = returns.inflation[S + y] || 0.025; c *= (1 + infForYear); }
+    cumInf[y] = c;
+    eq[y] = returns.equity[S + y] || 0;
+    inf[y] = returns.inflation[S + y] || 0.025;
+    prevInf[y] = y > 0 ? (returns.inflation[S + y - 1] || 0.025) : (before === null ? inf[y] : before);
+    mEq[y] = monthly(eq[y]);
+    mCash[y] = monthly(cashNominalReturn(prevInf[y]));
+  }
+  return { cumInf, mEq, mCash, inf, eq, prevInf, mBond: life.stream.subarray(offsetMonths, offsetMonths + months), bondMonths: months, rng: null, months };
+}
+
+/** prepareFuture with every month of the bond model drawn (tests: compared with prepareFutureFrom at offset 0). */
+export function prepareFutureFull(future, years) {
+  const pf = prepareFuture(future, years);
+  if (pf.months > 0) bondMonthsTo(pf, pf.months - 1);
+  return pf;
 }
 
 /** Draws the bond model up to and including month `m` (the engine draws it once a month, in month order). */
@@ -258,7 +316,7 @@ function spendingFactorOf(base, year) {
  * month the pots cannot pay (as the engine stops).
  * @returns {{ failed: boolean, failMonth: number|null, equity: number, bond: number, cash: number, isa: number }}
  */
-function runFast(config, pf, pr) {
+function runFast(config, pf, pr, start = null) {
   const years = config.years;
   const months = years * 12;
   const schedule = Array.isArray(config.targetSchedule) ? config.targetSchedule : null;
@@ -266,13 +324,18 @@ function runFast(config, pf, pr) {
   const isaFactor = Math.pow(1 + (config.isaReturn ?? ISA_DEFAULTS.RETURN), 1 / 12);
   const strategy = config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY;
 
-  let equity = config.equityStart;
-  let bond = config.bondStart;
-  let cash = config.cashStart;
-  let isa = config.isaBalance || 0;
+  let equity = start ? start.equity : config.equityStart;
+  let bond = start ? start.bond : config.bondStart;
+  let cash = start ? start.cash : config.cashStart;
+  let isa = start ? start.isa : (config.isaBalance || 0);
   let lsaRemaining = ufpls ? LSA : 0;
   let failed = false;
   let failMonth = null;
+
+  // The locked run (questions A and B): the pension closed for the first `lockedMonths`. 0 = today's run, unchanged.
+  const lockedMonths = config.lockedMonths > 0 ? Math.min(config.lockedMonths, months) : 0;
+  const lockedSchedule = lockedMonths > 0 ? config.lockedSchedule : null;
+  let lpYear = -1, lpIsa = -1, lp = null;
 
   // planDrawdown, remembered within a year: with the default ISA strategy (uncapped) its answer depends on the ISA
   // balance only through min(net gap, balance), so a balance at or above the remembered gap gives the same plan.
@@ -282,6 +345,51 @@ function runFast(config, pf, pr) {
   for (let month = 0; month < months; month++) {
     const year = (month / 12) | 0;
     const cumInf = pf.cumInf[year];
+
+    if (month < lockedMonths) {
+      // The pension is closed: the run is a savings-only run (C's adapter's, for the holder's share of the need) whose
+      // pension sleeves sit invested and untouched. Exactly what `simulate` does on a savings-only config, whose
+      // pots are empty: the pension draw planDrawdown asks for is all shortfall, which the ISA rescues or the run fails.
+      const lockedTarget = lockedSchedule[year] * cumInf * pr.sf[year] + 0;
+      if (!(year === lpYear && (isa === lpIsa || (lp.isaDraw < lpIsa && isa >= lp.isaDraw)))) {
+        lp = planDrawdown({
+          targetGross: lockedTarget,
+          fixedIncome: 0,
+          pa: pr.pa[year], brl: pr.brl[year], hrl: pr.hrl[year],
+          isaBalance: isa,
+          strategy,
+          yearsUntilSp: pr.yearsUntilSp[year],
+          taxFreeFraction: 0
+        });
+        lpYear = year; lpIsa = isa;
+      }
+      const lockedSipp = lp.sippGross / 12;
+      const lockedIsa = lp.isaDraw / 12;
+      const lockedTax = lp.tax;
+      if (month >= pf.bondMonths) bondMonthsTo(pf, month);
+      equity *= pf.mEq[year];
+      bond *= pf.mBond[month];
+      cash *= pf.mCash[year];
+      if (isa > 0) isa = isa * isaFactor;
+      if (!Number.isFinite(lockedSipp)) { failed = true; failMonth = month; break; }
+      let shortfall = lockedSipp > 1e-9 ? Math.max(0, lockedSipp) : 0;
+      let lockedRescue = 0;
+      if (shortfall > 1e-6 && isa > 0) {
+        const grossYear = lockedSipp * 12;
+        const netFactor = grossYear > 0 && lockedTax > 0 ? Math.max(0.55, 1 - lockedTax / grossYear) : 1;
+        const netShort = shortfall * netFactor;
+        lockedRescue = Math.min(isa, netShort);
+        shortfall = Math.max(0, shortfall - lockedRescue / netFactor);
+      }
+      if (shortfall > 1e-6) { failed = true; failMonth = month; }
+      isa = Math.max(0, isa - Math.min(Math.max(0, lockedIsa - 0) + lockedRescue, isa)) + 0;
+      equity = Math.max(0, equity);
+      bond = Math.max(0, bond);
+      cash = Math.max(0, cash);
+      if (failed) break;
+      continue;
+    }
+
     const eqMin = pr.eqMin[year];
     const bdMin = pr.bdMin[year];
     const csTarget = pr.csTarget[year];
@@ -368,24 +476,44 @@ function runFast(config, pf, pr) {
  * covered, `simulate` otherwise. The futures' drivers are prepared on first use and kept.
  *
  * @param {object} plan       enginePlan(...)
- * @param {object[]} futures  futuresList(...)
+ * @param {object[]} futures  futuresList(...) (for a stop: each life's drawing years, { returns, seed })
+ * @param {{ potsFor?: (r: number, i: number) => { equity: number, bond: number, cash: number, isa: number },
+ *           driversFor?: (i: number) => object }} [opts]
+ *   potsFor: the start values of run r in future i (the pots differ by future, step 4). The floors and the cash
+ *   target are the same values — the adapter holds a pot at its mix, so start and floor are one figure.
+ *   driversFor: future i's prepared drivers (prepareFutureFrom), else prepareFuture(futures[i]).
  */
-export function createFastRunner(plan, futures) {
+export function createFastRunner(plan, futures, opts = {}) {
   const years = plan.years;
+  const potsFor = opts.potsFor || null;
+  const driversFor = opts.driversFor || null;
   const eligible = plan.runs.map((run) => fastEligible(run.base));
   const prepared = new Array(futures.length).fill(null);            // per future
   const runTables = plan.runs.map(() => new Array(futures.length).fill(null));   // per run, per future
-  const forFuture = (i) => prepared[i] || (prepared[i] = prepareFuture(futures[i], years));
-  const forRun = (r, i) => runTables[r][i] || (runTables[r][i] = prepareRun(plan.runs[r].base, forFuture(i), years));
+  const forFuture = (i) => prepared[i] || (prepared[i] = driversFor ? driversFor(i) : prepareFuture(futures[i], years));
+  const baseFor = (r, start) => (start ? { ...plan.runs[r].base, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash } : plan.runs[r].base);
+  const forRun = (r, i) => {
+    let t = runTables[r][i];
+    if (!t) {
+      const start = potsFor ? potsFor(r, i) : null;
+      t = runTables[r][i] = { pr: prepareRun(baseFor(r, start), forFuture(i), years), start };
+    }
+    return t;
+  };
   return {
     eligible,
     /** @returns {{ failed: boolean, failMonth: number|null }} */
     run(r, i, config) {
       if (!eligible[r] || config.years !== years || config.trace) {
-        const s = simulate(config, futures[i].returns, futures[i].seed);
+        // `simulate` cannot keep a pension shut: a locked config is never handed to it
+        if (config.lockedMonths > 0) throw new Error('fastEngine: a run with a closed pension (lockedMonths) can only be run by the fast path');
+        const start = potsFor ? potsFor(r, i) : null;
+        const c = start ? { ...config, equityStart: start.equity, bondStart: start.bond, cashStart: start.cash, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash, isaBalance: start.isa } : config;
+        const s = simulate(c, futures[i].returns, futures[i].seed);
         return { failed: s.failed, failMonth: s.failMonth, equity: s.finalEquity, bond: s.finalBond, cash: s.finalCash, isa: s.finalIsa };
       }
-      return runFast(config, forFuture(i), forRun(r, i));
+      const t = forRun(r, i);
+      return runFast(config, forFuture(i), t.pr, t.start);
     }
   };
 }
@@ -394,6 +522,13 @@ export function createFastRunner(plan, futures) {
 export function simulateFast(config, future) {
   if (!fastEligible(config)) return null;
   const pf = prepareFuture(future, config.years);
+  const pr = prepareRun(config, pf, config.years);
+  return runFast(config, pf, pr);
+}
+
+/** The same on drivers already prepared (prepareFutureFrom): the run of one config in one life's drawing years. */
+export function simulateFastFrom(config, pf) {
+  if (!fastEligible(config)) return null;
   const pr = prepareRun(config, pf, config.years);
   return runFast(config, pf, pr);
 }

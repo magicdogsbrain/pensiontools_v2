@@ -18,6 +18,10 @@
   --text-danger:    #ff8a80;   /* today's --danger (#f85149) lifted for the raised surface */
   --text-warning:   #f0c674;   /* today's --warning */
   --text-success:   #5fd37a;   /* today's --success (#2ea043) lifted for the raised surface */
+  /* A's verdict (step 4 brief, conflict 16): always a word too, never only a colour (test plan R14) */
+  --text-verdict-yes:   #5fd37a;   /* "Yes —" */
+  --text-verdict-close: #f0c674;   /* "Close —" */
+  --text-verdict-no:    #ff8a80;   /* "Not at 60 on these figures" */
 
   /* filled controls and the words on them */
   --fill-primary:   #7eb8da;

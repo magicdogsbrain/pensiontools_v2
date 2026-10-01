@@ -68,6 +68,25 @@ describe('the colour tokens', () => {
     for (const s of surfaces) expect(contrast(TOKENS[fill], TOKENS[s]), `${fill} on ${s}`).toBeGreaterThanOrEqual(3);
   });
 
+  it.each(['--text-verdict-yes', '--text-verdict-close', '--text-verdict-no'])('A\'s verdict token %s exists and meets 4.5 to 1 on the band and every surface', (token) => {
+    expect(isColour(TOKENS[token] || ''), `${token} is missing`).toBe(true);
+    for (const s of surfaces) expect(contrast(TOKENS[token], TOKENS[s]), `${token} on ${s}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the three verdicts are three different colours, and the style sheet gives each its own (a word goes with each: R14)', () => {
+    const v = ['yes', 'close', 'no'].map((k) => TOKENS[`--text-verdict-${k}`].toLowerCase());
+    expect(new Set(v).size).toBe(3);
+    const css = read('components.css');
+    for (const k of ['yes', 'close', 'no']) expect(css).toMatch(new RegExp(`\\.is-${k}[^{]*\\{[^}]*var\\(--text-verdict-${k}\\)`));
+  });
+
+  it('the bar of ten: a filled cell stands out from the card at 3 to 1, and an empty one has an edge that does', () => {
+    const css = read('components.css');
+    expect(css).toMatch(/\.bar-cell\s*\{[^}]*border:[^;}]*var\(--line-strong\)/);
+    expect(css).toMatch(/\.bar-cell\.is-on\s*\{[^}]*background:\s*var\(--fill-primary\)/);
+    expect(contrast(TOKENS['--fill-primary'], TOKENS['--surface-card'])).toBeGreaterThanOrEqual(3);
+  });
+
   it.each(['--line-strong', '--focus'])('%s (the edge of a box, the focus ring) meets 3 to 1 on every surface', (line) => {
     expect(isColour(TOKENS[line] || ''), `${line} is missing`).toBe(true);
     for (const s of surfaces) expect(contrast(TOKENS[line], TOKENS[s]), `${line} on ${s}`).toBeGreaterThanOrEqual(3);

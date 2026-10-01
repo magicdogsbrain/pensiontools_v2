@@ -60,8 +60,14 @@ describe('SCHEMA_C — the declaration', () => {
     for (const f of SCHEMA_C.fields.filter((x) => x.path.startsWith('partner.'))) expect(f.when.household, f.path).toBe('couple');
   });
 
-  it('no required field has a default, and no field is both optional and without one', () => {
-    for (const f of SCHEMA_C.fields) expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
+  it('no required field has a default, and no field is both optional and without one — but "still paying in?"', () => {
+    // C's "Are you still paying into this pension?" has no default: not answered is "not paying in", and leaves the
+    // checked inputs as they were before the question existed (C's pinned answers stay byte for byte; step 4 brief J8)
+    const NO_DEFAULT = ['you.payIn.has', 'partner.payIn.has'];
+    for (const f of SCHEMA_C.fields) {
+      if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
+      expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
+    }
   });
 
   it('a default is an allowed value, or names a default rule that exists', () => {
@@ -83,7 +89,7 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
-    expect(SCHEMA_C.rules.map((r) => r.id)).toEqual(['start-not-before-now', 'start-not-before-access', 'end-after-start']);
+    expect(SCHEMA_C.rules.map((r) => r.id)).toEqual(['start-not-before-now', 'start-not-before-access', 'pay-in-past-75', 'pay-in-past-75-partner', 'end-after-start', 'pay-in-over-limit']);
     for (const r of SCHEMA_C.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
       for (const p of r.fields) expect(byPath.has(p), `${r.id}: ${p}`).toBe(true);
@@ -103,7 +109,25 @@ describe('SCHEMA_C — the declaration', () => {
     });
     expect(validate(SCHEMA_C, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_C, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
-    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_C, r.values).map((f) => f.path).sort());
+    // every field that applies is in the checked inputs, but a question with no default that was not answered
+    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_C, r.values).filter((f) => f.required || 'default' in f).map((f) => f.path).sort());
+  });
+
+  it('"still paying in" answered yes brings what goes in; answered no, or not at all, leaves nothing behind', () => {
+    const yes = parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'yes', 'you.payIn.own': '500', 'you.payIn.employer': '300', 'start.kind': 'age', 'start.age': '67' }, TEST_ENV);
+    expect(yes.ok).toBe(true);
+    expect(yes.inputs.you.payIn).toEqual({ has: 'yes', kind: 'split', own: 500, employer: 300 });
+    expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'yes' }, TEST_ENV).errors).toEqual({ 'you.payIn.own': 'required', 'you.payIn.employer': 'required' });
+    const no = parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'no', 'you.payIn.own': '500' }, TEST_ENV);
+    expect(no.inputs.you.payIn).toEqual({ has: 'no' });
+    expect('payIn' in parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55' }, TEST_ENV).inputs.you).toBe(false);
+    // still paying in, the start left alone: from the State Pension age, pot or no pot (the reviewers' finding, 1 Oct 2026)
+    expect(parseDraft(SCHEMA_C, { 'you.pot': '0', 'you.age': '50', 'you.payIn.has': 'yes', 'you.payIn.own': '300', 'you.payIn.employer': '0' }, TEST_ENV).inputs.start).toEqual({ kind: 'age', age: 67 });
+    expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'yes', 'you.payIn.own': '500', 'you.payIn.employer': '300' }, TEST_ENV).inputs.start).toEqual({ kind: 'age', age: 67 });
+    // …but "yes" with nothing going in is not paying in: the start is what it would have been
+    expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'yes', 'you.payIn.own': '0', 'you.payIn.employer': '0' }, TEST_ENV).inputs.start).toEqual({ kind: 'now' });
+    // and past the State Pension age, paying in or not, the money is from now unless an age is chosen
+    expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '68', 'you.payIn.has': 'yes', 'you.payIn.own': '500', 'you.payIn.employer': '0' }, TEST_ENV).inputs.start).toEqual({ kind: 'now' });
   });
 });
 

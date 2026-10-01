@@ -1,0 +1,75 @@
+/**
+ * Question B's form inputs (SCHEMA_B, checked) → the household model (step 4 brief 4.10).
+ *
+ * C's mapping (you.pot, savings, State Pension, final-salary pension, age, risk, endAge — src/answers/c/toHousehold.js),
+ * plus the saving years:
+ *
+ *   stop.age              → every person's stopWork { kind: 'age', age: their age + S }, S = stop.age − you.age:
+ *                           both stop in the same year (brief conflict 17)
+ *   spend.*               → spending { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
+ *   you.payIn.*           → people[i].saving.payIn { total, own, employer }: what lands in the pension each month, today's
+ *                           prices (conflict 11); "split it up" keeps own and employer, whose sum is the total
+ *   you.alreadyDrawing    → people[i].saving.alreadyDrawing (the £10,000 warning only)
+ *   savingsIn             → people[i].saving.savingsIn: a month into ISAs and savings, split evenly for a couple (as savings are)
+ *   savingRisk, charge    → household.saving { risk, charge } (charge as a share a year: 0.5 → 0.005)
+ *
+ * `env.mix` (tests only) holds the drawing years in an exact mix, as C; `env.savingMix` is read by the saving years.
+ *
+ * @param {object} inputs  checked inputs of SCHEMA_B
+ * @param {{ today: string, mix?: object }} env
+ * @returns {{ household: import('../shared/household.js').Household, assumed: { id: string, who?: string }[], fullStatePensionAYear: number, S: number }}
+ */
+import { expandHousehold } from '../shared/household.js';
+import { fullStatePensionYearly } from '../shared/rules.js';
+
+/** What lands in `who`'s pension each month, as given. */
+export function payInOf(p) {
+  const pi = (p && p.payIn) || { kind: 'total', total: 0 };
+  if (pi.kind === 'split') return { total: (pi.own || 0) + (pi.employer || 0), own: pi.own || 0, employer: pi.employer || 0 };
+  return { total: pi.total || 0, own: null, employer: null };
+}
+
+function person(who, p, S, savingsIn) {
+  const sp = p.statePension || { kind: 'full' };
+  const fs = p.finalSalary || { has: false };
+  return {
+    who,
+    age: p.age,
+    pots: { pension: p.pot || 0 },
+    statePension: sp.kind === 'full' ? {} : { amountPerYear: sp.kind === 'none' ? 0 : sp.yearly },
+    finalSalary: fs.has ? [{ amountPerYear: fs.yearly, startAge: fs.fromAge, increases: 'pricesCapped5' }] : [],
+    stopWork: { kind: 'age', age: p.age + S },
+    saving: { payIn: payInOf(p), savingsIn, alreadyDrawing: Boolean(p.alreadyDrawing) }
+  };
+}
+
+export function toHousehold(inputs, env) {
+  const couple = inputs.household === 'couple' && Boolean(inputs.partner);
+  const S = Math.max(0, inputs.stop.age - inputs.you.age);
+  const count = couple ? 2 : 1;
+  const savingsIn = (inputs.savingsIn || 0) / count;
+  const people = [person('you', inputs.you, S, savingsIn)];
+  if (couple) people.push(person('partner', inputs.partner, S, savingsIn));
+  const spending = inputs.spend.kind === 'level'
+    ? { kind: 'lifestyle', level: inputs.spend.level }
+    : { kind: 'amount', perMonthTakeHome: inputs.spend.amount };
+  const saving = { risk: inputs.savingRisk || 'balanced', charge: Math.round((inputs.charge ?? 0.5) * 10) / 1000 };
+  const short = {
+    people,
+    jointSavings: inputs.savings || 0,
+    planToAge: inputs.endAge,
+    spending,
+    saving,
+    portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
+    strategy: { id: 'steady' }
+  };
+  const { household, assumed } = expandHousehold(short, env.today);
+  // The saving years' fields ride on the household whether or not the expansion carries them (it keeps what it knows).
+  household.people.forEach((p, i) => {
+    if (!p.saving) p.saving = { ...people[i].saving, payIn: { ...people[i].saving.payIn } };
+    p.stopWork = { ...people[i].stopWork };
+  });
+  if (!household.saving) household.saving = { ...saving };
+  if (!household.spending) household.spending = { ...spending };
+  return { household, assumed, fullStatePensionAYear: fullStatePensionYearly(), S };
+}

@@ -5,8 +5,8 @@
  *   2  a couple with one partner under the earliest pension age: the start stays, the partner's pension is closed
  *      until they reach it, the warning names them, and a £1 pot is a £0 pot
  *   3  no pot to draw on: the three amounts are the take-home from the pensions, the field everything reads
- *   4  under the earliest pension age through the form: the pension-locked warning as well as the start-later note,
- *      and the headline says the figure holds if the pot stays as it is
+ *   4  under the earliest pension age through the form: the pension-locked warning; since step 4's J8 a start at an
+ *      age is worked on the lives (the pot invested until then), and the answer says so
  *   5  savings grow at a fixed 3% a year, and the line says so
  *   6  the guaranteed-floor case is a whole £10, rounded down, like every other amount
  *   7  the tax line says the £100,000 point stays fixed
@@ -223,41 +223,54 @@ describe('3 no pot to draw on', () => {
   });
 });
 
-describe('4 under the earliest pension age, through the form', () => {
-  it('50 with £250,000 and the form\'s default start (57): pension-locked and start-later, and the headline holds "if the pot stays"', () => {
+describe('4 under the earliest pension age, through the form — a start at an age is worked on the lives (step 4 brief J8)', () => {
+  // Before step 4's J8 a later start took the pot "as it stands today: no growth and nothing paid in" and said so
+  // ("if the pot stays at £250,000 until 57", the start-later note). One test everywhere: the money first taken at an
+  // age is A's row at that age — the pot invested until then, anything paid in going in — and the words say that.
+  it('50 with £250,000 and the form\'s default start (57): pension-locked, and the pot invested until then, said plainly', () => {
     const draft = parseDraft(SCHEMA_C, { 'you.pot': '250,000', 'you.age': '50' }, ENV);
     expect(draft.ok).toBe(true);
     expect(draft.inputs.start).toEqual({ kind: 'age', age: 57 });
-    const a = ok(answerC(draft.inputs, ENV), draft.inputs);
+    const a = ok(answerC(draft.inputs, { ...ENV, trace: true }), draft.inputs);
     expect(a.basis.start).toBe('2033-09');
+    expect(a.basis.yearsSaving).toBe(7);
     expect(warning(a, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from then.");
-    expect(warning(a, 'start-later').text).toBe('This leaves out any growth, and anything you pay in, between now and then.');
-    expect(a.sentences.sub.text).toBe('after tax, from age 57 until you are 95, going up each year with prices, if the pot stays at £250,000 until 57');
-    expect(a.sentences.sub.parts).toContainEqual({ key: 'inputs.you.pot', kind: 'money' });
-    expect(assumed(a, 'pot-as-is')).toBeDefined();
+    expect(warning(a, 'start-later')).toBeUndefined();
+    expect(assumed(a, 'pot-as-is')).toBeUndefined();
+    expect(a.sentences.sub.text).toBe('after tax, from age 57 until you are 95, going up each year with prices');
+    expect(a.sentences.payIn.text).toBe('Nothing more paid in; the pot stays invested at Balanced, about half in shares, until 57.');
+    expect(a.sentences.pot.text).toMatch(/^By 57 your pot could be about £[\d,]+\. In a bad case \(the worst 1 in 10\) it would be £[\d,]+, and in a good case \(the best 1 in 10\) £[\d,]+\.$/);
+    expect(a.potAtStart.careful).toBeLessThanOrEqual(a.potAtStart.middling);
+    for (const id of ['nothing-paid-in', 'pot-invested', 'charge-saving', 'same-futures']) expect(assumed(a, id), id).toBeDefined();
+    expect(checkTrace(a)).toEqual([]);
   });
 
-  it('47 with £420,000 (the forum guest): the same, from 57', () => {
+  it('47 with £420,000 (the forum guest): the same, from 57; the pot is not taken as it stands', () => {
     const a = ok(answerC({ you: { pot: 420000, age: 47 } }, ENV));
-    expect(a.sentences.sub.text).toContain('if the pot stays at £420,000 until 57');
+    expect(a.sentences.sub.text).not.toContain('stays at');
+    expect(a.sentences.payIn.id).toBe('c.payIn.none');
     expect(warning(a, 'pension-locked')).toBeDefined();
-    expect(warning(a, 'start-later')).toBeDefined();
+    expect(warning(a, 'start-later')).toBeUndefined();
   });
 
-  it('a start chosen later than the earliest age (60 at 50): the warning says when the figures start', () => {
+  // the note is for a pension closed at the start, or one whose opening IS the start — not one open years before it (the
+  // reviewers' finding, 1 Oct 2026: a partner of 53 was told "until 57 (April 2028 rules)" about money starting at 65)
+  it('a start chosen later than the earliest age (60 at 50): the pension is open by then, so no note', () => {
     const a = ok(answerC({ you: { pot: 250000, age: 50 }, start: { kind: 'age', age: 60 } }, ENV));
-    expect(warning(a, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from when you are 60.");
+    expect(warning(a, 'pension-locked')).toBeUndefined();
   });
 
-  it('two years away or less says nothing about the pot staying; a couple or savings say "as they are"', () => {
+  it('a later start says what goes on until then; a couple or savings say whose money is invested', () => {
     const soon = ok(answerC({ you: { pot: 250000, age: 58 }, start: { kind: 'age', age: 60 } }, ENV));
-    expect(soon.sentences.sub.text).not.toContain('stays');
+    expect(soon.sentences.sub.text).not.toContain('stay');
+    expect(soon.sentences.payIn.text).toBe('Nothing more paid in; the pot stays invested at Balanced, about half in shares, until 60.');
     const couple = ok(answerC({ household: 'couple', you: { pot: 250000, age: 58 }, partner: { age: 56, pot: 100000 }, start: { kind: 'age', age: 62 } }, ENV));
-    expect(couple.sentences.sub.text).toContain(', if the pots stay as they are until 62');
+    expect(couple.sentences.payIn.text).toBe('Nothing more paid in; the pots stay invested at Balanced, about half in shares, until you are 62.');
     const savings = ok(answerC({ you: { pot: 250000, age: 58 }, savings: 20000, start: { kind: 'age', age: 62 } }, ENV));
-    expect(savings.sentences.sub.text).toContain(', if the pot and savings stay as they are until 62');
+    expect(savings.sentences.payIn.text).toBe('Nothing more paid in; the pot and savings stay invested at Balanced, about half in shares, until 62.');
     const now = ok(answerC({ you: { pot: 250000, age: 58 } }, ENV));
     expect(now.sentences.sub.text).toBe('after tax, from now until you are 95, going up each year with prices');
+    expect(now.sentences.payIn).toBeUndefined();
   });
 
   it('a person at or past the earliest age gets no pension-locked warning', () => {
@@ -265,6 +278,15 @@ describe('4 under the earliest pension age, through the form', () => {
     expect(warning(a, 'pension-locked')).toBeUndefined();
     const b = ok(answerC({ you: { pot: 250000, age: 56 } }, ENV));      // 55 before April 2028: open today
     expect(warning(b, 'pension-locked')).toBeUndefined();
+  });
+
+  it('a start before the pension opens: refused with nothing else to live on; with savings, the savings pay until it opens', () => {
+    expect(answerC({ you: { pot: 250000, age: 50 }, start: { kind: 'age', age: 53 } }, ENV).problems).toEqual([{ field: 'start.age', messageId: 'start-not-before-access' }]);
+    const withSavings = { you: { pot: 250000, age: 50 }, savings: 100000, start: { kind: 'age', age: 53 } };
+    const a = ok(answerC(withSavings, ENV), withSavings);
+    expect(a.phases[0].byPerson[0]).toMatchObject({ locked: true, fromPension: 0 });
+    expect(a.phases[0].fromSavings).toBeGreaterThan(0);
+    expect(warning(a, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). Until then it is left alone and the rest of the money pays.");
   });
 });
 

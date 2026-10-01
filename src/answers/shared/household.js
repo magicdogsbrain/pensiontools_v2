@@ -20,13 +20,21 @@
  * @property {{ pension: number, isa: number, otherSavings: number, cash: number }} pots
  * @property {{ amountPerYear: number, startAge: AgeYM, source: 'default'|'entered' }} statePension
  * @property {{ label?: string, amountPerYear: number, startAge: number, increases: 'prices'|'pricesCapped5'|'none' }[]} finalSalary
- * @property {object[]} otherIncome
+ * @property {{ label?: string, amountPerYear: number, fromAge: number, toAge: number, kind: 'work'|'other' }[]} otherIncome
+ *   kind 'work' (question A's part-time work, before tax, a year, from fromAge until toAge) is honoured by the
+ *   adapter under start 'asGiven' (toEngine.js); kind 'other' is not used yet.
  * @property {'notTakenYet'|'alreadyTaken'} pensionTaxFreeCash
+ * @property {null | { payIn: { total: number, own: number|null, employer: number|null }, savingsIn: number, alreadyDrawing: boolean }} [saving]
+ *   Questions A and B (step 4 brief 4.10): what lands in the pension each month (today's prices; own + employer when
+ *   split), what goes into ISAs and savings each month, and whether pension income has been taken already (the £10,000
+ *   warning only). Present only on a saver household; null there = nothing paid in.
  *
  * @typedef {object} Household
  * @property {1} inputVersion
  * @property {Person[]} people                  one or two; the order carries no meaning
- * @property {null|object} spending             not used by question C
+ * @property {null|object} spending             not used by question C; A and B: { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
+ * @property {{ risk: 'cautious'|'balanced'|'adventurous', charge: number }} [saving]   A and B only (a saver household): the
+ *   mix while saving and the charge a year while saving (0.005 = 0.5%). Its presence is what makes a household a saver's.
  * @property {number} planToAge                 for a couple: until the YOUNGER person is this age
  * @property {{ kind: 'risk', level: 'cautious'|'balanced'|'adventurous' } | { kind: 'mix', equity: number, bond: number, cash: number }} portfolio
  * @property {{ id: string }} strategy
@@ -41,8 +49,17 @@ export const HOUSEHOLD_LIMITS = {
   finalSalaryAYear: { min: 0, max: 200_000 },
   finalSalaryStartAge: { min: 50, max: 75 },
   planToAge: { min: 75, max: 105 },
-  people: { min: 1, max: 2 }
+  people: { min: 1, max: 2 },
+  // The saving years (step 4 brief 4.10): £ a month at today's prices; the charge a year as a share; part-time work.
+  payInAMonth: { min: 0, max: 10_000 },
+  savingsInAMonth: { min: 0, max: 10_000 },
+  charge: { min: 0, max: 0.02 },
+  workAYear: { min: 0, max: 200_000 },
+  workYears: { min: 1, max: 15 }
 };
+
+/** The charge a year while saving when none is given (= SAVING.charge in rules.js). */
+const DEFAULT_SAVING_CHARGE = 0.005;
 
 const RISK_LEVELS = ['cautious', 'balanced', 'adventurous'];
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -187,6 +204,28 @@ export function startWhenPensionsOpen(household, now) {
 }
 
 /**
+ * The start as given, never moved (questions A and B, step 4 brief 4.5): the household's start is the stop, and every
+ * pension whose holder is under the earliest pension age on that date is closed until they reach it — the savings pay
+ * meanwhile, inside the holder's one run (toEngine.js, the locked run). The same shape as startWhenPensionsOpen.
+ */
+export function startAsGiven(household, now) {
+  const base = householdStart(household, now);
+  const lockedUntil = [];
+  for (const p of household.people) {
+    const pots = p.pots || {};
+    if (!(pots.pension > 0)) continue;
+    const age = ageToday(p, now);
+    const first = firstOpenAge(age, now, base.yearsFromNow);
+    const opensIn = first - (age + base.yearsFromNow);
+    if (opensIn > 0) lockedUntil.push({ who: p.who, untilAge: first, years: opensIn });
+  }
+  return {
+    date: base.date, yearsFromNow: base.yearsFromNow, moved: false, movedBy: 0, movedFor: [],
+    locked: lockedUntil.map((l) => l.who), lockedUntil, accessAge: accessAgeOn(base.date)
+  };
+}
+
+/**
  * The short form → the full form, plus the list of defaults that were used (answer-C-and-household.md 1.4).
  * Never blocks: a person with only an age and a pot gets a full household.
  *
@@ -201,6 +240,9 @@ export function expandHousehold(short, now) {
   const note = (id, who) => { assumed.push(who ? { id, who } : { id }); };
   const src = short || {};
   const list = Array.isArray(src.people) ? src.people : [];
+  // Questions A and B mark their households by a household-level `saving` (the mix and the charge while saving).
+  // C's households never carry it, and nothing below changes for them.
+  const saver = src.saving !== undefined && src.saving !== null;
 
   const people = list.map((raw, i) => {
     const p = raw || {};
@@ -233,13 +275,27 @@ export function expandHousehold(short, now) {
     const taken = p.pensionTaxFreeCash || 'notTakenYet';
     if (!p.pensionTaxFreeCash && pots.pension > 0) note('quarter-tax-free', who);
 
-    return {
+    const out = {
       who, label: p.label || (who === 'you' ? 'You' : 'Your partner'), born, age, bornFromAge: !bornGiven,
       stopWork: p.stopWork ? { ...p.stopWork } : null,
       pots, statePension, finalSalary,
       otherIncome: Array.isArray(p.otherIncome) ? p.otherIncome.map((o) => ({ ...o })) : [],
       pensionTaxFreeCash: taken
     };
+    // A saver household (questions A and B): what each person pays in. Absent = nothing paid in, and said so.
+    if (saver) {
+      if (p.saving && typeof p.saving === 'object') {
+        const pi = p.saving.payIn || {};
+        const own = isNum(pi.own) ? pi.own : null;
+        const employer = isNum(pi.employer) ? pi.employer : null;
+        const total = isNum(pi.total) ? pi.total : (own || 0) + (employer || 0);
+        out.saving = { payIn: { total, own, employer }, savingsIn: isNum(p.saving.savingsIn) ? p.saving.savingsIn : 0, alreadyDrawing: p.saving.alreadyDrawing === true };
+      } else {
+        out.saving = null;
+        note('nothing-paid-in', who);
+      }
+    }
+    return out;
   });
 
   // A partner who was not asked when they stop starts when the first person does.
@@ -266,10 +322,15 @@ export function expandHousehold(short, now) {
   if (!src.strategy) note('steady');
   if (people.length > 1) note('both-alive');
 
-  return {
-    household: { inputVersion: 1, people, spending: src.spending || null, planToAge, portfolio, strategy },
-    assumed
-  };
+  const household = { inputVersion: 1, people, spending: src.spending || null, planToAge, portfolio, strategy };
+  if (saver) {
+    const sv = typeof src.saving === 'object' ? src.saving : {};
+    const level = portfolio.kind === 'risk' ? portfolio.level : 'balanced';
+    if (!sv.risk) note('risk-saving');
+    if (!isNum(sv.charge)) note('charge-saving');
+    household.saving = { risk: sv.risk || level, charge: isNum(sv.charge) ? sv.charge : DEFAULT_SAVING_CHARGE };
+  }
+  return { household, assumed };
 }
 
 /**
@@ -304,7 +365,25 @@ export function validateHousehold(household, now) {
       if (!['prices', 'pricesCapped5', 'none'].includes(f.increases)) bad(`${at}.finalSalary.${j}.increases`, 'notAnOption');
     });
     if (p && !['notTakenYet', 'alreadyTaken'].includes(p.pensionTaxFreeCash)) bad(`${at}.pensionTaxFreeCash`, 'notAnOption');
+    // The saving years (step 4 brief 4.10): what is paid in, and part-time work.
+    if (p && p.saving) {
+      const pi = p.saving.payIn || {};
+      range(`${at}.saving.payIn.total`, pi.total, HOUSEHOLD_LIMITS.payInAMonth);
+      if (pi.own !== null && pi.own !== undefined) range(`${at}.saving.payIn.own`, pi.own, HOUSEHOLD_LIMITS.payInAMonth);
+      if (pi.employer !== null && pi.employer !== undefined) range(`${at}.saving.payIn.employer`, pi.employer, HOUSEHOLD_LIMITS.payInAMonth);
+      range(`${at}.saving.savingsIn`, p.saving.savingsIn, HOUSEHOLD_LIMITS.savingsInAMonth);
+    }
+    ((p && p.otherIncome) || []).forEach((o, j) => {
+      if (!o || o.kind !== 'work') return;
+      range(`${at}.otherIncome.${j}.amountPerYear`, o.amountPerYear, HOUSEHOLD_LIMITS.workAYear);
+      if (isNum(o.fromAge) && isNum(o.toAge)) range(`${at}.otherIncome.${j}.years`, o.toAge - o.fromAge, HOUSEHOLD_LIMITS.workYears);
+      else bad(`${at}.otherIncome.${j}.fromAge`, 'required');
+    });
   });
+  if (h.saving) {
+    range('saving.charge', h.saving.charge, HOUSEHOLD_LIMITS.charge);
+    if (!RISK_LEVELS.includes(h.saving.risk)) bad('saving.risk', 'notAnOption');
+  }
 
   const planOk = range('planToAge', h.planToAge, HOUSEHOLD_LIMITS.planToAge);
   const pf = h.portfolio || {};
@@ -314,8 +393,13 @@ export function validateHousehold(household, now) {
     if (![pf.equity, pf.bond, pf.cash].every((v) => isNum(v) && v >= 0) || Math.abs(sum - 1) > 1e-9) bad('portfolio', 'notAnOption');
   } else bad('portfolio.kind', 'notAnOption');
 
+  // A saver household: both people stop in the same year (step 4 brief conflict 17).
+  if (h.saving && people.length > 1 && isDate(now) && !problems.length) {
+    const waits = people.map((p) => yearsUntilStop(p, now));
+    if (waits.some((w) => w !== waits[0])) bad('people.1.stopWork', 'stop-together');
+  }
   if (!problems.length && planOk && isDate(now)) {
-    const start = startWhenPensionsOpen(h, now);
+    const start = h.saving ? startAsGiven(h, now) : startWhenPensionsOpen(h, now);
     const younger = Math.min(...people.map((p) => p.age)) + start.yearsFromNow;
     if (h.planToAge <= younger) bad('planToAge', 'end-after-start');
   }

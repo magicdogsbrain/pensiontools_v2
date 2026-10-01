@@ -26,15 +26,22 @@ const chromium = (width, height, more = {}) => ({
 });
 const phone = { hasTouch: true, isMobile: true };
 
-// Which script runs at which size (test plan 7.4, 8.1, 8.3).
-const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens'];
-const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard'];
+// Which script runs at which size (test plan 7.4, 8.1, 8.3; step 4: test plan A–B 11.1).
+// Step 4's journeys: J4 a-stop-soon and its second half b-my-number (published build), J5 a-couple, J7
+// a-from-savings (test build) at 390 and 1440; the B journey b-coast at 390 and 744.
+const JOURNEYS_AB_PHONE = ['a-stop-soon', 'b-my-number', 'a-couple', 'a-from-savings', 'b-coast'];
+const JOURNEYS_AB_DESKTOP = ['a-stop-soon', 'b-my-number', 'a-couple', 'a-from-savings'];
+// J6 (the owner's report, 1 Oct 2026): a 55-year-old still paying in, on C's first form — at 390 and 1280.
+const JOURNEYS_PAYING_IN = ['c-paying-in'];
+const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN];
+const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);
 
 const projects = [
   { name: 'phone-390',    use: chromium(390, 844, phone),  testMatch: only(JOURNEYS_PHONE) },
-  { name: 'ipad-744',     use: chromium(744, 1133, { hasTouch: true }), testMatch: only(['c-retired', 'crawl', 'screens']) },
+  { name: 'ipad-744',     use: chromium(744, 1133, { hasTouch: true }), testMatch: only(['c-retired', 'crawl', 'screens', 'b-coast']) },
   { name: 'wide-1024',    use: chromium(1024, 768),        testMatch: only(['crawl', 'screens']) },
+  { name: 'desktop-1280', use: chromium(1280, 800),        testMatch: only(JOURNEYS_PAYING_IN) },
   { name: 'desktop-1440', use: chromium(1440, 900),        testMatch: only(JOURNEYS_DESKTOP) },
 
   // The same answer in every browser (test plan 9).
@@ -46,9 +53,10 @@ const projects = [
 if (NIGHTLY) {
   // The nearest thing to the owner's iPad and phone; and one journey in Firefox.
   projects.push(
-    { name: 'nightly-webkit-390', use: { ...devices['Desktop Safari'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 }, testMatch: only(['c-forum-guest', 'c-retired']) },
-    { name: 'nightly-webkit-744', use: { ...devices['Desktop Safari'], viewport: { width: 744, height: 1133 }, deviceScaleFactor: 1 }, testMatch: only(['c-forum-guest', 'c-retired']) },
-    { name: 'nightly-firefox',    use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } }, testMatch: only(['c-forum-guest']) }
+    // Step 4: J4 (a-stop-soon) and J7 (a-from-savings) in WebKit at 390 and 744; J4 in Firefox (test plan A–B 14.2).
+    { name: 'nightly-webkit-390', use: { ...devices['Desktop Safari'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 }, testMatch: only(['c-forum-guest', 'c-retired', 'a-stop-soon', 'a-from-savings']) },
+    { name: 'nightly-webkit-744', use: { ...devices['Desktop Safari'], viewport: { width: 744, height: 1133 }, deviceScaleFactor: 1 }, testMatch: only(['c-forum-guest', 'c-retired', 'a-stop-soon', 'a-from-savings']) },
+    { name: 'nightly-firefox',    use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } }, testMatch: only(['c-forum-guest', 'a-stop-soon']) }
   );
 }
 

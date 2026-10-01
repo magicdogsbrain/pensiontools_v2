@@ -11,7 +11,7 @@
     "e2e:build": "vite build --outDir dist/prod && V7_OUT=dist/prod/v7 vite build --config vite.v7.config.js && V7_OUT=dist/test/v7 vite build --config vite.v7.config.js --mode test",
     "e2e": "playwright test",
     "e2e:approve": "playwright test e2e/screens.spec.js --update-snapshots",
-    "v7:cases": "node tests/v7/gen/build-cases.mjs",
+    "v7:cases": "node tests/v7/gen/build-cases.mjs && node tests/v7/gen/dimensionsA.mjs && node tests/v7/gen/dimensionsB.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:fast": "vitest run --exclude \"**/*.slow.test.js\"",

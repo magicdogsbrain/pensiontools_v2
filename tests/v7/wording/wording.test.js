@@ -1,20 +1,32 @@
 /**
- * The words (language guide Part 3; build brief section 6, P4).
+ * The words (language guide Part 3; build brief section 6, P4; step 4 brief 6, P5).
  *
- *  - the banned list over every string in src/v7/copy/ and over the sentence templates, by scope;
- *  - the banned list over every drawn state (checkScreen's R11 does the work; here it is named on its own);
+ *  - the banned list over every string in src/v7/copy/ and over the sentence templates, by scope — A's and B's with
+ *    the saver rules (no countdown, no "contribution", "on track" …) and the retired rules too;
+ *  - the banned list over every drawn state of C, A and B (checkScreen's R11 does the work; here it is named on its own);
  *  - every field path has a label and every message a sentence;
  *  - ADVICE_SHORT under every headline and ADVICE_FULL on every answer step, letter for letter.
+ *
+ * A and B are drawn as the joined-up branch has them (rail/questions.js with all three open).
  */
-import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderScreen, SCHEMA_C } from '../c/_c.js';
 import { bannedHits, scopesFor, visibleText } from '../render/checkScreen.js';
 import { BANNED, SCOPES, QUESTION_EXEMPT } from '../../../src/v7/copy/banned.js';
 import * as common from '../../../src/v7/copy/common.js';
 import { C } from '../../../src/v7/copy/c.js';
+import { A } from '../../../src/v7/copy/a.js';
+import { B } from '../../../src/v7/copy/b.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
+
+vi.mock('../../../src/v7/rail/questions.js', async () => {
+  const real = await vi.importActual('../../../src/v7/rail/questions.js');
+  const OPEN = Object.freeze(['a', 'b', 'c']);
+  return { ...real, OPEN, QUESTIONS: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) })),
+    BUILT: Object.fromEntries(OPEN.map((id) => [id, real.STEP_LISTS[id]])) };
+});
 
 const ROOT = process.cwd();
 const { ADVICE_SHORT, ADVICE_FULL, FRONT } = common;
@@ -26,7 +38,8 @@ function strings(obj, path = '', out = []) {
   return out;
 }
 /** A string as a person would see it: each {slot} filled with a figure of the right kind. */
-const filled = (s) => s.replace(/\{(amount|min|max)\}/g, '£25,000').replace(/\{(age|n|of)\}/g, '57');
+const filled = (s) => s.replace(/\{(amount|min|max)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
+  .replace(/\{level\}/g, 'Moderate').replace(/\{who\}/g, 'one person').replace(/\{name\}/g, 'Stop later').replace(/\{words\}/g, 'in 9 futures out of 10');
 
 describe('the banned list itself', () => {
   it('is the language guide\'s list: every entry has an id, a pattern, a known scope, and words to use instead', () => {
@@ -66,6 +79,25 @@ describe('the banned list itself', () => {
     for (const text of good) expect(bannedHits(text, ['all', 'first', 'planner', 'retired', 'result']), text).toEqual([]);
   });
 
+  it('has the saver entries of screens-A-B.md 9.3 (22) and the countdown anywhere in A or B, scope saver', () => {
+    const ids = new Set(BANNED.map((e) => e.id));
+    for (const id of ['contribution', 'employer-contrib', 'tax-relief', 'retirement-age', 'target', 'projection', 'forecast-pot', 'on-track', 'confidence',
+      'shortfall', 'withdrawal-rate', 'sustainable', 'coast', 'fire', 'semi-retire', 'feasible', 'pass-fail', 'soften-harden', 'compound', 'growth-rate',
+      'years-from-now', 'a-year-longer']) expect(ids.has(id), id).toBe(true);
+    expect(BANNED.find((e) => e.id === 'countdown-any').scope).toBe('saver');
+    expect(SCOPES.saver).toBeTruthy();
+    const saver = ['all', 'first', 'planner', 'saver', 'result'];
+    const bad = ['your monthly contribution', 'your employer contribution', 'your retirement age', 'a target pot', 'the projected pot', 'you are on track',
+      'a shortfall of £70,000', 'a safe withdrawal rate', 'a sustainable income', 'coasting from 50', 'FIRE at 45', 'semi-retirement', 'that is feasible',
+      'it failed', 'you could comfortably retire', 'compound growth', 'at 5% growth', 'in 15 years', 'one year longer', '15 years to go',
+      '7 years until you stop', '3 months before the date', 'tax relief'];
+    for (const text of bad) expect(bannedHits(text, saver, { context: text }), text).not.toEqual([]);
+    const good = ['what you pay in each month', 'your employer’s part', 'the age you have in mind', 'what the pot could be by 60', 'on course for 60',
+      '£70,000 short', 'part-time work for 3 years after you stop', 'working until 61 instead of 60', 'from your State Pension forecast',
+      'tax relief — the tax the government adds back', 'Yes — you could stop at 60', 'it lasted in 9 futures out of 10'];
+    for (const text of good) expect(bannedHits(text, saver), text).toEqual([]);
+  });
+
   it('only the front door bans tool names; "PensionTools" is let through', () => {
     expect(bannedHits('Open the planner', ['front'])).not.toEqual([]);
     expect(bannedHits('PensionTools works things out from the figures you give it.', ['all', 'first', 'front'])).toEqual([]);
@@ -79,6 +111,22 @@ describe('the words in src/v7/copy/', () => {
     const whole = strings(C).map(([, s]) => filled(s)).join('\n');
     for (const [where, s] of strings(C)) for (const h of bannedHits(filled(s), Q_SCOPES, { context: whole })) hits.push(`c.js ${where} — ${h}`);
     expect(hits).toEqual([]);
+  });
+
+  it.each([['a', A], ['b', B]])('question %s: every string passes in every scope A and B are shown in — saver and retired included', (q, words) => {
+    const scopes = ['all', 'first', 'planner', 'saver', 'retired'];
+    const hits = [];
+    const whole = strings(words).map(([, s]) => filled(s)).join('\n');
+    for (const [where, s] of strings(words)) for (const h of bannedHits(filled(s), scopes, { context: whole })) hits.push(`${q}.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+  });
+
+  it.each([['a', A], ['b', B]])('question %s: no slot the screen does not fill; no "error", "failed" or "calculate"', (q, words) => {
+    const slots = new Set();
+    for (const [, s] of strings(words)) for (const m of s.matchAll(/\{([a-zA-Z]+)\}/g)) slots.add(m[1]);
+    for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words'], slot).toContain(slot);
+    for (const [where, s] of strings(words)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
+    for (const [where, s] of strings(words.buttons)) expect(s, where).not.toMatch(/^run\b/i);
   });
 
   it('the shared words pass; the six questions are the visitor\'s own words and pass as such', () => {
@@ -114,9 +162,13 @@ describe('the words in src/v7/copy/', () => {
   });
 });
 
-describe('the sentence templates (src/answers/c/sentences.js), read as text', () => {
-  const file = join(ROOT, 'src/answers/c/sentences.js');
-  const source = readFileSync(file, 'utf8');
+describe.each([
+  ['c', ['all', 'first', 'planner', 'retired', 'result']],
+  ['a', ['all', 'first', 'planner', 'retired', 'result', 'saver']],
+  ['b', ['all', 'first', 'planner', 'retired', 'result', 'saver']]
+])('the sentence templates (src/answers/%s/sentences.js), read as text', (q, scopes) => {
+  const file = join(ROOT, `src/answers/${q}/sentences.js`);
+  const source = existsSync(file) ? readFileSync(file, 'utf8') : '';
   /** The string literals of a source file — the words, without the code around them. */
   const literals = (src) => [...src.replace(/\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm, '').matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)]
     .map((m) => (m[1] ?? m[2] ?? m[3]).replace(/\\(['"`])/g, '$1'));
@@ -129,16 +181,15 @@ describe('the sentence templates (src/answers/c/sentences.js), read as text', ()
     const whole = source.replace(/\bF\('([^']*)'\)/g, '$1').replace(/\{\s*fixed:\s*'([^']*)'\s*\}/g, '$1').replace(/'\s*,\s*'|'\s*,\s*|,\s*'/g, '');
     for (const s of words) {
       const text = s.replace(/\$\{[^}]*\}/g, '57');
-      for (const h of bannedHits(text, ['all', 'first', 'planner', 'retired', 'result'], { context: whole, skip: ['junk', 'empty-money', 'one-plural', 'double-about'] })) hits.push(h);
+      for (const h of bannedHits(text, scopes, { context: whole, skip: ['junk', 'empty-money', 'one-plural', 'double-about'] })) hits.push(h);
     }
     expect(hits).toEqual([]);
   });
 });
 
 describe('every drawn state', () => {
-  const DIR = join(ROOT, 'tests/v7/states/c');
-  const names = readdirSync(DIR).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
-  const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
+  const names = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(ROOT, 'tests/v7/states', q)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => `${q}/${f.slice(0, -5)}`));
+  const load = (name) => JSON.parse(readFileSync(join(ROOT, 'tests/v7/states', `${name}.json`), 'utf8'));
 
   it.each(names)('%s holds no banned word, by its scope', (name) => {
     const state = load(name);
@@ -153,7 +204,7 @@ describe('every drawn state', () => {
     const root = renderScreen(state);
     const heads = [...root.querySelectorAll('[data-headline]')];
     for (const h of heads) expect(h.textContent).toContain(ADVICE_SHORT);
-    if (state.route.step === 'answer') expect(root.textContent).toContain(ADVICE_FULL);
+    if (state.route.step === 'answer' && root.querySelector('main').getAttribute('data-view') !== 'retired') expect(root.textContent).toContain(ADVICE_FULL);
     expect(root.querySelector('[data-region="footer"]').textContent).toContain(ADVICE_SHORT);
     // Neither can be closed, collapsed or dismissed.
     for (const el of root.querySelectorAll('[hidden], details:not([open])')) {
@@ -165,6 +216,20 @@ describe('every drawn state', () => {
   it('a person who has already stopped work is never given a stop-work word or a length of time to wait', () => {
     const retired = /when you retire|until you retire|when you stop work|years to go|months to go|plan starts|countdown|to retirement|\bin \d+ (years|months)\b/i;
     for (const name of names.filter((n) => load(n).route.q === 'c')) expect(visibleText(renderScreen(load(name))), name).not.toMatch(retired);
+    // A and B: the retired view, and stopping now (the stop at today's age), are drawn under the same rules
+    for (const name of ['a/answer-retired', 'a/answer-stop-now', 'b/answer-retired']) {
+      const state = load(name);
+      expect(scopesFor(state), name).toContain('retired');
+      expect(visibleText(renderScreen(state)), name).not.toMatch(retired);
+    }
+  });
+
+  it('no length of time to wait anywhere in A or B, working or not', () => {
+    const wait = /\b\d+ (more )?(years?|months?) (to go|until|till|before|from now)\b|\bin \d{1,2} years\b/i;
+    for (const name of names.filter((n) => !n.startsWith('c/'))) {
+      expect(scopesFor(load(name)), name).toContain('saver');
+      expect(visibleText(renderScreen(load(name))), name).not.toMatch(wait);
+    }
   });
 
   it('the words the test plan bans everywhere appear nowhere', () => {

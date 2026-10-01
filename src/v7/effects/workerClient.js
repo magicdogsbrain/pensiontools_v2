@@ -3,10 +3,12 @@
  *
  *   createWorkerClient({ makeWorker }) → {
  *     init(today)                              → Promise<{ historyEnd, engineVersion }>
- *     answer(q, inputs, env, onProgress)       → Promise<AnswerC>      env = { today, futures, seed, trace }
- *     stop()                                   ends the worker if an answer is under way; that answer rejects
- *                                              with code 'stopped'. The next call starts a fresh worker, which
- *                                              is told the date again.
+ *     answer(q, inputs, env, onProgress)       → Promise<Answer>       env = { today, futures, seed, trace } (+ detail for A, B)
+ *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
+ *                                              is not given) is under way; those answers reject with code 'stopped'.
+ *                                              Answers of other questions still under way are sent again, unchanged,
+ *                                              to a fresh worker (step 4: each question runs in its own lane). The
+ *                                              next call starts a fresh worker, which is told the date again.
  *     available()                              → false once it is known that no worker can start
  *   }
  *
@@ -123,19 +125,29 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
       if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        pending.set(id, { kind: 'answer', resolve, reject, onProgress });
-        if (!post({ id, type: 'answer', q, inputs: cloneSafe(inputs), env: cloneSafe(env) })) {
+        const msg = { id, type: 'answer', q, inputs: cloneSafe(inputs), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
+        if (!post(msg)) {
           pending.delete(id);
           reject(coded('the worker could not be reached', 'worker-error'));
         }
       });
     },
 
-    stop() {
-      if (![...pending.values()].some((e) => e.kind === 'answer')) return;   // nothing under way: keep it ready
+    stop(q) {
+      const ending = (e) => e.kind === 'answer' && (q === undefined || q === null || e.q === q);
+      if (![...pending.values()].some(ending)) return;                        // nothing under way: keep it ready
       drop();
-      rejectAll(coded('stopped', 'stopped'), 'answer');
-      if ([...pending.values()].some((e) => e.kind === 'init')) ensure();      // someone still waits to hear "ready"
+      for (const [id, entry] of [...pending]) {
+        if (!ending(entry)) continue;
+        pending.delete(id);
+        entry.reject(coded('stopped', 'stopped'));
+      }
+      const others = [...pending.values()].filter((e) => e.kind === 'answer');
+      if (!others.length && ![...pending.values()].some((e) => e.kind === 'init')) return;
+      // Someone still waits: to hear "ready", or for another question's answer, which the fresh worker works out again.
+      if (!ensure()) { rejectAll(coded('no worker could start', NO_WORKER)); return; }
+      for (const e of others) if (!post(e.msg)) { onError(); return; }
     }
   };
 }

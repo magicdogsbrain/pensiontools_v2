@@ -1,14 +1,18 @@
 /**
  * The front door (rail-screens-language.md 2.1): "What would you like to know?" and the six questions in the
- * visitor's words. Question C takes its first number here; the other five open "not in the preview yet".
+ * visitor's words. Question C takes its first number here; A and B, once open, go to their first step; the others
+ * open "not in the preview yet".
  * Also drawn, with one extra line, for an address that leads nowhere.
  */
 import { Field, formView, LinkButton } from '../components/index.js';
 import { href, parse } from '../router/routes.js';
+import { frontDoor } from '../rail/index.js';
 import { FRONT } from '../copy/common.js';
 
 export function FrontDoor(state, dispatch) {
   const form = formView(state);
+  // Where each question opens: a built one at its first step, the others at "not in the preview yet" (rail/index.js).
+  const door = Object.fromEntries(frontDoor().map((q) => [q.id, q]));
   const showHref = href.step('c', 'numbers', 'you.age');
   const onKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); dispatch({ type: 'route/set', route: parse(showHref) }); }
@@ -34,13 +38,13 @@ export function FrontDoor(state, dispatch) {
             )
             : (
               <li key={q.id} class="question">
-                <a href={href.soon(q.id)} data-testid={`front.q.${q.id}`}>
+                <a href={door[q.id] ? door[q.id].href : href.soon(q.id)} data-testid={`front.q.${q.id}`}>
                   <span class="letter" aria-hidden="true">{q.id.toUpperCase()}</span>
                   {/* one block of words: on a phone the question and "not in the preview yet" run on as one line */}
                   <span class="question-text">
                     <span class="question-ask">{q.ask}</span>
                     {q.more && <span class="question-more">{q.more}</span>}
-                    <span class="question-not">{FRONT.notYet}</span>
+                    {!(door[q.id] && door[q.id].built) && <span class="question-not">{FRONT.notYet}</span>}
                   </span>
                 </a>
               </li>

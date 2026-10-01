@@ -137,12 +137,77 @@ export function recompute(traceAt, answer) {
   return { problems, lowest: Number.isFinite(lowest) ? lowest : null, firstPhaseLowest: Number.isFinite(firstPhaseLowest) ? firstPhaseLowest : null, runOutAge, months: months.length, rescuedMonths: rescuedMonths.size, taperMonths };
 }
 
+/**
+ * The saving years worked out again from their month-by-month rows (step 4 brief 6, P2; test-plan-A-B.md 4.3).
+ * Imports nothing from src/. `rows` are SaveRows (pounds of that month, one person per row); `given` says what
+ * the rows must show:
+ *   { stopAge?: number | { you, partner? }, payIn?: { you: £ a month, partner?: … }, savingsIn?: { you, partner? }, priceAtStop?, potAtStop?, S? }
+ * The pay-in is at today's prices and rises with prices, so a month's payment is payIn × priceIndex. It goes in at the
+ * start of the month, before that month's growth: growth is earned on potStart + paidIn.
+ *
+ * Returns { problems, byPerson: { [who]: { months, potEnd, savingsEnd, paidIn } }, potAtStop } — potAtStop is the
+ * household's pension + savings at the stop in today's prices (÷ priceAtStop), when priceAtStop is given.
+ */
+export function recomputeSaving(rows, given = {}) {
+  const problems = [];
+  const say = (s) => { problems.push(s); };
+  const people = byPerson(rows || []);
+  const out = {};
+  for (const [who, list] of Object.entries(people)) {
+    let paid = 0;
+    list.forEach((r, i) => {
+      if (r.m !== i) say(`${who}: row ${i} is month ${r.m}`);
+      const pay = (r.paidIn && r.paidIn.total) || 0;
+      paid += pay / (r.priceIndex || 1);
+      if (Math.abs(r.potStart + pay + r.growth - r.charge - r.potEnd) > 0.01) say(`${who} m${r.m}: potStart + paidIn + growth − charge ≠ potEnd`);
+      if (i + 1 < list.length && Math.abs(r.potEnd - list[i + 1].potStart) > 0.01) say(`${who} m${r.m}: potEnd ≠ next potStart`);
+      if (i + 1 < list.length && Math.abs(r.savingsEnd - list[i + 1].savingsStart) > 0.01) say(`${who} m${r.m}: savingsEnd ≠ next savingsStart`);
+      if (r.charge < -1e-9) say(`${who} m${r.m}: a negative charge`);
+      if (r.potEnd < -0.01 || r.savingsEnd < -0.01) say(`${who} m${r.m}: a pot below nothing`);
+      // at the start of the month, before growth: the growth is what the month did to potStart + paidIn (it can be negative)
+      if (given.payIn && who in given.payIn) {
+        const want = given.payIn[who] * (r.priceIndex || 1);
+        if (Math.abs(pay - want) > 0.01) say(`${who} m${r.m}: paid in ${pay.toFixed(2)}, want ${want.toFixed(2)} (the pay-in rising with prices)`);
+      }
+      if (given.savingsIn && who in given.savingsIn) {
+        const want = given.savingsIn[who] * (r.priceIndex || 1);
+        if (Math.abs((r.savingsIn || 0) - want) > 0.01) say(`${who} m${r.m}: into savings ${r.savingsIn}, want ${want.toFixed(2)}`);
+      }
+      // nothing goes in once work has stopped (stopAge: a number, or { you, partner } — each person's own age at the stop)
+      const stop = given.stopAge && typeof given.stopAge === 'object' ? given.stopAge[who] : given.stopAge;
+      if (typeof stop === 'number' && r.age >= stop) say(`${who} m${r.m}: a saving month at ${r.age}, at or after the stop`);
+    });
+    if (typeof given.S === 'number' && list.length !== 12 * given.S) say(`${who}: ${list.length} saving months, want ${12 * given.S}`);
+    const last = list[list.length - 1];
+    out[who] = { months: list.length, potEnd: last ? last.potEnd : 0, savingsEnd: last ? last.savingsEnd : 0, paidIn: paid };
+  }
+  let potAtStop = null;
+  if (typeof given.priceAtStop === 'number' && given.priceAtStop > 0 && Object.keys(out).length) {
+    potAtStop = Object.values(out).reduce((t, x) => t + x.potEnd + x.savingsEnd, 0) / given.priceAtStop;
+    if (typeof given.potAtStop === 'number' && Math.abs(potAtStop - given.potAtStop) > 1) say(`the pot at the stop ${potAtStop.toFixed(2)} ≠ the life's ${given.potAtStop}`);
+  }
+  return { problems, byPerson: out, potAtStop };
+}
+
 /** The whole check on one answer with a trace. Returns the disagreements; [] means the trace and the headline agree. */
 export function checkTrace(answer) {
   const out = [];
   if (!answer.trace) return ['no trace'];
   const n = answer.basis.futures;
   const tenth = Math.floor(n / 10);
+  // C on the lives (a start at an age: step 4 brief section 10, J8) traces the saving months and every future's most and
+  // run-out months, not the drawing months (the fast path's run keeps no record of them): the saving months are worked
+  // out again here, and the band from the futures list below.
+  if (!answer.trace.atCareful && answer.trace.saving) {
+    const sv = answer.trace.saving.atCareful;
+    const payIn = Object.fromEntries((answer.saving || []).map((s) => [s.who, s.payIn.total]));
+    const stopAge = Object.fromEntries((answer.saving || []).map((s) => [s.who, s.stopAge]));
+    const S = answer.basis.yearsSaving;
+    const r = recomputeSaving(sv.rows, { payIn, stopAge, S, priceAtStop: sv.priceAtStop, potAtStop: S > 0 ? sv.potAtStart : undefined });
+    out.push(...r.problems);
+    if (S > 0 && answer.potAtStart && Math.abs(sv.potAtStart - answer.potAtStart.careful) > 0.5 + 1e-9) out.push(`the traced life's pot at the start ${sv.potAtStart} is not the bad-case pot ${answer.potAtStart.careful}`);
+    return [...out, ...futuresChecks(answer, n, tenth, false)];
+  }
 
   // at the careful amount: the household gets the careful amount, to the pound, every month of the bad-case future.
   // When the pots add nothing to what the household has anyway at the start, the careful amount is that take-home
@@ -169,15 +234,21 @@ export function checkTrace(answer) {
     if (middling.runOutAge === null && answer.runOutAge.middling !== answer.basis.endAge) out.push('atMiddling never runs out but the answer gives a run-out age');
   }
 
+  return [...out, ...futuresChecks(answer, n, tenth, true)];
+}
+
+/** The band read again from every future's most and run-out months. `traced`: the month rows name the bad-case futures. */
+function futuresChecks(answer, n, tenth, traced) {
+  const out = [];
   // the list of futures: the bad case is the one at position floor(n/10), and the careful amount fails in at most floor(n/10)
   const futures = answer.trace.futures;
   if (futures.length !== n) out.push(`${futures.length} futures listed, not ${n}`);
   const failsCareful = futures.filter((f) => f.runOutMonth.careful !== null).length;
   if (failsCareful > tenth) out.push(`the careful amount ran out in ${failsCareful} futures; ${tenth} allowed`);
   const byMost = [...futures].sort((a, b) => a.most - b.most || a.id - b.id);
-  if (byMost[tenth].id !== answer.trace.atCareful.futureId) out.push(`the bad case at the careful amount is future ${byMost[tenth].id}, the trace shows ${answer.trace.atCareful.futureId}`);
+  if (traced && byMost[tenth].id !== answer.trace.atCareful.futureId) out.push(`the bad case at the careful amount is future ${byMost[tenth].id}, the trace shows ${answer.trace.atCareful.futureId}`);
   const byMid = [...futures].sort((a, b) => (a.runOutMonth.middling ?? Infinity) - (b.runOutMonth.middling ?? Infinity) || a.id - b.id);
-  if (byMid[tenth].id !== answer.trace.atMiddling.futureId) out.push(`the bad case at the middling amount is future ${byMid[tenth].id}, the trace shows ${answer.trace.atMiddling.futureId}`);
+  if (traced && byMid[tenth].id !== answer.trace.atMiddling.futureId) out.push(`the bad case at the middling amount is future ${byMid[tenth].id}, the trace shows ${answer.trace.atMiddling.futureId}`);
   // sorting every future's most gives the same three amounts
   const most = byMost.map((f) => f.most);
   const down = (v) => Math.floor(v / 10 + 1e-9) * 10;

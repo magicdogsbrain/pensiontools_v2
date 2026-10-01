@@ -12,6 +12,10 @@
  *  5. No test is retried, none is marked `.only`, none opens the live site.
  *  6. Pictures are not compared unless the gate is switched on.
  *  7. Every browser test file the brief lists exists.
+ *  8. Step 4 (questions A and B): the five journeys exist and run where the plan says (published build for the
+ *     counted first answer to A and the hand-over to B; sizes and night engines as test plan A–B 11.1, 14.2),
+ *     the counted budgets are the brief's, the night run may take 60 minutes, `v7:cases` writes all three
+ *     lists, and RELEASING.md has a stopwatch line for each question.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -76,7 +80,10 @@ describe('browser tests: rules kept by reading the files', () => {
       'e2e/c-forum-guest.spec.js', 'e2e/c-couple.spec.js', 'e2e/c-retired.spec.js', 'e2e/crawl.spec.js',
       'e2e/production.spec.js', 'e2e/old-app-unchanged.spec.js', 'e2e/keyboard.spec.js', 'e2e/screens.spec.js',
       'e2e/sameness.spec.js', 'e2e/axe-exceptions.json',
-      '.github/workflows/nightly.yml', '.github/workflows/screenshots.yml'
+      '.github/workflows/nightly.yml', '.github/workflows/screenshots.yml',
+      // Step 4 (brief 3, P6)
+      'e2e/a-stop-soon.spec.js', 'e2e/a-couple.spec.js', 'e2e/a-from-savings.spec.js', 'e2e/b-my-number.spec.js', 'e2e/b-coast.spec.js',
+      'tests/v7/cross/questions.test.js'
     ];
     expect(wanted.filter((f) => !existsSync(join(ROOT, f)))).toEqual([]);
   });
@@ -198,5 +205,83 @@ describe('browser tests: rules kept by reading the files', () => {
     expect(headersFor(rules, '/a/b')).toEqual({ A: '1', B: 'x: y', C: '3' });
     expect(headersFor(rules, '/exact')).toEqual({ A: '1', B: 'x: y', D: '4' });
     expect(headersFor(rules, '/exact/no')).toEqual({ A: '1', B: 'x: y' });
+  });
+
+  describe('step 4: questions A and B', () => {
+    const JOURNEYS = { 'a-stop-soon': 'prod', 'b-my-number': 'prod', 'a-couple': 'test', 'a-from-savings': 'test', 'b-coast': 'test' };
+    const cfg = code(read('playwright.config.js'));
+    /** The config's named lists (`const X = [ 'a', ...Y ]`), resolved, read from its text (the config imports Playwright). */
+    const lists = {};
+    for (const m of cfg.matchAll(/const (\w+) = \[([^\]]*)\]/g)) lists[m[1]] = m[2];
+    const resolve = (body, seen = new Set()) => {
+      const out = [...body.matchAll(/'([\w-]+)'/g)].map((x) => x[1]);
+      for (const [, v] of body.matchAll(/\.\.\.(\w+)/g)) if (lists[v] !== undefined && !seen.has(v)) out.push(...resolve(lists[v], new Set([...seen, v])));
+      return out;
+    };
+    /** The specs a project runs: its `testMatch: only(…)`, a list name or a list written in place. */
+    const project = (name) => {
+      const m = new RegExp(`name: '${name}'[^\\n]*testMatch: only\\((\\w+|\\[[^\\]]*\\])\\)`).exec(cfg);
+      if (!m) return null;
+      return m[1].startsWith('[') ? resolve(m[1]) : resolve(lists[m[1]] || '');
+    };
+
+    it('each journey runs on the build the plan names: the counted first answer to A and the hand-over on the published build', () => {
+      for (const [name, build] of Object.entries(JOURNEYS)) {
+        const spec = code(read(`e2e/${name}.spec.js`));
+        expect(spec, name).toMatch(new RegExp(`v7\\(page, '${build}'`));
+        if (build === 'test') expect(spec, name).not.toMatch(/v7\(page, 'prod'/);
+      }
+    });
+
+    it('each journey runs at the sizes of the plan, and the night runs J4 and J7 in WebKit and J4 in Firefox', () => {
+      const where = (n) => ['phone-390', 'ipad-744', 'wide-1024', 'desktop-1440'].filter((p) => (project(p) || []).includes(n));
+      expect(where('a-stop-soon')).toEqual(['phone-390', 'desktop-1440']);
+      expect(where('b-my-number')).toEqual(['phone-390', 'desktop-1440']);
+      expect(where('a-couple')).toEqual(['phone-390', 'desktop-1440']);
+      expect(where('a-from-savings')).toEqual(['phone-390', 'desktop-1440']);
+      expect(where('b-coast')).toEqual(['phone-390', 'ipad-744']);
+      for (const p of ['nightly-webkit-390', 'nightly-webkit-744']) for (const n of ['a-stop-soon', 'a-from-savings']) expect(project(p), `${n} in ${p}`).toContain(n);
+      expect(project('nightly-firefox')).toContain('a-stop-soon');
+    });
+
+    it('the counted first answers keep the brief\'s budgets: A 4 things, B 5; 3 screens; 8 clicks; 3 s, 15 s, 30 s more', () => {
+      const helper = code(read('e2e/helpers/app.js'));
+      expect(helper).toMatch(/a: \{ mustFill: 4, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
+      expect(helper).toMatch(/b: \{ mustFill: 5, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
+      expect(helper).toMatch(/SLOWDOWN = 4\b/);
+      // The counted journeys type one key at a time and write their counts down.
+      for (const name of ['a-stop-soon', 'b-coast']) {
+        const spec = code(read(`e2e/${name}.spec.js`));
+        expect(spec, name).toMatch(/delay: KEY_DELAY/);
+        expect(spec, name).toMatch(/record\(testInfo, `first-answer-[ab]\//);
+      }
+    });
+
+    it('the night run may take 60 minutes', () => {
+      expect(jobText(read('.github/workflows/nightly.yml'), 'nightly')).toMatch(/timeout-minutes: 60\b/);
+    });
+
+    it('v7:cases writes all three case lists', () => {
+      const script = pkg.scripts['v7:cases'];
+      for (const f of ['tests/v7/gen/build-cases.mjs', 'tests/v7/gen/dimensionsA.mjs', 'tests/v7/gen/dimensionsB.mjs']) expect(script).toContain(f);
+    });
+
+    it('RELEASING.md has a stopwatch line for each question and the real-phone look for A and B', () => {
+      const text = read('RELEASING.md');
+      for (const q of ['C:', 'A (', 'B (']) expect(text).toMatch(new RegExp(`- ${q.replace('(', '\\(')}[^\\n]*stopwatch: __ s`));
+      expect(text).toMatch(/For A and B, the same on a real phone and iPad/);
+    });
+
+    it('no A or B journey and no cross-question check is skipped without saying why', () => {
+      for (const name of Object.keys(JOURNEYS)) {
+        const spec = code(read(`e2e/${name}.spec.js`));
+        expect(spec, name).toMatch(/waitsFor\(/);                                  // skips say which part they wait for
+        expect(spec, name).not.toMatch(/\btest\.(?:skip|fixme)\(\s*\)/);
+      }
+      const cross = code(read('tests/v7/cross/questions.test.js'));
+      const skips = [...cross.matchAll(/skipIf\([^\n]*/g)].map((m) => m[0]);
+      expect(skips.length).toBeGreaterThan(0);
+      for (const line of skips) expect(line, 'a skipped block names what it waits for').toMatch(/WAIT_|waiting\(/);
+    });
   });
 });

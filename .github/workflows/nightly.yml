@@ -1,9 +1,11 @@
 name: nightly
 
-# The night run (V7 test plan 10.2): the long random runs, the luck check and the date sweep in the ordinary
-# suite (NIGHTLY=1, FC_RUNS=2000), then the browser tests in all three engines — the full sameness list, and
-# the journeys in WebKit (the nearest thing to the owner's iPad and phone) and Firefox. 02:30 UTC, before the
-# data update at 06:30. A red night sends GitHub's usual email; the failing input goes into found.cases.json.
+# The night run (V7 test plan 10.2; step 4: test plan A–B 14.2): the long random runs, the luck check and the date
+# sweep in the ordinary suite (NIGHTLY=1, FC_RUNS=2000 — questions A and B and the saving years included), then the
+# browser tests in all three engines — the full sameness list (A and B too), and the journeys in WebKit (the
+# nearest thing to the owner's iPad and phone: C's, and A's J4 and J7) and Firefox. 02:30 UTC, before the data
+# update at 06:30. A red night sends GitHub's usual email; the failing input goes into found.cases.json.
+# The limit is 60 minutes (step 4 brief, decision 21): C's night and A's and B's together are planned under 50.
 on:
   schedule:
     - cron: '30 2 * * *'
@@ -16,7 +18,7 @@ permissions:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     # The official container: the three browsers, their system libraries and the same typefaces every time.
     # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
     container:

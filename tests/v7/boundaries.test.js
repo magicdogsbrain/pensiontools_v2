@@ -171,6 +171,8 @@ describe('the words stay out of the code that calculates, and the other way roun
     const files = V7.filter((f) => under(f, 'src/v7/state') || under(f, 'src/v7/router') || under(f, 'src/v7/rail'));
     const allowed = (t) => under(t, 'src/v7/state') || under(t, 'src/v7/router') || under(t, 'src/v7/rail') ||
       /^src\/answers\/[a-z]+\/schema\.js$/.test(t) || t === 'src/answers/shared/validate.js' || t === 'src/constants.js';
-    for (const file of files) for (const t of targetsOf(file)) expect(allowed(t), `${file} imports ${t}`).toBe(true);
+    // Step 4 brief 4.11: select.js alone may also read schemaParts.js (alreadyStopped, for the retired view) and format.js.
+    const selectMay = (file, t) => file === 'src/v7/state/select.js' && (t === 'src/answers/shared/schemaParts.js' || t === 'src/answers/shared/format.js');
+    for (const file of files) for (const t of targetsOf(file)) expect(allowed(t) || selectMay(file, t), `${file} imports ${t}`).toBe(true);
   });
 });

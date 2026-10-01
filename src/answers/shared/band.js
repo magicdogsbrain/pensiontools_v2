@@ -97,9 +97,13 @@ const gapFor = (g, k) => Math.max(g.least, Math.round(Math.abs(k) * g.share));
  * @param {object} plan                 enginePlan(...)
  * @param {object[]} futures            futuresList(...)
  * @param {{ onProgress?: (done: number, total: number) => void, estimate?: { careful: number, middling: number, good: number } | null,
- *           runner?: { run: (r: number, i: number, config: object) => { failed: boolean, failMonth: number|null } } }} [opts]
+ *           runner?: { run: (r: number, i: number, config: object) => { failed: boolean, failMonth: number|null } },
+ *           configsFor?: (k: number, i: number) => object[] }} [opts]
  *   `estimate`: the three amounts in steps from an earlier pass on the same household (a hint: it changes nothing
- *   but the order of the runs). `runner`: the engine runner (default: the fast path).
+ *   but the order of the runs). `runner`: the engine runner (default: the fast path). `configsFor` (questions A and B,
+ *   step 4 brief 4.6): the configsAt entries at step k for future i — a couple's shares differ by future when the
+ *   pots do; the caller keeps its own cache. k may be a fraction of a step (runOutMonthsAtMonthly). Default:
+ *   configsAt(plan, k × STEP × 12), the same for every future.
  */
 export function createBandSolver(plan, futures, opts = {}) {
   const n = futures.length;
@@ -116,11 +120,13 @@ export function createBandSolver(plan, futures, opts = {}) {
   let finished = false;                                                          // once "done" is told, nothing goes back
   const tell = () => { if (opts.onProgress && !finished && evaluations % 25 === 0) opts.onProgress(Math.min(evaluations, progressTotal - 1), progressTotal); };
 
-  const configsFor = (k) => {
-    let c = configCache.get(k);
-    if (!c) { c = configsAt(plan, k * STEP * 12); configCache.set(k, c); }
-    return c;
-  };
+  const configsFor = opts.configsFor
+    ? (k, i) => opts.configsFor(k, i)
+    : (k) => {
+      let c = configCache.get(k);
+      if (!c) { c = configsAt(plan, k * STEP * 12); configCache.set(k, c); }
+      return c;
+    };
   const slotsAt = (k) => {
     let s = results.get(k);
     if (!s) { s = new Array(n); results.set(k, s); }
@@ -134,7 +140,7 @@ export function createBandSolver(plan, futures, opts = {}) {
    * @returns {{ failed: boolean, failMonth: number|null }}
    */
   const evaluate = (i, k, needMonth) => {
-    const configs = configsFor(k);
+    const configs = configsFor(k, i);
     const slots = slotsAt(k);
     let per = slots[i];
     if (!per) per = slots[i] = new Array(configs.length);
@@ -306,11 +312,11 @@ export function createBandSolver(plan, futures, opts = {}) {
     runOutMonthsAtMonthly(monthly) {
       const H = monthly * 12;
       const kEquivalent = H / 12 / STEP;
-      const configs = configsAt(plan, H);
+      const configs = opts.configsFor ? null : configsAt(plan, H);
       return futures.map((f, i) => {
         if (kEquivalent <= lo[i]) return null;
         evaluations++; tell();
-        const r = runFuture(configs, f, true, (r, config) => { engineRuns++; return runner.run(r, i, config); });
+        const r = runFuture(configs || opts.configsFor(kEquivalent, i), f, true, (r, config) => { engineRuns++; return runner.run(r, i, config); });
         return r.failed ? r.failMonth : null;
       });
     },

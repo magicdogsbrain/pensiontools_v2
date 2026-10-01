@@ -39,6 +39,9 @@ jobs:
     # nightly data update (update-gilt-data.yml) never runs it — so a browser problem cannot block the data
     # bot. Pictures are made and uploaded with the report; they are not compared until the owner approves a
     # first set (the picture gate: see e2e/screens.spec.js and RELEASING.md).
+    # Step 4 adds A's and B's journeys, their named states in the crawl, keyboard and sameness cases and 36
+    # pictures: about 4 minutes more, planned under 12 minutes in all against the 15-minute limit (test plan
+    # A–B 13.3). If it runs over, cut in that plan's order — never the journeys' counted first answers.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

@@ -17,6 +17,20 @@
   },
   "plan": null,
   "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
     "c": {
       "values": {
         "you.pot": "250,000",
@@ -29,6 +43,26 @@
     }
   },
   "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
     "c": {
       "status": "final",
       "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":1500,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.17.0",
@@ -308,17 +342,21 @@
             "field": null,
             "source": "rule",
             "value": 1000,
-            "text": "Tested against 1,000 possible futures built from market history since 1871.",
+            "text": "Tested against 1,000 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
             "parts": [
               "Tested against ",
               {
                 "fixed": "1,000"
               },
-              " possible futures built from market history since ",
+              " possible futures, each pieced together from stretches of US share returns and US price rises since ",
               {
                 "fixed": "1871"
               },
-              "."
+              ". Share returns are cut by ",
+              {
+                "fixed": "1.5"
+              },
+              "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
             ]
           },
           {

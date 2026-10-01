@@ -108,3 +108,27 @@ AshworthEnterprises workspace (`compliance/DATA_PROCESSING_RECORD.md`).
   `wipeAllUserData`. Policy updated (table row + "Storage in your browser" paragraph, which also
   documents the pre-existing localStorage/sessionStorage items: idle timer, dismissed banners,
   guest-tab plan). No new processor, no analytics.
+
+## "Save this as a plan" from the V7 preview — 1 Oct 2026 (written, NOT yet published or deployed)
+- **No new processor, no new Firestore path, no new data category.** A plan made from a V7 answer is an ordinary
+  plan under `users/{uid}/scenarios` (or the guest tab's session storage), covered by the existing rules and wiped
+  by `wipeAllUserData`. It carries a `fromAnswer` record (the answer's inputs: ages, pots, pay-ins, State Pension,
+  final-salary figures) and, if one was worked out, the budget lines in `budgetTool` — the same categories as today.
+  Only `createScenario` writes (new documents); the one write to an existing plan is the `isActive` flag.
+- **Browser storage, new:** the plan seed, `localStorage['pt_v7_plan_seed']` — the answer's figures and any budget
+  lines (which may include health spend) — never in an address, never USED after a day. Deleted when the plan is made,
+  on "Not now", on sign-out by any route (menu, idle timer, verify-email screen: `onAuthStateChange` signed-in → nobody),
+  Reset and Delete Account, and by the first read after its day — today's app reads it at every start, and V7's pages
+  (`/v7/`) now purge a day-old or unreadable seed at every start too, whichever tab wrote it. Nothing can delete it at
+  the 24-hour mark itself if neither page is opened again, so the policy says "never used after a day … deleted …
+  otherwise the next time you open PensionTools or the preview pages", not "held at most a day" (review, 1 Oct 2026).
+  (`src/services/PlanSeed.js`, `src/ui/components/NewPlanFromSeed.js`, `src/v7/effects/planSeed.js`). V7's own draft
+  store, `sessionStorage['pt_v7_draft']` (what was typed on the question pages, the budget sheet, the plan name),
+  lives in that tab only and goes when the tab closes. So does the planner's receipt,
+  `sessionStorage['pt_v7_plan_receipt']`: for each seed, its time, what became of it (made / declined / refused /
+  cleared) and, when made, the plan's name — so V7 says "Saved as" only when a plan was made.
+- [x] Sentences added to `compliance/PRIVACY_POLICY.md` and `public/privacy.html` ("Storage in your browser"),
+      "Last updated" set to 1 October 2026.
+- [ ] Owner to read and approve the wording, then publish with the release that ships today's side (6.17.1 or 6.18.0).
+- [ ] Signed-in path not yet walked in a browser (no test account was used): guest hand-off then the seed, a new
+      account getting the confirm step instead of onboarding, email verification then the seed.

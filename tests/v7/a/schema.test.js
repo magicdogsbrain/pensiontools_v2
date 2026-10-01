@@ -13,6 +13,7 @@ import { personFields, saverFields, moreFields, SPEND_FIELDS, spendLevelAMonth }
 import { ACCUMULATION_RULES } from '../../../src/services/AccumulationEngine.js';
 import { PLSA_2024 } from '../../../src/services/BudgetModel.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
+import { A as COPY_A } from '../../../src/v7/copy/a.js';
 
 const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'count'];
 const byPath = new Map(SCHEMA_A.fields.map((f) => [f.path, f]));
@@ -111,7 +112,7 @@ describe('SCHEMA_A — the declaration', () => {
   });
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
-    expect(SCHEMA_A.rules.map((r) => r.id)).toEqual(['stop-not-before-now', 'end-after-stop', 'pay-in-over-limit']);
+    expect(SCHEMA_A.rules.map((r) => r.id)).toEqual(['stop-not-before-now', 'end-after-stop', 'stop-ages-past-75', 'pay-in-over-limit']);
     for (const r of SCHEMA_A.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
       for (const p of r.fields) expect(byPath.has(p), `${r.id}: ${p}`).toBe(true);
@@ -322,6 +323,13 @@ describe('the rules between fields', () => {
     expect(parse({ 'you.age': '75', 'stop.kind': 'ages', endAge: '75' }).errors).toEqual({ endAge: 'end-after-stop' });      // "show me ages": the stop is now
     expect(parse({ 'you.age': '74', 'stop.kind': 'ages', endAge: '75' }).ok).toBe(true);
   });
+  it('stop-ages-past-75: "show me ages" lists ages up to 75, so past 75 it is named on the choice, with its own words', () => {
+    expect(parse({ 'you.age': '75', 'stop.kind': 'ages', endAge: '95' }).ok).toBe(true);
+    expect(parse({ 'you.age': '76', 'stop.kind': 'ages', endAge: '95' }).errors).toEqual({ 'stop.kind': 'stop-ages-past-75' });
+    expect(parse({ 'you.age': '100', 'stop.kind': 'ages', endAge: '105' }).errors).toEqual({ 'stop.kind': 'stop-ages-past-75' });
+    expect(parse({ 'you.age': '76', 'stop.kind': 'age', 'stop.age': '76', endAge: '95' }).errors).toEqual({ 'stop.age': 'tooHigh' });   // an age in mind: its own box says so
+    expect(COPY_A.fields['stop.kind'].errors['stop-ages-past-75']).toMatch(/up to 75/);
+  });
   it('a field\'s own problem is reported before a rule, and C\'s rules never fire on A', () => {
     expect(parse({ 'stop.age': '17' }).errors).toEqual({ 'stop.age': 'tooLow' });
     expect(parse({ 'you.age': '80', endAge: '80', 'stop.age': '80' }).errors).toEqual({ 'stop.age': 'tooHigh' });
@@ -368,16 +376,16 @@ describe('rules.js — the saving-years figures agree with today\'s engine and t
 
 // ---- The shell's data for A: the rail, the hand-over map, the registry, the state shapes (step 4 brief 4.11–4.14). --
 describe('the shell\'s data for question A', () => {
-  it('QUESTION_A has the four steps of the brief, and every "needs" names a field of the input list or the answer', async () => {
+  it('QUESTION_A has the steps of the brief with the budget step (budget-step.md) and keep built (save-as-plan.md), and every "needs" names a field of the input list or the answer', async () => {
     const { QUESTION_A, NEXT_A } = await import('../../../src/v7/rail/a.js');
     expect(QUESTION_A.id).toBe('a');
-    expect(QUESTION_A.steps.map((s) => s.id)).toEqual(['numbers', 'answer', 'ages', 'keep']);
-    expect(QUESTION_A.steps.map((s) => s.optional)).toEqual([false, false, true, true]);
-    expect(QUESTION_A.steps.map((s) => s.built)).toEqual([true, true, true, false]);
-    expect(QUESTION_A.steps.map((s) => s.end)).toEqual([false, false, false, true]);
+    expect(QUESTION_A.steps.map((s) => s.id)).toEqual(['numbers', 'spend', 'answer', 'ages', 'keep']);
+    expect(QUESTION_A.steps.map((s) => s.optional)).toEqual([false, false, false, true, true]);
+    expect(QUESTION_A.steps.map((s) => s.built)).toEqual([true, true, true, true, true]);
+    expect(QUESTION_A.steps.map((s) => s.end)).toEqual([false, false, false, false, true]);
     for (const s of QUESTION_A.steps) for (const n of s.needs) expect(n === 'answer' || byPath.has(n), n).toBe(true);
-    expect(QUESTION_A.steps[1].needs).toEqual(['you.age', 'you.pot', 'stop.age', 'spend.amount']);
-    expect(NEXT_A).toEqual(['a.retired', 'a.failed', 'a.working', 'a.blank', 'a.fix', 'a.ready', 'a.no', 'a.close', 'a.yes', 'a.ages', 'a.ages.none']);
+    expect(QUESTION_A.steps[2].needs).toEqual(['you.age', 'you.pot', 'stop.age', 'spend.amount']);
+    expect(NEXT_A).toEqual(['a.retired', 'a.failed', 'a.working', 'a.blank', 'a.spend', 'a.fix', 'a.ready', 'a.keep', 'a.no', 'a.close', 'a.yes', 'a.ages', 'a.ages.none']);
   });
 
   it('the step lists of A and B exist beside C\'s, and the questions open to a visitor derive from OPEN', async () => {
@@ -450,14 +458,16 @@ describe('the shell\'s data for question A', () => {
     for (const t of Object.values(A_NEXT)) expect(Object.values(A)).toContain(t);         // the reducer knows them (P4)
     expect(ACTION_TYPES).toEqual(Object.values(A));
     for (const id of ['split', 'partTime', 'pots', 'levers', 'chart', 'partner', 'more', 'assumed', 'madeOf', 'allAssumed']) expect(OPENABLE).toContain(id);
-    expect(emptySaverDraft()).toEqual({ ...emptyDraft(), carriedFrom: null });
+    expect(emptySaverDraft()).toEqual({ ...emptyDraft(), carriedFrom: null, spendHow: null, skipNoted: false });
     expect(emptySaverAnswer()).toEqual({ ...emptyAnswer(), detail: null, extending: false });
     expect(emptyDraftFor('a')).toEqual(emptySaverDraft());
     expect(emptyDraftFor('c')).toEqual(emptyDraft());
     expect(emptyAnswerFor('b')).toEqual(emptySaverAnswer());
     expect(emptyAnswerFor('c')).toEqual(emptyAnswer());
     expect(keptDraft({ a: { values: { 'you.pot': '250,000', x: 1 }, touched: ['you.pot', 2], asked: true, carriedFrom: 'c' } }, 'a'))
-      .toEqual({ values: { 'you.pot': '250,000' }, touched: ['you.pot'], asked: true, revealed: [], carriedFrom: 'c' });
+      .toEqual({ values: { 'you.pot': '250,000' }, touched: ['you.pot'], asked: true, revealed: [], carriedFrom: 'c', spendHow: null, skipNoted: false });
+    expect(keptDraft({ a: { spendHow: 'lines', skipNoted: true } }, 'a')).toMatchObject({ spendHow: 'lines', skipNoted: true });
+    expect(keptDraft({ a: { spendHow: 'budget', skipNoted: 'yes' } }, 'a')).toMatchObject({ spendHow: null, skipNoted: false });
     expect(keptDraft({ a: { carriedFrom: 'z' } }, 'a').carriedFrom).toBeNull();
     expect(keptDraft({ c: { values: { 'you.pot': '1' }, carriedFrom: 'a' } }, 'c')).toEqual({ values: { 'you.pot': '1' }, touched: [], asked: false, revealed: [] });
     expect(keptDraft(null, 'b')).toEqual(emptySaverDraft());

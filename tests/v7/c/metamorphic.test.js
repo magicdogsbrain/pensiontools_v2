@@ -71,6 +71,15 @@ describe('C — metamorphic relations', () => {
       const oneName = { ...single, household: 'couple', you: twin(P), partner: twin(0) };
       const evenSplit = { ...single, household: 'couple', you: twin(P / 2), partner: twin(P / 2) };
       const a = ok(answerC(oneName, ENV), oneName);
+      // Below the £100,000 point in fact, not only in the final-salary pension: what the pot pays on top counts too. A
+      // household taking home no more than £60,000 a year (£5,000 a month) keeps each of the two well under it for the
+      // whole plan, even with prices rising against the point's fixed pounds (tests/v7/c/exceptions.md 1). Above it the
+      // relation is false, and the answer right: two NIGHTLY=1 runs, 1 Oct 2026 — one person of 74 with £250,000, a
+      // £50,270 final-salary pension, cautious, to 75 (seed 1588601866): one year drawing £250,000 in one name loses one
+      // personal allowance, in two names two, so the even split takes home £160 a month less (£21,440 against £21,600);
+      // and 58 with a £20,000 State Pension forecast beside the same, £110,000 a year in all (seed -2110052139): the
+      // middling £60 a month less.
+      fc.pre(a.yearly.good <= 60_000);
       const b = ok(answerC(evenSplit, ENV), evenSplit);
       // to a £10 step: two pots searched separately can land a step apart from one pot (a large final-salary pension beside them makes the pots' part small)
       for (const k of ['careful', 'middling', 'good']) expect(b.monthly[k], k).toBeGreaterThanOrEqual(a.monthly[k] - 10);
@@ -88,7 +97,9 @@ describe('C — metamorphic relations', () => {
       const b = answerC(inputs, { ...ENV, today: '2027-04-08' });
       fc.pre(a.status !== 'invalid' && b.status !== 'invalid');
       const changed = diffPaths(plain(a), plain(b));
-      // basis.accessAge is the earliest pension age ON THE START DATE: a start a year on crosses 6 April 2028 between the two days
+      // basis.accessAge is the earliest pension age ON THE START DATE: a start a year on crosses 6 April 2028 between the two days.
+      // (The second call's band search does not start from the first's amounts — only a pass over fewer futures is a hint,
+      // c/answer.js — so the band is the same to the pound where today's engine is not monotone too.)
       expect(changed.filter((p) => !['basis.today', 'basis.accessAge'].includes(p))).toEqual([]);
     }), opts());
   });

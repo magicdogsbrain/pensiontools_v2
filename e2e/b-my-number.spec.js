@@ -17,7 +17,7 @@ const tidy = (typed) => money(Number(String(typed).replace(/[£,\s]/g, ''))).sli
 test.describe('J4 — what\'s my number? (A, then B with the figures carried across)', () => {
   test.beforeEach(() => waitsFor(...NEEDS.a, ...NEEDS.b, 'carry'));
 
-  test('A answers; the link to B arrives filled; one press gives the number and the pay-in', async ({ page }, testInfo) => {
+  test('A answers; the link to B arrives filled; on through the spending, one press gives the number and the pay-in', async ({ page }, testInfo) => {
     test.setTimeout(240_000);
     const typing = fixtureTyping('B1');
     const app = v7(page, 'prod', 'a');
@@ -54,7 +54,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
     });
 
     let times = null;
-    await test.step('one press: B\'s answer', async () => {
+    await test.step('on through the spending (it came over too), one press: B\'s answer', async () => {
       times = await askAndTime(app, 'b.action.show');
       await app.at('b.answer');
     });
@@ -74,11 +74,15 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       };
       record(testInfo, `first-answer-b-from-a/${testInfo.project.name}.json`, counts);
       expect(counts.typedAfterHandOver, 'nothing typed again after the hand-over').toBe(0);
-      expect(counts.clicksAfterHandOver, 'the link and the button').toBeLessThanOrEqual(2);
+      // the link, "Next: what you would spend" (the budget step: the spending came over too) and the button
+      expect(counts.clicksAfterHandOver, 'the link, on to the spending, and the button').toBeLessThanOrEqual(3);
       expect(counts.waitFinalSlowedMs, 'final figure, processor slowed four times').toBeLessThanOrEqual(15_000);
     });
 
     await test.step('back returns to A\'s answer as it was', async () => {
+      await page.goBack();
+      await app.at('b.spend');
+      await expect(app.id('b.spend.amount')).toHaveValue(/\S/);                       // the spending came over with the rest
       await page.goBack();
       await app.at('b.numbers');
       await page.goBack();

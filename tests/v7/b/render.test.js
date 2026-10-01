@@ -96,15 +96,16 @@ describe('B: the named states', () => {
   });
 });
 
-describe('B, step 1: what have you saved, what are you paying in, and what do you want?', () => {
-  it('blank: five boxes to type in, in the order of the drawing; the button is never greyed out', () => {
+describe('B, step 1: what have you saved, and what are you paying in?', () => {
+  it('blank: four boxes to type in, in the order of the drawing — the spending is the next step\'s; the button is never greyed out', () => {
     const root = renderScreen(load('numbers-blank'));
     expect(root.querySelector('h1').textContent).toBe(B.steps.numbers.label);
-    expect([...root.querySelectorAll('input[type="text"]')].map((el) => el.id)).toEqual(['b.you.age', 'b.you.pot', 'b.you.payIn.total', 'b.stop.age', 'b.spend.amount']);
+    expect([...root.querySelectorAll('input[type="text"]')].map((el) => el.id)).toEqual(['b.you.age', 'b.you.pot', 'b.you.payIn.total', 'b.stop.age']);
+    expect(root.querySelector('[data-field^="spend."]')).toBe(null);
     expect(one(root, 'b.you.payIn.kind.total').checked).toBe(true);
     expect(one(root, 'b.you.payIn.total').getAttribute('placeholder')).toBe(null);   // required on B: nothing assumed
-    expect(one(root, 'b.action.show').textContent).toBe(B.buttons.show);
-    expect(one(root, 'b.action.show').disabled).toBe(false);
+    expect(one(root, 'b.action.onward').textContent).toBe(B.buttons.onward);
+    expect(one(root, 'b.action.onward').disabled).toBe(false);
     expect(one(root, 'b.savings')).toBe(null);                       // savings are under "more detail" on B
   });
 
@@ -114,8 +115,8 @@ describe('B, step 1: what have you saved, what are you paying in, and what do yo
     expect(required({ 'spend.kind': 'level' }).length).toBe(5);       // the level is required too — but it is a choice, not typed
   });
 
-  it('the layout draws every field of the list exactly once: at the top, or inside the choice it depends on', () => {
-    const top = [...LAYOUT_B.you, ...LAYOUT_B.partner, ...LAYOUT_B.more];
+  it('the layout draws every field of the list exactly once: at the top, or inside the choice it depends on (the spending on the spend step)', () => {
+    const top = [...LAYOUT_B.you, ...LAYOUT_B.partner, ...LAYOUT_B.more, ...LAYOUT_B.spend];
     expect(new Set(top).size).toBe(top.length);
     for (const f of SCHEMA_B.fields) {
       if (f.path === 'household') continue;
@@ -137,7 +138,10 @@ describe('B, step 1: what have you saved, what are you paying in, and what do yo
 
   it('a level: its monthly figure, the rule\'s, named under the choice', () => {
     for (const household of ['single', 'couple']) for (const level of ['minimum', 'moderate', 'comfortable']) expect(B.levels[household][level]).toBe(money(spendLevelAMonth(household, level)));
-    const root = renderScreen(load('numbers-level'));
+    const s = load('numbers-level');
+    s.route = { ...s.route, step: 'spend' };                                             // the spending is on the spend step
+    const root = renderScreen(s);
+    expect(checkScreen(root, s)).toEqual([]);
     expect(one(root, 'b.spend.levelIs').textContent).toBe('Moderate: £2,608 a month for one person (Retirement Living Standards).');
     expect(one(root, 'b.spend.amount')).toBe(null);
   });
@@ -166,8 +170,8 @@ describe('B, step 1: what have you saved, what are you paying in, and what do yo
     const again = draw(load('numbers-blank'));
     document.body.appendChild(again.root);
     try {
-      fire(one(again.root, 'b.action.show').closest('form'), 'submit');
-      expect(again.actions).toEqual([{ type: 'draft/ask', q: 'b' }]);
+      fire(one(again.root, 'b.action.onward').closest('form'), 'submit');
+      expect(again.actions).toEqual([{ type: 'draft/onward', q: 'b' }]);
       expect(document.activeElement.id).toBe('b.you.age');
     } finally { again.root.remove(); }
   });
@@ -189,7 +193,7 @@ describe('B, step 1: what have you saved, what are you paying in, and what do yo
     const boxes = stops.filter((el) => el.tagName === 'INPUT').map((el) => el.getAttribute('data-testid'));
     expect([...boxes].sort()).toEqual([...expectedInputs(state)].sort());
     expect(boxes.slice(0, 2)).toEqual(['b.you.age', 'b.you.pot']);
-    expect(stops.findIndex((el) => el.getAttribute('data-testid') === 'b.action.show')).toBeGreaterThan(stops.map((el) => el.tagName).lastIndexOf('INPUT'));
+    expect(stops.findIndex((el) => el.getAttribute('data-testid') === 'b.action.onward')).toBeGreaterThan(stops.map((el) => el.tagName).lastIndexOf('INPUT'));
   });
 });
 

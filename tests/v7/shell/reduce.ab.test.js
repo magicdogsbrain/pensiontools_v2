@@ -48,7 +48,7 @@ describe('the actions', () => {
     delete partial.answers.a.detail;
     delete partial.draft.a.carriedFrom;
     const t = reduce(fresh(), { type: A.STATE_REPLACE, state: partial });
-    expect(t.draft.b).toEqual({ values: {}, touched: [], asked: false, revealed: [], carriedFrom: null });
+    expect(t.draft.b).toEqual({ values: {}, touched: [], asked: false, revealed: [], carriedFrom: null, spendHow: null, skipNoted: false });
     expect(t.answers.a.detail).toBe(null);
     expect(t.draft.a.carriedFrom).toBe(null);
     const prod = initialState({ today: TODAY });
@@ -62,8 +62,13 @@ const typed = fc.oneof(fc.constantFrom('', '250,000', '£1', 'abc', '45', '50', 
 const key = fc.constantFrom('K1', 'K2', null, 'NOW');
 const question = fc.constantFrom(...Q);
 const fieldOf = question.chain((q) => fc.constantFrom(...SCHEMAS[q].fields.map((f) => f.path)).map((path) => [q, path]));
-const anyRoute = fc.constantFrom(route('front'), route('step', 'a', 'numbers'), route('step', 'a', 'answer'), route('step', 'a', 'ages'),
-  route('step', 'a', 'keep'), route('step', 'b', 'answer'), route('step', 'b', 'choices'), route('step', 'c', 'answer'), route('soon', 'a'), route('soon', 'd'));
+const anyRoute = fc.constantFrom(route('front'), route('step', 'a', 'numbers'), route('step', 'a', 'spend'), route('step', 'a', 'answer'), route('step', 'a', 'ages'),
+  route('step', 'a', 'keep'), route('step', 'b', 'spend'), route('step', 'b', 'answer'), route('step', 'b', 'choices'), route('step', 'c', 'answer'), route('step', 'c', 'keep'),
+  route('soon', 'a'), route('soon', 'd'));
+const saver = fc.constantFrom('a', 'b');
+const lineId = fc.constantFrom('l1', 'l2', 'l9', 'l38', 'l40', 'l99');
+const oneOffId = fc.constantFrom('o1', 'o4', 'o5', 'o9');
+const budgetText = fc.constantFrom('', '150', '£1,200', '11.99+8.99', 'abc', '-5', '2031', '8', 'New boiler');
 const resultFor = (q, n, detail) => (q === 'a' ? resultA({ detail: detail || 'chart', middling: n }) : q === 'b' ? resultB({ detail: detail || 'answer', careful: n }) : { status: 'ok', monthly: { careful: n }, basis: {} });
 const carries = Object.keys(CARRY).map((k) => k.split('→'));
 
@@ -87,7 +92,25 @@ const anyAction = fc.oneof(
   fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
-  fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } }))
+  fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } })),
+  // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
+  saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
+  fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),
+  fc.tuple(lineId, fc.constantFrom('amount', 'period', 'essential', 'label'), fc.oneof(budgetText, fc.constantFrom('mo', 'yr'), fc.boolean()))
+    .map(([id, field, value]) => ({ type: A.BUDGET_LINE, id, field, value })),
+  fc.constantFrom('home', 'bills', 'food', 'other').map((heading) => ({ type: A.BUDGET_ADD, heading })),
+  lineId.map((id) => ({ type: A.BUDGET_REMOVE, id })),
+  fc.tuple(oneOffId, fc.constantFrom('label', 'amount', 'year', 'everyYears'), budgetText).map(([id, field, value]) => ({ type: A.BUDGET_ONE_OFF, id, field, value })),
+  fc.constant({ type: A.BUDGET_ADD_ONE_OFF }),
+  oneOffId.map((id) => ({ type: A.BUDGET_REMOVE_ONE_OFF, id })),
+  fc.tuple(fc.oneof(lineId, oneOffId), fc.constantFrom('amount', 'label', 'year')).map(([id, field]) => ({ type: A.BUDGET_TOUCH, id, field })),
+  saver.map((q) => ({ type: A.BUDGET_USE, q })),
+  fc.tuple(question, fc.constantFrom('', 'Stop at 60', 'x'.repeat(70))).map(([q, value]) => ({ type: A.KEEP_NAME, q, value })),
+  question.map((q) => ({ type: A.KEEP_SAVE, q })),
+  question.map((q) => ({ type: A.KEEP_SENT, q, name: 'Stop at 60', createdAt: '2026-09-30T08:00:00.000Z' })),
+  fc.tuple(question, fc.constantFrom('storage', 'notReady')).map(([q, problem]) => ({ type: A.KEEP_FAILED, q, problem })),
+  fc.tuple(question, fc.constantFrom('taken', 'waiting', 'gone', 'declined', 'notMade', 'unknown'), fc.constantFrom(null, 'Stop at 60 (2)'))
+    .map(([q, outcome, name]) => ({ type: A.KEEP_BACK, q, outcome, ...(name ? { name } : {}) }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */
@@ -128,7 +151,9 @@ describe('any sequence of actions over the three questions', () => {
           expect('extending' in s.answers.c).toBe(false);
           expect('carriedFrom' in s.draft.c).toBe(false);
         }
+        expect(Object.keys(s.keep[q]).sort()).toEqual(['back', 'name', 'problem', 'saving', 'sent']);
       }
+      if (s.budget) expect(Object.keys(s.budget).sort()).toEqual(['lines', 'oneOffs', 'touched', 'version']);
     }), { numRuns: 300 });
   });
   it('a result only ever comes from the key it is filed under, in every question', () => {

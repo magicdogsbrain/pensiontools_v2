@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { runHouseholdMonteCarlo, householdIncomeTimeline } from '../src/services/HouseholdService.js';
+import { runHouseholdMonteCarlo, householdIncomeTimeline, targetForYear } from '../src/services/HouseholdService.js';
+import { scheduleFromSteps } from '../src/services/IncomeSchedule.js';
 
 // Reuse the SimulationEngine test mock so MC runs are fast and deterministic
 vi.mock('../src/constants.js', async (importOriginal) => {
@@ -64,6 +65,26 @@ describe('householdIncomeTimeline', () => {
     expect(rows[0].needA).toBe(40000);
     expect(rows[1].needA).toBe(20000);
     expect(rows[2].needA).toBe(30000);                  // falls back to baseSalary
+  });
+
+  // Review, 1 Oct 2026: a couple's plans made from a V7 answer hold their shape as income STEPS with no saved schedule
+  // (the engines compile it). The Household table read only a saved schedule, so it showed each plan's first step in
+  // every year ("£25,300 | £9,046" from 2036 to 2071) while the plans' own tests followed the steps.
+  it('follows the income steps the engines run when there is no saved schedule (as createSimulationConfigFromSettings does)', () => {
+    const stepsA = { ...setA, shapeAgeNow: 62, incomeShape: 'phases', baseSalary: 25300, incomeSteps: [{ fromAge: 62, amount: 25300 }, { fromAge: 67, amount: 29761 }, { fromAge: 69, amount: 18539 }] };
+    const stepsB = { ...setB, shapeAgeNow: 60, incomeShape: 'phases', baseSalary: 9046, incomeSteps: [{ fromAge: 60, amount: 9046 }, { fromAge: 65, amount: 5477 }, { fromAge: 67, amount: 14926 }] };
+    const rows = householdIncomeTimeline(stepsA, stepsB);
+    expect([rows[0].needA, rows[4].needA, rows[5].needA, rows[6].needA, rows[7].needA, rows[20].needA]).toEqual([25300, 25300, 29761, 29761, 18539, 18539]);
+    expect([rows[0].needB, rows[4].needB, rows[5].needB, rows[6].needB, rows[7].needB]).toEqual([9046, 9046, 5477, 5477, 14926]);
+    // one schedule for both: what the Household tab reads is what the engine config carries
+    for (const [set, rowKey] of [[stepsA, 'needA'], [stepsB, 'needB']]) {
+      const sched = scheduleFromSteps(set);
+      for (let y = 0; y < 20; y++) expect(rows[y][rowKey], rowKey + ' ' + y).toBe(sched[y]);
+    }
+    // the survivor and care checks and the tax nudge read the same per-year target
+    expect(targetForYear(stepsA, 5)).toBe(29761);
+    expect(targetForYear(setA, 5)).toBe(30000);                                          // a level plan: unchanged
+    expect(targetForYear({ ...stepsA, targetSchedule: [1, 2, 3] }, 1)).toBe(2);           // a saved schedule still wins
   });
 });
 

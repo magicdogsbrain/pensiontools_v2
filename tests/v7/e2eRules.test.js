@@ -244,10 +244,10 @@ describe('browser tests: rules kept by reading the files', () => {
       expect(project('nightly-firefox')).toContain('a-stop-soon');
     });
 
-    it('the counted first answers keep the brief\'s budgets: A 4 things, B 5; 3 screens; 8 clicks; 3 s, 15 s, 30 s more', () => {
+    it('the counted first answers keep the brief\'s budgets: A 4 things, B 5; 4 screens (the budget step adds one); 8 clicks; 3 s, 15 s, 30 s more', () => {
       const helper = code(read('e2e/helpers/app.js'));
-      expect(helper).toMatch(/a: \{ mustFill: 4, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
-      expect(helper).toMatch(/b: \{ mustFill: 5, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
+      expect(helper).toMatch(/a: \{ mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
+      expect(helper).toMatch(/b: \{ mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
       expect(helper).toMatch(/SLOWDOWN = 4\b/);
       // The counted journeys type one key at a time and write their counts down.
       for (const name of ['a-stop-soon', 'b-coast']) {

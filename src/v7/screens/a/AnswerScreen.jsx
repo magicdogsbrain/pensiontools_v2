@@ -13,7 +13,7 @@
  */
 import {
   AskForm, FieldGroup, Field, Sentence, Money, Verdict, AgesChart, Pots, MadeOf, Assumed, SaverTryAChange, Working, Problem,
-  Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton
+  Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel
 } from '../../components/index.js';
 import { isCurrent } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -129,8 +129,9 @@ export function ToC({ q, result, k, dispatch, words }) {
 
 /**
  * "What next?" for A: B with the figures carried; C from the stop age shown (C is asked from what is typed — the pot
- * now, what goes in, the savings — so it shows the same careful figure as here); keep. Each link's words are one span,
- * so a narrow screen wraps them as one line of text, never as columns.
+ * now, what goes in, the savings — so it shows the same careful figure as here). "Save this as a plan" follows it, at
+ * the foot of the answer. Each link's words are one span, so a narrow screen wraps them as one line of text, never as
+ * columns.
  */
 function WhatNext({ result, dispatch }) {
   const t = A.answer;
@@ -142,9 +143,6 @@ function WhatNext({ result, dispatch }) {
         <li><LinkButton testid="a.next.b" href={href.step('b', 'numbers', 'you.payIn.total')} onClick={carry('b')}><span>{A.buttons['next.b']}</span></LinkButton></li>
         <ToC q="a" result={result} k="shown.age" dispatch={dispatch} words={t} />
       </ul>
-      <p class="next-keep">
-        <LinkButton kind="quiet" testid="a.action.keep" href={href.step('a', 'keep')}>{A.buttons.keepNotYet}</LinkButton>
-      </p>
     </section>
   );
 }
@@ -213,8 +211,10 @@ function Answer({ state, dispatch, frame }) {
         )}
         {(result.assumed || []).length > 0 && <Assumed q="a" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>
+      <SpendLine state={state} q="a" dispatch={dispatch} />
       <SaverTryAChange q="a" state={state} form={form} result={result} dispatch={dispatch} />
       <WhatNext result={result} dispatch={dispatch} />
+      <KeepPanel state={state} q="a" dispatch={dispatch} />
       <p class="full-detail"><LinkButton testid="a.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? A.buttons.fullDetailCouple : A.buttons.fullDetail}</LinkButton></p>
     </>
   );

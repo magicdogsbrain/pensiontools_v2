@@ -146,8 +146,10 @@ function stopNowHouseholds() {
  * Whether today's engine is shown NOT to be monotone at £10 steps for this household (C from now) near any of the three
  * amounts: some future lasts at one amount but runs out at a lower one (tests/v7/c/exceptions.md, engine behaviour 6).
  * The band search assumes "lasts at k" is monotone in k; where it is not, the amounts are the same but the count of
- * futures at an amount can differ by one between a search that started from the remembered hint (C's second call) and
- * one that did not (A's first). Only asked when the counts differ: it runs the engine a few thousand times.
+ * futures at an amount could differ by one between a search that started from the remembered hint (C's second call) and
+ * one that did not (A's first). Since 1 Oct 2026 an earlier pass of the same size is no hint (c/answer.js, a/answer.js),
+ * so C's two calls and A's start the same search and the counts agree; this stays as a guard. Only asked when the counts
+ * differ: it runs the engine a few thousand times.
  */
 function nonMonotoneNear(cIn, monthly, reach = 20) {
   const checked = checkInputs(SCHEMA_C, { ...copy(cIn), start: { kind: 'now' }, take: null }, ENV);
@@ -253,8 +255,9 @@ describe.skipIf(A_STUB)(`X1 — A at "stop now" equals C, byte for byte${A_STUB 
 
   // The nightly run's counterexample (seed 2127017665, 1 Oct 2026): 71, £2,327,718, a £200,000-a-year final-salary
   // pension from 75. Future 8 runs out at £14,020 a month but lasts at £14,030 (the careful amount) and runs out again at
-  // £14,040: today's engine is not monotone there, so C's second call (from the remembered hint) counts 37 of 40 where
-  // A and C's first call count 36. The amounts are the same (tests/v7/c/exceptions.md, engine behaviour 6).
+  // £14,040: today's engine is not monotone there, so C's second call (from the remembered hint) counted 37 of 40 where
+  // A and C's first call counted 36 (tests/v7/c/exceptions.md, engine behaviour 6). With no hint from a pass of the same
+  // size (1 Oct 2026) all three count alike — 'compared'.
   it('a household where today\'s engine is not monotone at £10 steps: the same amounts, the counts one future apart', () => {
     const c = { household: 'single', you: { pot: 2327718, age: 71, statePension: { kind: 'forecast', yearly: 6000 }, finalSalary: { has: true, yearly: 200000, fromAge: 75 } }, savings: 150000, risk: 'adventurous', endAge: 100 };
     expect(['compared', 'non-monotone']).toContain(x1(c, { payIn: 0, partnerPayIn: 0, savingRisk: 'cautious', charge: 0 }));

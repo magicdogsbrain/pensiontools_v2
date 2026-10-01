@@ -4,6 +4,8 @@
  * Explains the app's value proposition and encourages account creation.
  */
 
+import { guestHasData } from '../../firebase/FirestoreService.js';
+
 let landingPageElement = null;
 
 /**
@@ -21,6 +23,10 @@ export function initLandingPage(container, callbacks) {
  */
 function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
   if (!landingPageElement) return;
+  // A tab that already holds plans made without an account (from a V7 answer, or earlier in the tab): the button carries
+  // on with them (index.html → NewPlanFromSeed tryWithoutAccount) and says so — "nothing saved" would read as "gone".
+  let tabHolds = false;
+  try { tabHolds = guestHasData(); } catch (e) { tabHolds = false; }
 
   landingPageElement.innerHTML = `
     <div class="landing-page">
@@ -95,7 +101,9 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
         <div class="landing-cta">
           <button class="landing-btn primary" id="landingGetStarted">Get Started — Create Free Account</button>
           <button class="landing-btn secondary" id="landingSignIn">Already have an account? Sign In</button>
-          <button class="landing-btn secondary" id="landingTryGuest" title="Everything works; nothing is saved or sent anywhere — it lives in this browser tab until you close it">Just try it — no account, nothing saved</button>
+          ${tabHolds
+            ? '<button class="landing-btn secondary" id="landingTryGuest" title="The plans you made in this browser tab without an account are still here until you close it">Carry on with the plans in this tab — no account</button>'
+            : '<button class="landing-btn secondary" id="landingTryGuest" title="Everything works; nothing is saved or sent anywhere — it lives in this browser tab until you close it">Just try it — no account, nothing saved</button>'}
         </div>
 
         <div class="landing-footer">

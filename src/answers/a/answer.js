@@ -14,8 +14,9 @@
  * @param {object} inputs  checked inputs of SCHEMA_A (unchecked inputs are checked here again)
  * @param {import('../shared/contract.js').Env} env
  *   C's (today, futures, seed, trace, onProgress, futureReturns) plus detail: 'chart' | 'all' (default 'chart');
- *   tests only: ages (exactly these stop ages, with the named one), mix, savingMix (exact mixes), savingsGrowth (the
- *   ISA's rate once stopped).
+ *   reuse: an earlier answer of A (the worker offers the last one), whose rows are taken as they stand when it is for
+ *   exactly these inputs and the same lives (heldRows); tests only: ages (exactly these stop ages, with the named one),
+ *   mix, savingMix (exact mixes), savingsGrowth (the ISA's rate once stopped).
  * @returns {import('../shared/contract.js').AnswerA}
  */
 import { SCHEMA_A } from './schema.js';
@@ -103,27 +104,93 @@ function stopCase(ctx, age, { partTime = 'asTyped' } = {}) {
 }
 
 /**
- * The amounts the last searches found, by stop age, kept for the next search on the same household and seed: the first
- * pass's 100 lives are the first 100 of the final 1,000, so its amounts say where the final search should look first
- * (C's rule, answer-C's `remembered`). A hint only — the band settles on the same amounts with or without it (band.js);
- * this is the one thing the answer keeps between calls, and it never reaches a result. The spending is left out of the
- * key: the band does not depend on it.
+ * The amounts the last searches found, by stop age and number of lives, kept for the next search on the same household
+ * and seed: the first pass's 100 lives are the first 100 of the final 1,000, so its amounts say where the final search
+ * should look first (C's rule, answer-C's `remembered`). A hint only — where today's engine is monotone at £10 steps the
+ * band settles on the same amounts with or without it (band.js); this is the one thing the answer keeps between calls,
+ * and it never reaches a result. The spending is left out of the key: the band does not depend on it.
+ *
+ * Only a pass over FEWER lives is taken as the hint, never an earlier pass of the same size: where the engine is not
+ * monotone (very large households, tests/v7/c/exceptions.md 6) a search that starts from the last one's amounts can end
+ * a few steps away from it, so the same inputs asked twice gave two answers (a NIGHTLY=1 run, 1 Oct 2026: £1,073,100 at
+ * 24, the good amount £50 apart). Taken only from a smaller pass, the same inputs on the same lives start the same search
+ * every time.
  */
-const remembered = new Map();
+const remembered = new Map();                                  // key → Map(lives → amounts in steps)
 const REMEMBER_AT_MOST = 24;
 function estimateKey(inputs, env, age) {
   const { spend, stop, ...rest } = inputs;
   return JSON.stringify([rest, age, env.seed ?? 0, typeof env.futureReturns === 'function', env.mix || null, env.savingMix || null, env.savingsGrowth ?? null]);
 }
+/** The amounts of the largest earlier pass over fewer than n lives, or null. */
+function smallerPass(key, n) {
+  const byN = remembered.get(key);
+  if (!byN) return null;
+  let best = null;
+  for (const [m, k] of byN) if (m < n && (!best || m > best.m)) best = { m, k };
+  return best ? { ...best.k } : null;
+}
 
 function bandOf(ctx, c, estimate) {
   if (c.band) return c.band;
   const key = estimateKey(c.inputs, ctx.env, c.age);
-  c.band = bandAt(c.sp, c.runner, remembered.get(key) || estimate);
+  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate);
+  const byN = remembered.get(key) || new Map();
+  byN.set(ctx.n, { ...c.band.k });
   remembered.delete(key);
-  remembered.set(key, { ...c.band.k });
+  remembered.set(key, byN);
   if (remembered.size > REMEMBER_AT_MOST) remembered.delete(remembered.keys().next().value);
   return c.band;
+}
+
+/** A row's band amounts in steps of the search (its monthly amounts are whole steps: band.k × STEP). */
+const stepsOf = (row) => ({ careful: row.monthly.careful / STEP, middling: row.monthly.middling / STEP, good: row.monthly.good / STEP });
+
+/**
+ * Where to start the band search at age `a`, from the rows already worked out (ages below it, in `kAt`): nothing before
+ * the first row, the previous row's amounts for the second, and from the third on the line through the last two
+ * carried on to `a`. The amounts rise steadily with the stop age (about 5% a year), so the previous row alone sits just
+ * outside the gap the search opens around its guess. A hint only: where today's engine is monotone at £10 steps the band
+ * settles on the same amounts with or without it (band.js; tests/v7/a/reuse.test.js R4 checks every row against a search
+ * with no hint) — it saves about a quarter of the engine runs of the every-age step.
+ * @param {Map<number, { careful: number, middling: number, good: number }>} kAt   age → amounts in steps, in age order
+ */
+function estimateAt(kAt, a) {
+  const before = [...kAt.keys()].filter((x) => x < a);
+  if (!before.length) return null;
+  const a1 = before[before.length - 1];
+  const k1 = kAt.get(a1);
+  if (before.length === 1) return { ...k1 };
+  const a0 = before[before.length - 2];
+  const k0 = kAt.get(a0);
+  const f = (a - a1) / (a1 - a0);
+  const on = (w) => Math.round(k1[w] + (k1[w] - k0[w]) * f);
+  return { careful: on('careful'), middling: on('middling'), good: on('good') };
+}
+
+/**
+ * The rows an earlier answer already holds, by age (step 4 brief 10, J17: the every-age step was at its 30-second
+ * budget, slowed four times, for a stop before 57 on savings). The every-age step asks again, with detail
+ * 'all', for the inputs its answer step has just answered at 'chart'. A row is one function of the inputs, the lives and
+ * its age (X4: the rows the chart and the full table share are the same rows), so the worker offers the answer step's
+ * result as env.reuse and its rows are taken as they stand instead of being worked out again. Taken only when the
+ * earlier answer is for exactly these checked inputs on the same day, with the same futures, seed, engine and market
+ * history — never with a test's made-up markets or mixes, nor when a trace is asked for (the trace reads the shown row's
+ * own search). Anything else is ignored and every row is worked out.
+ * @returns {Map<number, object>|null}   age → AgeRow (a copy, phases and one-more-year cleared: the answer adds them)
+ */
+function heldRows(prev, ins, env, n) {
+  if (!prev || typeof prev !== 'object' || !Array.isArray(prev.ages) || !prev.basis || !prev.inputs) return null;
+  if (env.trace || typeof env.futureReturns === 'function' || env.mix || env.savingMix || (env.savingsGrowth !== undefined && env.savingsGrowth !== null)) return null;
+  const b = prev.basis;
+  if (b.today !== env.today || b.futures !== n || b.seed !== (env.seed ?? 0) || b.engineVersion !== VERSION || b.historyEnd !== historyEnd()) return null;
+  if (JSON.stringify(prev.inputs) !== JSON.stringify(ins)) return null;
+  const held = new Map();
+  for (const r of prev.ages) {
+    if (!r || !Number.isInteger(r.age) || r.status !== 'final' || !r.monthly || typeof r.verdict !== 'string') continue;
+    held.set(r.age, { ...JSON.parse(JSON.stringify(r)), phases: null, oneMoreYear: null });
+  }
+  return held.size ? held : null;
 }
 
 /** One AgeRow (brief 4.7), without phases and one-more-year (the answer adds them). */
@@ -228,9 +295,15 @@ export function answerA(inputs, env) {
   // do not depend on how long the lives are)
   const touched = new Set([...(sweep || []), ...(later || []), ...rowAgesFor(null)]);
   if (ins.stop.kind === 'age') touched.add(ins.stop.age);
+  // "Show me ages" from past the last age A shows (75): there is no stop age to work out. The form lets the age through
+  // (it is C's field, to 100), so it is a problem to name, not a failure (found by a random run, 1 Oct 2026: someone of
+  // 76 asking to be shown ages made livesList build a life of -Infinity years).
+  if (!touched.size) return { status: 'invalid', problems: [{ field: 'stop.kind', messageId: 'stop-ages-past-75' }] };
   const lives = livesList(n, Math.max(...[...touched].map(lifeYears)), env);
   const ctx = { inputs: ins, env, n, spend, spendAYear: spend * 12, lives, cases: new Map() };
-  const verdictOfAge = (a) => stopCase(ctx, a).verdict;
+  // the rows an earlier answer for these very inputs already holds (the answer step's, for the every-age step)
+  const held = heldRows(env.reuse, ins, env, n);
+  const verdictOfAge = (a) => (held && held.has(a) ? held.get(a) : stopCase(ctx, a).verdict);
 
   let earliest = { yes: null, close: null };
   if (sweep) {
@@ -249,14 +322,21 @@ export function answerA(inputs, env) {
   }
   const rowAges = rowAgesFor(sweep ? earliest.yes : laterYes);
 
-  // the rows, in age order, each band searched from the previous row's amounts (a hint: the result is the same)
+  // the rows, in age order: a row held already is taken as it stands; any other has its band searched from the rows
+  // before it (estimateAt — a hint: the result is the same)
   const rows = [];
-  let estimate = null;
+  const kAt = new Map();                                       // age → the row's band amounts, in steps
   rowAges.forEach((a, k) => {
-    const c = stopCase(ctx, a);
-    const band = bandOf(ctx, c, estimate);
-    estimate = band.k;
-    rows.push(rowOf(ctx, c, band));
+    const row = held && held.get(a);
+    if (row) {
+      kAt.set(a, stepsOf(row));
+      rows.push(row);
+    } else {
+      const c = stopCase(ctx, a);
+      const band = bandOf(ctx, c, estimateAt(kAt, a));
+      kAt.set(a, band.k);
+      rows.push(rowOf(ctx, c, band));
+    }
     if (typeof env.onProgress === 'function') env.onProgress(k + 1, rowAges.length);
   });
   if (!sweep) {
@@ -289,7 +369,7 @@ export function answerA(inputs, env) {
   let partTime = null;
   if (ins.partTime.has) {
     const without = stopCase(ctx, shownAge, { partTime: { has: false } });
-    const wb = bandOf(ctx, without, sc.band ? sc.band.k : null);
+    const wb = bandOf(ctx, without, kAt.get(shownAge));
     const more = stopCase(ctx, shownAge, { partTime: { ...ins.partTime, years: ins.partTime.years + 1 } });
     partTime = {
       yearly: ins.partTime.yearly, years: ins.partTime.years, fromAge: shownAge, toAge: shownAge + ins.partTime.years,

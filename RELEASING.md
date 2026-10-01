@@ -58,8 +58,9 @@ by the exact Playwright version in `package.json`; every container tag in the wo
 - **Questions A and B (step 4)** add five journeys — `a-stop-soon` (the counted first answer to A, on the
   published build) and `b-my-number` (A's figures carried into B), `a-couple`, `a-from-savings`, `b-coast`
   (the counted first answer to B) — A's and B's named states in the crawl, keyboard and sameness cases, and
-  36 more pictures (61 in all). The budgets: A at most 4 typed things, 3 screens, 8 clicks; B at most 5, 3,
-  8; the first figure within 3 s and the answer step's final figure within 15 s, the optional step ("every
+  36 more pictures (61 in all). The budgets: A at most 4 typed things, 4 screens, 8 clicks; B at most 5, 4,
+  8 (4 screens since the budget step "What would you spend?" became a screen of its own, 1 Oct 2026; the counts are
+  `FIRST_ANSWER_BUDGET` in `e2e/helpers/app.js`); the first figure within 3 s and the answer step's final figure within 15 s, the optional step ("every
   age", "two levers together") within 30 s more, arriving as `partial` — slowed four times as above. The
   counts are in `test-results/first-answer-a/` and `first-answer-b/`. Until A and B are open on the front
   door (the joining-up change) these scripts are skipped with the reason, as C's were.

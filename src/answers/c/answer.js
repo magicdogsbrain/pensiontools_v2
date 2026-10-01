@@ -35,17 +35,25 @@ const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 
 /**
  * The three amounts the last search found, kept for the next search on the same household and seed: the first
  * figure's 100 futures are the first 100 of the final 1,000, so its amounts say where the final search should
- * look first. A hint only — the search settles on the same amounts with or without it (band.js); this is the
- * one thing the answer keeps between calls, and it never reaches a result.
+ * look first. A hint only — where today's engine is monotone at £10 steps the search settles on the same amounts
+ * with or without it (band.js); this is the one thing the answer keeps between calls, and it never reaches a result.
+ * Only a search over FEWER futures is taken as the hint, never an earlier one of the same size: where the engine is not
+ * monotone a search started from the last one's amounts can end elsewhere, so the same inputs asked twice gave two
+ * answers (a NIGHTLY=1 run, 1 Oct 2026: £3,000,000 and a £200,000 final-salary pension from 100 — the good amount
+ * £336,300, then £336,630). Taken only from a smaller pass, the same inputs start the same search every time.
  */
-let remembered = null;
+let remembered = null;                                         // { key, byN: Map(futures → amounts in steps) }
 const estimateKey = (plan, env) => JSON.stringify([plan.years, env.seed ?? 0, typeof env.futureReturns === 'function', configsAt(plan, 1e7).map((c) => c.config)]);
 function rememberedEstimate(plan, env) {
   if (!remembered || remembered.key !== estimateKey(plan, env)) return null;
-  return remembered.k;
+  let best = null;
+  for (const [m, k] of remembered.byN) if (m < env.futures && (!best || m > best.m)) best = { m, k };
+  return best ? best.k : null;
 }
 function rememberEstimate(plan, env, k) {
-  remembered = { key: estimateKey(plan, env), k: { ...k } };
+  const key = estimateKey(plan, env);
+  if (!remembered || remembered.key !== key) remembered = { key, byN: new Map() };
+  remembered.byN.set(env.futures, { ...k });
 }
 const round2 = (x) => Math.round(x * 100) / 100;
 const noNegZero = (x) => (Object.is(x, -0) ? 0 : x);

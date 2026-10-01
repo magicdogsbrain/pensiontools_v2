@@ -22,3 +22,6 @@ export { Grid, gridReaches, onCarefulLine } from './Grid.jsx';
 export { PayInSplit } from './PayInSplit.jsx';
 export { Carried } from './Carried.jsx';
 export { Retired, isRetired } from './Retired.jsx';
+// The budget step and "Save this as a plan" (research/v7/budget-step.md, save-as-plan.md)
+export { SpendHow, BudgetSheet, SpendBeside, SpendLine, BudgetAgainstC } from './Budget.jsx';
+export { KeepPanel, PLANNER_LINK } from './KeepPanel.jsx';

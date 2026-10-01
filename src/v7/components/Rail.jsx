@@ -12,7 +12,7 @@
  * the age typed ("Could I stop at 60?"); and A's "the earliest age that worked is {earliest}" names the answer's age.
  */
 import { railFor } from '../rail/index.js';
-import { errorsToShow, parsedDraft } from '../state/select.js';
+import { errorsToShow, parsedDraft, keepView } from '../state/select.js';
 import { ageText } from '../../answers/shared/format.js';
 import { Sentence } from './Sentence.jsx';
 import { Button, LinkButton } from './Button.jsx';
@@ -49,6 +49,8 @@ export function stepLabel(state, q, step) {
 function nextWords(state, q, id, marked) {
   const words = (COPY[q] || C).next;
   if (id === `${q}.fix` && !marked) return words[`${q}.fix.unmarked`] || words[id] || '';
+  // "Save this as a plan?" with an answer that cannot be saved: back to it
+  if (id === `${q}.keep` && !keepView(state, q).can) return words[`${q}.keep.not`] || words[id] || '';
   if (id === 'b.choices') {
     const r = state.answers.b && state.answers.b.result;
     return r && r.inputs && r.inputs.household === 'couple' ? words['b.choices.couple'] : words[id];

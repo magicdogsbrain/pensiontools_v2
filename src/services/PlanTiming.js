@@ -51,12 +51,24 @@ export function planYearOf(x, firstTaxYear) {
   return Y - (+firstTaxYear);
 }
 
+/**
+ * The date an age was recorded on. `currentAgeAsOf` is saved as 'YYYY-MM-DD', a LOCAL calendar day: it is read as
+ * local midnight (as parseStatePensionDate reads the State Pension date). `new Date('YYYY-MM-DD')` would be midnight
+ * UTC, which west of Greenwich is the evening BEFORE — so a birthday on the day the age was recorded counted as a new
+ * birthday and the person was a year older from then on (found 1 Oct 2026 in America/New_York: every plan made from a
+ * V7 answer started a tax year early). Anything else (an ISO time) is read as it always was.
+ */
+function dayOf(x) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof x === 'string' ? x.trim() : '');
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(x);
+}
+
 /** Birthday month/day: the State Pension date IS a birthday; else the date the age was recorded; else today. */
 export function birthdayOf(settings, now = new Date()) {
   const s = settings || {};
   const sp = s.spStartDate ? parseStatePensionDate(s.spStartDate) : null;
   if (sp) return { month: sp.getMonth(), day: sp.getDate(), source: 'sp' };
-  if (s.currentAgeAsOf) { const t = new Date(s.currentAgeAsOf); if (Number.isFinite(t.getTime())) return { month: t.getMonth(), day: t.getDate(), source: 'asOf' }; }
+  if (s.currentAgeAsOf) { const t = dayOf(s.currentAgeAsOf); if (Number.isFinite(t.getTime())) return { month: t.getMonth(), day: t.getDate(), source: 'asOf' }; }
   return { month: now.getMonth(), day: now.getDate(), source: 'today' };
 }
 
@@ -74,7 +86,7 @@ export function ageOnDate(settings, date, now = new Date()) {
   const s = settings || {};
   const a = Math.floor(+s.currentAge || 0);
   if (!(a > 0)) return null;
-  let asOf = s.currentAgeAsOf ? new Date(s.currentAgeAsOf) : now;
+  let asOf = s.currentAgeAsOf ? dayOf(s.currentAgeAsOf) : now;
   if (!Number.isFinite(asOf.getTime())) asOf = now;
   const bd = birthdayOf(s, now);
   const d = date instanceof Date ? date : new Date(date);

@@ -1,5 +1,5 @@
 /**
- * A step that is on the rail but not built in this slice ("ways" on C, "keep" on A, B and C): "This step is not in
+ * A step that is on the rail but not built yet ("ways" on C; "keep" is built: save-as-plan.md): "This step is not in
  * the preview yet." with a link back to the question's answer. The rail stays, so nothing is a dead end.
  */
 import { LinkButton } from '../components/index.js';

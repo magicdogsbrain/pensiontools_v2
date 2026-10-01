@@ -1,6 +1,6 @@
 # PensionTools — Privacy Policy
 
-_Last updated: 7 September 2026._
+_Last updated: 1 October 2026._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
@@ -37,8 +37,10 @@ which one-off banners you have dismissed, and the last version whose release not
 In **guest mode** ("Just try it") your plan lives only in that browser tab's session storage and is
 discarded when the tab closes; nothing is sent anywhere. Guest use is metered in this browser (a count of
 active minutes, so we can ask you to sign in after a few hours); and if you choose "keep this work" when
-signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. Signing out, "Reset" and "Delete Account"
-clear these items. We do **not** sell
+signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. If you keep an answer from the preview question pages as a plan, the figures you gave there (including any spending lines) are held in this browser until the plan is made and are never used after a day: they are deleted when the plan is made, when you choose "Not now", when you sign out, "Reset" or "Delete Account", and otherwise the next time you open PensionTools or the preview pages after that day; they are never put in the page address. Signing out, "Reset" and "Delete Account"
+clear these items. What you type on the preview question pages, including any spending lines you work out
+there, and whether a plan was made from it (with the name it was saved under), is kept only in that browser
+tab's session storage and is discarded when the tab closes; nothing is sent anywhere. We do **not** sell
 your data, use it for advertising, or share it for marketing.
 
 ## Who processes your data on our behalf

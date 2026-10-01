@@ -202,7 +202,7 @@ describe.each(names)('plan corpus — %s', (n) => {
 // recorded on a date, a legacy plan with no timing, and gilt rotation.
 describe('plan corpus — the time zone does not move an answer', () => {
   const some = ['02-pnv-draft', '03-gilt-ladder-runup', '05-saver-committed', '06-pre-6.4-no-timing', '07-pre-6.13-flat-params'];
-  const zones = ['UTC', 'America/Los_Angeles', 'Pacific/Auckland'];
+  const zones = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Pacific/Auckland'];   // New York added 1 Oct 2026 (the plan-seed time-zone review)
   const byZone = {};
   beforeAll(() => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-corpus-tz-'));

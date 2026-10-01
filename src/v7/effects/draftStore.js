@@ -1,15 +1,22 @@
 /**
- * The draft store: what was typed is kept in THIS TAB only — sessionStorage, key pt_v7_draft. Nothing else is
- * written anywhere by V7 in this slice, and the answer is never kept (it is worked out again after a reload).
+ * The draft store: what was typed is kept in THIS TAB only — sessionStorage, key pt_v7_draft. The answer is never
+ * kept (it is worked out again after a reload). The one other key V7 writes is the plan seed, by effects/planSeed.js,
+ * and only when a person presses "Save as a plan".
  *
- *   loadDraft(storage)            → { c: { values, touched, asked, revealed }, a, b: { …, carriedFrom } } or null
- *   saveDraft(storage, draft)     → true if it was written
- *   startDraftStore(store, storage) → stop()      writes whenever state.draft changes
+ *   loadDraft(storage)            → { c: { values, touched, asked, revealed }, a, b: { …, carriedFrom, spendHow, skipNoted },
+ *                                     budget?, kept? } or null
+ *   saveDraft(storage, draft)     → true if it was written. `draft` is state.draft, with (optionally) `budget`: the
+ *                                   household's budget sheet, and `kept`: { [q]: { name, sent } } — the name box as
+ *                                   typed and the last save sent from this tab (so coming back can say "Saved as …")
+ *   draftOf(state)                → what saveDraft is given for a state
+ *   startDraftStore(store, storage) → stop()      writes whenever the draft, the budget or a save changes
  *   sessionStore(win)             → the tab's storage, or null if the browser will not hand it over
  *
  * A storage that throws (private mode, full, blocked) is survived: the app carries on, it just forgets on reload.
  */
 import { SCHEMAS } from '../state/select.js';
+import { cleanSheet } from '../state/budget.js';
+import { keptKeep } from '../state/initial.js';
 
 export const DRAFT_KEY = 'pt_v7_draft';
 
@@ -38,11 +45,35 @@ function clean(kept) {
     out[q] = { values, touched: list(d.touched), asked: d.asked === true, revealed: list(d.revealed) };
     // A and B: where the figures were brought over from ("we have brought your figures over …"), kept across a reload
     if (q !== 'c') out[q].carriedFrom = ['a', 'b', 'c'].includes(d.carriedFrom) && d.carriedFrom !== q ? d.carriedFrom : null;
+    // A and B: how the spending is being chosen, and whether the "you are skipping the budget" note has been shown
+    if (q !== 'c' && ['lines', 'one'].includes(d.spendHow)) out[q].spendHow = d.spendHow;
+    if (q !== 'c' && d.skipNoted === true) out[q].skipNoted = true;
   }
+  const budget = cleanSheet(kept.budget);
+  if (budget) out.budget = budget;
+  const saves = {};
+  for (const q of Object.keys(SCHEMAS)) {
+    const k = keptKeep(kept.kept, q);
+    if (k.name !== null || k.sent !== null) saves[q] = { name: k.name, sent: k.sent };
+  }
+  if (Object.keys(saves).length) out.kept = saves;
   return Object.keys(out).length ? out : null;
 }
 
-const isEmpty = (draft) => Object.values(draft || {}).every((d) => !d || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked));
+const QUESTION = (k) => k in SCHEMAS;
+const isEmpty = (draft) => Object.entries(draft || {}).every(([k, d]) => {
+  if (k === 'budget') return !d;
+  if (k === 'kept') return !d || Object.values(d).every((x) => !x || (x.name === null && x.sent === null));
+  if (!QUESTION(k)) return true;
+  return !d || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked && !d.spendHow);
+});
+
+/** What the store keeps of a state: the drafts, the budget sheet, and each question's name box and last save. */
+export function draftOf(state) {
+  const kept = {};
+  for (const [q, k] of Object.entries(state.keep || {})) if (k && (typeof k.name === 'string' || k.sent)) kept[q] = { name: typeof k.name === 'string' ? k.name : null, sent: k.sent || null };
+  return { ...state.draft, ...(state.budget ? { budget: state.budget } : {}), ...(Object.keys(kept).length ? { kept } : {}) };
+}
 
 export function loadDraft(storage) {
   if (!storage) return null;
@@ -69,10 +100,11 @@ export function saveDraft(storage, draft) {
 }
 
 export function startDraftStore(store, storage) {
-  let last = store.getState().draft;
+  const first = store.getState();
+  let last = [first.draft, first.budget, first.keep];
   return store.subscribe((state) => {
-    if (state.draft === last) return;
-    last = state.draft;
-    saveDraft(storage, state.draft);
+    if (state.draft === last[0] && state.budget === last[1] && state.keep === last[2]) return;
+    last = [state.draft, state.budget, state.keep];
+    saveDraft(storage, draftOf(state));
   });
 }

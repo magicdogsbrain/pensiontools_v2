@@ -89,7 +89,7 @@ test.describe('J3 — already retired: 68, taking money now', () => {
       await app.check({ answer: withTake, before: answer });
     });
 
-    await app.step('the steps not built yet, and the way back', async () => {
+    await app.step('the step not built yet ("ways"), "Save this as a plan?", and the way back', async () => {
       for (const step of ['ways', 'keep']) {
         await app.rail(step);
         await wording();

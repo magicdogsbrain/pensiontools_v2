@@ -172,7 +172,39 @@ describe('the words stay out of the code that calculates, and the other way roun
     const allowed = (t) => under(t, 'src/v7/state') || under(t, 'src/v7/router') || under(t, 'src/v7/rail') ||
       /^src\/answers\/[a-z]+\/schema\.js$/.test(t) || t === 'src/answers/shared/validate.js' || t === 'src/constants.js';
     // Step 4 brief 4.11: select.js alone may also read schemaParts.js (alreadyStopped, for the retired view) and format.js.
-    const selectMay = (file, t) => file === 'src/v7/state/select.js' && (t === 'src/answers/shared/schemaParts.js' || t === 'src/answers/shared/format.js');
-    for (const file of files) for (const t of targetsOf(file)) expect(allowed(t) || selectMay(file, t), `${file} imports ${t}`).toBe(true);
+    // The budget step and "Save this as a plan" (budget-step.md; save-as-plan.md C.4, C.5): select.js also reads the pure
+    // name rules (planName.js), the budget sheet's check and whether an answer can be saved (src/answers/keep/); the
+    // sheet's own reducer (state/budget.js) reads the sheet's catalogue. Nothing in the state calculates an answer.
+    const selectMay = (file, t) => file === 'src/v7/state/select.js' && (t === 'src/answers/shared/schemaParts.js' || t === 'src/answers/shared/format.js' ||
+      t === 'src/answers/shared/planName.js' || t === 'src/answers/keep/budgetSheet.js' || t === 'src/answers/keep/planSeed.js');
+    const budgetMay = (file, t) => file === 'src/v7/state/budget.js' && t === 'src/answers/keep/budgetSheet.js';
+    for (const file of files) for (const t of targetsOf(file)) expect(allowed(t) || selectMay(file, t) || budgetMay(file, t), `${file} imports ${t}`).toBe(true);
+  });
+});
+
+describe('the budget is a guide, never an input (research/v7/budget-step.md "The rule")', () => {
+  const ANSWER_CODE = ANSWERS.filter((f) => ['a', 'b', 'c', 'shared'].some((d) => under(f, `src/answers/${d}`)));
+  it('found the answer code it is meant to read', () => {
+    expect(ANSWER_CODE).toContain('src/answers/a/answer.js');
+    expect(ANSWER_CODE).toContain('src/answers/shared/toEngine.js');
+    expect(ANSWER_CODE).not.toContain('src/answers/keep/budgetSheet.js');
+  });
+  it.each(ANSWER_CODE)('%s neither imports src/answers/keep/ nor names a budget, outside comments', (file) => {
+    for (const t of targetsOf(file)) expect(under(t, 'src/answers/keep'), `${file} imports ${t}`).toBe(false);
+    const code = strip(readFileSync(join(ROOT, file), 'utf8'), { keepStrings: true });
+    expect(/budget/i.test(code), `${file} names "budget" outside a comment`).toBe(false);
+  });
+  it('the answers and the runner see only the checked inputs: the input lists hold no budget field', async () => {
+    const { SCHEMAS } = await import('../../src/v7/state/select.js');
+    for (const q of Object.keys(SCHEMAS)) for (const f of SCHEMAS[q].fields) expect(f.path, `${q}.${f.path}`).not.toMatch(/budget|spendHow|skipNoted/i);
+    const run = codeOf('src/v7/effects/run.js');
+    expect(run, 'the runner never reads state.budget').not.toMatch(/\.budget\b/);
+  });
+  it('only effects/planSeed.js writes the plan seed, and only it (in V7) names localStorage', () => {
+    const naming = V7.filter((f) => /\blocalStorage\b/.test(codeOf(f)));
+    expect(naming).toEqual(['src/v7/effects/planSeed.js']);
+  });
+  it('the plan seed\'s key appears in V7 only through the seed module', () => {
+    for (const file of V7) expect(strip(readFileSync(join(ROOT, file), 'utf8'), { keepStrings: true }), file).not.toMatch(/pt_v7_plan_seed/);
   });
 });

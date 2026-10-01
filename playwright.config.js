@@ -33,8 +33,10 @@ const JOURNEYS_AB_PHONE = ['a-stop-soon', 'b-my-number', 'a-couple', 'a-from-sav
 const JOURNEYS_AB_DESKTOP = ['a-stop-soon', 'b-my-number', 'a-couple', 'a-from-savings'];
 // J6 (the owner's report, 1 Oct 2026): a 55-year-old still paying in, on C's first form — at 390 and 1280.
 const JOURNEYS_PAYING_IN = ['c-paying-in'];
-const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN];
-const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP];
+// The budget step and "Save this as a plan" (research/v7/budget-step.md, save-as-plan.md): at 390 and 1440.
+const JOURNEYS_KEEP = ['budget-step', 'keep'];
+const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP];
+const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);
 
 const projects = [

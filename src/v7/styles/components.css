@@ -63,8 +63,8 @@
 }
 @media (min-width: 1024px) {
   .rail > * { max-width: 62rem; margin-left: auto; margin-right: auto; }
-  /* the four steps on one row */
-  .rail-steps { max-width: 62rem; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 16px; }
+  /* every step on one row: four for C, five for A and B (the budget step) */
+  .rail-steps { max-width: 62rem; margin: 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0 16px; }
   .rail-step { max-width: none; min-width: 0; }
 }
 
@@ -296,3 +296,60 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
 .pot-line { margin-top: 4px; }
 /* the grid's "pot that pays it" column is drawn from 700 up; so is the line that explains it */
 @media (max-width: 699px) { .grid-key-guide { display: none; } }
+
+/* ---- the budget step (research/v7/budget-step.md) ----------------------------------------------------------- */
+select {
+  font: inherit; color: var(--text); background: var(--surface-page);
+  border: 2px solid var(--line-strong); border-radius: var(--radius-sm); min-height: var(--target); padding: 6px 10px;
+}
+input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-color: var(--fill-primary); flex: none; }
+.spend-how .option-row label { font-weight: 600; }
+.skip-note { margin: 0 0 12px; border-left: 4px solid var(--text-warning); }
+.spend-beside { margin: 0 0 8px; }
+.budget-beside { font-weight: 600; margin: 0 0 6px; }
+
+.budget h3 { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px;
+  font-size: 1.05rem; margin: 16px 0 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.budget .subtotal { font-weight: 600; color: var(--text-muted); font-size: var(--size-small); }
+.budget-lines, .budget-oneoff-list { list-style: none; padding: 0; margin: 0 0 4px; }
+.budget-line { padding: 8px 0; border-top: 1px solid var(--line); }
+.budget-line:first-child { border-top: 0; }
+.line-name .line-label { margin: 0 0 4px; }
+.line-name input[type="text"] { max-width: 100%; margin-bottom: 6px; }
+.line-boxes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.line-boxes .box { display: flex; align-items: center; gap: 6px; }
+.line-boxes .box input[type="text"] { width: 8.5rem; max-width: 100%; }
+.check { display: flex; align-items: center; }
+.check label { display: flex; align-items: center; min-height: var(--target); margin: 0; font-weight: 500; }
+.line-remove { margin-left: auto; }
+.budget-line .help, .budget-line .error { margin: 4px 0 0; }
+.budget-line .error, .budget-oneoff .error { color: var(--text-danger); font-weight: 600; }
+.budget-total { margin: 16px 0 8px; padding: 12px 14px; background: var(--surface-raised); border-radius: var(--radius-sm); }
+.budget-total p:last-child { margin-bottom: 0; }
+.total-line { font-weight: 700; font-size: 1.1rem; }
+.budget-oneoffs h3 { display: block; }
+.budget-oneoff { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; padding: 8px 0; border-top: 1px solid var(--line); align-items: start; }
+.budget-oneoff .field { margin: 0 0 8px; }
+.budget-oneoff .field input[type="text"] { max-width: none; }
+.budget-oneoff .btn { justify-self: start; }
+@media (min-width: 700px) {
+  .budget-line { display: grid; grid-template-columns: minmax(10rem, 1fr) auto; gap: 4px 16px; align-items: center; }
+  .budget-line .help, .budget-line .error { grid-column: 1 / -1; }
+  .line-boxes { flex-wrap: nowrap; }
+  .line-name .line-label, .line-name input[type="text"] { margin: 0; }
+  .budget-oneoff { grid-template-columns: 2fr 1fr 1fr 1.6fr auto; }
+}
+/* under an answer: the spending it used, and whether a budget is behind it */
+.spend-line { margin: 0 0 16px; padding: 10px 14px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.spend-line p { margin: 0 0 4px; }
+.spend-line p:last-child { margin: 0; }
+.budget-against { margin: 0 0 16px; font-weight: 600; }
+
+/* ---- "Save this as a plan" (research/v7/save-as-plan.md) ------------------------------------------------------ */
+.keep .field-name input[type="text"] { max-width: 30rem; }
+.keep .notice { margin: 0 0 12px; }
+.keep .saved { border-left: 4px solid var(--text-success); }
+.keep .waiting { border-left: 4px solid var(--text-warning); }
+.keep .waiting p { margin: 0; }
+.keep-problem { border-left: 4px solid var(--text-danger); }
+.keep-summary { font-weight: 600; }

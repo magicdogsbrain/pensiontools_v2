@@ -19,6 +19,7 @@ import { flatten } from '../../../src/answers/shared/validate.js';
 import { RULES, verdictOf } from '../../../src/answers/shared/rules.js';
 import { agesToShow } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
+import { largeHousehold } from '../oracles/oneStep.mjs';
 export { answerA, SCHEMA_A, TEST_ENV } from './_a.js';
 
 const ROOT = process.cwd();
@@ -286,11 +287,20 @@ export function checkAnswerA(answer, given, env) {
       if (pt.fromAge !== answer.shown.age || pt.toAge !== answer.shown.age + pt.years) fail('A-I10', `partTime ages ${pt.fromAge}–${pt.toAge}`);
       if (pt.lastedWith !== answer.shown.lasted || pt.runOutWith !== answer.shown.runOutAge) fail('A-I10', 'partTime "with" is not the shown row');
       if (pt.lastedWithout !== pt.without.lasted || pt.runOutWithout !== pt.without.runOutAge) fail('A-I10', 'partTime "without" disagrees with itself');
-      if (pt.lastedWith < pt.lastedWithout - 1e-12) fail('A-I10', `part-time made it worse: ${pt.lastedWithout} → ${pt.lastedWith}`);
-      if (pt.runOutWith < pt.runOutWithout) fail('A-I10', `part-time made a bad case worse: ${pt.runOutWithout} → ${pt.runOutWith}`);
-      if (pt.oneMore.lasted < pt.lastedWith - 1e-12) fail('A-I10', `one more year of part-time made it worse: ${pt.lastedWith} → ${pt.oneMore.lasted}`);
+      // "more never pays less": the counts to one life, the bad-case age while the count holds (tests/v7/oracles/oneStep.mjs);
+      // a household taking home £10,000 a month or more is not held to it (a NIGHTLY=1 run, 1 Oct 2026, seed -1221394728: a
+      // couple spending £15,190 a month, one more year of £30,000 part-time pay — 11 lives of 20 → 10)
+      const life = 1 / answer.basis.futures + 1e-9;
+      if (!largeHousehold(pt.without.monthly.careful)) {
+        if (pt.lastedWith < pt.lastedWithout - life) fail('A-I10', `part-time made it worse: ${pt.lastedWithout} → ${pt.lastedWith}`);
+        if (pt.lastedWith >= pt.lastedWithout - 1e-12 && pt.runOutWith < pt.runOutWithout) fail('A-I10', `part-time made a bad case worse: ${pt.runOutWithout} → ${pt.runOutWith}`);
+        if (pt.oneMore.lasted < pt.lastedWith - life) fail('A-I10', `one more year of part-time made it worse: ${pt.lastedWith} → ${pt.oneMore.lasted}`);
+      }
       if (pt.oneMore.years !== pt.years + 1) fail('A-I10', 'partTime.oneMore.years');
-      if (answer.shown.monthly.careful < pt.without.monthly.careful - 10) fail('A-I10', 'the careful amount fell with part-time work');
+      // To one step — except a household above £10,000 a month (for a couple the fixed-ratio drain, C's exceptions.md 4, in
+      // proportion to the amount: 0.2% to 1.3% in NIGHTLY=1 runs, 1 Oct 2026): a finding (tests/v7/oracles/oneStep.mjs, largeHousehold)
+      const proportional = largeHousehold(pt.without.monthly.careful);
+      if (answer.shown.monthly.careful < pt.without.monthly.careful - 10 && !proportional) fail('A-I10', 'the careful amount fell with part-time work');
     }
   } else if (answer.partTime !== null) fail('A-I10', 'a partTime block with no part-time work');
 

@@ -82,12 +82,22 @@ const households = fc.record({
   const stop = early ? Math.min(opens - 1, k.age + k.gap) : Math.min(RULES.stopAgeMax, Math.max(opens, k.age + k.gap));
   // …and so is a stop at which the pension is closed on the day itself: someone 55 before 6 April 2028 can touch it at 55,
   // but from that day it is closed again until 57 (no protected age), so 54 today stopping at 56 is a stop before it opens
-  const closed = stop < accessAgeOn(addYears(TODAY, stop - k.age));
+  const onStop = accessAgeOn(addYears(TODAY, stop - k.age));
+  const closed = stop < onStop;
   const h = { you: { age: k.age, pot: k.pot, payIn: k.payIn, ...(k.fs ? { finalSalary: { has: true, yearly: 9000, fromAge: 65 } } : {}) },
     savings: early || closed ? Math.max(k.savings, 120000) : k.savings, stop, risk: k.risk };
   if (k.partner) h.partner = { age: Math.min(75, Math.max(30, k.age + k.partner.dAge)), pot: k.partner.pot, payIn: k.partner.payIn };
+  // …and when every pension the household has (a pot, or one being paid into — the partner's too) is closed at the stop,
+  // C takes the start only with savings to live on (start-not-before-access is per person, J18): a NIGHTLY=1 run, 1 Oct
+  // 2026 (seed -1188032892) drew you 31 with no pension and a partner of 30 paying in, stopping at your 57 — their 56,
+  // after the 2028 rise, so the household's one pension was closed and there were no savings
+  const holders = [h.you, h.partner].filter((p) => p && (p.pot > 0 || p.payIn));
+  if (holders.length && holders.every((p) => p.age + (stop - k.age) < onStop)) h.savings = Math.max(h.savings, 120000);
   return h;
-}).filter((h) => h.stop > h.you.age && (h.you.pot > 0 || payInOf(h) > 0 || h.savings > 0));
+}).filter((h) => h.stop > h.you.age && (h.you.pot > 0 || payInOf(h) > 0 || h.savings > 0)
+  // nobody still paying in past 75 at the stop: C refuses that start (pay-in-past-75, J21), so the three slices are not
+  // one question (a NIGHTLY=1 run, 1 Oct 2026, seed -1430971866: you 59 stopping at 71, a partner of 64 paying in to 76)
+  && [h.you, h.partner].every((p) => !p || !p.payIn || p.age + (h.stop - h.you.age) <= RULES.stopAgeMax));
 
 /** The three slices of one household. Returns what was compared, or 'skipped' with the reason. */
 function oneTest(h) {

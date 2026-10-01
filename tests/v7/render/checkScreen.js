@@ -27,6 +27,10 @@
  *   R16 a pot looks like a pot (whole £1,000); a percent like a percent
  *   plus: the page contract of brief 4.9 / step 4 4.13 (data-screen, data-question, data-view, regions, the rail's
  *   marks), unique ids, labelled controls, links that lead somewhere, no tab order other than the page's own.
+ *
+ * The budget step and "Save this as a plan" (research/v7/budget-step.md, save-as-plan.md) add boxes that are not
+ * fields of any input list — the spending choice, the budget sheet's boxes, the plan's name. extraBoxes(state) says
+ * which a state draws and what each holds; R7 checks them against the state as it checks the fields.
  */
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
@@ -38,7 +42,7 @@ import { money, ageText, pot, outOfTen, get } from '../../../src/answers/shared/
 import { parse, format, screenName } from '../../../src/v7/router/routes.js';
 import { BUILT } from '../../../src/v7/rail/questions.js';
 import { railFor } from '../../../src/v7/rail/index.js';
-import { isRetired } from '../../../src/v7/state/select.js';
+import { isRetired, budgetView, keepView } from '../../../src/v7/state/select.js';
 import { BANNED, QUESTION_EXEMPT } from '../../../src/v7/copy/banned.js';
 import { ADVICE_SHORT, ADVICE_FULL } from '../../../src/v7/copy/common.js';
 import { A } from '../../../src/v7/copy/a.js';
@@ -188,6 +192,7 @@ export function expectedInputs(state) {
   if (name === 'front') return ['front.c.pot'];
   const q = state.route.q;
   if (SAVER.includes(q) && state.draft[q]) return expectedSaverInputs(state, q, name);
+  if (name === 'c.keep') return [...extraBoxes(state).keys()];
   if (name !== 'c.numbers' && name !== 'c.answer') return [];
   const { parsed, shown } = shownValues(state);
   const applies = (f) => Object.entries(f.when || {}).every(([p, want]) => shown[p] === want);
@@ -205,7 +210,7 @@ export function expectedInputs(state) {
       fields = SCHEMA_C.fields.filter((f) => f.path === 'take');
     } else fields = [];
   }
-  return idsOf('c', fields);
+  return [...idsOf('c', fields), ...(name === 'c.answer' ? extraBoxes(state).keys() : [])];
 }
 
 function expectedSaverInputs(state, q, name) {
@@ -213,18 +218,57 @@ function expectedSaverInputs(state, q, name) {
   const schema = SCHEMA_OF[q];
   const { parsed, shown } = shownValues(state, q);
   const applies = (f) => Object.entries(f.when || {}).every(([p, want]) => shown[p] === want);
+  const extra = [...extraBoxes(state).keys()];
+  // The numbers step holds every field that applies but the spending; the spend step, the spending and its own boxes.
   if (name === `${q}.numbers`) {
     const open = moreIsOpen(state, q);
-    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && applies(f) && (f.group !== 'more' || open)));
+    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && applies(f) && (f.group !== 'more' || open)));
   }
+  if (name === `${q}.spend`) return [...idsOf(q, schema.fields.filter((f) => f.group === 'spend' && applies(f))), ...extra];
+  if (name === `${q}.keep`) return extra;
   const kind = saverKind(state, q);
   if (kind === 'short') {
     const top = SHORT[q];
     const inside = (f) => Object.keys(f.when || {}).some((p) => top.includes(p));
     return idsOf(q, schema.fields.filter((f) => applies(f) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])));
   }
-  if (kind === 'answer' && name === 'a.answer') return ['a.try.partTime.yearly'];
-  return [];
+  if (kind === 'answer' && name === 'a.answer') return ['a.try.partTime.yearly', ...extra];
+  return extra;
+}
+
+/**
+ * The boxes a state draws that are not fields of an input list, by test id → { kind, value }: on A's and B's spend
+ * step, the spending choice and (line by line) every box of the budget sheet; wherever "Save this as a plan" can
+ * save, the name box. `value` is what the state says the box holds (a radio or tick box: whether it is ticked).
+ */
+export function extraBoxes(state) {
+  const out = new Map();
+  const name = screenName(state.route);
+  const q = state.route.q;
+  if (state.route.screen !== 'step' || !state.draft[q]) return out;
+  const saver = SAVER.includes(q);
+  if (saver && isRetired(state, q)) return out;
+  if (saver && name === `${q}.spend`) {
+    const how = state.draft[q].spendHow || null;
+    for (const o of ['lines', 'one']) out.set(`${q}.spendHow.${o}`, { kind: 'radio', value: how === o, name: `${q}.spendHow` });
+    if (how === 'lines' && state.budget) {
+      const v = budgetView(state, q);
+      for (const h of v.headings) {
+        for (const r of h.rows) {
+          if (!r.starter) out.set(`budget.${r.id}.label`, { kind: 'text', value: r.label });
+          out.set(`budget.${r.id}.amount`, { kind: 'text', value: r.amount });
+          out.set(`budget.${r.id}.period`, { kind: 'select', value: r.period });
+          out.set(`budget.${r.id}.essential`, { kind: 'checkbox', value: r.essential });
+        }
+      }
+      for (const o of v.oneOffs) for (const f of ['label', 'amount', 'year', 'everyYears']) out.set(`budget.${o.id}.${f}`, { kind: 'text', value: o[f] });
+    }
+  }
+  if (name === `${q}.answer` || name === `${q}.keep`) {
+    const k = keepView(state, q);
+    if (k.can) out.set(`${q}.keep.name`, { kind: 'text', value: k.name });
+  }
+  return out;
 }
 
 const RUBBISH = [/undefined/, /\bNaN\b/, /\bnull\b/, /Infinity/, /\[object/, /-£0\b/, /−£0\b/, /£\s?[-−]/, /£NaN/, /[{}]/];
@@ -392,9 +436,35 @@ export function checkScreen(root, state) {
   const fq = name === 'front' ? 'c' : q;
   const { draft, shown } = shownValues(state, fq);
   const byPath = new Map(SCHEMA_OF[fq].fields.map((f) => [f.path, f]));
+  const extras = extraBoxes(state);
   for (const el of boxes) {
     const id = el.getAttribute('data-testid') || '';
     if (el.id !== id) say('R7', `box ${id}: id is "${el.id}"`);
+    const extra = extras.get(id);
+    if (extra) {
+      // a box that is not a field: labelled, of its kind, holding what the state says
+      const label = root.querySelector(`label[for="${id}"]`);
+      if (!label || !label.textContent.trim()) say('R7', `${id} has no <label for>`);
+      if (extra.kind === 'radio') {
+        const group = el.closest('fieldset');
+        if (el.type !== 'radio') say('R7', `${id} is not a radio`);
+        if (!group || !group.querySelector('legend') || !group.querySelector('legend').textContent.trim()) say('R7', `${id} is not in a fieldset with a legend`);
+        if (el.getAttribute('name') !== extra.name) say('R7', `${id}: the radio's name is ${el.getAttribute('name')}`);
+        if (el.checked !== extra.value) say('R7', `${id}: ${el.checked ? 'ticked' : 'not ticked'}, the state says ${extra.value ? 'ticked' : 'not'}`);
+      } else if (extra.kind === 'checkbox') {
+        if (el.type !== 'checkbox') say('R7', `${id} is not a tick box`);
+        if (el.checked !== extra.value) say('R7', `${id}: ${el.checked ? 'ticked' : 'not ticked'}, the state says ${extra.value ? 'ticked' : 'not'}`);
+      } else if (extra.kind === 'select') {
+        if (el.tagName !== 'SELECT') say('R7', `${id} is not a pick-list`);
+        if (el.value !== extra.value) say('R7', `${id} shows "${el.value}", the state holds "${extra.value}"`);
+      } else {
+        if (el.type !== 'text') say('R7', `${id} is type="${el.type}"`);
+        if (!el.getAttribute('inputmode')) say('R7', `${id} has no inputmode`);
+        if (el.value !== extra.value) say('R7', `${id} shows "${el.value}", the state holds "${extra.value}"`);
+      }
+      for (const d of (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean)) if (!root.querySelector(`[id="${d}"]`)) say('R7', `${id}: aria-describedby names "${d}", which is not on the page`);
+      continue;
+    }
     if (el.type === 'radio') {
       const path = id.slice(2, id.lastIndexOf('.'));
       const option = id.slice(id.lastIndexOf('.') + 1);

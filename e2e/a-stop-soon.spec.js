@@ -3,7 +3,7 @@
  *
  * The published build, hooks off, as a first-time visitor: the front door → question A; the four things typed
  * ONE KEY AT A TIME (120 ms a key); "Show if it works". Then:
- *   - the first answer is counted (at most 4 typed things, 3 screens, 8 clicks; no sign-up or pop-up; the first
+ *   - the first answer is counted (at most 4 typed things, 4 screens — the budget step is one — 8 clicks; no sign-up or pop-up; the first
  *     figure within 3 s and the final one within 15 s with the processor slowed four times) and written to
  *     test-results/first-answer-a/<project>.json;
  *   - the headline: the verdict band and its words, the verdict sentence and the bad-case line — the answer's own;
@@ -83,7 +83,7 @@ test.describe('J4 — can I stop soon? (question A, the published build)', () =>
       const file = record(testInfo, `first-answer-a/${testInfo.project.name}.json`, counts);
       await testInfo.attach('first-answer-a.json', { path: file, contentType: 'application/json' });
       expect(counts.mustFill, 'things that must be filled in').toBeLessThanOrEqual(BUDGET.mustFill);
-      expect(counts.screens, 'screens passed').toEqual(['front', 'a.numbers', 'a.answer']);
+      expect(counts.screens, 'screens passed').toEqual(['front', 'a.numbers', 'a.spend', 'a.answer']);
       expect(counts.clicks, 'clicks or taps').toBeLessThanOrEqual(BUDGET.clicks);
       expect(counts.popUps, 'sign-up, tour or pop-up before the answer').toBe(0);
       await expect(page.locator('dialog[open], [role="dialog"], [aria-modal="true"]')).toHaveCount(0);

@@ -106,7 +106,7 @@ describe('L2, L3 — no dead ends, and every link and button points somewhere', 
 
 describe('L5 — nothing demands another tool first', () => {
   for (const q of ['a', 'b']) {
-    it.each(['numbers', 'answer', q === 'a' ? 'ages' : 'choices', 'keep'])(`#/${q}/%s opened with nothing entered asks for the figures`, (step) => {
+    it.each(['numbers', 'spend', 'answer', q === 'a' ? 'ages' : 'choices', 'keep'])(`#/${q}/%s opened with nothing entered asks for the figures`, (step) => {
       const s = goTo(fresh(), href.step(q, step));
       expect(s.route).toEqual(route('step', q, step));
       const rail = railFor(s);
@@ -114,7 +114,7 @@ describe('L5 — nothing demands another tool first', () => {
       expect(rail.steps.filter((x) => x.state === 'current').map((x) => x.id)).toEqual([step]);
       expect(rail.next).toEqual({ id: `${q}.blank`, button: null });
       expect(rail.steps.every((x) => x.result === null)).toBe(true);
-      expect(rail.position).toEqual({ n: BUILT[q].steps.findIndex((x) => x.id === step) + 1, of: 4 });
+      expect(rail.position).toEqual({ n: BUILT[q].steps.findIndex((x) => x.id === step) + 1, of: 5 });
     });
   }
 });
@@ -122,7 +122,12 @@ describe('L5 — nothing demands another tool first', () => {
 describe('the next sentence, state by state (first match wins)', () => {
   it('A', () => {
     expect(next(at(fresh(), 'a', 'numbers'))).toBe('a.blank');
-    expect(next(at(typedA(fresh(), { spend: '' }), 'a', 'numbers'))).toBe('a.blank');
+    // the budget step: the numbers are all there, the spending is not — "what would you spend?"
+    expect(next(at(typedA(fresh(), { spend: '' }), 'a', 'numbers'))).toBe('a.spend');
+    expect(next(at(typedA(fresh(), { spend: '' }), 'a', 'spend'))).toBe('a.spend');
+    expect(next(at(typedA(fresh(), { spend: '', pot: '' }), 'a', 'numbers'))).toBe('a.blank');       // the numbers' own blanks first
+    expect(next(at(typedA(fresh(), { spend: '', stop: '45' }), 'a', 'numbers'))).toBe('a.fix');      // a figure wrong on the numbers step
+    expect(next(at(typedA(), 'a', 'spend'))).toBe('a.ready');
     expect(next(at(run(typedA(fresh(), { stop: '' }), set('a', 'stop.kind', 'ages')), 'a', 'numbers'))).toBe('a.ready');   // no age needed for "show me ages"
     expect(next(at(run(typedA(fresh(), { spend: '' }), set('a', 'spend.kind', 'level'), set('a', 'spend.level', 'moderate')), 'a', 'numbers'))).toBe('a.ready');
     expect(next(at(typedA(fresh(), { stop: '45' }), 'a', 'numbers'))).toBe('a.fix');          // before today's age
@@ -143,6 +148,8 @@ describe('the next sentence, state by state (first match wins)', () => {
   it('B', () => {
     expect(next(at(fresh(), 'b', 'numbers'))).toBe('b.blank');
     expect(next(at(typedB(fresh(), { payIn: '' }), 'b', 'numbers'))).toBe('b.blank');
+    expect(next(at(typedB(fresh(), { spend: '' }), 'b', 'numbers'))).toBe('b.spend');
+    expect(next(at(typedB(fresh(), { spend: '', payIn: '' }), 'b', 'numbers'))).toBe('b.blank');
     expect(next(at(run(typedB(fresh(), { payIn: '' }), set('b', 'you.payIn.kind', 'split'), set('b', 'you.payIn.own', '500'), set('b', 'you.payIn.employer', '200')), 'b', 'numbers'))).toBe('b.ready');
     expect(next(at(typedB(fresh(), { stop: '45' }), 'b', 'numbers'))).toBe('b.fix');
     expect(next(at(typedB(), 'b', 'numbers'))).toBe('b.ready');
@@ -169,8 +176,13 @@ describe('the next sentence, state by state (first match wins)', () => {
     expect(railFor(answered(b, 'b', resultB())).next.button).toEqual({ labelId: 'b.action.together', href: '#/b/choices' });
     expect(railFor(answered(b, 'b', resultB({ onCourse: true }))).next.button).toEqual({ labelId: 'b.action.keep', href: '#/b/keep' });
     expect(railFor(at(typedB(fresh(), { age: '70', stop: '70' }), 'b', 'answer')).next.button).toEqual({ labelId: 'b.action.willItLast', href: '#/soon/d' });
-    // On the step that is not built, a button leads back to the answer.
-    expect(railFor(at(answered(b, 'b', resultB({ onCourse: true })), 'b', 'keep')).next.button).toEqual({ labelId: 'b.action.back', href: '#/b/answer' });
+    // On the keep step itself: name it and save — no button to the step on screen; an answer that cannot be saved
+    // (the stand-in results here have no inputs) leads back to it.
+    expect(railFor(at(answered(b, 'b', resultB({ onCourse: true })), 'b', 'keep')).next).toEqual({ id: 'b.keep', button: { labelId: 'b.action.back', href: '#/b/answer' } });
+    // The budget step: from the numbers step a link to it; on it, none.
+    expect(railFor(at(typedA(fresh(), { spend: '' }), 'a', 'numbers')).next.button).toEqual({ labelId: 'a.action.spend', href: '#/a/spend' });
+    expect(railFor(at(typedA(fresh(), { spend: '' }), 'a', 'spend')).next.button).toBe(null);
+    expect(railFor(at(typedB(fresh(), { spend: '' }), 'b', 'answer')).next.button).toEqual({ labelId: 'b.action.spend', href: '#/b/spend' });
     // Pressing "Show if it works" does what it says.
     expect(reduce(at(typedA(), 'a', 'numbers'), railFor(at(typedA(), 'a', 'numbers')).next.button.action).route).toEqual(route('step', 'a', 'answer'));
   });
@@ -212,7 +224,7 @@ describe('L10 — an optional step opened with figures but no answer is working,
     const s = goTo(typedA(), '#/a/ages');
     const rail = railFor(s);
     expect(rail.next.id).toBe('a.working');
-    expect(rail.steps.map((x) => [x.id, x.state])).toEqual([['numbers', 'done'], ['answer', 'open'], ['ages', 'current'], ['keep', 'open']]);
+    expect(rail.steps.map((x) => [x.id, x.state])).toEqual([['numbers', 'done'], ['spend', 'done'], ['answer', 'open'], ['ages', 'current'], ['keep', 'open']]);
   });
   it('#/a/ages while the extra pass runs, and once it has landed', () => {
     const s = answered(goTo(typedA(), '#/a/ages'), 'a', resultA());
@@ -243,18 +255,34 @@ describe('L10 — an optional step opened with figures but no answer is working,
 });
 
 describe('L11 — the short results', () => {
-  it('A\'s numbers: pot, age, the stop, the spending — as typed', () => {
+  it('A\'s numbers: pot, age, the stop — as typed (the spending is the spend step\'s)', () => {
     const step = railFor(at(typedA(), 'a', 'answer')).steps[0];
-    expect(step.result.text).toBe('£250,000, age 50, stop at 60, £2,000 a month');
+    expect(step.result.text).toBe('£250,000, age 50, stop at 60');
     expect(step.result.id).toBe('a.rail.numbers');
     expect(text(step)).toBe(step.result.text);
     const couple = railFor(at(run(typedA(), set('a', 'household', 'couple'), set('a', 'partner.age', '52')), 'a', 'answer')).steps[0];
-    expect(couple.result.text).toBe('£250,000, age 50, stop at 60, £2,000 a month and a partner');
+    expect(couple.result.text).toBe('£250,000, age 50, stop at 60 and a partner');
     const ages = railFor(at(run(typedA(), set('a', 'stop.kind', 'ages')), 'a', 'answer')).steps[0];
-    expect(ages.result.text).toBe('£250,000, age 50, £2,000 a month');
+    expect(ages.result.text).toBe('£250,000, age 50');
     const level = railFor(at(run(typedA(), set('a', 'spend.kind', 'level'), set('a', 'spend.level', 'moderate')), 'a', 'answer')).steps[0];
     expect(level.result.text).toBe('£250,000, age 50, stop at 60');
     expect(railFor(at(typedA(fresh(), { pot: 'abc' }), 'a', 'answer')).steps[0].result).toBe(null);
+    // the numbers are done — and say so — before the spending is given
+    const noSpend = railFor(at(typedA(fresh(), { spend: '' }), 'a', 'numbers'));
+    expect(noSpend.steps[0].result.text).toBe('£250,000, age 50, stop at 60');
+    expect(noSpend.steps.map((x) => [x.id, x.state])[1]).toEqual(['spend', 'open']);
+  });
+  it('the spend step: the one figure the answer uses, as typed — or the level\'s figure', () => {
+    const step = railFor(at(typedA(), 'a', 'answer')).steps[1];
+    expect(step.id).toBe('spend');
+    expect(step.state).toBe('done');
+    expect(step.result.text).toBe('£2,000 a month');
+    expect(step.result.id).toBe('a.rail.spend');
+    expect(text(step)).toBe(step.result.text);
+    const level = railFor(at(run(typedA(), set('a', 'spend.kind', 'level'), set('a', 'spend.level', 'moderate')), 'a', 'answer')).steps[1];
+    expect(level.result.text).toBe(`Moderate level: ${money(2608)} a month`);
+    expect(railFor(at(typedA(fresh(), { spend: '' }), 'a', 'answer')).steps[1].result).toBe(null);
+    expect(railFor(at(typedB(), 'b', 'answer')).steps[1].result.text).toBe('£2,000 a month');
   });
   it('B\'s numbers: pot, age, what goes in, the stop', () => {
     const step = railFor(at(typedB(), 'b', 'answer')).steps[0];
@@ -265,44 +293,44 @@ describe('L11 — the short results', () => {
   });
   it('A\'s answer: the verdict and the age', () => {
     const s = at(typedA(), 'a', 'answer');
-    const words = (r) => railFor(answered(s, 'a', r)).steps[1].result.text;
+    const words = (r) => railFor(answered(s, 'a', r)).steps[2].result.text;
     expect(words(resultA({ verdict: 'yes' }))).toBe('Yes at 60');
     expect(words(resultA({ verdict: 'close' }))).toBe('Close at 60');
     expect(words(resultA({ verdict: 'no' }))).toBe('Not at 60');
     expect(words(resultA({ kind: 'earliest', verdict: 'yes', age: 61 }))).toBe('Earliest that worked: 61');
     for (const r of [resultA({ verdict: 'yes' }), resultA({ kind: 'earliest', verdict: 'yes', age: 61 })]) {
-      const step = railFor(answered(s, 'a', r)).steps[1];
+      const step = railFor(answered(s, 'a', r)).steps[2];
       expect(text(step)).toBe(step.result.text);
       expect(step.result.id).toBe('a.rail.answer');
     }
-    expect(railFor(answered(s, 'a', resultA({ status: 'none', kind: 'nothing' }))).steps[1].result).toBe(null);
-    expect(railFor(reduce(answered(s, 'a', resultA()), set('a', 'you.pot', '1'))).steps[1].result).toBe(null);
+    expect(railFor(answered(s, 'a', resultA({ status: 'none', kind: 'nothing' }))).steps[2].result).toBe(null);
+    expect(railFor(reduce(answered(s, 'a', resultA()), set('a', 'you.pot', '1'))).steps[2].result).toBe(null);
   });
   it('A\'s ages step: the earliest age that worked, once every age is there', () => {
     const s = answered(at(typedA(), 'a', 'ages'), 'a', resultA());
-    expect(railFor(s).steps[2].result).toBe(null);
+    expect(railFor(s).steps[3].result).toBe(null);
     const ext = reduce(s, { type: A.ANSWER_EXTEND, q: 'a', inputsKey: currentKey(s, 'a') });
     const done = reduce(ext, { type: A.ANSWER_FINAL, q: 'a', inputsKey: currentKey(s, 'a'), result: resultA({ detail: 'all', earliestYes: 62 }) });
-    const step = railFor(done).steps[2];
+    const step = railFor(done).steps[3];
     expect(step.result.text).toBe('Earliest that worked: 62');
     expect(text(step)).toBe(step.result.text);
-    expect(railFor(reduce(ext, { type: A.ANSWER_FINAL, q: 'a', inputsKey: currentKey(s, 'a'), result: resultA({ detail: 'all', earliestYes: null }) })).steps[2].result).toBe(null);
+    expect(railFor(reduce(ext, { type: A.ANSWER_FINAL, q: 'a', inputsKey: currentKey(s, 'a'), result: resultA({ detail: 'all', earliestYes: null }) })).steps[3].result).toBe(null);
   });
   it('B\'s answer: what to pay in (the answer), or on course; the number by the age only when there is no pay-in to name', () => {
     const s = at(typedB(), 'b', 'answer');
-    const step = railFor(answered(s, 'b', resultB({ careful: 470000 }))).steps[1];
+    const step = railFor(answered(s, 'b', resultB({ careful: 470000 }))).steps[2];
     expect(step.result.text).toBe('About £1,050 a month in');
     expect(step.result.parts).toEqual(['About ', { key: 'payIn.needed', kind: 'money' }, ' a month in']);
     expect(text(step)).toBe(step.result.text);
     const noPayIn = { ...resultB({ careful: 470000 }), payIn: { now: 700, needed: null } };
-    expect(railFor(answered(s, 'b', noPayIn)).steps[1].result.text).toBe('About £470,000 by 60');
-    expect(railFor(answered(s, 'b', resultB({ onCourse: true }))).steps[1].result.text).toBe('On course for 60');
-    expect(railFor(answered(s, 'b', { ...resultB({ status: 'out-of-reach', careful: null }), payIn: { now: 700, needed: null } })).steps[1].result).toBe(null);
+    expect(railFor(answered(s, 'b', noPayIn)).steps[2].result.text).toBe('About £470,000 by 60');
+    expect(railFor(answered(s, 'b', resultB({ onCourse: true }))).steps[2].result.text).toBe('On course for 60');
+    expect(railFor(answered(s, 'b', { ...resultB({ status: 'out-of-reach', careful: null }), payIn: { now: 700, needed: null } })).steps[2].result).toBe(null);
   });
   it('with the stub answers\' own results', () => {
     for (const [q, s] of [['a', at(typedA(), 'a', 'answer')], ['b', at(typedB(), 'b', 'answer')]]) {
       const real = ANSWERS[q].answer(parsedDraft(s, q).inputs, { today: TODAY, futures: 40, seed: 0, trace: false });
-      const step = railFor(answered(s, q, real)).steps[1];
+      const step = railFor(answered(s, q, real)).steps[2];
       expect(step.result, q).not.toBe(null);
       expect(text(step)).toBe(step.result.text);
     }
@@ -312,11 +340,11 @@ describe('L11 — the short results', () => {
       expect(railFor(at(typedA(fresh(), { pot: String(n) }), 'a', 'answer')).steps[0].result.text.startsWith(`${money(n)}, age 50`)).toBe(true);
     }
     for (const n of [499, 500, 1000, 468250, 470000, 4999999]) {
-      const step = railFor(answered(at(typedB(), 'b', 'answer'), 'b', { ...resultB({ careful: n }), payIn: { now: 700, needed: null } })).steps[1];
+      const step = railFor(answered(at(typedB(), 'b', 'answer'), 'b', { ...resultB({ careful: n }), payIn: { now: 700, needed: null } })).steps[2];
       expect(step.result.text).toBe(`About ${pot(n)} by 60`);
     }
     for (const n of [1, 999, 1000, 1050, 12345]) {
-      const step = railFor(answered(at(typedB(), 'b', 'answer'), 'b', { ...resultB(), payIn: { now: 700, needed: n } })).steps[1];
+      const step = railFor(answered(at(typedB(), 'b', 'answer'), 'b', { ...resultB(), payIn: { now: 700, needed: n } })).steps[2];
       expect(step.result.text).toBe(`About ${money(n)} a month in`);
     }
   });
@@ -346,8 +374,8 @@ describe('L8 — the wrong person is never sent the wrong way', () => {
   });
 });
 
-const ADDRESSES = ['#/', '#/a/numbers', '#/a/answer', '#/a/ages', '#/a/keep', '#/b/numbers', '#/b/answer', '#/b/choices', '#/b/keep',
-  '#/c/numbers', '#/c/answer', '#/soon/d', '#/soon/a', '#/nowhere'];
+const ADDRESSES = ['#/', '#/a/numbers', '#/a/spend', '#/a/answer', '#/a/ages', '#/a/keep', '#/b/numbers', '#/b/spend', '#/b/answer', '#/b/choices', '#/b/keep',
+  '#/c/numbers', '#/c/answer', '#/c/keep', '#/soon/d', '#/soon/a', '#/nowhere'];
 const typedValue = fc.oneof(fc.constantFrom('', '250,000', 'abc', '45', '50', '60', '70', '17', '700', '2,000', 'couple', 'single', 'ages', 'age', 'level', 'moderate', 'split'), fc.boolean());
 const fieldOf = fc.constantFrom(...Q).chain((q) => fc.constantFrom(...SCHEMAS[q].fields.map((f) => f.path)).map((p) => [q, p]));
 const RESULTS = {
@@ -357,9 +385,14 @@ const RESULTS = {
   c: [{ status: 'ok', monthly: { careful: 1380 }, basis: {} }]
 };
 const stateAction = fc.oneof(
-  { weight: 3, arbitrary: fc.constantFrom('fillA', 'fillB', 'fillC', 'retiredA', 'retiredB') },
+  { weight: 3, arbitrary: fc.constantFrom('fillA', 'fillB', 'fillC', 'retiredA', 'retiredB', 'spendlessA', 'spendlessB') },
+  // the budget step: on to it, how the spending is chosen, the budget's total into the box
+  fc.tuple(fc.constantFrom('a', 'b'), fc.constantFrom('onward', 'lines', 'one', 'use')).map(([q, what]) => (what === 'onward' ? { type: A.DRAFT_ONWARD, q }
+    : what === 'use' ? { type: A.BUDGET_USE, q } : { type: A.SPEND_HOW, q, how: what })),
   // B's grid step with its grid in (the step's own next sentence), which a walk otherwise reaches only by a long chance
   { weight: 1, arbitrary: fc.constant('gridB') },
+  // "Save this as a plan?" with an answer for what is typed (its own next sentence)
+  { weight: 1, arbitrary: fc.constantFrom('keepA', 'keepB') },
   { weight: 2, arbitrary: fc.constantFrom('a', 'b').map((q) => ({ q, what: 'workThenFail', i: 0 })) },
   { weight: 3, arbitrary: fc.tuple(fc.constantFrom('a', 'b'), fc.nat(5)).map(([q, i]) => ({ q, what: 'answerWith', i })) },
   fc.constantFrom(...ADDRESSES).map((address) => ({ type: A.ROUTE_SET, route: parse(address) })),
@@ -374,6 +407,14 @@ function apply(state, a) {
   if (a === 'fillC') return typedC(state);
   if (a === 'retiredA') return typedA(state, { age: '70', stop: '70' });
   if (a === 'retiredB') return typedB(state, { age: '70', stop: '70' });
+  if (a === 'spendlessA') return typedA(state, { spend: '' });
+  if (a === 'spendlessB') return typedB(state, { spend: '' });
+  if (a === 'keepA' || a === 'keepB') {
+    const q = a === 'keepA' ? 'a' : 'b';
+    const there = reduce(state, { type: A.ROUTE_SET, route: parse(`#/${q}/keep`) });
+    const key = currentKey(there, q);
+    return key ? run(there, { type: A.ANSWER_WORKING, q, inputsKey: key }, { type: A.ANSWER_FINAL, q, inputsKey: key, result: RESULTS[q][0] }) : there;
+  }
   if (a === 'gridB') {
     const there = reduce(state, { type: A.ROUTE_SET, route: parse('#/b/choices') });
     const key = currentKey(there, 'b');

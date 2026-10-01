@@ -402,7 +402,12 @@ describe('what does it pay a month? (the answer step)', () => {
       const next = root.querySelector('[data-region="next"]');
       // "Already stopped?" leads for someone taking the money now with the State Pension already paid (F3); "Still working?" otherwise.
       const stopped = result.inputs.start.kind === 'now' && result.phases[0].statePension > 0;
-      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/soon/d', A_LINK, B_LINK, '#/c/keep'] : [A_LINK, B_LINK, '#/soon/d', '#/c/keep']);
+      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/soon/d', A_LINK, B_LINK] : [A_LINK, B_LINK, '#/soon/d']);
+      // "Save this as a plan" follows "What next?", at the foot of the answer, with the name filled in (save-as-plan.md)
+      const keep = root.querySelector('[data-region="keep"]');
+      expect(keep.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+      expect(one(root, 'c.keep.name').value).toMatch(/^(From|Stop at) \d+/);
+      expect(one(root, 'c.action.save').getAttribute('type')).toBe('submit');
       // Step 4: the A and B links are hand-overs (they carry C's figures and open the numbers step).
       expect(one(root, 'c.next.a')).not.toBe(null);
       expect(one(root, 'c.next.b')).not.toBe(null);

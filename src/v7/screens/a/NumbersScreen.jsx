@@ -1,7 +1,9 @@
 /**
- * Question A, step 1 — "What have you got, and what do you want to spend?" (screens-A-B.md 3.1). Four things to
- * type for one person (age, pot, the age in mind, spending); everything else starts sensible. "Add a partner" and
- * "Add more detail" open on this same step. Computes nothing: every box is drawn from SCHEMA_A and the state by Field.
+ * Question A, step 1 — "What have you got, and when would you stop?" (screens-A-B.md 3.1). Three things to type for
+ * one person (age, pot, the age in mind); everything else starts sensible. What you would spend is the next step's
+ * (the budget step, research/v7/budget-step.md): the button here, "Next: what you would spend", checks this step's own
+ * boxes (draft/onward) and opens it. "Add a partner" and "Add more detail" open on this same step. Computes nothing:
+ * every box is drawn from SCHEMA_A and the state by Field.
  *
  * The person is drawn in the order of the drawing — the things to type first, the settings that start sensible
  * after — not the order of the input list; LAYOUT_A says it, and the tests read it. A field that depends on a choice
@@ -12,11 +14,15 @@
 import { AskForm, FieldGroup, PayInSplit, Carried, Retired, isRetired, formView, focusField, Button, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';
 
-/** The top-level fields of A's numbers step, in the order drawn. Each one's dependants are drawn inside it. */
+/**
+ * The top-level fields of A's steps, in the order drawn. Each one's dependants are drawn inside it. `spend` is the
+ * spend step's (the "What you would spend" box).
+ */
 export const LAYOUT_A = {
-  you: ['you.age', 'you.pot', 'you.payIn.kind', 'savings', 'stop.kind', 'spend.kind', 'partTime.has', 'you.statePension.kind', 'you.finalSalary.has'],
+  you: ['you.age', 'you.pot', 'you.payIn.kind', 'savings', 'stop.kind', 'partTime.has', 'you.statePension.kind', 'you.finalSalary.has'],
   partner: ['partner.age', 'partner.pot', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
-  more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge']
+  more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge'],
+  spend: ['spend.kind']
 };
 
 /** Under the spending choice, once a level is picked: what that level is a month (words, checked against the rule). */
@@ -61,7 +67,7 @@ export function saverNumbers(q, layout) {
           <h1 tabIndex={-1}>{words.steps.numbers.label}</h1>
           <p class="lead">{words.numbers.intro}</p>
           <Carried form={form} />
-          <AskForm form={form} dispatch={dispatch} data-region="form" data-carried-from={form.carriedFrom || undefined}>
+          <AskForm form={form} dispatch={dispatch} action="draft/onward" data-region="form" data-carried-from={form.carriedFrom || undefined}>
             <div class="person person-you">{draw(layout.you)}</div>
 
             {couple && (
@@ -96,7 +102,7 @@ export function saverNumbers(q, layout) {
               <LinkButton testid={`${q}.action.fullDetail`} kind="quiet" href={href.soon('e')}>{couple ? words.buttons.fullDetailCouple : words.buttons.fullDetail}</LinkButton>
             </p>
             <div class="submit-row">
-              <Button testid={`${q}.action.show`} kind="primary" type="submit">{words.buttons.show}</Button>
+              <Button testid={`${q}.action.onward`} kind="primary" type="submit">{words.buttons.onward}</Button>
             </div>
             <p class="note">{words.numbers.stays}</p>
           </AskForm>

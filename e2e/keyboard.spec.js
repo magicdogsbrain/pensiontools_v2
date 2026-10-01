@@ -160,7 +160,8 @@ test.describe('keyboard: question C', () => {
 function shortForm(q) {
   // `household` is buttons (add / remove a partner) and `payIn.kind` may be drawn as a "Split it up" button pair, not boxes.
   const skip = new Set(['household', 'you.payIn.kind']);
-  return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && !f.path.startsWith('partner.') && f.group !== 'try')
+  // the spending is the next step's (the budget step): not on the numbers step
+  return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && f.group !== 'spend' && !f.path.startsWith('partner.') && f.group !== 'try')
     .filter((f) => !f.when || Object.entries(f.when).every(([p, v]) => { const d = SCHEMAS[q].fields.find((x) => x.path === p); return d && d.default === v; }))
     .map((f) => `${q}.${f.path}`);
 }
@@ -169,7 +170,7 @@ for (const q of ['a', 'b']) {
   test.describe(`keyboard: question ${q.toUpperCase()}`, () => {
     test.beforeEach(() => waitsFor(...NEEDS[q]));
 
-    test('Tab visits every box of the short form in the order it is drawn, then the button; Enter gives the answer', async ({ page }) => {
+    test('Tab visits every box of the numbers step in the order it is drawn, then the button; Enter goes on to the spending, and Enter there gives the answer', async ({ page }) => {
       const app = v7(page, 'test', q);
       await app.open(`#/${q}/numbers`);
       await app.ready();
@@ -191,16 +192,23 @@ for (const q of ['a', 'b']) {
         expect(f.ring, `${f.id} shows where the cursor is`).toBe(true);
         const field = fieldOf(f.id);
         if (field && order[order.length - 1] !== field) order.push(field);
-        if (f.id === `${q}.action.show`) { order.push(f.id); break; }
+        if (f.id === `${q}.action.onward`) { order.push(f.id); break; }
         await page.keyboard.press('Tab');
       }
       expect(order.filter((id) => wanted.includes(id)), 'Tab follows the drawn order').toEqual(expectedOrder);
-      expect(order[order.length - 1]).toBe(`${q}.action.show`);
+      expect(order[order.length - 1]).toBe(`${q}.action.onward`);
 
-      // Typed with the keyboard alone (the things that must be filled in), and asked for with Enter.
+      // Typed with the keyboard alone (the things that must be filled in), and on with Enter; the spending, and Enter.
       const typing = fixtureTyping(q === 'a' ? 'A1' : 'B3');
-      for (const path of mustFill(q, typing)) {
-        if (path === 'spend.level') continue;
+      const must = mustFill(q, typing).filter((p) => p !== 'spend.level');
+      for (const path of must.filter((p) => !p.startsWith('spend.'))) {
+        await app.id(`${q}.${path}`).focus();
+        await page.keyboard.type(typing[path]);
+      }
+      await page.keyboard.press('Enter');
+      await app.at(`${q}.spend`);
+      await expect(page.locator('#app h1')).toBeFocused();                         // the move has put the keyboard on the heading
+      for (const path of must.filter((p) => p.startsWith('spend.'))) {
         await app.id(`${q}.${path}`).focus();
         await page.keyboard.type(typing[path]);
       }

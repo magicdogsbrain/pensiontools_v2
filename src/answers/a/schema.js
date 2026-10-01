@@ -44,6 +44,7 @@ export const SCHEMA_A = {
   rules: [
     { id: 'stop-not-before-now', fields: ['stop.age', 'you.age'] },   // stop.age ≥ you.age
     { id: 'end-after-stop',      fields: ['endAge'] },                 // endAge > the younger person's age at the stop
+    { id: 'stop-ages-past-75',   fields: ['stop.kind'] },              // "show me ages" needs an age to show: you.age ≤ RULES.stopAgeMax
     { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] }   // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
   ],
 

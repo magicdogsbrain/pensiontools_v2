@@ -17,6 +17,7 @@ import { verdictOf } from '../../../src/answers/shared/rules.js';
 import { agesToShow, spendLevelAMonth } from '../../../src/answers/shared/schemaParts.js';
 import { ADVICE_SHORT, ADVICE_FULL, NOT_BUILT } from '../../../src/v7/copy/common.js';
 import { A } from '../../../src/v7/copy/a.js';
+import { KEEP } from '../../../src/v7/copy/keep.js';
 import { CARRY_OPENS } from '../../../src/v7/state/carry.js';
 import { LAYOUT_A } from '../../../src/v7/screens/a/NumbersScreen.jsx';
 import { VERSION } from '../../../src/constants.js';
@@ -34,7 +35,7 @@ const NAMES = [
   'numbers-blank', 'numbers-carried-from-c', 'numbers-part-time-open', 'numbers-couple-open', 'numbers-more-open',
   'answer-nothing-entered', 'answer-working', 'answer-first', 'answer-A1', 'answer-yes', 'answer-no', 'answer-ages', 'answer-ages-none',
   'answer-A4', 'answer-A3-part-time', 'answer-A2-couple', 'answer-stop-now', 'answer-updating', 'answer-partial', 'answer-failed',
-  'answer-retired', 'ages-A1', 'not-built-keep'
+  'answer-retired', 'ages-A1', 'keep-no-answer'
 ];
 const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
 const MADE = JSON.parse(readFileSync(join(DIR, '_made-with.json'), 'utf8'));
@@ -137,17 +138,20 @@ describe('A: what each answer shows is the answer\'s, by its own rules', () => {
   });
 });
 
-describe('A, step 1: what have you got, and what do you want to spend?', () => {
-  it('blank: four boxes to type in, in the order of the drawing; settings start sensible; the button is never greyed out', () => {
+describe('A, step 1: what have you got, and when would you stop?', () => {
+  it('blank: three boxes to type in, in the order of the drawing; settings start sensible; the button is never greyed out', () => {
     const state = load('numbers-blank');
     const root = renderScreen(state);
     expect(root.querySelector('h1').textContent).toBe(A.steps.numbers.label);
-    expect([...root.querySelectorAll('input[type="text"]')].map((el) => el.id)).toEqual(['a.you.age', 'a.you.pot', 'a.you.payIn.total', 'a.savings', 'a.stop.age', 'a.spend.amount']);
-    for (const id of ['a.you.payIn.kind.total', 'a.stop.kind.age', 'a.spend.kind.amount', 'a.partTime.has.no', 'a.you.statePension.kind.full', 'a.you.finalSalary.has.no']) {
+    // the spending is the next step's (the budget step): never on this one
+    expect([...root.querySelectorAll('input[type="text"]')].map((el) => el.id)).toEqual(['a.you.age', 'a.you.pot', 'a.you.payIn.total', 'a.savings', 'a.stop.age']);
+    expect(root.querySelector('[data-field^="spend."]')).toBe(null);
+    for (const id of ['a.you.payIn.kind.total', 'a.stop.kind.age', 'a.partTime.has.no', 'a.you.statePension.kind.full', 'a.you.finalSalary.has.no']) {
       expect(one(root, id).checked, id).toBe(true);
     }
-    const show = one(root, 'a.action.show');
-    expect(show.textContent).toBe(A.buttons.show);
+    expect(one(root, 'a.action.show')).toBe(null);
+    const show = one(root, 'a.action.onward');
+    expect(show.textContent).toBe(A.buttons.onward);
     expect(show.getAttribute('type')).toBe('submit');
     expect(show.disabled).toBe(false);
     expect(root.querySelector('[data-error-for]')).toBe(null);
@@ -165,8 +169,8 @@ describe('A, step 1: what have you got, and what do you want to spend?', () => {
     expect(required({ 'spend.kind': 'level' }).length).toBe(4);           // the level is a choice, not something typed
   });
 
-  it('the layout draws every field of the list exactly once: at the top, or inside the choice it depends on', () => {
-    const top = [...LAYOUT_A.you, ...LAYOUT_A.partner, ...LAYOUT_A.more];
+  it('the layout draws every field of the list exactly once: at the top, or inside the choice it depends on (the spending on the spend step)', () => {
+    const top = [...LAYOUT_A.you, ...LAYOUT_A.partner, ...LAYOUT_A.more, ...LAYOUT_A.spend];
     expect(new Set(top).size).toBe(top.length);
     for (const f of SCHEMA_A.fields) {
       if (f.path === 'household') continue;
@@ -213,6 +217,7 @@ describe('A, step 1: what have you got, and what do you want to spend?', () => {
     }
     const s = load('numbers-blank');
     s.draft.a.values = { 'spend.kind': 'level', 'spend.level': 'moderate' };
+    s.route = { ...s.route, step: 'spend' };                                             // the spending is on the spend step
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);
     expect(one(root, 'a.spend.levelIs').textContent).toBe('Moderate: £2,608 a month for one person (Retirement Living Standards).');
@@ -277,12 +282,12 @@ describe('A, step 1: what have you got, and what do you want to spend?', () => {
     expect(blank.actions).toEqual([set('household', 'couple')]);
   });
 
-  it('"Show if it works" asks — by the button and by Enter — and with something missing goes to the first box on screen that needs attention', () => {
+  it('"Next: what you would spend" goes on — by the button and by Enter — and with something missing goes to the first box on screen that needs attention', () => {
     const { root, actions } = draw(load('numbers-blank'));
     document.body.appendChild(root);
     try {
-      fire(one(root, 'a.action.show').closest('form'), 'submit');
-      expect(actions).toEqual([{ type: 'draft/ask', q: 'a' }]);
+      fire(one(root, 'a.action.onward').closest('form'), 'submit');
+      expect(actions).toEqual([{ type: 'draft/onward', q: 'a' }]);
       expect(document.activeElement.id).toBe('a.you.age');
     } finally { root.remove(); }
   });
@@ -318,7 +323,7 @@ describe('A: keyboard order and labels', () => {
     const boxes = stops.filter((el) => el.tagName === 'INPUT').map((el) => el.getAttribute('data-testid'));
     expect([...boxes].sort()).toEqual([...expectedInputs(state)].sort());
     expect(boxes).toEqual(layoutOrder(state));
-    expect(stops.findIndex((el) => el.getAttribute('data-testid') === 'a.action.show')).toBeGreaterThan(stops.map((el) => el.tagName).lastIndexOf('INPUT'));
+    expect(stops.findIndex((el) => el.getAttribute('data-testid') === 'a.action.onward')).toBeGreaterThan(stops.map((el) => el.tagName).lastIndexOf('INPUT'));
   });
 
   it.each(NAMES)('%s: every box has a label, every group a legend, every button words, the heading takes focus', (name) => {
@@ -585,12 +590,14 @@ describe('A, step 3: every age', () => {
   });
 });
 
-describe('A: keep is not built yet', () => {
-  it('says so and leads back to the answer', () => {
-    const root = renderScreen(load('not-built-keep'));
-    expect(root.querySelector('[data-screen]').getAttribute('data-screen')).toBe('notBuilt');
+describe('A: "Save this as a plan?" before there is an answer', () => {
+  it('says there is nothing to save yet, offers no box, and leads back to the answer', () => {
+    const root = renderScreen(load('keep-no-answer'));
+    expect(root.querySelector('[data-screen]').getAttribute('data-screen')).toBe('a.keep');
     expect(root.querySelector('h1').textContent).toBe(A.steps.keep.label);
-    expect(root.textContent).toContain(NOT_BUILT.line);
+    expect(one(root, 'a.keep.why').textContent).toBe(KEEP.why.noAnswer);
+    expect(one(root, 'a.keep.name')).toBe(null);
+    expect(root.textContent).not.toContain(NOT_BUILT.line);
     expect([...root.querySelector('main').querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['#/a/answer']);
   });
 });

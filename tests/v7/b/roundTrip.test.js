@@ -60,6 +60,8 @@ function roundTripSuite(q, schema, read) {
         if (isRetired(state, q)) { expect(root.querySelector('input')).toBe(null); return; }
         for (const f of FIELDS) {
           if (f.path === 'household') { expect(back.household).toBe(values.household || 'single'); continue; }
+          // the spending is the spend step's (the budget step), never on this one
+          if (f.group === 'spend') { expect(back[f.path], `${f.path} is on the numbers step`).toBe(undefined); continue; }
           if (!applies(f, values)) { expect(back[f.path], `${f.path} is drawn but does not apply`).toBe(undefined); continue; }
           if (values[f.path] !== undefined) expect(back[f.path], f.path).toBe(values[f.path]);
           else if (['money', 'age', 'percent', 'count'].includes(f.type)) expect(back[f.path], f.path).toBe('');
@@ -92,6 +94,27 @@ function roundTripSuite(q, schema, read) {
       const back = read(renderScreen(stateWith(q, { ...values, household: 'couple' })));
       expect(back['partner.age']).toBe('48');
       expect(back['partner.payIn.total']).toBe('300');
+    });
+  });
+
+  describe(`${q.toUpperCase()}, the spend step (the budget step): the spending, typed → state → drawn → read back`, () => {
+    const SPEND = FIELDS.filter((f) => f.group === 'spend');
+    it('reads back exactly what the state holds — and only the spending, whatever else is typed', () => {
+      fc.assert(fc.property(draftValues, fc.constantFrom(null, 'lines', 'one'), (values, how) => {
+        const state = stateWith(q, values, 'spend');
+        state.draft[q].spendHow = how;
+        const root = renderScreen(state);
+        if (isRetired(state, q)) { expect(root.querySelector('input')).toBe(null); return; }
+        const back = read(root);
+        for (const f of SPEND) {
+          if (!applies(f, values)) { expect(back[f.path], `${f.path} is drawn but does not apply`).toBe(undefined); continue; }
+          if (values[f.path] !== undefined) expect(back[f.path], f.path).toBe(values[f.path]);
+          else if (f.type === 'money') expect(back[f.path], f.path).toBe('');
+          else expect(back[f.path], f.path).toBe(f.default);
+        }
+        expect(Object.keys(back).filter((p) => p !== 'household' && !SPEND.some((f) => f.path === p))).toEqual([]);
+        expect(checkScreen(root, state)).toEqual([]);
+      }), { numRuns: 80, seed: 17 });
     });
   });
 

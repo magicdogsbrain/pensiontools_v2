@@ -136,23 +136,25 @@ describe('readyMark — partial', () => {
 });
 
 describe('stepStates for A and B', () => {
-  it('A: numbers done when it parses; the answer when final; ages only once the full detail is there', () => {
+  it('A: numbers done when its own boxes parse; the spending when there is a figure; the answer when final; ages only once the full detail is there', () => {
     const s = at(typedA(), 'a', 'numbers');
-    expect(states(s, 'a')).toEqual({ numbers: 'current', answer: 'open', ages: 'open', keep: 'open' });
+    expect(states(s, 'a')).toEqual({ numbers: 'current', spend: 'done', answer: 'open', ages: 'open', keep: 'open' });
+    expect(states(at(typedA(fresh(), { spend: '' }), 'a', 'spend'), 'a')).toEqual({ numbers: 'done', spend: 'current', answer: 'open', ages: 'open', keep: 'open' });
+    expect(states(at(typedA(fresh(), { pot: '' }), 'a', 'spend'), 'a')).toMatchObject({ numbers: 'open', spend: 'current' });
     const done = at(answered(s, 'a', resultA({ detail: 'chart' })), 'a', 'answer');
-    expect(states(done, 'a')).toEqual({ numbers: 'done', answer: 'current', ages: 'open', keep: 'open' });
+    expect(states(done, 'a')).toEqual({ numbers: 'done', spend: 'done', answer: 'current', ages: 'open', keep: 'open' });
     const all = at(answered(done, 'a', { ...resultA({ detail: 'all' }) }), 'a', 'numbers');
     expect(states(extend(at(done, 'a', 'numbers'), 'a'), 'a').ages).toBe('open');
     const full = reduce(extend(at(done, 'a', 'numbers'), 'a'), { type: A.ANSWER_FINAL, q: 'a', inputsKey: currentKey(done, 'a'), result: resultA({ detail: 'all' }) });
-    expect(states(full, 'a')).toEqual({ numbers: 'current', answer: 'done', ages: 'done', keep: 'open' });
+    expect(states(full, 'a')).toEqual({ numbers: 'current', spend: 'done', answer: 'done', ages: 'done', keep: 'open' });
     expect(states(all, 'a').numbers).toBe('current');
   });
   it('B: choices done once the grid is there', () => {
     const s = answered(at(typedB(), 'b', 'answer'), 'b', resultB());
-    expect(states(s, 'b')).toEqual({ numbers: 'done', answer: 'current', choices: 'open', keep: 'open' });
+    expect(states(s, 'b')).toEqual({ numbers: 'done', spend: 'done', answer: 'current', choices: 'open', keep: 'open' });
     const ext = extend(s, 'b');
     const full = reduce(ext, { type: A.ANSWER_FINAL, q: 'b', inputsKey: ext.answers.b.inputsKey, result: resultB({ detail: 'grid' }) });
-    expect(states(full, 'b')).toEqual({ numbers: 'done', answer: 'current', choices: 'done', keep: 'open' });
+    expect(states(full, 'b')).toEqual({ numbers: 'done', spend: 'done', answer: 'current', choices: 'done', keep: 'open' });
     expect(states(reduce(full, set('b', 'you.pot', '1')), 'b').choices).toBe('open');
   });
 });

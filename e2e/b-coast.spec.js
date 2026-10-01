@@ -59,7 +59,7 @@ test.describe('J6 — could I pay in less? (question B)', () => {
       const file = record(testInfo, `first-answer-b/${testInfo.project.name}.json`, counts);
       await testInfo.attach('first-answer-b.json', { path: file, contentType: 'application/json' });
       expect(counts.mustFill).toBeLessThanOrEqual(BUDGET.mustFill);
-      expect(counts.screens).toEqual(['front', 'b.numbers', 'b.answer']);
+      expect(counts.screens).toEqual(['front', 'b.numbers', 'b.spend', 'b.answer']);
       expect(counts.clicks).toBeLessThanOrEqual(BUDGET.clicks);
       expect(counts.popUps).toBe(0);
       expect(counts.waitFirstSlowedMs).toBeLessThanOrEqual(BUDGET.firstMs);

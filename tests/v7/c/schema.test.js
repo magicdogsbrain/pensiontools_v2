@@ -181,7 +181,10 @@ describe('the first state and the screen by name', () => {
   it('initialState is plain data in the agreed shape', () => {
     const s = initialState({ today: '2026-09-30', build: 'test' });
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-    expect(Object.keys(s)).toEqual(['route', 'env', 'session', 'plan', 'draft', 'answers', 'ui']);
+    // `budget` (the household's budget sheet) and `keep` ("Save this as a plan"): budget-step.md, save-as-plan.md C.2, C.5
+    expect(Object.keys(s)).toEqual(['route', 'env', 'session', 'plan', 'draft', 'answers', 'budget', 'keep', 'ui']);
+    expect(s.budget).toBeNull();
+    expect(Object.keys(s.keep).sort()).toEqual(Object.keys(s.draft).sort());
     expect(s.env).toMatchObject({ today: '2026-09-30', build: 'test', historyEnd: null });
     expect(s.session).toEqual({ kind: 'none' });
     expect(s.plan).toBeNull();

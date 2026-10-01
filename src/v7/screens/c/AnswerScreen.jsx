@@ -8,7 +8,7 @@
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS } from '../../components/index.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel } from '../../components/index.js';
 import { isCurrent } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
@@ -34,7 +34,7 @@ function ToSaver({ q, dispatch, children }) {
   return <LinkButton testid={`c.next.${q}`} href={OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
 }
 
-/** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension; then "Keep". */
+/** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Save this as a plan" follows. */
 function WhatNext({ result, dispatch }) {
   const working = (
     <div class="next-group" key="working" data-testid="c.next.working">
@@ -57,10 +57,6 @@ function WhatNext({ result, dispatch }) {
     <section class="block next" data-region="next" aria-labelledby="next-title">
       <h2 id="next-title">{C.answer.nextTitle}</h2>
       {alreadyStopped(result) ? [stopped, working] : [working, stopped]}
-      <p class="next-keep">
-        {/* "Keep" is not in the preview yet: a quiet link that says so, never the thing to do next */}
-        <LinkButton kind="quiet" testid="c.action.keep" href={href.step('c', 'keep')}>{C.buttons.keepNotYet}</LinkButton>
-      </p>
     </section>
   );
 }
@@ -135,8 +131,10 @@ export function AnswerScreen(state, dispatch) {
               )
               : <><Sentence s={s.nothing} source={result} class="nothing" />{warnings}{take}{result.status !== 'none' && madeOf}{assumed}</>}
         </div>
+        <BudgetAgainstC state={state} />
         <TryAChange state={state} form={form} result={result} dispatch={dispatch} />
         <WhatNext result={result} dispatch={dispatch} />
+        <KeepPanel state={state} q="c" dispatch={dispatch} />
         <p class="full-detail"><LinkButton testid="c.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? C.buttons.fullDetailCouple : C.buttons.fullDetail}</LinkButton></p>
       </>
     );

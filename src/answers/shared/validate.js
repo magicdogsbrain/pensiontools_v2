@@ -12,7 +12,7 @@
  * Types (step 4 brief, conflict 25): money, age, choice, yesNo, and from step 4 `percent` (a number with up to one
  * decimal; "%" and spaces accepted) and `count` (a whole number).
  */
-import { SAVING } from './rules.js';
+import { SAVING, RULES } from './rules.js';
 import { startBeforeEveryPension, payingInPast75, peopleFromValues } from './schemaParts.js';
 
 export const MESSAGE_IDS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
@@ -158,6 +158,9 @@ function checkRules(schema, values, env, errors) {
     if (stopAge < you) put('stop-not-before-now');
     if (stopAge <= you) put('stop-after-now');
   }
+  // A's "show me ages" lists ages from today's to 75 (RULES.stopAgeMax): past 75 there is none to show. Said on the
+  // form, so the answer is never asked (it would return `invalid` with the same id).
+  if (values['stop.kind'] === 'ages' && you > RULES.stopAgeMax) put('stop-ages-past-75');
   const stopIn = typeof stopAge === 'number' ? Math.max(0, stopAge - you) : 0;
   if (typeof endAge === 'number' && ('stop.age' in values || values['stop.kind'] === 'ages')) {
     if (endAge <= younger + stopIn) put('end-after-stop');

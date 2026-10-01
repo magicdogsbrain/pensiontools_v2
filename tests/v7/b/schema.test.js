@@ -217,17 +217,17 @@ describe('the rules between fields', () => {
 
 // ---- The shell's data for B: the rail and the registry (step 4 brief 4.12, 4.14). ---------------------------------
 describe('the shell\'s data for question B', () => {
-  it('QUESTION_B has the four steps of the brief, and every "needs" names a field of the input list or the answer', async () => {
+  it('QUESTION_B has the steps of the brief with the budget step (budget-step.md) and keep built (save-as-plan.md), and every "needs" names a field of the input list or the answer', async () => {
     const { QUESTION_B, NEXT_B } = await import('../../../src/v7/rail/b.js');
     expect(QUESTION_B.id).toBe('b');
-    expect(QUESTION_B.steps.map((s) => s.id)).toEqual(['numbers', 'answer', 'choices', 'keep']);
-    expect(QUESTION_B.steps.map((s) => s.optional)).toEqual([false, false, true, true]);
-    expect(QUESTION_B.steps.map((s) => s.built)).toEqual([true, true, true, false]);
-    expect(QUESTION_B.steps.map((s) => s.end)).toEqual([false, false, false, true]);
+    expect(QUESTION_B.steps.map((s) => s.id)).toEqual(['numbers', 'spend', 'answer', 'choices', 'keep']);
+    expect(QUESTION_B.steps.map((s) => s.optional)).toEqual([false, false, false, true, true]);
+    expect(QUESTION_B.steps.map((s) => s.built)).toEqual([true, true, true, true, true]);
+    expect(QUESTION_B.steps.map((s) => s.end)).toEqual([false, false, false, false, true]);
     for (const s of QUESTION_B.steps) for (const n of s.needs) expect(n === 'answer' || byPath.has(n), n).toBe(true);
-    expect(QUESTION_B.steps[1].needs).toEqual(['you.age', 'you.pot', 'you.payIn.total', 'stop.age', 'spend.amount']);
+    expect(QUESTION_B.steps[2].needs).toEqual(['you.age', 'you.pot', 'you.payIn.total', 'stop.age', 'spend.amount']);
     // 'b.choices': on the grid step itself, read or press a cell — never "try two together" (review of 1 Oct 2026)
-    expect(NEXT_B).toEqual(['b.retired', 'b.failed', 'b.working', 'b.blank', 'b.fix', 'b.ready', 'b.choices', 'b.none', 'b.short', 'b.onCourse']);
+    expect(NEXT_B).toEqual(['b.retired', 'b.failed', 'b.working', 'b.blank', 'b.spend', 'b.fix', 'b.ready', 'b.keep', 'b.choices', 'b.none', 'b.short', 'b.onCourse']);
   });
   it('answerB is registered under ANSWERS.b with SCHEMA_B, and the worker\'s question ids are the registry\'s', async () => {
     const { ANSWERS } = await import('../../../src/answers/index.js');

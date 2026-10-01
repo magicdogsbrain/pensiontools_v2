@@ -227,10 +227,11 @@ const anyAction = fc.oneof(
 );
 
 describe('any sequence of actions', () => {
-  it('the generator covers every action type (draft/carry and answer/extend need A or B open: reduce.ab.test.js)', () => {
+  it('the generator covers every action type (draft/carry, answer/extend, the budget step and saving: reduce.ab.test.js)', () => {
     const seen = new Set(fc.sample(anyAction, 2000).map((a) => a.type));
     const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND];
-    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t)).sort());
+    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend)\//.test(t) || t === A.DRAFT_ONWARD);
+    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t)).sort());
   });
   it('the state survives JSON, and plan and session never change', () => {
     fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {
@@ -241,7 +242,7 @@ describe('any sequence of actions', () => {
         expect(s.session).toEqual({ kind: 'none' });
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'draft', 'env', 'plan', 'route', 'session', 'ui']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'plan', 'route', 'session', 'ui']);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);
     }), { numRuns: 300 });
   });

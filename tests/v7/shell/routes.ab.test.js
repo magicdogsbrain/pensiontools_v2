@@ -19,11 +19,11 @@ const ROWS = [
   ['#/a/numbers', r('step', 'a', 'numbers'), 'a.numbers'],
   ['#/a/answer', r('step', 'a', 'answer'), 'a.answer'],
   ['#/a/ages', r('step', 'a', 'ages'), 'a.ages'],
-  ['#/a/keep', r('step', 'a', 'keep'), 'notBuilt'],
+  ['#/a/keep', r('step', 'a', 'keep'), 'a.keep'],
   ['#/b/numbers', r('step', 'b', 'numbers'), 'b.numbers'],
   ['#/b/answer', r('step', 'b', 'answer'), 'b.answer'],
   ['#/b/choices', r('step', 'b', 'choices'), 'b.choices'],
-  ['#/b/keep', r('step', 'b', 'keep'), 'notBuilt'],
+  ['#/b/keep', r('step', 'b', 'keep'), 'b.keep'],
   ['#/c/answer', r('step', 'c', 'answer'), 'c.answer'],
   ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
 ];

@@ -6,7 +6,92 @@ a line in the pull request (step 4 brief 7, point 3).
 
 ## Exceptions
 
-(none)
+### One step in "more never pays less" (the owner's decision, 1 Oct 2026, on step 4 brief section 10, J16)
+
+Today's engine is not monotone at the £10 grain for some households (tests/v7/c/exceptions.md, engine behaviour 6) and
+the band search assumes it is. The relations of the family "more in never pays less, less spent never lasts less" are
+asserted to ONE step — £10 of an amount, one life of a count, the verdict a grade lower only with the count it follows,
+the bad-case age only while the count holds — and no more (tests/v7/oracles/oneStep.mjs):
+
+| Relation | What may move one step |
+|---|---|
+| PA1 more going in | the shown row's band (£10) and count (one life) |
+| PA2 more in the pot today | the same |
+| PA4 a lower spend | the count at the spend (one life), and the verdict and bad-case age with it. The band and the pots stay identical |
+| PA5 part-time work | the band and count with it; the careful amount "without" it, which is searched from the row with it, to £10 of the answer without it (its verdict, count and bad-case age are one run per life: exact) |
+| A-I10 (checkAnswerA) part-time never hurts | the careful amount £10 (as before); the counts with and without it, and with one more year of it, one life (seed -1221394728: a couple spending £15,190 a month — 11 lives of 20 → 10 with one more year of £30,000 part-time pay); the bad-case age while the count holds |
+| M-A2 more State Pension or final-salary pension | the band and count |
+| M-A3 a higher spend | the count at the spend (one life) up; the band stays identical |
+| PA10 a longer life to cover (the mirror, as C's M3) | the band up £10, the count up one life |
+
+Before this a couple already had one step and one life in PA1, PA2 and PA5 (two pots drained in a fixed ratio); one
+person now has the same. The pots at the stop, what is paid in and the guaranteed income are worked out, not searched,
+and stay exact; every other relation is strict. No strict miss of M-A2 turned up below £10,000 a month in the hunts of 1 Oct
+2026 (210 random households); the step is the decision's allowance, held to the same width for everyone.
+
+### An amount of £10,000 a month or more — reported, not asserted (PA1, PA2, PA4, PA5, PA10, M-A2, M-A3 and A-I10)
+
+One step is not enough at that size, and every miss of more than one step in the NIGHTLY=1 runs and hunts of 1 Oct 2026
+was there, none below (tests/v7/oracles/oneStep.mjs). Each of the three amounts is taken on its own (`amountsToAStep`): one
+of £10,000 a month or more before the change has its move printed as a finding, not asserted; the others hold to one
+step. A household whose careful amount is at or over it has its count, verdict and bad-case age reported the same way (`largeHousehold`),
+and so has A-I10's careful amount with and without part-time pay.
+
+- **A couple's fixed-ratio drain.** Part-time pay is the first person's, and a couple's two pots drain in a fixed ratio
+  (tests/v7/c/exceptions.md 4); more for one of the two moves the ratio, so the band can fall in proportion to the amount.
+  Not a search artefact: for the first case below every life was checked at every £10 for 30 steps either side of the good
+  amount, each lasts-at-k was monotone, and the band equals the sorted mosts exactly with and without the pay. For one
+  person the pay never lowered the band (the same household as one person: £27,900 → £27,960). Of 320 random couples with
+  part-time pay (20 futures) 5 fell by more than a step, all with a careful amount over £18,000 a month and pots of
+  £4,900,000 to £55,000,000, by 0.2% to 1.3%.
+- **One person drawing very large amounts**, where today's engine is not monotone at £10 and the band depends on where its
+  search starts (the £100,000 point fixed in pounds of the day, tests/v7/c/exceptions.md 1).
+
+Counterexamples (NIGHTLY=1 runs, 1 Oct 2026, 20 futures):
+- PA5, seed 1899557978: a couple of 54 and 57 with nothing in a pot, £10,000 a month going in and £10,000 a month into
+  savings, stopping at 68, adventurous once stopped, to 100, part-time £12,570 for 6 years: the good amount £26,130 →
+  £26,110.
+- A-I10, seed -1692583095: a couple of 18 and 18, the partner with £150,000, stopping at 75, part-time £5,226 for 15 years,
+  adventurous while saving, to 105: the careful amount £10,450 without the pay, £10,430 with it.
+- PA1, seed -903263254: a couple, you 55 with nothing, your partner 70 with £10,000,000 and £10,000 a month into savings,
+  stopping at 56, part-time £10,814 for 2 years, to 75: £124 a month more going in moved the middling amount from £43,870
+  to £43,850.
+- PA5, seed 1958488117: a couple, you 40 paying in £5,000 a month, your partner 57 with £1,073,100, stopping at 66,
+  cautious, 1% charge, to 100, part-time £12,570 for a year: the careful amount rose (£8,070 → £8,090), the good one
+  fell £30 (£20,040 → £20,010) — why each amount is taken on its own.
+- PA5, seed -1451045040: one person of 69 with £1,147,935 and a £50,270 final-salary pension, £5,000 a month going in,
+  stopping at 75, to 76 (one year of drawing), part-time £6,000 for a year: the careful amount "without" the pay, searched
+  from the row with it, came out £140 from the answer without it worked out on its own.
+
+## Fixed on 1 Oct 2026 (not exceptions)
+
+- **The same inputs, two answers.** A second call of the same inputs started its band search from the first call's
+  amounts (the remembered hint), and where the engine is not monotone it could end elsewhere: one person of 24 with
+  £1,073,100, a £12,570 final-salary pension from 50, stopping at 75 on £5,400 a month (a NIGHTLY=1 run, 20 futures)
+  answered a good amount of £48,360, then £48,410. Only a pass over fewer lives is a hint now (answer.js, `smallerPass`:
+  the first figure's 100 lives for the final 1,000), so the same inputs start the same search every time. PA7 no longer
+  needs its "only where two calls agree" precondition: it is byte for byte again; PA4's and M-A3's "the band does not
+  move with the spend" are exact for the same reason; PA11 and PA12 were already strict.
+- **"Show me ages" from 76.** The form takes ages to 100 (C's field) but A shows stop ages to 75, so someone of 76 asking
+  to be shown ages had no row at all, and the answer threw (`livesList` was asked for a life of -Infinity years) — the
+  screen would have said "Sorry, we could not work that out". Found by tests/v7/a/reuse.test.js R1 (seed 20261001). The
+  answer now returns `invalid` with `{ field: 'stop.kind', messageId: 'stop-ages-past-75' }`
+  (tests/v7/a/foundByRandom.test.js). The form still lets it through: a rule and its words belong to the form
+  (validate.js, copy/a.js) — handed to the V7 screens.
+
+### The every-age step from the answer step's rows (step 4 brief 10, J17) — byte for byte, but for amounts over £10,000
+
+The every-age step now takes the rows the answer step worked out (the worker offers its last result as `env.reuse`), and
+each other row's search starts from the line through the two rows before it. Neither moves a figure where today's engine
+is monotone at £10: the four fixtures give the same bytes as the committed code for the answer step and the every-age step
+at 1,000 lives through the real worker handler, and the every-age answer from the held rows is the one worked out cold at
+100 lives (tests/v7/a/reuse.test.js R1; R4 checks every row against a search with no hint). Where an amount is over £10,000
+a month a band can depend on where its search starts, and there the every-age table now repeats the answer step's rows
+exactly. Measured on 34 random households at 100 lives against the committed code, in the worker's order (answer step,
+then every age): the answer step was byte for byte the same in all 34, and the every-age step in 31; the other 3 differed
+in one row each, over £20,000 a month, by 2 to 4 steps (£96,120 → £96,160, £102,650 → £102,630, £20,640 → £20,610). R1's
+random households assert the rows held equal the answer step's always, and the whole answer equal to the cold one below
+£10,000 a month; above it a difference is printed (seed -109027457: one person of 42 with £10,000,000, "show me ages").
 
 ## Findings, not rules (step 4 brief, conflict 52)
 
@@ -69,4 +154,5 @@ fixed or narrowed to where it holds, with the reason:
   the SAME inputs differed (good £390,650 then £390,680 a month) for a £3,000,000 pot and £10,000,000 of savings: the
   search starts from the remembered amounts of the last call, and for this household today's engine is not monotone at
   £10 steps (tests/v7/c/exceptions.md, engine behaviour 6). PA7 now first checks that the household's answer does
-  not depend on where the search starts, and compares only then (seed −1821044511).
+  not depend on where the search starts, and compares only then (seed −1821044511). *Later the same day: the cause is
+  fixed — a pass of the same size is no longer a hint — and PA7 is byte for byte again (above, "Fixed on 1 Oct 2026").*

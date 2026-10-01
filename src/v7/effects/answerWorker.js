@@ -8,6 +8,11 @@
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
+ *
+ * The last result of each question stays in the worker and is offered to that question's next answer as `env.reuse`
+ * (unless the message brings its own). An answer takes what it can of it after checking it is for the same inputs and
+ * the same lives, or ignores it: question A's every-age step takes the rows its answer step has just worked out (step 4
+ * brief 10, J17); C and B ignore it. It never leaves the worker, and it changes no figure — only how long it takes.
  */
 import { ANSWERS } from '../../answers/index.js';
 import { VERSION } from '../../constants.js';
@@ -27,6 +32,7 @@ function historyEndOf(answers) {
 
 export function createHandler(answers = ANSWERS) {
   let today = null;
+  const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   return function handle(msg, post) {
     const id = msg && msg.id;
     try {
@@ -41,6 +47,7 @@ export function createHandler(answers = ANSWERS) {
         if (!entry || typeof entry.answer !== 'function') throw new Error(`no answer for question "${msg.q}"`);
         const env = { ...(msg.env || {}) };
         if (!env.today && today) env.today = today;
+        if (!('reuse' in env) && last.has(msg.q)) env.reuse = last.get(msg.q);
         let lastStep = -1;
         env.onProgress = (done, total) => {
           const step = total > 0 ? Math.floor((done * PROGRESS_STEPS) / total) : 0;
@@ -48,7 +55,9 @@ export function createHandler(answers = ANSWERS) {
           lastStep = step;
           post({ id, progress: { done, total } });
         };
-        post({ id, result: cloneSafe(entry.answer(msg.inputs, env)) });
+        const result = entry.answer(msg.inputs, env);
+        if (result && typeof result === 'object' && result.status !== 'invalid') last.set(msg.q, result);
+        post({ id, result: cloneSafe(result) });
         return;
       }
       throw new Error(`unknown message "${msg.type}"`);

@@ -2,7 +2,8 @@
  * The income staircase — the reader's own steps (go-go / go-slow / no-go) drawn as bars by age,
  * with the budget's essentials as a faint reference line and today's budget figure as a marker.
  * Pure SVG. steps: [{fromAge, amount}], ageNow, horizonAge, essentials (£/yr gross or 0),
- * budgetGross (£/yr, the "today" figure, or 0).
+ * budgetGross (£/yr, the "today" figure, or 0), budgetLabel (the marker's words: "today's budget"; on a plan made from a
+ * V7 answer "your budget (a guide)" — its target is the figure the person chose, not the budget).
  */
 import { amountAtAge as shapeAmount } from '../services/IncomeSchedule.js';
 
@@ -33,7 +34,7 @@ export function suggestSteps(step1Amount, ageNow, essentials = 0) {
  * `other` = [{ annual, fromAge, toAge, label }] — DB pensions / other taxable income. The bar is drawn
  * bottom-up: State Pension (yellow), other income (grey), and what the pension pot must supply on top.
  */
-export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, budgetGross = 0, sp = null, other = [], prevVals = null, floorVals = null, events = [] }, o = {}) {
+export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, budgetGross = 0, budgetLabel = 'today\'s budget', sp = null, other = [], prevVals = null, floorVals = null, events = [] }, o = {}) {
   const W = o.width || 960, H = o.height || 240, padL = 56, padR = 16, padT = 26, padB = 34;
   const n = Math.max(1, horizonAge - ageNow + 1);
   // Floored at the guaranteed income of the year (State Pension + other income): a target below
@@ -78,7 +79,7 @@ export function incomeStaircaseSvg({ steps, ageNow, horizonAge, essentials = 0, 
     s += `<text x="${(xm + 4).toFixed(1)}" y="${ty.toFixed(1)}" font-size="10" fill="${col}"${xm > W * 0.7 ? ' text-anchor="end"' : ''}${xm > W * 0.7 ? ` dx="-8"` : ''}>${esc(label)}</text>`;
   });
   if (essentials > 0) s += `<line x1="${padL}" y1="${y(essentials).toFixed(1)}" x2="${W - padR}" y2="${y(essentials).toFixed(1)}" stroke="var(--text,#eee)" stroke-dasharray="5 3" opacity=".8"/><text x="${W - padR}" y="${(y(essentials) - 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text,#eee)">your essentials ${gbpK(essentials)} (from the budget)</text>`;
-  if (budgetGross > 0) s += `<line x1="${padL}" y1="${y(budgetGross).toFixed(1)}" x2="${padL + colW * 3}" y2="${y(budgetGross).toFixed(1)}" stroke="#facc15" stroke-width="2"/><text x="${(padL + colW * 3 + 4).toFixed(1)}" y="${(y(budgetGross) + 3).toFixed(1)}" font-size="10" fill="#facc15">today's budget ${gbpK(budgetGross)}</text>`;
+  if (budgetGross > 0) s += `<line x1="${padL}" y1="${y(budgetGross).toFixed(1)}" x2="${padL + colW * 3}" y2="${y(budgetGross).toFixed(1)}" stroke="#facc15" stroke-width="2"/><text x="${(padL + colW * 3 + 4).toFixed(1)}" y="${(y(budgetGross) + 3).toFixed(1)}" font-size="10" fill="#facc15">${esc(budgetLabel || 'today\'s budget')} ${gbpK(budgetGross)}</text>`;
   for (let i = 0; i < n; i += 5) s += `<text x="${(padL + i * colW + colW / 2).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">age ${ageNow + i}</text>`;
   const legend = [['#60a5fa', 'from the pot: go-go'], ['#818cf8', 'go-slow'], ['#a78bfa', 'no-go'], ['#f97316', 'below essentials']]; if (anySp) legend.unshift(['#facc15', 'State Pension']); if (anyOther) legend.splice(anySp ? 1 : 0, 0, ['#9ca3af', 'other income']);
   let lx = padL; for (const [c, t] of legend) { s += `<rect x="${lx}" y="${H - 12}" width="10" height="10" fill="${c}"/><text x="${lx + 14}" y="${H - 3}" font-size="10" fill="var(--text-muted,#999)">${esc(t)}</text>`; lx += 14 + t.length * 5.6 + 18; }

@@ -13,10 +13,12 @@ export const B = {
   title: 'Am I saving enough, and what should I pay in?',
 
   steps: {
-    numbers: { label: 'What have you saved, what are you paying in, and what do you want?', short: 'Your numbers' },
+    numbers: { label: 'What have you saved, and what are you paying in?', short: 'Your numbers' },
+    /** The budget step (research/v7/budget-step.md). Its own words are in copy/budget.js. */
+    spend:   { label: 'What would you spend?', short: 'What you spend' },
     answer:  { label: 'Am I on course, and what should I pay in?', short: 'What to pay in' },
     choices: { label: 'What if I stop later, or pay in more, or both?', short: 'Two levers together' },
-    keep:    { label: 'Keep this plan?', short: 'Keep this plan' }
+    keep:    { label: 'Save this as a plan?', short: 'Save as a plan' }
   },
 
   rail: {
@@ -33,16 +35,20 @@ export const B = {
     'b.retired':  'This question is for people who are still paying in. Your figures say you have stopped.',
     'b.failed':   'Next: try again. Your numbers are still here.',
     'b.working':  'Working out your answer.',
-    'b.blank':    'Next: your age, your pot, what goes in each month, the age you have in mind and what you want to spend.',
+    'b.blank':    'Next: your age, your pot, what goes in each month and the age you have in mind.',
+    'b.spend':    'Next: what would you spend? Work it out line by line, or put in one figure.',
     'b.fix':      'Next: check the figure marked below.',
     'b.fix.unmarked': 'Next: fill in the box that is still empty, then press "Show what I need".',
     'b.ready':    'Next: press "Show what I need".',
+    'b.keep':     'Next: check the name, then press "Save as a plan".',
+    /** b.keep when this answer cannot be saved. */
+    'b.keep.not': 'Next: back to your answer.',
     /** On the grid step itself (two levers together). */
     'b.choices':  'Next: press a cell to put that stop age and that pay-in in your numbers, or go back to your answer.',
     'b.choices.couple': 'Next: compare the stop ages and pay-ins, then go back to your answer.',
     'b.none':     'Next: try a later age or a lower amount below.',
     'b.short':    'Next: pick one of the ways to make it fit below, or try two together.',
-    'b.onCourse': 'Next: you are on course. Try a change below, or keep this plan so you can come back to it.',
+    'b.onCourse': 'Next: you are on course. Try a change below, or save this as a plan so you can come back to it.',
     unbuilt:      'Next: back to your answer.'
   },
 
@@ -50,8 +56,12 @@ export const B = {
   buttons: {
     show: 'Show what I need',
     retry: 'Try again',
-    keep: 'Keep this plan',
-    keepNotYet: 'Keep this plan (not in the preview yet)',
+    keep: 'Save this as a plan',
+    keepNotYet: 'Save this as a plan (not in the preview yet)',
+    /** The numbers step's button: on to the spend step (draft/onward). */
+    onward: 'Next: what you would spend',
+    /** The rail's button to the spend step. */
+    spend: 'What would you spend?',
     back: 'Back to your answer',
     change: 'Change my numbers',
     addPartner: 'Add a partner',
@@ -78,7 +88,7 @@ export const B = {
     partnerTitle: 'Your partner',
     partnerDone: 'You both stop in the same year. The number and what to pay in are for the two of you together.',
     moreTitle: 'More detail (all optional)',
-    stays: 'Your figures stay in this browser until you choose to keep the plan.',
+    stays: 'Your figures stay in this browser until you choose to save them as a plan.',
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
     levelWho: { single: 'one person', couple: 'a couple' }
   },

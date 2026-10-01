@@ -7,7 +7,7 @@
  * could be by the stop age, the whole-life line, the ways to make it fit (not when on course), what was assumed; try a
  * change; what next. Computes nothing.
  */
-import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton } from '../../components/index.js';
+import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel } from '../../components/index.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
@@ -17,7 +17,8 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 /**
  * "What next?" for B: A with the figures carried; C from the stop age (C is asked from what is typed — the pot now,
- * what goes in, the savings — never from a pot worked out here), not before a pension can be touched; keep.
+ * what goes in, the savings — never from a pot worked out here), not before a pension can be touched. "Save this as a
+ * plan" follows it, at the foot of the answer.
  */
 function WhatNext({ result, dispatch }) {
   const t = B.answer;
@@ -29,9 +30,6 @@ function WhatNext({ result, dispatch }) {
         <li><LinkButton testid="b.next.a" href={href.step('a', 'numbers')} onClick={carry('a')}><span>{B.buttons['next.a']}</span></LinkButton></li>
         <ToC q="b" result={result} k="stop.age" dispatch={dispatch} words={t} />
       </ul>
-      <p class="next-keep">
-        <LinkButton kind="quiet" testid="b.action.keep" href={href.step('b', 'keep')}>{B.buttons.keepNotYet}</LinkButton>
-      </p>
     </section>
   );
 }
@@ -105,8 +103,10 @@ function Answer({ state, dispatch, frame }) {
         {!onCourse && <Levers result={result} dispatch={dispatch} />}
         {(result.assumed || []).length > 0 && <Assumed q="b" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>
+      <SpendLine state={state} q="b" dispatch={dispatch} />
       <SaverTryAChange q="b" state={state} form={form} result={result} dispatch={dispatch} />
       <WhatNext result={result} dispatch={dispatch} />
+      <KeepPanel state={state} q="b" dispatch={dispatch} />
       <p class="full-detail"><LinkButton testid="b.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? B.buttons.fullDetailCouple : B.buttons.fullDetail}</LinkButton></p>
     </>
   );

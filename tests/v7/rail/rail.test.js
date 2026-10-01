@@ -29,7 +29,7 @@ const answered = (s, kind = A.ANSWER_FINAL, r = result()) => {
   return run(s, { type: A.ANSWER_WORKING, q: 'c', inputsKey: key }, { type: kind, q: 'c', inputsKey: key, result: r });
 };
 const STEP_IDS = QUESTION_C.steps.map((s) => s.id);
-const SCREENS = ['front', 'c.numbers', 'c.answer', 'soon', 'notBuilt', 'a.numbers', 'a.answer', 'a.ages', 'b.numbers', 'b.answer', 'b.choices'];
+const SCREENS = ['front', 'c.numbers', 'c.answer', 'c.keep', 'soon', 'notBuilt', 'a.numbers', 'a.spend', 'a.answer', 'a.ages', 'a.keep', 'b.numbers', 'b.spend', 'b.answer', 'b.choices', 'b.keep'];
 /** Joined up (step 4): A, B and C are open; D, E and F are "not in the preview yet". A's and B's rails are checked in rail.ab.test.js. */
 const SOON = ['d', 'e', 'f'];
 const STEPS_OF = (q) => BUILT[q].steps.map((s) => href.step(q, s.id));
@@ -50,7 +50,7 @@ describe('the tables', () => {
   it('question C has the four steps of the brief, in order', () => {
     expect(STEP_IDS).toEqual(['numbers', 'answer', 'ways', 'keep']);
     expect(QUESTION_C.steps.map((s) => s.optional)).toEqual([false, false, true, true]);
-    expect(QUESTION_C.steps.map((s) => s.built)).toEqual([true, true, false, false]);
+    expect(QUESTION_C.steps.map((s) => s.built)).toEqual([true, true, false, true]);      // keep: "Save this as a plan?" (save-as-plan.md)
   });
   it('the front door has six questions, and A, B and C are built', () => {
     expect(QUESTIONS.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
@@ -62,7 +62,8 @@ describe('the tables', () => {
     for (const s of QUESTION_C.steps) for (const n of s.needs) expect(n === 'answer' || paths.has(n), n).toBe(true);
   });
   it('the next sentences are tried in the order of the brief', () => {
-    expect(NEXT_C).toEqual(['c.failed', 'c.working', 'c.blank', 'c.fix', 'c.ready', 'c.answered']);
+    // 'c.keep': on "Save this as a plan?" with an answer — name it and save (save-as-plan.md)
+    expect(NEXT_C).toEqual(['c.failed', 'c.working', 'c.blank', 'c.fix', 'c.ready', 'c.keep', 'c.answered']);
     expect(Object.keys(NEXT).sort()).toEqual([...NEXT_C].sort());
   });
 });
@@ -182,7 +183,7 @@ describe('L6 — questions not built yet are honest', () => {
     expect(frontDoor().find((q) => q.id === 'c')).toEqual({ id: 'c', built: true, href: '#/c/numbers' });
   });
   it('an unbuilt step of C opens the "not in the preview yet" screen and keeps its place on the rail', () => {
-    for (const step of ['ways', 'keep']) {
+    for (const step of ['ways']) {
       const s = goTo(answered(onAnswer(typed())), href.step('c', step));
       expect(screenName(s.route)).toBe('notBuilt');
       const rail = railFor(s);
@@ -207,7 +208,7 @@ describe('railFor — the shape of 4.7', () => {
       ['numbers', 'current', false, true, '#/c/numbers'],
       ['answer', 'open', false, true, '#/c/answer'],
       ['ways', 'open', true, false, '#/c/ways'],
-      ['keep', 'open', true, false, '#/c/keep']
+      ['keep', 'open', true, true, '#/c/keep']
     ]);
     expect(rail.next).toEqual({ id: 'c.blank', button: null });
   });
@@ -351,6 +352,7 @@ function checkRail(state) {
 
 const stateAction = fc.oneof(
   { weight: 3, arbitrary: fc.constant('fill') },                     // the two figures, typed properly
+  fc.constant('keep'),                                               // "Save this as a plan?" with an answer
   fc.constantFrom(...ADDRESSES).map((address) => ({ type: A.ROUTE_SET, route: parse(address) })),
   fc.tuple(fc.constantFrom(...paths), typedValue).map(([path, value]) => set(path, value)),
   fc.constant({ type: A.DRAFT_ASK, q: 'c' }),
@@ -362,6 +364,11 @@ const stateAction = fc.oneof(
 function apply(state, a) {
   if (typeof a !== 'string') return reduce(state, a);
   if (a === 'fill') return run(state, set('you.pot', '250,000'), set('you.age', '58'), set('household', 'single'));
+  if (a === 'keep') {
+    const there = run(state, set('you.pot', '250,000'), set('you.age', '58'), { type: A.ROUTE_SET, route: parse('#/c/keep') });
+    const k = currentKey(there, 'c');
+    return run(there, { type: A.ANSWER_WORKING, q: 'c', inputsKey: k }, { type: A.ANSWER_FINAL, q: 'c', inputsKey: k, result: result(1380) });
+  }
   const key = currentKey(state, 'c');
   if (a === 'working') return key ? reduce(state, { type: A.ANSWER_WORKING, q: 'c', inputsKey: key }) : state;
   const k = state.answers.c.inputsKey;

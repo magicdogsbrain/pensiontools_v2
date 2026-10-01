@@ -8,11 +8,14 @@ export const QUESTION_A = {
   id: 'a',
   steps: [
     { id: 'numbers', optional: false, built: true,  end: false, needs: [] },
+    // The budget step (research/v7/budget-step.md): what you would spend — line by line, or one figure.
+    { id: 'spend',   optional: false, built: true,  end: false, needs: [] },
     { id: 'answer',  optional: false, built: true,  end: false, needs: ['you.age', 'you.pot', 'stop.age', 'spend.amount'] },
     { id: 'ages',    optional: true,  built: true,  end: false, needs: ['answer'] },
-    { id: 'keep',    optional: true,  built: false, end: true,  needs: ['answer'] }
+    // "Save this as a plan" (research/v7/save-as-plan.md): the panel, on a step of its own as well as under the answer.
+    { id: 'keep',    optional: true,  built: true,  end: true,  needs: ['answer'] }
   ]
 };
 
 /** The ids of the next sentences, in the order they are tried (first match wins). */
-export const NEXT_A = ['a.retired', 'a.failed', 'a.working', 'a.blank', 'a.fix', 'a.ready', 'a.no', 'a.close', 'a.yes', 'a.ages', 'a.ages.none'];
+export const NEXT_A = ['a.retired', 'a.failed', 'a.working', 'a.blank', 'a.spend', 'a.fix', 'a.ready', 'a.keep', 'a.no', 'a.close', 'a.yes', 'a.ages', 'a.ages.none'];

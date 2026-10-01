@@ -185,28 +185,37 @@ describe('3 — the start-age stepper', () => {
   });
 });
 
-describe('4 — nothing pushes "keep this plan" while it is not built', () => {
-  it('the answered next line does not mention keeping the plan', () => {
-    expect(C.next['c.answered']).not.toMatch(/keep/i);
+describe('4 — "Save this as a plan" now that it is built (save-as-plan.md); "ways" still says it is not', () => {
+  it('the answered next line does not push saving the plan', () => {
+    expect(C.next['c.answered']).not.toMatch(/keep|save/i);
     const root = renderScreen(load('answer-F1'));
     expect(one(root, 'rail.next').querySelector('[data-next]').textContent).toBe(C.next['c.answered']);
   });
-  it('the What-next button is quiet and says it is not in the preview yet', () => {
+  it('"What next?" holds no saving link; the panel follows it, its button the form\'s own', () => {
     const root = renderScreen(load('answer-F1'));
-    const keep = one(root, 'c.action.keep');
-    expect(keep.className).toContain('btn-quiet');
-    expect(keep.className).not.toContain('btn-primary');
-    expect(keep.textContent).toBe(C.buttons.keepNotYet);
-    expect(keep.textContent).toMatch(/not in the preview yet/);
+    expect(one(root, 'c.action.keep')).toBe(null);
     expect(root.querySelector('[data-region="next"] .btn-primary')).toBe(null);
+    const save = one(root, 'c.action.save');
+    expect(save.getAttribute('type')).toBe('submit');
+    expect(save.closest('[data-region="keep"]')).not.toBe(null);
   });
-  it('the rail\'s button says so too', () => {
+  it('the rail\'s button leads to the step, and says what it is', () => {
     const root = renderScreen(load('answer-F1'));
     const b = one(root, 'rail.next.button');
     expect(b.getAttribute('href')).toBe('#/c/keep');
-    expect(b.textContent).toBe(C.buttons.keepNotYet);
+    expect(b.textContent).toBe(C.buttons.keep);
   });
-  it.each(['ways', 'keep'])('#/c/%s has its own next line and button back to the answer', (step) => {
+  it('#/c/keep with an answer: the name box, and the next line says to check it; no button back to itself', () => {
+    const state = load('answer-F1');
+    state.route = { screen: 'step', q: 'c', step: 'keep', planId: null, focus: null };
+    const root = renderScreen(state);
+    clean(root, state);
+    expect(one(root, 'rail.next').querySelector('[data-next]').textContent).toBe(C.next['c.keep']);
+    expect(one(root, 'rail.next.button')).toBe(null);
+    expect(one(root, 'c.keep.name').value).toBe('From 58 · £1,380 a month');
+    expect(root.textContent).not.toContain(NOT_BUILT.line);
+  });
+  it.each(['ways'])('#/c/%s has its own next line and button back to the answer', (step) => {
     const state = load('answer-F1');
     state.route = { screen: 'step', q: 'c', step, planId: null, focus: null };
     const root = renderScreen(state);
@@ -331,9 +340,9 @@ describe('9, 10 — the styles', () => {
     expect(phone).toMatch(/\.question-c \{ order: -1; \}/);
     expect(phone).toMatch(/\.question-more \{ display: none; \}/);
   });
-  it('at 1024 px and up the four steps share one row', () => {
+  it('at 1024 px and up every step shares one row (four for C, five for A and B with the budget step)', () => {
     const wide = block('@media (min-width: 1024px) {\n  .rail > *');
-    expect(wide).toMatch(/grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+    expect(wide).toMatch(/grid-auto-flow: column; grid-auto-columns: minmax\(0, 1fr\)/);
   });
   it('the preview line is one short line on a phone', () => {
     expect(css).toMatch(/\.preview-short \{ display: none; \}/);
@@ -404,7 +413,7 @@ describe('12 — "What next?" for someone already drawing their State Pension', 
     const groups1 = [...f1.querySelectorAll('[data-region="next"] .next-group')].map((el) => el.getAttribute('data-testid'));
     expect(groups1).toEqual(['c.next.working', 'c.next.stopped']);
     // Every question is still offered, whichever comes first.
-    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/a/numbers?focus=stop.age', '#/b/numbers?focus=you.payIn.total', '#/c/keep', '#/soon/d']);
+    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/a/numbers?focus=stop.age', '#/b/numbers?focus=you.payIn.total', '#/soon/d']);
   });
   it('reads the answer, never the age alone: a start later than now keeps "Still working?" first', () => {
     const state = load('answer-F3');

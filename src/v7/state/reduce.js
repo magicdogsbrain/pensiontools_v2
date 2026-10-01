@@ -11,9 +11,10 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor } from './initial.js';
-import { parsedDraft, appliedPaths, isCurrent, SCHEMAS } from './select.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep } from './initial.js';
+import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, SPEND_PATHS, numbersPaths, skipNoteDue, spendView, keepView } from './select.js';
 import { CARRY, CARRY_OPENS, carryKey } from './carry.js';
+import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 
@@ -25,6 +26,23 @@ const tidyRoute = (r) => parse(format(r));
 
 const withDraft = (state, q, draft) => ({ ...state, draft: { ...state.draft, [q]: draft } });
 const withAnswer = (state, q, answer) => ({ ...state, answers: { ...state.answers, [q]: answer } });
+const keepOf = (state, q) => (state.keep && state.keep[q]) || emptyKeep();
+const withKeep = (state, q, keep) => ({ ...state, keep: { ...(state.keep || {}), [q]: keep } });
+const onStepOf = (route, q, step) => !!route && route.screen === 'step' && route.q === q && route.step === step;
+const KEEP_PROBLEMS = ['empty', 'tooLong', 'storage', 'notReady'];
+/** What V7 can know of a save it sent, on coming back (KEEP_BACK). */
+const KEEP_BACKS = ['waiting', 'taken', 'declined', 'notMade'];
+
+/**
+ * Leaving A's or B's spend step with the "you are skipping the budget" note on screen: it has now been shown, and is
+ * not shown again (budget-step.md: "once").
+ */
+function noteShown(before, after) {
+  const r = before.route;
+  if (!r || r.screen !== 'step' || !SPEND_STEP[r.q] || r.step !== 'spend' || onStepOf(after.route, r.q, 'spend')) return after;
+  if (!skipNoteDue(before, r.q)) return after;
+  return withDraft(after, r.q, { ...after.draft[r.q], skipNoted: true });
+}
 const hasField = (q, path) => !!SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.path === path);
 const closeRail = (ui) => (ui.railOpen ? { ...ui, railOpen: false } : ui);
 /** A's and B's answers carry detail and extending; C's do not, and keep C's shape. */
@@ -90,7 +108,7 @@ export function reduce(state, action) {
 
   switch (action.type) {
     case A.ROUTE_SET:
-      return { ...state, route: tidyRoute(action.route), ui: closeRail(state.ui) };
+      return noteShown(state, { ...state, route: tidyRoute(action.route), ui: closeRail(state.ui) });
 
     // ---- what was typed -------------------------------------------------------------------------------------
     case A.DRAFT_SET: {
@@ -122,18 +140,50 @@ export function reduce(state, action) {
       // Pressing the button asks for every field on the form as it stands: nothing is "revealed" any more.
       const next = draft.asked && !(draft.revealed || []).length ? state : withDraft(state, q, { ...draft, asked: true, revealed: [] });
       const parsed = parsedDraft(state, q);
-      const canAnswer = parsed.ok && BUILT[q] && BUILT[q].steps.some((s) => s.id === 'answer');
+      // A's and B's spend step asks for the spending only: with that right, the answer step opens — and asks there for
+      // anything else still missing (rule R3), never a bounce back to the numbers step.
+      const fromSpend = SPEND_STEP[q] && onStepOf(state.route, q, 'spend') && !SPEND_PATHS.some((p) => parsed.errors[p]);
+      const canAnswer = (parsed.ok || fromSpend) && BUILT[q] && BUILT[q].steps.some((s) => s.id === 'answer');
       if (!canAnswer) {
         // A figure that needs another look inside "Add more detail" (C's "make it last to age" before the start age, the
         // reviewers' dead end): the block opens, so the box and its sentence are on screen for the form to focus.
         const inMore = SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.group === 'more' && parsed.errors[f.path]);
         return inMore && !next.ui.open.includes('more') ? { ...next, ui: { ...next.ui, open: [...next.ui.open, 'more'] } } : next;
       }
-      return { ...next, route: tidyRoute({ screen: 'step', q, step: 'answer', planId: null, focus: null }), ui: closeRail(next.ui) };
+      return noteShown(state, { ...next, route: tidyRoute({ screen: 'step', q, step: 'answer', planId: null, focus: null }), ui: closeRail(next.ui) });
+    }
+    case A.DRAFT_ONWARD: {
+      // A's and B's numbers step: its own boxes checked (the spending is on the next step). Something wrong → those
+      // boxes are marked, as if left; all right → the spend step.
+      if (!draft || !SPEND_STEP[q]) return refuse(`draft/onward: question "${q}" has no spend step`);
+      const parsed = parsedDraft(state, q);
+      const wrong = numbersPaths(state, q).filter((p) => parsed.errors[p]);
+      if (!wrong.length) return { ...state, route: tidyRoute({ screen: 'step', q, step: 'spend', planId: null, focus: null }), ui: closeRail(state.ui) };
+      const touched = [...draft.touched];
+      for (const p of wrong) if (!touched.includes(p)) touched.push(p);
+      const next = touched.length === draft.touched.length ? state : withDraft(state, q, { ...draft, touched });
+      const inMore = SCHEMAS[q].fields.some((f) => f.group === 'more' && wrong.includes(f.path));
+      return inMore && !next.ui.open.includes('more') ? { ...next, ui: { ...next.ui, open: [...next.ui.open, 'more'] } } : next;
+    }
+    case A.SPEND_HOW: {
+      if (!draft || !SPEND_STEP[q] || !['lines', 'one'].includes(action.how)) return refuse(`spend/how: "${action.how}" for "${q}"`);
+      const how = draft.spendHow === action.how ? state : withDraft(state, q, { ...draft, spendHow: action.how });
+      // Working it out line by line starts the household's one sheet: the catalogue's lines, every amount blank.
+      return action.how === 'lines' && !state.budget ? { ...how, budget: newSheet() } : how;
+    }
+    case A.BUDGET_USE: {
+      // The ONE way from the budget to a figure: its total, to the pound, into the spending box, as typed text.
+      if (!draft || !SPEND_STEP[q]) return refuse(`budget/use: question "${q}" has no spend step`);
+      const view = spendView(state, q);
+      if (!view.budget || !view.canUse) return state;
+      const values = { ...draft.values, 'spend.kind': 'amount', 'spend.amount': asTyped(view.budget.total) };
+      const touched = draft.touched.includes('spend.amount') ? draft.touched : [...draft.touched, 'spend.amount'];
+      return withDraft(state, q, { ...draft, values, touched, spendHow: 'lines', ...('carriedFrom' in draft ? { carriedFrom: null } : {}) });
     }
     case A.DRAFT_RESET: {
       if (!draft) return refuse(`draft/reset: no question "${q}"`);
-      return withAnswer(withDraft(state, q, emptyDraftFor(q)), q, emptyAnswerFor(q));
+      const reset = withAnswer(withDraft(state, q, emptyDraftFor(q)), q, emptyAnswerFor(q));
+      return withKeep(reset, q, { ...keepOf(state, q), name: null, problem: null });
     }
     case A.DRAFT_CARRY: {
       const next = carried(state, action.from, action.to);
@@ -238,6 +288,61 @@ export function reduce(state, action) {
       return { ...state, env };
     }
 
+    // ---- the budget sheet: never a draft, never a figure ------------------------------------------------------
+    case A.BUDGET_LINE:
+    case A.BUDGET_ADD:
+    case A.BUDGET_REMOVE:
+    case A.BUDGET_ONE_OFF:
+    case A.BUDGET_ADD_ONE_OFF:
+    case A.BUDGET_REMOVE_ONE_OFF:
+    case A.BUDGET_TOUCH: {
+      const sheet = budgetReduce(state.budget || null, action);
+      return sheet === (state.budget || null) ? state : { ...state, budget: sheet };
+    }
+
+    // ---- "Save this as a plan" ----------------------------------------------------------------------------------
+    case A.KEEP_NAME: {
+      if (!draft) return refuse(`keep/name: no question "${q}"`);
+      const k = keepOf(state, q);
+      const name = typeof action.value === 'string' ? action.value.slice(0, 200) : '';
+      return k.name === name && k.problem === null ? state : withKeep(state, q, { ...k, name, problem: null });
+    }
+    case A.KEEP_SAVE: {
+      if (!draft) return refuse(`keep/save: no question "${q}"`);
+      const k = keepOf(state, q);
+      if (k.saving) return state;
+      const view = keepView(state, q);
+      if (!view.can) return withKeep(state, q, { ...k, problem: 'notReady' });
+      if (!view.check.ok) return withKeep(state, q, { ...k, problem: view.check.problem });
+      return withKeep(state, q, { ...k, saving: true, problem: null });
+    }
+    case A.KEEP_SENT: {
+      if (!draft) return refuse(`keep/sent: no question "${q}"`);
+      if (typeof action.name !== 'string' || typeof action.createdAt !== 'string') return refuse('keep/sent: a name and a time');
+      // The box goes back to following the answer: the next try gets its own name ("Try something else and save that too").
+      return withKeep(state, q, { ...keepOf(state, q), name: null, saving: false, problem: null, sent: { name: action.name, createdAt: action.createdAt }, back: null });
+    }
+    case A.KEEP_FAILED: {
+      if (!draft) return refuse(`keep/failed: no question "${q}"`);
+      const problem = KEEP_PROBLEMS.includes(action.problem) ? action.problem : 'storage';
+      return withKeep(state, q, { ...keepOf(state, q), saving: false, problem });
+    }
+    case A.KEEP_BACK: {
+      // Coming back to V7, what became of the seed this tab sent (effects/planSeed.js seedOutcome): still 'waiting' in
+      // the planner; 'taken' — a plan was made, under `name` (the planner's final name: it may have been changed there,
+      // or given " (2)"); 'declined' ("Not now"); 'notMade' (the planner could not use it, or a sign-out deleted it).
+      // 'gone' (found too old and deleted unused) and 'unknown' (gone with no word from the planner): the save is
+      // forgotten and nothing is claimed — "Saved as" is said only on the planner's word.
+      if (!draft) return refuse(`keep/back: no question "${q}"`);
+      const k = keepOf(state, q);
+      if (!k.sent) return state;
+      if (action.outcome === 'gone' || action.outcome === 'unknown') return withKeep(state, q, { ...k, sent: null, back: null });
+      if (!KEEP_BACKS.includes(action.outcome)) return state;
+      const made = action.outcome === 'taken' && typeof action.name === 'string' && action.name.length > 0 && action.name.length <= 200 ? action.name : null;
+      if (k.back === action.outcome && (!made || made === k.sent.name)) return state;
+      return withKeep(state, q, { ...k, back: action.outcome, ...(made ? { sent: { ...k.sent, name: made } } : {}) });
+    }
+
     case A.STATE_REPLACE: {
       // The test hook only: draws any named state. Refused in the published build.
       if (state.env.build !== 'test') return state;
@@ -251,8 +356,19 @@ export function reduce(state, action) {
       for (const id of Object.keys(state.draft)) {
         const d = copy.draft[id] && typeof copy.draft[id] === 'object' ? copy.draft[id] : {};
         drafts[id] = { ...emptyDraftFor(id), ...d, revealed: Array.isArray(d.revealed) ? d.revealed : [] };
+        if ('spendHow' in drafts[id]) {
+          drafts[id].spendHow = ['lines', 'one'].includes(drafts[id].spendHow) ? drafts[id].spendHow : null;
+          drafts[id].skipNoted = drafts[id].skipNoted === true;
+        }
         const a = copy.answers[id] && typeof copy.answers[id] === 'object' ? copy.answers[id] : {};
         answers[id] = { ...emptyAnswerFor(id), ...a };
+      }
+      // "Save this as a plan": the name and the last save as draftStore would keep them, and what was found on coming back.
+      const keep = {};
+      for (const id of Object.keys(state.draft)) {
+        const k = copy.keep && typeof copy.keep === 'object' ? copy.keep[id] : null;
+        keep[id] = { ...keptKeep(copy.keep, id), back: k && KEEP_BACKS.includes(k.back) ? k.back : null,
+          problem: k && KEEP_PROBLEMS.includes(k.problem) ? k.problem : null };
       }
       return {
         route: tidyRoute(copy.route),
@@ -262,6 +378,8 @@ export function reduce(state, action) {
         plan: null,                                  // fixed in this slice
         draft: drafts,
         answers,
+        budget: cleanSheet(copy.budget),
+        keep,
         ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false }
       };
     }

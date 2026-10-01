@@ -436,6 +436,11 @@ export function leastPayIn(ok, ceiling, from = 0, guess = null) {
   const lo0 = Math.max(0, Math.ceil(from / 10 - 1e-9));
   const top = Math.floor(ceiling / 10 + 1e-9);
   let lo = lo0, hi = top;
+  // `from` itself first, with or without a hint: where `ok` is not monotone at a few pounds (a first pound into a pension
+  // that was empty adds a pension run to a couple's plan, and the two drain in a fixed ratio) a bracket from the lives'
+  // own figures can miss it — a NIGHTLY=1 run, 1 Oct 2026: B said "on course" paying in nothing, and that the pay-in that
+  // gets there was £80 (tests/v7/cross/oneTest.test.js OT2, seed -191910654)
+  if (ok(lo0 * 10)) return lo0 * 10;
   if (guess && Number.isFinite(guess.lo) && Number.isFinite(guess.hi)) {
     // a bracket from each life's own figure (a hint: the search settles on the same £10 with or without it). Widen it
     // until it holds — ok at its top, not ok at its bottom — then halve it as below.
@@ -447,10 +452,7 @@ export function leastPayIn(ok, ceiling, from = 0, guess = null) {
     while (l >= lo0 && ok(l * 10)) { h = l; if (l === lo0) return lo0 * 10; l = Math.max(lo0, l - step); step *= 2; }
     lo = l; hi = h;
     if (lo < lo0) return hi * 10;
-  } else {
-    if (ok(lo0 * 10)) return lo0 * 10;
-    if (top <= lo0 || !ok(top * 10)) return null;
-  }
+  } else if (top <= lo0 || !ok(top * 10)) return null;
   while (hi - lo > 1) {
     const mid = (lo + hi) >> 1;
     if (ok(mid * 10)) hi = mid; else lo = mid;

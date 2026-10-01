@@ -10,7 +10,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const MAX_LINES = 10585;   // counted at v6.15.0, 30 Sep 2026
+// 10,585 counted at v6.15.0, 30 Sep 2026. "Save this as a plan" (research/v7/save-as-plan.md, Contract C.2 and open
+// question 15) added its import, the start-up call, the call after sign-in and the call on sign-out; its steps live in
+// src/ui/components/NewPlanFromSeed.js and src/services/PlanSeed.js. Its review (1 Oct 2026) moved the Stress tester's
+// "starting balances" and pots-at-retirement words and the Budget page's target words out to modules
+// (src/ui/startingPotsWords.js, PlanSeed.budgetSummaryWords), so the script ends 2 lines SHORTER than it started: 10,583.
+const MAX_LINES = 10583;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

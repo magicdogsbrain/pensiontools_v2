@@ -125,19 +125,25 @@ const spreadOf = (values) => { const p = positionsOf(values); return { careful: 
 
 /**
  * The amounts the last searches found, kept for the next search on the same household and seed (the first pass's 100
- * lives are the first 100 of the final 1,000): a hint only — the band settles on the same amounts with or without it.
+ * lives are the first 100 of the final 1,000): a hint only — where today's engine is monotone at £10 steps the band
+ * settles on the same amounts with or without it. Only a pass over FEWER lives is the hint, never an earlier pass of the
+ * same size, so the same inputs start the same search every time (C's answer.js and A's say why).
  */
-const remembered = new Map();
+const remembered = new Map();                                  // key → Map(lives → amounts in steps)
 const keyOf = (inputs, env) => { const { take, ...rest } = inputs; void take; return JSON.stringify([rest, env.seed ?? 0, typeof env.futureReturns === 'function', env.mix || null, env.savingMix || null]); };
 
-/** The band at one start age on the lives, its search started where the last search of the same inputs ended (a hint). */
+/** The band at one start age on the lives, its search started where a smaller pass of the same inputs ended (a hint). */
 function bandOn(inputs, household, startAge, env, onProgress) {
   const sp = stopAtPlan(household, startAge, env);
   const runner = createStopRunner(sp);
   const key = keyOf({ ...inputs, start: { kind: 'age', age: startAge } }, env);
-  const band = bandAt(sp, runner, remembered.get(key) || null, { onProgress });
+  const byN = remembered.get(key) || new Map();
+  let hint = null;
+  for (const [m, k] of byN) if (m < sp.n && (!hint || m > hint.m)) hint = { m, k };
+  const band = bandAt(sp, runner, hint ? { ...hint.k } : null, { onProgress });
+  byN.set(sp.n, { ...band.k });
   remembered.delete(key);
-  remembered.set(key, { ...band.k });
+  remembered.set(key, byN);
   if (remembered.size > 24) remembered.delete(remembered.keys().next().value);
   return { sp, runner, band };
 }

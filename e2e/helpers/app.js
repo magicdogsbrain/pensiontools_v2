@@ -409,8 +409,30 @@ class V7Page {
   id(testid) { return this.page.getByTestId(testid); }
 
   async click(testid) {
+    // A and B (the budget step, research/v7/budget-step.md): "Show" is on the spend step. From the numbers step a person
+    // presses "Next: what you would spend" first — one more click and one more screen, counted as such.
+    const show = /^([ab])\.action\.show$/.exec(testid);
+    if (show && (await this.screen()) === `${show[1]}.numbers`) await this.toSpend(show[1]);
     this.counts.clicks += 1;
     await this.id(testid).click();
+  }
+
+  /** From A's or B's numbers step on to the spend step, as a person does: "Next: what you would spend". */
+  async toSpend(q = this.q) {
+    if ((await this.screen()) === `${q}.spend`) return;
+    if ((await this.screen()) === `${q}.numbers`) {
+      this.counts.clicks += 1;
+      await this.id(`${q}.action.onward`).click();
+      await this.page.waitForSelector(`#app [data-screen="${q}.spend"]`, { timeout: 2_000 }).catch(() => {});
+    }
+    // a box of the numbers step still wants filling (onward marks it and stays): the rail's own link goes on regardless
+    if ((await this.screen()) !== `${q}.spend`) await this.rail('spend');
+    await this.at(`${q}.spend`);
+    // After a move the shell puts the keyboard on the step's heading, in an effect that runs after the screen is drawn
+    // (Shell.jsx). Wait for it: a box clicked and typed into before then loses every key after the first to the
+    // heading (seen on a loaded machine, 1 Oct 2026: "1800" ended as "1"). A person cannot type inside that frame.
+    await expect(this.page.locator('#app h1')).toBeFocused();
+    await this.note();
   }
 
   /** Type into a box one key at a time, as a person does. Clicking into the box counts as a click; a box that already has the cursor does not. */
@@ -423,11 +445,19 @@ class V7Page {
     if (path) { this.counts.fields.add(path); this.typed[path] = String(text); }
   }
 
-  /** Set one field of the input list the way its kind of control is used. */
+  /**
+   * Set one field of the input list the way its kind of control is used. A's and B's spending is on the spend step,
+   * everything else on the numbers step: the page moves between them as a person would.
+   */
   async set(path, value, { delay = 0 } = {}) {
     const q = this.q;
     const f = FIELDS[q].get(path);
     if (!f) throw new Error(`no such field of question ${q}: ${path}`);
+    if (q !== 'c') {
+      const screen = await this.screen();
+      if (f.group === 'spend' && screen === `${q}.numbers`) await this.toSpend(q);
+      else if (f.group !== 'spend' && screen === `${q}.spend`) { await this.rail('numbers'); await this.note(); }
+    }
     if (path === 'household') {
       const open = await this.id(`${q}.partner.age`).isVisible();
       if (value === 'couple' && !open) await this.click(`${q}.action.addPartner`);
@@ -448,7 +478,9 @@ class V7Page {
 
   /** Several fields of the numbers step, in the order of the input list. `take` (the try-a-change row) is never on that step: a journey sets it on the answer. */
   async fill(values, opts) {
-    for (const f of SCHEMAS[this.q].fields) if (f.group !== 'try' && Object.prototype.hasOwnProperty.call(values, f.path)) await this.set(f.path, values[f.path], opts);
+    // A and B: the spending last — it is the next step's (the budget step)
+    const fields = [...SCHEMAS[this.q].fields].sort((x, y) => (x.group === 'spend') - (y.group === 'spend'));
+    for (const f of fields) if (f.group !== 'try' && Object.prototype.hasOwnProperty.call(values, f.path)) await this.set(f.path, values[f.path], opts);
   }
 
   /** The answer Node gives for what this test has typed (defaults filled in by the same parseDraft the page uses). */
@@ -602,9 +634,11 @@ export function mustFill(q, typed) {
 // ---- step 4: the journeys' shared parts ---------------------------------------------------------------------
 
 /** The budgets of the counted first answer (brief 7 item 7; test plan 11.2): per question, from the front door. */
+// The budget step (research/v7/budget-step.md, owner-approved 1 Oct 2026) puts every A and B visitor through "What
+// would you spend?": one more screen (4, was 3) and its button; the things typed and the clicks stay within budget.
 export const FIRST_ANSWER_BUDGET = Object.freeze({
-  a: { mustFill: 4, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 },
-  b: { mustFill: 5, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 }
+  a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 },
+  b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 }
 });
 export const SLOWDOWN = 4;           // Chromium cannot slow a worker: waits are measured at full speed × 4
 export const KEY_DELAY = 120;        // one key at a time, as a person types (catches a box that loses its place)

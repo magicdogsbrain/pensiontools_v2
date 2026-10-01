@@ -22,7 +22,29 @@ export const A = Object.freeze({
   UI_RAIL:         'ui/rail',          // { open }                           the phone rail sheet
   UI_ONLINE:       'ui/online',        // { online }
   ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only
-  STATE_REPLACE:   'state/replace'     // { state }                          the test hook only
+  STATE_REPLACE:   'state/replace',    // { state }                          the test hook only
+
+  // ---- the budget step (research/v7/budget-step.md; save-as-plan.md Contract C.5) ------------------------------------
+  DRAFT_ONWARD:    'draft/onward',     // { q }                              A, B: the numbers step's button. Its own boxes checked
+                                       //                                     (left ones marked); all right → the spend step
+  SPEND_HOW:       'spend/how',        // { q, how: 'lines' | 'one' }        A, B: how the spending is chosen; 'lines' starts the sheet
+  BUDGET_LINE:     'budget/line',      // { id, field, value }               field: amount | period | essential | label (added lines)
+  BUDGET_ADD:      'budget/add',       // { heading }                        a blank line under that heading
+  BUDGET_REMOVE:   'budget/remove',    // { id }
+  BUDGET_ONE_OFF:  'budget/oneOff',    // { id, field, value }               field: label | amount | year | everyYears
+  BUDGET_ADD_ONE_OFF: 'budget/addOneOff',      // {}
+  BUDGET_REMOVE_ONE_OFF: 'budget/removeOneOff', // { id }
+  BUDGET_TOUCH:    'budget/touch',     // { id, field }                      a box of the sheet has been left
+  BUDGET_USE:      'budget/use',       // { q }                              THE ONLY WAY the budget reaches a figure: its total, to
+                                       //                                     the pound, into draft[q] spend.amount (spend.kind 'amount')
+
+  // ---- "Save this as a plan" (save-as-plan.md Contract C.2) --------------------------------------------------------
+  KEEP_NAME:       'keep/name',        // { q, value }                       the name box, as typed
+  KEEP_SAVE:       'keep/save',        // { q }                              checks the answer and the name; saving: true → the effect
+  KEEP_SENT:       'keep/sent',        // { q, name, createdAt }             the effect wrote the seed (then opens ../#new-plan)
+  KEEP_FAILED:     'keep/failed',      // { q, problem: 'storage' | 'notReady' }
+  KEEP_BACK:       'keep/back'         // { q, outcome, name? } on coming back: 'waiting' | 'taken' (made, as `name`) |
+                                       // 'declined' ("Not now") | 'notMade' | 'gone' (too old, deleted) | 'unknown' (no word)
 });
 
 /**

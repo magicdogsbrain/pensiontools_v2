@@ -1,6 +1,6 @@
 /**
- * The effects — the only code in V7 that touches the outside (address, worker, session storage, the page's own
- * attributes). startEffects(store, …) starts them all; main.jsx calls it once.
+ * The effects — the only code in V7 that touches the outside (address, worker, session storage, the plan seed in
+ * local storage, the page's own attributes). startEffects(store, …) starts them all; main.jsx calls it once.
  *
  *   startEffects(store, { win, client, local }) → { client, stop }
  *   markReady(root, state)      sets #app's data-ready and data-answer, and fires pt:done (brief 4.9)
@@ -11,6 +11,7 @@ import { startAddress } from './address.js';
 import { startDraftStore, sessionStore } from './draftStore.js';
 import { startRunner } from './run.js';
 import { createWorkerClient } from './workerClient.js';
+import { startPlanSeed, localStore } from './planSeed.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -39,6 +40,17 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startAddress(store, win));
   stops.push(startDraftStore(store, sessionStore(win)));
   stops.push(startRunner({ store, client, local }));
+  // "Save this as a plan": the seed in localStorage, then today's planner in this tab (save-as-plan.md Contract C.2)
+  stops.push(startPlanSeed(store, {
+    storage: localStore(win),
+    session: sessionStore(win),
+    go: (address) => win.location.assign(address),
+    onShow: (fn) => {
+      const shown = (e) => { if (e && e.persisted) fn(); };
+      win.addEventListener('pageshow', shown);
+      return () => win.removeEventListener('pageshow', shown);
+    }
+  }));
 
   const online = () => store.dispatch({ type: A.UI_ONLINE, online: true });
   const offline = () => store.dispatch({ type: A.UI_ONLINE, online: false });

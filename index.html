@@ -2243,6 +2243,7 @@
 
       <!-- Tabs -->
       <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
+      <div id="seedNote" role="status" style="display:none;margin:8px 0 10px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:rgba(99,102,241,.08);font-size:13px;"><span id="seedNoteText"></span> <a id="seedNoteBack" href="./" style="color:inherit;text-decoration:underline;font-weight:600;">Back to the question</a> to try something else and save that too.</div>
 <div id="planNewerBanner" role="alert" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--danger, #dc2626); border-radius:var(--radius); background:rgba(220,38,38,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span style="flex:1; min-width:220px;">This plan was updated by a newer version of the app — reload the page. Nothing you change here will be saved until you do.</span>
         <button type="button" class="risk-btn" data-on-click="reloadPage()">Reload the page</button>
@@ -4242,6 +4243,8 @@
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
+    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2)
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -4969,6 +4972,8 @@
       );
     }
 
+    // A plan from a V7 answer (save-as-plan.md C.2): read at every start, offered on /#new-plan only. Steps: NewPlanFromSeed.js.
+    const seedEntry = (() => { try { return startSeedEntry({ showMainApp, maybeAnnounceRelease, startGuestMeter, startGuest }); } catch (e) { console.error('plan seed', e); return { keepIfWaiting: async () => false, clear() {}, tryWithoutAccount: null }; } })();   // never stops the page starting
     /**
      * Initialize auth screen with success callback
      */
@@ -4978,6 +4983,7 @@
       try {
         // Guest → account hand-off first: plans stashed by keepGuestWork() become this account's plans.
         const imported = await importGuestHandoff();
+        if (await seedEntry.keepIfWaiting(user)) return;   // a plan waiting from a V7 answer: confirm and make it (a new account too, instead of onboarding)
         // Check if user has existing data
         console.log('Checking for existing cloud data...');
         const hasData = imported || await hasCloudData();
@@ -5016,7 +5022,7 @@
         hideLandingPage();
         showAuthScreenWithTab('signin');
       },
-      onTryGuest: () => startGuest(null)
+      onTryGuest: () => (seedEntry.tryWithoutAccount ? seedEntry.tryWithoutAccount() : startGuest(null))   // a tab that holds plans carries on with them
     });
     // Demo plans that can be deep-linked (?demo=1m): the r/FiredUK £1M example — £40k rising with
     // inflation from 56, 700/200/100 pots for the flexible strategies, a 15-rung ladder with reviews
@@ -5035,8 +5041,8 @@
         const list = await listScenariosAsync();
         const existing = list.find((sc) => sc.planDetails?.name === demo.name);
         if (!existing) {
-          // A guest tab holds one plan: an older guest plan (e.g. the previous seed) makes way for this one.
-          for (const sc of list) { try { await deleteScenario(sc.id); } catch (e) { /* ignore */ } }
+          // A guest tab holds one plan: an older guest plan (e.g. the previous seed) makes way for this one — never one made from a V7 answer.
+          for (const sc of list) { if (sc.fromAnswer) continue; try { await deleteScenario(sc.id); } catch (e) { /* ignore */ } }
           await createNewScenario(demo.name, 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
           invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
         } else if (!existing.isActive) {
@@ -5068,6 +5074,7 @@
 
     // Logout button handler
     document.getElementById('logoutBtn').addEventListener('click', async () => {
+      seedEntry.clear();   // figures waiting from a V7 answer go on sign-out too (Reset and Delete Account clear all of localStorage)
       if (isGuest()) { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname; return; }
       try {
         invalidateCache();
@@ -6134,24 +6141,15 @@
     // the (still-editable) Simulation Years to the Settings duration. Sims read their starting
     // balances from the Settings' Fund Minimums via createSimulationConfigFromSettings.
     function renderStressStartSummary(s) {
-      const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
-      const div = (s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart)}` : '';
-      // Some callers pass only the allocation slice; the SP note needs the full settings object.
+      // Some callers pass only the allocation slice; the SP note and the pots at retirement need the full settings object.
       const knowsSp = ('statePension' in s) || ('spStartDate' in s);
       if (!knowsSp) {
         // Re-render once with the full saved settings so the SP note is never stale.
         getStressSettingsAsync().then((full) => renderStressStartSummary({ ...full, ...s })).catch(() => {});
       }
-      const spNote = knowsSp && (!s.spStartDate || !s.spWeeklyAmount)
-        ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
-        : '';
-      const text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): ' +
-        `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. ` +
-        'Edit them in the Settings tab.' + spNote;
-      ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = text;
-      });
+      // The words (src/ui/startingPotsWords.js): retiring later, the pots at retirement every run starts from; a plan made from a V7 answer, the answer's own figure too.
+      const paint = (fromAnswer) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer }); });
+      paint(null); planFromAnswer().then((fa) => { if (fa) paint(fa); });
       ['mcYears', 'histYears'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = s.duration;
@@ -8326,7 +8324,7 @@
     window._shapeRefs = { essentials: 0, budgetGross: 0 };
     async function refreshShapeRefs() {
       window._shapeRefs = { essentials: 0, budgetGross: 0 };   // never carry another plan's budget lines over
-      try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null }; } } catch (e) {}
+      try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null, budgetWords: (await planFromAnswer()) ? 'your budget (a guide)' : 'today\'s budget' }; } } catch (e) {}   // a plan from a V7 answer: its budget is a guide, not the target
     }
     // Settings order: the layers that are NOT the pot (State Pension, other income) come before the
     // income strategy, so the shape below can show what the pot itself has to supply.
@@ -8364,7 +8362,7 @@
       const prevVals = (window._shapePrev && window._shapePrev.key === ageNow + ':' + dur) ? window._shapePrev.vals : null;
       const floorVals = Array.from({ length: dur }, (_, y) => guaranteedAtYear(y));
       const flooredYears = Array.from({ length: dur }, (_, y) => y).filter((y) => amountAtAge(steps, ageNow + y, 0) < floorVals[y]);
-      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, sp, other, prevVals, floorVals, events });
+      box.innerHTML = incomeStaircaseSvg({ steps, ageNow, horizonAge: ageNow + dur - 1, essentials: window._shapeRefs.essentials || 0, budgetGross: window._shapeRefs.budgetGross || 0, budgetLabel: window._shapeRefs.budgetWords, sp, other, prevVals, floorVals, events });
       window._shapeFlooredFrom = flooredYears.length ? ageNow + flooredYears[0] : null;
       // A lump sum is money to PAY for the shape, not extra spending: the strategies use it (more rungs,
       // bigger pots) but the income line only rises if you raise a step. Say what it could support and
@@ -8984,8 +8982,8 @@
       g('tmRetireAge').disabled = retiredMode;
       g('tmPotWrap').style.display = t.mode === 'future' ? 'block' : 'none';
       if (t.mode === 'future' && window._tmProjection) {
-        const p = window._tmProjection; const gbpR = (v) => '£' + Math.round(v).toLocaleString();
-        g('tmProjectionLine').innerHTML = 'Pots at retirement in today\'s money, middle band' + (p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)') + ': SIPP <strong>' + gbpR(p.sipp) + '</strong> (cautious ' + gbpR(p.low) + ', strong ' + gbpR(p.high) + ') · ISA <strong>' + gbpR(p.isa) + '</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.';
+        // With pots at retirement in the boxes (typed, or from a V7 answer) THOSE are what the strategies are priced on; the projection is shown for comparison (startingPotsWords.js).
+        g('tmProjectionLine').innerHTML = potsAtRetirementLine(window._tmProjection, { sipp: +g('tmPotSipp')?.value || 0, isa: +g('tmPotIsa')?.value || 0 });
       }
       let summary = t.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is assumed to start next April (' + taxYearLabel(t.firstTaxYear) + ') with the steps from age ' + t.shapeAgeNow + '.'
@@ -9140,7 +9138,7 @@
         + (i === 0 && window._ssTiming ? '<span class="hint">(' + taxYearLabel(window._ssTiming.firstTaxYear) + ')</span>' : '')
         + '<span class="hint">take</span>'
         + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
-        + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of today\'s budget' : '') + '</span>'
+        + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of ' + (window._shapeRefs.budgetWords || 'today\'s budget') : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>'
         // The slope within the step: a real % per year (compounding), or a straight-line glide to the
@@ -11549,6 +11547,7 @@
         console.error('Budget load error:', e);
         window._budget = normaliseBudget(defaultBudget());
       }
+      window._budGuide = await planTargetGuide();   // a plan made from a V7 answer: its own target, which the budget is a guide to (never throws)
       // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
       if (!window._budget.lines.length) {
         window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
@@ -11952,11 +11951,13 @@
       const tier = allIn >= plsa.comfortable ? 'at/above Comfortable' : allIn >= plsa.moderate ? 'between Moderate and Comfortable' : allIn >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
 
       const shared = s.sharedWithPartner;
+      // The words about the plan's target (PlanSeed.budgetSummaryWords): today's, or on a plan made from a V7 answer the budget as a guide beside the target chosen.
+      const W = budgetSummaryWords({ allInMonthly: s.allInComfortableMonthly, allInAnnual: allIn, periodicMonthly: s.periodicMonthlyAverage, headroomMonthly: +window._budget.targetHeadroomMonthly || 0, targetGrossAnnual: grossUpAnnual(s.allInComfortableAnnual + (+window._budget.targetHeadroomMonthly || 0) * 12), shared }, window._budGuide || null, money);
       let html = '';
       // Headline figures
       html += '<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:14px;">';
       html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)' + (shared ? ' — your share' : '') + '</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>';
-      html += '<div><div style="font-size:12px;color:var(--text-muted);">' + (shared ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + money(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(allIn) + '/yr — what your plan funds</div></div>';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">' + (shared ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + money(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + W.allInCaption + '</div></div>';
       if (shared) {
         html += '<div><div style="font-size:12px;color:var(--text-muted);">Partner’s share</div><div style="font-size:22px;font-weight:700;">' + money(s.partnerAllInMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(s.partnerAllInAnnual) + '/yr — their side of this budget</div></div>';
         html += '<div><div style="font-size:12px;color:var(--text-muted);">Household all-in</div><div style="font-size:22px;font-weight:700;">' + money(s.householdComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">everything, both of you</div></div>';
@@ -11991,13 +11992,10 @@
         html += '</ul></div>';
       }
 
-      const headM = +window._budget.targetHeadroomMonthly || 0;
-      const targetMonthly = s.allInComfortableMonthly + headM;
-      const targetGrossAnnual = grossUpAnnual(s.allInComfortableAnnual + headM * 12);
       html += '<div style="border-top:1px solid var(--border); padding-top:12px;">';
-      html += '<div style="font-size:13px; margin-bottom:8px;">Your all-in take-home of <strong>' + money(s.allInComfortableMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.</div>';
+      html += '<div style="font-size:13px; margin-bottom:8px;">' + W.handoff + '</div>';
       html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" data-on-change="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
-      html += '<div style="font-size:13px; margin-bottom:8px;">Plan target: <strong>' + money(targetMonthly) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(targetGrossAnnual) + '/yr before tax' + (headM ? ' — budget + ' + money(headM) + '/mo headroom' : '') + ')</span></div>';
+      html += '<div style="font-size:13px; margin-bottom:8px;">' + W.targetLine + '</div>';
       html += '<button type="button" data-on-click="applyBudgetToPlan()">Use as the start of my income shape</button><span class="hint" style="margin-left:8px;">This is today’s spending. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</span>';
       html += '</div>';
 
@@ -12225,6 +12223,7 @@
         const ageShaped = (b.lines || []).some((l) => (l.fromAge != null && l.fromAge !== '' && +l.fromAge !== +b.retirementAge) || (l.toAge != null && l.toAge !== '' && +l.toAge !== +b.endAge))
           || (b.oneOffs || []).length > 0 || (Array.isArray(b.splitPhases) && b.splitPhases.length > 0);
         updateScheduleSpendNotes();
+        if (window._budGuide) { window._budGuide = await planTargetGuide(); updateBudgetSummary(); }   // the target the page names has just moved
         const locked = await planIsLocked();
         if (!locked) await saveDecisionSettings({ baseSalary: gross });
         // The stress settings screen shows the net-first field — refresh if it's loaded.

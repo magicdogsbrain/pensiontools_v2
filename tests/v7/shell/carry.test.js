@@ -126,7 +126,7 @@ describe('draft/carry marks, labels and leaves alone', () => {
   });
   it('draft/reset empties it', () => {
     const s = run(fullC(), carry('c', 'a'), { type: A.DRAFT_RESET, q: 'a' });
-    expect(s.draft.a).toEqual({ values: {}, touched: [], asked: false, revealed: [], carriedFrom: null });
+    expect(s.draft.a).toEqual({ values: {}, touched: [], asked: false, revealed: [], carriedFrom: null, spendHow: null, skipNoted: false });
   });
 });
 

@@ -15,4 +15,9 @@ describe('income shape', () => {
     expect((svg.match(/<rect x=/g) || []).length).toBeGreaterThanOrEqual(35);
     expect(svg).toContain('your essentials £35k'); expect(svg).toContain("today's budget £60k"); expect(svg).toContain('below your essentials');
   });
+  it('on a plan made from a V7 answer the marker says the budget is a guide, not the target (review, 1 Oct 2026)', () => {
+    const svg = incomeStaircaseSvg({ steps: [{ fromAge: 60, amount: 36608 }], ageNow: 60, horizonAge: 95, budgetGross: 39417, budgetLabel: 'your budget (a guide)' });
+    expect(svg).toContain('your budget (a guide) £39k');
+    expect(svg).not.toContain("today's budget");
+  });
 });

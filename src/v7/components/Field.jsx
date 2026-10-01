@@ -6,8 +6,9 @@
  *                                show, what each field shows when nothing is typed, and which fields apply
  *   <Field form path dispatch />  a money, age, percent or count box (text, with the right phone keypad), or a group
  *                                of radios
- *   <AskForm form dispatch>       the form around them: submit = the question's "Show …" button = draft/ask, and the
- *                                first box that needs attention takes focus
+ *   <AskForm form dispatch>       the form around them: submit = the question's "Show …" button = draft/ask (or
+ *                                `action`: A's and B's numbers step sends draft/onward), and the first box that needs
+ *                                attention takes focus
  *
  * Accessibility lives here: a real <label for>, help and error joined by aria-describedby, aria-invalid on error,
  * radios inside <fieldset><legend>. Boxes are controlled by the state; nothing reformats what is being typed.
@@ -18,7 +19,7 @@ import { SCHEMA_C, earliestStart as earliestStartC } from '../../answers/c/schem
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
-import { parsedDraft, errorsToShow } from '../state/select.js';
+import { parsedDraft, errorsToShow, SPEND_PATHS } from '../state/select.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
@@ -210,25 +211,34 @@ export function focusField(root, path, q = 'c') {
   return true;
 }
 
-/** The first field, in the order of the input list, that has a problem. */
-export const firstProblem = (form) => {
-  const f = (form.fields || FIELDS).find((x) => form.parsed.errors[x.path]);
+/** The first field, in the order of the input list, that has a problem (of those `keep` lets through). */
+const firstProblemOf = (form, keep = () => true) => {
+  const f = (form.fields || FIELDS).find((x) => keep(x.path) && form.parsed.errors[x.path]);
   return f ? f.path : null;
 };
+export const firstProblem = (form) => firstProblemOf(form);
 
 /**
  * The form around the boxes. Submitting (the button, or Enter) asks for the answer; with something missing the
  * first box ON SCREEN that needs attention takes focus and shows its sentence (A and B draw in the order of their
  * drawings, not of their input lists). The button is never greyed out.
+ *
+ * A's and B's numbers step (`action` 'draft/onward') moves on to the spend step when its own boxes are all right, and
+ * the screen is drawn again inside this handler. Only a box of the numbers step may then take focus — never the
+ * spending box the next step has just drawn (found 1 Oct 2026: it took focus, the shell then moved the keyboard to
+ * the step's heading, the box counted as left, and "Type what you would spend a month…" was red on arrival).
  */
-export function AskForm({ form, dispatch, children, ...rest }) {
+export function AskForm({ form, dispatch, action = 'draft/ask', children, ...rest }) {
   const q = qOf(form);
   const onSubmit = (e) => {
     e.preventDefault();
-    dispatch({ type: 'draft/ask', q });
-    const drawn = [...e.currentTarget.querySelectorAll('[data-field]')].map((el) => el.getAttribute('data-field'));
-    const first = drawn.find((p) => form.parsed.errors[p]) || firstProblem(form);
-    if (first) focusField(e.currentTarget, first, q);
+    const root = e.currentTarget;
+    const onward = action === 'draft/onward';
+    const own = (p) => !onward || !SPEND_PATHS.includes(p);
+    dispatch({ type: action, q });
+    const drawn = [...root.querySelectorAll('[data-field]')].map((el) => el.getAttribute('data-field')).filter(own);
+    const first = drawn.find((p) => form.parsed.errors[p]) || (onward ? firstProblemOf(form, own) : firstProblem(form));
+    if (first) focusField(root, first, q);
   };
   return <form class="ask" noValidate onSubmit={onSubmit} {...rest}>{children}</form>;
 }

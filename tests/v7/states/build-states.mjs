@@ -250,7 +250,8 @@ function buildSaverStates(q, { today, futures, inputsKey: keyOf }) {
     }
     states['answer-retired'] = saverState('a', 'answer', { 'you.age': '68', 'you.pot': '200,000', 'stop.age': '68', 'spend.amount': '1,500' }, { draft: { carriedFrom: 'c' } });
     states['ages-A1'] = answered('ages-A1', 'ages', A1, { detail: 'all', kind: 'all' });
-    states['not-built-keep'] = saverState('a', 'keep', A1);
+    // "Save this as a plan?" opened before there is an answer (the keep step is built: save-as-plan.md).
+    states['keep-no-answer'] = saverState('a', 'keep', A1);
   } else {
     const D = 'answer';
     states['numbers-blank'] = saverState('b', 'numbers', {});

@@ -21,7 +21,7 @@ const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
-import { defaultSpYear } from '../services/IncomeSchedule.js';
+import { defaultSpYear, scheduleFromSteps } from '../services/IncomeSchedule.js';
 
 /**
  * Paired-path Monte Carlo across two plan configs.
@@ -89,11 +89,15 @@ export function runHouseholdMonteCarlo(configA, configB, runs = 1000, offsets = 
   };
 }
 
-/** Per-person yearly gross target (today's money): schedule/baseSalary × spending profile. */
-function targetForYear(settings, year) {
-  const anchor = Array.isArray(settings.targetSchedule) && settings.targetSchedule[year] != null
-    ? settings.targetSchedule[year]
-    : (settings.baseSalary || 0);
+/**
+ * Per-person yearly gross target (today's money): the schedule the ENGINES run (scheduleFromSteps — the saved per-year
+ * schedule, else the income steps compiled), else baseSalary; × the spending profile. Until 1 Oct 2026 this read only a
+ * saved targetSchedule, so a plan whose shape was steps without one (every plan made from a V7 answer, and any whose
+ * steps were never re-saved) showed its first step every year here while its own test followed the steps.
+ */
+export function targetForYear(settings, year) {
+  const sched = scheduleFromSteps(settings, +settings.shapeAgeNow || 57);
+  const anchor = Array.isArray(sched) && sched[year] != null ? sched[year] : (settings.baseSalary || 0);
   return anchor * spendingSmileFactor(year, settings.spendingProfile || 'flat');
 }
 

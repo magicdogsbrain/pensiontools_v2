@@ -78,10 +78,40 @@ export function grossToNet(gross, pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT)
   return gross - calculateTax(gross, pa, brl, hrl);
 }
 
+// The straight stretches of grossToNet for the bands last asked about: the kinks (taxKinks) with the net at each,
+// and one point well past the last kink (the line runs on at the top rate). A simulation asks many times a year
+// with the same bands, so this is worked out once per set of bands. (A remembered pure value.)
+let knotsFor = { pa: NaN, brl: NaN, hrl: NaN, t: null, n: null };
+function knotsOf(pa, brl, hrl) {
+  if (knotsFor.pa !== pa || knotsFor.brl !== brl || knotsFor.hrl !== hrl) {
+    const t = [0], n = [0];
+    for (const k of taxKinks(pa, brl, hrl)) if (k > t[t.length - 1]) { t.push(k); n.push(grossToNet(k, pa, brl, hrl)); }
+    const last = t[t.length - 1] + 1e6;
+    t.push(last); n.push(grossToNet(last, pa, brl, hrl));
+    knotsFor = { pa, brl, hrl, t, n };
+  }
+  return knotsFor;
+}
+
+/** The gross for `net` read off the straight stretch it falls on — exact but for rounding (a few units in the last place). */
+function grossOnTheLine(net, pa, brl, hrl) {
+  const { t, n } = knotsOf(pa, brl, hrl);
+  let i = 1;
+  while (i < t.length - 1 && n[i] < net) i++;
+  return t[i - 1] + (net - n[i - 1]) * (t[i] - t[i - 1]) / (n[i] - n[i - 1]);
+}
+
 /**
  * Inverts grossToNet: finds the gross taxable income needed to achieve a target net.
  * grossToNet is continuous and monotonically increasing, so we invert by bisection —
  * this stays correct across the PA taper and all rate bands without band-by-band algebra.
+ *
+ * Faster, same answer to the last binary digit (6.18.0): the gross is first read off the straight stretch of
+ * grossToNet it lies on (grossOnTheLine). Every step of the search whose midpoint is further than about 2^-44 of
+ * the gross from that point — hundreds of times the rounding of either sum — already knows which way it goes, so
+ * only the last dozen or so steps work the tax out. The steps, and so the result, are the ones the plain search
+ * takes: tests/taxNetToGross.identity.test.js holds the plain search as the reference and compares bit for bit.
+ * (NaN or odd bands make every step work the tax out, as before.)
  * @param {number} net - Desired net (after-tax) income
  * @param {number} pa - Personal Allowance
  * @param {number} brl - Basic Rate Limit
@@ -97,10 +127,14 @@ export function netToGross(net, pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
   while (grossToNet(hi, pa, brl, hrl) < net && hi < 1e12) {
     hi *= 2;
   }
+  const g = grossOnTheLine(net, pa, brl, hrl);
+  const margin = Math.abs(g) * 2 ** -44 + 1e-7;
+  const below = g - margin, above = g + margin;
   // ~60 iterations converges well below a penny.
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    if (grossToNet(mid, pa, brl, hrl) < net) lo = mid;
+    const short = mid < below ? true : mid > above ? false : grossToNet(mid, pa, brl, hrl) < net;
+    if (short) lo = mid;
     else hi = mid;
   }
   return (lo + hi) / 2;

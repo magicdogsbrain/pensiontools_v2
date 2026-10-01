@@ -64,12 +64,45 @@ describe('A → C: the inputs as typed, the age the answer shows; C gives A\'s c
     expect(p.errors['start.age']).toBe('start-not-before-access');
   });
 
-  it('what C asks beyond A — a saving risk of its own, a charge, savings going in, part-time work — is said (handOver.c.same false)', () => {
+  it('what C asks beyond A — a saving risk of its own, savings going in, part-time work — is said (handOver.c.same false)', () => {
     const base = { 'you.age': '50', 'you.pot': '250,000', 'you.payIn.total': '600', 'stop.age': '60', 'spend.amount': '1,900' };
-    for (const extra of [{ savingRisk: 'adventurous' }, { charge: '1' }, { savingsIn: '200' }, { 'partTime.has': true, 'partTime.yearly': '12,000', 'partTime.years': '2' }]) {
+    for (const extra of [{ savingRisk: 'adventurous' }, { savingsIn: '200' }, { 'partTime.has': true, 'partTime.yearly': '12,000', 'partTime.years': '2' }]) {
       const s = answered(typed('a', { ...base, ...extra }), 'a', answerA, 'chart');
       expect(s.answers.a.result.handOver.c, JSON.stringify(extra)).toEqual({ ok: true, same: false });
     }
+  });
+});
+
+/*
+ * Fund and platform charges (6.19.0): C asks the charge too, and it is carried, so a charge other than 0.5% no longer
+ * makes C's figure differ — the hand-over is the same at 0%, 0.5%, 1.25% and 1.5% (research/charges-setting.md T12).
+ */
+describe('the charge is carried into C, and C still gives A\'s and B\'s figure', () => {
+  const A_BASE = { 'you.age': '50', 'you.pot': '250,000', 'you.payIn.total': '600', savings: '40,000', 'stop.age': '60', 'spend.amount': '1,900' };
+  it.each(['0', '0.5', '1.25', '1.5'])('A → C at %s%%: handOver.c.same, and C\'s careful figure is A\'s', (charge) => {
+    const s = answered(typed('a', { ...A_BASE, charge }), 'a', answerA, 'chart');
+    const a = s.answers.a.result;
+    expect(a.inputs.charge).toBe(Number(charge));
+    expect(a.handOver.c).toEqual({ ok: true, same: true });
+    const p = parsedDraft(carry(s, 'a', 'c'), 'c');
+    expect(p.ok, JSON.stringify(p.errors)).toBe(true);
+    expect(p.inputs.charge).toBe(Number(charge));
+    const r = answerC(p.inputs, ENV);
+    expect(r.monthly).toEqual(a.shown.monthly);
+  });
+  it.each(['0', '1.5'])('B → C at %s%%: C\'s careful figure is B\'s paying in as now', (charge) => {
+    const s = answered(typed('b', { 'you.age': '50', 'you.pot': '120,000', 'you.payIn.total': '700', 'stop.age': '60', 'spend.amount': '2,000', charge }), 'b', answerB, 'answer');
+    const b = s.answers.b.result;
+    expect(b.handOver.c).toEqual({ ok: true, same: true });
+    const p = parsedDraft(carry(s, 'b', 'c'), 'c');
+    expect(p.inputs.charge).toBe(Number(charge));
+    expect(answerC(p.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+  });
+  it('a higher charge, a lower careful figure: 1.5% gives less than 0.5%, which gives less than 0% (A\'s row, at 60)', () => {
+    const at = (charge) => answered(typed('a', { ...A_BASE, charge }), 'a', answerA, 'chart').answers.a.result.shown.monthly.careful;
+    const [c0, c05, c15] = ['0', '0.5', '1.5'].map(at);
+    expect(c05).toBeLessThan(c0);
+    expect(c15).toBeLessThan(c05);
   });
 });
 

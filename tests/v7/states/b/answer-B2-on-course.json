@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -58,7 +58,7 @@
     },
     "b": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":20000,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":48,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":1400},\"pot\":350000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":20000,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":48,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":1400},\"pot\":350000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -159,37 +159,37 @@
           }
         ],
         "number": {
-          "careful": 485000,
-          "middling": 334000,
-          "good": 256000,
+          "careful": 520000,
+          "middling": 355000,
+          "good": 271000,
           "byPerson": [
             {
               "who": "you",
-              "pot": 485000
+              "pot": 520000
             }
           ]
         },
         "already": false,
         "chance": {
-          "lasted": 0.976,
+          "lasted": 0.964,
           "outOfTen": {
             "words": "in more than 9 futures out of 10",
             "only": false,
             "count": 9
           },
-          "fails": 24
+          "fails": 36
         },
         "onCourse": true,
         "payIn": {
           "now": 1400,
           "own": null,
           "employer": null,
-          "needed": 510,
+          "needed": 710,
           "extra": 0,
           "confidence": "nineInTen",
           "at": {
-            "nineInTen": 510,
-            "threeInFour": 0
+            "nineInTen": 710,
+            "threeInFour": 40
           },
           "outside": null,
           "savingsNow": 0
@@ -201,15 +201,15 @@
             "good": 1037407
           },
           "needed": {
-            "careful": 392681,
-            "middling": 574501,
-            "good": 849301
+            "careful": 418894,
+            "middling": 608090,
+            "good": 888273
           }
         },
-        "short": 0,
-        "monthlyIfShort": 2360,
+        "short": 12463,
+        "monthlyIfShort": 2260,
         "wholeLife": {
-          "lasted": 0.976,
+          "lasted": 0.964,
           "outOfTen": {
             "words": "in more than 9 futures out of 10",
             "only": false,
@@ -224,9 +224,9 @@
           "spendLess": null,
           "moreRisk": null,
           "accept": {
-            "lasted": 0.976,
-            "short": 0,
-            "monthlyIfShort": 2360
+            "lasted": 0.964,
+            "short": 12463,
+            "monthlyIfShort": 2260
           }
         },
         "grid": null,
@@ -398,17 +398,17 @@
             ]
           },
           {
-            "id": "charge-saving",
+            "id": "charges",
             "field": "charge",
             "source": "default",
             "value": 0.5,
-            "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
             "parts": [
-              "A charge of ",
+              "Charges of ",
               {
                 "fixed": "0.5"
               },
-              "% a year comes off while you are saving; none once you have stopped."
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
             ]
           },
           {
@@ -679,7 +679,7 @@
           },
           "line": {
             "id": "b.line",
-            "text": "To spend £2,000 a month from 60, you would want a pot of about £485,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
+            "text": "To spend £2,000 a month from 60, you would want a pot of about £520,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
             "parts": [
               "To spend ",
               {
@@ -716,7 +716,7 @@
           },
           "bad": {
             "id": "b.bad.onCourse",
-            "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £510 a month and it would still last in 9 futures out of 10.",
+            "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £710 a month and it would still last in 9 futures out of 10.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -860,7 +860,7 @@
           "lever": {
             "accept": {
               "id": "b.lever.accept",
-              "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,360 a month from 60 lasted in 9 futures out of 10.",
+              "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,260 a month from 60 lasted in 9 futures out of 10.",
               "parts": [
                 "Keep paying in ",
                 {
@@ -930,7 +930,7 @@
           "failuresAllowed": 100,
           "closeAllowed": 250,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "endAge": 95,
           "detail": "answer",
           "lifeYears": 47,

@@ -61,15 +61,19 @@ function noWorse(a, b, couple, onFinding = () => {}) {
 function noWorseOrFinding(a, b, inputs, findings) {
   let found = false;
   const note = () => { found = true; };
-  if (largeHousehold(a.shown.monthly.careful)) {
+  // a couple with a charge over 1% a year (6.19.0): the fixed-ratio drain can bind on the run whose draws are taxed first,
+  // and more for that person can lower the band by more than a step — a finding, printed (tests/v7/c/exceptions.md,
+  // "A couple's fixed-ratio drain with a charge"; the same model in A)
+  const chargedCouple = inputs.household === 'couple' && inputs.charge > 1;
+  if (largeHousehold(a.shown.monthly.careful) || chargedCouple) {
     amountsToAStep(a.shown.monthly, b.shown.monthly, (k, floor) => { if (b.shown.monthly[k] < floor) note(); }, note);
     if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) note();
   } else noWorse(a, b, inputs.household === 'couple', note);
   if (found) findings.push({ inputs, from: a.shown.monthly, to: b.shown.monthly });
-  return !largeHousehold(a.shown.monthly.careful);
+  return !largeHousehold(a.shown.monthly.careful) && !chargedCouple;
 }
 const report = (name, findings) => {
-  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/a/exceptions.md)`, JSON.stringify(findings[0]));
+  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1%, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/a/exceptions.md; tests/v7/c/exceptions.md)`, JSON.stringify(findings[0]));
 };
 const potsNoLower = (a, b) => { for (const k of THREE) expect(b.shown.potAtStop[k], `potAtStop.${k}`).toBeGreaterThanOrEqual(a.shown.potAtStop[k]); };
 const sameFutures = (a, b) => { expect(b.basis.seed).toBe(a.basis.seed); expect(b.basis.futures).toBe(a.basis.futures); };

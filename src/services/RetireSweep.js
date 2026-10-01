@@ -15,6 +15,7 @@ import { projectAccumulation, contributionBreakdown } from './AccumulationEngine
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { holdingsLines } from './HoldingsRecord.js';
 import { deriveTiming, taxYearLabel } from './PlanTiming.js';
+import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 export const NO_POT_MESSAGE = 'Record what you hold (or the pot today on the Accumulation planner) first — the spin projects from your own pension pot, never from the pots the strategy is tested on.';
@@ -45,7 +46,10 @@ export function potAtAge({ settings, accumulation, currentAge, age, holdings = n
   if (!(totalMonthly > 0) && prop && prop.contributions.monthly > 0) totalMonthly = prop.contributions.monthly;
   const years = Math.max(0, age - currentAge);
   if (potNow == null) return { potNow: null, totalMonthly, years, pot: null, low: null, high: null, basis: null };
-  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: num(a.escalationPct), mixRealReturn: prop && prop.total > 0 ? prop.expectedReal : null });
+  // The plan's fund and platform charges (6.19.0) come off every line; on the "your mix" line they replace the
+  // holdings' own fund charges (mixOcf), so fund costs are not taken twice. None on a plan without the setting.
+  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: num(a.escalationPct), mixRealReturn: prop && prop.total > 0 ? prop.expectedReal : null,
+    chargesPct: chargesPctOf(settings), mixOcf: prop && prop.total > 0 ? prop.weightedOcf : null });
   const last = rows[rows.length - 1];
   return { potNow, totalMonthly, years, pot: Math.round(last.potMix != null ? last.potMix : last.potMid), low: Math.round(last.potLow), high: Math.round(last.potHigh), basis: last.potMix != null ? 'your mix' : 'FCA middle band' };
 }
@@ -79,7 +83,7 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
     const stepsAt = incomeOverride > 0 ? [{ fromAge: age, amount: incomeOverride }]
       : steps ? steps.map((st, k) => ({ ...st, fromAge: k === 0 ? age : Math.max(age + 1, num(st.fromAge) + (age - (t0.shapeAgeNow || num(steps[0].fromAge)))) })) : [{ fromAge: age, amount: income }];
     const s = { ...s0, retired: false, retireAge: age, firstTaxYear: null, shapeAgeNow: age, duration, incomeShape: 'phases', incomeSteps: stepsAt, targetSchedule: null,
-      potAtRetirement: { sipp: pa.pot, isa: num(s0.isaBalance) > 0 ? Math.round(num(s0.isaBalance) * Math.pow(1.02, yearsToAge)) : 0, source: 'sweep' },
+      potAtRetirement: { sipp: pa.pot, isa: num(s0.isaBalance) > 0 ? Math.round(num(s0.isaBalance) * Math.pow(1.02, yearsToAge) * yearlyChargeFactor(chargesPctOf(s0), yearsToAge)) : 0, source: 'sweep' },
       strategyParams: { ...(s0.strategyParams || {}), sippTotal: undefined, isaTotal: undefined } };
     let r = null, affordable = true;
     try {

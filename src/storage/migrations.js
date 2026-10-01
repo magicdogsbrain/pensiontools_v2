@@ -15,6 +15,8 @@
  *  - it never touches ANY key inside `decisionTool.settings` of a plan that is locked or has records
  *    (enforced, byte for byte): that map is hashed by decisionSettingsChecksum, and a moved checksum orphans
  *    the recorded months and the plan of record;
+ *  - from step 2 on, it never touches ANY key inside `stressTool.settings` of a LOCKED plan (enforced, byte for
+ *    byte, per step): the lock promises the plan's figures do not move (6.19.0, fund and platform charges);
  *  - a step that throws, or breaks a rule above, abandons the WHOLE chain: the caller gets the object it
  *    passed in, `error` set, `changed` false — the stored plan is left as it is and opens as it is.
  *
@@ -30,6 +32,7 @@ import { SCHEMA_VERSION, schemaVersionOf } from './schema.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { sortLegacyParams } from '../services/StrategyState.js';
 import { normaliseHoldings, HOLDINGS_VERSION } from '../services/HoldingsRecord.js';
+import { isChargesPct, DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPlain = (v) => { if (!isObj(v)) return false; const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
@@ -58,6 +61,16 @@ export function decisionSettingsFrozen(scenario) {
   if (Array.isArray(dt.history) && dt.history.length) return true;
   return isObj(dt.taxYears) && Object.values(dt.taxYears).some((t) => t && t.yearSetupComplete);
 }
+
+/** Locked — the planner's own test (index.html planIsLocked: `!!decisionTool.settings.locked`). Records alone do not count. */
+export function planLocked(scenario) {
+  const dt = scenario && isObj(scenario.decisionTool) ? scenario.decisionTool : null;
+  return !!(dt && isObj(dt.settings) && dt.settings.locked);
+}
+
+/** From this step on, a LOCKED plan's Stress settings are byte-for-byte protected (6.19.0). Step 1 shipped before the rule. */
+const LOCKED_STRESS_GUARD_FROM = 2;
+const stressSettingsBytes = (s) => bytes(s && isObj(s.stressTool) ? s.stressTool.settings : undefined);
 
 /** The parts of a plan no migration may change, as text. */
 function protectedParts(scenario) {
@@ -110,8 +123,31 @@ function toV1(s, { now }) {
   return s;
 }
 
+/**
+ * 1 → 2 (6.19.0). Fund and platform charges (research/charges-setting.md §4; the owner's rule 3 of 1 Oct 2026). An
+ * UNLOCKED plan is given the default, 0.5% a year, in its Stress settings (`chargesPct`, percent a year) — every figure
+ * it shows then takes the charge off. A LOCKED plan is not touched at all: not a key of its Stress or Decision settings,
+ * its plan document, its archives or its history. It has no setting, which every engine reads as 0, so it keeps its
+ * figures until it is unlocked (unlock then writes the default — index.html unlockDecisionSettings).
+ *  - "Locked" is the planner's own flag (decisionTool.settings.locked). A plan with records but no lock flag (one from
+ *    before auto-lock, never locked) is unlocked here as it is on screen; charges are a projection input only, so its
+ *    recorded months do not move.
+ *  - A valid charge already saved (0 included) is kept; an invalid one is replaced by the default.
+ *  - A plan with no Stress settings is left without them: the reader gives an unlocked one the default
+ *    (ScenarioRepository.getActiveStressSettings). Creating a one-key settings map here would hide the defaults.
+ * Only the Stress settings are written, so decisionSettingsChecksum cannot move on any plan.
+ */
+function toV2(s) {
+  if (planLocked(s)) return s;
+  const st = isObj(s.stressTool) && isObj(s.stressTool.settings) ? s.stressTool.settings : null;
+  if (!st) return s;
+  if (!isChargesPct(st.chargesPct)) st.chargesPct = DEFAULT_CHARGES_PCT;
+  return s;
+}
+
 export const MIGRATIONS = [
-  { to: 1, name: 'Version stamp; strategy block, renamed Stress keys, per-strategy settings and holdings shape written once', up: toV1 }
+  { to: 1, name: 'Version stamp; strategy block, renamed Stress keys, per-strategy settings and holdings shape written once', up: toV1 },
+  { to: 2, name: 'Fund and platform charges: 0.5% a year written into every unlocked plan; locked plans untouched', up: toV2 }
 ];
 
 /**
@@ -136,9 +172,11 @@ export function migrateScenario(raw, { now = new Date(), migrations = MIGRATIONS
     for (const step of migrations) {
       if (!(step.to > at)) continue;
       if (step.to !== at + 1) throw new Error('Migration chain has a gap: no step from version ' + at + ' to ' + (at + 1));
+      const lockedStress = step.to >= LOCKED_STRESS_GUARD_FROM && planLocked(cur) ? stressSettingsBytes(cur) : null;
       const out = step.up(cur, { now });
       if (out !== undefined) cur = out;
       if (!isObj(cur)) throw new Error('Migration to version ' + step.to + ' did not return a plan');
+      if (lockedStress !== null && stressSettingsBytes(cur) !== lockedStress) throw new Error('Migration to version ' + step.to + ' changed the Stress settings of a locked plan, which no migration may touch');
       cur.schemaVersion = step.to;
       at = step.to;
       if (at === target) break;

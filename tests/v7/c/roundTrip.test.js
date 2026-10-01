@@ -21,6 +21,7 @@ const typed = (f) => {
   if (f.type === 'choice') return fc.constantFrom(...f.options);
   if (f.type === 'yesNo') return fc.boolean();
   if (f.type === 'age') return fc.integer({ min: f.min, max: f.max }).map(String);
+  if (f.type === 'percent') return fc.constantFrom('0', '0.05', '0.5', '1.35', '1.5%', '3', ' 0.8 ');   // the charge (6.19.0)
   return typedMoney(f);
 };
 
@@ -54,7 +55,7 @@ describe('the numbers step: typed → state → drawn → read back', () => {
         if (f.path === 'household') { expect(back.household).toBe(v.household || 'single'); continue; }
         if (!applies(f, v)) { expect(back[f.path], `${f.path} is drawn but does not apply`).toBe(undefined); continue; }
         if (v[f.path] !== undefined) expect(back[f.path], f.path).toBe(v[f.path]);
-        else if (f.type === 'money' || f.type === 'age') expect(back[f.path], f.path).toBe('');
+        else if (f.type === 'money' || f.type === 'age' || f.type === 'percent') expect(back[f.path], f.path).toBe('');
         else expect(back[f.path], f.path).toBe(f.default);
       }
       expect(Object.keys(back).filter((p) => !FIELDS.some((f) => f.path === p))).toEqual([]);

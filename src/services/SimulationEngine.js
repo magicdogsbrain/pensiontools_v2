@@ -7,7 +7,8 @@
 
 import { EQUITY_RETURNS, INFLATION, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
-import { newSleeve, addToSleeve, growSleeve, withdrawFromSleeve, incomeTaxOnSleeve, bedAndIsa, payTaxFromSleeve, topUpFromSleeve, routeWindfall, sippRoomFor, GIA_DEFAULTS } from './TaxableSleeve.js';
+import { newSleeve, addToSleeve, growSleeve, chargeSleeve, withdrawFromSleeve, incomeTaxOnSleeve, bedAndIsa, payTaxFromSleeve, topUpFromSleeve, routeWindfall, sippRoomFor, GIA_DEFAULTS } from './TaxableSleeve.js';
+import { monthlyChargeFactor } from './Charges.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
@@ -54,6 +55,10 @@ function cashNominalReturn(prevInflation) {
  */
 export function simulate(config, returns, seed = 0) {
   const rng = seededRng(seed);
+  // Fund and platform charges (6.19.0, services/Charges.js): the plan's percent a year, as a monthly factor taken off
+  // every charged pot straight after the month's growth. A config without `chargesPct` (a plan locked before charges,
+  // every golden and pin) gets exactly 1 and the charge block below is skipped — the run it always was.
+  const chargeM = monthlyChargeFactor(config.chargesPct);
 
   // Initialize fund values
   let equity = config.equityStart;
@@ -384,7 +389,9 @@ export function simulate(config, returns, seed = 0) {
       diversifierGlide: dvGlide,      // the sleeve's glidepath this month (inflated, run down like shares and bonds)
       growthPots: vsGlide.growth, growthGlide: vsGlide.glide, belowGlide: vsGlide.below,   // the protection comparison, as judged this month (whole pennies)
       consecBelowGlideBefore: belowGlideRunBefore,   // the unbroken run of below-glide months before this one
-      planInputs                      // exact planDrawdown inputs used this month
+      planInputs,                     // exact planDrawdown inputs used this month
+      charge: 0,                      // fund and platform charges taken this month, every charged pot (set after the growth below)
+      chargeIsa: 0                    // the ISA's part of `charge`
     } : null;
     if (traceRow) trace.push(traceRow);
 
@@ -463,6 +470,26 @@ export function simulate(config, returns, seed = 0) {
         { inf, eqReturn }, rng, trendSignal, config.subAsset && config.subAsset.diversifierWeights
       );
       diversifier *= monthly(annualDivReturn);
+    }
+
+    // FUND AND PLATFORM CHARGES (6.19.0): every pot held in funds or cash — shares, bonds, cash, the ISA, the
+    // break-glass reserve, the diversifiers, and the taxable account except the gilts it holds directly — is multiplied
+    // by the month's charge factor, straight after its growth. Each multiply is its own statement, in this order, so the
+    // V7 replica (answers/shared/fastEngine.js) can do exactly the same arithmetic. No random draw happens here, so the
+    // random stream is untouched. Skipped entirely at 0% (chargeM === 1): an uncharged run is unchanged to the bit.
+    if (chargeM !== 1) {
+      const e0 = equity, b0 = bond, c0 = cash, i0 = isa, h0 = hodl, d0 = diversifier, g0 = gia.value;
+      equity *= chargeM;
+      bond *= chargeM;
+      cash *= chargeM;
+      if (isa > 0) isa *= chargeM;
+      if (hodl > 0) hodl *= chargeM;
+      if (diversifier > 0) diversifier *= chargeM;
+      if (g0 > 0) chargeSleeve(gia, chargeM);
+      if (traceRow) {
+        traceRow.chargeIsa = i0 - isa;
+        traceRow.charge = (e0 - equity) + (b0 - bond) + (c0 - cash) + (i0 - isa) + (h0 - hodl) + (d0 - diversifier) + (g0 - gia.value);
+      }
     }
 
     const totalGrowth = equity + bond;

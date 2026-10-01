@@ -268,6 +268,10 @@ export const C = {
       options: { cautious: 'Cautious', balanced: 'Balanced', adventurous: 'Adventurous' },
       optionHelp: { cautious: 'about a third in shares', balanced: 'about half in shares', adventurous: 'about two thirds in shares' }
     },
+    charge: {
+      label: 'Charges (funds and platform), a year',
+      help: 'What your funds and your platform take each year, as a share of what you hold, while you save and while you draw. Not taken off State Pension or final-salary pensions: there is no such charge on those.'
+    },
     endAge: {
       label: 'Make it last to age',
       errors: { 'end-after-start': 'That is not later than the age the money starts. Choose a later age.' }
@@ -292,6 +296,12 @@ export const C = {
       notANumber: 'Type an age between {min} and {max}.',
       tooLow: 'Type an age between {min} and {max}.',
       tooHigh: 'Type an age between {min} and {max}.'
+    },
+    percent: {
+      required: 'Type a figure such as 0.5.',
+      notANumber: 'Type a figure in steps of 0.05, such as 0.5 or 0.45.',
+      tooLow: 'Type a figure from {min} to {max}.',
+      tooHigh: 'Type a figure from {min} to {max}.'
     },
     other: 'Choose one of these.'
   }

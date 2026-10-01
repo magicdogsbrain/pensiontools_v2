@@ -20,6 +20,10 @@
  *        own tests: tests/v7/c/fixtures.test.js, tests/v7/c/render.test.js, tests/v7/c/speed.identity.test.js)
  *
  * Every push: fixed seeds and 40 futures. Nightly (NIGHTLY=1): more households.
+ *
+ * Fund and platform charges (6.19.0): the household's one charge is asked in all three and taken while saving and while
+ * drawing, so the three slices agree at every charge — the named households at 0%, 0.5% and 1.5%, the random ones at
+ * one of the three.
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
@@ -44,13 +48,13 @@ function asC(h) {
   const person = (p) => ({ age: p.age, pot: p.pot, statePension: p.statePension || { kind: 'full' }, finalSalary: p.finalSalary || { has: false },
     ...(p.payIn ? { payIn: { has: 'yes', kind: 'split', own: p.payIn.own, employer: p.payIn.employer } } : {}) });
   return { household: h.partner ? 'couple' : 'single', you: person(h.you), ...(h.partner ? { partner: person(h.partner) } : {}),
-    savings: h.savings || 0, start: { kind: 'age', age: h.stop }, risk: h.risk || 'balanced', endAge: h.endAge || 95 };
+    savings: h.savings || 0, start: { kind: 'age', age: h.stop }, risk: h.risk || 'balanced', ...(h.charge === undefined ? {} : { charge: h.charge }), endAge: h.endAge || 95 };
 }
 function asSaver(h, spend, q) {
   const person = (p) => ({ age: p.age, pot: p.pot, statePension: p.statePension || { kind: 'full' }, finalSalary: p.finalSalary || { has: false },
     payIn: p.payIn ? { kind: 'split', own: p.payIn.own, employer: p.payIn.employer } : { kind: 'total', total: 0 } });
   const out = { household: h.partner ? 'couple' : 'single', you: person(h.you), ...(h.partner ? { partner: person(h.partner) } : {}),
-    savings: h.savings || 0, spend: { kind: 'amount', amount: spend }, savingsIn: 0, savingRisk: h.risk || 'balanced', risk: h.risk || 'balanced', charge: 0.5, endAge: h.endAge || 95 };
+    savings: h.savings || 0, spend: { kind: 'amount', amount: spend }, savingsIn: 0, savingRisk: h.risk || 'balanced', risk: h.risk || 'balanced', charge: h.charge === undefined ? 0.5 : h.charge, endAge: h.endAge || 95 };
   return q === 'a' ? { ...out, stop: { kind: 'age', age: h.stop }, partTime: { has: false } } : { ...out, stop: { age: h.stop }, confidence: 'nineInTen' };
 }
 const payInOf = (h) => [h.you, h.partner].filter(Boolean).reduce((t, p) => t + (p.payIn ? p.payIn.own + p.payIn.employer : 0), 0);
@@ -73,7 +77,7 @@ const households = fc.record({
   age: fc.integer({ min: 30, max: 64 }), pot: fc.constantFrom(0, 40000, 150000, 275000, 600000),
   payIn: fc.constantFrom(null, { own: 100, employer: 0 }, { own: 500, employer: 300 }, { own: 1200, employer: 600 }),
   savings: fc.constantFrom(0, 30000, 120000), early: fc.boolean(), gap: fc.integer({ min: 1, max: 12 }),
-  fs: fc.boolean(), risk: fc.constantFrom('cautious', 'balanced', 'adventurous'),
+  fs: fc.boolean(), risk: fc.constantFrom('cautious', 'balanced', 'adventurous'), charge: fc.constantFrom(0, 0.5, 1.5),
   partner: fc.option(fc.record({ dAge: fc.integer({ min: -6, max: 6 }), pot: fc.constantFrom(0, 90000), payIn: fc.constantFrom(null, { own: 200, employer: 100 }) }), { freq: 3 })
 }).map((k) => {
   // a stop before 57 is a saver's question: C takes it with savings to live on until the pension opens
@@ -85,7 +89,7 @@ const households = fc.record({
   const onStop = accessAgeOn(addYears(TODAY, stop - k.age));
   const closed = stop < onStop;
   const h = { you: { age: k.age, pot: k.pot, payIn: k.payIn, ...(k.fs ? { finalSalary: { has: true, yearly: 9000, fromAge: 65 } } : {}) },
-    savings: early || closed ? Math.max(k.savings, 120000) : k.savings, stop, risk: k.risk };
+    savings: early || closed ? Math.max(k.savings, 120000) : k.savings, stop, risk: k.risk, charge: k.charge };
   if (k.partner) h.partner = { age: Math.min(75, Math.max(30, k.age + k.partner.dAge)), pot: k.partner.pot, payIn: k.partner.payIn };
   // …and when every pension the household has (a pot, or one being paid into — the partner's too) is closed at the stop,
   // C takes the start only with savings to live on (start-not-before-access is per person, J18): a NIGHTLY=1 run, 1 Oct
@@ -154,6 +158,11 @@ function oneTest(h) {
 describe('OT1–OT3 — C, A and B are three slices of one test', () => {
   it.each(NAMED.map((x) => [x.name, x]))('%s', (_n, x) => {
     expect(oneTest(x.h)).toMatch(/^compared/);
+  });
+
+  // the charge left to C's default is A's and B's 0.5% (asC above gives none, asSaver 0.5); and typed, at 0, 0.5 and 1.5
+  it.each(NAMED.flatMap((x) => [0, 0.5, 1.5].map((charge) => [`${x.name}, charges ${charge}%`, { ...x.h, charge }])))('%s', (_n, h) => {
+    expect(oneTest(h)).toMatch(/^compared/);
   });
 
   it('on random households: one person or two, pots, pay-ins (nothing too), savings, a final-salary pension, a stop before or after 57', () => {

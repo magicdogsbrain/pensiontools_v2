@@ -203,10 +203,17 @@ describe('what have you got? (the numbers step)', () => {
     expect(one(root, 'c.action.fullDetail').textContent).toBe(C.buttons.fullDetailCouple);
   });
 
-  it('more detail: three optional settings, each showing the value it starts from', () => {
+  it('more detail: four optional settings, each showing the value it starts from', () => {
     const root = renderScreen(load('numbers-more-open'));
     expect(one(root, 'c.savings').value).toBe('');
     expect(one(root, 'c.risk.balanced').checked).toBe(true);
+    // the one charge (6.19.0), as A and B ask it: a percent box starting from 0.5
+    const charge = one(root, 'c.charge');
+    expect(charge.value).toBe('');
+    expect(charge.getAttribute('inputmode')).toBe('decimal');
+    expect(charge.getAttribute('placeholder')).toBe('0.5');
+    expect(charge.closest('.box').querySelector('.suffix').textContent).toBe('%');
+    expect(root.querySelector('label[for="c.charge"]').textContent).toBe(C.fields.charge.label);
     expect(one(root, 'c.endAge').value).toBe('');
     expect(one(root, 'c.endAge').getAttribute('placeholder')).toBe('95');
     expect(one(root, 'c.action.moreDetail').getAttribute('aria-expanded')).toBe('true');
@@ -217,6 +224,19 @@ describe('what have you got? (the numbers step)', () => {
     const s = load('numbers-blank');
     s.route.focus = 'endAge';
     expect(one(renderScreen(s), 'c.endAge')).not.toBe(null);
+    s.route.focus = 'charge';                                  // "Change" on the charges line
+    expect(one(renderScreen(s), 'c.charge')).not.toBe(null);
+  });
+
+  it('a charge that is not on the 0.05 steps, or over 3%, is said in plain words', () => {
+    const s = load('numbers-more-open');
+    s.draft.c.values = { ...s.draft.c.values, charge: '0.07' };
+    s.draft.c.touched = ['charge'];
+    const root = renderScreen(s);
+    expect(checkScreen(root, s)).toEqual([]);
+    expect(root.querySelector('[data-error-for="c.charge"]').textContent).toBe(C.errors.percent.notANumber);
+    s.draft.c.values = { ...s.draft.c.values, charge: '3.5' };
+    expect(renderScreen(s).querySelector('[data-error-for="c.charge"]').textContent).toBe('Type a figure from 0% to 3%.');
   });
 
   it('under the earliest pension age: starts from that age, and says so', () => {
@@ -380,7 +400,14 @@ describe('what does it pay a month? (the answer step)', () => {
       expect(head.textContent.indexOf(result.sentences.bad.text)).toBeLessThan(head.textContent.indexOf(ADVICE_SHORT));
     });
     it('says nothing the brief dropped: no "from your pot" headline, no "in all" line, no charges, no spending', () => {
-      expect(head.textContent).not.toMatch(/a month from your pot\b|in all once|Charges of|What you expect to spend|Way of taking it/);
+      // (6.19.0: the one charge is said under what was assumed, with Change — that list sits in this block, and is the
+      // only place the charges line belongs; the headline itself still carries no charges line)
+      const bare = head.cloneNode(true);
+      for (const el of bare.querySelectorAll('[data-assumed]')) el.remove();
+      expect(bare.textContent).not.toMatch(/a month from your pot\b|in all once|Charges of|What you expect to spend|Way of taking it/);
+      const assumed = head.querySelector('[data-assumed-id="charges"]');
+      expect(assumed && assumed.textContent).toContain('Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.');
+      expect(assumed.querySelector('[data-testid="assumed.charges.change"]').getAttribute('href')).toBe('#/c/numbers?focus=charge');
     });
     it('what it is made of: one line for each stretch of years, then the three amounts', () => {
       for (const s of result.sentences.madeOf) expect(root.textContent).toContain(s.text);

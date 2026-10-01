@@ -62,6 +62,13 @@ const SETTINGS = {
   }
 };
 
+// Fund and platform charges (6.19.0): the same three settings as a new plan, or an unlocked plan after the schema-2
+// migration, saves them — with the default charge, 0.5% a year. The three above carry none, as a plan locked before
+// charges does (it runs at 0%). Both are live paths, so both are pinned, the uncharged ones unchanged.
+const CHARGED_PCT = 0.5;
+const CHARGED = Object.fromEntries(Object.entries(SETTINGS).map(([name, s]) => [name + ' · charges 0.5%', { ...s, chargesPct: CHARGED_PCT }]));
+const ALL = { ...SETTINGS, ...CHARGED };
+
 const RUNS = 25;
 const PIN_FILE = path.join(__dirname, 'fixtures', 'appPaths.pin.json');
 const REL_TOL = 1e-9, ABS_TOL = 1e-6;
@@ -94,7 +101,7 @@ function vectorDiffs(actual, pinned, where = '', out = [], key = '') {
 
 describe('Phase B gate: app-path golden vectors', () => {
   const vectors = {};
-  for (const [name, settings] of Object.entries(SETTINGS)) {
+  for (const [name, settings] of Object.entries(ALL)) {
     it(`runs the full MC output vector: ${name}`, () => {
       const cfg = createSimulationConfigFromSettings({}, settings);
       // through JSON, as the pin is stored: what is compared is what a file can hold
@@ -115,6 +122,36 @@ describe('Phase B gate: app-path golden vectors', () => {
     const pinned = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8'));
     expect(Object.keys(vectors)).toEqual(Object.keys(pinned));
     expect(vectorDiffs(vectors, pinned)).toEqual([]);
+  });
+
+  // Fund and platform charges (6.19.0): a plan at 0% — or one locked before charges, which carries no setting — is the
+  // pinned run, to the bit (not merely within the tolerance): the engine skips its charge block at 0%.
+  it('at 0% charges every app-path vector is the pinned one, exactly as without the setting', () => {
+    const pinned = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8'));
+    for (const [name, settings] of Object.entries(SETTINGS)) {
+      const cfg = createSimulationConfigFromSettings({}, settings);
+      const without = JSON.parse(JSON.stringify(runMonteCarlo(cfg, RUNS).map(vectorOf)));
+      const atZero = JSON.parse(JSON.stringify(runMonteCarlo({ ...cfg, chargesPct: 0 }, RUNS).map(vectorOf)));
+      expect(atZero, name).toEqual(without);
+      expect(vectorDiffs({ [name]: atZero }, { [name]: pinned[name] }), name).toEqual([]);
+    }
+  });
+
+  it('a charged plan\'s settings reach the engine: the config carries the charge, no fewer runs fail, and the typical end is lower', () => {
+    const pinned = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8'));
+    const median = (v) => { const s = [...v].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const endOf = (r) => r.final + r.finalIsa;   // the pension and the ISA at the end
+    for (const [name, settings] of Object.entries(SETTINGS)) {
+      const twin = name + ' · charges 0.5%';
+      expect(createSimulationConfigFromSettings({}, CHARGED[twin]).chargesPct, twin).toBe(CHARGED_PCT);
+      expect('chargesPct' in createSimulationConfigFromSettings({}, settings), name).toBe(false);
+      expect(pinned[twin], twin).toHaveLength(RUNS);
+      expect(JSON.stringify(pinned[twin]), twin).not.toBe(JSON.stringify(pinned[name]));
+      expect(pinned[twin].filter((r) => r.failed).length, twin).toBeGreaterThanOrEqual(pinned[name].filter((r) => r.failed).length);
+      expect(median(pinned[twin].map(endOf)), twin).toBeLessThanOrEqual(median(pinned[name].map(endOf)));
+      // Not run by run: a charged run can fall below its glidepaths sooner, pay less in protection and so keep a little
+      // more in the pension (ufpls-phased-recycle runs 1, 15 and 24 — each with less in the ISA and in total).
+    }
   });
 
   it('the comparison is exact where a branch shows and tolerant only of last-bit drift', () => {

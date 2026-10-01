@@ -2,11 +2,13 @@
  * What the Stress tester says about the pots a run starts from — the two lines that disagreed with what the engine
  * runs on (review of "save this as a plan", 1 Oct 2026). Pure: settings in, HTML out (figures only, no user text).
  *
- *   startSummaryHtml(settings, { fromAnswer })   the line above Monte Carlo, History and Scenarios. Retiring later, the
+ *   startSummaryHtml(settings, { fromAnswer, locked })
+ *                                                the line above Monte Carlo, History and Scenarios. Retiring later, the
  *                                                runs start from the pots AT RETIREMENT (today's pots scaled by the
  *                                                Timing block's pots at retirement — potScaleOf, as
  *                                                createSimulationConfigFromSettings does); it said today's. On a plan
  *                                                made from a V7 answer it also gives the quick answer's own figure.
+ *                                                It ends with the fund and platform charge the runs take (6.19.0).
  *   potsAtRetirementLine(projection, override)    the Timing block's line. With pots at retirement typed in the boxes
  *                                                (or put there by a V7 answer) those are what every strategy is priced
  *                                                on, and the planner's own projection is for comparison; it said the
@@ -14,6 +16,7 @@
  */
 import { potScaleOf, sippTodayOf } from '../services/PlanTiming.js';
 import { answerLastedWords } from '../services/PlanSeed.js';
+import { chargesRunLine } from './chargesSetting.js';
 
 const fmt = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
 
@@ -24,7 +27,7 @@ export function startsScaled(settings) {
   return s.retired === false && (k.sipp !== 1 || k.isa !== 1);
 }
 
-export function startSummaryHtml(settings, { fromAnswer = null } = {}) {
+export function startSummaryHtml(settings, { fromAnswer = null, locked = null } = {}) {
   const s = settings || {};
   const knowsSp = ('statePension' in s) || ('spStartDate' in s);
   const spNote = knowsSp && (!s.spStartDate || !s.spWeeklyAmount)
@@ -42,6 +45,10 @@ export function startSummaryHtml(settings, { fromAnswer = null } = {}) {
     text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): '
       + `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. Edit them in the Settings tab.`;
   }
+  // Fund and platform charges (6.19.0): what every run takes off. `locked` (when the caller knows it) lets a plan locked
+  // before charges say why it has none.
+  const charges = chargesRunLine(s, { locked });
+  if (charges) text += ' ' + charges;
   const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
   if (lasted) {
     text += ` <span class="hint">This plan was made from a quick answer, where ${lasted}. ${fromAnswer.stop && fromAnswer.stop.kind === 'later'

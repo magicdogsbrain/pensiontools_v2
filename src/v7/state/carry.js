@@ -19,15 +19,18 @@ const YOU = ['you.age', 'you.pot', 'you.statePension.kind', 'you.statePension.ye
 const PARTNER = ['partner.age', 'partner.pot', 'partner.statePension.kind', 'partner.statePension.yearly', 'partner.finalSalary.has', 'partner.finalSalary.yearly', 'partner.finalSalary.fromAge'];
 const same = (paths) => paths.map((p) => [p, p]);
 
-/** The person block C, A and B all have. */
-const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, 'savings', 'risk', 'endAge']);
+/**
+ * The person block C, A and B all have — and the settings all three ask: the risk level, the one fund and platform
+ * charge (6.19.0: C asks it too, so it is carried every way and a hand-over shows the same figure), the end age.
+ */
+const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, 'savings', 'risk', 'charge', 'endAge']);
 
 /** What A and B share beyond the person block: the spending, the pay-ins, the saving settings (the stop age apart). */
 const SAVER_FIELDS = [
   'spend.kind', 'spend.amount', 'spend.level',
   'you.payIn.kind', 'you.payIn.total', 'you.payIn.own', 'you.payIn.employer', 'you.alreadyDrawing',
   'partner.payIn.kind', 'partner.payIn.total', 'partner.payIn.own', 'partner.payIn.employer', 'partner.alreadyDrawing',
-  'savingsIn', 'savingRisk', 'charge'
+  'savingsIn', 'savingRisk'
 ];
 const SAVER = same(['stop.age', ...SAVER_FIELDS]);
 

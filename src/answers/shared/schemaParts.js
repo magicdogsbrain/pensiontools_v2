@@ -5,6 +5,7 @@
  *   personFields(who)            C's person block for `who`, by value (tests/v7/a/schema.test.js asserts it deep-equals SCHEMA_C's)
  *   saverFields(who, opts)       the pay-in block: payIn.kind / total / own / employer, and alreadyDrawing under more detail
  *   moreFields()                 savingsIn, savingRisk, risk, charge, endAge
+ *   chargeField()                the one fund and platform charge, percent a year (6.19.0): in C's "more" too
  *   SPEND_FIELDS                 spend.kind / amount / level — the same paths in A and B
  *   agesToShow(inputs, env, detail, earliestYes)   the stop ages an A result carries (conflict 31)
  *   gridToShow(inputs, env)      the rows and columns of B's choices step (conflict 37)
@@ -14,6 +15,7 @@
  */
 import { RULES, SAVING, accessAgeOn, addYears } from './rules.js';
 import { bornFromAge, wholeStatePensionAge, firstOpenAge } from './household.js';
+import { CHARGES_LIMITS } from '../../services/Charges.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -104,13 +106,25 @@ export function payInTotalOf(inputs, who) {
   return isNum(p.total) ? p.total : 0;
 }
 
-/** "Add more detail": savings in a month, the two risk levels, the charge while saving, the end age. */
+/**
+ * Fund and platform charges (6.19.0; the owner, 1 Oct 2026: "Yes half a percent. But put it as a config parameter
+ * somewhere"): ONE setting, percent a year, under "Add more detail" in C, A and B alike — today's planner's range and
+ * steps (services/Charges.js CHARGES_LIMITS: 0 to 3 in steps of 0.05) and its default (0.5, SAVING.chargesPct). It becomes
+ * the household's `chargesPct` and is taken monthly while saving AND while drawing (saving.js, toEngine.js), from what
+ * is held in funds and cash; never from the State Pension or a final-salary pension.
+ */
+export function chargeField() {
+  return { path: 'charge', type: 'percent', min: CHARGES_LIMITS.min, max: CHARGES_LIMITS.max, step: CHARGES_LIMITS.step, default: SAVING.chargesPct, group: 'more',
+    boundaries: [CHARGES_LIMITS.min, CHARGES_LIMITS.step, SAVING.chargesPct, 1, CHARGES_LIMITS.max] };
+}
+
+/** "Add more detail": savings in a month, the two risk levels, the one charge (saving and drawing), the end age. */
 export function moreFields() {
   return [
     { path: 'savingsIn', type: 'money', min: 0, max: 10_000, default: 0, group: 'more', boundaries: [0, 1, 500, 1_667, 10_000] },   // a month, into ISAs and savings
     { path: 'savingRisk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
-    { path: 'charge', type: 'percent', min: 0, max: 2, default: 0.5, group: 'more', boundaries: [0, 0.5, 1, 2] },                     // a year, while saving
+    chargeField(),                                                                                                                       // a year, saving and drawing
     { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] }
   ];
 }
@@ -270,8 +284,8 @@ export function payingInPast75(people, startAge) {
  * Whether a hand-over to C from A or B at this stop age works, and whether C then shows the same careful figure
  * (step 4 brief section 10, J10). `ok`: C's own rules take the age — a start before any of the household's pensions can
  * be touched needs savings to live on meanwhile (startBeforeEveryPension, the partner too), and no one may still be
- * paying in past 75. `same`: C asks nothing A and B ask beyond it — the saving risk is the one risk, the charge is 0.5%,
- * nothing goes into savings each month, no part-time work.
+ * paying in past 75. `same`: C asks nothing A and B ask beyond it — the saving risk is the one risk, nothing goes into
+ * savings each month, no part-time work. (The charge no longer counts: from 6.19.0 C asks it too, and it is carried.)
  */
 export function handOverToC(inputs, stopAge, today) {
   const you = inputs && inputs.you;
@@ -281,7 +295,7 @@ export function handOverToC(inputs, stopAge, today) {
     who, age: inputs[who].age, pension: (inputs[who].pot || 0) > 0 || payInTotalOf(inputs, who) > 0, payingIn: payInTotalOf(inputs, who) > 0
   }));
   const ok = stopAge >= you.age && !startBeforeEveryPension(people, inputs.savings || 0, stopAge, today) && !payingInPast75(people, stopAge).length;
-  const same = (inputs.savingRisk || 'balanced') === (inputs.risk || 'balanced') && Math.abs((isNum(inputs.charge) ? inputs.charge : 0.5) - SAVING.charge * 100) < 1e-9
+  const same = (inputs.savingRisk || 'balanced') === (inputs.risk || 'balanced')
     && !((inputs.savingsIn || 0) > 0) && !(inputs.partTime && inputs.partTime.has);
   return { ok, same };
 }

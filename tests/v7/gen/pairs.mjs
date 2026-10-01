@@ -39,6 +39,8 @@ export const DIMENSIONS = [
   { name: 'take', values: [v('takeNotGiven', (c) => {}), v('take0', (c) => setPath(c, 'take', 0)), v('take1000', (c) => setPath(c, 'take', 1000)), v('take50000', (c) => setPath(c, 'take', 50000))] },
   { name: 'endAge', values: [v('to95', (c) => {}), v('to100', (c) => setPath(c, 'endAge', 100))] },
   { name: 'savings', values: [v('savings0', (c) => {}), v('savings150k', (c) => setPath(c, 'savings', 150_000))] },
+  // the one fund and platform charge (6.19.0): left at 0.5%, none, or 1.5% a year
+  { name: 'charge', values: [v('chargeDefault', (c) => {}), v('charge0', (c) => setPath(c, 'charge', 0)), v('charge1.5', (c) => setPath(c, 'charge', 1.5))] },
   // "later" starts at 60, or now for anyone already past 60 (the rules refuse a start before today's age).
   { name: 'start', values: [v('startDefault', (c) => {}), v('startLater', (c) => { setPath(c, 'start.kind', 'age'); setPath(c, 'start.age', Math.max(60, c.you.age)); })] },
   partnerDim('partnerAge', [54, 62, 70].map((a) => v(`partnerAge${a}`, (c) => setPath(c, 'partner.age', a)))),

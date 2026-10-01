@@ -400,6 +400,13 @@ export function sentencesWithoutPots(result, facts) {
   };
 }
 
+/**
+ * The one charge line (6.19.0), word for word the same in C, A and B (each question keeps its own words; the test holds
+ * them equal): what comes off, from what, when — and what it is never taken from. `pct` is the charge as typed (percent
+ * a year), shown as typed: 0.5, 0.05, 1.25.
+ */
+const chargesParts = (pct) => ['Charges of ', F(String(pct)), '% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.'];
+
 const RISK_WORDS = {
   cautious: 'Cautious: about a third in shares, the rest in bonds and cash.',
   balanced: 'Balanced: about half in shares, the rest in bonds and cash.',
@@ -441,6 +448,9 @@ export function assumedFor(result, facts) {
   }
   if (facts.anyPension) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
   if (facts.anyPension) line('risk', 'risk', src('risk'), inputs.risk, [RISK_WORDS[inputs.risk] || RISK_WORDS.balanced]);
+  // the one fund and platform charge (6.19.0), with Change: whenever money is held in funds or cash — while it waits to be
+  // taken and while it is drawn (it replaces "a charge … until the money is first taken" and "… not taken off")
+  if (facts.anyPots || facts.payingIn) line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
   if (facts.anyPots) line('steady', null, 'rule', null, ['You take the same amount every month, and it rises with prices. No cuts in bad years.']);
 
   const startField = 'start.kind';
@@ -462,7 +472,6 @@ export function assumedFor(result, facts) {
       line('nothing-paid-in', said ? 'you.payIn.has' : null, said ? 'entered' : 'rule', said ? 'no' : null, ['Nothing more goes into a pension before the money is first taken.']);
     }
     line('pot-invested', null, 'rule', null, ['Until then your money stays invested, kept at its mix of shares, bonds and cash every month.']);
-    line('charge-saving', null, 'rule', 0.5, ['A charge of ', F('0.5'), '% a year comes off until the money is first taken; none after that.']);
     line('same-futures', null, 'rule', null, ['The years before the money is first taken and the years after are one future: the same markets, seen once.']);
   }
   if (!facts.life && !startsNow && facts.anyPots && !facts.startMoved) {
@@ -493,7 +502,6 @@ export function assumedFor(result, facts) {
     line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures, each pieced together from stretches of US share returns and US price rises since ', F(facts.historyStartYear),
       '. Share returns are cut by ', F(shareCutPercent()), '% a year to stand for shares around the world; bonds and cash are worked out from each future\'s markets.']);
   }
-  if (facts.anyPots) line('no-charges', null, 'rule', null, facts.life && !facts.startsNow ? ['Fund and platform charges are not taken off once the money is being taken.'] : ['Fund and platform charges are not taken off.']);
   return out;
 }
 

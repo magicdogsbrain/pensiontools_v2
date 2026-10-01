@@ -16,6 +16,7 @@ import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
 import { targetMixForYear, equityGlideFromRisk } from './GlidepathService.js';
 import { projectAccumulation, potOnPath, contributionBreakdown } from './AccumulationEngine.js';
+import { chargesPctOf } from './Charges.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { holdingsLines, normaliseHoldings } from './HoldingsRecord.js';
 import { cleanParams } from './StrategyState.js';
@@ -151,12 +152,15 @@ export function buildAccumulationPath({ settings = {}, timing, accumulation = nu
   if (!(totalMonthly > 0) && prop && prop.contributions.monthly > 0) totalMonthly = prop.contributions.monthly;
   const years = Math.max(0, timing.shapeAgeNow - timing.currentAge);
   const mixRealReturn = prop && prop.total > 0 ? prop.expectedReal : null;
+  // The plan's fund and platform charges (6.19.0): taken off the path monthly; on the "your mix" line they replace the
+  // holdings' own fund charges. Recorded beside the path (absent on a document built before 6.19.0).
+  const chargesPct = chargesPctOf(settings);
   if (potNow == null) {
-    return plainClone({ startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years, potNow: null, potSource: null, totalMonthly: Math.round(totalMonthly), mixRealReturn: null, mixText: null, path: [] });
+    return plainClone({ startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years, potNow: null, potSource: null, totalMonthly: Math.round(totalMonthly), mixRealReturn: null, mixText: null, chargesPct, path: [] });
   }
-  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: +a.escalationPct || 0, mixRealReturn });
+  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: +a.escalationPct || 0, mixRealReturn, chargesPct, mixOcf: mixRealReturn != null ? prop.weightedOcf : null });
   return plainClone({
-    startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years, potNow: Math.round(potNow), potSource: fromLedger > 0 ? 'holdings' : 'accumulation', totalMonthly: Math.round(totalMonthly), mixRealReturn,
+    startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years, potNow: Math.round(potNow), potSource: fromLedger > 0 ? 'holdings' : 'accumulation', totalMonthly: Math.round(totalMonthly), mixRealReturn, chargesPct,
     mixText: prop ? (Math.round(prop.buckets.shares * 100) + '% shares · ' + Math.round(prop.buckets.bonds * 100) + '% bonds · ' + Math.round((prop.buckets.diversifiers || 0) * 100) + '% diversifiers · ' + Math.round(prop.buckets.cash * 100) + '% cash') : null,
     path: rows.map((r) => ({ year: r.year, age: timing.currentAge + r.year, potLow: Math.round(r.potLow), potMid: Math.round(r.potMid), potHigh: Math.round(r.potHigh), ...(r.potMix != null ? { potMix: Math.round(r.potMix) } : {}), contributedToDate: Math.round(r.contributedToDate) }))
   });
@@ -210,7 +214,10 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       spStartDate: settings.spStartDate || null, spWeeklyAmount: +settings.spWeeklyAmount || 0,
       pa: +settings.pa || 12570, brl: +settings.brl || 50270, hrl: +settings.hrl || 125140, taxMode: settings.taxMode || 'inflates',
       cpiDecision: DECISION_ASSUMED_CPI_FOR_RECORD, duration: N, firstTaxYear: timing.firstTaxYear, bridgeMonths: timing.bridgeMonths,
-      cashYears: params.cashYears ?? null, bridgeCash: +params.bridgeCash || 0, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null)
+      cashYears: params.cashYears ?? null, bridgeCash: +params.bridgeCash || 0, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
+      // Fund and platform charges the plan's figures were worked out at, percent a year (6.19.0). A document locked
+      // before 6.19.0 has no key: its figures were worked out without charges.
+      chargesPct: chargesPctOf(settings)
     },
     decisionRun: {
       year0: taxYearLabel(timing.firstTaxYear), bridgeMonths: timing.bridgeMonths, contract,

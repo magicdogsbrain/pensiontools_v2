@@ -159,7 +159,12 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
     const fx = fixtures[0];
     const first = answerA(fx.inputs, { ...TEST_ENV, ...fx.env, futures: 100 });
     const final = answerA(fx.inputs, { ...TEST_ENV, ...fx.env, futures: Number(process.env.V7_FINAL_FUTURES || 1000) });
-    expect(final.ages.map((r) => r.age)).toEqual(first.ages.map((r) => r.age));
-    final.ages.forEach((r, i) => expect(Math.abs(RANK[r.verdict] - RANK[first.ages[i].verdict]), `${r.age}`).toBeLessThanOrEqual(1));
+    // The rows are the chart's ages plus "the first later age that lasts" (agesToShow), which each pass finds on its own
+    // lives: they may differ by that one row (6.19.0: A1 with the 0.5% charge — 63 at 100 lives, 65 at 1,000). Every age
+    // both passes show is compared.
+    const firstAt = new Map(first.ages.map((r) => [r.age, r]));
+    const both = final.ages.filter((r) => firstAt.has(r.age));
+    expect(both.length).toBeGreaterThanOrEqual(Math.max(final.ages.length, first.ages.length) - 1);
+    for (const r of both) expect(Math.abs(RANK[r.verdict] - RANK[firstAt.get(r.age).verdict]), `${r.age}`).toBeLessThanOrEqual(1);
   }, 120000);
 });

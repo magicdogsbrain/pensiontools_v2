@@ -18,6 +18,7 @@
  */
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
+import { chargesPctOf } from './Charges.js';
 
 const MS_PER_DAY = 24 * 3600 * 1000;
 
@@ -261,7 +262,8 @@ export function potScaleOf(settings) {
 
 /**
  * Projected pots at retirement in TODAY'S money, from the Accumulation planner's saved inputs
- * (contributions, escalation) at the FCA middle band. With no contributions saved the pots simply
+ * (contributions, escalation) at the FCA middle band, less the plan's fund and platform charges (stress.chargesPct,
+ * 6.19.0; none on a plan without the setting). With no contributions saved the pots simply
  * grow at the middle band — the UI says so.
  */
 export function projectedPotAtRetirement(stress, accumulation, now = new Date()) {
@@ -274,9 +276,10 @@ export function projectedPotAtRetirement(stress, accumulation, now = new Date())
     if (+a.netMonthly > 0 || +a.employerMonthly > 0) totalMonthly = contributionBreakdown({ netMonthly: +a.netMonthly || 0, salary: +a.salary || 0, schemeType: a.schemeType || 'ras', employerMonthly: +a.employerMonthly || 0 }).totalMonthly || 0;
   } catch (e) { totalMonthly = 0; }
   const years = Math.max(0, t.shapeAgeNow - t.currentAge);
-  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: sippToday, totalMonthly, escalationPct: +a.escalationPct || 0 });
+  const chargesPct = chargesPctOf(stress);   // the plan's fund and platform charges come off the saving years too (6.19.0)
+  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: sippToday, totalMonthly, escalationPct: +a.escalationPct || 0, chargesPct });
   const last = rows[rows.length - 1];
-  const isaRows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: isaToday, totalMonthly: 0 });
+  const isaRows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: isaToday, totalMonthly: 0, chargesPct });
   const isaLast = isaRows[isaRows.length - 1];
   return { sipp: Math.round(last.potMid), isa: Math.round(isaLast.potMid), low: Math.round(last.potLow), high: Math.round(last.potHigh), years, source: 'accumulation', hasContributions: totalMonthly > 0 };
 }

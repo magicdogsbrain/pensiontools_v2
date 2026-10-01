@@ -208,41 +208,41 @@
       }
     ],
     "number": {
-      "careful": 762000,
-      "middling": 622000,
-      "good": 459000,
+      "careful": 820000,
+      "middling": 659000,
+      "good": 485000,
       "byPerson": [
         {
           "who": "you",
-          "pot": 535895
+          "pot": 576684
         },
         {
           "who": "partner",
-          "pot": 226105
+          "pot": 243316
         }
       ]
     },
     "already": false,
     "chance": {
-      "lasted": 0.125,
+      "lasted": 0.075,
       "outOfTen": {
         "words": "in only 1 future out of 10",
         "only": true,
         "count": 1
       },
-      "fails": 35
+      "fails": 37
     },
     "onCourse": false,
     "payIn": {
       "now": 900,
       "own": null,
       "employer": null,
-      "needed": 4530,
-      "extra": 3630,
+      "needed": 5140,
+      "extra": 4240,
       "confidence": "nineInTen",
       "at": {
-        "nineInTen": 4530,
-        "threeInFour": 3670
+        "nineInTen": 5140,
+        "threeInFour": 4010
       },
       "outside": null,
       "savingsNow": 0
@@ -254,15 +254,15 @@
         "good": 615573
       },
       "needed": {
-        "careful": 607955,
-        "middling": 846467,
-        "good": 1059964
+        "careful": 658052,
+        "middling": 907655,
+        "good": 1134641
       }
     },
-    "short": 452160,
-    "monthlyIfShort": 2630,
+    "short": 510160,
+    "monthlyIfShort": 2570,
     "wholeLife": {
-      "lasted": 0.125,
+      "lasted": 0.075,
       "outOfTen": {
         "words": "in only 1 future out of 10",
         "only": true,
@@ -273,28 +273,28 @@
     "outside": null,
     "levers": {
       "stopLater": {
-        "age": 68,
+        "age": 69,
         "lasted": 0.925
       },
       "payMore": {
-        "payIn": 4530,
+        "payIn": 5140,
         "savingsIn": null,
         "lasted": 0.9
       },
       "spendLess": {
-        "spend": 2630,
+        "spend": 2570,
         "lasted": 0.9
       },
       "moreRisk": {
         "level": "adventurous",
-        "payIn": 4540,
-        "lasted": 0.125,
-        "helps": false
+        "payIn": 5100,
+        "lasted": 0.1,
+        "helps": true
       },
       "accept": {
-        "lasted": 0.125,
-        "short": 452160,
-        "monthlyIfShort": 2630
+        "lasted": 0.075,
+        "short": 510160,
+        "monthlyIfShort": 2570
       }
     },
     "grid": null,
@@ -574,17 +574,17 @@
         ]
       },
       {
-        "id": "charge-saving",
+        "id": "charges",
         "field": "charge",
         "source": "default",
         "value": 0.5,
-        "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+        "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
         "parts": [
-          "A charge of ",
+          "Charges of ",
           {
             "fixed": "0.5"
           },
-          "% a year comes off while you are saving; none once you have stopped."
+          "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
         ]
       },
       {
@@ -889,7 +889,7 @@
     "sentences": {
       "head": {
         "id": "b.head.couple",
-        "text": "About £762,000 between you by the time you are 60",
+        "text": "About £820,000 between you by the time you are 60",
         "parts": [
           "About ",
           {
@@ -939,7 +939,7 @@
       },
       "line": {
         "id": "b.line.couple",
-        "text": "To spend £3,592 a month from 60, the two of you would want pots of about £762,000 between you by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
+        "text": "To spend £3,592 a month from 60, the two of you would want pots of about £820,000 between you by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
         "parts": [
           "To spend ",
           {
@@ -976,7 +976,7 @@
       },
       "bad": {
         "id": "b.bad",
-        "text": "In a bad case (the worst 1 in 10), £900 a month as now gets your pensions to about £310,000 by 60. Paying in as now, about £2,630 a month from 60 lasted in 9 futures out of 10.",
+        "text": "In a bad case (the worst 1 in 10), £900 a month as now gets your pensions to about £310,000 by 60. Paying in as now, about £2,570 a month from 60 lasted in 9 futures out of 10.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -1042,7 +1042,7 @@
       },
       "payInHead": {
         "id": "b.payIn.head",
-        "text": "About £4,530 a month into your pensions between you",
+        "text": "About £5,140 a month into your pensions between you",
         "parts": [
           "About ",
           {
@@ -1067,7 +1067,7 @@
       },
       "payInLine": {
         "id": "b.payIn.line",
-        "text": "Paying in about £4,530 a month and then spending £3,592 a month, your money lasted until the younger of you is 95 in 9 futures out of 10. That is £3,630 a month more than now.",
+        "text": "Paying in about £5,140 a month and then spending £3,592 a month, your money lasted until the younger of you is 95 in 9 futures out of 10. That is £4,240 a month more than now.",
         "parts": [
           "Paying in about ",
           {
@@ -1106,7 +1106,7 @@
       },
       "payInBad": {
         "id": "b.payIn.bad",
-        "text": "In a bad case (the worst 1 in 10), £4,530 a month gets your pensions to about £608,000 by 60. In a middling case it reaches £846,000.",
+        "text": "In a bad case (the worst 1 in 10), £5,140 a month gets your pensions to about £658,000 by 60. In a middling case it reaches £908,000.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -1198,7 +1198,7 @@
       },
       "potsNeeded": {
         "id": "b.pots.needed",
-        "text": "Paying in £4,530 a month: £608,000 in a bad case, £846,000 in a middling case, £1,060,000 in a good case.",
+        "text": "Paying in £5,140 a month: £658,000 in a bad case, £908,000 in a middling case, £1,135,000 in a good case.",
         "parts": [
           "Paying in ",
           {
@@ -1260,7 +1260,7 @@
       "lever": {
         "stopLater": {
           "id": "b.lever.stopLater",
-          "text": "Both stop when you are 68, not 60: £900 a month as now, your money lasted in 9 futures out of 10.",
+          "text": "Both stop when you are 69, not 60: £900 a month as now, your money lasted in 9 futures out of 10.",
           "parts": [
             "Both stop when you are ",
             {
@@ -1292,7 +1292,7 @@
         },
         "payMore": {
           "id": "b.lever.payMore",
-          "text": "Pay in £4,530 a month: your money lasted in 9 futures out of 10.",
+          "text": "Pay in £5,140 a month: your money lasted in 9 futures out of 10.",
           "parts": [
             "Pay in ",
             {
@@ -1314,7 +1314,7 @@
         },
         "spendLess": {
           "id": "b.lever.spendLess",
-          "text": "Spend £2,630 a month, not £3,592: £900 a month as now, your money lasted in 9 futures out of 10.",
+          "text": "Spend £2,570 a month, not £3,592: £900 a month as now, your money lasted in 9 futures out of 10.",
           "parts": [
             "Spend ",
             {
@@ -1345,22 +1345,31 @@
           ]
         },
         "moreRisk": {
-          "id": "b.lever.moreRisk.no",
-          "text": "More risk while saving, about two thirds in shares, does not lower what goes in: it would take £4,540 a month.",
+          "id": "b.lever.moreRisk",
+          "text": "More risk while saving, about two thirds in shares: £5,100 a month made it last in 9 futures out of 10.",
           "parts": [
             "More risk while saving, ",
             "about two thirds in shares",
-            ", does not lower what goes in: it would take ",
+            ": ",
             {
               "key": "levers.moreRisk.payIn",
               "kind": "money"
             },
-            " a month."
+            " a month made it last ",
+            "in ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
+            "."
           ]
         },
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £900 a month as now: your money lasted in only 1 future out of 10. About £2,630 a month from 60 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £900 a month as now: your money lasted in only 1 future out of 10. About £2,570 a month from 60 lasted in 9 futures out of 10.",
           "parts": [
             "Keep paying in ",
             {

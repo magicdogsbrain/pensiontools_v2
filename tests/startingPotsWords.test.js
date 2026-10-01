@@ -35,7 +35,8 @@ describe('the line above the runs', () => {
     const plan = seedToScenario(seedCNow(), new Date(2026, 9, 1, 15)).yours;
     const S = plan.stressTool.settings;
     expect(startsScaled(S)).toBe(false);
-    expect(plain(startSummaryHtml({ ...S, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }))).toBe('Starting balances come from your Settings (Fund Minimums): Equity £125,000 · Bond £100,000 · Cash £25,000. Edit them in the Settings tab.');
+    // 6.19.0: a plan made from an answer carries the answer's fund and platform charge (0.5% here), and the line says so.
+    expect(plain(startSummaryHtml({ ...S, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }))).toBe('Starting balances come from your Settings (Fund Minimums): Equity £125,000 · Bond £100,000 · Cash £25,000. Edit them in the Settings tab. Fund and platform charges of 0.5% a year come off every month (change it in Settings); not off gilts held directly, annuities, final-salary or State Pensions.');
     expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }))).toBe('Starting balances come from your Settings (Fund Minimums): Equity £1 · Bond £2 · Cash £3. Edit them in the Settings tab.');
     expect(plain(startSummaryHtml({ ...S, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }, { fromAnswer: plan.fromAnswer }))).toContain('These runs are the planner\'s own test, so they can differ.');
   });

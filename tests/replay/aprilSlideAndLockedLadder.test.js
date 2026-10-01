@@ -84,7 +84,10 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       const saved = storedScenario().stressTool.settings;
       expect(saved).toMatchObject({ firstTaxYear: 2027, retired: true });
       expect(saved.baseSalary).toBe(40000);                                  // the rest of the plan is as it was
-      expect(Object.keys(saved).sort()).toEqual([...Object.keys(PRE_6_4), 'firstTaxYear', 'retired'].sort());   // only the timing fields were added
+      // Only the timing fields were added — and, on the draft only, the default fund and platform charge (6.19.0, the
+      // schema-2 migration on load). A locked plan is given no charge: it keeps its figures until it is unlocked.
+      expect(Object.keys(saved).sort()).toEqual([...Object.keys(PRE_6_4), 'firstTaxYear', 'retired', ...(locked ? [] : ['chargesPct'])].sort());
+      if (!locked) expect(saved.chargesPct).toBe(0.5);
       const ladderBefore = frozenAt(APR_4, () => ladderOn(first, APR_4));
 
       const second = await openOn(APR_8);                                    // a new visit, two days after the tax year turned

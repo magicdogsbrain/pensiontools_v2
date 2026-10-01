@@ -31,6 +31,10 @@
  *     ISA cannot meet is a run-out. From the month it opens the ordinary path runs. `simulate` cannot run it, so the
  *     runner refuses to hand one to `simulate`. tests/v7/saving/locked.test.js proves it against a chain of `simulate`.
  *   - fastEligible accepts an income that ends (extraIncomes[].endYear), a finite isaReturn and lockedMonths.
+ *
+ * Fund and platform charges (6.19.0, services/Charges.js): config.chargesPct (percent a year; absent = none) is taken
+ * off the pension's sleeves and the ISA every month straight after the month's growth — while drawing and while a
+ * pension is closed — by the same factor and in the same order as `simulate`. fastEligible takes a valid charge only.
  */
 import { seededRng, gaussianRandom } from '../../utils/MathUtils.js';
 import { simulate } from '../../services/SimulationEngine.js';
@@ -38,6 +42,7 @@ import { calculateGlidepath } from '../../services/GlidepathService.js';
 import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { SOURCING_DEFAULTS } from '../../services/WithdrawalSourcing.js';
 import { spendingSmileFactor } from '../../services/SpendingModel.js';
+import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
 import { ISA_DEFAULTS } from '../../constants.js';
 
 const CASH_REAL_SPREAD = -0.01;           // SimulationEngine.CASH_REAL_SPREAD
@@ -184,6 +189,7 @@ export function fastEligible(c) {
       && (c.lockedSchedule === undefined ? c.lockedMonths === 0 : (Array.isArray(c.lockedSchedule) && c.lockedSchedule.length === c.years && c.lockedSchedule.every(finite)))))
     && c.equityGlide === undefined && c.sourcingMode === undefined
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
+    && (c.chargesPct === undefined || isChargesPct(c.chargesPct))   // 6.19.0: a charge the engine takes as given, or none
     && c.trace !== true;
 }
 
@@ -322,6 +328,9 @@ function runFast(config, pf, pr, start = null) {
   const schedule = Array.isArray(config.targetSchedule) ? config.targetSchedule : null;
   const ufpls = config.accessMethod === 'ufpls';
   const isaFactor = Math.pow(1 + (config.isaReturn ?? ISA_DEFAULTS.RETURN), 1 / 12);
+  // SimulationEngine's charge factor, worked out the same way (services/Charges.js): 1 without a charge, and then the
+  // charge blocks below are skipped, so an uncharged run is the run it always was.
+  const chargeM = monthlyChargeFactor(config.chargesPct);
   const strategy = config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY;
 
   let equity = start ? start.equity : config.equityStart;
@@ -371,6 +380,13 @@ function runFast(config, pf, pr, start = null) {
       bond *= pf.mBond[month];
       cash *= pf.mCash[year];
       if (isa > 0) isa = isa * isaFactor;
+      // the month's charges, as `simulate` takes them (a closed pension is still held in funds, so it is charged)
+      if (chargeM !== 1) {
+        equity *= chargeM;
+        bond *= chargeM;
+        cash *= chargeM;
+        if (isa > 0) isa *= chargeM;
+      }
       if (!Number.isFinite(lockedSipp)) { failed = true; failMonth = month; break; }
       let shortfall = lockedSipp > 1e-9 ? Math.max(0, lockedSipp) : 0;
       let lockedRescue = 0;
@@ -424,6 +440,14 @@ function runFast(config, pf, pr, start = null) {
     bond *= pf.mBond[month];
     cash *= pf.mCash[year];
     if (isa > 0) isa = isa * isaFactor;
+    // SimulationEngine's charge block, at the same point and in the same order: (x × growth) × charge, never
+    // x × (growth × charge), so the two engines stay equal to the bit at every charge.
+    if (chargeM !== 1) {
+      equity *= chargeM;
+      bond *= chargeM;
+      cash *= chargeM;
+      if (isa > 0) isa *= chargeM;
+    }
 
     if (!Number.isFinite(monthDraw)) {
       failed = true;

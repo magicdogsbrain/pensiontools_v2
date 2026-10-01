@@ -317,7 +317,7 @@ export function checkAnswerB(answer, given) {
         const t = s.potAtStop[part];
         if (!(t.careful <= t.middling && t.middling <= t.good)) fail('B11', `saving[${i}].potAtStop.${part} out of order`);
       }
-      if (s.chargeAYear !== Math.round(inputs.charge * 10) / 1000) fail('B11', `saving[${i}].chargeAYear ${s.chargeAYear}`);
+      if (Math.abs(s.chargeAYear - inputs.charge / 100) > 1e-12) fail('B11', `saving[${i}].chargeAYear ${s.chargeAYear}`);
       if (s.mix.saving !== inputs.savingRisk || s.mix.drawing !== inputs.risk || s.mix.slideYears !== (inputs.savingRisk === inputs.risk ? 0 : SAVING.slideYears)) fail('B11', `saving[${i}].mix`);
     });
   }
@@ -329,7 +329,7 @@ export function checkAnswerB(answer, given) {
     if (a.source === 'default' && typeof a.field !== 'string') fail('B12', `${a.id} is a default with no field`);
     if (!['default', 'entered', 'rule'].includes(a.source)) fail('B12', `${a.id}: source ${a.source}`);
   }
-  const always = ['pay-in-as-given', 'risk-saving', 'risk-drawing', 'charge-saving', 'same-futures', 'saving-rebalanced', 'stop-age', 'spend-steady',
+  const always = ['pay-in-as-given', 'risk-saving', 'risk-drawing', 'charges', 'same-futures', 'saving-rebalanced', 'stop-age', 'spend-steady',
     'number-is-careful', 'confidence', 'plan-to', 'todays-prices', 'tax-rules'];
   always.push(nowTotal > 0 ? 'pay-in' : 'nothing-paid-in');
   if (inputs.household === 'couple') always.push('stop-together', 'both-alive');
@@ -341,11 +341,13 @@ export function checkAnswerB(answer, given) {
   if (answer.outside) always.push('outside-first');
   for (const id of always) if (!ids.includes(id)) fail('B12', `assumed lacks ${id}`);
   if (answer.gapYears > 0 && !ids.some((id) => id.startsWith('pension-closed-until'))) fail('B12', 'a pension closed at the stop, and no pension-closed-until line');
-  for (const never of ['pot-as-is', 'start-later', 'start', 'no-charges', 'steady', 'risk']) if (ids.includes(never)) fail('B12', `assumed has C's ${never}`);
+  for (const never of ['pot-as-is', 'start-later', 'start', 'no-charges', 'charge-saving', 'steady', 'risk']) if (ids.includes(never)) fail('B12', `assumed has the line ${never}`);
+  const chargesLine = answer.assumed.find((a) => a.id === 'charges');
+  if (chargesLine && (chargesLine.field !== 'charge' || chargesLine.value !== inputs.charge)) fail('B12', `charges: field ${chargesLine.field}, value ${chargesLine.value} (input ${inputs.charge})`);
   if (inputs.savingRisk === inputs.risk && ids.includes('slide')) fail('B12', 'a slide line with one risk level');
   if (given) {
     const flat = flatten(given);
-    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charge-saving', endAge: 'plan-to', confidence: 'confidence',
+    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charges', endAge: 'plan-to', confidence: 'confidence',
       'you.statePension.kind': 'state-pension-full', 'partner.statePension.kind': 'state-pension-full-partner',
       'you.finalSalary.has': 'no-final-salary', 'partner.finalSalary.has': 'no-final-salary-partner', 'partner.pot': 'partner-no-pot' };
     const applies = flatten(inputs);

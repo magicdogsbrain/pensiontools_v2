@@ -254,12 +254,15 @@ function rowsFromEngine(plan, person, config, future, incomes = null) {
     const f = lsa > 0 ? RULES.taxFreeShare : 0;
     let fromPension = row.effectiveSipp || 0;
     let fromSavings = (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0);
+    // the month's fund and platform charges (6.19.0), as the engine took them straight after the growth: their own
+    // column, never hidden inside "growth"
+    const charge = row.charge || 0;
     if (ranOut) {
       fromSavings = Math.min(fromSavings, row.isaStart);
-      fromPension = Math.max(0, potStart - potEnd - fromSavings);
+      fromPension = Math.max(0, potStart - charge - potEnd - fromSavings);
     }
     const draw = fromPension + fromSavings;
-    const growth = potEnd - potStart + draw;
+    const growth = potEnd - potStart + draw + charge;
     const taxFree = f * fromPension;
     const taxable = fromPension - taxFree;
     const statePension = (pi.statePension || 0) / 12;
@@ -267,7 +270,7 @@ function rowsFromEngine(plan, person, config, future, incomes = null) {
     const tax = pi.pa > 0 ? calculateTax(12 * (taxable + statePension + finalSalary), pi.pa, pi.brl, pi.hrl) / 12 : 0;
     rows.push({
       who: person.who, m: row.month, age: person.ageAtStart + row.year, priceIndex: row.cumInf,
-      potStart, growth, draw, fromPension, fromSavings, taxFree, taxable, statePension, finalSalary, tax,
+      potStart, growth, charge, draw, fromPension, fromSavings, taxFree, taxable, statePension, finalSalary, tax,
       afterTax: statePension + finalSalary + draw - tax, potEnd,
       ...(ranOut ? { ranOut: true } : {}), ...((row.isaRescue || 0) > 0 || (row.giaRescue || 0) > 0 ? { rescued: true } : {})
     });
@@ -298,7 +301,7 @@ function incomesByMonth(plan, person, future) {
 function rowsWithoutPots(plan, person, future) {
   return incomesByMonth(plan, person, future).map((inc, m) => {
     const tax = calculateTax(12 * (inc.statePension + inc.finalSalary), inc.bands.pa, inc.bands.brl, inc.bands.hrl) / 12;
-    return { who: person.who, m, age: person.ageAtStart + inc.y, priceIndex: inc.priceIndex, potStart: 0, growth: 0, draw: 0, fromPension: 0, fromSavings: 0, taxFree: 0, taxable: 0, statePension: inc.statePension, finalSalary: inc.finalSalary, tax, afterTax: inc.statePension + inc.finalSalary - tax, potEnd: 0 };
+    return { who: person.who, m, age: person.ageAtStart + inc.y, priceIndex: inc.priceIndex, potStart: 0, growth: 0, charge: 0, draw: 0, fromPension: 0, fromSavings: 0, taxFree: 0, taxable: 0, statePension: inc.statePension, finalSalary: inc.finalSalary, tax, afterTax: inc.statePension + inc.finalSalary - tax, potEnd: 0 };
   });
 }
 
@@ -316,7 +319,7 @@ function rowsSavingsOnly(plan, person, config, future) {
 
 /** One row a month for a person with two runs (a pension closed at the start, and their savings): the two added. */
 function addRows(lists) {
-  const SUM = ['potStart', 'growth', 'draw', 'fromPension', 'fromSavings', 'taxFree', 'taxable', 'statePension', 'finalSalary', 'tax', 'afterTax', 'potEnd'];
+  const SUM = ['potStart', 'growth', 'charge', 'draw', 'fromPension', 'fromSavings', 'taxFree', 'taxable', 'statePension', 'finalSalary', 'tax', 'afterTax', 'potEnd'];
   const byMonth = new Map();
   for (const rows of lists) {
     for (const r of rows) {

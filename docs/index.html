@@ -2173,7 +2173,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-Bi8XDC-c.js"></script>
+  <script type="module" crossorigin src="./assets/main-_qCHIeuE.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2524,7 +2524,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="dsFundRows"></tbody>
                 </table>
@@ -3438,7 +3438,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="ssFundRows"></tbody>
                 </table>
@@ -3460,6 +3460,17 @@
               </p>
               <div id="ssGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
+            </div>
+            <!-- Fund and platform charges (6.19.0): ONE per-plan setting, stressTool.settings.chargesPct (percent a year).
+                 Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssChargesLocked
+                 instead of the box (it runs at 0% until it is unlocked). Words: src/ui/chargesSetting.js. -->
+            <div class="form-group" id="ssChargesGroup" style="margin-top: 16px;">
+              <label for="ssChargesPct">Charges (funds and platform), % a year
+                <span class="hlp" tabindex="0" data-tip="What your funds and your platform take each year, as a share of what you hold — for example a 0.2% tracker on a 0.25% platform is 0.45%. It is taken off every month, while you save and while you draw, from the money held in funds and cash in your pension, ISA and taxable account. It is not taken off State Pensions, final-salary pensions or annuities, which have no such charge, or off gilts you hold directly (platforms usually charge a small fixed fee for those).">?</span>
+              </label>
+              <input type="number" id="ssChargesPct" min="0" max="3" step="0.05" value="0.5" inputmode="decimal" style="max-width:120px;">
+              <p id="ssChargesLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
+              <p id="ssChargesHint" class="hint" style="margin:4px 0 0;">Taken off every month from your funds and cash — not from gilts you hold directly, annuities, final-salary or State Pensions. 0.5% is a typical total.</p>
             </div>
             <div class="alert alert-info" style="margin-top: 12px;">
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).

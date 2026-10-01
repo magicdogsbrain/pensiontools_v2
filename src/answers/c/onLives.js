@@ -83,7 +83,8 @@ export function startAgeOf(inputs, today) {
 
 /**
  * C's checked inputs as A's: the stop is C's start age (both of a couple stop then, as A does); what goes in is C's
- * figures; the risk while paying in is C's one risk level (no slide); the charge while paying in is A's 0.5% a year;
+ * figures; the risk while paying in is C's one risk level (no slide); the charge is C's own (6.19.0: the household's one
+ * charge, saving and drawing — 0.5% a year unless changed);
  * nothing goes into savings each month; no part-time work. The spending is not used by what C asks (the band does not
  * depend on it); it is set to C's `take` when there is one.
  */
@@ -98,7 +99,7 @@ export function saverInputsOf(inputs, stopAge = inputs.start.kind === 'age' ? in
     stop: { kind: 'age', age: stopAge },
     spend: { kind: 'amount', amount: isNum(inputs.take) && inputs.take >= 1 ? inputs.take : 1 },
     partTime: { has: false },
-    savingsIn: 0, savingRisk: inputs.risk, risk: inputs.risk, charge: SAVING.charge * 100, endAge: inputs.endAge
+    savingsIn: 0, savingRisk: inputs.risk, risk: inputs.risk, charge: isNum(inputs.charge) ? inputs.charge : SAVING.chargesPct, endAge: inputs.endAge
   };
 }
 
@@ -223,7 +224,7 @@ export function answerOnLives(checked, env, ctx) {
       potAtStop: { pension: spreadOf(q.pension), savings: spreadOf(q.savings), total: spreadOf(q.pension.map((v, i) => v + q.savings[i])) },
       paidIn: { total: Math.round(p.payIn.total * 12 * S * 100) / 100 },
       mix: { saving: inputs.risk, drawing: inputs.risk, slideYears: 0 },
-      chargeAYear: SAVING.charge
+      chargeAYear: sp.saving.charge
     };
   });
   const payInTotal = saving.reduce((t, s) => t + s.payIn.total, 0);

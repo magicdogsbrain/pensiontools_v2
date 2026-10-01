@@ -2,6 +2,8 @@
  * UK figures the answers use (V7 build brief 4.2). Pure data plus two small date helpers.
  * tests/v7/c/schema.test.js asserts the figures shared with today's engine are equal to the engine's own.
  */
+import { DEFAULT_CHARGES_PCT } from '../../services/Charges.js';
+
 export const RULES = {
   taxYear: '2026/27',
   // Checked against https://www.gov.uk/new-state-pension/what-youll-get on 30 Sep 2026: £241.30 a week.
@@ -32,8 +34,13 @@ export const RULES = {
 /** The share of futures each amount must last in. */
 export const BAND = { careful: 0.9, middling: 0.5, good: 0.1 };
 
-/** The saving years' constants (step 4 brief 4.2): the default charge a year, the slide to the drawing mix, the ceilings and steps of the searches. */
-export const SAVING = { charge: 0.005, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 };
+/**
+ * The saving years' constants (step 4 brief 4.2): the default charge a year, the slide to the drawing mix, the ceilings
+ * and steps of the searches. The charge is today's planner's one default (services/Charges.js DEFAULT_CHARGES_PCT, 6.19.0):
+ * `chargesPct` in percent (0.5), `charge` the same as a share (0.005 — the form saving.js and the households used first).
+ * From 6.19.0 it is taken off while drawing as well as while saving (household.chargesPct; fastEngine.js, saving.js).
+ */
+export const SAVING = { chargesPct: DEFAULT_CHARGES_PCT, charge: DEFAULT_CHARGES_PCT / 100, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 };
 
 /**
  * The lives the years before a pension opens may fail in, when B sets aside the savings that carry them (step 4 brief

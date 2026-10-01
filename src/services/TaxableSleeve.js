@@ -157,6 +157,19 @@ export function topUpFromSleeve(sleeve, amount, band = 'basic', cgtUsed = 0) {
 export function growSleeve(sleeve, factor) { sleeve.value *= factor; return sleeve; }
 
 /**
+ * Take a month's fund and platform charges off the sleeve (6.19.0, services/Charges.js): `chargeM` is the monthly
+ * factor for the plan's charge. Gilts held directly are not charged (platforms usually charge a small fixed fee for
+ * them), so only the non-gilt share is: value × (1 − (1 − chargeM) × (1 − gilt share)). The cost basis is left alone,
+ * as it is by growth — the charge comes out of the gain. chargeM = 1 (no charge) leaves the sleeve exactly as it was.
+ */
+export function chargeSleeve(sleeve, chargeM) {
+  if (chargeM === 1 || !(sleeve.value > 0)) return sleeve;
+  const charged = 1 - Math.min(1, Math.max(0, sleeve.mix.gilt || 0));
+  if (charged > 0) sleeve.value *= 1 - (1 - chargeM) * charged;
+  return sleeve;
+}
+
+/**
  * Bed-and-ISA: move up to the ISA allowance out of the sleeve, realising CGT on the way.
  * @returns {{ moved, cgt }}
  */

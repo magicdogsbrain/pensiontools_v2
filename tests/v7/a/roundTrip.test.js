@@ -26,7 +26,7 @@ const typed = (f) => {
   if (f.type === 'choice') return fc.constantFrom(...f.options);
   if (f.type === 'yesNo') return fc.boolean();
   if (f.type === 'age' || f.type === 'count') return fc.integer({ min: f.min, max: f.max }).map(String);
-  if (f.type === 'percent') return fc.constantFrom('0', '0.5', '1', '1.5%', '2', ' 0.8 ');
+  if (f.type === 'percent') return fc.constantFrom('0', '0.05', '0.5', '1', '1.5%', '2', '2.95', ' 0.8 ');
   return typedMoney(f);
 };
 

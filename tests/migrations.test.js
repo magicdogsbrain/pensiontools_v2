@@ -51,10 +51,10 @@ describe('the schema contract', () => {
       expect(typeof m.up, 'entry ' + i + ' up').toBe('function');
     });
   });
-  it('this release is schema version 1', () => {
+  it('this release is schema version 2', () => {
     // Moving this number is a deliberate act: add the next MIGRATIONS entry and a fixture of the old shape
-    // (RELEASING.md, "Saved-plan schema version"), then change it here.
-    expect(SCHEMA_VERSION).toBe(1);
+    // (RELEASING.md, "Saved-plan schema version"), then change it here. 6.19.0: step 2, fund and platform charges.
+    expect(SCHEMA_VERSION).toBe(2);
   });
   it('a plan with no version, or a version that is not a whole number, reads as 0', () => {
     for (const v of [undefined, null, '1', 1.5, -1, NaN, {}]) expect(schemaVersionOf({ schemaVersion: v })).toBe(0);
@@ -223,7 +223,7 @@ describe('step 0 → 1, shape by shape', () => {
 
   it('the three renamed Stress keys are filled in once; a value already saved wins; the old keys stay', () => {
     const s = base(); s.stressTool.settings = { pacwMin: 300000, cgtMin: 100000, csh2Target: 40000, cashTarget: 55000 };
-    const st = migrateScenario(s, { now: NOW }).scenario.stressTool.settings;
+    const st = migrateScenario(s, { now: NOW, target: 1, migrations: MIGRATIONS.slice(0, 1) }).scenario.stressTool.settings;   // step 1 alone (step 2 adds the charge)
     expect(st).toEqual({ pacwMin: 300000, cgtMin: 100000, csh2Target: 40000, equityMin: 300000, bondMin: 100000, cashTarget: 55000 });
   });
 
@@ -274,7 +274,7 @@ describe('step 0 → 1, shape by shape', () => {
 describe('a step that fails or breaks a rule leaves the plan exactly as it was', () => {
   const locked = () => normalised('03-gilt-ladder-runup.json');
   const draft = () => normalised('02-pnv-draft.json');
-  const run = (input, up) => migrateScenario(input, { now: NOW, migrations: [{ to: 1, name: 'bad', up }] });
+  const run = (input, up) => migrateScenario(input, { now: NOW, target: 1, migrations: [{ to: 1, name: 'bad', up }] });
   const untouched = (input, m, before) => {
     expect(m.error).toBeInstanceOf(Error);
     expect(m.changed).toBe(false);
@@ -335,7 +335,7 @@ describe('a step that fails or breaks a rule leaves the plan exactly as it was',
 
   it('a chain with a gap, or one that stops short of the target', () => {
     const a = draft(); untouched(a, migrateScenario(a, { now: NOW, target: 3, migrations: [MIGRATIONS[0], { to: 3, name: 'gap', up: (s) => s }] }), JSON.stringify(a));
-    const b = draft(); untouched(b, migrateScenario(b, { now: NOW, target: 2 }), JSON.stringify(b));
+    const b = draft(); untouched(b, migrateScenario(b, { now: NOW, target: SCHEMA_VERSION + 1 }), JSON.stringify(b));
   });
 
   it('upgradeScenario never asks for a write when the chain failed', () => {

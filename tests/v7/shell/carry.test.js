@@ -178,6 +178,36 @@ describe('a figure from an answer, carried as text — the inputs, never a pot w
   });
 });
 
+/*
+ * Fund and platform charges (6.19.0): ONE charge, asked in C, A and B alike, carried every way with the household — so a
+ * hand-over shows the same figure (research/charges-setting.md T12).
+ */
+describe('the charge is carried every way, as typed', () => {
+  it.each(Object.keys(CARRY))('%s carries the charge', (k) => {
+    const [from, to] = k.split('→');
+    const typed = from === 'a' ? typedA() : from === 'b' ? typedB() : typedC();
+    const withCharge = run(typed, set(from, 'charge', '1.25'));
+    const base = from === 'a' ? answered(withCharge, 'a', resultA()) : from === 'b' ? answered(withCharge, 'b', resultB()) : withCharge;
+    const s = reduce(base, carry(from, to));
+    expect(s.draft[to].values.charge, k).toBe('1.25');
+    expect(s.draft[to].touched, k).toContain('charge');
+    expect(CARRY[k].filter(([src, toPath]) => src === 'charge' && toPath === 'charge'), k).toHaveLength(1);
+  });
+  it('a charge left alone carries nothing: the target keeps its own (or its default)', () => {
+    const s = reduce(run(typedC(), set('a', 'charge', '0.3')), carry('c', 'a'));
+    expect(s.draft.a.values.charge).toBe('0.3');
+  });
+  it('C → A → C keeps 0.05 as 0.05', () => {
+    const c = run(fullC(), set('c', 'charge', '0.05'));
+    const a = reduce(c, carry('c', 'a'));
+    expect(parsedDraft(a, 'a').values.charge).toBe(0.05);
+    const back = reduce(answered(a, 'a', resultA()), carry('a', 'c'));
+    expect(back.draft.c.values.charge).toBe('0.05');
+    expect(parsedDraft(back, 'c').values.charge).toBe(0.05);
+    expect(parsedDraft(back, 'c').errors.charge).toBeUndefined();
+  });
+});
+
 describe('where a carry opens', () => {
   it.each(Object.keys(CARRY))('%s', (k) => {
     const [from, to] = k.split('→');

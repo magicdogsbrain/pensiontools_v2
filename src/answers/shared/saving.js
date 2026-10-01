@@ -4,7 +4,8 @@
  *
  * One person, one life, S whole years. Each pot (the pension; ISAs and savings) is held at the year's target mix and
  * rebalanced monthly; the month's payment, at today's prices rising with prices, goes in at the START of the month,
- * before that month's growth; a charge (0.5% a year by default) comes off monthly from every sleeve. Because the
+ * before that month's growth; the household's charge (household.chargesPct, 0.5% a year by default — the same charge the
+ * drawing years take, 6.19.0) comes off monthly from every sleeve. Because the
  * weights never depend on the pot, a month multiplies the whole pot by one factor
  *
  *   f(m) = (wE(y) × monthly(equity[y]) + wB(y) × bond[m] + wK(y) × monthly(cash(y))) × chargeM
@@ -19,7 +20,7 @@
  *   w(y)    the saving mix, then a straight line to the drawing mix over the last SLIDE_YEARS (reaching it at y = S);
  *           with fewer years the slide starts at y = 0; equal mixes, no slide
  *
- *   savingPlan(household, stopAge, env)          → { S, people, mixByYear, chargeM, charge, mixes, slideYears }
+ *   savingPlan(household, stopAge, env)          → { S, people, mixByYear, chargeM, charge, chargesPct, mixes, slideYears }
  *   savingKernel(plan, person, lives, which?)    → { A, b, B, priceAtStop }   which: 'pension' (default) | 'savings'
  *   potsByPerson(plan, lives)                    → per person { pension: Float64Array, savings: Float64Array } at the stop, today's prices
  *   potsAtStop(plan, lives)                      → { byLife, spread }
@@ -35,6 +36,7 @@ import { SAVING } from './rules.js';
 import { mixOf } from './toEngine.js';
 import { bandIndexes } from './band.js';
 import { monthly, cashNominalReturn } from './fastEngine.js';
+import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const infOf = (returns, y) => returns.inflation[y] || 0.025;
@@ -67,6 +69,24 @@ export function mixByYearOf(S, saving, drawing) {
   return out;
 }
 
+/**
+ * The household's fund and platform charge (6.19.0): `household.chargesPct`, percent a year — the ONE charge, taken
+ * while saving and while drawing (the drawing runs get it from toEngine.js) — by the factor today's engine uses
+ * (services/Charges.js). Before 6.19.0 the charge lived on `household.saving.charge` as a share a year, for the saving
+ * years only; a household that still carries only that is read as before (the same factor, to the bit), and one with
+ * neither gets the shared default (0.5%), as the saving years always have.
+ * @returns {{ charge: number, chargesPct: number, chargeM: number }}   charge as a share a year (0.005), chargesPct as a percent
+ */
+function chargeOf(household) {
+  if (isChargesPct(household.chargesPct)) {
+    const pct = household.chargesPct;
+    return { charge: pct / 100, chargesPct: pct, chargeM: monthlyChargeFactor(pct) };
+  }
+  const sv = household.saving;
+  const charge = sv && isNum(sv.charge) ? sv.charge : SAVING.charge;
+  return { charge, chargesPct: charge * 100, chargeM: Math.pow(1 - charge, 1 / 12) };
+}
+
 /** What a person pays in, a month at today's prices: into the pension (the total; own + employer when split) and into savings. */
 function payInOf(person) {
   const sv = person.saving;
@@ -88,7 +108,7 @@ export function savingPlan(household, stopAge, env = {}) {
   const you = household.people[0];
   const S = Math.max(0, Math.round(stopAge - you.age));
   const { saving, drawing, savingLevel } = mixesOf(household, env);
-  const charge = household.saving && isNum(household.saving.charge) ? household.saving.charge : SAVING.charge;
+  const { charge, chargesPct, chargeM } = chargeOf(household);
   const mixByYear = mixByYearOf(S, saving, drawing);
   return {
     S, stopAge,
@@ -99,7 +119,7 @@ export function savingPlan(household, stopAge, env = {}) {
       payIn: payInOf(p),
       until: S
     })),
-    mixByYear, charge, chargeM: Math.pow(1 - charge, 1 / 12),
+    mixByYear, charge, chargesPct, chargeM,
     mixes: { saving, drawing }, savingLevel,
     slideYears: sameMix(saving, drawing) ? 0 : Math.min(SAVING.slideYears, S)
   };

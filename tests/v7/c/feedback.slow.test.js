@@ -47,7 +47,9 @@ function settingsFor(inputs, monthly) {
       isaBalance: you.isa, isaReturn: undefined, strategyId: 'pots-and-valves', accessMethod: 'ufpls',
       // the adapter tells the engine a final-salary pension rises in full (toEngine.js: the pot's job is its own share); none here
       dbAmount: 0, dbStartYear: 0, dbIndexation: 'cpi', spendingProfile: 'flat', equityGlideEnabled: false, diversifierStart: 0, taggedFunds: [],
-      seededFrom: 'v7-household'
+      seededFrom: 'v7-household',
+      // the answer's one fund and platform charge (6.19.0), as a plan made from it carries it (src/services/PlanSeed.js)
+      chargesPct: config.chargesPct
     }
   };
 }
@@ -90,10 +92,11 @@ describe('the careful amount fed back through today\'s saved-plan path', () => {
     const { settings, config } = settingsFor(inputs, answer.monthly.careful);
     const theirs = createSimulationConfigFromSettings({}, settings);
     for (const key of ['equityStart', 'bondStart', 'cashStart', 'equityMin', 'bondMin', 'cashTarget', 'years', 'duration', 'baseSalary', 'other', 'spStartYear', 'spWeeklyAmount',
-      'pa', 'brl', 'hrl', 'taxMode', 'protectionMult', 'consecutiveLimit', 'disableProtection', 'hodlEnabled', 'isaBalance', 'strategyId', 'accessMethod', 'dbAmount', 'dbStartYear', 'dbIndexation', 'spendingProfile', 'targetSchedule']) {
+      'pa', 'brl', 'hrl', 'taxMode', 'protectionMult', 'consecutiveLimit', 'disableProtection', 'hodlEnabled', 'isaBalance', 'strategyId', 'accessMethod', 'dbAmount', 'dbStartYear', 'dbIndexation', 'spendingProfile', 'targetSchedule', 'chargesPct']) {
       expect(theirs[key], key).toEqual(config[key]);
     }
     expect(theirs.spFirstYearRatio).toBeLessThan(1);
     expect(config.spFirstYearRatio).toBe(1);
+    expect(config.chargesPct).toBe(0.5);                     // C's default, carried into the saved plan's settings
   });
 });

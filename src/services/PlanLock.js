@@ -31,7 +31,9 @@ export async function buildPlanOfRecord(settings) {
     settingsChecksum: decisionSettingsChecksum(s),
     // Frozen bands by default: the Decision tool draws to the tax-year wizard's fixed BRL, so a plan of
     // record with inflating bands drifted above the actual draw every year (persona test B34).
-    drawdown: generateDrawdownSchedule({ ...s, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, s.duration || 35, assumedCpi)
+    // No fund and platform charges on the yardstick (6.19.0, D6): it is built from the Decision settings, frozen at lock,
+    // and "plan vs actual" reads it as it was — so 0 explicitly, whatever the settings carry.
+    drawdown: generateDrawdownSchedule({ ...s, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, s.duration || 35, assumedCpi, undefined, { chargesPct: 0 })
       .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
     glidepath: generateGlidepathSchedule(s, assumedCpi).map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
   };

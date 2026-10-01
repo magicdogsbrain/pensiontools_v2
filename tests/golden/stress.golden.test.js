@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { stressConfigs } from './matrix.js';
+import { stressConfigs, chargedStressConfigs, CHARGED_PCT } from './matrix.js';
 import { pickStress } from './canonical.js';
 import { runMonteCarlo, runHistorical, analyzeResults } from '../../src/services/SimulationEngine.js';
 
@@ -21,12 +21,30 @@ const fixtures = JSON.parse(readFileSync(join(here, 'fixtures/stress.json'), 'ut
 
 describe('golden-master: stress engine', () => {
   it('every config reproduces its committed fixture exactly', () => {
-    expect(Object.keys(fixtures.cases).length).toBe(stressConfigs.length);
-    for (const c of stressConfigs) {
+    expect(Object.keys(fixtures.cases).length).toBe(stressConfigs.length + chargedStressConfigs.length);
+    for (const c of [...stressConfigs, ...chargedStressConfigs]) {
       const mc = pickStress(analyzeResults(runMonteCarlo(c.config, fixtures.mcRuns)));
       const hist = pickStress(analyzeResults(runHistorical(c.config)));
       expect({ mc, hist }, `config: ${c.name}`).toEqual(fixtures.cases[c.name]);
     }
+  });
+
+  // Fund and platform charges (6.19.0): a new or migrated unlocked plan carries 0.5% a year; a plan locked before
+  // charges carries none and runs as the configs above. Both are live, so both are pinned: every config has a charged
+  // twin, which is the same config with the charge and nothing else, and whose figures are lower.
+  it('every config has a charged twin: the same config at 0.5% a year, pinned beside it, with a lower typical end pot', () => {
+    expect(CHARGED_PCT).toBe(0.5);
+    expect(chargedStressConfigs.map((c) => c.name)).toEqual(stressConfigs.map((c) => c.name + ' · charges 0.5%'));
+    chargedStressConfigs.forEach((t, i) => {
+      const { chargesPct, ...rest } = t.config;
+      expect(chargesPct, t.name).toBe(0.5);
+      expect(rest, t.name).toEqual(stressConfigs[i].config);
+      const plain = fixtures.cases[stressConfigs[i].name], charged = fixtures.cases[t.name];
+      for (const kind of ['mc', 'hist']) {
+        expect(charged[kind].finalValue.p50, `${t.name} ${kind}`).toBeLessThan(plain[kind].finalValue.p50);
+        expect(charged[kind].successRate, `${t.name} ${kind}`).toBeLessThanOrEqual(plain[kind].successRate);
+      }
+    });
   });
 
   it('BUG pinned: legacy State Pension is silently ignored (identical to no-SP)', () => {

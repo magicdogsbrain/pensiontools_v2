@@ -143,7 +143,8 @@ test.describe('save this as a plan (the published build)', () => {
     const first = await seedNow(page);
     expect(first).toEqual(buildPlanSeed({ source: 'c', result: c.result, env: { today: TODAY, appVersion: VERSION },
       name: { suggested: suggestedPlanName('c', c.result.inputs, c.result), chosen: suggestedPlanName('c', c.result.inputs, c.result) }, createdAt: FIXED_NOW }));
-    expect(first.name.chosen).toBe('From 58 · £1,380 a month');
+    expect(first.name.chosen).toBe('From 58 · £1,350 a month');               // F1's careful amount at 0.5% a year in charges (6.19.0)
+    expect(first.inputs.charge).toBe(0.5);                                        // the answer's one charge travels in the seed
 
     const b = await answer(app, 'b', 'B3');
     await app.id('b.action.save').scrollIntoViewIfNeeded();

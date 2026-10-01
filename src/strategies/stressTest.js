@@ -24,6 +24,7 @@ import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
+import { chargesPctOf } from '../services/Charges.js';
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
@@ -170,6 +171,10 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
+    // Fund and platform charges (6.19.0): the plan's percent a year, from its engine config (createSimulationConfigFromSettings;
+    // a plan locked before charges has none → 0). Pots & Valves reads it from pnvCfg (the same config); the bought
+    // strategies get its monthly factor on their sleeves (compareRunner.deriveCompareConfigs) and the gilt ladders' cash years.
+    chargesPct: chargesPctOf(cfg),
     pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear,
     ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
@@ -486,7 +491,7 @@ function bridgeTest(p, configs) {
   const yf = c.yieldForYear || (() => 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
   // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
-  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
+  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y, undefined, p.chargesPct) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
   const h = runFlexWindows(c);
   const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
   const run = (w) => {
@@ -558,7 +563,8 @@ function fullGiltTest(p, configs) {
     todayIso: p.todayIso || now.toISOString().slice(0, 10),   // the pricing date: years-to-maturity picks each rung's spread band
     pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
-    firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0
+    firstTaxYear, linkers: activeLinkers().gilts, cashYears: p.params?.cashYears ?? 2, bridgeCash: p.params?.bridgeCash || 0,
+    chargesPct: p.chargesPct   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
   });
   if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };
   // Deterministic: income = the schedule; wealth = unpaid rungs at cost (+ spare) — no market exposure.

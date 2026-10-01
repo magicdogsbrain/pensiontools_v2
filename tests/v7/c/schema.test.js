@@ -11,10 +11,12 @@ import { LUMP_SUM_ALLOWANCE } from '../../../src/services/PensionAccess.js';
 import { TAX_DEFAULTS } from '../../../src/constants.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
 import { initialState } from '../../../src/v7/state/initial.js';
+import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS } from '../../../src/services/Charges.js';
+import { moreFields } from '../../../src/answers/shared/schemaParts.js';
 
-const TYPES = ['money', 'age', 'choice', 'yesNo'];
+const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent'];
 const byPath = new Map(SCHEMA_C.fields.map((f) => [f.path, f]));
-const isNumber = (f) => f.type === 'money' || f.type === 'age';
+const isNumber = (f) => f.type === 'money' || f.type === 'age' || f.type === 'percent';
 
 describe('SCHEMA_C — the declaration', () => {
   it('has id c and unique paths', () => {
@@ -23,7 +25,7 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
     for (const f of SCHEMA_C.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -96,6 +98,28 @@ describe('SCHEMA_C — the declaration', () => {
     }
   });
 
+  /*
+   * Fund and platform charges (6.19.0; the owner, 1 Oct 2026: "Yes half a percent. But put it as a config parameter
+   * somewhere"): ONE setting, under "Add more detail" in C as in A and B — the same field, today's planner's default and
+   * range — taken off while saving and while drawing.
+   */
+  it('the charge: under "Add more detail", A\'s and B\'s very field, 0 to 3 in steps of 0.05, today\'s planner\'s default', () => {
+    const charge = byPath.get('charge');
+    expect(charge).toEqual(moreFields().find((f) => f.path === 'charge'));
+    expect(charge).toMatchObject({ type: 'percent', group: 'more', min: CHARGES_LIMITS.min, max: CHARGES_LIMITS.max, step: CHARGES_LIMITS.step, default: DEFAULT_CHARGES_PCT });
+    expect(charge.required).toBeUndefined();
+    expect(charge.boundaries).toEqual([0, 0.05, 0.5, 1, 3]);
+    // in the more-detail block, between the risk level and the end age (the order A and B keep)
+    const more = SCHEMA_C.fields.filter((f) => f.group === 'more').map((f) => f.path);
+    expect(more).toEqual(['savings', 'risk', 'charge', 'endAge']);
+    const at = (path) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', charge: path }, TEST_ENV);
+    expect(at('1.35').inputs.charge).toBe(1.35);
+    expect(at('0.07').errors).toEqual({ charge: 'notANumber' });
+    expect(at('3.05').errors).toEqual({ charge: 'tooHigh' });
+    expect(at('').inputs.charge).toBe(0.5);
+    expect(at('').usedDefault).toContain('charge');
+  });
+
   it('the risk levels are today\'s RISK_PRESETS', () => {
     expect(byPath.get('risk').options).toEqual(Object.keys(RISK_PRESETS));
   });
@@ -105,7 +129,7 @@ describe('SCHEMA_C — the declaration', () => {
     expect(r.ok).toBe(true);
     expect(r.inputs).toEqual({
       household: 'single', you: { pot: 250000, age: 58, statePension: { kind: 'full' }, finalSalary: { has: false } },
-      start: { kind: 'now' }, savings: 0, risk: 'balanced', endAge: 95, take: null
+      start: { kind: 'now' }, savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, take: null
     });
     expect(validate(SCHEMA_C, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_C, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing

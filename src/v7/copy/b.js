@@ -190,7 +190,7 @@ export const B = {
     toCStart: 'What could I spend a month from',
     toCEnd: '?',
     /** Under that link when C does not ask everything this answer was given (handOver.c.same false). */
-    toCDiffers: '"What is that a month?" does not ask about money going into savings each month, part-time work, a different risk while saving or the charge, so its figure can differ from this one.',
+    toCDiffers: '"What is that a month?" does not ask about money going into savings each month, part-time work or a different risk while saving, so its figure can differ from this one.',
     keepWhy: 'so you can come back to it and carry on'
   },
 
@@ -389,8 +389,8 @@ export const B = {
       optionHelp: { cautious: 'about a third in shares', balanced: 'about half in shares', adventurous: 'about two thirds in shares' }
     },
     charge: {
-      label: 'Charges while you are saving, a year',
-      help: 'What your pension provider takes each year, as a share of the pot.'
+      label: 'Charges (funds and platform), a year',
+      help: 'What your funds and your platform take each year, as a share of what you hold, while you save and while you draw. Not taken off State Pension or final-salary pensions: there is no such charge on those.'
     },
     endAge: {
       label: 'Make it last to age',
@@ -417,7 +417,7 @@ export const B = {
     },
     percent: {
       required: 'Type a figure such as 0.5.',
-      notANumber: 'Type a figure such as 0.5, with at most one figure after the point.',
+      notANumber: 'Type a figure in steps of 0.05, such as 0.5 or 0.45.',
       tooLow: 'Type a figure from {min} to {max}.',
       tooHigh: 'Type a figure from {min} to {max}.'
     },

@@ -47,7 +47,9 @@ function settingsFor(age, pot, monthly) {
       protectionMult: 0.8, consecutiveLimit: 3, disableProtection: true, hodlEnabled: false, hodlValue: 25000,
       isaBalance: 0, isaReturn: undefined, strategyId: 'pots-and-valves', accessMethod: 'ufpls',
       dbAmount: 0, dbStartYear: 0, dbIndexation: 'cpi', spendingProfile: 'flat', equityGlideEnabled: false, diversifierStart: 0, taggedFunds: [],
-      seededFrom: 'v7-household'
+      seededFrom: 'v7-household',
+      // the household's one fund and platform charge (6.19.0), as a plan made from the answer carries it
+      chargesPct: config.chargesPct
     }
   };
 }

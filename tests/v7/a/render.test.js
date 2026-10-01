@@ -254,8 +254,10 @@ describe('A, step 1: what have you got, and when would you stop?', () => {
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);
     expect(root.querySelector('[data-error-for="a.charge"]').textContent).toBe(A.errors.percent.notANumber);
-    s.draft.a.values = { ...s.draft.a.values, charge: '3' };
-    expect(renderScreen(s).querySelector('[data-error-for="a.charge"]').textContent).toBe('Type a figure from 0% to 2%.');
+    s.draft.a.values = { ...s.draft.a.values, charge: '3.5' };
+    expect(renderScreen(s).querySelector('[data-error-for="a.charge"]').textContent).toBe('Type a figure from 0% to 3%.');
+    s.draft.a.values = { ...s.draft.a.values, charge: '0.07' };
+    expect(renderScreen(s).querySelector('[data-error-for="a.charge"]').textContent).toBe(A.errors.percent.notANumber);
   });
 
   it('the age in mind before today\'s age is said in the guide\'s words', () => {

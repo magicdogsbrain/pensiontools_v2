@@ -107,7 +107,26 @@ describe('expandHousehold: the short form becomes the full form, and every defau
     expect(household.planToAge).toBe(95);
     expect(household.portfolio).toEqual({ kind: 'risk', level: 'balanced' });
     expect(household.strategy).toEqual({ id: 'steady' });
-    expect(assumed.map((a) => a.id)).toEqual(['all-pension', 'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'plan-to', 'risk', 'steady']);
+    // 6.19.0: the household's one fund and platform charge, percent a year — 0.5 unless given, and said so
+    expect(household.chargesPct).toBe(0.5);
+    expect(assumed.map((a) => a.id)).toEqual(['all-pension', 'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'plan-to', 'risk', 'steady', 'charges']);
+  });
+  it('the charge as given (0 to 3, percent a year) is kept as it is and not listed as assumed; a bad one is the default', () => {
+    for (const chargesPct of [0, 0.05, 1.35, 3]) {
+      const { household, assumed } = expandHousehold({ people: [{ age: 58, pots: { pension: 250000 } }], chargesPct }, TODAY);
+      expect(household.chargesPct).toBe(chargesPct);
+      expect(assumed.map((a) => a.id)).not.toContain('charges');
+      expect(validateHousehold(household, TODAY)).toEqual([]);
+    }
+    for (const chargesPct of [-0.05, 3.05, NaN, '0.5', null]) {
+      const { household, assumed } = expandHousehold({ people: [{ age: 58, pots: { pension: 250000 } }], chargesPct }, TODAY);
+      expect(household.chargesPct, String(chargesPct)).toBe(0.5);
+      expect(assumed.map((a) => a.id)).toContain('charges');
+    }
+    expect(HOUSEHOLD_LIMITS.chargesPct).toEqual({ min: 0, max: 3 });
+    const h = expandHousehold({ people: [{ age: 58, pots: { pension: 250000 } }] }, TODAY).household;
+    expect(validateHousehold({ ...h, chargesPct: 3.05 }, TODAY)).toEqual([{ field: 'chargesPct', problem: 'tooHigh' }]);
+    expect(validateHousehold({ ...h, chargesPct: 'lots' }, TODAY)).toEqual([{ field: 'chargesPct', problem: 'notANumber' }]);
   });
   it('a couple: the partner stops when the first person does, and joint savings are split evenly as ISA money', () => {
     const { household, assumed } = expandHousehold({ people: [{ age: 59, pots: { pension: 600000 }, stopWork: { kind: 'age', age: 62 }, finalSalary: [{ amountPerYear: 9000, startAge: 60 }] }, { age: 57 }], jointSavings: 150000 }, TODAY);

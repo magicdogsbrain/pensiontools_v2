@@ -8,7 +8,7 @@
  * `boundaries` always includes the field's own `min` and `max`.
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
-import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues } from '../shared/schemaParts.js';
+import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -76,6 +76,9 @@ export const SCHEMA_C = {
     // "Add more detail" — all optional, each with a default that is listed under what was assumed.
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 150_000, 10_000_000] },
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
+    // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
+    // while the money is still invested before it is first taken and while it is drawn (schemaParts.js chargeField).
+    chargeField(),
     { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] },
 
     // "Try a change" — optional; never on the numbers step. null = not asked.

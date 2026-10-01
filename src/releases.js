@@ -32,9 +32,68 @@ export const TOOL_LABELS = {
   decision: 'Decision tool (monthly)', accumulation: 'Accumulation planner', household: 'Household (couples)'
 };
 
+const pctText = (v) => String(Math.round((+v || 0) * 100) / 100);
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
+  {
+    version: '6.19.0', date: '2026-10-01', engineVersion: '6.19.0',
+    title: 'Fund and platform charges are now taken off: 0.5% a year unless you change it',
+    summary: 'Until now no charges were taken off once money was being drawn, which made every plan look better than it is likely to be. Each plan now has one setting, "Charges (funds and platform), % a year", starting at 0.5%. It comes off every month, while you save and while you draw, from the money held in funds and cash in your pension, ISA and taxable account. It does not come off gilts you hold directly, annuities, final-salary or State Pensions. A plan that was already locked keeps its figures: it runs without charges until you unlock it.',
+    changes: [
+      'Stress tester → Settings → Your allocation: "Charges (funds and platform), % a year", from 0% to 3% in steps of 0.05%. Put in what your funds charge plus what your platform charges (for example, a 0.2% tracker on a 0.25% platform is 0.45%). The line under the box shows what the funds you hold charge, so you only add the platform\'s fee.',
+      'Monte Carlo, History, Scenarios, every strategy, the Strategies comparison, the Household checks, the drawdown schedule, the Accumulation planner, the Timing block\'s pots at retirement and the retire-at-what-age sweep all take the charge off. The line above Monte Carlo, History and Scenarios says what charge the runs take.',
+      'A plan document written from now on records the charge it was worked out at, under Assumptions.',
+      'New plans and plans reset to defaults start at 0.5%; a plan made from a preview answer starts at the charge that answer used (0.5% unless you changed it).',
+      'Preview at /v7/: the same setting under "Add more detail" in all three questions. It is now taken off while you draw as well as while you save.'
+    ],
+    corrections: [
+      'Fund and platform charges were not taken off once money was being drawn (the Assumptions page listed them as "not modelled"), so every plan looked better than it is likely to be. At 0.5% a year, a plan close to the edge loses about 4 to 15 points of its chance of lasting, and even a comfortable plan can lose up to about 6 points on the History tab. The amount typically left falls by about a fifth to two fifths: by more when little is left, and by less when the plan runs for fewer years. Gilts held directly are not charged, so plans built on them move least. For example, the guest demo (£1M, £40,000 a year rising) goes from lasting in 94% of futures to 90%, and the amount it typically leaves falls by about 30%.'
+    ],
+    effects: {
+      budget: [],
+      stress: [
+        'Unlocked plans: 0.5% a year is now taken off, so the chance of lasting and the amount left go down.',
+        'Plans already locked: unchanged. The setting reads "0% (this plan was locked before charges were added; unlock to change)" and the runs say no charges are taken off. A plan locked from now on keeps the charge it had when it was locked.'
+      ],
+      strategies: [
+        'Unlocked plans: every strategy\'s figures move. The parts held in funds and cash are charged; gilts held directly are not, so a gilt ladder moves least. The cash years before a ladder\'s first rung cost a little more. The rotation trigger still reads the market, not your holding.'
+      ],
+      decision: [
+        'No effect: months already recorded, your balances, the plan-versus-actual yardstick and a locked plan\'s document keep their figures. Charges are a projection input only.'
+      ],
+      accumulation: [
+        'Projections to retirement now take the charge off every month. The "your mix" line uses the plan\'s charge in place of your funds\' own charges, so they are not counted twice.',
+        'A "pots at retirement" figure saved in the Timing block changes only when you next save the Timing block.'
+      ],
+      household: ['Each partner\'s plan uses its own charge. A partner plan that was already locked stays at 0% until it is unlocked.']
+    },
+    actions: [
+      'Check the charge in Stress tester → Settings: your funds\' yearly charge plus your platform\'s fee.',
+      'If you are retiring later, open the Timing block and save it, so the pots at retirement include charges.',
+      'A plan that was already locked stays at 0%. To have charges taken off, unlock it: it then takes 0.5% a year, which you can change. To keep its record as it is, duplicate it instead (the copy starts at the plan\'s own 0%, which you can change).'
+    ],
+    notes: [
+      'Not charged: State Pensions, final-salary pensions and annuities, which have no such charge, and gilts you hold directly (a ladder\'s rungs, the gilts in a taxable account), for which platforms usually charge a small fixed fee. Money held back for later rungs (a windfall, a ladder\'s spare) is held at its real value and not charged.',
+      'Each charged pot is multiplied by (1 − c)^(1/12) after each month\'s growth, so twelve months take off exactly c. At 0% every figure is exactly what it was.',
+      'Saved plans: schema version 2. On first load, every unlocked plan is given 0.5% in its Stress settings. A plan locked at that point is not touched at all: its settings, plan document, archives and history stay as they were, and its Decision checksum does not move.',
+      'The −1.5 points a year cut on US share returns stands for world shares, not costs; it is unchanged.',
+      'Engine version 6.19.0: every strategy\'s arithmetic changed (it changes a result only when the plan has a charge).'
+    ],
+    affects: (scenario) => {
+      const s = scenario && typeof scenario === 'object' ? scenario : {};
+      const st = s.stressTool && typeof s.stressTool === 'object' ? s.stressTool.settings : null;
+      if (!st || typeof st !== 'object') return [];
+      const locked = !!(s.decisionTool && s.decisionTool.settings && s.decisionTool.settings.locked);
+      const v = st.chargesPct;
+      const pct = typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 3 ? v : null;
+      if (pct === null) {
+        return locked ? ['This plan is locked, so it is held at 0%: its figures do not move. Unlock it and 0.5% a year is taken off from then on (Stress tester → Settings).'] : [];
+      }
+      if (pct === 0) return ['This plan takes no charges off (0% in Stress tester → Settings), so its figures are as they were.'];
+      return ['This plan now takes ' + pctText(pct) + '% a year off for fund and platform charges, so its chance of lasting and the amount left are lower than before. Change it in Stress tester → Settings.'];
+    }
+  },
   {
     version: '6.18.0', date: '2026-10-01', engineVersion: '6.17.0',
     title: 'Keep an answer from the preview as a plan, five corrections, and faster tax sums',

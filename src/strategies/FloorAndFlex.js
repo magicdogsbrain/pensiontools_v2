@@ -61,6 +61,11 @@ function runFlexCore(cfg, mcPaths, isMc) {
   const ry = R?.realYield ?? 0.023;
   const yf = (R && R.yieldForYear) || cfg.yieldForYear || (() => ry);
   const price = (k, t) => Math.pow(1 + yf(k), -(k - t / 12));
+  // Fund and platform charges (6.19.0): the sleeve is held in a fund, so it is charged each month after its growth
+  // (compareRunner puts the plan's monthly factor in cfg.chargeM). The floor's rungs — gilts held directly — and the
+  // market series are not. 1 = none: today's figures exactly. Covers Floor & Flex, Floor the schedule, Floor to an age
+  // and Bridge & engine (whose later engine years are read off this sleeve, stressTest.js).
+  const chargeM = Number.isFinite(cfg.chargeM) && cfg.chargeM > 0 && cfg.chargeM <= 1 ? cfg.chargeM : 1;
 
   for (let s = 0; s < n; s++) {
     const series = isMc ? mcPaths[s] : rtr;
@@ -111,6 +116,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
     let annuitySwapDone = false;
     for (let m = 0; m < cfg.END; m++) {
       V *= series[off + m + 1] / series[off + m];
+      if (chargeM !== 1) V *= chargeM;
       // Phase G late-life annuity swap (opt-in): at swapAge, spend swapCost from the sleeve to
       // buy the true lifelong tail past the floor horizon (linkers run out ~2073, so this is
       // the honest answer to "lifelong"). Modelled as a one-off sleeve deduction.

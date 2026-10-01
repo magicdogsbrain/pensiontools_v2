@@ -83,7 +83,8 @@
  * @property {{ pension: Three, savings: Three, total: Three }} potAtStop                           At the stop, today's prices, whole £.
  * @property {{ total: number }} paidIn       Over the saving years, today's prices.
  * @property {{ saving: string, drawing: string, slideYears: number }} mix                          slideYears 10, or 0 when the levels agree.
- * @property {number} chargeAYear             0.005 by default.
+ * @property {number} chargeAYear             The household's one fund and platform charge as a share a year (inputs.charge ÷ 100):
+ *                                            0.005 by default. From 6.19.0 it is taken while drawing too (C, A and B alike).
  *
  * @typedef {object} SaveRow                  One month of the saving trace (env.trace only).
  * @property {'you' | 'partner'} who
@@ -155,8 +156,8 @@
  * @property {{ saving: { atCareful: { futureId: number, rows: SaveRow[] } }, drawing: object, lives: { id: number, potAtStop: number, runOutMonth: number|null, most: number }[] }} [trace]
  * @property {{ c: { ok: boolean, same: boolean } }} [handOver]   Step 4 brief J10. The hand-over to C at the shown age:
  *   `ok` — C takes that age (a pension may not start before it opens unless there are savings to live on meanwhile);
- *   `same` — C then shows this row's careful amount exactly (no saving risk of its own, the 0.5% charge, nothing into
- *   savings each month, no part-time work: C asks none of those).
+ *   `same` — C then shows this row's careful amount exactly (no saving risk of its own, nothing into savings each
+ *   month, no part-time work: C asks none of those; the charge does not count — C asks it too, and it is carried).
  *   Sentences added at joining up (J11): `agesNote` (detail 'all': the ages before a pension opens, the ages left out);
  *   `oneMore` may be 'a.oneMore.less' (the next age pays less on these futures); `change` names part-time work.
  *
@@ -226,7 +227,8 @@
  * @typedef {object} AnswerC                Plain data: no functions, no Dates, nothing undefined. JSON.stringify-safe.
  * @property {'ok' | 'invalid' | 'guaranteed-only' | 'none'} status
  * @property {{ field: string, messageId: string }[]} [problems]   Only when 'invalid'; then nothing below is present.
- * @property {object} [inputs]              As used, defaults filled in.
+ * @property {object} [inputs]              As used, defaults filled in — `charge` among them (6.19.0: percent a year, 0.5 unless
+ *   changed; the household's one fund and platform charge, taken while drawing and, on the lives, while the money waits).
  * @property {Three} [monthly]              £ a month, after tax, today's prices, household; whole £10.
  * @property {Three} [yearly]               monthly × 12
  * @property {Three} [lasted]               Share of futures that lasted to endAge, 0–1.
@@ -266,5 +268,8 @@
  * @property {{ money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' }} [units]
  * @property {object} [trace]               Only when env.trace (brief 4.3). On the lives: { saving: { atCareful }, futures,
  *   evaluations } — the saving months of the bad-case life and every life's most and run-out months (no drawing rows).
+ *   From now, `atCareful.rows` are the month rows of the bad case: { who, m, age, priceIndex, potStart, growth, charge,
+ *   draw, fromPension, fromSavings, taxFree, taxable, statePension, finalSalary, tax, afterTax, potEnd }, where
+ *   potEnd = potStart + growth − charge − draw (6.19.0: the charge is a column of its own, never inside growth).
  */
 export {};

@@ -141,36 +141,36 @@
       }
     ],
     "number": {
-      "careful": 472000,
-      "middling": 325000,
-      "good": 244000,
+      "careful": 513000,
+      "middling": 343000,
+      "good": 258000,
       "byPerson": [
         {
           "who": "you",
-          "pot": 472000
+          "pot": 513000
         }
       ]
     },
     "already": false,
     "chance": {
-      "lasted": 1,
+      "lasted": 0.975,
       "outOfTen": {
-        "words": "in every future we tried",
+        "words": "in more than 9 futures out of 10",
         "only": false,
-        "count": null
+        "count": 9
       },
-      "fails": 0
+      "fails": 1
     },
     "onCourse": true,
     "payIn": {
       "now": 1400,
       "own": null,
       "employer": null,
-      "needed": 90,
+      "needed": 280,
       "extra": 0,
       "confidence": "nineInTen",
       "at": {
-        "nineInTen": 90,
+        "nineInTen": 280,
         "threeInFour": 0
       },
       "outside": null,
@@ -183,19 +183,19 @@
         "good": 936074
       },
       "needed": {
-        "careful": 309216,
-        "middling": 535431,
-        "good": 662196
+        "careful": 334932,
+        "middling": 568038,
+        "good": 698658
       }
     },
-    "short": 0,
-    "monthlyIfShort": 2560,
+    "short": 26482,
+    "monthlyIfShort": 2420,
     "wholeLife": {
-      "lasted": 1,
+      "lasted": 0.975,
       "outOfTen": {
-        "words": "in every future we tried",
+        "words": "in more than 9 futures out of 10",
         "only": false,
-        "count": null
+        "count": 9
       },
       "runOutAge": 95
     },
@@ -206,9 +206,9 @@
       "spendLess": null,
       "moreRisk": null,
       "accept": {
-        "lasted": 1,
-        "short": 0,
-        "monthlyIfShort": 2560
+        "lasted": 0.975,
+        "short": 26482,
+        "monthlyIfShort": 2420
       }
     },
     "grid": null,
@@ -380,17 +380,17 @@
         ]
       },
       {
-        "id": "charge-saving",
+        "id": "charges",
         "field": "charge",
         "source": "default",
         "value": 0.5,
-        "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+        "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
         "parts": [
-          "A charge of ",
+          "Charges of ",
           {
             "fixed": "0.5"
           },
-          "% a year comes off while you are saving; none once you have stopped."
+          "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
         ]
       },
       {
@@ -634,7 +634,7 @@
       },
       "sub": {
         "id": "b.sub.onCourse",
-        "text": "paying in £1,400 a month as you do now, your money lasted until you are 95 in every future we tried",
+        "text": "paying in £1,400 a month as you do now, your money lasted until you are 95 in more than 9 futures out of 10",
         "parts": [
           "paying in ",
           {
@@ -649,12 +649,19 @@
             "kind": "age"
           },
           " ",
-          "in every future we tried"
+          "in more than ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          }
         ]
       },
       "line": {
         "id": "b.line",
-        "text": "To spend £2,000 a month from 60, you would want a pot of about £472,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
+        "text": "To spend £2,000 a month from 60, you would want a pot of about £513,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
         "parts": [
           "To spend ",
           {
@@ -691,7 +698,7 @@
       },
       "bad": {
         "id": "b.bad.onCourse",
-        "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £90 a month and it would still last in 9 futures out of 10.",
+        "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £280 a month and it would still last in 9 futures out of 10.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -800,7 +807,7 @@
       },
       "wholeLife": {
         "id": "b.wholeLife",
-        "text": "Paying in £1,400 a month as you do now and then spending £2,000 a month, your money lasted until you are 95 in every future we tried.",
+        "text": "Paying in £1,400 a month as you do now and then spending £2,000 a month, your money lasted until you are 95 in more than 9 futures out of 10.",
         "parts": [
           "Paying in ",
           {
@@ -821,14 +828,21 @@
             "kind": "age"
           },
           " ",
-          "in every future we tried",
+          "in more than ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
           "."
         ]
       },
       "lever": {
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £1,400 a month as now: your money lasted in every future we tried. About £2,560 a month from 60 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,420 a month from 60 lasted in 9 futures out of 10.",
           "parts": [
             "Keep paying in ",
             {
@@ -837,7 +851,14 @@
             },
             " a month",
             " as now: your money lasted ",
-            "in every future we tried",
+            "in more than ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
             ".",
             " About ",
             {
@@ -863,7 +884,7 @@
       },
       "change": {
         "id": "b.change",
-        "text": "Now: on course for 60, lasted in every future we tried.",
+        "text": "Now: on course for 60, lasted in more than 9 futures out of 10.",
         "parts": [
           "Now: ",
           "on course for ",
@@ -872,7 +893,14 @@
             "kind": "age"
           },
           ", lasted ",
-          "in every future we tried",
+          "in more than ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
           "."
         ]
       }

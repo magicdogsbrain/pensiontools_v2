@@ -29,6 +29,7 @@ import { simpleHash } from '../utils/MathUtils.js';
 import { defaultBudget } from '../services/BudgetModel.js';
 import { deriveTiming } from '../services/PlanTiming.js';
 import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
+import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -55,7 +56,11 @@ export function invalidateScenarioCache() {
 // ============================================================================
 
 /**
- * Default stress settings for a new scenario
+ * Default stress settings for a new scenario.
+ *
+ * NOT the fund and platform charge (6.19.0): this map is also the fallback merged UNDER a stored plan's settings
+ * (seedStressFromDecision), and a locked plan from before charges must keep reading none (0%). The default charge is
+ * written by getDefaultScenario (every new plan) and by the readers below that know the plan is unlocked.
  */
 export function getDefaultStressSettings() {
   return {
@@ -319,13 +324,39 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
       taxYears: getDefaultTaxYears()
     },
     stressTool: {
-      settings: getDefaultStressSettings()
+      // Fund and platform charges (6.19.0): every new plan — "+ New plan", the setup wizard, a partner plan, a demo or
+      // guest plan, a plan made from a V7 answer — starts at the default, 0.5% a year. A Stress setting only.
+      settings: { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT }
     },
     budgetTool: {
       settings: getDefaultBudget()
     }
   };
 }
+
+/**
+ * Unlocking a plan that was locked before charges were added (6.19.0, D2): it then gets the default, as every unlocked
+ * plan has, so its figures from now on take the charge off. Returns the Stress-settings patch to save, or null when the
+ * plan already carries a valid charge (0 included). Pure.
+ * @param {object} stressSettings
+ * @returns {{ chargesPct: number }|null}
+ */
+export function chargesPatchOnUnlock(stressSettings) {
+  return isChargesPct(stressSettings && stressSettings.chargesPct) ? null : { chargesPct: DEFAULT_CHARGES_PCT };
+}
+
+/**
+ * The charge an unlocked COPY is written with (6.19.0, D7): the original's effective value, explicitly — a copy of a
+ * plan locked before charges gets 0, so it reproduces the original's figures and the 0 is there to see and change.
+ * @param {object} stressSettings - the original's
+ * @returns {number}
+ */
+export function chargesForCopy(stressSettings) {
+  return chargesPctOf(stressSettings);
+}
+
+/** Locked (the planner's own flag) — the readers that hand out the default charge must know. */
+const isLockedScenario = (scenario) => !!(scenario && scenario.decisionTool && scenario.decisionTool.settings && scenario.decisionTool.settings.locked);
 
 // ============================================================================
 // SCENARIO CRUD
@@ -506,6 +537,13 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
     const hasRecords = (data.decisionTool.history || []).length > 0 || Object.values(data.decisionTool.taxYears || {}).some((t) => t && t.yearSetupComplete);
     if (hasRecords) { data.decisionTool.settings.locked = true; data.decisionTool.settings.lockedAt = new Date().toISOString(); data.decisionTool.settings.lockedBy = 'copied with records'; }
   }
+  // Fund and platform charges (6.19.0, D7): an UNLOCKED copy of a plan with no setting (one locked before charges) gets
+  // the original's effective value written, 0 — the copy reproduces the original's figures, and the 0 is visible and
+  // changeable in Settings. A copy that is locked (it carries records) is left as the original was.
+  const copySt = data.stressTool && typeof data.stressTool === 'object' && data.stressTool.settings && typeof data.stressTool.settings === 'object' ? data.stressTool.settings : null;
+  if (copySt && !isChargesPct(copySt.chargesPct) && !isLockedScenario(data)) {
+    data.stressTool = { ...data.stressTool, settings: { ...copySt, chargesPct: chargesForCopy(copySt) } };
+  }
 
   const newId = await createScenario(data);
   invalidateScenarioCache();
@@ -596,7 +634,10 @@ export async function deleteScenario(scenarioId) {
  */
 export async function getActiveStressSettings() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.stressTool?.settings || getDefaultStressSettings();
+  if (scenario?.stressTool?.settings) return scenario.stressTool.settings;
+  // No Stress settings saved yet: the defaults — with the default fund and platform charge only when the plan is not
+  // locked (6.19.0); a locked plan without settings keeps running without charges.
+  return scenario && !isLockedScenario(scenario) ? { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT } : getDefaultStressSettings();
 }
 
 /**

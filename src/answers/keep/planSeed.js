@@ -225,6 +225,9 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
     source,
     v7: { appVersion: String(env.appVersion || ''), engineVersion: basis.engineVersion || null, historyEnd: basis.historyEnd || null },
     name: { suggested, chosen: checked.name },
+    // the answer's checked inputs — among them `charge`, the household's one fund and platform charge (percent a year,
+    // 6.19.0), which today's planner makes the new plan's Stress setting (src/services/PlanSeed.js; no seed version change:
+    // a seed without one gives the planner's default, 0.5)
     inputs: copy(inputs),
     household: couple ? 'couple' : 'single',
     stop: { kind: later ? 'later' : 'now', yearsFromNow: wait },

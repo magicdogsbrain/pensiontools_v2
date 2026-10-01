@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -59,7 +59,7 @@
     },
     "b": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":5000,\"kind\":\"amount\"},\"stop\":{\"age\":52},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":5000,\"kind\":\"amount\"},\"stop\":{\"age\":52},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "out-of-reach",
         "inputs": {
@@ -161,13 +161,13 @@
           }
         ],
         "number": {
-          "careful": 1773000,
-          "middling": 1086000,
-          "good": 629000,
+          "careful": 1991000,
+          "middling": 1202000,
+          "good": 695000,
           "byPerson": [
             {
               "who": "you",
-              "pot": 1773000
+              "pot": 1991000
             }
           ]
         },
@@ -204,7 +204,7 @@
           },
           "needed": null
         },
-        "short": 1652111,
+        "short": 1870111,
         "monthlyIfShort": 0,
         "wholeLife": {
           "lasted": 0,
@@ -217,7 +217,7 @@
         },
         "outside": {
           "amount": 300000,
-          "careful": 376000,
+          "careful": 382000,
           "untilAge": 57
         },
         "levers": {
@@ -232,7 +232,7 @@
           },
           "accept": {
             "lasted": 0,
-            "short": 1652111,
+            "short": 1870111,
             "monthlyIfShort": 0
           }
         },
@@ -449,17 +449,17 @@
             ]
           },
           {
-            "id": "charge-saving",
+            "id": "charges",
             "field": "charge",
             "source": "default",
             "value": 0.5,
-            "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
             "parts": [
-              "A charge of ",
+              "Charges of ",
               {
                 "fixed": "0.5"
               },
-              "% a year comes off while you are saving; none once you have stopped."
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
             ]
           },
           {
@@ -823,7 +823,7 @@
         "sentences": {
           "head": {
             "id": "b.head",
-            "text": "About £1,773,000 by age 52",
+            "text": "About £1,991,000 by age 52",
             "parts": [
               "About ",
               {
@@ -875,7 +875,7 @@
           },
           "line": {
             "id": "b.line",
-            "text": "To spend £5,000 a month from 52, you would want a pot of about £1,773,000 by then: with exactly that at 52, the money lasted in 9 futures out of 10.",
+            "text": "To spend £5,000 a month from 52, you would want a pot of about £1,991,000 by then: with exactly that at 52, the money lasted in 9 futures out of 10.",
             "parts": [
               "To spend ",
               {
@@ -1084,7 +1084,7 @@
           },
           "outside": {
             "id": "b.outside",
-            "text": "Stopping at 52 is before you can take money from a pension (57). Beside the pension, about £376,000 needs to be in ISAs or savings by 52 to pay the years from 52 to 57 in every future we tried.",
+            "text": "Stopping at 52 is before you can take money from a pension (57). Beside the pension, about £382,000 needs to be in ISAs or savings by 52 to pay the years from 52 to 57 in every future we tried.",
             "parts": [
               "Stopping at ",
               {
@@ -1206,7 +1206,7 @@
           "failuresAllowed": 100,
           "closeAllowed": 250,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "endAge": 95,
           "detail": "answer",
           "lifeYears": 45,

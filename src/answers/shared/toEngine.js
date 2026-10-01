@@ -27,11 +27,13 @@
  * Today's engine runs one person at a time and never edits itself here: it gets a flat config in the shape
  * createSimulationConfigFromSettings builds, with the default way of taking the money fixed: pots-and-valves
  * with its automatic cut switched off, a quarter of each pension withdrawal tax-free, tax bands rising with prices.
+ * The household's fund and platform charge (household.chargesPct, percent a year; 6.19.0) rides on every run's config.
  */
 import { grossToNet, netToGross } from '../../services/TaxCalculator.js';
 import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
+import { isChargesPct } from '../../services/Charges.js';
 import { RULES, addYears } from './rules.js';
 import { startWhenPensionsOpen, startAsGiven } from './household.js';
 
@@ -260,7 +262,11 @@ export function enginePlan(household, env, opts = {}) {
       windfalls: [], extraWithdrawals: [], taxableStart: 0, taxableMix: null, giaTaxBand: 'basic', bedAndIsa: false, relevantEarnings: 0,
       spendingProfile: 'flat',
       targetSchedule: null,
-      ...extraAsGiven
+      ...extraAsGiven,
+      // Fund and platform charges (6.19.0): the household's one charge, percent a year, on every run — the pension's
+      // sleeves and the ISA, while drawing and while a pension is closed. Only a valid charge is handed on: without one
+      // the config is exactly what it was (the engine reads a missing charge as 0; the household model gives 0.5).
+      ...(isChargesPct(household.chargesPct) ? { chargesPct: household.chargesPct } : {})
     };
   }
 

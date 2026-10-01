@@ -33,13 +33,18 @@
  * @property {1} inputVersion
  * @property {Person[]} people                  one or two; the order carries no meaning
  * @property {null|object} spending             not used by question C; A and B: { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
- * @property {{ risk: 'cautious'|'balanced'|'adventurous', charge: number }} [saving]   A and B only (a saver household): the
- *   mix while saving and the charge a year while saving (0.005 = 0.5%). Its presence is what makes a household a saver's.
+ * @property {{ risk: 'cautious'|'balanced'|'adventurous' }} [saving]   A and B only (a saver household): the mix while
+ *   saving. Its presence is what makes a household a saver's.
+ * @property {number} chargesPct                every question (6.19.0): the household's one fund and platform charge, percent
+ *   a year (0.5 = 0.5%), 0 to 3 — taken monthly from what is held in funds and cash, while saving (saving.js) AND while
+ *   drawing (toEngine.js hands it to every run); never from the State Pension or a final-salary pension. 0.5 unless given.
+ *   (Before 6.19.0 a saver household carried `saving.charge`, a share a year, for the saving years only.)
  * @property {number} planToAge                 for a couple: until the YOUNGER person is this age
  * @property {{ kind: 'risk', level: 'cautious'|'balanced'|'adventurous' } | { kind: 'mix', equity: number, bond: number, cash: number }} portfolio
  * @property {{ id: string }} strategy
  */
 import { fullStatePensionYearly, addYears, accessAgeOn } from './rules.js';
+import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS, isChargesPct } from '../../services/Charges.js';
 
 /** The limits of the model (answer-C-and-household.md 1.8). The only place a household range is written down. */
 export const HOUSEHOLD_LIMITS = {
@@ -50,16 +55,14 @@ export const HOUSEHOLD_LIMITS = {
   finalSalaryStartAge: { min: 50, max: 75 },
   planToAge: { min: 75, max: 105 },
   people: { min: 1, max: 2 },
-  // The saving years (step 4 brief 4.10): £ a month at today's prices; the charge a year as a share; part-time work.
+  // The saving years (step 4 brief 4.10): £ a month at today's prices; part-time work.
   payInAMonth: { min: 0, max: 10_000 },
   savingsInAMonth: { min: 0, max: 10_000 },
-  charge: { min: 0, max: 0.02 },
   workAYear: { min: 0, max: 200_000 },
-  workYears: { min: 1, max: 15 }
+  workYears: { min: 1, max: 15 },
+  // The household's one fund and platform charge, percent a year (6.19.0): today's planner's range (services/Charges.js).
+  chargesPct: { min: CHARGES_LIMITS.min, max: CHARGES_LIMITS.max }
 };
-
-/** The charge a year while saving when none is given (= SAVING.charge in rules.js). */
-const DEFAULT_SAVING_CHARGE = 0.005;
 
 const RISK_LEVELS = ['cautious', 'balanced', 'adventurous'];
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -240,7 +243,7 @@ export function expandHousehold(short, now) {
   const note = (id, who) => { assumed.push(who ? { id, who } : { id }); };
   const src = short || {};
   const list = Array.isArray(src.people) ? src.people : [];
-  // Questions A and B mark their households by a household-level `saving` (the mix and the charge while saving).
+  // Questions A and B mark their households by a household-level `saving` (the mix while saving).
   // C's households never carry it, and nothing below changes for them.
   const saver = src.saving !== undefined && src.saving !== null;
 
@@ -320,15 +323,17 @@ export function expandHousehold(short, now) {
   if (!src.portfolio) note('risk');
   const strategy = src.strategy ? { ...src.strategy } : { id: 'steady' };
   if (!src.strategy) note('steady');
+  // The household's one fund and platform charge (6.19.0): percent a year, as given, or the shared default (0.5).
+  const chargesPct = isChargesPct(src.chargesPct) ? src.chargesPct : DEFAULT_CHARGES_PCT;
+  if (!isChargesPct(src.chargesPct)) note('charges');
   if (people.length > 1) note('both-alive');
 
-  const household = { inputVersion: 1, people, spending: src.spending || null, planToAge, portfolio, strategy };
+  const household = { inputVersion: 1, people, spending: src.spending || null, planToAge, portfolio, strategy, chargesPct };
   if (saver) {
     const sv = typeof src.saving === 'object' ? src.saving : {};
     const level = portfolio.kind === 'risk' ? portfolio.level : 'balanced';
     if (!sv.risk) note('risk-saving');
-    if (!isNum(sv.charge)) note('charge-saving');
-    household.saving = { risk: sv.risk || level, charge: isNum(sv.charge) ? sv.charge : DEFAULT_SAVING_CHARGE };
+    household.saving = { risk: sv.risk || level };
   }
   return { household, assumed };
 }
@@ -380,10 +385,9 @@ export function validateHousehold(household, now) {
       else bad(`${at}.otherIncome.${j}.fromAge`, 'required');
     });
   });
-  if (h.saving) {
-    range('saving.charge', h.saving.charge, HOUSEHOLD_LIMITS.charge);
-    if (!RISK_LEVELS.includes(h.saving.risk)) bad('saving.risk', 'notAnOption');
-  }
+  if (h.saving && !RISK_LEVELS.includes(h.saving.risk)) bad('saving.risk', 'notAnOption');
+  // the one charge, when the household carries it (every household the model makes does; absent = none, as the engine reads it)
+  if (h.chargesPct !== undefined) range('chargesPct', h.chargesPct, HOUSEHOLD_LIMITS.chargesPct);
 
   const planOk = range('planToAge', h.planToAge, HOUSEHOLD_LIMITS.planToAge);
   const pf = h.portfolio || {};

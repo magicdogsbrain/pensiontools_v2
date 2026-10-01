@@ -22,6 +22,7 @@
  */
 
 import { getStrategy } from '../strategies/registry.js';
+import { monthlyChargeFactor, isChargesPct } from './Charges.js';
 
 export const ACCUMULATION_RULES = {
   ANNUAL_ALLOWANCE: 60000,
@@ -125,24 +126,40 @@ export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTri
 
 /**
  * Deterministic projection at the three FCA rates, in TODAY'S money.
+ *
+ * Fund and platform charges (6.19.0, services/Charges.js): `chargesPct` is the plan's one charge, percent a year. The
+ * FCA rates are before charges (a regulator's projection takes the product's charges off), so each month every line is
+ * pot × (1 + r/12) × (1 − c)^(1/12) + the month's payment. Absent or 0: exactly the projection it always was.
+ * The "your mix" line's return (Holdings.proportions expectedReal) already has the holdings' own fund charges (OCF)
+ * taken off; with a plan charge the plan's ONE setting replaces them — pass that OCF as `mixOcf` and the line grows at
+ * mixRealReturn + mixOcf before the plan charge, so fund costs are never counted twice. Without a plan charge `mixOcf`
+ * is ignored (the OCF stays taken off, as before).
  * @returns {Array<{age, year, potLow, potMid, potHigh, contributedToDate}>} one row per year
  */
-export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null }) {
+export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null, chargesPct = 0, mixOcf = null }) {
   const years = Math.max(0, Math.round(retirementAge - currentAge));
   const rows = [];
   const pots = { low: potNow, mid: potNow, high: potNow };
+  const pct = isChargesPct(chargesPct) ? chargesPct : 0;
+  const chargeM = monthlyChargeFactor(pct);
   // 6.7.0: a fourth line at the holder's OWN mix — its expected real return net of costs (Holdings.proportions),
   // stated nominally here so the same deflator applies. Null when no holdings are tagged.
   const hasMix = Number.isFinite(mixRealReturn);
-  const mixNominal = hasMix ? (1 + mixRealReturn) * (1 + assumedCpi) - 1 : null;
+  const mixReal = hasMix && pct > 0 && Number.isFinite(mixOcf) ? mixRealReturn + mixOcf : mixRealReturn;   // the plan charge replaces the funds' own
+  const mixNominal = hasMix ? (1 + mixReal) * (1 + assumedCpi) - 1 : null;
   let potMix = potNow;
   let monthly = totalMonthly;
   let contributed = 0;
   rows.push({ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, ...(hasMix ? { potMix: potNow } : {}), contributedToDate: 0 });
   for (let y = 1; y <= years; y++) {
     for (let m = 0; m < 12; m++) {
-      for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) + monthly;
-      if (hasMix) potMix = potMix * (1 + mixNominal / 12) + monthly;
+      if (chargeM === 1) {
+        for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) + monthly;
+        if (hasMix) potMix = potMix * (1 + mixNominal / 12) + monthly;
+      } else {
+        for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) * chargeM + monthly;
+        if (hasMix) potMix = potMix * (1 + mixNominal / 12) * chargeM + monthly;
+      }
       contributed += monthly;
     }
     monthly *= 1 + (escalationPct || 0) / 100;

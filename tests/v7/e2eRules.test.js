@@ -132,7 +132,7 @@ describe('browser tests: rules kept by reading the files', () => {
     // Neither job waits for the other.
     expect(browserJob).not.toMatch(/^\s+needs:/m);
     expect(testJob).not.toMatch(/^\s+needs:/m);
-    expect(browserJob).toMatch(/timeout-minutes: 20/);
+    expect(browserJob).toMatch(/timeout-minutes: 30/);
     // Split across runners; each runs its share.
     expect(browserJob).toMatch(/shard: \[1, 2, 3\]/);
     expect(browserJob).toMatch(/--shard=\$\{\{ matrix\.shard \}\}\/3/);

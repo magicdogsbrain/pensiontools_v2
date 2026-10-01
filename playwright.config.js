@@ -62,6 +62,7 @@ if (NIGHTLY) {
 
 export default defineConfig({
   testDir: 'e2e',
+  globalSetup: './e2e/global-setup.js',   // measures this machine's speed for the answer-time budgets
   outputDir: 'test-results',
   fullyParallel: true,
   retries: 0,                       // a test that needs a second go is hiding something: fix the wait

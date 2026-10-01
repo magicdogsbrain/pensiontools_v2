@@ -43,7 +43,12 @@ jobs:
     # pictures: about 4 minutes more, planned under 12 minutes in all against the 15-minute limit (test plan
     # A–B 13.3). If it runs over, cut in that plan's order — never the journeys' counted first answers.
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    # Split three ways (step 4 tripled the browser tests); each shard runs its third on its own runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       TZ: Europe/London
     steps:
@@ -68,11 +73,11 @@ jobs:
         run: npx playwright install-deps chromium webkit firefox
       # The published build (dist/prod, the current app and V7 exactly as deployed) and V7's test build (dist/test).
       - run: npm run e2e:build
-      - run: npx playwright test
+      - run: npx playwright test --shard=${{ matrix.shard }}/3
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: browser-report
+          name: browser-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/

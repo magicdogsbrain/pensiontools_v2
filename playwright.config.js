@@ -66,7 +66,7 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,                       // a test that needs a second go is hiding something: fix the wait
   forbidOnly: CI,
-  workers: CI ? 4 : undefined,
+  workers: CI ? 2 : undefined,       // a GitHub runner has 2 cores; more workers starve the answer worker
   timeout: 60_000,
   expect: {
     timeout: 10_000,

@@ -132,7 +132,10 @@ describe('browser tests: rules kept by reading the files', () => {
     // Neither job waits for the other.
     expect(browserJob).not.toMatch(/^\s+needs:/m);
     expect(testJob).not.toMatch(/^\s+needs:/m);
-    expect(browserJob).toMatch(/timeout-minutes: 15/);
+    expect(browserJob).toMatch(/timeout-minutes: 20/);
+    // Split across runners; each runs its share.
+    expect(browserJob).toMatch(/shard: \[1, 2, 3\]/);
+    expect(browserJob).toMatch(/--shard=\$\{\{ matrix\.shard \}\}\/3/);
     // The browsers are cached by the installed Playwright version.
     expect(browserJob).toMatch(/actions\/cache@v4/);
     expect(browserJob).toMatch(/ms-playwright/);
@@ -248,7 +251,12 @@ describe('browser tests: rules kept by reading the files', () => {
       const helper = code(read('e2e/helpers/app.js'));
       expect(helper).toMatch(/a: \{ mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
       expect(helper).toMatch(/b: \{ mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000/);
-      expect(helper).toMatch(/SLOWDOWN = 4\b/);
+      // A phone four times slower than the reference machine: 4 there, scaled by this machine's measured speed
+      // elsewhere, never above 4 and never below 1.
+      expect(helper).toMatch(/SLOWDOWN = Number\(process\.env\.E2E_SLOWDOWN\) \|\| 4\b/);
+      expect(code(read('playwright.config.js'))).toMatch(/globalSetup: '\.\/e2e\/global-setup\.js'/);
+      const cal = code(read('e2e/helpers/calibrate.mjs'));
+      expect(cal).toMatch(/Math\.min\(4, Math\.max\(1, 4 \* reference \/ measured\)\)/);
       // The counted journeys type one key at a time and write their counts down.
       for (const name of ['a-stop-soon', 'b-coast']) {
         const spec = code(read(`e2e/${name}.spec.js`));

@@ -640,7 +640,9 @@ export const FIRST_ANSWER_BUDGET = Object.freeze({
   a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 },
   b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 }
 });
-export const SLOWDOWN = 4;           // Chromium cannot slow a worker: waits are measured at full speed × 4
+// Chromium cannot slow a worker: waits are measured at full speed × SLOWDOWN, which stands for a phone four times
+// slower than the reference machine — 4 there, less on a machine already slower than it (e2e/global-setup.js).
+export const SLOWDOWN = Number(process.env.E2E_SLOWDOWN) || 4;
 export const KEY_DELAY = 120;        // one key at a time, as a person types (catches a box that loses its place)
 
 /**
@@ -803,6 +805,6 @@ export async function drawState(page, state) {
   // Ready only when nothing in the state is still being worked out — whichever question the address shows.
   const held = Object.values((state && state.answers) || {});
   const settled = held.every((a) => !a || a.status === 'idle' || (a.status === 'final' && !a.extending));
-  if (settled) await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
+  if (settled) await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 90_000 });   // a settling wait, not a budget (budgets are in the journeys)
   await page.evaluate(() => document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())))));
 }

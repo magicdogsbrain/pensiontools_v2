@@ -13,6 +13,7 @@ import { personFields, saverFields, moreFields, SPEND_FIELDS, spendLevelAMonth }
 import { ACCUMULATION_RULES } from '../../../src/services/AccumulationEngine.js';
 import { PLSA_2024 } from '../../../src/services/BudgetModel.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
+import { DEFAULT_CHARGES_PCT } from '../../../src/services/Charges.js';
 import { A as COPY_A } from '../../../src/v7/copy/a.js';
 
 const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'count'];
@@ -28,7 +29,7 @@ describe('SCHEMA_A — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
     for (const f of SCHEMA_A.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -98,8 +99,10 @@ describe('SCHEMA_A — the declaration', () => {
   it('the pay-in ceiling is £10,000 a month, and part-time is a whole number of years from 1 to 15', () => {
     for (const p of ['you.payIn.total', 'you.payIn.own', 'you.payIn.employer', 'partner.payIn.total']) expect(byPath.get(p).max).toBe(SAVING.payInCeiling);
     expect(byPath.get('partTime.years')).toMatchObject({ type: 'count', min: 1, max: 15 });
-    expect(byPath.get('charge')).toMatchObject({ type: 'percent', min: 0, max: 2, default: 0.5 });
-    expect(byPath.get('charge').default).toBe(SAVING.charge * 100);
+    // the one charge (6.19.0): today's planner's range, steps and default, taken while saving and while drawing
+    expect(byPath.get('charge')).toMatchObject({ type: 'percent', min: 0, max: 3, step: 0.05, default: 0.5, group: 'more' });
+    expect(byPath.get('charge').default).toBe(SAVING.chargesPct);
+    expect(byPath.get('charge').default).toBe(DEFAULT_CHARGES_PCT);
   });
 
   it('a single person must type four things, a couple five; the limit is five', () => {
@@ -240,12 +243,13 @@ describe('the level figures and the PLSA boundaries', () => {
 });
 
 describe('parseDraft — the two new types', () => {
-  it.each([['0.5', 0.5], ['0.5%', 0.5], [' 1 ', 1], ['1%', 1], ['0', 0], ['2', 2], ['1.5 %', 1.5]])('percent %j → %s', (text, value) => {
+  // the one charge (6.19.0): 0 to 3 in steps of 0.05
+  it.each([['0.5', 0.5], ['0.5%', 0.5], [' 1 ', 1], ['1%', 1], ['0', 0], ['2', 2], ['1.5 %', 1.5], ['0.55', 0.55], ['0.05', 0.05], ['3', 3]])('percent %j → %s', (text, value) => {
     const r = parse({ charge: text });
     expect(r.errors).toEqual({});
     expect(r.inputs.charge).toBe(value);
   });
-  it.each([['abc', 'notANumber'], ['0.55', 'notANumber'], ['-1', 'notANumber'], ['2.1', 'tooHigh'], ['3', 'tooHigh'], ['half', 'notANumber']])('percent %j → %s', (text, id) => {
+  it.each([['abc', 'notANumber'], ['0.57', 'notANumber'], ['0.123', 'notANumber'], ['-1', 'notANumber'], ['3.05', 'tooHigh'], ['4', 'tooHigh'], ['half', 'notANumber']])('percent %j → %s', (text, id) => {
     expect(parse({ charge: text }).errors).toEqual({ charge: id });
   });
   it.each([['3', 3], [' 5 ', 5], ['15', 15], ['1', 1]])('count %j → %s', (text, value) => {
@@ -259,9 +263,10 @@ describe('parseDraft — the two new types', () => {
   it('the same limits for real values (what answerA is given)', () => {
     const typed = (extra) => checkInputs(SCHEMA_A, { you: { pot: 250000, age: 50 }, stop: { age: 60 }, spend: { amount: 2000 }, ...extra }, TEST_ENV).errors;
     expect(typed({ charge: 0.5 })).toEqual({});
-    expect(typed({ charge: 0.55 })).toEqual({ charge: 'notANumber' });
+    expect(typed({ charge: 0.55 })).toEqual({});
+    expect(typed({ charge: 0.57 })).toEqual({ charge: 'notANumber' });
     expect(typed({ charge: '0.5' })).toEqual({ charge: 'notANumber' });
-    expect(typed({ charge: 2.1 })).toEqual({ charge: 'tooHigh' });
+    expect(typed({ charge: 3.05 })).toEqual({ charge: 'tooHigh' });
     expect(typed({ partTime: { has: true, yearly: 12000, years: 3 } })).toEqual({});
     expect(typed({ partTime: { has: true, yearly: 12000, years: 2.5 } })).toEqual({ 'partTime.years': 'notANumber' });
     expect(typed({ partTime: { has: true, yearly: 12000, years: 0 } })).toEqual({ 'partTime.years': 'tooLow' });
@@ -360,7 +365,10 @@ describe('rules.js — the saving-years figures agree with today\'s engine and t
     expect(RULES.plsa).toEqual(PLSA_2024);
   });
   it('the saving constants and the verdict rule', () => {
-    expect(SAVING).toEqual({ charge: 0.005, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 });
+    expect(SAVING).toEqual({ chargesPct: 0.5, charge: 0.005, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 });
+    // 6.19.0: V7's default charge IS today's planner's one default (services/Charges.js), in both forms
+    expect(SAVING.chargesPct).toBe(DEFAULT_CHARGES_PCT);
+    expect(SAVING.charge).toBe(DEFAULT_CHARGES_PCT / 100);
     expect(VERDICT).toEqual({ yes: 0.10, close: 0.25 });
     expect(verdictOf(0, 40)).toBe('yes');
     expect(verdictOf(4, 40)).toBe('yes');

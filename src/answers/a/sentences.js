@@ -341,6 +341,13 @@ const RISK_WORDS = {
 };
 const LEVEL_WORDS = { minimum: 'Minimum', moderate: 'Moderate', comfortable: 'Comfortable' };
 
+/**
+ * The one charge line (6.19.0), word for word the same in C, A and B (each question keeps its own words; the test holds
+ * them equal): what comes off, from what, when — and what it is never taken from. `pct` is the charge as typed (percent
+ * a year), shown as typed: 0.5, 0.05, 1.25.
+ */
+const chargesParts = (pct) => ['Charges of ', F(String(pct)), '% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.'];
+
 /** What was assumed, in a fixed order, only the lines that apply. A line with source 'default' always names its field. */
 export function assumedFor(result, facts) {
   const out = [];
@@ -374,7 +381,6 @@ export function assumedFor(result, facts) {
         const from = Math.max(inputs.you.age, inputs.you.age + facts.S - 10);
         line('slide', null, 'rule', 10, ['From ', F(from), ' your money moves step by step from the mix while saving to the mix once stopped, reaching it at ', A('shown.age'), '.']);
       }
-      line('charge-saving', 'charge', src('charge'), inputs.charge, ['A charge of ', F(inputs.charge), '% a year comes off while you are saving; none once you have stopped.']);
       line('saving-rebalanced', null, 'rule', null, ['While you are saving, your money is kept at its mix of shares, bonds and cash every month.']);
     }
     line('same-futures', null, 'rule', null, ['The years before you stop and the years after are one future: the same markets, seen once.']);
@@ -410,6 +416,9 @@ export function assumedFor(result, facts) {
   }
   if (facts.anyPension) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
   if (facts.money) line('risk-drawing', 'risk', src('risk'), inputs.risk, ['Once stopped: ', RISK_WORDS[inputs.risk]]);
+  // the one fund and platform charge (6.19.0), with Change: whenever money is held in funds or cash — while saving and
+  // once stopped (it replaces "a charge … while you are saving; none once you have stopped")
+  if (anyMoney || inputs.savingsIn > 0) line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
   line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
   line('todays-prices', null, 'rule', null, ["All figures are in today's prices."]);
   for (const x of facts.people) {

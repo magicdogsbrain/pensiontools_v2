@@ -69,11 +69,13 @@ describe('A — the words, from a result alone', () => {
   it('what was assumed: every default names its field, in a fixed order, C\'s start lines left out', () => {
     const r = made();
     const ids = r.assumed.map((a) => a.id);
-    expect(ids).toEqual(['pay-in', 'pay-in-as-given', 'savings-in', 'risk-saving', 'charge-saving', 'saving-rebalanced', 'same-futures', 'stop-age', 'spend-steady', 'no-part-time',
-      'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'risk-drawing', 'plan-to', 'todays-prices', 'no-final-salary', 'isa-fixed-growth', 'tax-rules', 'futures']);
+    expect(ids).toEqual(['pay-in', 'pay-in-as-given', 'savings-in', 'risk-saving', 'saving-rebalanced', 'same-futures', 'stop-age', 'spend-steady', 'no-part-time',
+      'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'risk-drawing', 'charges', 'plan-to', 'todays-prices', 'no-final-salary', 'isa-fixed-growth', 'tax-rules', 'futures']);
     for (const a of r.assumed) if (a.source === 'default') expect(typeof a.field, a.id).toBe('string');
     expect(r.assumed.find((a) => a.id === 'pay-in').text).toBe('£600 a month goes into your pension until you stop at 60, going up with prices.');
-    expect(r.assumed.find((a) => a.id === 'charge-saving').text).toBe('A charge of 0.5% a year comes off while you are saving; none once you have stopped.');
+    // 6.19.0: the one charge, taken while saving and while drawing, with Change (its field)
+    expect(r.assumed.find((a) => a.id === 'charges')).toMatchObject({ field: 'charge', source: 'default', value: 0.5,
+      text: 'Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.' });
     expect(r.warnings.map((w) => w.id)).toEqual(['state-pension-assumed']);
   });
 
@@ -219,5 +221,7 @@ describe('A — the words, from a result alone', () => {
     expect(r.sentences.pot).toMatchObject({ id: 'a.pot.now', text: 'Your pension and savings come to £290,000 today.' });
     const ids = r.assumed.map((a) => a.id);
     for (const id of ['pay-in', 'nothing-paid-in', 'same-futures', 'risk-saving', 'charge-saving', 'savings-in']) expect(ids).not.toContain(id);
+    // the charge is taken while drawing too, so it is said to someone who has stopped as well
+    expect(ids).toContain('charges');
   });
 });

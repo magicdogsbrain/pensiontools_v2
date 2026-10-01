@@ -81,7 +81,8 @@ const ASSUMED_FIELD = {
   savingsIn: ['savings-in', (a) => a.shown.yearsSaving > 0],
   savingRisk: ['risk-saving', (a) => a.shown.yearsSaving > 0 && (potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0)],
   risk: ['risk-drawing', (a) => a.shown.potAtStop.good > 0],
-  charge: ['charge-saving', (a) => a.shown.yearsSaving > 0 && (potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0)],
+  // 6.19.0: the one charge, said whenever money is held in funds or cash at some time — saving or drawing
+  charge: ['charges', (a) => potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0],
   endAge: ['plan-to', () => true],
   'partTime.has': ['no-part-time', () => true]
 };
@@ -325,7 +326,10 @@ export function checkAnswerA(answer, given, env) {
     if (!['default', 'entered', 'rule'].includes(a.source)) fail('A-I11', `${a.id}: source ${a.source}`);
     if (a.source === 'default' && typeof a.field !== 'string') fail('A-I11', `${a.id} is a default with no field`);
   }
-  for (const id of ['pot-as-is', 'start-later', 'start', 'no-charges']) if (ids.includes(id)) fail('A-I11', `C's line ${id} has no place in A`);
+  for (const id of ['pot-as-is', 'start-later', 'start', 'no-charges', 'charge-saving']) if (ids.includes(id)) fail('A-I11', `the line ${id} has no place in A`);
+  const ch = answer.assumed.find((a) => a.id === 'charges');
+  if (ch && (ch.field !== 'charge' || ch.value !== inputs.charge)) fail('A-I11', `charges: field ${ch.field}, value ${ch.value} (input ${inputs.charge})`);
+  if (!ch && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) fail('A-I11', 'money in funds or cash, and no charges line');
   if (ids.includes('pay-in') && ids.includes('nothing-paid-in')) fail('A-I11', 'pay-in and nothing-paid-in together');
   const always = ['stop-age', 'spend-steady', 'plan-to', 'todays-prices', 'tax-rules'];
   if (answer.shown.yearsSaving > 0) always.push('same-futures');

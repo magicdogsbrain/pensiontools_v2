@@ -101,7 +101,7 @@ const PATCH = {
     r.yearly = { careful: g * 12, middling: g * 12, good: g * 12 };
     r.lasted = { careful: 1, middling: 1, good: 1 };
     r.runOutAge = { careful: r.basis.endAge, middling: r.basis.endAge, good: r.basis.endAge };
-    r.assumed = r.assumed.filter((a) => !['all-pension', 'quarter-tax-free', 'risk', 'steady', 'futures', 'no-charges'].includes(a.id));
+    r.assumed = r.assumed.filter((a) => !['all-pension', 'quarter-tax-free', 'risk', 'steady', 'futures', 'charges'].includes(a.id));
     r.warnings = [{ id: 'nothing-to-draw', severity: 'note', text: '', parts: ['There is no pot to draw on, so this is your State Pension only.'] }];
     r.warnings.forEach((w) => { w.text = partsText(w.parts, r); });
     r.sentences = { madeOf: [], nothing: sentence('c.nothing.pensions', ['There is no pot to draw on, so this is your State Pension only: ',

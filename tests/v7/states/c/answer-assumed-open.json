@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -64,7 +64,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -84,23 +84,24 @@
           },
           "savings": 0,
           "risk": "balanced",
+          "charge": 0.5,
           "endAge": 95,
           "take": null
         },
         "monthly": {
-          "careful": 1380,
-          "middling": 1590,
-          "good": 1850
+          "careful": 1350,
+          "middling": 1550,
+          "good": 1790
         },
         "yearly": {
-          "careful": 16560,
-          "middling": 19080,
-          "good": 22200
+          "careful": 16200,
+          "middling": 18600,
+          "good": 21480
         },
         "lasted": {
-          "careful": 0.906,
-          "middling": 0.51,
-          "good": 0.103
+          "careful": 0.9,
+          "middling": 0.501,
+          "good": 0.108
         },
         "runOutAge": {
           "careful": 95,
@@ -121,10 +122,10 @@
                 "to": 67
               }
             },
-            "takeHome": 1380,
-            "fromPension": 1380,
+            "takeHome": 1350,
+            "fromPension": 1350,
             "fromSavings": 0,
-            "fromPots": 1380,
+            "fromPots": 1350,
             "statePension": 0,
             "finalSalary": 0,
             "tax": 0,
@@ -133,18 +134,18 @@
                 "who": "you",
                 "statePension": 0,
                 "finalSalary": 0,
-                "fromPension": 1380,
+                "fromPension": 1350,
                 "fromSavings": 0,
                 "tax": 0,
-                "takeHome": 1380,
+                "takeHome": 1350,
                 "higherRate": false,
                 "locked": false
               }
             ],
             "beforeStatePension": true,
             "shown": {
-              "takeHome": 1380,
-              "fromPots": 1380,
+              "takeHome": 1350,
+              "fromPots": 1350,
               "statePension": 0,
               "finalSalary": 0
             }
@@ -158,30 +159,30 @@
                 "to": 95
               }
             },
-            "takeHome": 1380,
-            "fromPension": 392.93,
+            "takeHome": 1350,
+            "fromPension": 357.64,
             "fromSavings": 0,
-            "fromPots": 392.93,
+            "fromPots": 357.64,
             "statePension": 1045.63,
             "finalSalary": 0,
-            "tax": 58.57,
+            "tax": 53.27,
             "byPerson": [
               {
                 "who": "you",
                 "statePension": 1045.63,
                 "finalSalary": 0,
-                "fromPension": 392.93,
+                "fromPension": 357.64,
                 "fromSavings": 0,
-                "tax": 58.57,
-                "takeHome": 1380,
+                "tax": 53.27,
+                "takeHome": 1350,
                 "higherRate": false,
                 "locked": false
               }
             ],
             "beforeStatePension": false,
             "shown": {
-              "takeHome": 1380,
-              "fromPots": 334,
+              "takeHome": 1350,
+              "fromPots": 304,
               "statePension": 1046,
               "finalSalary": 0
             }
@@ -251,6 +252,20 @@
             "text": "Balanced: about half in shares, the rest in bonds and cash.",
             "parts": [
               "Balanced: about half in shares, the rest in bonds and cash."
+            ]
+          },
+          {
+            "id": "charges",
+            "field": "charge",
+            "source": "default",
+            "value": 0.5,
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+            "parts": [
+              "Charges of ",
+              {
+                "fixed": "0.5"
+              },
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
             ]
           },
           {
@@ -352,16 +367,6 @@
               },
               "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
             ]
-          },
-          {
-            "id": "no-charges",
-            "field": null,
-            "source": "rule",
-            "value": null,
-            "text": "Fund and platform charges are not taken off.",
-            "parts": [
-              "Fund and platform charges are not taken off."
-            ]
           }
         ],
         "warnings": [
@@ -377,7 +382,7 @@
         "sentences": {
           "head": {
             "id": "c.head",
-            "text": "About £1,380 a month",
+            "text": "About £1,350 a month",
             "parts": [
               "About ",
               {
@@ -404,7 +409,7 @@
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £250,000 and your State Pension, you could have about £1,380 a month after tax, from now until you are 95. That amount lasted in 9 futures out of 10.",
+            "text": "With a pot of £250,000 and your State Pension, you could have about £1,350 a month after tax, from now until you are 95. That amount lasted in 9 futures out of 10.",
             "parts": [
               "With ",
               "a pot of ",
@@ -443,7 +448,7 @@
           },
           "bad": {
             "id": "c.bad",
-            "text": "In a bad case (the worst 1 in 10), £1,380 a month only just lasts to 95. If you took £1,590 a month instead, a bad case would run out at age 76. After that you would have £1,046 a month from your State Pension.",
+            "text": "In a bad case (the worst 1 in 10), £1,350 a month only just lasts to 95. If you took £1,550 a month instead, a bad case would run out at age 76. After that you would have £1,046 a month from your State Pension.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -488,7 +493,7 @@
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: careful £1,380, middling £1,590, good £1,850 a month.",
+            "text": "You could take: careful £1,350, middling £1,550, good £1,790 a month.",
             "parts": [
               "You could take: careful ",
               {
@@ -511,7 +516,7 @@
           "madeOf": [
             {
               "id": "c.madeOf.pots",
-              "text": "Until 67: £1,380 a month, all from your pot.",
+              "text": "Until 67: £1,350 a month, all from your pot.",
               "parts": [
                 "Until ",
                 {
@@ -530,7 +535,7 @@
             },
             {
               "id": "c.madeOf.mixed",
-              "text": "From 67: £1,046 State Pension + £334 from your pot.",
+              "text": "From 67: £1,046 State Pension + £304 from your pot.",
               "parts": [
                 "From ",
                 {
@@ -556,7 +561,7 @@
             },
             {
               "id": "c.madeOf.tax",
-              "text": "Tax of £59 a month is already taken off.",
+              "text": "Tax of £53 a month is already taken off.",
               "parts": [
                 "Tax of ",
                 {
@@ -574,7 +579,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "startAge": 58,
           "endAge": 95,
           "accessAge": 55,

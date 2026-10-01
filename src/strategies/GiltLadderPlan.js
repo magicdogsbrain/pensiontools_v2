@@ -13,12 +13,23 @@
  * Illustration from public data, not advice — the UI says so.
  */
 
+import { isChargesPct } from '../services/Charges.js';
+
 // cashRealDrag: cash earns about inflation minus 1% (the FCA-prescribed assumption every other strategy in the
 // app runs on), so £1 of need k years out costs £1 × 1.01^k of cash today. Two cash years barely notice;
 // fifteen would have looked free without it.
 export const LADDER_DEFAULTS = { cashYears: 2, bridgeCash: 0, dealFee: 20, spreadShort: 0.0015, spreadMid: 0.0025, spreadLong: 0.004, cashRealDrag: 0.01 };
-/** Cash set aside today to pay £1 of need in plan year k (k = 1 is spent straight away). */
-export function cashCostFactor(k, drag = LADDER_DEFAULTS.cashRealDrag) { return Math.pow(1 + drag, Math.max(0, k - 1)); }
+/**
+ * Cash set aside today to pay £1 of need in plan year k (k = 1 is spent straight away). The cash sits in a money-market
+ * fund inside the pension, so the plan's fund and platform charges (chargesPct, percent a year; 6.19.0) come off it too:
+ * ((1 + drag) / (1 − c))^(k − 1). Without a charge it is exactly the factor it always was. The rungs (gilts held
+ * directly) are not charged.
+ */
+export function cashCostFactor(k, drag = LADDER_DEFAULTS.cashRealDrag, chargesPct = 0) {
+  const c = isChargesPct(chargesPct) ? chargesPct / 100 : 0;
+  if (c === 0) return Math.pow(1 + drag, Math.max(0, k - 1));
+  return Math.pow((1 + drag) / (1 - c), Math.max(0, k - 1));
+}
 
 /** Bid-offer allowance by years to maturity: 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond. */
 export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
@@ -30,7 +41,8 @@ export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
  *  pot, startAge, durationYears, amountAtAge(age) → gross £/yr today's money,
  *  spAnnual, spStartAge, spFirstYearRatio (share of the first year SP is paid), firstTaxYear (Apr of),
  *  linkers: [{ name, tidm, isin, maturityDateIso, cleanPrice, indexRatio, lag }], cashYears, bridgeCash,
- *  todayIso ('YYYY-MM-DD', the pricing date) or now (a Date) — either pins the clock; neither = today
+ *  todayIso ('YYYY-MM-DD', the pricing date) or now (a Date) — either pins the clock; neither = today,
+ *  chargesPct (the plan's fund and platform charges, percent a year — on the cash years only; absent = none)
  */
 export function buildGiltLadder(p) {
   const o = { ...LADDER_DEFAULTS, ...(p.options || {}) };
@@ -53,7 +65,7 @@ export function buildGiltLadder(p) {
     const Y = p.firstTaxYear + k - 1;
     const gross = p.amountAtAge(age);
     const need = Math.max(0, gross - spIn(age));
-    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
+    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';
     let g = il.filter((x) => x.maturityDateIso >= lo && x.maturityDateIso <= hi).pop();
     let held = false;

@@ -58,6 +58,7 @@ export function NumbersScreen(state, dispatch) {
               </div>
               <Field form={form} path="savings" dispatch={dispatch} />
               <Field form={form} path="risk" dispatch={dispatch} />
+              <Field form={form} path="charge" dispatch={dispatch} />
               <Field form={form} path="endAge" dispatch={dispatch} />
             </section>
           )}

@@ -212,7 +212,7 @@ describe('4 — "Save this as a plan" now that it is built (save-as-plan.md); "w
     clean(root, state);
     expect(one(root, 'rail.next').querySelector('[data-next]').textContent).toBe(C.next['c.keep']);
     expect(one(root, 'rail.next.button')).toBe(null);
-    expect(one(root, 'c.keep.name').value).toBe('From 58 · £1,380 a month');
+    expect(one(root, 'c.keep.name').value).toBe('From 58 · £1,350 a month');
     expect(root.textContent).not.toContain(NOT_BUILT.line);
   });
   it.each(['ways'])('#/c/%s has its own next line and button back to the answer', (step) => {

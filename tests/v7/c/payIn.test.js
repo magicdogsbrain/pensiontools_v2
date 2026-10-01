@@ -47,7 +47,8 @@ describe('1 the owner\'s 55-year-old: £275,000, £500 + £300 a month, the mone
     expect(a.sentences.line.text).toMatch(/^With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £[\d,]+ a month after tax, from age 67 until you are 95\. That amount lasted in 9 futures out of 10\.$/);
     expect(a.sentences.pot.text).toMatch(/^By 67 your pot could be about £[\d,]+\. In a bad case \(the worst 1 in 10\) it would be £[\d,]+, and in a good case \(the best 1 in 10\) £[\d,]+\.$/);
     const ids = a.assumed.map((x) => x.id);
-    for (const id of ['pay-in', 'pay-in-as-given', 'pot-invested', 'charge-saving', 'same-futures']) expect(ids, id).toContain(id);
+    for (const id of ['pay-in', 'pay-in-as-given', 'pot-invested', 'charges', 'same-futures']) expect(ids, id).toContain(id);
+    for (const id of ['charge-saving', 'no-charges']) expect(ids, id).not.toContain(id);
     expect(ids).not.toContain('pot-as-is');
     expect(a.warnings.map((w) => w.id)).not.toContain('start-later');
     for (const t of texts(a)) expect(t).not.toMatch(/leaves out any growth|stays at £275,000|contribution|tax relief/i);

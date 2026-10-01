@@ -232,9 +232,9 @@ describe('under the answer: the spending used, and whether a budget is behind it
     const less = c({ 'Council tax': '150', 'Groceries & household': '1,500' });
     const root = renderScreen(less);
     clean(root, less);
-    expect(one(root, 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.less, { amount: '£1,650', diff: '£270' }));
+    expect(one(root, 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.less, { amount: '£1,650', diff: '£300' }));   // F1's careful £1,350 (6.19.0: £1,380 before charges)
     expect(one(root, 'c.budget.against').closest('[data-region="answer"]')).toBe(null);
-    expect(one(renderScreen(c({ 'Council tax': '150', 'Groceries & household': '1,000' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.more, { amount: '£1,150', diff: '£230' }));
-    expect(one(renderScreen(c({ 'Council tax': '1,380' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.same, { amount: '£1,380' }));
+    expect(one(renderScreen(c({ 'Council tax': '150', 'Groceries & household': '1,000' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.more, { amount: '£1,150', diff: '£200' }));
+    expect(one(renderScreen(c({ 'Council tax': '1,350' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.same, { amount: '£1,350' }));
   });
 });

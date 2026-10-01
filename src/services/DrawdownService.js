@@ -15,15 +15,18 @@ import { cappedInflation as calculateCappedInflation, OTHER_INCOME_CAP } from '.
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spSimConfigFromSettings, spTaxYearConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { spendingSmileFactor } from './SpendingModel.js';
+import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
 
 /**
  * Generates a drawdown schedule for planning
  * @param {object} settings - Drawdown settings
  * @param {number} duration - Years to project
  * @param {number} assumedInflation - Assumed annual inflation
+ * @param {Date} [now]
+ * @param {{ chargesPct?: number }} [opts] - chargesPct: the charge to take off the ISA, in place of settings.chargesPct
  * @returns {object[]} Schedule of annual withdrawals
  */
-export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025, now = new Date()) {
+export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025, now = new Date(), opts = {}) {
   const schedule = [];
   const yearlyInflation = [];
 
@@ -33,6 +36,9 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal). Deterministic projection.
   let isaBalance = settings.isaBalance || 0;
   const isaReturn = Math.max(0, assumedInflation - 0.01);
+  // Fund and platform charges (6.19.0): the plan's percent a year (the Stress settings' chargesPct; absent = none), off
+  // the ISA each year after its growth. opts.chargesPct, when given, wins — the Decision tool's plan of record passes 0.
+  const isaKeep = yearlyChargeFactor(opts && opts.chargesPct !== undefined ? chargesPctOf({ chargesPct: opts.chargesPct }) : chargesPctOf(settings), 1);
 
   // Same SP derivation as the Monte-Carlo config (shared helper): date-based when a real SP
   // date is set, legacy statePension/statePensionYear fields otherwise.
@@ -103,6 +109,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const netFromTaxable = plan.taxable - plan.tax; // SIPP + fixed income, net of tax
     const isaStart = isaBalance;
     isaBalance = plan.remainingIsa * (1 + isaReturn);
+    if (isaKeep !== 1) isaBalance *= isaKeep;
 
     schedule.push({
       year,

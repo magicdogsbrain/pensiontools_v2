@@ -14,6 +14,7 @@
  * moves the historical odds by single digits — see the research doc).
  */
 import { getRtr, bootstrapPaths } from './ladderEngine.js';
+import { monthlyChargeFactor } from '../services/Charges.js';
 
 /**
  * Split a buildGiltLadder plan at cutAge.
@@ -51,6 +52,7 @@ function accretedValue(order, yearsFromNow, yearsToMaturity) {
  */
 export function runRotationPath(series, off, ctx) {
   const { N, startAge, cutAge, trigger, split, keptWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
+  const chargeM = Number.isFinite(ctx.chargeM) && ctx.chargeM > 0 && ctx.chargeM <= 1 ? ctx.chargeM : 1;
   let ath = series[off], sleeve = 0, rotated = false, triggeredMonth = null;
   const wealth = [], income = [];
   let failAge = null, paidShort = 0, owed = 0;
@@ -64,7 +66,12 @@ export function runRotationPath(series, off, ctx) {
         // sell the block at its accreted value; proceeds become the equity sleeve
         sleeve = split.soldOrders.reduce((s, o) => s + accretedValue(o, m / 12, o.yearsToMaturity), 0);
       }
-      if (rotated) sleeve *= series[off + m + 1] / series[off + m];
+      if (rotated) {
+        sleeve *= series[off + m + 1] / series[off + m];
+        // the equity sleeve is held in a fund: the month's fund and platform charges (6.19.0). The trigger above reads
+        // the market, never the sleeve; the rungs before the rotation are gilts held directly and are not charged.
+        if (chargeM !== 1) sleeve *= chargeM;
+      }
     }
     const age = startAge + y;
     const need = needAt(y);
@@ -113,6 +120,7 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   // block's first draw. A rotation foregone is not a failure — it is simply the full ladder.
   const disarm = p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8;
   return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, needAt,
+    chargeM: monthlyChargeFactor(p.chargesPct),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
     otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,
     spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? Math.max(0, yr.gross - yr.need) : 0; } };

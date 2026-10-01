@@ -95,3 +95,40 @@ describe('per-future pots: the stop runner is today\'s engine, life by life — 
     }
   }, LONG);
 });
+
+/*
+ * Fund and platform charges (6.19.0): the household's charge rides on every run (toEngine.js) and the replica takes it
+ * off exactly as `simulate` does — the same stop-runner identities with a random charge on the 0.05 grid, 0 to 3%.
+ */
+describe('per-future pots with a charge: the stop runner is today\'s engine, life by life', () => {
+  const charged = fc.record({
+    age: fc.integer({ min: 40, max: 70 }), gap: fc.integer({ min: 0, max: 15 }),
+    pot: fc.constantFrom(30_000, 150_000, 600_000, 2_000_000), isa: fc.constantFrom(0, 25_000, 120_000), payIn: fc.constantFrom(0, 300, 1500),
+    risk: fc.constantFrom('cautious', 'balanced', 'adventurous'),
+    partner: fc.option(fc.record({ age: fc.integer({ min: 40, max: 70 }), pot: fc.constantFrom(0, 80_000, 400_000), isa: fc.constantFrom(0, 30_000) }), { freq: 2 }),
+    steps: fc.integer({ min: 0, max: 60 })
+  });
+
+  it('30 random households stopping now, any mix, a random charge', () => {
+    for (const k of fc.sample(charged, { seed: SEED + 4, numRuns: 30 })) {
+      const h = { ...saver({ age: k.age, pot: k.pot, isa: k.isa, stopAge: k.age, risk: k.risk, partner: k.partner }), chargesPct: Math.round(k.steps * 5) / 100 };
+      const sp = stopAtPlan(h, k.age, { ...TEST_ENV, futures: 40 });
+      if (sp.plan.lockedUntil.length || !sp.plan.runs.length) continue;
+      const runner = createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: (i, j) => sp.potsOf(i)[j].pension * (0.25 + (i * 7919 % 23) / 10) });
+      expect(perLifeBandReference(sp, runner, 0), `${h.chargesPct}%`).toEqual(bandAt(sp, runner).monthly);
+    }
+  }, LONG);
+
+  it('20 random households after saving years, all-shares mix, a random charge (saving and drawing)', () => {
+    const SHARES = { equity: 1, bond: 0, cash: 0 };
+    for (const k of fc.sample(charged, { seed: SEED + 5, numRuns: 20 })) {
+      const stopAge = Math.max(58, Math.min(75, k.age + k.gap));
+      const partner = k.partner ? { ...k.partner, age: Math.max(k.partner.age, 58 - (stopAge - k.age)) } : null;
+      const h = { ...saver({ age: k.age, pot: k.pot, isa: k.isa, payIn: k.payIn, stopAge, mix: SHARES, partner }), chargesPct: Math.round(k.steps * 5) / 100 };
+      const sp = stopAtPlan(h, stopAge, { ...TEST_ENV, futures: 40, mix: SHARES, savingMix: SHARES });
+      if (sp.plan.lockedUntil.length || !sp.plan.runs.length) continue;
+      const runner = createStopRunner(sp);
+      expect(perLifeBandReference(sp, runner, sp.S), `${h.chargesPct}%`).toEqual(bandAt(sp, runner).monthly);
+    }
+  }, LONG);
+});

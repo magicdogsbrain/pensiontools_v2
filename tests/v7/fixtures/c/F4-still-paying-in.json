@@ -41,7 +41,7 @@
       "Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half in shares, until then.",
       "By 67 your pot could be about",
       "£800 a month goes into your pension until the money is first taken, rising with prices.",
-      "A charge of 0.5% a year comes off until the money is first taken; none after that."
+      "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
     ]
   },
   "approved": {
@@ -75,18 +75,19 @@
       },
       "savings": 0,
       "risk": "balanced",
+      "charge": 0.5,
       "endAge": 95,
       "take": null
     },
     "monthly": {
-      "careful": 2470,
-      "middling": 3140,
-      "good": 4430
+      "careful": 2390,
+      "middling": 3030,
+      "good": 4240
     },
     "yearly": {
-      "careful": 29640,
-      "middling": 37680,
-      "good": 53160
+      "careful": 28680,
+      "middling": 36360,
+      "good": 50880
     },
     "lasted": {
       "careful": 0.9,
@@ -112,30 +113,30 @@
             "to": 95
           }
         },
-        "takeHome": 2470,
-        "fromPension": 1675.29,
+        "takeHome": 2390,
+        "fromPension": 1581.17,
         "fromSavings": 0,
-        "fromPots": 1675.29,
+        "fromPots": 1581.17,
         "statePension": 1045.63,
         "finalSalary": 0,
-        "tax": 250.92,
+        "tax": 236.8,
         "byPerson": [
           {
             "who": "you",
             "statePension": 1045.63,
             "finalSalary": 0,
-            "fromPension": 1675.29,
+            "fromPension": 1581.17,
             "fromSavings": 0,
-            "tax": 250.92,
-            "takeHome": 2470,
+            "tax": 236.8,
+            "takeHome": 2390,
             "higherRate": false,
             "locked": false
           }
         ],
         "beforeStatePension": false,
         "shown": {
-          "takeHome": 2470,
-          "fromPots": 1424,
+          "takeHome": 2390,
+          "fromPots": 1344,
           "statePension": 1046,
           "finalSalary": 0
         }
@@ -254,6 +255,20 @@
         ]
       },
       {
+        "id": "charges",
+        "field": "charge",
+        "source": "default",
+        "value": 0.5,
+        "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+        "parts": [
+          "Charges of ",
+          {
+            "fixed": "0.5"
+          },
+          "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
+        ]
+      },
+      {
         "id": "steady",
         "field": null,
         "source": "rule",
@@ -312,20 +327,6 @@
         "text": "Until then your money stays invested, kept at its mix of shares, bonds and cash every month.",
         "parts": [
           "Until then your money stays invested, kept at its mix of shares, bonds and cash every month."
-        ]
-      },
-      {
-        "id": "charge-saving",
-        "field": null,
-        "source": "rule",
-        "value": 0.5,
-        "text": "A charge of 0.5% a year comes off until the money is first taken; none after that.",
-        "parts": [
-          "A charge of ",
-          {
-            "fixed": "0.5"
-          },
-          "% a year comes off until the money is first taken; none after that."
         ]
       },
       {
@@ -412,16 +413,6 @@
           },
           "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
         ]
-      },
-      {
-        "id": "no-charges",
-        "field": null,
-        "source": "rule",
-        "value": null,
-        "text": "Fund and platform charges are not taken off once the money is being taken.",
-        "parts": [
-          "Fund and platform charges are not taken off once the money is being taken."
-        ]
       }
     ],
     "warnings": [
@@ -437,7 +428,7 @@
     "sentences": {
       "head": {
         "id": "c.head",
-        "text": "About £2,470 a month",
+        "text": "About £2,390 a month",
         "parts": [
           "About ",
           {
@@ -468,7 +459,7 @@
       },
       "line": {
         "id": "c.line",
-        "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £2,470 a month after tax, from age 67 until you are 95. That amount lasted in 9 futures out of 10.",
+        "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £2,390 a month after tax, from age 67 until you are 95. That amount lasted in 9 futures out of 10.",
         "parts": [
           "With ",
           "a pot of ",
@@ -523,7 +514,7 @@
       },
       "bad": {
         "id": "c.bad",
-        "text": "In a bad case (the worst 1 in 10), £2,470 a month only just lasts to 95. If you took £3,140 a month instead, a bad case would run out at age 82. After that you would have £1,046 a month from your State Pension.",
+        "text": "In a bad case (the worst 1 in 10), £2,390 a month only just lasts to 95. If you took £3,030 a month instead, a bad case would run out at age 82. After that you would have £1,046 a month from your State Pension.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -568,7 +559,7 @@
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: careful £2,470, middling £3,140, good £4,430 a month.",
+        "text": "You could take: careful £2,390, middling £3,030, good £4,240 a month.",
         "parts": [
           "You could take: careful ",
           {
@@ -591,7 +582,7 @@
       "madeOf": [
         {
           "id": "c.madeOf.paid",
-          "text": "Your State Pension (£1,046 a month) + £1,424 from your pot.",
+          "text": "Your State Pension (£1,046 a month) + £1,344 from your pot.",
           "parts": [
             "Your ",
             "State Pension",
@@ -613,7 +604,7 @@
         },
         {
           "id": "c.madeOf.tax",
-          "text": "Tax of £251 a month is already taken off.",
+          "text": "Tax of £237 a month is already taken off.",
           "parts": [
             "Tax of ",
             {

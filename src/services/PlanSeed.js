@@ -48,6 +48,7 @@ import { deriveTiming, taxYearStartOf } from './PlanTiming.js';
 import { RISK_PRESETS } from './GlidepathService.js';
 import { grossUpAnnual, defaultBudget, BUDGET_CATEGORIES, SUGGESTED_EXTRAS } from './BudgetModel.js';
 import { amountAtAge } from './IncomeSchedule.js';
+import { isChargesPct, DEFAULT_CHARGES_PCT } from './Charges.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
 export const SEED_VERSION = 1;
@@ -487,6 +488,11 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
     pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates', other: 0,
     strategyId: 'pots-and-valves', strategyParams: {}
   });
+  // Fund and platform charges (6.19.0): the answer's one charge (its checked inputs travel in the seed), percent a year;
+  // a seed without one (an older V7 tab) or with an invalid one gives the default every new plan gets. A Stress setting
+  // only — the Decision settings never carry it.
+  const answerCharge = seed.inputs && seed.inputs.charge;
+  S.chargesPct = isChargesPct(answerCharge) ? answerCharge : DEFAULT_CHARGES_PCT;
 
   // Month by month: the wizard's two fields only — nothing recorded, not locked (Q11).
   plan.decisionTool = { settings: { ...getDefaultDecisionSettings(), duration: seed.years, firstTaxYear: S.firstTaxYear }, history: [], taxYears: {} };

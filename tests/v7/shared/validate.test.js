@@ -77,8 +77,8 @@ describe('parseDraft — text as typed', () => {
   });
 
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
-    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'endAge']);
-    expect(parse({ risk: 'cautious', endAge: '90', savings: '5000', take: '1500' }).usedDefault)
+    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'endAge']);
+    expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', take: '1500' }).usedDefault)
       .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has']);
     expect(parse({ take: '1,500' }).inputs.take).toBe(1500);
     expect(parse().inputs.take).toBeNull();
@@ -152,7 +152,7 @@ describe('defaults by rule: when the money starts', () => {
   it('defaults() lists every default that applies', () => {
     expect(defaults(SCHEMA_C, { 'you.pot': 250000, 'you.age': 50 }, TEST_ENV)).toEqual({
       household: 'single', 'start.kind': 'age', 'start.age': 57, 'you.statePension.kind': 'full', 'you.finalSalary.has': false,
-      savings: 0, risk: 'balanced', endAge: 95, take: null
+      savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, take: null
     });
     expect(defaults(SCHEMA_C, { household: 'couple' }, TEST_ENV)).toMatchObject({ 'partner.pot': 0, 'partner.statePension.kind': 'full' });
     expect(defaults(SCHEMA_C, {}, TEST_ENV)['start.kind']).toBe('now');   // no age yet: nothing to work it out from
@@ -235,6 +235,35 @@ describe('the two types of step 4: percent and count (brief, conflict 25)', () =
     expect(typed({ years: '2' })).toEqual({ years: 'notANumber' });
     expect(typed({ charge: 2.1 })).toEqual({ charge: 'tooHigh' });
     expect(typed({ years: 0 })).toEqual({ years: 'tooLow' });
+  });
+});
+
+/*
+ * Fund and platform charges (6.19.0; research/charges-setting.md T12): a percent field may name its `step`. The charge's
+ * is 0.05 — "0.45" and "2.95" are charges, "0.07" and "0.123" are not, "3.05" is over the top. A percent without a step
+ * keeps one figure after the point (steps of 0.1), as before.
+ */
+describe('percent in steps: the charge, 0 to 3 in steps of 0.05', () => {
+  const SCHEMA = {
+    id: 't',
+    fields: [
+      { path: 'you.age', type: 'age', min: 18, max: 100, required: true, group: 'you', boundaries: [18, 100] },
+      { path: 'charge', type: 'percent', min: 0, max: 3, step: 0.05, default: 0.5, group: 'more', boundaries: [0, 0.05, 0.5, 1, 3] }
+    ],
+    rules: []
+  };
+  const p = (values) => parseDraft(SCHEMA, { 'you.age': '50', ...values }, TEST_ENV);
+  const typed = (extra) => checkInputs(SCHEMA, { you: { age: 50 }, ...extra }, TEST_ENV).errors;
+  it.each([['0.05', 0.05], ['0.45', 0.45], ['0.45%', 0.45], ['2.95', 2.95], ['3', 3], ['0', 0], ['1.5', 1.5], ['0.10', 0.1], ['0.5', 0.5]])('percent %j → %s', (text, value) => {
+    expect(p({ charge: text }).inputs.charge).toBe(value);
+  });
+  it.each([['0.07', 'notANumber'], ['0.123', 'notANumber'], ['1.01', 'notANumber'], ['.05', 'notANumber'], ['3.05', 'tooHigh'], ['4', 'tooHigh']])('percent %j → %s', (text, id) => {
+    expect(p({ charge: text }).errors).toEqual({ charge: id });
+  });
+  it('the same steps for real values', () => {
+    for (const v of [0, 0.05, 0.15, 0.45, 1.35, 2.95, 3]) expect(typed({ charge: v }), String(v)).toEqual({});
+    for (const v of [0.07, 0.01, 1.234]) expect(typed({ charge: v }), String(v)).toEqual({ charge: 'notANumber' });
+    expect(typed({ charge: 3.05 })).toEqual({ charge: 'tooHigh' });
   });
 });
 

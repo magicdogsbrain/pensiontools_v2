@@ -33,8 +33,10 @@ const warning = (a, id) => a.warnings.find((w) => w.id === id);
 const assumed = (a, id) => a.assumed.find((x) => x.id === id);
 
 describe('1 the higher-rate warning', () => {
-  it('fires for a £2,000,000 pot at 58: the pension draw passes the basic-rate limit in every phase', () => {
-    const a = ok(answerC({ you: { pot: 2000000, age: 58 } }, ENV));
+  // £2,100,000 (6.19.0: with 0.5% a year in charges a £2,000,000 pot's careful draw before the State Pension, £5,530 a
+  // month, falls just under the basic-rate limit; the warning still fires for it, on the later phase)
+  it('fires for a £2,100,000 pot at 58: the pension draw passes the basic-rate limit in every phase', () => {
+    const a = ok(answerC({ you: { pot: 2100000, age: 58 } }, ENV));
     expect(a.phases.every((p) => p.byPerson[0].higherRate === true)).toBe(true);
     const w = warning(a, 'higher-rate');
     expect(w).toBeDefined();
@@ -241,7 +243,7 @@ describe('4 under the earliest pension age, through the form — a start at an a
     expect(a.sentences.payIn.text).toBe('Nothing more paid in; the pot stays invested at Balanced, about half in shares, until 57.');
     expect(a.sentences.pot.text).toMatch(/^By 57 your pot could be about £[\d,]+\. In a bad case \(the worst 1 in 10\) it would be £[\d,]+, and in a good case \(the best 1 in 10\) £[\d,]+\.$/);
     expect(a.potAtStart.careful).toBeLessThanOrEqual(a.potAtStart.middling);
-    for (const id of ['nothing-paid-in', 'pot-invested', 'charge-saving', 'same-futures']) expect(assumed(a, id), id).toBeDefined();
+    for (const id of ['nothing-paid-in', 'pot-invested', 'charges', 'same-futures']) expect(assumed(a, id), id).toBeDefined();
     expect(checkTrace(a)).toEqual([]);
   });
 

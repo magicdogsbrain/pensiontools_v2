@@ -117,6 +117,33 @@ test.describe('keyboard: question C', () => {
     }
   });
 
+  test('the charge under "Add more detail": a percent box typed in steps of 0.05, and what was assumed says it', async ({ page }) => {
+    // The one fund and platform charge (6.19.0): C asks it as A and B do, 0.5% a year unless changed.
+    const app = v7(page, 'test');
+    await app.open('#/c/numbers');
+    await app.fill({ 'you.pot': '250000', 'you.age': '58' });
+    await app.click('c.action.moreDetail');
+    const charge = app.id('c.charge');
+    await expect(charge).toBeVisible();
+    await expect(charge).toHaveAttribute('placeholder', '0.5');
+    // the words under the box (review of 6.19.0): what is not charged, without a fee on a State Pension or final-salary pension
+    const helpId = await charge.getAttribute('aria-describedby');
+    const help = page.locator(`[id="${helpId}"]`);
+    await expect(help).toHaveText('What your funds and your platform take each year, as a share of what you hold, while you save and while you draw. Not taken off State Pension or final-salary pensions: there is no such charge on those.');
+    await expect(help).not.toContainText('fee');
+    await charge.focus();
+    await page.keyboard.type('0.45');
+    await expect(charge).toHaveValue('0.45');
+    const box = await charge.boundingBox();
+    expect(box.height, 'the percent box and its sign are one control 44 px tall').toBeGreaterThanOrEqual(43.5);
+    await page.keyboard.press('Enter');
+    await app.at('c.answer');
+    await app.ready(120_000);
+    const line = page.locator('#app [data-assumed-id="charges"]');
+    await expect(line).toContainText('Charges of 0.45% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.');
+    await expect(line.locator('a[data-testid="assumed.charges.change"]')).toHaveAttribute('href', '#/c/numbers?focus=charge');
+  });
+
   test('"Try a change": after Enter on − or +, the cursor is still on that button once the answer is in', async ({ page }) => {
     // A button greyed out while the answer is worked out drops the cursor to the page (review of A and B, 1 Oct 2026):
     // it rests with aria-disabled instead, and keeps its place.
@@ -240,7 +267,7 @@ for (const q of ['a', 'b']) {
       await app.open(`#/${q}/numbers`);
       await app.ready();
       await app.click(`${q}.action.moreDetail`);
-      // The charge a year while saving: a percent, typed with or without its sign.
+      // The one charge a year (funds and platform, 6.19.0): a percent, typed with or without its sign.
       const charge = app.id(`${q}.charge`);
       await expect(charge).toBeVisible();
       await charge.focus();

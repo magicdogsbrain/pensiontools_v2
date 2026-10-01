@@ -15,6 +15,8 @@ export const TODAY = '2026-09-30';
 /**
  * A saver household. Every amount is a figure the person would give: a pension pot, ISA money, what lands in the
  * pension each month, what goes into savings each month; the stop age of the first person (both stop together).
+ * `charge` is the household's one fund and platform charge as a share a year (0.005 = 0.5%), written as the model holds
+ * it — `chargesPct`, percent a year — and taken while saving AND while drawing (6.19.0).
  */
 export function saver({
   age = 45, pot = 100_000, isa = 0, payIn = 0, savingsIn = 0, stopAge = 60, endAge = 95,
@@ -36,7 +38,8 @@ export function saver({
     people, planToAge: endAge,
     portfolio: mix ? { kind: 'mix', ...mix } : { kind: 'risk', level: risk },
     strategy: { id: 'steady' },
-    saving: { risk: savingRisk, charge },
+    saving: { risk: savingRisk },
+    chargesPct: charge * 100,
     spending: null
   };
   return expandHousehold(short, today).household;

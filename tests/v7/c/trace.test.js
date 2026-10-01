@@ -33,9 +33,27 @@ describe('the trace agrees with the headline', () => {
     const a = answerC(fixtures[0].inputs, ENV);
     expect(JSON.parse(JSON.stringify(a.trace))).toEqual(a.trace);
     const row = a.trace.atCareful.rows[0];
-    for (const k of ['who', 'm', 'age', 'potStart', 'growth', 'draw', 'taxFree', 'taxable', 'statePension', 'finalSalary', 'tax', 'afterTax', 'potEnd', 'priceIndex']) expect(row, k).toHaveProperty(k);
+    for (const k of ['who', 'm', 'age', 'potStart', 'growth', 'charge', 'draw', 'taxFree', 'taxable', 'statePension', 'finalSalary', 'tax', 'afterTax', 'potEnd', 'priceIndex']) expect(row, k).toHaveProperty(k);
     expect(a.trace.futures).toHaveLength(ENV.futures);
     expect(a.trace.futures.map((f) => f.id)).toEqual([...Array(ENV.futures).keys()]);
+  });
+
+  it('the month rows show the charge on its own (6.19.0): never hidden in growth; 0.5% of what is held a year, none at 0%', () => {
+    const at = (charge) => answerC({ ...fixtures[0].inputs, charge }, ENV).trace.atCareful.rows;
+    const rows = at(0.5);
+    expect(rows.every((r) => r.charge >= 0)).toBe(true);
+    // the first month: the pot after its growth, times 1 − (0.995)^(1/12), to the penny
+    const r0 = rows[0];
+    const grown = r0.potStart + r0.growth;
+    expect(Math.abs(r0.charge - grown * (1 - Math.pow(0.995, 1 / 12)))).toBeLessThan(0.01);
+    expect(r0.charge).toBeGreaterThan(0);
+    // twelve months take off about 0.5% of what was held (the pot moves with growth and what is drawn)
+    const year = rows.filter((r) => r.m < 12);
+    const held = year.reduce((t, r) => t + r.potStart + r.growth, 0) / year.length;
+    expect(year.reduce((t, r) => t + r.charge, 0) / held).toBeGreaterThan(0.0045);
+    expect(year.reduce((t, r) => t + r.charge, 0) / held).toBeLessThan(0.0055);
+    expect(at(0).every((r) => r.charge === 0)).toBe(true);
+    for (const r of rows) expect(Math.abs(r.potStart + r.growth - r.charge - r.draw - r.potEnd)).toBeLessThan(0.01);
   });
 
   it('with the trace off the answer is the same, byte for byte, without the trace', () => {

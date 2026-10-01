@@ -15,6 +15,13 @@ const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
 const P = (key) => ({ key, kind: 'pot' });
 const F = (fixed) => ({ fixed: String(fixed) });
+
+/**
+ * The one charge line (6.19.0), word for word the same in C, A and B (each question keeps its own words; the test holds
+ * them equal): what comes off, from what, when — and what it is never taken from. `pct` is the charge as typed (percent
+ * a year), shown as typed: 0.5, 0.05, 1.25.
+ */
+const chargesParts = (pct) => ['Charges of ', F(String(pct)), '% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.'];
 const S = (id, parts) => ({ id, text: '', parts: parts.flat(Infinity).filter((p) => p !== '' && p != null) });
 
 /** 'in only 6 futures out of 10' → parts, each count a fixed figure. */
@@ -268,7 +275,7 @@ export function sentencesFor(result, facts) {
 
 /**
  * What was assumed, in a fixed order, only the lines that applied. A line with source 'default' always names its field.
- * C's lines apply where their inputs apply; `pot-as-is`, `start-later`, C's `risk`, `steady`, `start` and `no-charges` never
+ * C's lines apply where their inputs apply; `pot-as-is`, `start-later`, C's `risk`, `steady` and `start` never
  * (B's own lines say those things for the saving years and the years after).
  */
 export function assumedFor(result, facts) {
@@ -299,7 +306,8 @@ export function assumedFor(result, facts) {
   if (inputs.savingRisk !== inputs.risk) {
     line('slide', null, 'rule', SAVING.slideYears, ['Over the ten years before you stop, the mix moves step by step from the one while saving to the one once stopped.']);
   }
-  line('charge-saving', 'charge', src('charge'), inputs.charge, ['A charge of ', F(String(inputs.charge)), '% a year comes off while you are saving; none once you have stopped.']);
+  // the one fund and platform charge (6.19.0), with Change: while saving and once stopped
+  line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
   line('saving-rebalanced', null, 'rule', null, ['While you are saving, your pot is kept at its mix each month.']);
   line('same-futures', null, 'rule', null, ['The saving years and the years after are tried against the same futures.']);
   line('stop-age', 'stop.age', 'entered', inputs.stop.age, ['You stop working at ', A('stop.age'), ', and nothing more goes in from then.']);

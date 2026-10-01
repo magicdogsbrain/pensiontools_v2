@@ -25,6 +25,17 @@ export function planDocumentHeaderHtml(doc) {
     + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? ' + ISA ' + gbp(d.pots.isa) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
 
+const fmtPct = (v) => String(Math.round((+v || 0) * 100) / 100);
+/**
+ * The fund and platform charge the plan's figures were worked out at (6.19.0, assumptions.chargesPct, recorded at lock).
+ * A document written before charges has no key: its figures were worked out without them — say so; it is never rewritten.
+ */
+function chargesAssumptionText(A) {
+  if (!A || typeof A.chargesPct !== 'number') return 'not taken off — this plan was locked before charges were added';
+  if (!(A.chargesPct > 0)) return 'none (0%)';
+  return esc(fmtPct(A.chargesPct)) + '% a year, taken off every month from the money held in funds and cash; not off gilts held directly, annuities, final-salary or State Pensions';
+}
+
 const SOURCE_TEXT = { typed: 'typed in', paste: 'pasted from a platform page or export', imported: 'imported from the Stress tester\'s fund list', none: 'no source' };
 
 /**
@@ -133,6 +144,7 @@ export function planDocumentHtml(doc, r = {}) {
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · SIPP cash to the first April ' + gbp(A.bridgeCash) : '')]] : []),
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(A.giltPricesAsOf)]] : []),
+    ['Fund and platform charges', chargesAssumptionText(A)],
     ['Engine', 'v' + esc(d.engineVersion || '') + ' (app v' + esc(d.appVersion || '') + ')']
   ]);
   as += '<div class="section-title" style="font-size:13px;margin-top:10px;">How the Decision tool runs this plan</div><ul>'
@@ -151,6 +163,7 @@ export function planDocumentHtml(doc, r = {}) {
     const A = d.accumulation; const hasMix = A.path[0].potMix != null;
     let gt = '<p>Pension pot ' + gbp(A.potNow) + ' today' + (A.potSource === 'holdings' ? ' (from what you hold)' : A.potSource === 'accumulation' ? ' (the pot today on the Accumulation planner)' : '') + (A.totalMonthly ? ', ' + gbp(A.totalMonthly) + ' a month going in' : '') + (A.mixText ? ', held as ' + esc(A.mixText) : '') + '. In today\'s money:</p>'
       + table(['Age', 'Cautious (2%)', 'Middle (5%)', ...(hasMix ? ['Your mix'] : []), 'Strong (8%)', 'Paid in'], A.path.map((r) => [String(r.age), gbp(r.potLow), gbp(r.potMid), ...(hasMix ? [gbp(r.potMix)] : []), gbp(r.potHigh), gbp(r.contributedToDate)]))
+      + (+A.chargesPct > 0 ? '<p class="hint">Each line is after fund and platform charges of ' + esc(fmtPct(A.chargesPct)) + '% a year, taken off every month' + (hasMix ? ' (on the "your mix" line in place of your funds\' own charges)' : '') + '.</p>' : '')
       + '<p class="hint">Record your pot each month on the Accumulation planner; the "where you are" strip reads it against ' + (hasMix ? 'the "your mix" line' : 'the middle line') + '. When the plan starts, the first Decision entry checks the pot you arrive with against the pot the plan was priced on.</p>';
     h += section('4b. Getting there — the locked accumulation path', gt);
   }

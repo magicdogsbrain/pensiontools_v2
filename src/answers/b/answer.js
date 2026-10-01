@@ -396,7 +396,7 @@ export function answerB(inputs, env) {
       potAtStop: { pension: spread(pension), savings: spread(savingsAt), total: spread(pension.map((v, i) => v + savingsAt[i])) },
       paidIn: { total: round2(payIns[p].total * 12 * S) },
       mix: { saving: inp.savingRisk, drawing: inp.risk, slideYears: inp.savingRisk === inp.risk ? 0 : SAVING.slideYears },
-      chargeAYear: Math.round(inp.charge * 10) / 1000
+      chargeAYear: inp.charge / 100                    // the one charge as a share a year (0.05% → 0.0005: no rounding to tenths)
     };
   });
   const potTodayTotal = whos.reduce((s, w) => s + (inp[w].pot || 0), 0);

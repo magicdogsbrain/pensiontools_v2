@@ -66,18 +66,19 @@
       },
       "savings": 0,
       "risk": "cautious",
+      "charge": 0.5,
       "endAge": 95,
       "take": 2200
     },
     "monthly": {
-      "careful": 1870,
-      "middling": 2000,
-      "good": 2130
+      "careful": 1840,
+      "middling": 1960,
+      "good": 2090
     },
     "yearly": {
-      "careful": 22440,
-      "middling": 24000,
-      "good": 25560
+      "careful": 22080,
+      "middling": 23520,
+      "good": 25080
     },
     "lasted": {
       "careful": 0.9,
@@ -86,7 +87,7 @@
     },
     "runOutAge": {
       "careful": 95,
-      "middling": 88,
+      "middling": 89,
       "good": 84
     },
     "whose": "you",
@@ -103,30 +104,30 @@
             "to": 95
           }
         },
-        "takeHome": 1870,
-        "fromPension": 620.2,
+        "takeHome": 1840,
+        "fromPension": 584.9,
         "fromSavings": 0,
-        "fromPots": 620.2,
+        "fromPots": 584.9,
         "statePension": 916.67,
         "finalSalary": 500,
-        "tax": 166.86,
+        "tax": 161.57,
         "byPerson": [
           {
             "who": "you",
             "statePension": 916.67,
             "finalSalary": 500,
-            "fromPension": 620.2,
+            "fromPension": 584.9,
             "fromSavings": 0,
-            "tax": 166.86,
-            "takeHome": 1870,
+            "tax": 161.57,
+            "takeHome": 1840,
             "higherRate": false,
             "locked": false
           }
         ],
         "beforeStatePension": false,
         "shown": {
-          "takeHome": 1870,
-          "fromPots": 453,
+          "takeHome": 1840,
+          "fromPots": 423,
           "statePension": 917,
           "finalSalary": 500
         }
@@ -134,8 +135,8 @@
     ],
     "take": {
       "perMonth": 2200,
-      "lasted": 0.05,
-      "runOutAge": 83,
+      "lasted": 0.025,
+      "runOutAge": 82,
       "covered": false
     },
     "assumed": [
@@ -167,6 +168,20 @@
         "text": "Cautious: about a third in shares, the rest in bonds and cash.",
         "parts": [
           "Cautious: about a third in shares, the rest in bonds and cash."
+        ]
+      },
+      {
+        "id": "charges",
+        "field": "charge",
+        "source": "default",
+        "value": 0.5,
+        "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+        "parts": [
+          "Charges of ",
+          {
+            "fixed": "0.5"
+          },
+          "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
         ]
       },
       {
@@ -273,23 +288,13 @@
           },
           "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
         ]
-      },
-      {
-        "id": "no-charges",
-        "field": null,
-        "source": "rule",
-        "value": null,
-        "text": "Fund and platform charges are not taken off.",
-        "parts": [
-          "Fund and platform charges are not taken off."
-        ]
       }
     ],
     "warnings": [],
     "sentences": {
       "head": {
         "id": "c.head",
-        "text": "About £1,870 a month",
+        "text": "About £1,840 a month",
         "parts": [
           "About ",
           {
@@ -316,7 +321,7 @@
       },
       "line": {
         "id": "c.line",
-        "text": "With a pot of £180,000, your State Pension and your final-salary pension, you could have about £1,870 a month after tax, from now until you are 95. That amount lasted in 9 futures out of 10.",
+        "text": "With a pot of £180,000, your State Pension and your final-salary pension, you could have about £1,840 a month after tax, from now until you are 95. That amount lasted in 9 futures out of 10.",
         "parts": [
           "With ",
           "a pot of ",
@@ -357,7 +362,7 @@
       },
       "bad": {
         "id": "c.bad",
-        "text": "In a bad case (the worst 1 in 10), £1,870 a month only just lasts to 95. If you took £2,000 a month instead, a bad case would run out at age 88. After that you would have £1,343 a month from your State Pension and your final-salary pension.",
+        "text": "In a bad case (the worst 1 in 10), £1,840 a month only just lasts to 95. If you took £1,960 a month instead, a bad case would run out at age 89. After that you would have £1,343 a month from your State Pension and your final-salary pension.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -402,7 +407,7 @@
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: careful £1,870, middling £2,000, good £2,130 a month.",
+        "text": "You could take: careful £1,840, middling £1,960, good £2,090 a month.",
         "parts": [
           "You could take: careful ",
           {
@@ -425,7 +430,7 @@
       "madeOf": [
         {
           "id": "c.madeOf.paid",
-          "text": "Your State Pension (£917 a month) + £500 final-salary pension + £453 from your pot.",
+          "text": "Your State Pension (£917 a month) + £500 final-salary pension + £423 from your pot.",
           "parts": [
             "Your ",
             "State Pension",
@@ -453,7 +458,7 @@
         },
         {
           "id": "c.madeOf.tax",
-          "text": "Tax of £167 a month is already taken off.",
+          "text": "Tax of £162 a month is already taken off.",
           "parts": [
             "Tax of ",
             {
@@ -466,7 +471,7 @@
       ],
       "take": {
         "id": "c.take",
-        "text": "Taking £2,200 a month, the money lasted to 95 in only 1 future out of 10. In a bad case (the worst 1 in 10) it would run out at age 83.",
+        "text": "Taking £2,200 a month, the money lasted to 95 in fewer than 1 future out of 10. In a bad case (the worst 1 in 10) it would run out at age 82.",
         "parts": [
           "Taking ",
           {
@@ -479,7 +484,7 @@
             "kind": "age"
           },
           " ",
-          "in only ",
+          "in fewer than ",
           {
             "fixed": "1"
           },

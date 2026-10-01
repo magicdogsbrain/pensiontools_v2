@@ -49,6 +49,23 @@ couple, you 57 with £1,846,801 and a £9,000 final-salary pension from 60, your
 going in, £1,366,739 of savings, the money from your 88, balanced, to 105 — £5,995 a year more final-salary pension moved
 the careful amount from £26,490 to £26,450.
 
+### A couple's fixed-ratio drain with a charge over 1% a year: M1, M1b and M2 report its move for a couple, they do not assert it
+
+Found when the fund and platform charge joined C (6.19.0, the owner's decision of 1 Oct 2026; 0.5% a year unless
+changed). A couple's two runs drain in a fixed ratio (engine behaviour 4) and the household is short the moment either
+is. When one person's State Pension fills their personal allowance and the other's does not, the first person's
+pension draws are taxed from the first pound, so their run spends its pot faster than the other's. With a charge of 2%
+or more that run is the one that binds in the bad cases, and more money in THAT person's pot can lower the band by more
+than one step — the charge does not cause it (every pot is charged alike), it decides which run binds. Counterexamples
+(C's properties, seed 20260930, 40 and 20 futures): you 18 with £1,073,100 and no State Pension, your partner 18 with the
+full one, the money from 57, cautious, to 105 — at 2%, £1 → £6,814 in the partner's pot moved the careful amount from
+£2,530 to £2,500; at 3%, £4,000 → £20,000 from £2,180 to £2,130 (at 0% and 0.5% it rose: £3,210 → £3,230, £3,020 → £3,040).
+You 54 with £1,073,100 and no State Pension, a partner of 57 with £15 and the full one, the money from your 67, at 2%:
+£1,973 more in the partner's pot moved the careful amount from £3,100 to £3,000. With the partner's forecast at £8,000
+(room left in the allowance), or a State Pension for both, no fall. At 1% and under no such fall turned up (60 random
+couples at 0, 0.5 and 1%, and every seeded run), and the relations hold to one step there as before. A model limit (the
+need is shared by pots, not by what each person's draws cost in tax), not a fault of the charge; for the owner.
+
 ### Narrowed: what the relations claim was not what they drew (test faults, found by NIGHTLY=1 runs, 1 Oct 2026)
 
 - **M1 for a couple, and M1b: a pot that is there already** (as A's PA2). A first pound in a pot adds a pension run to the

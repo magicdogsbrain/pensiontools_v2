@@ -77,9 +77,11 @@ describe('every config the adapter builds under asGiven is covered by the fast p
 
 describe('X1, the engine half: a stop at today\'s age is question C', () => {
   const env = { today: TEST_ENV.today, futures: 40, seed: 0 };
-  const households = [...fixtures.map((f) => f.inputs), ...fc.sample(arbitraryInputs(SCHEMA_C, env), { seed: SEED, numRuns: 30 })];
+  // 40 random households (30 before 6.19.0: C's list gained the charge, which moved the draws, and 30 then gave 11 that
+  // start today with every pension open)
+  const households = [...fixtures.map((f) => f.inputs), ...fc.sample(arbitraryInputs(SCHEMA_C, env), { seed: SEED, numRuns: 40 })];
 
-  it('the fixtures and 30 random C households, where C starts today with every pension open: the band, the fail counts and the run-out months equal C\'s', () => {
+  it('the fixtures and 40 random C households, where C starts today with every pension open: the band, the fail counts and the run-out months equal C\'s', () => {
     let compared = 0;
     for (const inputs of households) {
       const checked = checkInputs(SCHEMA_C, inputs, env);
@@ -317,14 +319,23 @@ describe('the household\'s saving fields (step 4 brief 4.10)', () => {
     const { expandHousehold, validateHousehold, HOUSEHOLD_LIMITS } = await import('./_saving.js');
     const today = TEST_ENV.today;
     const { household, assumed } = expandHousehold({ people: [{ age: 45, pots: { pension: 1 }, stopWork: { kind: 'age', age: 60 } }], saving: {} }, today);
-    expect(household.saving).toEqual({ risk: 'balanced', charge: 0.005 });
+    // 6.19.0: the charge is the household's one charge (percent a year, saving and drawing), not part of the saving block
+    expect(household.saving).toEqual({ risk: 'balanced' });
+    expect(household.chargesPct).toBe(0.5);
     expect(household.people[0].saving).toBe(null);
-    expect(assumed.map((a) => a.id)).toEqual(expect.arrayContaining(['nothing-paid-in', 'risk-saving', 'charge-saving']));
+    expect(assumed.map((a) => a.id)).toEqual(expect.arrayContaining(['nothing-paid-in', 'risk-saving', 'charges']));
     const c = expandHousehold({ people: [{ age: 45, pots: { pension: 1 } }] }, today);
     expect('saving' in c.household).toBe(false);
     expect('saving' in c.household.people[0]).toBe(false);
     expect(c.assumed.map((a) => a.id)).not.toContain('nothing-paid-in');
-    const split = expandHousehold({ people: [{ age: 45, pots: { pension: 1 }, saving: { payIn: { own: 300, employer: 250 } } }], saving: { risk: 'adventurous', charge: 0.01 } }, today);
+    // …and C's households carry the same charge (every question takes it while drawing)
+    expect(c.household.chargesPct).toBe(0.5);
+    expect(c.assumed.map((a) => a.id)).toContain('charges');
+    const given = expandHousehold({ people: [{ age: 45, pots: { pension: 1 } }], chargesPct: 0.05 }, today);
+    expect(given.household.chargesPct).toBe(0.05);
+    expect(given.assumed.map((a) => a.id)).not.toContain('charges');
+    const split = expandHousehold({ people: [{ age: 45, pots: { pension: 1 }, saving: { payIn: { own: 300, employer: 250 } } }], saving: { risk: 'adventurous' }, chargesPct: 1 }, today);
+    expect(split.household.chargesPct).toBe(1);
     expect(split.household.people[0].saving).toEqual({ payIn: { total: 550, own: 300, employer: 250 }, savingsIn: 0, alreadyDrawing: false });
     expect(HOUSEHOLD_LIMITS.payInAMonth).toEqual({ min: 0, max: 10_000 });
     expect(validateHousehold(split.household, today)).toEqual([]);
@@ -336,7 +347,9 @@ describe('the household\'s saving fields (step 4 brief 4.10)', () => {
     const h = saver({ age: 45, pot: 100_000, payIn: 600, stopAge: 60, charge: 0.005, work: { yearly: 20_000, years: 3 }, partner: { age: 44, pot: 50_000 } });
     expect(validateHousehold(h, today)).toEqual([]);
     const fields = (x) => validateHousehold(x, today).map((p) => `${p.field}:${p.problem}`);
-    expect(fields({ ...h, saving: { ...h.saving, charge: 0.03 } })).toEqual(['saving.charge:tooHigh']);
+    expect(fields({ ...h, chargesPct: 3.05 })).toEqual(['chargesPct:tooHigh']);
+    expect(fields({ ...h, chargesPct: -0.05 })).toEqual(['chargesPct:tooLow']);
+    expect(fields({ ...h, chargesPct: 3 })).toEqual([]);
     const tooMuch = { ...h, people: h.people.map((p, j) => (j ? p : { ...p, saving: { ...p.saving, payIn: { total: 10_001, own: null, employer: null } } })) };
     expect(fields(tooMuch)).toEqual(['people.0.saving.payIn.total:tooHigh']);
     const longWork = { ...h, people: h.people.map((p, j) => (j ? p : { ...p, otherIncome: [{ kind: 'work', amountPerYear: 20_000, fromAge: 60, toAge: 76 }] })) };

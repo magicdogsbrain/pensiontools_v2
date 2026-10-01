@@ -70,13 +70,13 @@ describe('C — "what is that a month?"', () => {
     expect(s.household).toBe('single');
     expect(s.endAge).toBe(95);
     expect(s.years).toBe(r.basis.years);
-    expect(s.spend).toEqual({ perMonth: 1380, from: 'careful', level: null, budgetSkipped: null });
+    expect(s.spend).toEqual({ perMonth: 1350, from: 'careful', level: null, budgetSkipped: null });
     const [you] = s.people;
     expect(you).toMatchObject({ ageToday: 58, ageAtStop: 58, pensionOpensAge: 55, alreadyDrawing: false, payIn: null, partTime: null, finalSalary: null });
     expect(you.pension).toEqual({ today: 250000, atStop: { careful: 250000, middling: 250000 } });
     expect(you.savings).toEqual({ today: 0, atStop: { careful: 0, middling: 0 } });
     expect(you.statePension).toEqual({ yearly: 12547.6, fromAge: 67, fromDate: '2035-09-30' });
-    expect(you.takeHome).toEqual([{ fromAge: 58, perMonth: 1380 }]);
+    expect(you.takeHome).toEqual([{ fromAge: 58, perMonth: 1350 }]);
     expect(s.answer).toEqual({ monthly: r.monthly, lasted: r.lasted.careful, runOutAge: r.runOutAge.careful, verdict: null, potAtStop: null, number: null, payInNeeded: null });
   });
   it('a forecast and a final-salary pension (F3)', () => {
@@ -162,7 +162,7 @@ describe('B — "am I saving enough?"', () => {
     expect(s.answer).toEqual({
       monthly: null, lasted: r.chance.lasted, runOutAge: r.wholeLife.runOutAge, verdict: verdictOf(r.chance.fails, r.basis.futures),
       potAtStop: { careful: r.potAtStop.now.careful, middling: r.potAtStop.now.middling },
-      number: { careful: r.number.careful, middling: r.number.middling, good: r.number.good }, payInNeeded: 2670
+      number: { careful: r.number.careful, middling: r.number.middling, good: r.number.good }, payInNeeded: 2920
     });
     expect(s.answer.verdict).toBe('no');
   });

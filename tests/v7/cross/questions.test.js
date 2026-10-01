@@ -174,7 +174,9 @@ function nonMonotoneNear(cIn, monthly, reach = 20) {
  * | 'closed' | 'non-monotone' (compared, the counts one future apart where the engine is shown not to be monotone).
  */
 function x1(cRaw, extra = {}) {
-  const c0 = answerC({ ...copy(cRaw), start: { kind: 'now' }, take: null }, ENV);
+  // the one charge (6.19.0) is taken while drawing in both, so C is asked at A's charge (A's default, 0.5, unless given)
+  const charge = extra.charge === undefined ? 0.5 : extra.charge;
+  const c0 = answerC({ ...copy(cRaw), charge, start: { kind: 'now' }, take: null }, ENV);
   if (c0.status === 'invalid') return 'skipped';
   const cIn = c0.inputs;
   if (cIn.you.age > SCHEMA_A.fields.find((f) => f.path === 'stop.age').max) return 'skipped';
@@ -315,7 +317,7 @@ describe.skipIf(A_STUB || B_STUB)(`X2 — B's number round-trips (a flat market:
     if (stopAge >= opens) {
       // Through C: the pot from the stop age, now, beside the savings the household has then (nothing grows and
       // nothing is charged while saving, and nothing more goes into savings, so they are the savings typed).
-      const cAt = (pot) => answerC({ you: { age: stopAge, pot, statePension: { kind: 'none' } }, savings: x.b.savings || 0, start: { kind: 'now' }, endAge: x.b.endAge }, FLAT);
+      const cAt = (pot) => answerC({ you: { age: stopAge, pot, statePension: { kind: 'none' } }, savings: x.b.savings || 0, start: { kind: 'now' }, charge: 0, endAge: x.b.endAge }, FLAT);
       const at = cAt(n);
       expect(at.basis.start, 'C did not move the start').toBe(MONTH);
       expect(at.monthly.careful, `${x.name}: C with the number`).toBeGreaterThanOrEqual(spend);

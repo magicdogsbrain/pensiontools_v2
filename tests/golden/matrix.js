@@ -431,3 +431,12 @@ export const stressConfigs = [
   // Shorter horizon than the 25y decline window → truncated smile (never reaches the final level).
   { name: 'declining spending / 20y horizon (truncated smile)', config: { ...baseConfig, years: 20, duration: 20, spendingProfile: 'declining' } }
 ];
+
+// ---- the same configs with fund and platform charges (6.19.0, src/services/Charges.js) ----------------------
+// Every new plan, and every unlocked plan after the schema-2 migration, carries the default charge of 0.5% a year; a
+// plan locked before charges were added carries none and runs exactly as the configs above. Both are live paths, so
+// both are pinned: the uncharged fixtures must never move because of charges, and each charged twin (the same config
+// with `chargesPct: 0.5` and nothing else) pins what the charge does to it. Appended in their own list so that
+// stressConfigs[0] and every lookup by name elsewhere (crossval, DiversifierSleeveTarget) still find the uncharged one.
+export const CHARGED_PCT = 0.5;
+export const chargedStressConfigs = stressConfigs.map((c) => ({ name: c.name + ' · charges 0.5%', config: { ...c.config, chargesPct: CHARGED_PCT } }));

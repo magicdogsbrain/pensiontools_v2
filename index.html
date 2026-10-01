@@ -2523,7 +2523,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="dsFundRows"></tbody>
                 </table>
@@ -3437,7 +3437,7 @@
               <div style="overflow-x:auto;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
                   <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional). Used only for the cost drag in the Accumulation planner's 'your mix' line.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
                   </tr></thead>
                   <tbody id="ssFundRows"></tbody>
                 </table>
@@ -3459,6 +3459,17 @@
               </p>
               <div id="ssGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
+            </div>
+            <!-- Fund and platform charges (6.19.0): ONE per-plan setting, stressTool.settings.chargesPct (percent a year).
+                 Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssChargesLocked
+                 instead of the box (it runs at 0% until it is unlocked). Words: src/ui/chargesSetting.js. -->
+            <div class="form-group" id="ssChargesGroup" style="margin-top: 16px;">
+              <label for="ssChargesPct">Charges (funds and platform), % a year
+                <span class="hlp" tabindex="0" data-tip="What your funds and your platform take each year, as a share of what you hold — for example a 0.2% tracker on a 0.25% platform is 0.45%. It is taken off every month, while you save and while you draw, from the money held in funds and cash in your pension, ISA and taxable account. It is not taken off State Pensions, final-salary pensions or annuities, which have no such charge, or off gilts you hold directly (platforms usually charge a small fixed fee for those).">?</span>
+              </label>
+              <input type="number" id="ssChargesPct" min="0" max="3" step="0.05" value="0.5" inputmode="decimal" style="max-width:120px;">
+              <p id="ssChargesLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
+              <p id="ssChargesHint" class="hint" style="margin:4px 0 0;">Taken off every month from your funds and cash — not from gilts you hold directly, annuities, final-salary or State Pensions. 0.5% is a typical total.</p>
             </div>
             <div class="alert alert-info" style="margin-top: 12px;">
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
@@ -4121,8 +4132,9 @@
       deleteScenario,
       updateScenarioTools,
       seedStressFromDecision,
-      seedDecisionFromStress
+      seedDecisionFromStress, chargesPatchOnUnlock
     } from './src/storage/ScenarioRepository.js';
+    import { chargesFieldState, chargesForSave, paintChargesField, chargesUnlockNoteHtml, accumulationChargesNoteHtml, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
     // no tool reaches around the interface). The optimiser runs the plan's own strategy.
@@ -4159,13 +4171,12 @@
     import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
     import { parsePaste, matchRows, mergeLedger } from './src/services/HoldingsPaste.js';
-    import { getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { rotationStatus } from './src/services/RotationStatus.js';
@@ -6148,8 +6159,8 @@
         getStressSettingsAsync().then((full) => renderStressStartSummary({ ...full, ...s })).catch(() => {});
       }
       // The words (src/ui/startingPotsWords.js): retiring later, the pots at retirement every run starts from; a plan made from a V7 answer, the answer's own figure too.
-      const paint = (fromAnswer) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer }); });
-      paint(null); planFromAnswer().then((fa) => { if (fa) paint(fa); });
+      const paint = (fromAnswer, locked) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer, locked }); });   // + the charge the runs take (6.19.0)
+      paint(null, null); Promise.all([planFromAnswer().catch(() => null), planIsLocked().catch(() => null)]).then(([fa, locked]) => paint(fa || null, locked));
       ['mcYears', 'histYears'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = s.duration;
@@ -8456,7 +8467,7 @@
       const banner = document.getElementById('ssLockBanner'), saveBtn = document.getElementById('ssSaveBtn'), lockBtn = document.getElementById('ssLockBtn');
       if (!banner || !saveBtn) return;
       let locked = false; try { locked = await planIsLocked(); } catch (e) { locked = false; }
-      renderStaleDraftBanner().catch(() => {});   // a locked plan is never offered the start-year update
+      renderStaleDraftBanner().catch(() => {}); renderChargesField().catch(() => {});   // a locked plan is never offered the start-year update; the charges box or its locked words (6.19.0)
       if (!locked) {
         banner.style.display = 'none'; setStressSettingsEnabled(true);
         saveBtn.textContent = 'Save Settings'; saveBtn.classList.remove('btn-locked');
@@ -9983,7 +9994,7 @@
         row('World adjustment', '−1.5 percentage points a year, applied to every year', 'UBS/Credit Suisse Global Investment Returns Yearbook 2024: US equities 6.6% real vs World 5.0% real, 1900–2023. A global-tracker holder is not modelled on US returns — the winner\'s history.'),
         row('Result (geometric mean)', pc(nomG, 2) + ' nominal · ' + pc(realG, 2) + ' real', 'Worst year ' + worst + ' (' + pc(EQUITY_RETURNS[worst]) + '), best ' + best + ' (' + pc(EQUITY_RETURNS[best]) + ').'),
         row('Ladder &amp; floor engines', 'Shiller monthly S&amp;P price, dividend and CPI, January 1871 onward (1,830 months), the same −1.5pp/yr haircut applied monthly', 'Robert Shiller, <a href="http://www.econ.yale.edu/~shiller/data.htm" target="_blank" rel="noopener">Irrational Exuberance data</a>. Gives 150 years of rolling windows for the ladder strategies.'),
-        row('Not modelled', 'Fund charges, platform fees, currency, UK-only equity history', 'Barclays Equity Gilt Study: UK equities ≈5% real long-run — close to the world figure, not the US one.')
+        row('Not modelled', 'Currency, UK-only equity history', 'Barclays Equity Gilt Study: UK equities ≈5% real long-run — close to the world figure, not the US one.'), row('Fund and platform charges', 'Your plan\'s setting in Stress tester → Settings (' + DEFAULT_CHARGES_PCT + '% a year unless you change it), taken off every month — while you save and while you draw — from every fund and cash pot, the ISA and the taxable account', 'Not taken off State Pensions, final-salary pensions or annuities, which have no such charge, or off gilts held directly (a ladder\'s rungs, the gilts in a taxable account): platforms usually charge a small fixed fee for those. A plan locked before charges were added keeps its figures without them until it is unlocked. The −1.5pp world adjustment above is about which shares, not about costs.')
       ]) + '</details>';
 
       h += '<details><summary>2 · Inflation</summary>' + table([
@@ -10003,7 +10014,7 @@
       h += '<details><summary>4 · Bonds, cash and the ISA (Pots &amp; Valves)</summary>' + table([
         row('"Bonds" pot', 'A blended sleeve: 15% index-linked, 30% nominal gilts, 20% property, 10% commodities, 10% cash, 15% equity beta; shifts toward linkers when last year\'s inflation > 4.5%', 'A model of a diversified "steadier" fund, not a gilt index. Nominal gilts lose when inflation exceeds 4%; the equity–bond correlation turns positive in inflation shocks (2022).'),
         row('Cash', 'Nominal return = max(0, last year\'s inflation − 1%)', 'Cash lags inflation and never goes negative in nominal terms — FCA-style real return of about −1%.'),
-        row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs.'),
+        row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal before charges; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs. The plan\'s fund and platform charge comes off it every month.'),
         row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' months in a row with shares + bonds + diversifiers below their glidepaths; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
       ]) + '</details>';
 
@@ -10986,7 +10997,7 @@
       let mixRealReturn = null;
       try { const hp = holdingsProportions(await getActiveHoldings()); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
       window._acMixOn = Number.isFinite(mixRealReturn);
-      const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn });
+      let acCharges = 0; try { acCharges = chargesPctOf(await getStressSettingsAsync()); } catch (e) { /* none */ } const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn, chargesPct: acCharges, mixOcf: window._acHoldingsProps ? window._acHoldingsProps.weightedOcf : null });   // 6.19.0: the plan's charge on every line; on the mix line in place of the funds' own (mixOcf)
       const last = rows[rows.length - 1];
       const warns = contributionWarnings({
         annualGrossTotal: b.totalMonthly * 12, salary: a.salary, mpaaTriggered,
@@ -11000,7 +11011,7 @@
         const r = rows[i];
         html += '<tr' + (i === rows.length - 1 ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + gbp(Math.round(r.potLow)) + '</td><td>' + gbp(Math.round(r.potMid)) + '</td><td>' + (window._acMixOn ? gbp(Math.round(r.potMix || 0)) + '</td><td>' : '') + gbp(Math.round(r.potHigh)) + '</td><td>' + gbp(Math.round(r.contributedToDate)) + '</td></tr>';
       }
-      html += '</tbody></table>';
+      html += '</tbody></table>' + accumulationChargesNoteHtml(acCharges, window._acMixOn);
       projEl.innerHTML = html;
       window._acProjection = { rows, breakdown: b };
     };
@@ -11206,6 +11217,7 @@
       netSpendChanged(p, monthly);
     };
 
+    async function renderChargesField() { let st = {}, locked = false, ocf = 0; try { st = await getStressSettingsAsync(); locked = await planIsLocked(); ocf = holdingsProportions(await getActiveHoldings()).weightedOcf; } catch (e) { /* paint what is known */ } paintChargesField(document, chargesFieldState(st, { locked }), ocf); }   // fund and platform charges (6.19.0, src/ui/chargesSetting.js): the box — or, on a plan locked before charges were added (it runs at 0%), the words in its place
     async function loadStressSettings() {
       showLoading('Loading settings...');
       try {
@@ -11233,7 +11245,7 @@
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(s);
-        refreshStressLock().catch(() => {});
+        refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
         updateScheduleSpendNotes();
@@ -11376,7 +11388,7 @@
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
           isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
-          ...readGiaFields('ss'),
+          ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own. Never reached when locked (refused above)
           spendingProfile: 'flat',   // the taper lives on the income steps now
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
@@ -11390,9 +11402,8 @@
         });
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
-        renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 });
+        renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); renderChargesField().catch(() => {});   // the box shows the charge as saved
         updateSetupBanners();
-        updateNextStepBanner();
         updateNextStepBanner();
         showToast('Settings saved successfully', 'success');
       } catch (error) {
@@ -11457,7 +11468,7 @@
 
     // Reset stress settings
     window.resetStressSettingsUI = async function() {
-      if (!await appConfirm('Reset all stress settings to defaults?')) return;
+      if (await planIsLocked()) { showToast('This plan is locked — its settings are frozen. Unlock it or duplicate it to start again.', 'info', 6000); return; } if (!await appConfirm('Reset all stress settings to defaults?')) return;   // a reset carries the default charge (6.19.0): never on a locked plan
 
       showLoading('Resetting settings...');
       try {
@@ -13117,14 +13128,14 @@
       if (dep.taxYearsSetUp.length) li.push('<li><strong>Tax year' + (dep.taxYearsSetUp.length === 1 ? ' ' : 's ') + dep.taxYearsSetUp.join(', ') + '</strong> ' + (dep.taxYearsSetUp.length === 1 ? 'was' : 'were') + ' set up with this plan\'s spending figure. They stay as they are; if you change the spending target or State Pension, re-run <em>Set up tax year</em> so the monthly expectations match.</li>');
       li.push('<li><strong>Plan vs actual</strong> restarts: the projection frozen ' + (dep.planOfRecordAt ? 'on ' + new Date(dep.planOfRecordAt).toLocaleDateString('en-GB') : 'at lock time') + ' is archived, and a new one is frozen when you next save. Months before that are no longer measured against the old yardstick.</li>');
       if (dep.entriesUnderPrevious) li.push('<li>' + dep.entriesUnderPrevious + ' older entr' + (dep.entriesUnderPrevious === 1 ? 'y is' : 'ies are') + ' already marked as recorded under previous settings (this plan has been unlocked before).</li>');
-      li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>');
+      li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>'); let chargesPatch = null; try { chargesPatch = chargesPatchOnUnlock(await getStressSettingsAsync()); } catch (e) { /* none */ } if (chargesPatch) li.push(chargesUnlockNoteHtml(chargesPatch.chargesPct));   // D2 (6.19.0): locked before charges were added → the default once unlocked
       li.push('<li><strong>Not affected:</strong> your Budget, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
       li.push('<li>The plan locks itself again the moment a new entry is recorded. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
       const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Unlock this plan?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>' }, { okLabel: 'Unlock — I understand', cancelLabel: 'Keep locked', danger: true });
       if (!ok) return;
       showLoading('Unlocking…');
       try {
-        await unlockPlan();
+        await unlockPlan(); if (chargesPatch) { try { await saveStressSettings(chargesPatch); } catch (e) { console.warn('Could not write the default charge on unlock:', e); } }
         await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
         refreshStressLock().catch(() => {});   // the Stress settings page unlocks with it (6.5.0)
         refreshLifeStage().then(() => updatePlanLockChip()).catch(() => {});   // stage moves back to draft (6.6.0)

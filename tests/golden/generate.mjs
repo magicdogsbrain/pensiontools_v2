@@ -8,7 +8,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { decisionCases, stressConfigs } from './matrix.js';
+import { decisionCases, stressConfigs, chargedStressConfigs } from './matrix.js';
 import { canonical, pickStress } from './canonical.js';
 import { calcDecisionPWA } from '../../src/services/legacyDecision.js';
 import { runMonteCarlo, runHistorical, analyzeResults } from '../../src/services/SimulationEngine.js';
@@ -27,9 +27,9 @@ for (const c of decisionCases) {
 }
 writeFileSync(join(fixturesDir, 'decision.json'), JSON.stringify(decision, null, 2) + '\n');
 
-// --- stress fixtures ---
+// --- stress fixtures --- (each config, then its twin at 0.5% fund and platform charges, 6.19.0)
 const stress = {};
-for (const c of stressConfigs) {
+for (const c of [...stressConfigs, ...chargedStressConfigs]) {
   const mc = pickStress(analyzeResults(runMonteCarlo(c.config, MC_RUNS)));
   const hist = pickStress(analyzeResults(runHistorical(c.config)));
   stress[c.name] = { mc, hist };

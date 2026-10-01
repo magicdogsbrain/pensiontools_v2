@@ -9,8 +9,9 @@
  *
  * messageIds: 'required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption', and each rule id of the schema.
  * Money text accepts "£", commas and spaces, and the short forms "420k" and "0.42m". Ages are whole years.
- * Types (step 4 brief, conflict 25): money, age, choice, yesNo, and from step 4 `percent` (a number with up to one
- * decimal; "%" and spaces accepted) and `count` (a whole number).
+ * Types (step 4 brief, conflict 25): money, age, choice, yesNo, and from step 4 `percent` (a number on the field's
+ * `step` — 0.1 when it names none, the charge's 0.05 (6.19.0) — with up to two figures after the point; "%" and spaces
+ * accepted) and `count` (a whole number).
  */
 import { SAVING, RULES } from './rules.js';
 import { startBeforeEveryPension, payingInPast75, peopleFromValues } from './schemaParts.js';
@@ -18,6 +19,11 @@ import { startBeforeEveryPension, payingInPast75, peopleFromValues } from './sch
 export const MESSAGE_IDS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
 
 const isBlank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+
+/** A percent field's step: its own, or 0.1 (one figure after the point, as before steps were declared). */
+const stepOf = (field) => (typeof field.step === 'number' && field.step > 0 ? field.step : 0.1);
+/** Whether a percent lies on its field's steps (0.45 is on 0.05's, 0.07 is not), allowing for binary fractions. */
+const onStep = (field, v) => { const k = v / stepOf(field); return Math.abs(k - Math.round(k)) < 1e-9; };
 
 /** Nested object → { 'you.pot': 250000, … } (plain objects only; arrays and null are values). */
 export function flatten(obj, prefix = '', out = {}) {
@@ -68,10 +74,12 @@ function parseText(field, raw) {
   if (field.type === 'choice') {
     return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
   }
-  if (typeof raw === 'number') return Number.isFinite(raw) ? { value: raw } : { error: 'notANumber' };
+  if (typeof raw === 'number') return Number.isFinite(raw) && (field.type !== 'percent' || onStep(field, raw)) ? { value: raw } : { error: 'notANumber' };
   if (field.type === 'percent') {
     const p = String(raw).replace(/[%\s]/g, '');
-    return /^\d{1,3}(\.\d)?$/.test(p) ? { value: Number(p) } : { error: 'notANumber' };
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(p)) return { error: 'notANumber' };
+    const value = Number(p);
+    return onStep(field, value) ? { value } : { error: 'notANumber' };
   }
   const t = String(raw).replace(/[£,\s]/g, '');
   if (field.type === 'age' || field.type === 'count') return /^\d{1,3}$/.test(t) ? { value: Number(t) } : { error: 'notANumber' };
@@ -97,7 +105,7 @@ function checkTyped(field, raw) {
   if (field.type === 'choice') return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
   if (typeof raw !== 'number' || !Number.isFinite(raw)) return { error: 'notANumber' };
   if ((field.type === 'age' || field.type === 'count') && !Number.isInteger(raw)) return { error: 'notANumber' };
-  if (field.type === 'percent' && Math.round(raw * 10) / 10 !== raw) return { error: 'notANumber' };
+  if (field.type === 'percent' && !onStep(field, raw)) return { error: 'notANumber' };
   return { value: raw };
 }
 

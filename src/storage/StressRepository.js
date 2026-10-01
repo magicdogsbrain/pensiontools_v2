@@ -16,6 +16,7 @@ import { tagPortfolio } from '../services/PortfolioTagger.js';
 import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
 import { pinTiming, timingPinPatch, potScaleOf } from '../services/PlanTiming.js';
 import { budgetAgesKnown } from '../services/BudgetModel.js';
+import { chargesPctOf, DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
@@ -31,7 +32,9 @@ let timingPinWrite = Promise.resolve();
 export function timingPinSettled() { return timingPinWrite; }
 
 /**
- * Default stress database structure
+ * Default stress database structure.
+ * It is merged UNDER every stored plan on load (migrateStressDB), so it never carries the fund and platform charge
+ * (6.19.0): a locked plan from before charges must keep reading none, which every engine takes as 0%.
  */
 function getDefaultStressDB() {
   return {
@@ -305,7 +308,9 @@ export async function resetStressSettings() {
   }
 
   const defaultDB = getDefaultStressDB();
-  await saveActiveStressSettings(defaultDB.settings);
+  // A reset plan is a new plan's settings, so it carries the default fund and platform charge (6.19.0). The screen
+  // refuses a reset while the plan is locked (index.html resetStressSettingsUI).
+  await saveActiveStressSettings({ ...defaultDB.settings, chargesPct: DEFAULT_CHARGES_PCT });
   invalidateStressCache();
 }
 
@@ -422,7 +427,11 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // sub-asset path (subAsset present) and holds this pot flat, tapping it first in a downturn.
     // Absent/0 → legacy 3-bucket path, byte-identical.
     diversifierStart: kS(overrides.diversifierStart ?? (settings.diversifierStart || undefined)),
-    subAsset: settings.subAsset || undefined
+    subAsset: settings.subAsset || undefined,
+    // Fund and platform charges (6.19.0, services/Charges.js): the plan's percent a year, taken off every charged pot
+    // each month by every engine and strategy. Only when there is one — absent, 0 or invalid (a plan locked before
+    // charges) leaves the config exactly as it always was, so its figures cannot move.
+    ...(chargesPctOf(settings) > 0 ? { chargesPct: chargesPctOf(settings) } : {})
   };
 }
 

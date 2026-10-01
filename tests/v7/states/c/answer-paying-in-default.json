@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -67,7 +67,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"age\":67,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":300,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":275000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"age\":67,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":300,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":275000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -94,28 +94,29 @@
           },
           "savings": 0,
           "risk": "balanced",
+          "charge": 0.5,
           "endAge": 95,
           "take": null
         },
         "monthly": {
-          "careful": 2290,
-          "middling": 3060,
-          "good": 4250
+          "careful": 2220,
+          "middling": 2950,
+          "good": 4090
         },
         "yearly": {
-          "careful": 27480,
-          "middling": 36720,
-          "good": 51000
+          "careful": 26640,
+          "middling": 35400,
+          "good": 49080
         },
         "lasted": {
-          "careful": 0.903,
-          "middling": 0.506,
-          "good": 0.1
+          "careful": 0.9,
+          "middling": 0.505,
+          "good": 0.101
         },
         "runOutAge": {
           "careful": 95,
           "middling": 82,
-          "good": 75
+          "good": 76
         },
         "whose": "you",
         "guaranteed": {
@@ -131,30 +132,30 @@
                 "to": 95
               }
             },
-            "takeHome": 2290,
-            "fromPension": 1463.52,
+            "takeHome": 2220,
+            "fromPension": 1381.17,
             "fromSavings": 0,
-            "fromPots": 1463.52,
+            "fromPots": 1381.17,
             "statePension": 1045.63,
             "finalSalary": 0,
-            "tax": 219.15,
+            "tax": 206.8,
             "byPerson": [
               {
                 "who": "you",
                 "statePension": 1045.63,
                 "finalSalary": 0,
-                "fromPension": 1463.52,
+                "fromPension": 1381.17,
                 "fromSavings": 0,
-                "tax": 219.15,
-                "takeHome": 2290,
+                "tax": 206.8,
+                "takeHome": 2220,
                 "higherRate": false,
                 "locked": false
               }
             ],
             "beforeStatePension": false,
             "shown": {
-              "takeHome": 2290,
-              "fromPots": 1244,
+              "takeHome": 2220,
+              "fromPots": 1174,
               "statePension": 1046,
               "finalSalary": 0
             }
@@ -273,6 +274,20 @@
             ]
           },
           {
+            "id": "charges",
+            "field": "charge",
+            "source": "default",
+            "value": 0.5,
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+            "parts": [
+              "Charges of ",
+              {
+                "fixed": "0.5"
+              },
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
+            ]
+          },
+          {
             "id": "steady",
             "field": null,
             "source": "rule",
@@ -331,20 +346,6 @@
             "text": "Until then your money stays invested, kept at its mix of shares, bonds and cash every month.",
             "parts": [
               "Until then your money stays invested, kept at its mix of shares, bonds and cash every month."
-            ]
-          },
-          {
-            "id": "charge-saving",
-            "field": null,
-            "source": "rule",
-            "value": 0.5,
-            "text": "A charge of 0.5% a year comes off until the money is first taken; none after that.",
-            "parts": [
-              "A charge of ",
-              {
-                "fixed": "0.5"
-              },
-              "% a year comes off until the money is first taken; none after that."
             ]
           },
           {
@@ -431,16 +432,6 @@
               },
               "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
             ]
-          },
-          {
-            "id": "no-charges",
-            "field": null,
-            "source": "rule",
-            "value": null,
-            "text": "Fund and platform charges are not taken off once the money is being taken.",
-            "parts": [
-              "Fund and platform charges are not taken off once the money is being taken."
-            ]
           }
         ],
         "warnings": [
@@ -456,7 +447,7 @@
         "sentences": {
           "head": {
             "id": "c.head",
-            "text": "About £2,290 a month",
+            "text": "About £2,220 a month",
             "parts": [
               "About ",
               {
@@ -487,7 +478,7 @@
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £2,290 a month after tax, from age 67 until you are 95. That amount lasted in 9 futures out of 10.",
+            "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £2,220 a month after tax, from age 67 until you are 95. That amount lasted in 9 futures out of 10.",
             "parts": [
               "With ",
               "a pot of ",
@@ -542,7 +533,7 @@
           },
           "bad": {
             "id": "c.bad",
-            "text": "In a bad case (the worst 1 in 10), £2,290 a month only just lasts to 95. If you took £3,060 a month instead, a bad case would run out at age 82. After that you would have £1,046 a month from your State Pension.",
+            "text": "In a bad case (the worst 1 in 10), £2,220 a month only just lasts to 95. If you took £2,950 a month instead, a bad case would run out at age 82. After that you would have £1,046 a month from your State Pension.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -587,7 +578,7 @@
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: careful £2,290, middling £3,060, good £4,250 a month.",
+            "text": "You could take: careful £2,220, middling £2,950, good £4,090 a month.",
             "parts": [
               "You could take: careful ",
               {
@@ -610,7 +601,7 @@
           "madeOf": [
             {
               "id": "c.madeOf.paid",
-              "text": "Your State Pension (£1,046 a month) + £1,244 from your pot.",
+              "text": "Your State Pension (£1,046 a month) + £1,174 from your pot.",
               "parts": [
                 "Your ",
                 "State Pension",
@@ -632,7 +623,7 @@
             },
             {
               "id": "c.madeOf.tax",
-              "text": "Tax of £219 a month is already taken off.",
+              "text": "Tax of £207 a month is already taken off.",
               "parts": [
                 "Tax of ",
                 {
@@ -720,7 +711,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "startAge": 67,
           "endAge": 95,
           "accessAge": 57,

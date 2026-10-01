@@ -10,7 +10,8 @@
  *   stop.age                  → people[*].stopWork = { kind: 'age', age: theirAge + S }, S = stop.age − you.age (both stop in the same year)
  *   payIn.* , alreadyDrawing  → people[i].saving = { payIn: { total, own, employer }, savingsIn, alreadyDrawing }
  *   savingsIn                 → a month into ISAs and savings: all of it for one person; a couple, half each (as the savings)
- *   savingRisk, charge        → household.saving = { risk, charge }   (charge typed as a percent: 0.5 → 0.005)
+ *   savingRisk                → household.saving = { risk }
+ *   charge                    → household.chargesPct, percent a year as typed (6.19.0: the one charge, saving and drawing)
  *   partTime.*                → people[0].otherIncome = [{ kind: 'work', amountPerYear: yearly, fromAge: stop, toAge: stop + years }]
  *   spend.*                   → household.spending: { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
  *   risk                      → portfolio { kind: 'risk', level }   (env.mix, tests only: an exact mix instead)
@@ -84,7 +85,7 @@ export function toHousehold(inputs, env, stopAge = namedStopAge(inputs)) {
   const spending = spend.kind === 'level'
     ? { kind: 'lifestyle', level: spend.level }
     : { kind: 'amount', perMonthTakeHome: spend.amount };
-  const saving = { risk: inputs.savingRisk || 'balanced', charge: (isNum(inputs.charge) ? inputs.charge : 0.5) / 100 };
+  const saving = { risk: inputs.savingRisk || 'balanced' };
 
   const short = {
     people,
@@ -92,6 +93,7 @@ export function toHousehold(inputs, env, stopAge = namedStopAge(inputs)) {
     planToAge: inputs.endAge,
     spending,
     saving,
+    ...(isNum(inputs.charge) ? { chargesPct: inputs.charge } : {}),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };

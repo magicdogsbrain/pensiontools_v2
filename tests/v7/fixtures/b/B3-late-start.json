@@ -139,37 +139,37 @@
       }
     ],
     "number": {
-      "careful": 265000,
-      "middling": 198000,
-      "good": 148000,
+      "careful": 282000,
+      "middling": 210000,
+      "good": 157000,
       "byPerson": [
         {
           "who": "you",
-          "pot": 265000
+          "pot": 282000
         }
       ]
     },
     "already": false,
     "chance": {
-      "lasted": 0.1,
+      "lasted": 0.05,
       "outOfTen": {
         "words": "in only 1 future out of 10",
         "only": true,
         "count": 1
       },
-      "fails": 36
+      "fails": 38
     },
     "onCourse": false,
     "payIn": {
       "now": 300,
       "own": null,
       "employer": null,
-      "needed": 1840,
-      "extra": 1540,
+      "needed": 2050,
+      "extra": 1750,
       "confidence": "nineInTen",
       "at": {
-        "nineInTen": 1840,
-        "threeInFour": 1570
+        "nineInTen": 2050,
+        "threeInFour": 1740
       },
       "outside": null,
       "savingsNow": 0
@@ -181,15 +181,15 @@
         "good": 173240
       },
       "needed": {
-        "careful": 216944,
-        "middling": 274022,
-        "good": 340164
+        "careful": 232494,
+        "middling": 292914,
+        "good": 363317
       }
     },
-    "short": 163281,
-    "monthlyIfShort": 1350,
+    "short": 180281,
+    "monthlyIfShort": 1330,
     "wholeLife": {
-      "lasted": 0.1,
+      "lasted": 0.05,
       "outOfTen": {
         "words": "in only 1 future out of 10",
         "only": true,
@@ -201,24 +201,24 @@
     "levers": {
       "stopLater": null,
       "payMore": {
-        "payIn": 1840,
+        "payIn": 2050,
         "savingsIn": null,
         "lasted": 0.9
       },
       "spendLess": {
-        "spend": 1350,
+        "spend": 1330,
         "lasted": 0.925
       },
       "moreRisk": {
         "level": "adventurous",
-        "payIn": 1940,
-        "lasted": 0.1,
+        "payIn": 2120,
+        "lasted": 0.05,
         "helps": false
       },
       "accept": {
-        "lasted": 0.1,
-        "short": 163281,
-        "monthlyIfShort": 1350
+        "lasted": 0.05,
+        "short": 180281,
+        "monthlyIfShort": 1330
       }
     },
     "grid": null,
@@ -390,17 +390,17 @@
         ]
       },
       {
-        "id": "charge-saving",
+        "id": "charges",
         "field": "charge",
         "source": "default",
         "value": 0.5,
-        "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+        "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
         "parts": [
-          "A charge of ",
+          "Charges of ",
           {
             "fixed": "0.5"
           },
-          "% a year comes off while you are saving; none once you have stopped."
+          "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
         ]
       },
       {
@@ -633,7 +633,7 @@
     "sentences": {
       "head": {
         "id": "b.head",
-        "text": "About £265,000 by age 65",
+        "text": "About £282,000 by age 65",
         "parts": [
           "About ",
           {
@@ -685,7 +685,7 @@
       },
       "line": {
         "id": "b.line",
-        "text": "To spend £1,800 a month from 65, you would want a pot of about £265,000 by then: with exactly that at 65, the money lasted in 9 futures out of 10.",
+        "text": "To spend £1,800 a month from 65, you would want a pot of about £282,000 by then: with exactly that at 65, the money lasted in 9 futures out of 10.",
         "parts": [
           "To spend ",
           {
@@ -722,7 +722,7 @@
       },
       "bad": {
         "id": "b.bad",
-        "text": "In a bad case (the worst 1 in 10), £300 a month as now gets your pension to about £102,000 by 65. Paying in as now, about £1,350 a month from 65 lasted in 9 futures out of 10.",
+        "text": "In a bad case (the worst 1 in 10), £300 a month as now gets your pension to about £102,000 by 65. Paying in as now, about £1,330 a month from 65 lasted in 9 futures out of 10.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -788,7 +788,7 @@
       },
       "payInHead": {
         "id": "b.payIn.head",
-        "text": "About £1,840 a month into your pension",
+        "text": "About £2,050 a month into your pension",
         "parts": [
           "About ",
           {
@@ -813,7 +813,7 @@
       },
       "payInLine": {
         "id": "b.payIn.line",
-        "text": "Paying in about £1,840 a month and then spending £1,800 a month, your money lasted until you are 95 in 9 futures out of 10. That is £1,540 a month more than now.",
+        "text": "Paying in about £2,050 a month and then spending £1,800 a month, your money lasted until you are 95 in 9 futures out of 10. That is £1,750 a month more than now.",
         "parts": [
           "Paying in about ",
           {
@@ -852,7 +852,7 @@
       },
       "payInBad": {
         "id": "b.payIn.bad",
-        "text": "In a bad case (the worst 1 in 10), £1,840 a month gets your pension to about £217,000 by 65. In a middling case it reaches £274,000.",
+        "text": "In a bad case (the worst 1 in 10), £2,050 a month gets your pension to about £232,000 by 65. In a middling case it reaches £293,000.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -945,7 +945,7 @@
       },
       "potsNeeded": {
         "id": "b.pots.needed",
-        "text": "Paying in £1,840 a month: £217,000 in a bad case, £274,000 in a middling case, £340,000 in a good case.",
+        "text": "Paying in £2,050 a month: £232,000 in a bad case, £293,000 in a middling case, £363,000 in a good case.",
         "parts": [
           "Paying in ",
           {
@@ -1026,7 +1026,7 @@
         },
         "payMore": {
           "id": "b.lever.payMore",
-          "text": "Pay in £1,840 a month: your money lasted in 9 futures out of 10.",
+          "text": "Pay in £2,050 a month: your money lasted in 9 futures out of 10.",
           "parts": [
             "Pay in ",
             {
@@ -1048,7 +1048,7 @@
         },
         "spendLess": {
           "id": "b.lever.spendLess",
-          "text": "Spend £1,350 a month, not £1,800: £300 a month as now, your money lasted in 9 futures out of 10.",
+          "text": "Spend £1,330 a month, not £1,800: £300 a month as now, your money lasted in 9 futures out of 10.",
           "parts": [
             "Spend ",
             {
@@ -1080,7 +1080,7 @@
         },
         "moreRisk": {
           "id": "b.lever.moreRisk.no",
-          "text": "More risk while saving, about two thirds in shares, does not lower what goes in: it would take £1,940 a month.",
+          "text": "More risk while saving, about two thirds in shares, does not lower what goes in: it would take £2,120 a month.",
           "parts": [
             "More risk while saving, ",
             "about two thirds in shares",
@@ -1094,7 +1094,7 @@
         },
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £300 a month as now: your money lasted in only 1 future out of 10. About £1,350 a month from 65 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £300 a month as now: your money lasted in only 1 future out of 10. About £1,330 a month from 65 lasted in 9 futures out of 10.",
           "parts": [
             "Keep paying in ",
             {

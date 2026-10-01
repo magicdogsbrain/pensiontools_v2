@@ -8,6 +8,8 @@
  *   finalSalary              → a list of one, rising with prices up to 5% a year (pricesCapped5)
  *   age                      → born, the birthday being today
  *   risk                     → portfolio { kind: 'risk', level }   (env.mix, tests only: an exact mix instead)
+ *   charge                   → chargesPct, percent a year as typed (6.19.0: the household's one fund and platform charge,
+ *                              taken while drawing — and, on the lives, while the money waits to be taken)
  *   endAge                   → planToAge
  *
  * @param {object} inputs  checked inputs
@@ -47,6 +49,7 @@ export function toHousehold(inputs, env) {
     people,
     jointSavings: inputs.savings || 0,
     planToAge: inputs.endAge,
+    ...(typeof inputs.charge === 'number' && Number.isFinite(inputs.charge) ? { chargesPct: inputs.charge } : {}),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };

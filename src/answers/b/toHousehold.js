@@ -11,7 +11,9 @@
  *                           prices (conflict 11); "split it up" keeps own and employer, whose sum is the total
  *   you.alreadyDrawing    → people[i].saving.alreadyDrawing (the £10,000 warning only)
  *   savingsIn             → people[i].saving.savingsIn: a month into ISAs and savings, split evenly for a couple (as savings are)
- *   savingRisk, charge    → household.saving { risk, charge } (charge as a share a year: 0.5 → 0.005)
+ *   savingRisk            → household.saving { risk }
+ *   charge                → household.chargesPct, percent a year as typed (6.19.0: the one charge, saving and drawing;
+ *                           0.05 stays 0.05 — no rounding to tenths)
  *
  * `env.mix` (tests only) holds the drawing years in an exact mix, as C; `env.savingMix` is read by the saving years.
  *
@@ -53,13 +55,14 @@ export function toHousehold(inputs, env) {
   const spending = inputs.spend.kind === 'level'
     ? { kind: 'lifestyle', level: inputs.spend.level }
     : { kind: 'amount', perMonthTakeHome: inputs.spend.amount };
-  const saving = { risk: inputs.savingRisk || 'balanced', charge: Math.round((inputs.charge ?? 0.5) * 10) / 1000 };
+  const saving = { risk: inputs.savingRisk || 'balanced' };
   const short = {
     people,
     jointSavings: inputs.savings || 0,
     planToAge: inputs.endAge,
     spending,
     saving,
+    ...(typeof inputs.charge === 'number' && Number.isFinite(inputs.charge) ? { chargesPct: inputs.charge } : {}),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };

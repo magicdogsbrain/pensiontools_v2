@@ -239,8 +239,9 @@ describe('R10 — 85% to under 90% is "just under 9" everywhere', () => {
       expect(underNine(share)).toBe(share >= 0.85 && share < 0.9);
     }
   });
-  it('B at 87.5% (55, £275,000, £800 in, stop 67, £2,500): not on course, and nothing says "in 9 futures out of 10" of that count', () => {
-    const b = answerB({ you: { age: 55, pot: 275000, payIn: { kind: 'total', total: 800 } }, stop: { age: 67 }, spend: { kind: 'amount', amount: 2500 } }, ENV);
+  // (6.19.0: the spend and the take that give 35 futures of 40 moved with the 0.5% charge — £2,500 → £2,400, £1,390 → £1,360)
+  it('B at 87.5% (55, £275,000, £800 in, stop 67, £2,400): not on course, and nothing says "in 9 futures out of 10" of that count', () => {
+    const b = answerB({ you: { age: 55, pot: 275000, payIn: { kind: 'total', total: 800 } }, stop: { age: 67 }, spend: { kind: 'amount', amount: 2400 } }, ENV);
     expect(b.chance.lasted).toBe(0.875);
     expect(b.onCourse).toBe(false);
     for (const s of [b.sentences.change, b.sentences.wholeLife, b.sentences.lever.accept]) {
@@ -249,8 +250,8 @@ describe('R10 — 85% to under 90% is "just under 9" everywhere', () => {
     }
     expect(b.sentences.change.text).toBe('Now: not on course for 67, lasted in just under 9 futures out of 10.');
   });
-  it('C\'s take at 87.5% (58, £250,000, taking £1,390): "just under 9"', () => {
-    const c = answerC({ you: { age: 58, pot: 250000 }, take: 1390 }, ENV);
+  it('C\'s take at 87.5% (58, £250,000, taking £1,360): "just under 9"', () => {
+    const c = answerC({ you: { age: 58, pot: 250000 }, take: 1360 }, ENV);
     expect(c.take.lasted).toBe(0.875);
     expect(c.sentences.take.text).toContain('the money lasted to 95 in just under 9 futures out of 10.');
   });
@@ -259,7 +260,8 @@ describe('R10 — 85% to under 90% is "just under 9" everywhere', () => {
 describe('R11 — C\'s take at or below the careful amount still lasts in a bad case', () => {
   it('at and below the careful amount: "In a bad case (the worst 1 in 10) it still lasts to 95"', () => {
     const base = answerC({ you: { age: 58, pot: 250000 } }, ENV);
-    for (const take of [base.monthly.careful, base.monthly.careful - 80]) {
+    // (careful − £10: with the 0.5% charge, careful − £80 lasts in every future, which has words of its own)
+    for (const take of [base.monthly.careful, base.monthly.careful - 10]) {
       const c = answerC({ you: { age: 58, pot: 250000 }, take }, ENV);
       expect(c.take.runOutAge).toBe(95);
       expect(c.sentences.take.text).toMatch(/In a bad case \(the worst 1 in 10\) it still lasts to 95\.$/);

@@ -227,7 +227,7 @@ describe('plan corpus — the comparison with the snapshot', () => {
   it('tolerates a last-bit rounding flip on simulated money: £1, or one part in a million on a large figure', () => {
     const r = rec();
     r.headline.terminalP50 += 1; r.headline.terminalP10 -= 1; r.headline.cone.wealthP50[2] += 1;
-    r.headline.terminalP90 = Math.round(r.headline.terminalP90 * (1 + 0.9e-6));
+    r.headline.terminalP90 += Math.floor(r.headline.terminalP90 * 0.9e-6);   // under one part in a million whatever the pinned figure (Math.round could land just over it)
     r.headline.coverage = Math.round((r.headline.coverage - 0.01) * 100) / 100;
     expect(recordDiffs(r, snapshot.plans['02-pnv-draft'])).toEqual([]);
   });

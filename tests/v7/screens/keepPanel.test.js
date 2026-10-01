@@ -29,7 +29,7 @@ const clean = (root, state) => expect(checkScreen(root, state)).toEqual([]);
 const at = (state, step) => ({ ...state, route: { ...state.route, step } });
 const WORDS = { a: A, b: B, c: C };
 
-const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,380 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,580 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,900 a month'],
+const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,350 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,500 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,900 a month'],
   ['a', 'answer-A2-couple', 'Stop at 56 and 54 · £3,590 a month'], ['b', 'answer-B1', 'Stop at 60 · £2,000 a month · paying £700'], ['b', 'answer-B2-on-course', 'Stop at 60 · £2,000 a month · paying £1,400']];
 
 describe('at the foot of every answer', () => {

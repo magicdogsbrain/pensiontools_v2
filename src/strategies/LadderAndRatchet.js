@@ -61,6 +61,9 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
     : priceBase(k, t)) * txMult;
   const gp = cfg.glideRate ?? LADDER_DEFAULTS.glideRate;
   const startAge = cfg.startAge ?? LADDER_DEFAULTS.startAge;
+  // Fund and platform charges (6.19.0): the sleeve's monthly factor (compareRunner puts the plan's in cfg.chargeM). The
+  // market (rtr, the hold multiple) and the rungs are never charged. 1 = none: today's figures exactly.
+  const chargeM = Number.isFinite(cfg.chargeM) && cfg.chargeM > 0 && cfg.chargeM <= 1 ? cfg.chargeM : 1;
   const out = {
     meta: { ...dataMeta(), stage1N, fullN, engineVersion: ENGINE_VERSION },
     windows: []
@@ -81,13 +84,14 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
     }
     const priceAt = yPath ? (k, t) => price(k, t, yPath[t]) : price;
     const s1 = cfg.trigger.mode === 'band'
-      ? stage1Band({ rtr, s, E0: cfg.E0, L: cfg.L, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, b: cfg.trigger.b ?? LADDER_DEFAULTS.bandThreshold, gp })
-      : stage1Calendar({ rtr, s, E0: cfg.E0, reviews: cfg.trigger.reviews, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, gp });
+      ? stage1Band({ rtr, s, E0: cfg.E0, L: cfg.L, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, b: cfg.trigger.b ?? LADDER_DEFAULTS.bandThreshold, gp, chargeM })
+      : stage1Calendar({ rtr, s, E0: cfg.E0, reviews: cfg.trigger.reviews, firstRung: cfg.firstRung, maxRung: cfg.maxRung, priceForYear: priceAt, gp, chargeM });
     // Calendar reviews may end before the ladder does (Config B: last review yr 20, ladder
     // 23y) — grow the sleeve from the last review to the ladder end before anything reads it.
     let sleeveAtL = s1.V;
     if (cfg.trigger.mode === 'calendar' && s1.lastReview < cfg.L) {
       sleeveAtL = s1.V * (rtr[s + cfg.L] / rtr[s + s1.lastReview]);
+      if (chargeM !== 1) sleeveAtL *= Math.pow(chargeM, cfg.L - s1.lastReview);   // charged for those months too
     }
     const w = {
       s,
@@ -114,6 +118,7 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
         let survived = true, failAge = null;
         for (let m = cfg.L; m < cfg.END; m++) {
           V *= rtr[s + m + 1] / rtr[s + m];
+          if (chargeM !== 1) V *= chargeM;
           if ((m + 1) % 12 === 0) w.sleeveByYear[(m + 1) / 12] = V;
           const t = m + 1;
           const G = cfg.E0 * Math.pow(1 + gp, t / 12);
@@ -133,7 +138,7 @@ function runLadderCoreHistorical(cfg, rtr, stage1N, fullN) {
         w.secured = sec;
       } else {
         s2 = stage2({ rtr, s, V0: sleeveAtL, L: cfg.L, ladderYears: cfg.ladderYears, secured: s1.secured, drawForYear, END: cfg.END, startAge,
-          spendFlex: cfg.spendFlex });
+          spendFlex: cfg.spendFlex, chargeM });
       }
       w.survived = s2.survived;
       w.failAge = s2.failAge;

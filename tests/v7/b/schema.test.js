@@ -22,7 +22,7 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
     for (const f of SCHEMA_B.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -150,6 +150,10 @@ describe('SCHEMA_B — the declaration', () => {
   it('percent and count as typed: a charge of "0.5", "0.5%", " 1 "', () => {
     for (const [text, value] of [['0.5', 0.5], ['0.5%', 0.5], [' 1 ', 1]]) expect(parse({ charge: text }).inputs.charge).toBe(value);
     expect(parse({ charge: 'half' }).errors).toEqual({ charge: 'notANumber' });
+    // 6.19.0: 0 to 3 in steps of 0.05 (today's planner's range); a 0.05 stays 0.05 all the way to the household
+    for (const [text, value] of [['0.05', 0.05], ['0.45%', 0.45], ['2.95', 2.95], ['3', 3]]) expect(parse({ charge: text }).inputs.charge).toBe(value);
+    expect(parse({ charge: '0.07' }).errors).toEqual({ charge: 'notANumber' });
+    expect(parse({ charge: '3.05' }).errors).toEqual({ charge: 'tooHigh' });
   });
 });
 

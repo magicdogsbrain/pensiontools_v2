@@ -54,7 +54,7 @@ describe('guest mode — everything works, nothing leaves the tab', () => {
     expect(Object.keys(s).some((k) => k.includes('.'))).toBe(false);
     expect(s.decisionTool.settings).toEqual({ locked: true, lockedAt: 't' });
     expect(s.decisionTool.history).toEqual([{ m: 1 }]);
-    expect(s.stressTool.settings).toEqual({ baseSalary: 2, equityMin: 7 });
+    expect(s.stressTool.settings).toEqual({ baseSalary: 2, equityMin: 7, chargesPct: 0.5 });   // created unlocked: the 6.19.0 default charge
     expect(s.holdings).toEqual({ lines: [] });
     expect(s.planDetails.name).toBe('P');
     expect(s.id).toBe(id);
@@ -116,7 +116,7 @@ describe('guest plans carry the schema version and go through the same upgrade (
     const id = await createScenario({ planDetails: { name: 'Stashed long ago (from guest)' }, isActive: true, decisionTool: { settings: {}, history: [], taxYears: {} }, stressTool: { settings: { pacwMin: 5 } } });
     const s = guestStored().find((x) => x.id === id);
     expect(s.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(s.stressTool.settings).toEqual({ pacwMin: 5, equityMin: 5 });
+    expect(s.stressTool.settings).toEqual({ pacwMin: 5, equityMin: 5, chargesPct: 0.5 });   // + 6.19.0: an unlocked plan gets the default charge
     expect(s.strategy.id).toBe('pots-and-valves');
     leaveGuestMode(); clearGuestData();
   });

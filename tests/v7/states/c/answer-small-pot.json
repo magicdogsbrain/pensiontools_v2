@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -64,7 +64,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":12000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":58,\"finalSalary\":{\"has\":false},\"pot\":12000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -84,23 +84,24 @@
           },
           "savings": 0,
           "risk": "balanced",
+          "charge": 0.5,
           "endAge": 95,
           "take": null
         },
         "monthly": {
           "careful": 100,
-          "middling": 130,
+          "middling": 120,
           "good": 150
         },
         "yearly": {
           "careful": 1200,
-          "middling": 1560,
+          "middling": 1440,
           "good": 1800
         },
         "lasted": {
-          "careful": 0.94,
-          "middling": 0.546,
-          "good": 0.18
+          "careful": 0.921,
+          "middling": 0.667,
+          "good": 0.145
         },
         "runOutAge": {
           "careful": 95,
@@ -254,6 +255,20 @@
             ]
           },
           {
+            "id": "charges",
+            "field": "charge",
+            "source": "default",
+            "value": 0.5,
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+            "parts": [
+              "Charges of ",
+              {
+                "fixed": "0.5"
+              },
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
+            ]
+          },
+          {
             "id": "steady",
             "field": null,
             "source": "rule",
@@ -351,16 +366,6 @@
                 "fixed": "1.5"
               },
               "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
-            ]
-          },
-          {
-            "id": "no-charges",
-            "field": null,
-            "source": "rule",
-            "value": null,
-            "text": "Fund and platform charges are not taken off.",
-            "parts": [
-              "Fund and platform charges are not taken off."
             ]
           }
         ],
@@ -469,7 +474,7 @@
           },
           "bad": {
             "id": "c.bad",
-            "text": "In a bad case (the worst 1 in 10), £100 a month only just lasts to 95. If you took £130 a month instead, a bad case would run out at age 65. After that you would have £1,046 a month from your State Pension.",
+            "text": "In a bad case (the worst 1 in 10), £100 a month only just lasts to 95. If you took £120 a month instead, a bad case would run out at age 65. After that you would have £1,046 a month from your State Pension.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -514,7 +519,7 @@
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: careful £100, middling £130, good £150 a month.",
+            "text": "You could take: careful £100, middling £120, good £150 a month.",
             "parts": [
               "You could take: careful ",
               {
@@ -598,7 +603,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "startAge": 58,
           "endAge": 95,
           "accessAge": 55,

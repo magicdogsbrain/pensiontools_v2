@@ -27,7 +27,7 @@ export function unsaveable(v, path = '', out = []) {
 const ASSUMED_FIELD = {
   'you.statePension.kind': 'state-pension-full', 'partner.statePension.kind': 'state-pension-full-partner',
   'you.finalSalary.has': 'no-final-salary', 'partner.finalSalary.has': 'no-final-salary-partner',
-  'partner.pot': 'partner-no-pot', savings: 'all-pension', risk: 'risk', endAge: 'plan-to', 'start.kind': 'start', 'start.age': 'start'
+  'partner.pot': 'partner-no-pot', savings: 'all-pension', risk: 'risk', charge: 'charges', endAge: 'plan-to', 'start.kind': 'start', 'start.age': 'start'
 };
 
 export function checkAnswer(answer, given) {
@@ -182,6 +182,7 @@ export function checkAnswer(answer, given) {
       if (field === 'savings' && !answer.assumed.some((a) => a.id === 'savings-as-isa') && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'risk' && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'start.age' && answer.inputs.start.kind !== 'age') continue;
+      if (field === 'charge' && answer.status !== 'ok') continue;   // nothing held in funds or cash: nothing to charge
       const line = answer.assumed.find((a) => a.id === id);
       if (!line) fail('I10', `${field} was defaulted but ${id} is not under what was assumed`);
       else if (line.source !== 'default') fail('I10', `${field} was defaulted but ${id} says ${line.source}`);
@@ -190,6 +191,13 @@ export function checkAnswer(answer, given) {
   const always = ['start', 'plan-to', 'todays-prices', 'tax-rules'];
   if (answer.status === 'ok' && (answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) always.push('risk', 'quarter-tax-free', 'steady');
   if (answer.inputs.household === 'couple') always.push('both-alive');
+  // the one charge (6.19.0): said whenever there is money to draw on, with its field; the saving-only line and "not taken
+  // off" are gone
+  if (answer.status === 'ok') always.push('charges');
+  else if (ids.includes('charges')) fail('I10', 'a charges line with nothing to draw on');
+  for (const id of ['charge-saving', 'no-charges']) if (ids.includes(id)) fail('I10', `the old line ${id}`);
+  const ch = answer.assumed.find((a) => a.id === 'charges');
+  if (ch && (ch.field !== 'charge' || ch.value !== answer.inputs.charge)) fail('I10', `charges: field ${ch.field}, value ${ch.value} (input ${answer.inputs.charge})`);
   for (const id of always) if (!ids.includes(id)) fail('I10', `assumed lacks ${id}`);
 
   // I11 every sentence carries its own numbers: text is the parts joined, and every key leads to a number

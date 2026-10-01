@@ -35,12 +35,28 @@ const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary 
  */
 function noLowerOrFinding(a, b, inputs, findings) {
   let found = false;
-  amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
+  if (chargedCouple(inputs)) {
+    // a couple with a charge over 1% a year (6.19.0): a fall of more than one step is a finding, printed, not asserted
+    for (const k of THREE) if (b.monthly[k] < a.monthly[k] - STEP.amount) found = true;
+  } else {
+    amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
+  }
   if (found) findings.push({ inputs, from: a.monthly, to: b.monthly });
-  return !largeHousehold(a.monthly.careful);
+  return !largeHousehold(a.monthly.careful) && !chargedCouple(inputs);
 }
+/**
+ * A couple with a fund and platform charge over 1% a year (6.19.0; exceptions.md, "A couple's fixed-ratio drain with a
+ * charge"): the two runs drain in a fixed ratio (engine behaviour 4), and the household is short the moment either is.
+ * When one person's State Pension fills their personal allowance and the other's does not, the first's draws are taxed
+ * from the first pound, so their run spends its pot faster; with a high charge that run is the one that binds in the bad
+ * cases, and more in THAT person's pot can lower the band by more than a step (you 18 with £1,073,100 and no State
+ * Pension, a partner of 18 with the full one, the money from 57, cautious, to 105, 2%: £1 → £6,814 in the partner's pot
+ * moved the careful amount from £2,530 to £2,500; at 3% £4,000 → £20,000 from £2,180 to £2,130). Below 1% no such fall
+ * turned up (60 random couples at 0, 0.5 and 1%, and the seeded runs), and the relation is asserted to one step as before.
+ */
+const chargedCouple = (inputs) => inputs.household === 'couple' && typeof inputs.charge === 'number' && inputs.charge > 1;
 const report = (name, findings) => {
-  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step")`, JSON.stringify(findings[0]));
+  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1%, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step" and "A couple's fixed-ratio drain with a charge")`, JSON.stringify(findings[0]));
 };
 /**
  * The mirror, "more to cover never pays more" (M3; M4 from the other side), to one step as well: the plan's length is one

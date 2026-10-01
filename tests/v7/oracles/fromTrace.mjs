@@ -35,9 +35,11 @@ export function recompute(traceAt, answer) {
   const share = answer.inputs.household === 'couple' ? savings / 2 : savings;
 
   for (const [who, rows] of Object.entries(people)) {
-    // each month: what was there, plus growth, less what was taken, is what is left; and it is next month's start
+    // each month: what was there, plus growth, less the charges (6.19.0), less what was taken, is what is left; and it is
+    // next month's start
     rows.forEach((r, i) => {
-      if (Math.abs(r.potStart + r.growth - r.draw - r.potEnd) > 0.01) say(`${who} m${r.m}: potStart + growth − draw ≠ potEnd`);
+      if (typeof r.charge !== 'number' || r.charge < -1e-9) say(`${who} m${r.m}: the charge ${r.charge} is not a figure of 0 or more`);
+      if (Math.abs(r.potStart + r.growth - (r.charge || 0) - r.draw - r.potEnd) > 0.01) say(`${who} m${r.m}: potStart + growth − charge − draw ≠ potEnd`);
       if (i + 1 < rows.length && Math.abs(r.potEnd - rows[i + 1].potStart) > 0.01) say(`${who} m${r.m}: potEnd ≠ next potStart`);
       if (Math.abs(r.draw - r.fromPension - r.fromSavings) > 0.01) say(`${who} m${r.m}: draw ≠ fromPension + fromSavings`);
       if (Math.abs(r.fromPension - r.taxFree - r.taxable) > 0.01) say(`${who} m${r.m}: pension draw ≠ tax-free + taxable`);

@@ -14,7 +14,7 @@ const SHARES = { equity: 1, bond: 0, cash: 0 };
 
 /** A config of today's engine for one person's pot in a given mix, drawing nothing, over `years` years. */
 function idleConfig(pot, mix, years) {
-  const h = saver({ age: 60, pot, stopAge: 60, sp: 'none', mix });
+  const h = saver({ age: 60, pot, stopAge: 60, sp: 'none', mix, charge: 0 });   // no charge: the household's one charge rides on every run (6.19.0)
   const plan = enginePlan(h, { today: TEST_ENV.today });
   const [{ config }] = configsAt(plan, 0);
   return { ...config, years, duration: years, targetSchedule: new Array(years).fill(0), baseSalary: 0 };

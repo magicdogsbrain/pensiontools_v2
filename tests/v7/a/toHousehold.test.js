@@ -11,7 +11,7 @@ import { SCHEMA_A, TEST_ENV } from './invariants.js';
 const checked = (inputs, env = TEST_ENV) => { const r = checkInputs(SCHEMA_A, inputs, env); expect(r.ok, JSON.stringify(r.errors)).toBe(true); return r.inputs; };
 
 describe('A — toHousehold', () => {
-  it('a single saver: the stop S years on, the pay-in as given, the savings as ISA money, the charge as a share', () => {
+  it('a single saver: the stop S years on, the pay-in as given, the savings as ISA money, the one charge in percent', () => {
     const inputs = checked({ you: { age: 50, pot: 250000, payIn: { total: 600 } }, savings: 40000, stop: { age: 60 }, spend: { amount: 2000 } });
     const { household, S, stopAge } = toHousehold(inputs, TEST_ENV);
     expect(S).toBe(10);
@@ -23,7 +23,9 @@ describe('A — toHousehold', () => {
     expect(you.saving).toEqual({ payIn: { total: 600, own: null, employer: null }, savingsIn: 0, alreadyDrawing: false });
     expect(you.otherIncome).toEqual([]);
     expect(household.spending).toEqual({ kind: 'amount', perMonthTakeHome: 2000 });
-    expect(household.saving).toEqual({ risk: 'balanced', charge: 0.005 });
+    // 6.19.0: the household's one charge (percent a year, saving and drawing), not a saving-years share any more
+    expect(household.saving).toEqual({ risk: 'balanced' });
+    expect(household.chargesPct).toBe(0.5);
     expect(household.planToAge).toBe(95);
     expect(household.portfolio).toEqual({ kind: 'risk', level: 'balanced' });
     expect(validateHousehold(household, TEST_ENV.today)).toEqual([]);
@@ -43,7 +45,17 @@ describe('A — toHousehold', () => {
     expect(you.saving.savingsIn).toBe(300);
     expect(partner.saving.savingsIn).toBe(300);
     expect(household.spending).toEqual({ kind: 'lifestyle', level: 'comfortable' });
-    expect(household.saving).toEqual({ risk: 'adventurous', charge: 0.01 });
+    expect(household.saving).toEqual({ risk: 'adventurous' });
+    expect(household.chargesPct).toBe(1);
+  });
+
+  it('the charge passes through as typed: 0.05 stays 0.05, 0 stays 0, 3 stays 3 (no rounding to tenths)', () => {
+    for (const charge of [0, 0.05, 0.45, 1.35, 3]) {
+      const inputs = checked({ you: { age: 50, pot: 250000 }, stop: { age: 60 }, spend: { amount: 2000 }, charge });
+      const { household } = toHousehold(inputs, TEST_ENV);
+      expect(household.chargesPct, String(charge)).toBe(charge);
+      expect(validateHousehold(household, TEST_ENV.today)).toEqual([]);
+    }
   });
 
   it('part-time work: the first person only, from the stop, for the years given — for whichever stop is asked for', () => {

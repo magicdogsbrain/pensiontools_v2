@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.18.0",
+    "appVersion": "6.19.0",
     "historyEnd": null
   },
   "session": {
@@ -67,7 +67,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.19.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -88,6 +88,7 @@
           },
           "savings": 5000,
           "risk": "balanced",
+          "charge": 0.5,
           "endAge": 95,
           "take": null
         },
@@ -102,8 +103,8 @@
           "good": 3720
         },
         "lasted": {
-          "careful": 0.909,
-          "middling": 0.56,
+          "careful": 0.903,
+          "middling": 0.549,
           "good": 0.116
         },
         "runOutAge": {
@@ -302,18 +303,18 @@
           "careful": 180,
           "partnerUntil": null,
           "reachable": 5826,
-          "need": 36480,
+          "need": 35280,
           "instead": {
             "age": 57,
             "monthly": {
-              "careful": 1520,
-              "middling": 1930,
-              "good": 2560
+              "careful": 1470,
+              "middling": 1860,
+              "good": 2450
             },
             "lasted": {
               "careful": 0.9,
-              "middling": 0.51,
-              "good": 0.102
+              "middling": 0.511,
+              "good": 0.101
             }
           }
         },
@@ -373,6 +374,20 @@
             ]
           },
           {
+            "id": "charges",
+            "field": "charge",
+            "source": "default",
+            "value": 0.5,
+            "text": "Charges of 0.5% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension.",
+            "parts": [
+              "Charges of ",
+              {
+                "fixed": "0.5"
+              },
+              "% a year come off the money in funds and cash, while saving and while drawing; not off State Pension or final-salary pension."
+            ]
+          },
+          {
             "id": "steady",
             "field": null,
             "source": "rule",
@@ -415,20 +430,6 @@
             "text": "Until then your money stays invested, kept at its mix of shares, bonds and cash every month.",
             "parts": [
               "Until then your money stays invested, kept at its mix of shares, bonds and cash every month."
-            ]
-          },
-          {
-            "id": "charge-saving",
-            "field": null,
-            "source": "rule",
-            "value": 0.5,
-            "text": "A charge of 0.5% a year comes off until the money is first taken; none after that.",
-            "parts": [
-              "A charge of ",
-              {
-                "fixed": "0.5"
-              },
-              "% a year comes off until the money is first taken; none after that."
             ]
           },
           {
@@ -528,16 +529,6 @@
                 "fixed": "1.5"
               },
               "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
-            ]
-          },
-          {
-            "id": "no-charges",
-            "field": null,
-            "source": "rule",
-            "value": null,
-            "text": "Fund and platform charges are not taken off once the money is being taken.",
-            "parts": [
-              "Fund and platform charges are not taken off once the money is being taken."
             ]
           }
         ],
@@ -818,7 +809,7 @@
           },
           "none": {
             "id": "c.none.closed",
-            "text": "You can't take money from your pension until you are 57. Until then only your savings can pay, so a steady amount from 55 could be only about £180 a month. Starting at 57 instead, you could have about £1,520 a month after tax until you are 95, going up each year with prices.",
+            "text": "You can't take money from your pension until you are 57. Until then only your savings can pay, so a steady amount from 55 could be only about £180 a month. Starting at 57 instead, you could have about £1,470 a month after tax until you are 95, going up each year with prices.",
             "parts": [
               "You can't take money from your pension until you are ",
               {
@@ -867,7 +858,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.18.0",
+          "engineVersion": "6.19.0",
           "startAge": 55,
           "endAge": 95,
           "accessAge": 57,

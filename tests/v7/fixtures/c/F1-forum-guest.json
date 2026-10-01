@@ -306,17 +306,21 @@
         "field": null,
         "source": "rule",
         "value": 40,
-        "text": "Tested against 40 possible futures built from market history since 1871.",
+        "text": "Tested against 40 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
         "parts": [
           "Tested against ",
           {
             "fixed": "40"
           },
-          " possible futures built from market history since ",
+          " possible futures, each pieced together from stretches of US share returns and US price rises since ",
           {
             "fixed": "1871"
           },
-          "."
+          ". Share returns are cut by ",
+          {
+            "fixed": "1.5"
+          },
+          "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
         ]
       },
       {

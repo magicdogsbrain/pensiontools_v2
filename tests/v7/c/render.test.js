@@ -20,7 +20,9 @@ const NAMES = [
   'front-door', 'numbers-blank', 'numbers-half-typed-with-an-error', 'numbers-couple-open', 'numbers-more-open',
   'answer-nothing-entered', 'answer-working', 'answer-first', 'answer-F1', 'answer-F2', 'answer-F3', 'answer-updating',
   'answer-take', 'answer-small-pot', 'answer-pensions-only', 'answer-pensions-only-later', 'answer-nothing', 'answer-assumed-open', 'answer-failed',
-  'soon-a', 'not-built-ways', 'not-found'
+  'soon-d', 'not-built-ways', 'not-found',
+  // still paying in (the owner's 55-year-old, 1 Oct 2026); the same with the start left alone; the closed years
+  'numbers-paying-in', 'answer-paying-in', 'answer-paying-in-default', 'answer-closed-years'
 ];
 const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
 const MADE = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states/made-with.json'), 'utf8'));
@@ -28,6 +30,10 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 const one = (root, id) => root.querySelector(`[data-testid="${id}"]`);
 const fire = (el, type, init = {}) => el.dispatchEvent(new window.Event(type, { bubbles: true, cancelable: true, ...init }));
 const type = (el, text) => { el.value = text; fire(el, 'input'); };
+
+/** C's "What next?" hand-over links to A and B (step 4 brief, conflict 46; CARRY_OPENS). */
+const A_LINK = '#/a/numbers?focus=stop.age';
+const B_LINK = '#/b/numbers?focus=you.payIn.total';
 
 describe('the named states', () => {
   it('are exactly the ones the brief names', () => {
@@ -89,8 +95,16 @@ describe('the front door', () => {
     expect(ids).toEqual(['front.q.a', 'front.q.b', 'front.q.c', 'front.q.d', 'front.q.e', 'front.q.f']);
     for (const q of FRONT.questions) expect(one(root, `front.q.${q.id}`).textContent).toContain(q.ask);
   });
-  it('the five that are not built are honest links to "not in the preview yet"', () => {
-    for (const id of ['a', 'b', 'd', 'e', 'f']) {
+  it('A and B open their numbers step (step 4 joining up)', () => {
+    for (const id of ['a', 'b']) {
+      const el = one(root, `front.q.${id}`);
+      const link = el.tagName === 'A' ? el : el.querySelector('a');
+      expect(link.getAttribute('href')).toBe(`#/${id}/numbers`);
+      expect(el.textContent).not.toContain(FRONT.notYet);
+    }
+  });
+  it('the three that are not built are honest links to "not in the preview yet"', () => {
+    for (const id of ['d', 'e', 'f']) {
       const el = one(root, `front.q.${id}`);
       const link = el.tagName === 'A' ? el : el.querySelector('a');
       expect(link.getAttribute('href')).toBe(`#/soon/${id}`);
@@ -388,7 +402,10 @@ describe('what does it pay a month? (the answer step)', () => {
       const next = root.querySelector('[data-region="next"]');
       // "Already stopped?" leads for someone taking the money now with the State Pension already paid (F3); "Still working?" otherwise.
       const stopped = result.inputs.start.kind === 'now' && result.phases[0].statePension > 0;
-      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/soon/d', '#/soon/a', '#/soon/b', '#/c/keep'] : ['#/soon/a', '#/soon/b', '#/soon/d', '#/c/keep']);
+      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/soon/d', A_LINK, B_LINK, '#/c/keep'] : [A_LINK, B_LINK, '#/soon/d', '#/c/keep']);
+      // Step 4: the A and B links are hand-overs (they carry C's figures and open the numbers step).
+      expect(one(root, 'c.next.a')).not.toBe(null);
+      expect(one(root, 'c.next.b')).not.toBe(null);
       expect(one(root, 'c.action.fullDetail').getAttribute('href')).toBe('#/soon/e');
       expect(root.querySelector('[data-region="footer"]').textContent).toContain(ADVICE_FULL);
       expect(root.querySelector('[data-region="answer"]').getAttribute('aria-live')).toBe('polite');
@@ -537,16 +554,16 @@ describe('try a change', () => {
 
 describe('not built yet', () => {
   it('soon: one sentence, a link to the current version, and a way back', () => {
-    const state = load('soon-a');
+    const state = load('soon-d');
     const root = renderScreen(state);
     expect(root.querySelector('[data-screen]').getAttribute('data-screen')).toBe('soon');
-    expect(root.querySelector('h1').textContent).toBe(FRONT.questions[0].ask);
+    expect(root.querySelector('h1').textContent).toBe(FRONT.questions.find((q) => q.id === 'd').ask);
     expect(root.textContent).toContain(SOON.line);
     const links = [...root.querySelector('main').querySelectorAll('a')].map((a) => a.getAttribute('href'));
     expect(links).toEqual(['../', '#/']);
   });
-  it.each(['b', 'd', 'e', 'f'])('soon/%s draws too', (q) => {
-    const s = load('soon-a');
+  it.each(['e', 'f'])('soon/%s draws too', (q) => {
+    const s = load('soon-d');
     s.route.q = q;
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);

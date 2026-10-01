@@ -1,6 +1,8 @@
 /** validate.js — the only place a limit is checked (V7 build brief 4.1; package 1's first tests). */
 import { describe, it, expect } from 'vitest';
 import { SCHEMA_C, TEST_ENV } from '../c/_c.js';
+import { SCHEMA_A } from '../a/_a.js';
+import { SCHEMA_B } from '../b/_b.js';
 import { defaults, fieldsThatApply, parseDraft, validate, checkInputs, flatten, nest } from '../../../src/answers/shared/validate.js';
 import { addYears, accessAgeOn, firstAccessAge } from '../../../src/answers/shared/rules.js';
 
@@ -195,6 +197,84 @@ describe('the three rules between fields', () => {
 
   it('a field\'s own problem is reported before a rule', () => {
     expect(parse({ 'start.kind': 'age', 'start.age': '17' }).errors).toEqual({ 'start.age': 'tooLow' });
+  });
+});
+
+describe('the two types of step 4: percent and count (brief, conflict 25)', () => {
+  // A list of its own, so the types are tested apart from any question's list.
+  const SCHEMA = {
+    id: 't',
+    fields: [
+      { path: 'you.age', type: 'age', min: 18, max: 100, required: true, group: 'you', boundaries: [18, 100] },
+      { path: 'charge', type: 'percent', min: 0, max: 2, default: 0.5, group: 'more', boundaries: [0, 0.5, 1, 2] },
+      { path: 'years', type: 'count', min: 1, max: 15, default: 3, group: 'more', boundaries: [1, 15] }
+    ],
+    rules: []
+  };
+  const p = (values) => parseDraft(SCHEMA, { 'you.age': '50', ...values }, TEST_ENV);
+  it.each([['0.5', 0.5], ['0.5%', 0.5], ['0.5 %', 0.5], [' 1 ', 1], ['1%', 1], ['0', 0], ['2', 2], ['2.0', 2], ['1.5', 1.5]])('percent %j → %s', (text, value) => {
+    expect(p({ charge: text }).inputs.charge).toBe(value);
+  });
+  it.each([['abc', 'notANumber'], ['0.55', 'notANumber'], ['-1', 'notANumber'], ['.5', 'notANumber'], ['1e0', 'notANumber'], ['£1', 'notANumber'],
+    ['2.1', 'tooHigh'], ['3', 'tooHigh']])('percent %j → %s', (text, id) => {
+    expect(p({ charge: text }).errors).toEqual({ charge: id });
+  });
+  it.each([['3', 3], [' 5 ', 5], ['15', 15], ['1', 1], ['007', 7]])('count %j → %s', (text, value) => {
+    expect(p({ years: text }).inputs.years).toBe(value);
+  });
+  it.each([['three', 'notANumber'], ['2.5', 'notANumber'], ['2 days a week', 'notANumber'], ['-1', 'notANumber'], ['0', 'tooLow'], ['16', 'tooHigh']])('count %j → %s', (text, id) => {
+    expect(p({ years: text }).errors).toEqual({ years: id });
+  });
+  it('blank falls back to the default; the same limits for real values', () => {
+    expect(p({}).inputs).toEqual({ you: { age: 50 }, charge: 0.5, years: 3 });
+    const typed = (extra) => checkInputs(SCHEMA, { you: { age: 50 }, ...extra }, TEST_ENV).errors;
+    expect(typed({ charge: 1.5, years: 2 })).toEqual({});
+    expect(typed({ charge: 0.55 })).toEqual({ charge: 'notANumber' });
+    expect(typed({ charge: '1' })).toEqual({ charge: 'notANumber' });
+    expect(typed({ years: 2.5 })).toEqual({ years: 'notANumber' });
+    expect(typed({ years: '2' })).toEqual({ years: 'notANumber' });
+    expect(typed({ charge: 2.1 })).toEqual({ charge: 'tooHigh' });
+    expect(typed({ years: 0 })).toEqual({ years: 'tooLow' });
+  });
+});
+
+// The nightly run, 1 Oct 2026 (C's M2 and M6, A's PA1): each box holds up to £10,000, but what one person pays in a month
+// is checked on the two parts together (the household check, HOUSEHOLD_LIMITS); £5,000 + £5,001 passed the form and the
+// answer then came back "invalid" naming people.0.saving.payIn.total — no box to point at, so the screen said only "we
+// could not work that out". The form says it instead, on the employer's part (step 4 brief section 10, J14).
+describe('pay-in-over-limit: a person\'s two parts together, in all three lists', () => {
+  const LISTS = [
+    ['C', SCHEMA_C, { 'you.pot': '250000', 'you.age': '55', 'start.kind': 'age', 'start.age': '67', 'you.payIn.has': 'yes', 'you.payIn.kind': 'split' }, { 'partner.payIn.has': 'yes', 'partner.payIn.kind': 'split' }],
+    ['A', SCHEMA_A, { 'you.pot': '250000', 'you.age': '55', 'stop.kind': 'age', 'stop.age': '67', 'spend.kind': 'amount', 'spend.amount': '2000', 'you.payIn.kind': 'split' }, { 'partner.payIn.kind': 'split' }],
+    ['B', SCHEMA_B, { 'you.pot': '250000', 'you.age': '55', 'stop.age': '67', 'spend.kind': 'amount', 'spend.amount': '2000', 'you.payIn.kind': 'split' }, { 'partner.payIn.kind': 'split' }]
+  ];
+  it.each(LISTS)('%s: £5,000 + £5,001 is refused on the employer\'s part; £5,000 + £5,000 is fine; a partner the same', (_q, schema, base, partner) => {
+    const p = (extra) => parseDraft(schema, { ...base, ...extra }, TEST_ENV);
+    expect(p({ 'you.payIn.own': '5000', 'you.payIn.employer': '5001' }).errors).toEqual({ 'you.payIn.employer': 'pay-in-over-limit' });
+    expect(p({ 'you.payIn.own': '5000', 'you.payIn.employer': '5000' }).ok).toBe(true);
+    expect(p({ 'you.payIn.own': '10000', 'you.payIn.employer': '0' }).ok).toBe(true);
+    const two = { household: 'couple', 'partner.age': '53', 'partner.pot': '0', ...partner, 'you.payIn.own': '500', 'you.payIn.employer': '300' };
+    expect(p({ ...two, 'partner.payIn.own': '9000', 'partner.payIn.employer': '1001' }).errors).toEqual({ 'partner.payIn.employer': 'pay-in-over-limit' });
+    // a box's own problem comes first
+    expect(p({ 'you.payIn.own': '5000', 'you.payIn.employer': '10001' }).errors).toEqual({ 'you.payIn.employer': 'tooHigh' });
+    // real values, as an answer function is given them
+    expect(checkInputs(schema, nest({ ...p({ 'you.payIn.own': '5000', 'you.payIn.employer': '5000' }).values, 'you.payIn.employer': 5001 }), TEST_ENV).errors)
+      .toEqual({ 'you.payIn.employer': 'pay-in-over-limit' });
+  });
+  it('one figure is held to £10,000 by its box alone (nothing to add)', () => {
+    const r = parseDraft(SCHEMA_A, { 'you.pot': '250000', 'you.age': '55', 'stop.kind': 'age', 'stop.age': '67', 'spend.kind': 'amount', 'spend.amount': '2000', 'you.payIn.kind': 'total', 'you.payIn.total': '10000' }, TEST_ENV);
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe('the rules between fields belong to the list that names them', () => {
+  it('C\'s list never reports A\'s or B\'s rule ids, and a list with no rules reports none', () => {
+    const ids = new Set(Object.values(parse({ 'you.age': '80', endAge: '80', 'start.kind': 'age', 'start.age': '79' }).errors));
+    for (const id of ['stop-not-before-now', 'stop-after-now', 'end-after-stop']) expect(ids.has(id)).toBe(false);
+    const bare = { id: 'x', fields: [{ path: 'you.age', type: 'age', min: 18, max: 100, required: true, group: 'you', boundaries: [18, 100] },
+      { path: 'stop.age', type: 'age', min: 18, max: 75, required: true, group: 'stop', boundaries: [18, 75] },
+      { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 105] }], rules: [] };
+    expect(parseDraft(bare, { 'you.age': '70', 'stop.age': '60', endAge: '75' }, TEST_ENV).errors).toEqual({});
   });
 });
 

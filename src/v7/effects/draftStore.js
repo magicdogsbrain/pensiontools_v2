@@ -2,7 +2,7 @@
  * The draft store: what was typed is kept in THIS TAB only — sessionStorage, key pt_v7_draft. Nothing else is
  * written anywhere by V7 in this slice, and the answer is never kept (it is worked out again after a reload).
  *
- *   loadDraft(storage)            → { c: { values, touched, asked, revealed } } or null
+ *   loadDraft(storage)            → { c: { values, touched, asked, revealed }, a, b: { …, carriedFrom } } or null
  *   saveDraft(storage, draft)     → true if it was written
  *   startDraftStore(store, storage) → stop()      writes whenever state.draft changes
  *   sessionStore(win)             → the tab's storage, or null if the browser will not hand it over
@@ -36,6 +36,8 @@ function clean(kept) {
     }
     const list = (a) => (Array.isArray(a) ? [...new Set(a.filter((p) => typeof p === 'string' && paths.has(p)))] : []);
     out[q] = { values, touched: list(d.touched), asked: d.asked === true, revealed: list(d.revealed) };
+    // A and B: where the figures were brought over from ("we have brought your figures over …"), kept across a reload
+    if (q !== 'c') out[q].carriedFrom = ['a', 'b', 'c'].includes(d.carriedFrom) && d.carriedFrom !== q ? d.carriedFrom : null;
   }
   return Object.keys(out).length ? out : null;
 }

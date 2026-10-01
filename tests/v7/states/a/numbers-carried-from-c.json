@@ -1,0 +1,90 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "a",
+    "step": "numbers",
+    "planId": null,
+    "focus": "stop.age"
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "a": {
+      "values": {
+        "household": "single",
+        "you.pot": "250,000",
+        "you.age": "58",
+        "you.statePension.kind": "full",
+        "you.finalSalary.has": false,
+        "stop.kind": "age"
+      },
+      "touched": [
+        "household",
+        "you.pot",
+        "you.age",
+        "you.statePension.kind",
+        "you.finalSalary.has",
+        "stop.kind"
+      ],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": "c"
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

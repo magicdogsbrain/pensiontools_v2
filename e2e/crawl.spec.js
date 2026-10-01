@@ -3,15 +3,22 @@
  *
  *  1. Every address, opened directly as a first-time visitor: ready, the screen it should be, looked over
  *     (no rubbish, geometry, targets on a phone), and the accessibility rules with zero violations.
- *  2. Every named state at its own address (with the accessibility rules), and then at every address.
+ *  2. Every named state at its own address (with the accessibility rules), and then at every address — C's, and
+ *     (step 4) A's and B's once their states, screens and addresses exist. On A and B no state may show a
+ *     countdown, and the retired view and the stop-now answer are read under the retired rules too.
  *  3. V7 cannot change a plan: a LOCKED plan from the corpus is put where today's app keeps guest plans,
  *     every V7 address is visited and every link followed, and the stored text is byte-identical afterwards.
- *     The only thing V7 itself may store is its own draft, `pt_v7_draft`, in this tab.
+ *     The only thing V7 itself may store is its own draft, `pt_v7_draft`, in this tab — also after A and B
+ *     have been used and a hand-over made between them.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7, waitsFor, lookOver, axeProblems, checkScreenOnPage, notIgnored, namedStates, readState, drawState, ADDRESSES, BUILT, REPO } from './helpers/app.js';
+import { test, expect, v7, waitsFor, lookOver, axeProblems, checkScreenOnPage, notIgnored, namedStates, readState, drawState, retiredWording, fixtureTyping, mustFill, ADDRESSES, FRONT_LINKS, NEEDS, BUILT, REPO } from './helpers/app.js';
 import { parse, screenName } from '../src/v7/router/routes.js';
+import { BUILT as BUILT_QUESTIONS } from '../src/v7/rail/questions.js';
+
+/** The steps of A and B, in rail order, for the walk below. */
+const BUILT_STEPS = Object.fromEntries(['a', 'b'].map((q) => [q, BUILT_QUESTIONS[q] ? BUILT_QUESTIONS[q].steps.map((s) => s.id) : []]));
 
 test.describe('every address, as a first-time visitor', () => {
   for (const { hash, screen } of ADDRESSES) {
@@ -48,8 +55,8 @@ test.describe('every address, as a first-time visitor', () => {
         else expect(href, `a link out of V7 on ${hash}`).toMatch(/^(\.\.\/|\/)(index\.html|privacy\.html)?(#.*)?$/);   // only ever to the current version
       }
     }
-    // The front door offers every question; none is a dead link (L6).
-    if (BUILT.screens) for (const q of ['a', 'b', 'd', 'e', 'f']) expect([...seen]).toContain(`#/soon/${q}`);
+    // The front door offers every question; none is a dead link (L6). A built question opens its numbers step.
+    if (BUILT.screens) for (const link of FRONT_LINKS) expect([...seen]).toContain(link);
   });
 });
 
@@ -81,6 +88,44 @@ test.describe('every named state', () => {
     });
   }
 });
+
+/** A's and B's named states (step 4 P5): the same two checks, plus the saver's and the retired view's words. */
+for (const q of ['a', 'b']) {
+  test.describe(`every named state of question ${q.toUpperCase()}`, () => {
+    test.beforeEach(() => waitsFor('hooks', ...NEEDS[q], `${q}States`));
+
+    // "Stop now" (the stop age is today's age) is read under the retired rules as well as the saver's (brief 4.9).
+    const stopNow = (state) => {
+      const r = state.answers && state.answers[q] && state.answers[q].result;
+      return !!(r && r.inputs && r.inputs.stop && r.inputs.you && r.inputs.stop.age === r.inputs.you.age);
+    };
+
+    for (const name of namedStates(q)) {
+      test(`${q}/${name}: drawn at its own address — sound, accessible, no countdown`, async ({ page }) => {
+        const state = readState(name, q);
+        const app = v7(page, 'test', q);
+        await app.open('#/');
+        await drawState(page, state);
+        expect(await app.screen()).toBe(screenName(state.route));
+        await app.check();                                       // lookOver, checkScreen, and the saver's words on A and B
+        if (stopNow(state)) expect(retiredWording(await page.locator('#app').innerText()), `${q}/${name} (stop now)`).toEqual([]);
+        expect(await axeProblems(page), `accessibility of ${q}/${name}`).toEqual([]);
+      });
+
+      test(`${q}/${name}: every address opens over it`, async ({ page }) => {
+        const state = readState(name, q);
+        const app = v7(page, 'test', q);
+        await app.open('#/');
+        for (const { hash, screen } of ADDRESSES) {
+          await drawState(page, { ...state, route: parse(hash) });
+          expect(await app.screen(), `${q}/${name} at ${hash}`).toBe(screen);
+          const problems = [...(await lookOver(page)), ...(await checkScreenOnPage(page))];
+          expect(problems.filter(notIgnored), `${q}/${name} at ${hash}`).toEqual([]);
+        }
+      });
+    }
+  });
+}
 
 test.describe('V7 cannot change a plan', () => {
   // Where today's app keeps a guest's plans (src/firebase/FirestoreService.js GUEST_KEY) and the hand-off copy
@@ -121,6 +166,29 @@ test.describe('V7 cannot change a plan', () => {
       await app.click('c.action.show');
       await app.ready(120_000);
       for (const step of ['numbers', 'answer', 'ways', 'keep']) { await app.rail(step); await page.goBack(); await app.drawn(); }
+      await page.reload();
+      await app.drawn();
+      await app.ready(120_000);
+    }
+    // Step 4: A and B used the same way — the four (five) things typed, the answer asked for, every rail step
+    // followed, and one hand-over from A to B. Still nothing but V7's own draft may be written.
+    for (const q of ['a', 'b']) {
+      if (!NEEDS[q].every((p) => BUILT[p])) continue;
+      const typing = fixtureTyping(q === 'a' ? 'A1' : 'B1');
+      const four = Object.fromEntries(mustFill(q, typing).map((p) => [p, typing[p]]).filter(([, v]) => v !== undefined));
+      if (typing['spend.kind']) four['spend.kind'] = typing['spend.kind'];
+      app.as(q);
+      await app.go(`#/${q}/numbers`);
+      await app.fill(four);
+      await app.click(`${q}.action.show`);
+      await app.ready(120_000);
+      for (const step of BUILT_STEPS[q]) { await app.rail(step); await page.goBack(); await app.drawn(); }
+      if (q === 'a' && BUILT.carry && BUILT.bOpen) {
+        await app.go('#/a/answer');
+        await app.ready(120_000);
+        await app.click('a.next.b');
+        await app.as('b').at('b.numbers');
+      }
       await page.reload();
       await app.drawn();
       await app.ready(120_000);

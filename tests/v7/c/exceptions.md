@@ -36,3 +36,14 @@ a candidate engine fix outside this slice.
 4. **A couple's pots drain in a fixed ratio.** The household is short the moment one person's pot cannot pay,
    whatever the other still holds; the run-out month is that month, and the other person's months after it are not
    shown.
+6. **"Lasts at an amount" is not always monotone at £10 steps** (found by the nightly run of
+   `tests/v7/cross/questions.test.js` X1 on 1 Oct 2026, seed 2127017665). For one person of 71 with £2,327,718, £150,000
+   of savings and a £200,000-a-year final-salary pension from 75 (40 futures), future 8 runs out at £14,020 a month,
+   lasts at £14,030 and runs out again at £14,040 (most likely the tax where the allowance is withdrawn, above £100,000,
+   moving where the engine draws from; not traced further). The band search (`band.js`) assumes monotone brackets. Here the AMOUNTS came out the same whatever the
+   search order (in principle they could move a step too), but the COUNT of futures at an amount was one apart between a search that starts from the
+   remembered hint (C's second call on the same household; the 1,000-future pass after the 100) and one that does not:
+   36 or 37 of 40 at the careful £14,030, both "9 futures out of 10" in words. It was in C before step 4 (the committed C,
+   afe1ea4, answers the same way). X1 allows the one-future difference only where the engine is shown not to be monotone
+   near the amounts (`nonMonotoneNear`), and asserts byte equality everywhere else. A candidate engine fix outside this
+   slice; the households it touches are far outside the slice's.

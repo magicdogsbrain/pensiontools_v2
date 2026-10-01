@@ -536,17 +536,21 @@
         "field": null,
         "source": "rule",
         "value": 40,
-        "text": "Tested against 40 possible futures built from market history since 1871.",
+        "text": "Tested against 40 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
         "parts": [
           "Tested against ",
           {
             "fixed": "40"
           },
-          " possible futures built from market history since ",
+          " possible futures, each pieced together from stretches of US share returns and US price rises since ",
           {
             "fixed": "1871"
           },
-          "."
+          ". Share returns are cut by ",
+          {
+            "fixed": "1.5"
+          },
+          "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
         ]
       },
       {
@@ -876,7 +880,7 @@
       ],
       "take": {
         "id": "c.take",
-        "text": "Taking £3,590 a month, the money lasted to 95 in 9 futures out of 10. In a bad case (the worst 1 in 10) it would run out when the younger of you is 95.",
+        "text": "Taking £3,590 a month, the money lasted to 95 in 9 futures out of 10. In a bad case (the worst 1 in 10) it still lasts to 95.",
         "parts": [
           "Taking ",
           {
@@ -905,10 +909,9 @@
           {
             "fixed": "10"
           },
-          ") it would run out ",
-          "when the younger of you is ",
+          ") it still lasts to ",
           {
-            "key": "take.runOutAge",
+            "key": "basis.endAge",
             "kind": "age"
           },
           "."

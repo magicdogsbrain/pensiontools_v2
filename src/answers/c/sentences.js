@@ -6,11 +6,13 @@
  * Plain English, in every state: no stop-work words, no length of time to wait, "State Pension" and
  * "final-salary pension" by name. Couples are "you" and "your partner".
  */
-import { money, outOfTen, partsText, get } from '../shared/format.js';
+import { money, outOfTen, partsText, get, lastedText } from '../shared/format.js';
+import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
+const P = (key) => ({ key, kind: 'pot' });
 const F = (fixed) => ({ fixed: String(fixed) });
 const S = (id, parts) => ({ id, text: '', parts: parts.filter((p) => p !== '' && p != null) });
 // The result's key for the take-home once every State Pension and final-salary pension has started. Spelt in two
@@ -190,6 +192,118 @@ function madeOfLines(result, facts) {
 
 const yearsWord = (years) => (years === 1 ? ' year' : ' years');
 
+// ---- on the lives: the money first taken at an age, the pot invested and anything paid in going in until then -------
+
+const RISK_SHORT = { cautious: 'Cautious, about a third in shares', balanced: 'Balanced, about half in shares', adventurous: 'Adventurous, about two thirds in shares' };
+/** "until 67" / "until you are 67": the age the money is first taken (your age, for a couple). */
+const untilStartParts = (facts) => (facts.couple ? ['until you are ', A('phases.0.ages.you.from')] : ['until ', A('phases.0.ages.you.from')]);
+/** How many of the people hold a pension at the start (a pot today, or one being paid into). */
+const potHolders = (facts) => facts.people.filter((p) => p.pot).length;
+/** "the pot", "the pots", "the pot and savings", "the savings": the money that is invested until it is first taken. */
+function investedWord(facts) {
+  const pots = potHolders(facts);
+  const pot = pots > 1 ? 'the pots' : pots ? 'the pot' : '';
+  return pot && facts.savings > 0 ? `${pot} and savings` : pot || 'the savings';
+}
+
+/** "a pot of £275,000 today, £800 a month going in until 67, savings of £20,000 and your State Pension". */
+function sourcesOnLivesParts(result, facts) {
+  const inputs = result.inputs;
+  const partner = facts.people[1];
+  const items = [];
+  const yp = (inputs.you.pot || 0) > 0;
+  const pp = Boolean(partner) && (inputs.partner.pot || 0) > 0;
+  if (yp && pp) items.push(['pots of ', M('inputs.you.pot'), ' and ', M('inputs.partner.pot'), ' today']);
+  else if (yp) items.push(['a pot of ', M('inputs.you.pot'), ' today']);
+  else if (pp) items.push(["your partner's pot of ", M('inputs.partner.pot'), ' today']);
+  if (result.payIn.total > 0 && !facts.startsNow) items.push([M('payIn.total'), ' a month going in ', ...untilStartParts(facts)]);
+  if (facts.savings > 0) items.push(['savings of ', M('inputs.savings')]);
+  const sps = facts.people.filter((p) => p.sp);
+  if (sps.length === 2) items.push('your State Pensions');
+  else if (sps.length === 1) items.push(sps[0].who === 'you' ? 'your State Pension' : "your partner's State Pension");
+  const fss = facts.people.filter((p) => p.fs);
+  if (fss.length === 2) items.push('your final-salary pensions');
+  else if (fss.length === 1) items.push(fss[0].who === 'you' ? 'your final-salary pension' : "your partner's final-salary pension");
+  return joinAnd(items);
+}
+
+/**
+ * What the answer assumed about the years before the money is first taken, said plainly beside the figure (step 4
+ * brief section 10, J8): "Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half
+ * in shares, until then." Or, with nothing going in: "Nothing more paid in; the pot stays invested at … until 67."
+ */
+function payInSentence(result, facts) {
+  const c = facts.couple;
+  const risk = RISK_SHORT[result.inputs.risk] || RISK_SHORT.balanced;
+  const what = investedWord(facts);
+  if (result.payIn.total > 0) {
+    return S('c.payIn', ['Paying in ', M('payIn.total'), ' a month', c ? ' between you ' : ' ', ...untilStartParts(facts), ', rising with prices; ', what, ' invested at ', risk, ', until then.']);
+  }
+  const plural = /pots|and savings|^the savings$/.test(what);
+  return S('c.payIn.none', ['Nothing more paid in; ', what, plural ? ' stay' : ' stays', ' invested at ', risk, ', ', ...untilStartParts(facts), '.']);
+}
+
+/** "By 67 your pot could be about £420,000. In a bad case (the worst 1 in 10) it would be £330,000, and …". */
+function potSentence(facts) {
+  const c = facts.couple;
+  const pots = potHolders(facts);
+  const what = (pots > 1 ? 'your pots' : pots ? 'your pot' : '') + (facts.savings > 0 ? (pots ? ' and savings' : 'your savings') : '');
+  const plural = pots > 1 || facts.savings > 0;
+  return S('c.pot', [c ? 'By the time you are ' : 'By ', A('phases.0.ages.you.from'), ' ', what || 'your pot', ' could be about ', P('potAtStart.middling'), '. In a bad case (the worst ', F('1'), ' in ', F('10'), ') ',
+    plural ? 'they' : 'it', ' would be ', P('potAtStart.careful'), ', and in a good case (the best ', F('1'), ' in ', F('10'), ') ', P('potAtStart.good'), '.']);
+}
+
+/** "your savings", "your pot and savings", "your partner's pot": what can pay while the pension that matters is closed. */
+function reachableWords(result, facts) {
+  const cy = result.closedYears;
+  const open = facts.people.filter((p) => p.pot && !cy.who.includes(p.who) && !facts.lockedUntil.some((l) => l.who === p.who));
+  const items = [];
+  if (open.length === 2) items.push('your pots');
+  else if (open.length === 1) items.push(open[0].who === 'you' ? 'your pot' : "your partner's pot");
+  if (facts.savings > 0) items.push(items.length ? 'savings' : 'your savings');
+  return items.join(' and ');
+}
+
+/**
+ * The years before a closed pension opens set the answer (onLives.js closedYearsOf; the reviewers' finding, 1 Oct
+ * 2026): one steady amount from the start is held down to what the savings (and any open pot) can pay until then — so
+ * the answer says so, with the amount starting when the pension opens beside it, in place of a headline of £180.
+ */
+function closedYearsSentence(result, facts) {
+  const c = facts.couple;
+  const cy = result.closedYears;
+  const you = cy.who.includes('you');
+  const partner = cy.who.includes('partner');
+  const who = you && partner
+    ? ['Neither of you can take money from a pension until you are ', A('closedYears.until'), ' (your partner ', A('closedYears.partnerUntil'), ').']
+    : partner
+      ? ["Your partner can't take money from their pension until they are ", A('closedYears.partnerUntil'), ', when you are ', A('closedYears.until'), '.']
+      : ["You can't take money from your pension until you are ", A('closedYears.until'), '.'];
+  const reach = reachableWords(result, facts);
+  const meanwhile = !reach
+    ? [' Until then nothing else can pay, so there is no steady amount from ', A('closedYears.from'), ' that lasts.']
+    : cy.careful >= 10
+      ? [' Until then only ', reach, ' can pay, so a steady amount from ', A('closedYears.from'), ' could be only about ', M('closedYears.careful'), ' a month.']
+      : [' Until then only ', reach, ' can pay, and that is not enough for a steady amount from ', A('closedYears.from'), '.'];
+  const instead = cy.instead.monthly.careful > 0
+    ? [c ? ' Starting when you are ' : ' Starting at ', A('closedYears.instead.age'), ' instead, ', c ? 'the two of you' : 'you', ' could have about ', M('closedYears.instead.monthly.careful'),
+      ' a month after tax ', ...untilParts(facts), ', going up each year with prices.']
+    : [];
+  return S('c.none.closed', [...who, ...meanwhile, ...instead]);
+}
+
+/** The sentences of an answer on the lives (onLives.js): C's, with what goes in and the pot at the start said plainly. */
+export function sentencesOnLives(result, facts) {
+  const out = sentencesFor(result, facts);
+  if (!facts.startsNow) {
+    out.payIn = payInSentence(result, facts);
+    out.pot = potSentence(facts);
+  }
+  // the years before a closed pension opens set the amount: said in words of their own, in place of the headline
+  if (result.closedYears) out.none = closedYearsSentence(result, facts);
+  return out;
+}
+
 /**
  * The sentences for a result with a band (status 'ok').
  * @param {object} result   the result so far (numbers, phases, basis, inputs filled in)
@@ -200,9 +314,9 @@ export function sentencesFor(result, facts) {
   const lastedParts = wordsParts(result.lasted.careful >= 0.95 - 1e-9 ? outOfTen(result.lasted.careful).words : 'in 9 futures out of 10');
 
   const head = S('c.head', ['About ', M('monthly.careful'), ' a month']);
-  const sub = S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...ifStaysParts(facts)]);
+  const sub = S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...(facts.life ? [] : ifStaysParts(facts))]);
   const line = S(c ? 'c.line.couple' : 'c.line', [
-    'With ', ...sourcesParts(facts), ', ', c ? 'the two of you' : 'you', ' could have about ', M('monthly.careful'), ' a month after tax, ',
+    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', ', c ? 'the two of you' : 'you', ' could have about ', M('monthly.careful'), ' a month after tax, ',
     ...fromParts(facts), ' ', ...untilParts(facts), '. That amount lasted ', ...lastedParts, '.'
   ]);
 
@@ -211,7 +325,14 @@ export function sentencesFor(result, facts) {
   if (middlingRunsOut) {
     badParts.push(' If you took ', M('monthly.middling'), ' a month instead, a bad case would run out ',
       ...(c ? ['when the younger of you is ', A('runOutAge.middling')] : ['at age ', A('runOutAge.middling')]), '.');
-    if (get(result, AFTER_KEY) > 0) badParts.push(' After that you would have ', AFTER, ' a month from ', afterPhrase(facts), '.');
+    // (not when that bad case runs out while every pension is still closed: the pension is there, untouched — the
+    // savings-run-short warning says what ran out, and when the pension can be touched)
+    const closedThen = facts.life && facts.allClosedUntil !== null && result.runOutAge.middling < facts.allClosedUntil;
+    // (on the lives: that figure is once every State Pension and final-salary pension has started — said, when the bad case
+    // runs out before then, as A says it)
+    const later = facts.life && facts.incomes ? facts.incomes.filter((x) => x.at > result.runOutAge.middling) : [];
+    const once = !later.length ? [] : facts.incomes.length === 1 ? [' once it starts at ', F(later[0].age)] : [' once they have all started'];
+    if (get(result, AFTER_KEY) > 0 && !closedThen) badParts.push(' After that you would have ', AFTER, ' a month from ', afterPhrase(facts), ...once, '.');
   }
   const bad = S('c.bad', badParts);
   const range = S('c.range', ['You could take: careful ', M('monthly.careful'), ', middling ', M('monthly.middling'), ', good ', M('monthly.good'), ' a month.']);
@@ -222,13 +343,17 @@ export function sentencesFor(result, facts) {
     const t = result.take;
     if (t.lasted >= 1 - 1e-9) {
       sentences.take = S('c.take.fine', ['Taking ', M('take.perMonth'), ' a month, the money lasted to ', A('basis.endAge'), ' in every future we tried, including the bad cases (the worst ', F('1'), ' in ', F('10'), ').']);
+    } else if (t.runOutAge >= result.basis.endAge) {
+      // at or below the careful amount the bad case (the worst 1 in 10) lasts: never "would run out at age 95"
+      sentences.take = S('c.take', ['Taking ', M('take.perMonth'), ' a month, the money lasted to ', A('basis.endAge'), ' ', ...wordsParts(lastedText(t.lasted)), '. In a bad case (the worst ', F('1'), ' in ', F('10'), ') it still lasts to ', A('basis.endAge'), '.']);
     } else {
-      sentences.take = S('c.take', ['Taking ', M('take.perMonth'), ' a month, the money lasted to ', A('basis.endAge'), ' ', ...wordsParts(outOfTen(t.lasted).words), '. In a bad case (the worst ', F('1'), ' in ', F('10'), ') it would run out ',
+      // 85% to under 90% is "just under 9" (format.js lastedText), as in A and B: never the careful 9 when it is not
+      sentences.take = S('c.take', ['Taking ', M('take.perMonth'), ' a month, the money lasted to ', A('basis.endAge'), ' ', ...wordsParts(lastedText(t.lasted)), '. In a bad case (the worst ', F('1'), ' in ', F('10'), ') it would run out ',
         ...(c ? ['when the younger of you is ', A('take.runOutAge')] : ['at age ', A('take.runOutAge')]), '.']);
     }
   }
   if (facts.anyPots && facts.totalPots < RULES.smallPot) {
-    const onlyYourPot = facts.people[0].pot && !(facts.people[1] && facts.people[1].pot) && !(facts.savings > 0);
+    const onlyYourPot = !facts.life && facts.people[0].pot && !(facts.people[1] && facts.people[1].pot) && !(facts.savings > 0);
     sentences.small = onlyYourPot
       ? S('c.small', ['A pot of ', M('inputs.you.pot'), ' is small to spread over ', F(result.basis.years), yearsWord(result.basis.years), '. Many people with a pot this size take it as one or a few lump sums instead.'])
       : S('c.small', ['That is not much to spread over ', F(result.basis.years), yearsWord(result.basis.years), '. Many people with pots this size take them as one or a few lump sums instead.']);
@@ -324,7 +449,23 @@ export function assumedFor(result, facts) {
   const startSource = used.has(startField) || (inputs.start.kind === 'age' && used.has('start.age')) ? 'default' : 'entered';
   line('start', startField, startSource, result.basis.startAge,
     startsNow ? ['The money is taken from now, when you are ', A('phases.0.ages.you.from'), '.'] : ['The money is taken from when you are ', A('phases.0.ages.you.from'), '.']);
-  if (!startsNow && facts.anyPots && !facts.startMoved) {
+  if (facts.life && !startsNow) {
+    // on the lives: what goes in until then, and how the money is kept meanwhile (step 4 brief section 10, J8)
+    (result.saving || []).forEach((x, k) => {
+      if (!(x.payIn.total > 0)) return;
+      line('pay-in' + (x.who === 'you' ? '' : '-partner'), `${x.who}.payIn.has`, 'entered', 'yes', [M(`saving.${k}.payIn.total`), ' a month goes into ',
+        x.who === 'you' ? 'your pension' : "your partner's pension", ' until the money is first taken, rising with prices.']);
+    });
+    if (facts.payingIn) line('pay-in-as-given', null, 'rule', null, ['The figures you gave are what lands in the pension, with the tax the government adds back already inside them.']);
+    else {
+      const said = inputs.you.payIn && inputs.you.payIn.has === 'no';
+      line('nothing-paid-in', said ? 'you.payIn.has' : null, said ? 'entered' : 'rule', said ? 'no' : null, ['Nothing more goes into a pension before the money is first taken.']);
+    }
+    line('pot-invested', null, 'rule', null, ['Until then your money stays invested, kept at its mix of shares, bonds and cash every month.']);
+    line('charge-saving', null, 'rule', 0.5, ['A charge of ', F('0.5'), '% a year comes off until the money is first taken; none after that.']);
+    line('same-futures', null, 'rule', null, ['The years before the money is first taken and the years after are one future: the same markets, seen once.']);
+  }
+  if (!facts.life && !startsNow && facts.anyPots && !facts.startMoved) {
     const what = facts.anyPension && facts.savings > 0 ? 'Your pot and savings are taken as they stand' : facts.anyPension ? 'Your pot is taken as it stands' : 'Your savings are taken as they stand';
     line('pot-as-is', 'start.age', 'rule', null, [what, ' today: no growth and nothing more paid in before then.']);
   }
@@ -349,9 +490,10 @@ export function assumedFor(result, facts) {
   if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if (facts.anyPots && !facts.madeUpFutures) {
-    line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures built from market history since ', F(facts.historyStartYear), '.']);
+    line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures, each pieced together from stretches of US share returns and US price rises since ', F(facts.historyStartYear),
+      '. Share returns are cut by ', F(shareCutPercent()), '% a year to stand for shares around the world; bonds and cash are worked out from each future\'s markets.']);
   }
-  if (facts.anyPots) line('no-charges', null, 'rule', null, ['Fund and platform charges are not taken off.']);
+  if (facts.anyPots) line('no-charges', null, 'rule', null, facts.life && !facts.startsNow ? ['Fund and platform charges are not taken off once the money is being taken.'] : ['Fund and platform charges are not taken off.']);
   return out;
 }
 
@@ -363,7 +505,8 @@ export function warningsFor(result, facts) {
   // A pension holder under the earliest pension age today, named: the start was moved to the day their pension opens,
   // or they chose that day (or a later one) on the form, or — a couple — the other person's money pays while theirs
   // stays closed.
-  for (const p of facts.people.filter((x) => x.underAccessAge)) {
+  // (when those closed years set the amount, the answer's own words say this of the pension that opens first: c.none.closed)
+  for (const p of facts.people.filter((x) => x.underAccessAge && !(facts.closedYears && facts.closedYears.who.includes(x.who)))) {
     const you = p.who === 'you';
     const still = facts.lockedUntil.find((l) => l.who === p.who);
     const parts = [you ? "You can't take money from your pension until you are " : "Your partner can't take money from their pension until they are ", F(p.accessAge),
@@ -376,8 +519,25 @@ export function warningsFor(result, facts) {
   if (facts.startMoved && facts.lockedSavingsMonths > 0) {
     warn('savings-cover-gap', 'note', ['Your other savings would cover about ', F(facts.lockedSavingsMonths), facts.lockedSavingsMonths === 1 ? ' month' : ' months', ' at this level before then.']);
   }
+  // every pension closed at the start, and a bad case running out before the first opens: it is the savings that ran
+  // out, and the pension is there, untouched (A's savings-run-short, the reviewers' finding, 1 Oct 2026). Said for the
+  // amount named under "take", else the middling amount (the bad-case line's "if you took … instead").
+  if (facts.life && facts.allClosedUntil !== null && !facts.closedYears && result.status === 'ok') {
+    const t = result.take;
+    const key = t && t.runOutAge < facts.allClosedUntil ? 'take' : result.monthly.middling > result.monthly.careful && result.runOutAge.middling < facts.allClosedUntil ? 'middling' : null;
+    if (key) {
+      const first = facts.firstClosed;
+      warn('savings-run-short', 'important', ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), taking ', M(key === 'take' ? 'take.perMonth' : 'monthly.middling'), ' a month, your savings run out ',
+        ...(c ? ['when the younger of you is ', A(key === 'take' ? 'take.runOutAge' : 'runOutAge.middling')] : ['at ', A(key === 'take' ? 'take.runOutAge' : 'runOutAge.middling')]),
+        ', before ', first.who === 'you' ? 'you can touch your pension at ' : 'your partner can touch their pension at ', F(first.untilAge), '.']);
+    }
+  }
   if (result.status === 'ok') {
-    const usedUp = result.phases.findIndex((ph, i) => i > 0 && ph.fromPots <= 0 && result.phases[i - 1].fromPots > 0);
+    const found = result.phases.findIndex((ph, i) => i > 0 && ph.fromPots <= 0 && result.phases[i - 1].fromPots > 0);
+    // on the lives, only when the pot is spent by then: a bad case at the next amount up runs out in the years just before
+    // (not when the guaranteed income merely covers a small amount held down by closed years — the pot is still there)
+    const spent = !facts.life || (!facts.closedYears && found > 0 && result.monthly.middling > result.monthly.careful && result.runOutAge.middling >= result.phases[found - 1].fromAge);
+    const usedUp = spent ? found : -1;
     if (usedUp > 0) {
       warn('pot-used-before-state-pension', 'important', ['Your ', facts.anyPension ? 'pot' : 'savings', facts.anyPension ? ' is' : ' are', ' used up by ',
         ...(c ? ['when you are ', A('phases.' + usedUp + '.ages.you.from')] : [A('phases.' + usedUp + '.fromAge')]), '; after that you would have ', afterPhrase(facts), '.']);
@@ -387,7 +547,20 @@ export function warningsFor(result, facts) {
     warn('nothing-to-draw', 'note', result.status === 'none' ? ['There is no pot to draw on.'] : ['There is no pot to draw on, so this is ', afterPhrase(facts), ' only.']);
   }
   if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
-  if (!facts.startsNow && facts.anyPots && !facts.startMoved) warn('start-later', 'note', ['This leaves out any growth, and anything you pay in, between now and then.']);
+  if (!facts.life && !facts.startsNow && facts.anyPots && !facts.startMoved) warn('start-later', 'note', ['This leaves out any growth, and anything you pay in, between now and then.']);
+  if (facts.payInUnused) warn('pay-in-unused', 'note', ['With the money taken from now, nothing more goes into a pension, so what you pay in now is not counted. To count it, choose the age the money starts.']);
+  // what goes in, per person, against the yearly most that gets the tax added back (A's words; the reviewers' finding:
+  // the same pay-in warned of in A and B was silent in C)
+  ((result.payIn && result.payIn.byPerson) || []).forEach((x, k) => {
+    if (x.total * 12 > RULES.annualAllowance) {
+      warn('annual-allowance' + (x.who === 'you' ? '' : '-partner'), 'important', ['The most that can go into ', x.who === 'you' ? 'your' : "your partner's", ' pensions in a year with the tax the government adds back is ',
+        F(money(RULES.annualAllowance)), ' (less for the highest earners). ', M(`payIn.byPerson.${k}.total`), ' a month is more than that.']);
+    }
+  });
+  if (facts.life && facts.partnerRetired) {
+    warn('partner-stops-with-you', 'note', ['Your partner is past their State Pension age. These figures leave their pot alone until the money starts when you are ', A('phases.0.ages.you.from'),
+      ', and do not count anything they take before then.']);
+  }
   if (result.status === 'ok' && result.phases.some((ph) => ph.byPerson.some((b) => b.higherRate))) {
     warn('higher-rate', 'note', ['Some of this is taxed at ', F('40'), '%. Spreading it ', c ? 'between you, or ' : '', 'over more years may lower the tax.']);
   }

@@ -53,3 +53,45 @@ describe('the fast path is the reference, byte for byte — the whole set', () =
     }
   }, LONG);
 });
+
+/*
+ * Step 4: per-future pots at full size — the stop runner's band against each life's most found with today's engine
+ * (identity.js perLifeBandReference), on random saver households: a stop now in any mix with every life's pot different,
+ * and a stop after saving years on the all-shares mix (where `simulate`'s fresh bond stream plays no part).
+ */
+import { stopAtPlan, createStopRunner, bandAt } from '../saving/_saving.js';
+import { saver } from '../saving/invariants.js';
+import { perLifeBandReference } from './identity.js';
+
+describe('per-future pots: the stop runner is today\'s engine, life by life — the whole set', () => {
+  const people = fc.record({
+    age: fc.integer({ min: 40, max: 70 }), gap: fc.integer({ min: 0, max: 15 }),
+    pot: fc.constantFrom(30_000, 150_000, 600_000, 2_000_000), isa: fc.constantFrom(0, 25_000, 120_000), payIn: fc.constantFrom(0, 300, 1500),
+    risk: fc.constantFrom('cautious', 'balanced', 'adventurous'),
+    fs: fc.option(fc.record({ yearly: fc.constantFrom(6_000, 20_000), fromAge: fc.constantFrom(60, 65) }), { freq: 3 }),
+    partner: fc.option(fc.record({ age: fc.integer({ min: 40, max: 70 }), pot: fc.constantFrom(0, 80_000, 400_000), isa: fc.constantFrom(0, 30_000) }), { freq: 2 })
+  });
+
+  it('40 random households stopping now at 40 lives, every life\'s pot different, any mix', () => {
+    for (const k of fc.sample(people, { seed: SEED + 2, numRuns: 40 })) {
+      const h = saver({ age: k.age, pot: k.pot, isa: k.isa, stopAge: k.age, risk: k.risk, finalSalary: k.fs, partner: k.partner });
+      const sp = stopAtPlan(h, k.age, { ...TEST_ENV, futures: 40 });
+      if (sp.plan.lockedUntil.length || !sp.plan.runs.length) continue;
+      const runner = createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: (i, j) => sp.potsOf(i)[j].pension * (0.25 + (i * 7919 % 23) / 10) });
+      expect(perLifeBandReference(sp, runner, 0)).toEqual(bandAt(sp, runner).monthly);
+    }
+  }, LONG);
+
+  it('30 random households after saving years at 40 lives, all-shares mix (pensions open at the stop)', () => {
+    const SHARES = { equity: 1, bond: 0, cash: 0 };
+    for (const k of fc.sample(people, { seed: SEED + 3, numRuns: 30 })) {
+      const stopAge = Math.max(58, Math.min(75, k.age + k.gap));
+      const partner = k.partner ? { ...k.partner, age: Math.max(k.partner.age, 58 - (stopAge - k.age)) } : null;
+      const h = saver({ age: k.age, pot: k.pot, isa: k.isa, payIn: k.payIn, stopAge, mix: SHARES, finalSalary: k.fs, partner });
+      const sp = stopAtPlan(h, stopAge, { ...TEST_ENV, futures: 40, mix: SHARES, savingMix: SHARES });
+      if (sp.plan.lockedUntil.length || !sp.plan.runs.length) continue;
+      const runner = createStopRunner(sp);
+      expect(perLifeBandReference(sp, runner, sp.S)).toEqual(bandAt(sp, runner).monthly);
+    }
+  }, LONG);
+});

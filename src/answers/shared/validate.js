@@ -9,8 +9,11 @@
  *
  * messageIds: 'required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption', and each rule id of the schema.
  * Money text accepts "£", commas and spaces, and the short forms "420k" and "0.42m". Ages are whole years.
+ * Types (step 4 brief, conflict 25): money, age, choice, yesNo, and from step 4 `percent` (a number with up to one
+ * decimal; "%" and spaces accepted) and `count` (a whole number).
  */
-import { addYears, accessAgeOn } from './rules.js';
+import { SAVING } from './rules.js';
+import { startBeforeEveryPension, payingInPast75, peopleFromValues } from './schemaParts.js';
 
 export const MESSAGE_IDS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
 
@@ -66,8 +69,12 @@ function parseText(field, raw) {
     return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
   }
   if (typeof raw === 'number') return Number.isFinite(raw) ? { value: raw } : { error: 'notANumber' };
+  if (field.type === 'percent') {
+    const p = String(raw).replace(/[%\s]/g, '');
+    return /^\d{1,3}(\.\d)?$/.test(p) ? { value: Number(p) } : { error: 'notANumber' };
+  }
   const t = String(raw).replace(/[£,\s]/g, '');
-  if (field.type === 'age') return /^\d{1,3}$/.test(t) ? { value: Number(t) } : { error: 'notANumber' };
+  if (field.type === 'age' || field.type === 'count') return /^\d{1,3}$/.test(t) ? { value: Number(t) } : { error: 'notANumber' };
   return parseMoney(t);
 }
 
@@ -89,28 +96,71 @@ function checkTyped(field, raw) {
   if (field.type === 'yesNo') return typeof raw === 'boolean' ? { value: raw } : { error: 'notAnOption' };
   if (field.type === 'choice') return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
   if (typeof raw !== 'number' || !Number.isFinite(raw)) return { error: 'notANumber' };
-  if (field.type === 'age' && !Number.isInteger(raw)) return { error: 'notANumber' };
+  if ((field.type === 'age' || field.type === 'count') && !Number.isInteger(raw)) return { error: 'notANumber' };
+  if (field.type === 'percent' && Math.round(raw * 10) / 10 !== raw) return { error: 'notANumber' };
   return { value: raw };
 }
 
+/**
+ * The rules between fields, by id. A schema is checked against the rules it lists and no other; the error goes
+ * on the first field the rule names, and never over a problem that field already has.
+ *   C: start-not-before-now, start-not-before-access (per person: every pension closed at the start and no savings),
+ *      pay-in-past-75 and pay-in-past-75-partner (still paying in past 75 at the start), end-after-start
+ *   A: stop-not-before-now (stop.age ≥ you.age), end-after-stop
+ *   B: stop-after-now (stop.age > you.age), end-after-stop (endAge > the younger person's age at the stop)
+ *   A, B and C: pay-in-over-limit — a person's two parts together within what one person can pay in a month
+ *   (SAVING.payInCeiling, the household check's limit); on the employer's part, the box that takes the sum over
+ *   (step 4 brief section 10, J14)
+ */
 function checkRules(schema, values, env, errors) {
+  if (schema.rules.some((r) => r.id === 'pay-in-over-limit')) {
+    for (const who of ['you', 'partner']) {
+      const own = values[`${who}.payIn.own`];
+      const employer = values[`${who}.payIn.employer`];
+      const box = `${who}.payIn.employer`;
+      if (typeof own === 'number' && typeof employer === 'number' && own + employer > SAVING.payInCeiling && !errors[box]) errors[box] = 'pay-in-over-limit';
+    }
+  }
   const you = values['you.age'];
   if (typeof you !== 'number' || !env || !env.today) return;
   const put = (id) => {
     const rule = schema.rules.find((r) => r.id === id);
     if (rule && !errors[rule.fields[0]]) errors[rule.fields[0]] = id;
   };
-  const startKind = values['start.kind'];
-  const startAge = startKind === 'age' ? values['start.age'] : you;
-  if (startKind === 'age' && typeof startAge === 'number') {
-    if (startAge < you) put('start-not-before-now');
-    else if (values['you.pot'] > 0 && startAge < accessAgeOn(addYears(env.today, startAge - you))) put('start-not-before-access');
-  }
   const partner = values.household === 'couple' ? values['partner.age'] : undefined;
   const younger = typeof partner === 'number' ? Math.min(you, partner) : you;
   const endAge = values.endAge;
+
+  // C: the money starts now or at an age. A start before ANY of the household's pensions (a pot, or one still being
+  // paid into — the partner's too) can be touched is refused with nothing else to live on meanwhile; with savings, or
+  // with a pension open at the start, it is the saver's question — a closed pension stays closed until it opens and the
+  // rest pays first (step 4 brief section 10, J8), as A and B work it. Paying in is counted until 75 at most: the tax
+  // the government adds back stops there (A's and B's stop age does too).
+  const startKind = values['start.kind'];
+  const startAge = startKind === 'age' ? values['start.age'] : you;
+  if (startKind === 'age' && typeof startAge === 'number') {
+    const people = peopleFromValues(values);
+    if (startAge < you) put('start-not-before-now');
+    else if (startBeforeEveryPension(people, values.savings || 0, startAge, env.today)) put('start-not-before-access');
+    else {
+      const late = payingInPast75(people, startAge);
+      if (late.includes('you')) put('pay-in-past-75');
+      else if (late.includes('partner')) put('pay-in-past-75-partner');
+    }
+  }
   if (typeof endAge === 'number' && typeof startAge === 'number' && startAge >= you) {
     if (endAge <= younger + (startAge - you)) put('end-after-start');
+  }
+
+  // A and B: work stops at an age (A's "show me ages" has no stop age: the stop is taken as now for the end rule).
+  const stopAge = values['stop.age'];
+  if (typeof stopAge === 'number') {
+    if (stopAge < you) put('stop-not-before-now');
+    if (stopAge <= you) put('stop-after-now');
+  }
+  const stopIn = typeof stopAge === 'number' ? Math.max(0, stopAge - you) : 0;
+  if (typeof endAge === 'number' && ('stop.age' in values || values['stop.kind'] === 'ages')) {
+    if (endAge <= younger + stopIn) put('end-after-stop');
   }
 }
 
@@ -125,6 +175,9 @@ function walk(schema, flat, env, parse) {
     if (isBlank(raw)) {
       if (field.required) { errors[field.path] = 'required'; continue; }
       const d = defaultOf(schema, field, values, env);
+      // A field with no default at all (C's "still paying in?", not answered) leaves no key behind: the checked inputs
+      // of a form that never answers it are what they were before the field existed.
+      if (d === undefined) continue;
       values[field.path] = d;
       if (d !== null && d !== undefined) usedDefault.push(field.path);
       continue;

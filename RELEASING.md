@@ -37,7 +37,7 @@ by the exact Playwright version in `package.json`; every container tag in the wo
   `npx playwright install chromium webkit firefox`). `npm run e2e -- c-forum-guest` for one journey.
   The report is `playwright-report/index.html`; `test-results/` holds traces of failures, the pictures
   (`test-results/screens/`) and the counted first answer (`test-results/first-answer/<project>.json`).
-- **Pictures** (`e2e/screens.spec.js`, 25 of them): made and uploaded with the report on every push, **not
+- **Pictures** (`e2e/screens.spec.js`, 25 of C, 36 of A and B): made and uploaded with the report on every push, **not
   compared** until the owner has looked at the three screens on a real phone and approved a first set.
   To approve: run the **"approve screenshots"** workflow from the Actions page on the branch (one button).
   It makes the pictures in the official Playwright container — the only place pictures are ever made or
@@ -55,6 +55,16 @@ by the exact Playwright version in `package.json`; every container tag in the wo
 - **The wait budget** (first figure within 3 s, final within 15 s with the processor slowed four times) is
   measured by `c-forum-guest.spec.js` at full speed and multiplied by four, because Chromium can slow a
   page's processor but not a worker's; the figures are in `test-results/first-answer/`.
+- **Questions A and B (step 4)** add five journeys — `a-stop-soon` (the counted first answer to A, on the
+  published build) and `b-my-number` (A's figures carried into B), `a-couple`, `a-from-savings`, `b-coast`
+  (the counted first answer to B) — A's and B's named states in the crawl, keyboard and sameness cases, and
+  36 more pictures (61 in all). The budgets: A at most 4 typed things, 3 screens, 8 clicks; B at most 5, 3,
+  8; the first figure within 3 s and the answer step's final figure within 15 s, the optional step ("every
+  age", "two levers together") within 30 s more, arriving as `partial` — slowed four times as above. The
+  counts are in `test-results/first-answer-a/` and `first-answer-b/`. Until A and B are open on the front
+  door (the joining-up change) these scripts are skipped with the reason, as C's were.
+- **`npm run v7:cases`** rewrites all three generated case lists (C's `tests/v7/c/cases.pairs.json`, A's and
+  B's under `tests/v7/a/` and `tests/v7/b/`); the pairs tests fail when a list is out of date.
 
 ### Before a V7 release: the stopwatch line and the real-phone look
 
@@ -62,9 +72,16 @@ The machine's count guards against creep (a sixth box, a fourth screen, a slow f
 prove a real person finishes in two minutes. Once per release the owner:
 
 1. Times one real person (or himself, cold) from arriving at `/v7/` to the first figure, and writes the
-   figure here in the release commit: **stopwatch: __ s (who, device, date)**.
+   figure here in the release commit, once per question that ships:
+   - C: **stopwatch: __ s (who, device, date)**
+   - A ("When can I afford to stop work?"): **stopwatch: __ s (who, device, date)**
+   - B ("Am I saving enough?"): **stopwatch: __ s (who, device, date)**
 2. Opens the three screens (front door, your numbers, the answer) on a real phone and a real iPad, since
    Playwright's WebKit is close to Safari but is not it, and says yes before the first pictures are approved.
+3. For A and B, the same on a real phone and iPad: A's numbers, answer (a "close" verdict, a couple stopping
+   before 57, stopping now) and every-age screens; B's numbers, answer (short and on course) and two-levers
+   screens — and the four A and five B fixtures' sentences and figures read and approved — before A's and B's
+   first pictures are approved (step 4 brief 7, items 6 and 7).
 
 ## Version numbers
 

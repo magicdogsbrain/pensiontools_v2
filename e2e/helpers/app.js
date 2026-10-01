@@ -6,8 +6,10 @@
  *                     anything outside its own site.
  *   v7(page, build)   the page as a person uses it: open an address, wait for the ready mark, click, type —
  *                     counting clicks, boxes and screens — and after every step look the screen over.
- *   BUILT, waitsFor   which parts of V7 are still package 1's stubs. A script that needs a part not built yet is
- *                     skipped WITH THE REASON; the moment the stub is replaced the script runs. Nothing to switch on.
+ *   BUILT, waitsFor   which parts of V7 are still stubs or not there yet (C's package 1 stubs; for A and B, step 4's
+ *                     P0 stubs, and the packages P1–P5 and the joining-up change). A script that needs a part not built
+ *                     yet is skipped WITH THE REASON; the moment the part lands the script runs. Nothing to switch on.
+ *   v7(page, build, q) the same for question A or B: the boxes are "<q>.<path>", the list is SCHEMA_A / SCHEMA_B.
  *
  * No test waits for a length of time. `ready()` waits for #app[data-ready="1"].
  */
@@ -17,8 +19,11 @@ import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SCHEMA_C } from '../../src/answers/c/schema.js';
-import { QUESTIONS, BUILT as BUILT_QUESTIONS } from '../../src/v7/rail/questions.js';
+import { SCHEMA_A } from '../../src/answers/a/schema.js';
+import { SCHEMA_B } from '../../src/answers/b/schema.js';
+import { QUESTIONS, OPEN, BUILT as BUILT_QUESTIONS } from '../../src/v7/rail/questions.js';
 import { parse, screenName } from '../../src/v7/router/routes.js';
+import { CARRY } from '../../src/v7/state/carry.js';
 import { answerFromDraft, get, near, TODAY, FINAL_ENV, FIRST_ENV } from './answerInNode.js';
 
 export { expect, TODAY, FINAL_ENV, FIRST_ENV };
@@ -36,7 +41,11 @@ export const FIXED_NOW = '2026-09-30T08:00:00.000Z';
 
 const has = (p) => existsSync(join(REPO, p));
 const isStub = (p) => !has(p) || /STUB \(V7 package 1\)|answerCStub|tests\/v7\/stubs\//.test(readFileSync(join(REPO, p), 'utf8'));
-const statesDir = join(REPO, 'tests', 'v7', 'states', 'c');
+const says = (p, re) => has(p) && re.test(readFileSync(join(REPO, p), 'utf8'));
+const statesDirOf = (q) => join(REPO, 'tests', 'v7', 'states', q);
+const statesDir = statesDirOf('c');
+const hasStates = (q) => existsSync(statesDirOf(q)) && readdirSync(statesDirOf(q)).some((f) => f.endsWith('.json'));
+const hasScreens = (q) => ['NumbersScreen', 'AnswerScreen'].every((s) => has(`src/v7/screens/${q}/${s}.jsx`));
 
 export const BUILT = Object.freeze({
   screens: !isStub('src/v7/App.jsx'),                                       // package 4
@@ -44,7 +53,18 @@ export const BUILT = Object.freeze({
   answer: !isStub('src/answers/c/answer.js'),                               // package 2
   hooks: !isStub('src/v7/main.jsx') && has('src/v7/testing/hooks.js'),      // package 3: window.__pt in the test build
   states: existsSync(statesDir) && readdirSync(statesDir).some((f) => f.endsWith('.json')),   // package 4
-  checkScreen: has('tests/v7/render/checkScreen.js')                        // package 4
+  checkScreen: has('tests/v7/render/checkScreen.js'),                       // package 4
+  // Step 4 — questions A and B
+  aOpen: OPEN.includes('a'),                                                // joining up: A on the front door and in the addresses
+  bOpen: OPEN.includes('b'),
+  aScreens: hasScreens('a'),                                                // P5
+  bScreens: hasScreens('b'),
+  aAnswer: !isStub('src/answers/a/answer.js'),                              // P2 (P0's stub until then)
+  bAnswer: !isStub('src/answers/b/answer.js'),                              // P3
+  aStates: hasStates('a'),                                                  // P5: tests/v7/states/a/*.json
+  bStates: hasStates('b'),
+  carry: says('src/v7/state/reduce.js', /DRAFT_CARRY|'draft\/carry'/),      // P4: the hand-over between questions
+  extend: says('src/v7/state/reduce.js', /ANSWER_EXTEND|'answer\/extend'/)  // P4: one more pass for an optional step
 });
 const WAITING = {
   screens: 'the screens (package 4): src/v7/App.jsx is still the package 1 stub',
@@ -52,8 +72,24 @@ const WAITING = {
   answer: 'the real answer (package 2): src/answers/c/answer.js is still the package 1 stub',
   hooks: 'the test hooks (package 3): src/v7/testing/hooks.js',
   states: 'the named states (package 4): tests/v7/states/c/*.json',
-  checkScreen: 'checkScreen (package 4): tests/v7/render/checkScreen.js'
+  checkScreen: 'checkScreen (package 4): tests/v7/render/checkScreen.js',
+  aOpen: 'question A on the front door (step 4 joining up): src/v7/rail/questions.js OPEN does not hold \'a\' yet',
+  bOpen: 'question B on the front door (step 4 joining up): src/v7/rail/questions.js OPEN does not hold \'b\' yet',
+  aScreens: 'A\'s screens (step 4 P5): src/v7/screens/a/NumbersScreen.jsx, AnswerScreen.jsx',
+  bScreens: 'B\'s screens (step 4 P5): src/v7/screens/b/NumbersScreen.jsx, AnswerScreen.jsx',
+  aAnswer: 'the real answer to A (step 4 P2): src/answers/a/answer.js is still P0\'s stub, whose figures do not follow the inputs',
+  bAnswer: 'the real answer to B (step 4 P3): src/answers/b/answer.js is still P0\'s stub, whose figures do not follow the inputs',
+  aStates: 'A\'s named states (step 4 P5): tests/v7/states/a/*.json',
+  bStates: 'B\'s named states (step 4 P5): tests/v7/states/b/*.json',
+  carry: 'the hand-over between questions (step 4 P4): draft/carry in src/v7/state/reduce.js',
+  extend: 'one more pass for an optional step (step 4 P4): answer/extend in src/v7/state/reduce.js'
 };
+
+/** What a script about question `q` needs before it can run: the question open, its screens, the shell's A/B parts. */
+export const NEEDS = Object.freeze({
+  a: ['screens', 'shell', 'aOpen', 'aScreens'],
+  b: ['screens', 'shell', 'bOpen', 'bScreens']
+});
 
 /** Skips the test (or the describe block) while any named part is still a stub — saying which. */
 export function waitsFor(...parts) {
@@ -71,8 +107,17 @@ export const ADDRESSES = [
   { hash: '#/c/numbers?focus=you.age', screen: 'c.numbers' },
   { hash: '#/no-such-page', screen: 'front' },
   { hash: '#/plan/abc/c/answer', screen: 'front' },      // reserved for saved plans; "page not found" in this slice
-  { hash: '#/soon/c', screen: 'front' }
+  { hash: '#/soon/c', screen: 'front' },
+  // Step 4: A's and B's addresses, once they are open (brief 4.12). A built question is never "soon".
+  ...['a', 'b'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [
+    ...BUILT_QUESTIONS[q].steps.map((s) => ({ hash: `#/${q}/${s.id}`, screen: s.built ? `${q}.${s.id}` : 'notBuilt' })),
+    { hash: `#/${q}/numbers?focus=you.age`, screen: `${q}.numbers` },
+    { hash: `#/soon/${q}`, screen: 'front' }
+  ])
 ];
+
+/** Where the front door's link for each question leads: its numbers step when open, else "soon" (L6). */
+export const FRONT_LINKS = QUESTIONS.filter((q) => q.id !== 'c').map((q) => (q.built ? `#/${q.id}/numbers` : `#/soon/${q.id}`));
 
 /**
  * A LOCAL aid while another package's screens are mid-change: E2E_IGNORE=<regexp> drops matching problems from
@@ -214,6 +259,21 @@ export function retiredWording(text) {
   return found;
 }
 
+/**
+ * No countdown anywhere in A or B (step 4 brief conflict 47, the `saver` scope's `countdown-any`): a saver is shown
+ * ages, never "in N years", and nobody is shown "15 years to go". Returns what was found.
+ */
+export const COUNTDOWN = /\b\d+ (more )?(years?|months?) (to go|until|till|before|from now)\b/i;
+export function saverWording(text) {
+  const t = String(text);
+  const found = [];
+  const c = COUNTDOWN.exec(t);
+  if (c) found.push(c[0]);
+  const wait = /\bin \d{1,2} years(['’] time)?\b/i.exec(t);
+  if (wait) found.push(wait[0]);
+  return found;
+}
+
 /** Every number the screen draws from the answer: [{ key, value, text }]. */
 export const drawnValues = (page) => page.$$eval('#app [data-key][data-value]', (els) => els.map((el) => ({ key: el.getAttribute('data-key'), value: el.getAttribute('data-value'), text: el.textContent.trim() })));
 
@@ -272,17 +332,26 @@ export async function checkScreenOnPage(page) {
 
 // ---- the page as a person uses it --------------------------------------------------------------------------
 
-const FIELD = new Map(SCHEMA_C.fields.map((f) => [f.path, f]));
+export const SCHEMAS = Object.freeze({ c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B });
+const FIELDS = Object.fromEntries(Object.entries(SCHEMAS).map(([q, s]) => [q, new Map(s.fields.map((f) => [f.path, f]))]));
 
 class V7Page {
-  constructor(page, build) {
+  constructor(page, build, q = 'c') {
     this.page = page;
     this.build = build;                                    // 'prod' | 'test'
     this.base = (build === 'prod' ? PROD : TEST) + '/v7/';
+    this.q = q;                                            // the question the boxes belong to: 'c' | 'a' | 'b'
     this.counts = { clicks: 0, fields: new Set(), screens: [] };
-    this.typed = {};                                       // what this test typed, by field path — the engine check's inputs
+    this.typedBy = { c: {}, a: {}, b: {} };                // what this test typed, by question and field path — the engine check's inputs
     this.app = page.locator('#app');
   }
+
+  /** What was typed for the question in hand. */
+  get typed() { return this.typedBy[this.q]; }
+  set typed(v) { this.typedBy[this.q] = v; }
+
+  /** Work on another question's boxes from here on (a hand-over, or a link from the front door). */
+  as(q) { this.q = q; return this; }
 
   /** Fix the date (timers keep running) and open an address. The worker gets the date from the page, as an input. */
   async open(hash = '#/') {
@@ -307,15 +376,27 @@ class V7Page {
 
   /** Follow a rail link to a step. On a phone the rail is a sheet, pulled up from its line first. */
   async rail(step) {
-    const link = this.id(`rail.c.${step}`);
+    const q = this.q;
+    const link = this.id(`rail.${q}.${step}`);
     if (!(await link.isVisible()) && (await this.id('rail.line').isVisible())) await this.click('rail.line');
-    await this.click(`rail.c.${step}`);
-    const s = BUILT_QUESTIONS.c.steps.find((x) => x.id === step);
-    await this.at(s && s.built ? `c.${step}` : 'notBuilt');
+    await this.click(`rail.${q}.${step}`);
+    const s = BUILT_QUESTIONS[q] && BUILT_QUESTIONS[q].steps.find((x) => x.id === step);
+    await this.at(s && s.built ? `${q}.${step}` : 'notBuilt');
   }
 
   /** Nothing is running and any answer shown is final. */
   async ready(timeout = 30_000) { await expect(this.app).toHaveAttribute('data-ready', '1', { timeout }); }
+
+  /**
+   * An optional step's extra pass (A's every age, B's grid): the page says `partial` while it runs, with the
+   * answer step's figures still on the screen, then `final` and ready. Returns whether `partial` was seen.
+   */
+  async partialThenFinal(timeout = 120_000) {
+    const seen = await this.page.waitForSelector('#app[data-answer="partial"], #app[data-ready="1"]', { timeout }).then((el) => el.getAttribute('data-answer'));
+    await this.ready(timeout);
+    await expect(this.app).toHaveAttribute('data-answer', 'final');
+    return seen === 'partial';
+  }
 
   screen() { return this.page.locator('#app [data-screen]').getAttribute('data-screen'); }
 
@@ -344,20 +425,21 @@ class V7Page {
 
   /** Set one field of the input list the way its kind of control is used. */
   async set(path, value, { delay = 0 } = {}) {
-    const f = FIELD.get(path);
-    if (!f) throw new Error(`no such field: ${path}`);
+    const q = this.q;
+    const f = FIELDS[q].get(path);
+    if (!f) throw new Error(`no such field of question ${q}: ${path}`);
     if (path === 'household') {
-      const open = await this.id('c.partner.age').isVisible();
-      if (value === 'couple' && !open) await this.click('c.action.addPartner');
-      if (value === 'single' && open) await this.click('c.action.removePartner');
+      const open = await this.id(`${q}.partner.age`).isVisible();
+      if (value === 'couple' && !open) await this.click(`${q}.action.addPartner`);
+      if (value === 'single' && open) await this.click(`${q}.action.removePartner`);
     } else {
-      if (f.group === 'more' && !(await this.page.locator(`[data-testid^="c.${path}"]`).first().isVisible())) await this.click('c.action.moreDetail');
-      if (f.type === 'choice') await this.click(`c.${path}.${value}`);
-      else if (f.type === 'yesNo') await this.click(`c.${path}.${value ? 'yes' : 'no'}`);
+      if (f.group === 'more' && !(await this.page.locator(`[data-testid^="${q}.${path}"]`).first().isVisible())) await this.click(`${q}.action.moreDetail`);
+      if (f.type === 'choice') await this.click(`${q}.${path}.${value}`);
+      else if (f.type === 'yesNo') await this.click(`${q}.${path}.${value ? 'yes' : 'no'}`);
       else {
-        const box = this.id(`c.${path}`);
+        const box = this.id(`${q}.${path}`);
         if ((await box.inputValue()) !== '') { this.counts.clicks += 1; await box.click(); await box.fill(''); }
-        await this.type(`c.${path}`, value, { delay, path });
+        await this.type(`${q}.${path}`, value, { delay, path });
       }
     }
     this.counts.fields.add(path);
@@ -366,16 +448,31 @@ class V7Page {
 
   /** Several fields of the numbers step, in the order of the input list. `take` (the try-a-change row) is never on that step: a journey sets it on the answer. */
   async fill(values, opts) {
-    for (const f of SCHEMA_C.fields) if (f.group !== 'try' && Object.prototype.hasOwnProperty.call(values, f.path)) await this.set(f.path, values[f.path], opts);
+    for (const f of SCHEMAS[this.q].fields) if (f.group !== 'try' && Object.prototype.hasOwnProperty.call(values, f.path)) await this.set(f.path, values[f.path], opts);
   }
 
   /** The answer Node gives for what this test has typed (defaults filled in by the same parseDraft the page uses). */
-  engine(env = FINAL_ENV) { return answerFromDraft(this.typed, env); }
+  engine(env = FINAL_ENV, q = this.q) { return answerFromDraft(this.typedBy[q], env, q); }
+
+  /** What the page's own draft holds for a question (the test build only): the values as text, by path. */
+  async draftValues(q = this.q) {
+    return this.page.evaluate((qq) => { const s = window.__pt.getState(); return s.draft && s.draft[qq] ? s.draft[qq].values : null; }, q);
+  }
 
   /** Everything that is checked without being asked, after every step. `answer`: compare the drawn numbers with it. */
   async check({ answer = null, before = null } = {}) {
     const problems = [...(await lookOver(this.page)), ...(await checkScreenOnPage(this.page))];
     if (answer) problems.push(...againstEngine(await drawnValues(this.page), answer, { before }));
+    // A and B: no countdown in any state; the retired view under the retired rules as well.
+    const view = await this.page.evaluate(() => {
+      const s = document.querySelector('#app [data-screen]');
+      const app = document.getElementById('app');
+      return { question: s ? s.getAttribute('data-question') || (s.getAttribute('data-screen') || '').split('.')[0] : null, retired: !!document.querySelector('#app [data-view="retired"]'), text: app ? app.innerText : '' };
+    });
+    if (view.question === 'a' || view.question === 'b') {
+      for (const w of saverWording(view.text)) problems.push(`a countdown on a ${view.question.toUpperCase()} screen: "${w}"`);
+      if (view.retired) for (const w of retiredWording(view.text)) problems.push(`the retired view says "${w}"`);
+    }
     expect(problems.filter(notIgnored), `the ${await this.screen()} screen`).toEqual([]);
   }
 
@@ -413,7 +510,7 @@ class V7Page {
   }
 }
 
-export const v7 = (page, build) => new V7Page(page, build);
+export const v7 = (page, build, q = 'c') => new V7Page(page, build, q);
 
 /** Write a small record under the run's output folder (test-results/, uploaded with the report), e.g. the counted first answer. */
 export function record(testInfo, relPath, data) {
@@ -423,16 +520,42 @@ export function record(testInfo, relPath, data) {
   return file;
 }
 
-/** The three worked fixtures as a person would type them (package 2's files win when they exist). */
+/** The worked fixtures as a person would type them (the answer packages' files win when they exist). */
 const FALLBACK = {
   // Single, 58, about £250,000; everything else left alone.
   F1: { 'you.pot': '250000', 'you.age': '58' },
   // A couple, 62 and 60: a final-salary pension of £9,000 from 65; the partner has a pot of £150,000.
   F2: { household: 'couple', 'you.pot': '400000', 'you.age': '62', 'you.finalSalary.has': true, 'you.finalSalary.yearly': '9000', 'you.finalSalary.fromAge': '65', 'partner.age': '60', 'partner.pot': '150000' },
   // Already retired: 68, State Pension and a final-salary pension already being paid, lower risk, spending £2,200 a month.
-  F3: { 'you.pot': '180000', 'you.age': '68', 'you.statePension.kind': 'forecast', 'you.statePension.yearly': '11000', 'you.finalSalary.has': true, 'you.finalSalary.yearly': '6000', 'you.finalSalary.fromAge': '60', risk: 'cautious', take: '2200' }
+  F3: { 'you.pot': '180000', 'you.age': '68', 'you.statePension.kind': 'forecast', 'you.statePension.yearly': '11000', 'you.finalSalary.has': true, 'you.finalSalary.yearly': '6000', 'you.finalSalary.fromAge': '60', risk: 'cautious', take: '2200' },
+
+  // Step 4 (P2's and P3's fixture files replace these; answer-A-and-B.md 1.12, 2.12 and test plan 9 are the sources).
+  // A1 — stopping soon: 55, £300,000 with £800 a month going in, £60,000 in ISAs, stop at 60 on £2,000 a month.
+  A1: { 'you.age': '55', 'you.pot': '300000', 'you.payIn.total': '800', savings: '60000', 'stop.age': '60', 'spend.amount': '2000' },
+  // A2 — a couple before 57: 52 and 50, £220,000 and £90,000, £80,000 in ISAs, both stop when you are 55 (closed until 57).
+  A2: { household: 'couple', 'you.age': '52', 'you.pot': '220000', 'you.payIn.total': '700', savings: '80000', 'stop.age': '55', 'spend.amount': '3000', 'partner.age': '50', 'partner.pot': '90000', 'partner.payIn.total': '300' },
+  // A3 — forced out at 59: £180,000, £15,000 savings, a final-salary pension of £6,000 from 60, stop now.
+  A3: { 'you.age': '59', 'you.pot': '180000', savings: '15000', 'you.finalSalary.has': true, 'you.finalSalary.yearly': '6000', 'you.finalSalary.fromAge': '60', 'stop.age': '59', 'spend.amount': '1800' },
+  // A4 — stopping at 55 from savings: 47, £310,000, £1,500 in, £95,000 saved with £800 a month more, adventurous.
+  A4: { 'you.age': '47', 'you.pot': '310000', 'you.payIn.total': '1500', savings: '95000', 'stop.age': '55', 'spend.amount': '2200', savingsIn: '800', savingRisk: 'adventurous', risk: 'adventurous' },
+  // B1 — my number: 45, £120,000, £550 a month in all, stop at 60 on the moderate level.
+  B1: { 'you.age': '45', 'you.pot': '120000', 'you.payIn.total': '550', 'stop.age': '60', 'spend.kind': 'level', 'spend.level': 'moderate' },
+  // B2 — could I ease off: 35, £40,000, £400 a month, stop at 65 on £2,000 a month, adventurous while saving.
+  B2: { 'you.age': '35', 'you.pot': '40000', 'you.payIn.total': '400', 'stop.age': '65', 'spend.amount': '2000', savingRisk: 'adventurous' },
+  // B3 — a late start: 48, £350,000, £700 in, stop at 60 on £2,500.
+  B3: { 'you.age': '48', 'you.pot': '350000', 'you.payIn.total': '700', 'stop.age': '60', 'spend.amount': '2500' },
+  // B4 — young: 25, £5,000, £300 in, stop at 67 on £2,000.
+  B4: { 'you.age': '25', 'you.pot': '5000', 'you.payIn.total': '300', 'stop.age': '67', 'spend.amount': '2000' },
+  // B5 — a couple: 50 and 48, £200,000 and £80,000, £900 and £300 in, stop at 62 on £3,200.
+  B5: { household: 'couple', 'you.age': '50', 'you.pot': '200000', 'you.payIn.total': '900', 'stop.age': '62', 'spend.amount': '3200', 'partner.age': '48', 'partner.pot': '80000', 'partner.payIn.total': '300' }
 };
-const FIXTURE_FILES = { F1: 'F1-forum-guest.json', F2: 'F2-couple.json', F3: 'F3-retired.json' };
+const FIXTURE_FILES = {
+  F1: 'c/F1-forum-guest.json', F2: 'c/F2-couple.json', F3: 'c/F3-retired.json',
+  A1: 'a/A1-stop-soon.json', A2: 'a/A2-couple-before-57.json', A3: 'a/A3-forced-out.json', A4: 'a/A4-from-savings.json',
+  B1: 'b/B1-my-number.json', B2: 'b/B2-coast.json', B3: 'b/B3-late-start.json', B4: 'b/B4-young.json', B5: 'b/B5-couple.json'
+};
+/** The question a fixture belongs to, from its name: F → C, A → A, B → B. */
+export const questionOf = (name) => ({ F: 'c', A: 'a', B: 'b' })[String(name)[0]] || 'c';
 
 function flat(obj, prefix = '', out = {}) {
   for (const [k, v] of Object.entries(obj || {})) {
@@ -442,24 +565,162 @@ function flat(obj, prefix = '', out = {}) {
   return out;
 }
 
+/** The fixture file's contents, or null while the answer package has not written it. */
+export function fixtureFile(name) {
+  const file = join(REPO, 'tests', 'v7', 'fixtures', FIXTURE_FILES[name]);
+  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
+}
+
 /**
  * What to type for a fixture: only the fields a person would have to touch (values that differ from the
  * default are typed; the rest are left alone, which is the point of the journey).
  */
 export function fixtureTyping(name) {
-  const file = join(REPO, 'tests', 'v7', 'fixtures', 'c', FIXTURE_FILES[name]);
-  if (!existsSync(file)) return { ...FALLBACK[name] };
-  const inputs = JSON.parse(readFileSync(file, 'utf8')).inputs;
+  const q = questionOf(name);
+  const byPath = FIELDS[q];
+  const data = fixtureFile(name);
+  const inputs = data && data.inputs;
   if (!inputs) return { ...FALLBACK[name] };
   const out = {};
   for (const [path, value] of Object.entries(flat(inputs))) {
-    const f = FIELD.get(path);
+    const f = byPath.get(path);
     if (!f || value === null || value === undefined) continue;
     const isDefault = Object.prototype.hasOwnProperty.call(f, 'default') && typeof f.default !== 'object' && f.default === value;
     if (isDefault || (f.default && typeof f.default === 'object')) continue;      // a default by rule (the start) is left alone
     out[path] = typeof value === 'boolean' ? value : String(value);
   }
   return out;
+}
+
+/** The fields a question needs before its answer step can run, among those that apply to what is typed (brief 4.1: A four, B five). */
+export function mustFill(q, typed) {
+  const need = { a: ['you.age', 'you.pot', 'stop.age', 'spend.amount'], b: ['you.age', 'you.pot', 'you.payIn.total', 'stop.age', 'spend.amount'], c: ['you.pot', 'you.age'] }[q];
+  // A spending level picked instead of an amount: the amount box does not apply, the level is the typed thing.
+  return need.map((p) => (p === 'spend.amount' && typed['spend.kind'] === 'level' ? 'spend.level' : p));
+}
+
+// ---- step 4: the journeys' shared parts ---------------------------------------------------------------------
+
+/** The budgets of the counted first answer (brief 7 item 7; test plan 11.2): per question, from the front door. */
+export const FIRST_ANSWER_BUDGET = Object.freeze({
+  a: { mustFill: 4, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 },
+  b: { mustFill: 5, screens: 3, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 }
+});
+export const SLOWDOWN = 4;           // Chromium cannot slow a worker: waits are measured at full speed × 4
+export const KEY_DELAY = 120;        // one key at a time, as a person types (catches a box that loses its place)
+
+/**
+ * What the hand-over `from → to` puts into the target's draft, worked out from what was typed (the declared map,
+ * src/v7/state/carry.js — the same data the reducer reads). A figure from the source answer is carried as text.
+ */
+export function carriedDraft(values, from, to, sourceAnswer = null) {
+  const out = {};
+  for (const [src, dst] of CARRY[`${from}→${to}`]) {
+    if (typeof src === 'string') { if (Object.prototype.hasOwnProperty.call(values, src)) out[dst] = values[src]; }
+    else if (src && Object.prototype.hasOwnProperty.call(src, 'fixed')) out[dst] = src.fixed;
+    else if (src && src.result) { const v = get(sourceAnswer, src.result); if (v !== undefined && v !== null) out[dst] = String(v); }
+  }
+  return out;
+}
+
+/** Every sentence text an answer holds (the screen draws sentences only from the answer, never its own). */
+export function sentenceTexts(answer) {
+  const out = [];
+  const walk = (v) => {
+    if (!v || typeof v !== 'object') return;
+    if (typeof v.text === 'string' && Array.isArray(v.parts)) { out.push(v.text); return; }
+    for (const x of Object.values(v)) walk(x);
+  };
+  walk(answer && answer.sentences);
+  return out;
+}
+
+/** The whitespace of drawn text made plain, so a sentence split over lines still reads as one. */
+const plain = (t) => String(t).replace(/\s+/g, ' ').trim();
+
+/**
+ * A's headline (brief 4.13): one section[data-headline="verdict"] whose band carries data-verdict = the answer's
+ * verdict with visible words, a [data-sentence="verdict"] that is one of the answer's own sentences, and the
+ * bad-case line.
+ */
+export async function expectHeadlineA(page, answer) {
+  const headline = page.locator('#app section[data-headline="verdict"]');
+  await expect(headline).toHaveCount(1);
+  await expect(headline).toBeVisible();
+  const band = headline.locator('[data-verdict]').first();
+  await expect(band).toHaveAttribute('data-verdict', answer.headline.verdict);
+  expect(plain(await band.innerText()).length, 'the verdict is words, not only a colour').toBeGreaterThan(0);
+  const said = plain(await headline.locator('[data-sentence="verdict"]').first().innerText());
+  expect(sentenceTexts(answer).map(plain), 'the verdict sentence is the answer\'s own').toContain(said);
+  expect(plain(await headline.innerText())).toContain(plain(answer.sentences.bad.text));
+}
+
+/**
+ * B's headline (brief 4.13; one test everywhere, 1 Oct 2026): data-headline="payIn.needed" unless on course — the
+ * pay-in is B's answer, and the only headline — with the number after it as a guide in a smaller block that is not a
+ * headline (data-guide="number.careful"; the reviewers' finding, 1 Oct 2026); on course, or with no pay-in to name,
+ * data-headline="number.careful" when the number is above £0 (no pension pot needed, or none enough, is said in words
+ * with no number headline). Each holds one of the answer's sentences; the number is drawn from the answer.
+ */
+export async function expectHeadlinesB(page, answer) {
+  const hasNumber = !!answer.number && answer.number.careful > 0;
+  const hasPayIn = !answer.onCourse && !!answer.payIn && typeof answer.payIn.needed === 'number' && !!answer.sentences.payInHead;
+  const headNumber = page.locator('#app [data-headline="number.careful"]');
+  const guide = page.locator('#app [data-guide="number.careful"]');
+  const number = hasPayIn ? guide : headNumber;
+  const payIn = page.locator('#app [data-headline="payIn.needed"]');
+  await expect(headNumber).toHaveCount(hasNumber && !hasPayIn ? 1 : 0);
+  await expect(guide).toHaveCount(hasNumber && hasPayIn ? 1 : 0);
+  await expect(payIn).toHaveCount(hasPayIn ? 1 : 0);
+  const texts = sentenceTexts(answer).map(plain);
+  for (const h of [...(hasPayIn ? [payIn] : []), ...(hasNumber ? [number] : [])]) {
+    await expect(h).toBeVisible();
+    const sentences = await h.locator('[data-sentence]').allInnerTexts();
+    expect(sentences.length, 'each headline has its sentence').toBeGreaterThan(0);
+    for (const t of sentences) expect(texts, 'a headline sentence is the answer\'s own').toContain(plain(t));
+  }
+  if (hasNumber) await expect(number.locator('[data-key="number.careful"]').first()).toHaveAttribute('data-value', String(answer.number.careful));
+}
+
+/**
+ * Press the question's "show" button and time the answer: the first figure (100 futures) and the final one.
+ * The page's own marks are watched (waitForSelector follows the DOM), not polled.
+ */
+export async function askAndTime(app, button) {
+  await app.click(button);
+  const asked = Date.now();
+  await app.page.waitForSelector('#app[data-answer="first"], #app[data-answer="final"]', { timeout: 60_000 });
+  const first = Date.now();
+  await app.page.waitForSelector('#app[data-ready="1"]', { timeout: 120_000 });
+  const final = Date.now();
+  return { firstMs: first - asked, finalMs: final - asked };
+}
+
+/**
+ * The stopwatch can be jostled by the other tests on the same machine (the crawl and the sameness run work out
+ * 1,000-future answers at the same time). When a reading is over budget, read it once more on a quiet page — a
+ * reload at the answer address keeps what was typed and works the answer out again from cold, worker start-up
+ * included — and keep the better of the two, both written down (as C's J1 does).
+ */
+export async function secondReading(app, times, budget) {
+  if (times.firstMs * SLOWDOWN <= budget.firstMs && times.finalMs * SLOWDOWN <= budget.finalMs) return times;
+  await app.page.reload();
+  const asked = Date.now();
+  await app.page.waitForSelector('#app[data-answer="first"], #app[data-answer="final"]', { timeout: 60_000 });
+  const first = Date.now();
+  await app.page.waitForSelector('#app[data-ready="1"]', { timeout: 120_000 });
+  const final = Date.now();
+  return {
+    firstMs: Math.min(times.firstMs, first - asked), finalMs: Math.min(times.finalMs, final - asked),
+    firstReading: { ...times }, secondReading: { firstMs: first - asked, finalMs: final - asked, note: 'the first reading was over budget; this one is a reload of the answer address on a quiet page' }
+  };
+}
+
+/** A fixture's words that must never be on a screen (test plan 9, P4), on top of the banned list. */
+export const NEVER_ON_SCREEN = ['bridge', 'FIRE', 'years to go', 'countdown', 'contribution', 'on track'];
+export async function neverSaid(page, words = NEVER_ON_SCREEN) {
+  const text = await page.locator('#app').innerText();
+  return words.filter((w) => (w === w.toUpperCase() ? new RegExp(`\\b${w}\\b`).test(text) : text.toLowerCase().includes(w.toLowerCase())));
 }
 
 // ---- accessibility (test plan 8.3) -------------------------------------------------------------------------
@@ -485,25 +746,29 @@ export async function axeProblems(page) {
 
 // ---- named states (the test build) -------------------------------------------------------------------------
 
-/** The names of the named states package 4 keeps in tests/v7/states/c/. */
-export function namedStates() {
-  if (!BUILT.states) return [];
-  return readdirSync(statesDir).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)).sort();
+/** The names of the named states for a question: C's (package 4), A's and B's (step 4 P5) in tests/v7/states/<q>/. */
+export function namedStates(q = 'c') {
+  const ready = q === 'c' ? BUILT.states : hasStates(q);
+  if (!ready) return [];
+  return readdirSync(statesDirOf(q)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => f.slice(0, -5)).sort();   // _made-with.json is a note, not a state
 }
 
-export function readState(name) {
-  const data = JSON.parse(readFileSync(join(statesDir, `${name}.json`), 'utf8'));
+export function readState(name, q = 'c') {
+  const data = JSON.parse(readFileSync(join(statesDirOf(q), `${name}.json`), 'utf8'));
   return data && data.state && data.state.route ? data.state : data;
 }
 
 /**
  * Draw a state through window.__pt (the test build). A state whose answer is final, or that shows no answer,
- * is waited for until the ready mark; a state frozen part-way ("working", "first", "failed") is only drawn.
+ * is waited for until the ready mark; a state frozen part-way ("working", "first", "failed", an optional step's
+ * pass still running) is only drawn.
  */
 export async function drawState(page, state) {
   await page.evaluate((s) => window.__pt.setState(s), state);
   await expect(page.locator('#app [data-screen]')).toBeVisible();
-  const status = state.answers && state.answers.c ? state.answers.c.status : 'idle';
-  if (status === 'final' || status === 'idle') await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
+  // Ready only when nothing in the state is still being worked out — whichever question the address shows.
+  const held = Object.values((state && state.answers) || {});
+  const settled = held.every((a) => !a || a.status === 'idle' || (a.status === 'final' && !a.extending));
+  if (settled) await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
   await page.evaluate(() => document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())))));
 }

@@ -149,22 +149,26 @@ describe('3 — the start-age stepper', () => {
     expect(now.querySelector('[data-typed="start.age"]').textContent).toBe(`${C.answer.tryStartNow} (58)`);
   });
   it('rests while an answer is pending or being worked out, so a double tap cannot step twice', () => {
+    // Resting is aria-disabled with the press ignored, never `disabled`: a greyed-out button drops the keyboard's
+    // place to the page (the review of A and B, 1 Oct 2026; tests/v7/screens/abFixes.test.js 2).
     const pending = load('answer-F1');
     pending.draft.c.values = { ...pending.draft.c.values, 'start.kind': 'age', 'start.age': '59' };
     for (const s of [pending, load('answer-updating'), load('answer-first')]) {
       const root = renderScreen(s);
-      for (const id of ['c.try.start.up', 'c.try.start.down', 'c.try.pot.up', 'c.try.pot.down']) expect(one(root, id).disabled, id).toBe(true);
+      for (const id of ['c.try.start.up', 'c.try.start.down', 'c.try.pot.up', 'c.try.pot.down']) expect(one(root, id).getAttribute('aria-disabled'), id).toBe('true');
     }
     const final = renderScreen(load('answer-F1'));
     expect(one(final, 'c.try.start.up').disabled).toBe(false);
     expect(one(final, 'c.try.pot.up').disabled).toBe(false);
+    expect(one(final, 'c.try.start.up').getAttribute('aria-disabled')).toBe(null);
+    expect(one(final, 'c.try.pot.up').getAttribute('aria-disabled')).toBe(null);
   });
   it('on a live page a press moves the figure at once and the buttons rest until the answer is final', () => {
     const page = live(load('answer-F1'));
     try {
       one(page.root, 'c.try.start.up').click();
       expect(page.root.querySelector('[data-typed="start.age"]').textContent).toBe('59');
-      expect(one(page.root, 'c.try.start.up').disabled).toBe(true);
+      expect(one(page.root, 'c.try.start.up').getAttribute('aria-disabled')).toBe('true');
       one(page.root, 'c.try.start.up').click();                // a second tap does nothing
       expect(page.store.getState().draft.c.values['start.age']).toBe('59');
       expect(page.root.querySelector('[data-typed="you.pot"]')).toBe(null);   // the pot is still the answer's
@@ -400,7 +404,7 @@ describe('12 — "What next?" for someone already drawing their State Pension', 
     const groups1 = [...f1.querySelectorAll('[data-region="next"] .next-group')].map((el) => el.getAttribute('data-testid'));
     expect(groups1).toEqual(['c.next.working', 'c.next.stopped']);
     // Every question is still offered, whichever comes first.
-    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/c/keep', '#/soon/a', '#/soon/b', '#/soon/d']);
+    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/a/numbers?focus=stop.age', '#/b/numbers?focus=you.payIn.total', '#/c/keep', '#/soon/d']);
   });
   it('reads the answer, never the age alone: a start later than now keeps "Still working?" first', () => {
     const state = load('answer-F3');

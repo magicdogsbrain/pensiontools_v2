@@ -6,10 +6,12 @@
  *  - the forum guest's path once more, with the policy as the only thing looked at (the worker is where a
  *    policy would bite);
  *  - the published build carries no test hook: window.__pt is undefined and no file in it holds the text.
+ *  - step 4: A's and B's addresses are in the walk above as soon as they are open (helpers/app.js ADDRESSES), and
+ *    each question's first answer — and A's optional step, one more pass in the worker — breaks no policy.
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7, waitsFor, ADDRESSES, BUILT, DIST, PROD, TEST, REPO } from './helpers/app.js';
+import { test, expect, v7, waitsFor, fixtureTyping, mustFill, ADDRESSES, NEEDS, BUILT, DIST, PROD, TEST, REPO } from './helpers/app.js';
 import { parseHeaders, headersFor } from './helpers/serve.mjs';
 
 const PUBLISHED_V7 = join(DIST, 'prod', 'v7');
@@ -89,6 +91,29 @@ test.describe('the published build of /v7/', () => {
     await expect(page.locator('[data-headline="monthly.careful"]')).toBeVisible();
     await expect(page.locator('#app')).toHaveAttribute('data-answer', 'final');
   });
+
+  for (const q of ['a', 'b']) {
+    test(`question ${q.toUpperCase()}'s first answer breaks no policy (the worker, the extra pass)`, async ({ page }) => {
+      waitsFor(...NEEDS[q]);
+      test.setTimeout(180_000);
+      const typing = fixtureTyping(q === 'a' ? 'A1' : 'B3');
+      const app = v7(page, 'prod', q);
+      await app.open(`#/${q}/numbers`);
+      await app.ready();
+      await app.fill(Object.fromEntries(mustFill(q, typing).map((p) => [p, typing[p]])));
+      await app.click(`${q}.action.show`);
+      await app.at(`${q}.answer`);
+      await app.ready(120_000);
+      await expect(page.locator('#app')).toHaveAttribute('data-answer', 'final');
+      // B: the pay-in when short (its one headline, the number a guide under it), the number when on course
+      await expect(page.locator(q === 'a' ? '#app [data-headline="verdict"]' : '#app [data-headline="payIn.needed"], #app [data-headline="number.careful"]').first()).toBeVisible();
+      if (BUILT.extend) {
+        await app.rail(q === 'a' ? 'ages' : 'choices');
+        await app.partialThenFinal(180_000);
+      }
+      // The `watch` fixture fails this test if anything was blocked or logged.
+    });
+  }
 
   test('carries no test hook', async ({ page }) => {
     const app = v7(page, 'prod');

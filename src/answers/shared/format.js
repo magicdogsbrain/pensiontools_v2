@@ -20,6 +20,11 @@ export function ageText(n) {
   return String(Math.floor(Number(n) || 0));
 }
 
+/** A pot → the nearest £1,000 with the £ sign: 468,250 → '£468,000'; 500 → '£1,000'; 0 → '£0' (step 4 brief, conflict 39). */
+export function pot(n) {
+  return money(Math.round(Math.abs(Number(n) || 0) / 1000) * 1000);
+}
+
 /**
  * The share of futures that lasted (0–1) → the words (language guide 3.4, "Counting out of 10").
  * `only` is true when the count is below the 9 the careful amount is built on; `count` is the whole number
@@ -41,17 +46,30 @@ export function outOfTen(share) {
   return { words: 'in none of the futures we tried', only: true, count: null };
 }
 
+/**
+ * Lasted in 85% to under 90%: outOfTen's count reads 9, but the careful line — 9 futures in 10 — is not reached. Every
+ * question says it "just under 9", so a count never reads as the careful 9 when it is not (C, A and B alike).
+ */
+export function underNine(share) {
+  return outOfTen(share).count === 9 && Number(share) < 0.9;
+}
+
+/** outOfTen's words, with "in just under 9 futures out of 10" for 85% to under 90%. */
+export function lastedText(share) {
+  return underNine(share) ? 'in just under 9 futures out of 10' : outOfTen(share).words;
+}
+
 /** Read a dotted key out of a result: get(answer, 'phases.1.shown.fromPots'). */
 export function get(obj, key) {
   return String(key).split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
-/** One part of a sentence as text: a string, { key, kind: 'money' | 'age' } or { fixed }. */
+/** One part of a sentence as text: a string, { key, kind: 'money' | 'age' | 'pot' } or { fixed }. */
 export function partText(part, result) {
   if (typeof part === 'string') return part;
   if (part && 'fixed' in part) return String(part.fixed);
   const value = get(result, part.key);
-  return part.kind === 'age' ? ageText(value) : money(value);
+  return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : money(value);
 }
 
 /** The rule of the contract: a sentence's text === its parts joined, each key formatted here. */

@@ -9,9 +9,9 @@ import { screenName } from './router/routes.js';
 export function App({ state, dispatch }) {
   const name = screenName(state.route);
   const screen = SCREENS[name] || SCREENS.front;
-  const { question = null, rail = false, full = false, content } = screen(state, dispatch);
+  const { question = null, rail = false, full = false, view = null, content } = screen(state, dispatch);
   return (
-    <Shell state={state} dispatch={dispatch} name={name} question={question} rail={rail} full={full}>
+    <Shell state={state} dispatch={dispatch} name={name} question={question} rail={rail} full={full} view={view}>
       {content}
     </Shell>
   );

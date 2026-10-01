@@ -1,0 +1,1196 @@
+{
+  "id": "B3",
+  "name": "a late start: one person, 58, £90,000 and £15,000 in savings, £300 a month, £1,800 a month from 65",
+  "inputs": {
+    "you": {
+      "pot": 90000,
+      "age": 58,
+      "payIn": {
+        "total": 300
+      }
+    },
+    "savings": 15000,
+    "stop": {
+      "age": 65
+    },
+    "spend": {
+      "amount": 1800
+    }
+  },
+  "env": {
+    "today": "2026-09-30",
+    "futures": 40,
+    "seed": 0
+  },
+  "expect": {
+    "status": "ok",
+    "values": {
+      "stop.age": 65,
+      "years.saving": 7,
+      "onCourse": false
+    },
+    "texts": [
+      "by age 65",
+      "£300 a month as you do now"
+    ]
+  },
+  "approved": {
+    "by": null,
+    "date": null,
+    "note": "Awaiting the owner's one-time read of the sentences and figures."
+  },
+  "pinned": {
+    "status": "ok",
+    "inputs": {
+      "household": "single",
+      "you": {
+        "pot": 90000,
+        "age": 58,
+        "statePension": {
+          "kind": "full"
+        },
+        "finalSalary": {
+          "has": false
+        },
+        "payIn": {
+          "kind": "total",
+          "total": 300
+        },
+        "alreadyDrawing": false
+      },
+      "stop": {
+        "age": 65
+      },
+      "spend": {
+        "kind": "amount",
+        "amount": 1800
+      },
+      "savings": 15000,
+      "savingsIn": 0,
+      "savingRisk": "balanced",
+      "risk": "balanced",
+      "charge": 0.5,
+      "endAge": 95,
+      "confidence": "nineInTen"
+    },
+    "whose": "you",
+    "spend": {
+      "perMonth": 1800,
+      "perYear": 21600,
+      "kind": "amount",
+      "level": null
+    },
+    "stop": {
+      "age": 65,
+      "year": "2033"
+    },
+    "ages": {
+      "you": 65
+    },
+    "years": {
+      "saving": 7,
+      "drawing": 30
+    },
+    "pensionOpens": {
+      "you": 58
+    },
+    "gapYears": 0,
+    "saving": [
+      {
+        "who": "you",
+        "stopAge": 65,
+        "yearsSaving": 7,
+        "potToday": {
+          "pension": 90000,
+          "savings": 15000
+        },
+        "payIn": {
+          "total": 300,
+          "own": null,
+          "employer": null,
+          "savings": 0
+        },
+        "potAtStop": {
+          "pension": {
+            "careful": 101719,
+            "middling": 138437,
+            "good": 173240
+          },
+          "savings": {
+            "careful": 13092,
+            "middling": 18821,
+            "good": 23382
+          },
+          "total": {
+            "careful": 114810,
+            "middling": 157258,
+            "good": 196622
+          }
+        },
+        "paidIn": {
+          "total": 25200
+        },
+        "mix": {
+          "saving": "balanced",
+          "drawing": "balanced",
+          "slideYears": 0
+        },
+        "chargeAYear": 0.005
+      }
+    ],
+    "number": {
+      "careful": 265000,
+      "middling": 198000,
+      "good": 148000,
+      "byPerson": [
+        {
+          "who": "you",
+          "pot": 265000
+        }
+      ]
+    },
+    "already": false,
+    "chance": {
+      "lasted": 0.1,
+      "outOfTen": {
+        "words": "in only 1 future out of 10",
+        "only": true,
+        "count": 1
+      },
+      "fails": 36
+    },
+    "onCourse": false,
+    "payIn": {
+      "now": 300,
+      "own": null,
+      "employer": null,
+      "needed": 1840,
+      "extra": 1540,
+      "confidence": "nineInTen",
+      "at": {
+        "nineInTen": 1840,
+        "threeInFour": 1570
+      },
+      "outside": null,
+      "savingsNow": 0
+    },
+    "potAtStop": {
+      "now": {
+        "careful": 101719,
+        "middling": 138437,
+        "good": 173240
+      },
+      "needed": {
+        "careful": 216944,
+        "middling": 274022,
+        "good": 340164
+      }
+    },
+    "short": 163281,
+    "monthlyIfShort": 1350,
+    "wholeLife": {
+      "lasted": 0.1,
+      "outOfTen": {
+        "words": "in only 1 future out of 10",
+        "only": true,
+        "count": 1
+      },
+      "runOutAge": 74
+    },
+    "outside": null,
+    "levers": {
+      "stopLater": null,
+      "payMore": {
+        "payIn": 1840,
+        "savingsIn": null,
+        "lasted": 0.9
+      },
+      "spendLess": {
+        "spend": 1350,
+        "lasted": 0.925
+      },
+      "moreRisk": {
+        "level": "adventurous",
+        "payIn": 1940,
+        "lasted": 0.1,
+        "helps": false
+      },
+      "accept": {
+        "lasted": 0.1,
+        "short": 163281,
+        "monthlyIfShort": 1350
+      }
+    },
+    "grid": null,
+    "phases": [
+      {
+        "fromAge": 65,
+        "toAge": 67,
+        "ages": {
+          "you": {
+            "from": 65,
+            "to": 67
+          }
+        },
+        "takeHome": 1800,
+        "fromPension": 1871.18,
+        "fromSavings": 0,
+        "fromPots": 1871.18,
+        "statePension": 0,
+        "finalSalary": 0,
+        "tax": 71.18,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1871.18,
+            "fromSavings": 0,
+            "tax": 71.18,
+            "takeHome": 1800,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          }
+        ],
+        "beforeStatePension": true,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 1800,
+          "fromPots": 1800,
+          "statePension": 0,
+          "finalSalary": 0,
+          "fromWork": 0
+        }
+      },
+      {
+        "fromAge": 67,
+        "toAge": 95,
+        "ages": {
+          "you": {
+            "from": 67,
+            "to": 95
+          }
+        },
+        "takeHome": 1800,
+        "fromPension": 887.05,
+        "fromSavings": 0,
+        "fromPots": 887.05,
+        "statePension": 1045.63,
+        "finalSalary": 0,
+        "tax": 132.68,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 887.05,
+            "fromSavings": 0,
+            "tax": 132.68,
+            "takeHome": 1800,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          }
+        ],
+        "beforeStatePension": false,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 1800,
+          "fromPots": 754,
+          "statePension": 1046,
+          "finalSalary": 0,
+          "fromWork": 0
+        }
+      }
+    ],
+    "guaranteed": {
+      "monthlyAfterTax": 1045.63
+    },
+    "handOver": {
+      "c": {
+        "ok": true,
+        "same": true
+      }
+    },
+    "assumed": [
+      {
+        "id": "pay-in",
+        "field": "you.payIn.total",
+        "source": "entered",
+        "value": 300,
+        "text": "£300 a month goes in until you are 65, rising with prices.",
+        "parts": [
+          {
+            "key": "payIn.now",
+            "kind": "money"
+          },
+          " a month goes in until you are ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", rising with prices."
+        ]
+      },
+      {
+        "id": "pay-in-as-given",
+        "field": "you.payIn.kind",
+        "source": "rule",
+        "value": "total",
+        "text": "The figure you gave is what lands in the pension, with the tax the government adds back already inside it.",
+        "parts": [
+          "The figure you gave is what lands in the pension, with the tax the government adds back already inside it."
+        ]
+      },
+      {
+        "id": "savings-in",
+        "field": "savingsIn",
+        "source": "default",
+        "value": 0,
+        "text": "Nothing more goes into ISAs or savings each month.",
+        "parts": [
+          "Nothing more goes into ISAs or savings each month."
+        ]
+      },
+      {
+        "id": "risk-saving",
+        "field": "savingRisk",
+        "source": "default",
+        "value": "balanced",
+        "text": "While saving: Balanced, about half in shares.",
+        "parts": [
+          "While saving: ",
+          "Balanced",
+          ", ",
+          "about half in shares",
+          "."
+        ]
+      },
+      {
+        "id": "risk-drawing",
+        "field": "risk",
+        "source": "default",
+        "value": "balanced",
+        "text": "Once stopped: Balanced, about half in shares.",
+        "parts": [
+          "Once stopped: ",
+          "Balanced",
+          ", ",
+          "about half in shares",
+          "."
+        ]
+      },
+      {
+        "id": "charge-saving",
+        "field": "charge",
+        "source": "default",
+        "value": 0.5,
+        "text": "A charge of 0.5% a year comes off while you are saving; none once you have stopped.",
+        "parts": [
+          "A charge of ",
+          {
+            "fixed": "0.5"
+          },
+          "% a year comes off while you are saving; none once you have stopped."
+        ]
+      },
+      {
+        "id": "saving-rebalanced",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "While you are saving, your pot is kept at its mix each month.",
+        "parts": [
+          "While you are saving, your pot is kept at its mix each month."
+        ]
+      },
+      {
+        "id": "same-futures",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "The saving years and the years after are tried against the same futures.",
+        "parts": [
+          "The saving years and the years after are tried against the same futures."
+        ]
+      },
+      {
+        "id": "stop-age",
+        "field": "stop.age",
+        "source": "entered",
+        "value": 65,
+        "text": "You stop working at 65, and nothing more goes in from then.",
+        "parts": [
+          "You stop working at ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", and nothing more goes in from then."
+        ]
+      },
+      {
+        "id": "spend-steady",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "You spend the same each month, going up with prices, from the day you stop.",
+        "parts": [
+          "You spend the same each month, going up with prices, from the day you stop."
+        ]
+      },
+      {
+        "id": "number-is-careful",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "The number is a guide: the pot that, if you had exactly that when you stop, pays what you want in 9 futures out of 10. The pay-in is worked out on the whole of each future, from now to the end.",
+        "parts": [
+          "The number is a guide: the pot that, if you had exactly that when you stop, pays what you want ",
+          "in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          ". The pay-in is worked out on the whole of each future, from now to the end."
+        ]
+      },
+      {
+        "id": "confidence",
+        "field": "confidence",
+        "source": "default",
+        "value": "nineInTen",
+        "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
+        "parts": [
+          "The pay-in that gets there makes your money last ",
+          "in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          "."
+        ]
+      },
+      {
+        "id": "state-pension-full",
+        "field": "you.statePension.kind",
+        "source": "default",
+        "value": 12547.6,
+        "text": "The full State Pension of £1,046 a month from age 67. Yours may be different — check your forecast.",
+        "parts": [
+          "The full State Pension",
+          " of ",
+          {
+            "fixed": "£1,046"
+          },
+          " a month from age ",
+          {
+            "fixed": "67"
+          },
+          ".",
+          " Yours may be different — check your forecast."
+        ]
+      },
+      {
+        "id": "state-pension-age",
+        "field": null,
+        "source": "rule",
+        "value": 67,
+        "text": "Your State Pension age of 67 comes from your age.",
+        "parts": [
+          "Your State Pension age of ",
+          {
+            "fixed": "67"
+          },
+          " comes from your age."
+        ]
+      },
+      {
+        "id": "quarter-tax-free",
+        "field": null,
+        "source": "rule",
+        "value": 0.25,
+        "text": "A quarter of each pension withdrawal is tax-free.",
+        "parts": [
+          "A quarter of each pension withdrawal is tax-free."
+        ]
+      },
+      {
+        "id": "plan-to",
+        "field": "endAge",
+        "source": "default",
+        "value": 95,
+        "text": "The money needs to last until you are 95.",
+        "parts": [
+          "The money needs to last until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          "."
+        ]
+      },
+      {
+        "id": "todays-prices",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "All figures are in today's prices.",
+        "parts": [
+          "All figures are in today's prices."
+        ]
+      },
+      {
+        "id": "no-final-salary",
+        "field": "you.finalSalary.has",
+        "source": "default",
+        "value": false,
+        "text": "No final-salary pension.",
+        "parts": [
+          "No final-salary pension."
+        ]
+      },
+      {
+        "id": "isa-fixed-growth",
+        "field": null,
+        "source": "rule",
+        "value": 3,
+        "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.",
+        "parts": [
+          "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+          {
+            "fixed": "3"
+          },
+          "% a year before rising prices, so they lose ground whenever prices rise faster than that."
+        ]
+      },
+      {
+        "id": "tax-rules",
+        "field": null,
+        "source": "rule",
+        "value": "2026/27",
+        "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+        "parts": [
+          "Tax rules for ",
+          {
+            "fixed": "2026/27"
+          },
+          " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+          {
+            "fixed": "£100,000"
+          },
+          " point where the allowance starts to be withdrawn stays fixed."
+        ]
+      },
+      {
+        "id": "futures",
+        "field": null,
+        "source": "rule",
+        "value": 40,
+        "text": "Tested against 40 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
+        "parts": [
+          "Tested against ",
+          {
+            "fixed": "40"
+          },
+          " possible futures, each pieced together from stretches of US share returns and US price rises since ",
+          {
+            "fixed": "1871"
+          },
+          ". Share returns are cut by ",
+          {
+            "fixed": "1.5"
+          },
+          "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
+        ]
+      }
+    ],
+    "warnings": [
+      {
+        "id": "state-pension-assumed",
+        "severity": "note",
+        "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
+        "parts": [
+          "This assumes the full State Pension. If yours is lower, so is the figure."
+        ]
+      }
+    ],
+    "sentences": {
+      "head": {
+        "id": "b.head",
+        "text": "About £265,000 by age 65",
+        "parts": [
+          "About ",
+          {
+            "key": "number.careful",
+            "kind": "pot"
+          },
+          " by age ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          }
+        ]
+      },
+      "sub": {
+        "id": "b.sub",
+        "text": "the pot that, if you had exactly that at 65, pays £1,800 a month after tax until you are 95, going up each year with prices, in 9 futures out of 10, with your State Pension from 67",
+        "parts": [
+          "the pot that, if you had exactly that at ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", pays ",
+          {
+            "key": "spend.perMonth",
+            "kind": "money"
+          },
+          " a month after tax ",
+          "until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          ", going up each year with prices, in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          ", with ",
+          "your",
+          " State Pension from ",
+          {
+            "fixed": "67"
+          }
+        ]
+      },
+      "line": {
+        "id": "b.line",
+        "text": "To spend £1,800 a month from 65, you would want a pot of about £265,000 by then: with exactly that at 65, the money lasted in 9 futures out of 10.",
+        "parts": [
+          "To spend ",
+          {
+            "key": "spend.perMonth",
+            "kind": "money"
+          },
+          " a month from ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", ",
+          "you would want a pot of about ",
+          {
+            "key": "number.careful",
+            "kind": "pot"
+          },
+          " by then",
+          ": with exactly that at ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", the money lasted in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          "."
+        ]
+      },
+      "bad": {
+        "id": "b.bad",
+        "text": "In a bad case (the worst 1 in 10), £300 a month as now gets your pension to about £102,000 by 65. Paying in as now, about £1,350 a month from 65 lasted in 9 futures out of 10.",
+        "parts": [
+          "In a bad case (the worst ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          ")",
+          ", ",
+          {
+            "key": "payIn.now",
+            "kind": "money"
+          },
+          " a month",
+          " as now gets ",
+          "your pension",
+          " to about ",
+          {
+            "key": "potAtStop.now.careful",
+            "kind": "pot"
+          },
+          " by ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ".",
+          " Paying in as now, about ",
+          {
+            "key": "monthlyIfShort",
+            "kind": "money"
+          },
+          " a month from ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          " lasted in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          "."
+        ]
+      },
+      "guide": {
+        "id": "b.guide",
+        "text": "The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now until you are 95, and that is the answer.",
+        "parts": [
+          "The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now ",
+          "until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          ", and that is the answer."
+        ]
+      },
+      "payInHead": {
+        "id": "b.payIn.head",
+        "text": "About £1,840 a month into your pension",
+        "parts": [
+          "About ",
+          {
+            "key": "payIn.needed",
+            "kind": "money"
+          },
+          " a month ",
+          "into your pension"
+        ]
+      },
+      "payInSub": {
+        "id": "b.payIn.sub",
+        "text": "from now until you are 65, going up each year with prices",
+        "parts": [
+          "from now until you are ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", going up each year with prices"
+        ]
+      },
+      "payInLine": {
+        "id": "b.payIn.line",
+        "text": "Paying in about £1,840 a month and then spending £1,800 a month, your money lasted until you are 95 in 9 futures out of 10. That is £1,540 a month more than now.",
+        "parts": [
+          "Paying in about ",
+          {
+            "key": "payIn.needed",
+            "kind": "money"
+          },
+          " a month",
+          " and then spending ",
+          {
+            "key": "spend.perMonth",
+            "kind": "money"
+          },
+          " a month, ",
+          "your money lasted ",
+          "until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          " ",
+          "in ",
+          {
+            "fixed": "9"
+          },
+          " futures out of ",
+          {
+            "fixed": "10"
+          },
+          ". That is ",
+          {
+            "key": "payIn.extra",
+            "kind": "money"
+          },
+          " a month more than now."
+        ]
+      },
+      "payInBad": {
+        "id": "b.payIn.bad",
+        "text": "In a bad case (the worst 1 in 10), £1,840 a month gets your pension to about £217,000 by 65. In a middling case it reaches £274,000.",
+        "parts": [
+          "In a bad case (the worst ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          ")",
+          ", ",
+          {
+            "key": "payIn.needed",
+            "kind": "money"
+          },
+          " a month gets ",
+          "your pension",
+          " to about ",
+          {
+            "key": "potAtStop.needed.careful",
+            "kind": "pot"
+          },
+          " by ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ". In a middling case it reaches ",
+          {
+            "key": "potAtStop.needed.middling",
+            "kind": "pot"
+          },
+          "."
+        ]
+      },
+      "potsNow": {
+        "id": "b.pots.now",
+        "text": "Paying in £300 a month as now, your pension at 65 (your savings are on top): £102,000 in a bad case (the worst 1 in 10), £138,000 in a middling case, £173,000 in a good case (the best 1 in 10).",
+        "parts": [
+          "Paying in ",
+          {
+            "key": "payIn.now",
+            "kind": "money"
+          },
+          " a month as now, ",
+          "your pension",
+          " at ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          " (your savings are on top)",
+          ": ",
+          {
+            "key": "potAtStop.now.careful",
+            "kind": "pot"
+          },
+          " in ",
+          "a bad case (the worst ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          ")",
+          ", ",
+          {
+            "key": "potAtStop.now.middling",
+            "kind": "pot"
+          },
+          " in a middling case, ",
+          {
+            "key": "potAtStop.now.good",
+            "kind": "pot"
+          },
+          " ",
+          "in a good case (the best ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          ")",
+          "."
+        ]
+      },
+      "potsNeeded": {
+        "id": "b.pots.needed",
+        "text": "Paying in £1,840 a month: £217,000 in a bad case, £274,000 in a middling case, £340,000 in a good case.",
+        "parts": [
+          "Paying in ",
+          {
+            "key": "payIn.needed",
+            "kind": "money"
+          },
+          " a month: ",
+          {
+            "key": "potAtStop.needed.careful",
+            "kind": "pot"
+          },
+          " in a bad case, ",
+          {
+            "key": "potAtStop.needed.middling",
+            "kind": "pot"
+          },
+          " in a middling case, ",
+          {
+            "key": "potAtStop.needed.good",
+            "kind": "pot"
+          },
+          " in a good case."
+        ]
+      },
+      "wholeLife": {
+        "id": "b.wholeLife",
+        "text": "Paying in £300 a month as you do now and then spending £1,800 a month, your money lasted until you are 95 in only 1 future out of 10.",
+        "parts": [
+          "Paying in ",
+          {
+            "key": "payIn.now",
+            "kind": "money"
+          },
+          " a month as you do now",
+          " and then spending ",
+          {
+            "key": "spend.perMonth",
+            "kind": "money"
+          },
+          " a month, ",
+          "your money lasted ",
+          "until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          " ",
+          "in only ",
+          {
+            "fixed": "1"
+          },
+          " future out of ",
+          {
+            "fixed": "10"
+          },
+          "."
+        ]
+      },
+      "lever": {
+        "stopLaterNone": {
+          "id": "b.lever.stopLater.none",
+          "text": "Stopping later alone, even at 75, did not make it last in 9 futures out of 10 paying in as now.",
+          "parts": [
+            "Stopping later alone, even at ",
+            {
+              "fixed": "75"
+            },
+            ", did not make it last in ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
+            " paying in as now."
+          ]
+        },
+        "payMore": {
+          "id": "b.lever.payMore",
+          "text": "Pay in £1,840 a month: your money lasted in 9 futures out of 10.",
+          "parts": [
+            "Pay in ",
+            {
+              "key": "levers.payMore.payIn",
+              "kind": "money"
+            },
+            " a month",
+            ": your money lasted ",
+            "in ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
+            "."
+          ]
+        },
+        "spendLess": {
+          "id": "b.lever.spendLess",
+          "text": "Spend £1,350 a month, not £1,800: £300 a month as now, your money lasted in 9 futures out of 10.",
+          "parts": [
+            "Spend ",
+            {
+              "key": "levers.spendLess.spend",
+              "kind": "money"
+            },
+            " a month, not ",
+            {
+              "key": "spend.perMonth",
+              "kind": "money"
+            },
+            ": ",
+            {
+              "key": "payIn.now",
+              "kind": "money"
+            },
+            " a month",
+            " as now, your money lasted ",
+            "in ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
+            "."
+          ]
+        },
+        "moreRisk": {
+          "id": "b.lever.moreRisk.no",
+          "text": "More risk while saving, about two thirds in shares, does not lower what goes in: it would take £1,940 a month.",
+          "parts": [
+            "More risk while saving, ",
+            "about two thirds in shares",
+            ", does not lower what goes in: it would take ",
+            {
+              "key": "levers.moreRisk.payIn",
+              "kind": "money"
+            },
+            " a month."
+          ]
+        },
+        "accept": {
+          "id": "b.lever.accept",
+          "text": "Keep paying in £300 a month as now: your money lasted in only 1 future out of 10. About £1,350 a month from 65 lasted in 9 futures out of 10.",
+          "parts": [
+            "Keep paying in ",
+            {
+              "key": "payIn.now",
+              "kind": "money"
+            },
+            " a month",
+            " as now: your money lasted ",
+            "in only ",
+            {
+              "fixed": "1"
+            },
+            " future out of ",
+            {
+              "fixed": "10"
+            },
+            ".",
+            " About ",
+            {
+              "key": "levers.accept.monthlyIfShort",
+              "kind": "money"
+            },
+            " a month from ",
+            {
+              "key": "stop.age",
+              "kind": "age"
+            },
+            " lasted in ",
+            {
+              "fixed": "9"
+            },
+            " futures out of ",
+            {
+              "fixed": "10"
+            },
+            "."
+          ]
+        }
+      },
+      "change": {
+        "id": "b.change",
+        "text": "Now: not on course for 65, lasted in only 1 future out of 10.",
+        "parts": [
+          "Now: ",
+          "not on course for ",
+          {
+            "key": "stop.age",
+            "kind": "age"
+          },
+          ", lasted ",
+          "in only ",
+          {
+            "fixed": "1"
+          },
+          " future out of ",
+          {
+            "fixed": "10"
+          },
+          "."
+        ]
+      }
+    },
+    "basis": {
+      "today": "2026-09-30",
+      "futures": 40,
+      "seed": 0,
+      "failuresAllowed": 4,
+      "closeAllowed": 10,
+      "historyEnd": "2023-06",
+      "engineVersion": "(any)",
+      "endAge": 95,
+      "detail": "answer",
+      "lifeYears": 37,
+      "bondDraws": "life",
+      "cashRule": "previous-year",
+      "grid": "yearly",
+      "strategyId": "pots-and-valves",
+      "cutsSwitchedOff": true,
+      "split": [
+        {
+          "who": "you",
+          "share": 1
+        }
+      ],
+      "potStep": 1000,
+      "potMax": 5000000,
+      "payInCeiling": 10000,
+      "laterYears": 10,
+      "laterTo": 75,
+      "closedYearsFails": 0
+    },
+    "units": {
+      "money": "todays-prices",
+      "tax": "after-tax",
+      "period": "month",
+      "who": "household"
+    }
+  }
+}

@@ -97,14 +97,16 @@ export function checkAnswer(answer, given) {
     for (let i = 1; i < ph.length; i++) if (ph[i].takeHome < ph[0].takeHome - 0.005) fail('I5', `phase ${i} is lower than the first`);
   }
 
-  // I6 no pot, nothing from the pot
-  const pots = (answer.inputs.you.pot || 0) + ((answer.inputs.partner && answer.inputs.partner.pot) || 0) + (answer.inputs.savings || 0);
+  // I6 no pot, nothing from the pot (on the lives — a start at an age — what goes in before then makes a pot too)
+  const onLives = Array.isArray(answer.saving);
+  const goingIn = onLives && answer.payIn ? answer.payIn.total : 0;
+  const pots = (answer.inputs.you.pot || 0) + ((answer.inputs.partner && answer.inputs.partner.pot) || 0) + (answer.inputs.savings || 0) + goingIn;
   if (pots === 0) {
     if (answer.status === 'ok') fail('I6', 'no pots but status ok');
     for (const p of ph || []) if (p.fromPots !== 0) fail('I6', 'no pots but something from the pots');
     if (!(answer.monthly.careful === answer.monthly.middling && answer.monthly.middling === answer.monthly.good)) fail('I6', 'no pots: nothing is left to chance, the three should agree');
   } else if (answer.status !== 'ok') fail('I6', `pots of ${pots} but status ${answer.status}`);
-  if (answer.trace) {
+  if (answer.trace && answer.trace.atCareful) {
     for (const who of ['you', 'partner']) {
       const potOf = answer.inputs[who] ? (answer.inputs[who].pot || 0) : 0;
       const savings = answer.inputs.household === 'couple' ? (answer.inputs.savings || 0) / 2 : who === 'you' ? (answer.inputs.savings || 0) : 0;
@@ -126,9 +128,12 @@ export function checkAnswer(answer, given) {
       const first = ph[0].byPerson.find((x) => x.who === who);
       if (ph[0].ages[who].from < b.accessAge) {
         if (!first || first.locked !== true) fail('I7', `${who} is ${ph[0].ages[who].from} at the start, before ${b.accessAge}, but their pension is not marked closed`);
-        if (!answer.warnings.some((w) => w.id === 'pension-locked' + (who === 'you' ? '' : '-partner'))) fail('I7', `${who}'s pension is closed at the start but no warning names them`);
-        // the start would have moved to the first opening if no pension were open
-        if (!ph[0].byPerson.some((x) => x.who !== who && !x.locked && (answer.inputs[x.who].pot || 0) > 0)) fail('I7', `${who}'s pension is closed at the start and no other pension is open`);
+        // (or, when the years until it opens set the amount, the answer's own words name them: c.none.closed)
+        const named = answer.closedYears && answer.closedYears.who.includes(who) && answer.sentences.none && answer.sentences.none.id === 'c.none.closed';
+        if (!named && !answer.warnings.some((w) => w.id === 'pension-locked' + (who === 'you' ? '' : '-partner'))) fail('I7', `${who}'s pension is closed at the start but no warning names them`);
+        // the start would have moved to the first opening if no pension were open — from now (C's rule). On the lives (a
+        // start at an age) the start is never moved: the savings pay until the pension opens, as A and B work it
+        if (!onLives && !ph[0].byPerson.some((x) => x.who !== who && !x.locked && (answer.inputs[x.who].pot || 0) > 0)) fail('I7', `${who}'s pension is closed at the start and no other pension is open`);
       }
       ph.forEach((p, i) => {
         const me = p.byPerson.find((x) => x.who === who);
@@ -211,8 +216,8 @@ export function checkAnswer(answer, given) {
   if (answer.take && !answer.sentences.take) fail('I11', 'take given but no take sentence');
   if (!answer.take && answer.sentences.take) fail('I11', 'take sentence without a take');
 
-  // I12 the tax-free limit, per person, over the whole trace
-  if (answer.trace) {
+  // I12 the tax-free limit, per person, over the whole trace (the drawing months: traced from now only)
+  if (answer.trace && answer.trace.atCareful) {
     for (const key of ['atCareful', 'atMiddling']) {
       const rows = answer.trace[key].rows;
       const byWho = {};
@@ -225,7 +230,7 @@ export function checkAnswer(answer, given) {
   }
 
   // I13 tax is sane; I14 nothing before it is allowed
-  if (answer.trace) {
+  if (answer.trace && answer.trace.atCareful) {
     const phaseAt = (m) => ph.find((p) => m >= (p.fromAge - b.startAge) * 12 && m < (p.toAge - b.startAge) * 12);
     for (const key of ['atCareful', 'atMiddling']) {
       for (const r of answer.trace[key].rows) {

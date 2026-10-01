@@ -29,7 +29,10 @@ const answered = (s, kind = A.ANSWER_FINAL, r = result()) => {
   return run(s, { type: A.ANSWER_WORKING, q: 'c', inputsKey: key }, { type: kind, q: 'c', inputsKey: key, result: r });
 };
 const STEP_IDS = QUESTION_C.steps.map((s) => s.id);
-const SCREENS = ['front', 'c.numbers', 'c.answer', 'soon', 'notBuilt'];
+const SCREENS = ['front', 'c.numbers', 'c.answer', 'soon', 'notBuilt', 'a.numbers', 'a.answer', 'a.ages', 'b.numbers', 'b.answer', 'b.choices'];
+/** Joined up (step 4): A, B and C are open; D, E and F are "not in the preview yet". A's and B's rails are checked in rail.ab.test.js. */
+const SOON = ['d', 'e', 'f'];
+const STEPS_OF = (q) => BUILT[q].steps.map((s) => href.step(q, s.id));
 
 /** The declared links out of a place: what the screens draw as ordinary links. */
 function linksFrom(state) {
@@ -49,10 +52,10 @@ describe('the tables', () => {
     expect(QUESTION_C.steps.map((s) => s.optional)).toEqual([false, false, true, true]);
     expect(QUESTION_C.steps.map((s) => s.built)).toEqual([true, true, false, false]);
   });
-  it('the front door has six questions, and only C is built', () => {
+  it('the front door has six questions, and A, B and C are built', () => {
     expect(QUESTIONS.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
-    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['c']);
-    expect(Object.keys(BUILT)).toEqual(['c']);
+    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['a', 'b', 'c']);
+    expect(Object.keys(BUILT)).toEqual(['a', 'b', 'c']);
   });
   it('every "needs" names a field of the input list, or the answer', () => {
     const paths = new Set(SCHEMA_C.fields.map((f) => f.path));
@@ -74,7 +77,7 @@ describe('L1 — every step can be reached from the front door', () => {
       seen.add(address);
       for (const link of linksFrom(goTo(fresh(), address))) queue.push(link);
     }
-    const wanted = [href.front(), ...STEP_IDS.map((s) => href.step('c', s)), ...['a', 'b', 'd', 'e', 'f'].map((q) => href.soon(q))];
+    const wanted = [href.front(), ...STEPS_OF('a'), ...STEPS_OF('b'), ...STEPS_OF('c'), ...SOON.map((q) => href.soon(q))];
     expect([...seen].sort()).toEqual(wanted.sort());
   });
 });
@@ -84,7 +87,7 @@ describe('L2 — no dead ends', () => {
     QUESTION_C.steps.forEach((s, i) => expect(s.end).toBe(i === QUESTION_C.steps.length - 1));
   });
   it('every place has a way on, and a way back to the front door', () => {
-    const places = [href.front(), '#/not-found', ...STEP_IDS.map((s) => href.step('c', s)), ...['a', 'b', 'd', 'e', 'f'].map((q) => href.soon(q))];
+    const places = [href.front(), '#/not-found', ...STEP_IDS.map((s) => href.step('c', s)), ...SOON.map((q) => href.soon(q))];
     for (const address of places) {
       const links = linksFrom(goTo(fresh(), address));
       expect(links.length, address).toBeGreaterThan(0);
@@ -97,7 +100,7 @@ describe('L3 — links point somewhere', () => {
   it('every link is an address that is understood, and draws a screen that exists', () => {
     const states = [fresh(), typed(), answered(onAnswer(typed()))];
     for (const base of states) {
-      for (const address of [href.front(), ...STEP_IDS.map((s) => href.step('c', s)), href.soon('a')]) {
+      for (const address of [href.front(), ...STEP_IDS.map((s) => href.step('c', s)), href.soon('d')]) {
         for (const link of linksFrom(goTo(base, address))) {
           const r = parse(link);
           expect(r.screen, link).not.toBe('notFound');
@@ -163,7 +166,7 @@ describe('L5 — nothing demands another tool first', () => {
 });
 
 describe('L6 — questions not built yet are honest', () => {
-  it('A, B, D, E and F lead to the "not in the preview yet" screen, which has a way on', () => {
+  it('D, E and F lead to the "not in the preview yet" screen, which has a way on', () => {
     const door = frontDoor();
     expect(door.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
     for (const q of door.filter((x) => !x.built)) {
@@ -173,7 +176,7 @@ describe('L6 — questions not built yet are honest', () => {
       expect(screenName(s.route)).toBe('soon');
       expect(linksFrom(s)).toContain(href.front());
     }
-    expect(door.filter((x) => !x.built).length).toBe(5);
+    expect(door.filter((x) => !x.built).length).toBe(3);
   });
   it('C leads to its first step', () => {
     expect(frontDoor().find((q) => q.id === 'c')).toEqual({ id: 'c', built: true, href: '#/c/numbers' });
@@ -259,6 +262,16 @@ describe('the short results — the person\'s own numbers, and only numbers the 
     expect(step.result.text).toBe('£250,000, age 62 and a partner');
     expect(text(step)).toBe(step.result.text);
   });
+  it('numbers, still paying in: what goes in each month, as typed (the two parts, or one figure)', () => {
+    const split = at(run(typed('275000', '55'), set('you.payIn.has', 'yes'), set('you.payIn.own', '500'), set('you.payIn.employer', '300')), 'answer');
+    const step = railFor(split).steps[0];
+    expect(step.result.text).toBe('£275,000, age 55, £500 + £300 a month in');
+    expect(text(step)).toBe(step.result.text);
+    const one = at(run(typed('275000', '55'), set('you.payIn.has', 'yes'), set('you.payIn.kind', 'total'), set('you.payIn.total', '800')), 'answer');
+    expect(railFor(one).steps[0].result.text).toBe('£275,000, age 55, £800 a month in');
+    const no = at(run(typed('275000', '55'), set('you.payIn.has', 'no')), 'answer');
+    expect(railFor(no).steps[0].result.text).toBe('£275,000, age 55');
+  });
   it('numbers: nothing while the figures cannot be used', () => {
     expect(railFor(at(typed('abc', '58'), 'answer')).steps[0].result).toBe(null);
     expect(railFor(at(fresh(), 'answer')).steps[0].result).toBe(null);
@@ -317,6 +330,7 @@ function checkRail(state) {
     return;
   }
   expect(rail.question).toBe(state.route.q);
+  if (state.route.q !== 'c') return;                                 // A's and B's rails: rail.ab.test.js
   const current = rail.steps.filter((s) => s.state === 'current');
   expect(current.length).toBe(1);                                   // exactly one "you are here"
   expect(current[0].id).toBe(state.route.step);

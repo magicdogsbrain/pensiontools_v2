@@ -16,7 +16,7 @@
  */
 import { SCHEMA_C } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES } from '../shared/rules.js';
+import { RULES, fullStatePensionYearly } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
 import { calculateTax } from '../../services/TaxCalculator.js';
 import { simulate } from '../../services/SimulationEngine.js';
@@ -26,7 +26,9 @@ import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedInde
 import { createBandSolver, bandIndexes, STEP } from '../shared/band.js';
 import { createReferenceBandSolver } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
-import { sentencesFor, sentencesWithoutPots, assumedFor, warningsFor, finishTexts } from './sentences.js';
+import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warningsFor, finishTexts } from './sentences.js';
+import { usesLives, answerOnLives } from './onLives.js';
+import { payInTotalOf, statePensionAgeOf } from '../shared/schemaParts.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 
@@ -139,7 +141,12 @@ function factsOf(plan, checked, household, fullSp, env) {
   const totalPension = pensions.reduce((s, v) => s + v, 0);
   const oneName = plan.people.length === 2 && totalPension > 0 && plan.people.some((p, i) => p.pension / totalPension > ONE_NAME_SHARE
     && plan.periods[0].byPerson[1 - i].gross < BANDS.pa);
+  // still paying in, but the money is taken from now (or from the age they are now): nothing more goes in (the note says so)
+  const couple = inputs.household === 'couple' && inputs.partner;
+  const fromNow = inputs.start && (inputs.start.kind === 'now' || inputs.start.age <= inputs.you.age);
+  const payInUnused = Boolean(fromNow) && payInTotalOf(inputs, 'you') + (couple ? payInTotalOf(inputs, 'partner') : 0) > 0;
   return {
+    life: false, payInUnused,
     couple: plan.people.length === 2, startsNow: plan.yearsFromNow === 0, yearsFromNow: plan.yearsFromNow, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor,
     lockedUntil: plan.lockedUntil.map((l) => ({ who: l.who, untilAge: l.untilAge, years: l.years })),
     accessFrom: RULES.pensionAccess.from, capped: plan.capped,
@@ -148,6 +155,66 @@ function factsOf(plan, checked, household, fullSp, env) {
     lockedSavingsMonths: 0, oneName, madeUpFutures: typeof env.futureReturns === 'function', historyStartYear: historyStartYear(),
     allStartedAge: Math.max(...plan.people.flatMap((p) => [p.statePension.amount > 0 ? p.statePension.startAge - p.ageAtStart + plan.startAge : 0, ...p.finalSalary.map((f) => (f.amount > 0 ? f.startAge - p.ageAtStart + plan.startAge : 0))]))
   };
+}
+
+/**
+ * What goes into each pension a month as typed, when "still paying in" was answered yes for someone (C's `payIn`; a
+ * hand-over to A or B reads it). From now nothing more goes in, so the answer does not count it; it is kept so the
+ * other questions can. null when nobody answered yes: the result is then C's as it always was.
+ */
+function payInTyped(inputs) {
+  const whos = inputs.household === 'couple' && inputs.partner ? ['you', 'partner'] : ['you'];
+  if (!whos.some((w) => inputs[w].payIn && inputs[w].payIn.has === 'yes')) return null;
+  const byPerson = whos.map((who) => ({ who, total: payInTotalOf(inputs, who) }));
+  return { total: byPerson.reduce((t, p) => t + p.total, 0), byPerson };
+}
+
+/**
+ * The facts and the words of an answer on the lives (onLives.js): C's own facts, with what depends on the size of the
+ * pots read at the middling pots at the start (the plan holds the largest over the lives, the band's ceiling).
+ */
+function finishOnLives(result, plan, checked, household, env, more) {
+  const facts = factsOf(plan, checked, household, fullStatePensionYearly(), env);
+  const mid = more.middling;
+  const inputs = checked.inputs;
+  facts.life = true;
+  // the money from today's age (an age that is now): nothing more goes in, as from now
+  facts.payInUnused = result.basis.yearsSaving === 0 && result.payIn.total > 0;
+  facts.payingIn = result.payIn.total > 0;
+  const closedAtStart = (who, j) => mid[j].pension > 0 && plan.lockedUntil.some((l) => l.who === who);
+  facts.people.forEach((p, j) => {
+    p.pensionOverLimit = mid[j].pension > RULES.taxFreeLimit / RULES.taxFreeShare;
+    // "can't take money until …" only for a pension closed at the start, or one whose opening IS the start (the form's
+    // default start for someone under the age, or "now" moved to it: the note says why the figures start then) — never
+    // for one open well before: a partner of 53 today is 65 when the money starts at 67 (the reviewers' finding, 1 Oct 2026)
+    p.underAccessAge = closedAtStart(p.who, j) || (p.underAccessAge && p.startsAtAccessAge);
+  });
+  // every pension closed at the start: until the first opens only savings pay, so a bad case that runs out before then
+  // is the savings running out (in the plan's ages — the younger person's, as the run-out ages are)
+  const holders = plan.people.map((p, j) => ({ p, j })).filter((x) => mid[x.j].pension > 0);
+  const closed = holders.filter((x) => closedAtStart(x.p.who, x.j));
+  const first = closed.length && closed.length === holders.length
+    ? closed.map((x) => ({ who: x.p.who, l: plan.lockedUntil.find((l) => l.who === x.p.who) })).sort((a, b) => a.l.years - b.l.years)[0] : null;
+  facts.allClosedUntil = first ? plan.startAge + first.l.years : null;
+  facts.firstClosed = first ? { who: first.who, untilAge: first.l.untilAge } : null;
+  facts.closedYears = result.closedYears || null;
+  // the guaranteed incomes, each with the age it starts at in the plan's years (the younger person's, as the run-out ages)
+  facts.incomes = plan.people.flatMap((p) => [
+    ...(p.statePension.amount > 0 ? [{ who: p.who, age: p.statePension.startAge, at: p.statePension.startAge - p.ageAtStart + plan.startAge }] : []),
+    ...p.finalSalary.filter((f) => f.amount > 0).map((f) => ({ who: p.who, age: f.startAge, at: f.startAge - p.ageAtStart + plan.startAge }))
+  ]);
+  // a partner past their State Pension age, the money taken later than now: their pot is left alone until then, and
+  // anything they take before then is not counted (both start together — said, not hidden; the reviewers' finding)
+  facts.partnerRetired = Boolean(facts.couple && inputs.partner && result.basis.yearsSaving > 0
+    && inputs.partner.age >= statePensionAgeOf(inputs.partner.age, env.today));
+  const totalMid = mid.reduce((s, q) => s + q.pension, 0);
+  facts.oneName = plan.people.length === 2 && totalMid > 0 && plan.people.some((p, i) => mid[i].pension / totalMid > ONE_NAME_SHARE
+    && plan.periods[0].byPerson[1 - i].gross < BANDS.pa);
+  facts.totalPots = more.potAtStartMiddling;
+  result.sentences = sentencesOnLives(result, facts);
+  result.assumed = assumedFor(result, facts);
+  result.warnings = warningsFor(result, facts);
+  finishTexts(result);
 }
 
 function basisOf(plan, env, n) {
@@ -292,6 +359,8 @@ function withoutPots(plan, checked, household, fullSp, env, n) {
     phases, take: null, assumed: [], warnings: [], sentences: {},
     basis: basisOf(plan, env, n), units: UNITS
   };
+  const typed = payInTyped(checked.inputs);
+  if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullSp, env);
   result.sentences = sentencesWithoutPots(result, facts);
   result.assumed = assumedFor(result, facts);
@@ -304,6 +373,13 @@ export function answerCReal(inputs, env) {
   if (problems.length) return { status: 'invalid', problems };
   const checked = checkInputs(SCHEMA_C, inputs, env);
   if (!checked.ok) return { status: 'invalid', problems: Object.entries(checked.errors).map(([field, messageId]) => ({ field, messageId })) };
+
+  // Money first taken at an age: the lives from today, through the years of paying in (step 4 brief section 10, J8).
+  // From now (or with nothing to draw on and nothing going in) it is C as it has always been, below.
+  if (usesLives(checked.inputs, env.today)) {
+    const r = answerOnLives(checked, env, { units: UNITS, basisOf: (plan, n) => basisOf(plan, env, n), finish: (result, plan, household, more) => finishOnLives(result, plan, checked, household, env, more) });
+    return JSON.parse(JSON.stringify(r, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
+  }
 
   const { household, fullStatePensionAYear } = toHousehold(checked.inputs, env);
   const hp = validateHousehold(household, env.today);
@@ -343,6 +419,8 @@ export function answerCReal(inputs, env) {
     phases: phasesOf(plan, monthly.careful * 12), take, assumed: [], warnings: [], sentences: {},
     basis: basisOf(plan, env, n), units: UNITS
   };
+  const typed = payInTyped(checked.inputs);
+  if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
   if (plan.startMoved && plan.totalIsa > 0 && monthly.careful > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / monthly.careful));
   result.sentences = sentencesFor(result, facts);

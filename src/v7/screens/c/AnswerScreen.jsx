@@ -11,6 +11,7 @@
 import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS } from '../../components/index.js';
 import { isCurrent } from '../../state/select.js';
 import { href } from '../../router/routes.js';
+import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
 
 /**
@@ -21,14 +22,26 @@ import { C } from '../../copy/c.js';
 export const alreadyStopped = (result) => !!(result && result.inputs && result.inputs.start && result.inputs.start.kind === 'now'
   && Array.isArray(result.phases) && result.phases[0] && result.phases[0].statePension > 0);
 
+/**
+ * A "still working?" link to question A or B. Once that question is open (step 4's joining up) it carries C's figures
+ * across (draft/carry, src/v7/state/carry.js) and opens its numbers step at the first box left to fill
+ * (screens-A-B.md 5; step 4 brief conflict 46); until then it is the honest "not in the preview yet" link.
+ */
+const OPENS = { a: () => href.step('a', 'numbers', 'stop.age'), b: () => href.step('b', 'numbers', 'you.payIn.total') };
+function ToSaver({ q, dispatch, children }) {
+  const open = frontDoor().some((x) => x.id === q && x.built);
+  if (!open) return <LinkButton href={href.soon(q)}>{children}</LinkButton>;
+  return <LinkButton testid={`c.next.${q}`} href={OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
+}
+
 /** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension; then "Keep". */
-function WhatNext({ result }) {
+function WhatNext({ result, dispatch }) {
   const working = (
     <div class="next-group" key="working" data-testid="c.next.working">
       <p class="next-prompt">{C.answer.stillWorking}</p>
       <ul class="next-list">
-        <li><LinkButton href={href.soon('a')}>{C.answer.whenStop}</LinkButton></li>
-        <li><LinkButton href={href.soon('b')}>{C.answer.savingEnough}</LinkButton></li>
+        <li><ToSaver q="a" dispatch={dispatch}>{C.answer.whenStop}</ToSaver></li>
+        <li><ToSaver q="b" dispatch={dispatch}>{C.answer.savingEnough}</ToSaver></li>
       </ul>
     </div>
   );
@@ -93,6 +106,10 @@ export function AnswerScreen(state, dispatch) {
     const assumed = (result.assumed || []).length > 0 && <Assumed result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />;
     const madeOf = <MadeOf result={result} open={open('madeOf')} dispatch={dispatch} />;
     const take = s.take && <Sentence s={s.take} source={result} class="take-line" />;
+    // Money first taken at a later age: what goes in until then, said plainly under the figure ("Paying in £800 a month
+    // until 67, rising with prices; the pot invested at Balanced … until then"), and what the pot could be by then.
+    const payIn = s.payIn && <Sentence s={s.payIn} source={result} class="pay-in-line" data-testid="c.answer.payIn" />;
+    const potThen = s.pot && <Sentence s={s.pot} source={result} class="pot-line" data-testid="c.answer.pot" />;
 
     body = (
       <>
@@ -103,7 +120,7 @@ export function AnswerScreen(state, dispatch) {
             ? <><Sentence s={s.none} source={result} class="none" />{warnings}{take}{assumed}</>
             : s.head && s.line && !s.nothing
               ? (
-                <Headline result={result}>
+                <Headline result={result} afterLine={payIn || potThen ? <>{payIn}{potThen}</> : null}>
                   {s.small && (
                     <div class="small-pot">
                       <Sentence s={s.small} source={result} />
@@ -119,7 +136,7 @@ export function AnswerScreen(state, dispatch) {
               : <><Sentence s={s.nothing} source={result} class="nothing" />{warnings}{take}{result.status !== 'none' && madeOf}{assumed}</>}
         </div>
         <TryAChange state={state} form={form} result={result} dispatch={dispatch} />
-        <WhatNext result={result} />
+        <WhatNext result={result} dispatch={dispatch} />
         <p class="full-detail"><LinkButton testid="c.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? C.buttons.fullDetailCouple : C.buttons.fullDetail}</LinkButton></p>
       </>
     );

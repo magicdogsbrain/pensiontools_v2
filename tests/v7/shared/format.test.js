@@ -1,6 +1,6 @@
 /** format.js — the one formatter (V7 build brief 4.3; language guide 3.4 and 3.5). */
 import { describe, it, expect } from 'vitest';
-import { money, shownMonthly, ageText, outOfTen, get, partText, partsText } from '../../../src/answers/shared/format.js';
+import { money, shownMonthly, ageText, pot, outOfTen, get, partText, partsText } from '../../../src/answers/shared/format.js';
 
 describe('money', () => {
   it.each([[1380, '£1,380'], [0, '£0'], [-0, '£0'], [250000, '£250,000'], [1073100, '£1,073,100'], [10000000, '£10,000,000'],
@@ -23,6 +23,18 @@ describe('ageText', () => {
   it('whole years, rounded down', () => {
     expect(ageText(95)).toBe('95');
     expect(ageText(86.9)).toBe('86');
+  });
+});
+
+describe('pot — a pot to the nearest £1,000 (step 4 brief, conflict 39)', () => {
+  it.each([[468250, '£468,000'], [468500, '£469,000'], [470000, '£470,000'], [499, '£0'], [500, '£1,000'], [0, '£0'], [-0, '£0'], [1073100, '£1,073,000'],
+    [5000000, '£5,000,000'], [12345678, '£12,346,000'], [-70000, '£70,000'], [NaN, '£0'], [undefined, '£0']])('%s → %s', (n, text) => expect(pot(n)).toBe(text));
+  it('always ends in ",000" or is £0, and is money() of a whole thousand', () => {
+    for (let n = 0; n < 3_000_000; n += 12_345.67) {
+      const t = pot(n);
+      expect(t === '£0' || t.endsWith(',000')).toBe(true);
+      expect(t).toBe(money(Math.round(n / 1000) * 1000));
+    }
   });
 });
 
@@ -69,6 +81,12 @@ describe('sentence parts', () => {
     expect(partText({ key: 'monthly.careful', kind: 'money' }, result)).toBe('£1,380');
     expect(partText({ key: 'inputs.endAge', kind: 'age' }, result)).toBe('95');
     expect(partText({ fixed: '9' }, result)).toBe('9');
+  });
+  it('kind "pot" is the nearest £1,000', () => {
+    const r = { shown: { potAtStop: { middling: 481250 } } };
+    expect(partText({ key: 'shown.potAtStop.middling', kind: 'pot' }, r)).toBe('£481,000');
+    expect(partText({ key: 'shown.potAtStop.middling', kind: 'money' }, r)).toBe('£481,250');
+    expect(partsText(['about ', { key: 'shown.potAtStop.middling', kind: 'pot' }, ' by 60'], r)).toBe('about £481,000 by 60');
   });
   it('text is the parts joined', () => {
     expect(partsText(['About ', { key: 'monthly.careful', kind: 'money' }, ' a month'], result)).toBe('About £1,380 a month');

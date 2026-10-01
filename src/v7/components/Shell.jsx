@@ -1,6 +1,7 @@
 /**
  * The page frame: header, the preview line, the offline line, the rail, one <main>, the footer. The <main> is the
- * screen root and carries data-screen and data-question (build brief 4.9; as package 1's stub drew it). One h1 per screen; after a move the keyboard goes to
+ * screen root and carries data-screen and data-question (build brief 4.9; as package 1's stub drew it), and
+ * data-view="retired" on A's and B's retired view (step 4 brief, conflict 44). One h1 per screen; after a move the keyboard goes to
  * it, or to the box the address names (?focus=<field>). The only hooks in V7 are here, and only for focus.
  */
 import { useEffect, useRef } from 'preact/hooks';
@@ -9,7 +10,7 @@ import { format } from '../router/routes.js';
 import { focusField } from './Field.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 
-export function Shell({ state, dispatch, name, question = null, rail = false, full = false, children }) {
+export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
   const mounted = useRef(false);
   const address = format(state.route);
@@ -17,7 +18,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    if (state.route.focus && focusField(root, state.route.focus)) return;
+    if (state.route.focus && focusField(root, state.route.focus, state.route.q || 'c')) return;
     if (!mounted.current) { mounted.current = true; return; }       // never steal the keyboard on first load
     const h1 = root.querySelector('h1');
     if (h1) h1.focus();
@@ -42,7 +43,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       </p>
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
       {rail && <Rail state={state} dispatch={dispatch} />}
-      <main id="main" tabIndex={-1} data-screen={name} data-question={question || undefined}>{children}</main>
+      <main id="main" tabIndex={-1} data-screen={name} data-question={question || undefined} data-view={view || undefined}>{children}</main>
       <footer class="foot" data-region="footer">
         {full && <p class="advice-full">{ADVICE_FULL}</p>}
         <p class="advice">{front ? `${COMMON.footer.worksOut} ${ADVICE_SHORT}` : ADVICE_SHORT}</p>

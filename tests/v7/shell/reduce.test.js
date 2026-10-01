@@ -227,9 +227,10 @@ const anyAction = fc.oneof(
 );
 
 describe('any sequence of actions', () => {
-  it('the generator covers every action type', () => {
+  it('the generator covers every action type (draft/carry and answer/extend need A or B open: reduce.ab.test.js)', () => {
     const seen = new Set(fc.sample(anyAction, 2000).map((a) => a.type));
-    expect([...seen].sort()).toEqual([...ACTION_TYPES].sort());
+    const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND];
+    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t)).sort());
   });
   it('the state survives JSON, and plan and session never change', () => {
     fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {

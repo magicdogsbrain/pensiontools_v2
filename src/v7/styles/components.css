@@ -198,3 +198,101 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
   .headline { padding: 24px; }
   .figure { font-size: 3rem; }
 }
+
+/* ---- questions A and B (step 4 brief 4.13) -------------------------------------------------------------------- */
+/* the verdict: a word and a colour token, never only a colour */
+.verdict .figure { line-height: 1.2; }
+.verdict.is-yes .figure, .verdict-word.is-yes { color: var(--text-verdict-yes); }
+.verdict.is-close .figure, .verdict-word.is-close { color: var(--text-verdict-close); }
+.verdict.is-no .figure, .verdict-word.is-no { color: var(--text-verdict-no); }
+.answer.is-stale .verdict .figure { color: var(--text-muted); }
+.verdict-word { font-weight: 600; }
+
+/* the bar of ten futures */
+.bar { display: inline-flex; gap: 2px; vertical-align: middle; }
+.bar-cell { display: inline-block; width: 8px; height: 14px; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; }
+.bar-cell.is-on { background: var(--fill-primary); border-color: var(--fill-primary); }
+
+/* the ages side by side: a table that never scrolls sideways at 390 — age, amount, lasted; the rest from 700 up */
+.ages { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+.ages th, .ages td { text-align: left; padding: 6px 6px 6px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.ages thead th { font-size: var(--size-small); color: var(--text-muted); font-weight: 600; border-top: 0; }
+.ages tbody th { font-weight: 700; white-space: nowrap; }
+/* the bar and its count stay whole, but the count may drop under the bar when a phone is tight (no sideways scroll) */
+.ages td.lasted { white-space: normal; }
+.ages td.lasted .bar { white-space: nowrap; }
+.ages .count { margin-left: 6px; font-size: var(--size-small); white-space: nowrap; display: inline-block; }
+.ages tr.is-shown th, .ages tr.is-shown td { background: var(--surface-raised); }
+.ages tr.is-shown th::before { content: '›'; color: var(--text-link); margin-right: 2px; }
+.ages .partner-age, .ages .age-now { color: var(--text-muted); font-weight: 400; }
+.ages .age-pick { padding: 0 4px; min-height: var(--target); }
+.ages .col-verdict, .ages .col-wide { display: none; }
+.working-note { color: var(--text-warning); font-weight: 600; }
+.chart-key, .grid-key { margin-top: 4px; }
+
+/* the pots and the check line */
+.pots-list { list-style: none; padding: 0; margin: 0 0 8px; }
+.pots-list li { padding: 6px 0; border-top: 1px solid var(--line); }
+.check-line { font-weight: 600; }
+/* B: the number when the pay-in is the answer — a guide in smaller type, never a second headline card */
+.guide .guide-title { font-size: 1rem; margin: 0 0 4px; }
+.guide .guide-figure { font-size: 1.25rem; font-weight: 700; margin: 0; }
+.guide-why { color: var(--text-muted); }
+
+/* B's levers: cards that stack on a phone and sit side by side from 700 up */
+.lever-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: 1fr; gap: 10px; }
+.lever { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.lever-name { font-size: 1.05rem; margin: 0; }
+.lever-line { margin: 0; }
+.lever .btn { align-self: flex-start; }
+.levers-two { margin: 0; }
+
+/* B's grid of stop age against pay-in: bare counts on a phone, "6 in 10" from 700 up */
+.grid { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 8px 0; }
+.grid th, .grid td { padding: 4px 2px; text-align: center; border-top: 1px solid var(--line); }
+.grid thead th { font-size: var(--size-small); color: var(--text-muted); border-top: 0; }
+.grid tbody th { font-weight: 700; }
+.grid tr.is-shown th, .grid tr.is-shown td { background: var(--surface-raised); }
+.grid td.is-careful { font-weight: 700; color: var(--text-success); }
+.grid .btn-cell { min-height: var(--target); min-width: var(--target); padding: 4px; border: 1px solid var(--line-strong); background: transparent; color: inherit; font-weight: inherit; }
+.grid .count-long, .grid .col-wide { display: none; }
+.grid .count-short { display: inline; }
+
+/* the pay-in box, the percent box, the carried line, the on-course line */
+.suffix { font-weight: 600; color: var(--text-muted); }
+.field-percent input[type="text"] { max-width: 6rem; }
+.carried { margin: 0 0 12px; }
+.on-course { font-weight: 600; color: var(--text-success); }
+.level-line { margin: 4px 0 0; }
+.try-part-time .field { margin: 4px 0 0; }
+.try-part-time .field label { font-weight: 600; font-size: var(--size-small); }
+
+@media (min-width: 700px) {
+  .ages .col-verdict, .ages .col-wide { display: table-cell; }
+  .lever-list { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .grid th, .grid td { padding: 6px 6px; }
+  .grid .count-long { display: inline; }
+  .grid .count-short { display: none; }
+  .grid .col-wide { display: table-cell; }
+  .grid small.col-wide { display: inline; }
+}
+@media (max-width: 699px) {
+  /* the ages and the grid keep to the phone's width: the numbers a little smaller, nothing scrolls sideways */
+  .ages, .grid { font-size: var(--size-small); }
+  .bar-cell { width: 7px; }
+}
+
+/* a hand-over link in "What next?" is one line of words that wraps as text — never a row of flex columns on a phone */
+.next-list .btn { display: inline-block; text-align: left; }
+/* the grid: the pay-in now, and what it needs, named under the column's figure; the line when no cell reaches 9 in 10 */
+.grid .col-mark { display: block; font-weight: 400; }
+.grid-none { font-weight: 600; }
+/* a lever the answer found nothing for: said, with no button */
+.lever.is-none { background: transparent; }
+.before-now .changed { display: block; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+.closed-note { margin-top: 4px; }
+/* C: what goes in until the money starts, said under the figure; the pot by then */
+.pay-in-line { font-weight: 600; }
+.pot-line { margin-top: 4px; }
+/* the grid's "pot that pays it" column is drawn from 700 up; so is the line that explains it */
+@media (max-width: 699px) { .grid-key-guide { display: none; } }

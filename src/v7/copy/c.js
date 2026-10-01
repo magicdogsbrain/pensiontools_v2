@@ -67,7 +67,9 @@ export const C = {
     partnerDone: 'That is all we need for a first answer for the two of you.',
     moreTitle: 'More detail (all optional)',
     stays: 'Your figures stay in this browser until you choose to keep the plan.',
-    tooYoung: 'You cannot normally take a pension before {age}. We have started at {age}.'
+    tooYoung: 'You cannot normally take a pension before {age}. We have started at {age}.',
+    /** Still paying in, and "Start taking it" left alone: the form starts the money at the State Pension age. */
+    payingInStart: 'As you are still paying in, we have started at your State Pension age, {age}. Change it to the age you will stop paying in.'
   },
 
   answer: {
@@ -82,7 +84,7 @@ export const C = {
     first: 'This is a first figure. We are still trying it against more futures.',
     failedTitle: 'Sorry, we could not work that out.',
     failedBody: 'Nothing has been lost. Your numbers are still here:',
-    summary: { pot: 'Pot', age: 'age', partner: 'and a partner' },
+    summary: { pot: 'Pot', age: 'age', in: 'a month going in', partner: 'and a partner' },
     madeOfTitle: 'What it is made of',
     madeOfNote: "(a month, after tax, at today's prices)",
     /** The key under the three amounts. Its counts are the answer's own (BAND in src/answers/shared/rules.js). */
@@ -103,6 +105,11 @@ export const C = {
     tryStartNow: 'now',
     tryStartDown: '1 year earlier',
     tryStartUp: '1 year later',
+    /** Still paying in: what goes in each month, £50 at a time (your part when it is split, else the one figure). */
+    tryPayInOwn: 'Your part, a month',
+    tryPayInTotal: 'Going in, a month',
+    tryPayInDown: 'Paying in down by {amount} a month',
+    tryPayInUp: 'Paying in up by {amount} a month',
     tryRisk: 'Risk level',
     /** Under the risk buttons: what moves with the level. Pieces around figures drawn by Money. */
     riskMovesAt: 'At this level:',
@@ -157,7 +164,11 @@ export const C = {
       label: 'The age to start at',
       errors: {
         'start-not-before-now': 'That is younger than you are now. Choose "Now" or a later age.',
-        'start-not-before-access': 'You cannot normally take a pension before {age}. Choose {age} or later.'
+        'start-not-before-access': 'You cannot normally take a pension before {age}. Choose {age} or later.',
+        /** Two people: no pension of either of you open by then, and no savings (the rule is per person). */
+        'start-not-before-access-couple': 'Your pensions cannot be touched before you are {age}, and there are no savings to live on until then. Choose {age} or later, or add your savings under "Add more detail".',
+        'pay-in-past-75': 'You would be over 75 by then, and paying in can only be counted until 75: after that the government adds no tax back. Choose 75 or younger, or answer No to still paying in.',
+        'pay-in-past-75-partner': 'Your partner would be over 75 by then, and paying in can only be counted until 75: after that the government adds no tax back. Choose an earlier age, or answer No to their paying in.'
       }
     },
     'you.statePension.kind': { label: 'State Pension', options: { full: 'The full amount', forecast: 'My forecast', none: 'None' } },
@@ -205,6 +216,44 @@ export const C = {
       label: 'The age it starts',
       errors: { required: "Type the age your partner's final-salary pension starts. It is on the yearly statement." }
     },
+
+    // ---- "Still paying in" (step 4 brief section 10, J8). Owned by the numbers package: labels, help and errors of
+    // C's pay-in fields only. Every other word of C is the screens package's. -----------------------------------------
+    'you.payIn.has': { label: 'Are you still paying into this pension?', options: { no: 'No', yes: 'Yes' } },
+    'you.payIn.kind': { label: 'What goes in', options: { split: "Your part and your employer's", total: 'One figure' } },
+    'you.payIn.own': {
+      label: 'Your part, a month',
+      help: 'What lands in your pension from your pay each month, with the tax the government adds back included. It goes in until the age you start taking the money.',
+      errors: { required: 'Type what goes in from your pay each month, for example 500. Type 0 if none.', notANumber: 'Use figures only, for example 500.' }
+    },
+    'you.payIn.employer': {
+      label: "Your employer's part, a month",
+      help: 'What your employer puts in each month. 0 if none.',
+      errors: { required: "Type your employer's part each month, for example 300. Type 0 if none.", notANumber: 'Use figures only, for example 300.', 'pay-in-over-limit': "Your part and your employer's part together can be up to £10,000 a month." }
+    },
+    'you.payIn.total': {
+      label: 'Going into your pension, a month',
+      help: "Everything that lands in your pension each month: your part, your employer's part and the tax the government adds back.",
+      errors: { required: 'Type what goes into your pension each month, for example 800. Type 0 if nothing.', notANumber: 'Use figures only, for example 800.' }
+    },
+    'partner.payIn.has': { label: 'Is your partner still paying into their pension?', options: { no: 'No', yes: 'Yes' } },
+    'partner.payIn.kind': { label: 'What goes in', options: { split: "Their part and their employer's", total: 'One figure' } },
+    'partner.payIn.own': {
+      label: "Your partner's part, a month",
+      help: 'What lands in their pension from their pay each month, with the tax the government adds back included.',
+      errors: { required: 'Type what goes in from their pay each month, for example 300. Type 0 if none.', notANumber: 'Use figures only, for example 300.' }
+    },
+    'partner.payIn.employer': {
+      label: "Their employer's part, a month",
+      help: 'What their employer puts in each month. 0 if none.',
+      errors: { required: "Type their employer's part each month, for example 200. Type 0 if none.", notANumber: 'Use figures only, for example 200.', 'pay-in-over-limit': "Their part and their employer's part together can be up to £10,000 a month." }
+    },
+    'partner.payIn.total': {
+      label: 'Going into their pension, a month',
+      help: "Everything that lands in their pension each month: their part, their employer's part and the tax the government adds back.",
+      errors: { required: 'Type what goes into their pension each month, for example 500. Type 0 if nothing.', notANumber: 'Use figures only, for example 500.' }
+    },
+    // ---- end of the "still paying in" block ----------------------------------------------------------------------
 
     savings: {
       label: 'Other savings you would spend',

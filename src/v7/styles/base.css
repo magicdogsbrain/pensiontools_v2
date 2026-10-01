@@ -49,10 +49,12 @@ input[type="radio"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-colo
 }
 .btn:hover { border-color: var(--text-link); }
 .btn[disabled] { cursor: not-allowed; border-style: dashed; color: var(--text-muted); }
+/* resting while an answer is worked out: it keeps the keyboard's place (never `disabled`), and looks at rest */
+.btn[aria-disabled="true"] { cursor: progress; border-style: dashed; color: var(--text-muted); }
 .btn-primary { background: var(--fill-primary); color: var(--on-primary); border-color: var(--fill-primary); }
 .btn-quiet { background: transparent; border-color: transparent; color: var(--text-link); text-decoration: underline; padding-left: 8px; padding-right: 8px; }
 .btn-choice[aria-pressed="true"] { background: var(--fill-choice); color: var(--on-choice); border-color: var(--fill-choice); }
-.btn-toggle { background: transparent; border-color: transparent; color: var(--text); padding: 4px 0; font-size: 1.2rem; font-weight: 650; justify-content: flex-start; width: 100%; }
+.btn-toggle { text-align: left; background: transparent; border-color: transparent; color: var(--text); padding: 4px 0; font-size: 1.2rem; font-weight: 650; justify-content: flex-start; width: 100%; }
 .btn-toggle::after { content: '▾'; margin-left: auto; color: var(--text-muted); }
 .btn-toggle[aria-expanded="true"]::after { content: '▴'; }
 

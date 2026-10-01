@@ -1,0 +1,1448 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "a",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.17.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "a": {
+      "values": {
+        "you.age": "60",
+        "you.pot": "480,000",
+        "savings": "40,000",
+        "stop.age": "60",
+        "spend.amount": "2,000"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "final",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"partTime\":{\"has\":false},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60,\"kind\":\"age\"},\"you\":{\"age\":60,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":0},\"pot\":480000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.17.0",
+      "result": {
+        "status": "ok",
+        "inputs": {
+          "household": "single",
+          "you": {
+            "pot": 480000,
+            "age": 60,
+            "statePension": {
+              "kind": "full"
+            },
+            "finalSalary": {
+              "has": false
+            },
+            "payIn": {
+              "kind": "total",
+              "total": 0
+            },
+            "alreadyDrawing": false
+          },
+          "savings": 40000,
+          "stop": {
+            "kind": "age",
+            "age": 60
+          },
+          "spend": {
+            "kind": "amount",
+            "amount": 2000
+          },
+          "partTime": {
+            "has": false
+          },
+          "savingsIn": 0,
+          "savingRisk": "balanced",
+          "risk": "balanced",
+          "charge": 0.5,
+          "endAge": 95
+        },
+        "whose": "you",
+        "spend": {
+          "perMonth": 2000,
+          "perYear": 24000,
+          "kind": "amount",
+          "level": null
+        },
+        "stop": {
+          "kind": "age",
+          "age": 60
+        },
+        "headline": {
+          "kind": "named",
+          "age": 60,
+          "verdict": "yes",
+          "lasted": 0.942,
+          "outOfTen": {
+            "words": "in 9 futures out of 10",
+            "only": false,
+            "count": 9
+          },
+          "runOutAge": 95
+        },
+        "shown": {
+          "age": 60,
+          "ages": {
+            "you": 60
+          },
+          "stopYear": "2026",
+          "status": "final",
+          "verdict": "yes",
+          "lasted": 0.942,
+          "outOfTen": {
+            "words": "in 9 futures out of 10",
+            "only": false,
+            "count": 9
+          },
+          "runOutAge": 95,
+          "monthly": {
+            "careful": 2090,
+            "middling": 2530,
+            "good": 3100
+          },
+          "yearly": {
+            "careful": 25080,
+            "middling": 30360,
+            "good": 37200
+          },
+          "lastedAt": {
+            "careful": 0.9,
+            "middling": 0.509,
+            "good": 0.101
+          },
+          "runOutAgeAt": {
+            "careful": 95,
+            "middling": 81,
+            "good": 74
+          },
+          "spare": 90,
+          "potAtStop": {
+            "careful": 520000,
+            "middling": 520000,
+            "good": 520000,
+            "byPerson": [
+              {
+                "who": "you",
+                "pension": 480000,
+                "savings": 40000
+              }
+            ]
+          },
+          "paidIn": {
+            "total": 0,
+            "byPerson": [
+              {
+                "who": "you",
+                "amount": 0
+              }
+            ]
+          },
+          "yearsSaving": 0,
+          "gapYears": 0,
+          "phases": [
+            {
+              "fromAge": 60,
+              "toAge": 67,
+              "ages": {
+                "you": {
+                  "from": 60,
+                  "to": 67
+                }
+              },
+              "takeHome": 2000,
+              "fromPension": 2106.47,
+              "fromSavings": 0,
+              "fromPots": 2106.47,
+              "statePension": 0,
+              "finalSalary": 0,
+              "tax": 106.47,
+              "work": 0,
+              "fromWork": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "statePension": 0,
+                  "finalSalary": 0,
+                  "work": 0,
+                  "fromWork": 0,
+                  "fromPension": 2106.47,
+                  "fromSavings": 0,
+                  "tax": 106.47,
+                  "takeHome": 2000,
+                  "higherRate": false,
+                  "locked": false,
+                  "pensionOpen": true
+                }
+              ],
+              "beforeStatePension": true,
+              "pensionOpen": true,
+              "shown": {
+                "takeHome": 2000,
+                "fromPots": 2000,
+                "statePension": 0,
+                "finalSalary": 0,
+                "fromWork": 0
+              }
+            },
+            {
+              "fromAge": 67,
+              "toAge": 95,
+              "ages": {
+                "you": {
+                  "from": 67,
+                  "to": 95
+                }
+              },
+              "takeHome": 2000,
+              "fromPension": 1122.35,
+              "fromSavings": 0,
+              "fromPots": 1122.35,
+              "statePension": 1045.63,
+              "finalSalary": 0,
+              "tax": 167.98,
+              "work": 0,
+              "fromWork": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "statePension": 1045.63,
+                  "finalSalary": 0,
+                  "work": 0,
+                  "fromWork": 0,
+                  "fromPension": 1122.35,
+                  "fromSavings": 0,
+                  "tax": 167.98,
+                  "takeHome": 2000,
+                  "higherRate": false,
+                  "locked": false,
+                  "pensionOpen": true
+                }
+              ],
+              "beforeStatePension": false,
+              "pensionOpen": true,
+              "shown": {
+                "takeHome": 2000,
+                "fromPots": 954,
+                "statePension": 1046,
+                "finalSalary": 0,
+                "fromWork": 0
+              }
+            }
+          ],
+          "oneMoreYear": {
+            "toAge": 61,
+            "extraMonthly": 50,
+            "lastedFrom": 0.942,
+            "lastedTo": 0.954,
+            "runOutFrom": 95,
+            "runOutTo": 95,
+            "potExtra": 18292,
+            "sameish": false
+          }
+        },
+        "ages": [
+          {
+            "age": 60,
+            "ages": {
+              "you": 60
+            },
+            "stopYear": "2026",
+            "status": "final",
+            "verdict": "yes",
+            "lasted": 0.942,
+            "outOfTen": {
+              "words": "in 9 futures out of 10",
+              "only": false,
+              "count": 9
+            },
+            "runOutAge": 95,
+            "monthly": {
+              "careful": 2090,
+              "middling": 2530,
+              "good": 3100
+            },
+            "yearly": {
+              "careful": 25080,
+              "middling": 30360,
+              "good": 37200
+            },
+            "lastedAt": {
+              "careful": 0.9,
+              "middling": 0.509,
+              "good": 0.101
+            },
+            "runOutAgeAt": {
+              "careful": 95,
+              "middling": 81,
+              "good": 74
+            },
+            "spare": 90,
+            "potAtStop": {
+              "careful": 520000,
+              "middling": 520000,
+              "good": 520000,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "pension": 480000,
+                  "savings": 40000
+                }
+              ]
+            },
+            "paidIn": {
+              "total": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "amount": 0
+                }
+              ]
+            },
+            "yearsSaving": 0,
+            "gapYears": 0,
+            "phases": [
+              {
+                "fromAge": 60,
+                "toAge": 67,
+                "ages": {
+                  "you": {
+                    "from": 60,
+                    "to": 67
+                  }
+                },
+                "takeHome": 2000,
+                "fromPension": 2106.47,
+                "fromSavings": 0,
+                "fromPots": 2106.47,
+                "statePension": 0,
+                "finalSalary": 0,
+                "tax": 106.47,
+                "work": 0,
+                "fromWork": 0,
+                "byPerson": [
+                  {
+                    "who": "you",
+                    "statePension": 0,
+                    "finalSalary": 0,
+                    "work": 0,
+                    "fromWork": 0,
+                    "fromPension": 2106.47,
+                    "fromSavings": 0,
+                    "tax": 106.47,
+                    "takeHome": 2000,
+                    "higherRate": false,
+                    "locked": false,
+                    "pensionOpen": true
+                  }
+                ],
+                "beforeStatePension": true,
+                "pensionOpen": true,
+                "shown": {
+                  "takeHome": 2000,
+                  "fromPots": 2000,
+                  "statePension": 0,
+                  "finalSalary": 0,
+                  "fromWork": 0
+                }
+              },
+              {
+                "fromAge": 67,
+                "toAge": 95,
+                "ages": {
+                  "you": {
+                    "from": 67,
+                    "to": 95
+                  }
+                },
+                "takeHome": 2000,
+                "fromPension": 1122.35,
+                "fromSavings": 0,
+                "fromPots": 1122.35,
+                "statePension": 1045.63,
+                "finalSalary": 0,
+                "tax": 167.98,
+                "work": 0,
+                "fromWork": 0,
+                "byPerson": [
+                  {
+                    "who": "you",
+                    "statePension": 1045.63,
+                    "finalSalary": 0,
+                    "work": 0,
+                    "fromWork": 0,
+                    "fromPension": 1122.35,
+                    "fromSavings": 0,
+                    "tax": 167.98,
+                    "takeHome": 2000,
+                    "higherRate": false,
+                    "locked": false,
+                    "pensionOpen": true
+                  }
+                ],
+                "beforeStatePension": false,
+                "pensionOpen": true,
+                "shown": {
+                  "takeHome": 2000,
+                  "fromPots": 954,
+                  "statePension": 1046,
+                  "finalSalary": 0,
+                  "fromWork": 0
+                }
+              }
+            ],
+            "oneMoreYear": {
+              "toAge": 61,
+              "extraMonthly": 50,
+              "lastedFrom": 0.942,
+              "lastedTo": 0.954,
+              "runOutFrom": 95,
+              "runOutTo": 95,
+              "potExtra": 18292,
+              "sameish": false
+            }
+          },
+          {
+            "age": 61,
+            "ages": {
+              "you": 61
+            },
+            "stopYear": "2027",
+            "status": "final",
+            "verdict": "yes",
+            "lasted": 0.954,
+            "outOfTen": {
+              "words": "in more than 9 futures out of 10",
+              "only": false,
+              "count": 9
+            },
+            "runOutAge": 95,
+            "monthly": {
+              "careful": 2140,
+              "middling": 2640,
+              "good": 3280
+            },
+            "yearly": {
+              "careful": 25680,
+              "middling": 31680,
+              "good": 39360
+            },
+            "lastedAt": {
+              "careful": 0.903,
+              "middling": 0.504,
+              "good": 0.104
+            },
+            "runOutAgeAt": {
+              "careful": 95,
+              "middling": 81,
+              "good": 74
+            },
+            "spare": 140,
+            "potAtStop": {
+              "careful": 473968,
+              "middling": 538292,
+              "good": 599693,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "pension": 496885,
+                  "savings": 41407
+                }
+              ]
+            },
+            "paidIn": {
+              "total": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "amount": 0
+                }
+              ]
+            },
+            "yearsSaving": 1,
+            "gapYears": 0,
+            "phases": null,
+            "oneMoreYear": {
+              "toAge": 62,
+              "extraMonthly": 60,
+              "lastedFrom": 0.954,
+              "lastedTo": 0.965,
+              "runOutFrom": 95,
+              "runOutTo": 95,
+              "potExtra": 18220,
+              "sameish": false
+            }
+          },
+          {
+            "age": 62,
+            "ages": {
+              "you": 62
+            },
+            "stopYear": "2028",
+            "status": "final",
+            "verdict": "yes",
+            "lasted": 0.965,
+            "outOfTen": {
+              "words": "in more than 9 futures out of 10",
+              "only": false,
+              "count": 9
+            },
+            "runOutAge": 95,
+            "monthly": {
+              "careful": 2200,
+              "middling": 2760,
+              "good": 3480
+            },
+            "yearly": {
+              "careful": 26400,
+              "middling": 33120,
+              "good": 41760
+            },
+            "lastedAt": {
+              "careful": 0.905,
+              "middling": 0.502,
+              "good": 0.102
+            },
+            "runOutAgeAt": {
+              "careful": 95,
+              "middling": 81,
+              "good": 74
+            },
+            "spare": 200,
+            "potAtStop": {
+              "careful": 457350,
+              "middling": 556512,
+              "good": 645448,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "pension": 513704,
+                  "savings": 42809
+                }
+              ]
+            },
+            "paidIn": {
+              "total": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "amount": 0
+                }
+              ]
+            },
+            "yearsSaving": 2,
+            "gapYears": 0,
+            "phases": null,
+            "oneMoreYear": null
+          },
+          {
+            "age": 65,
+            "ages": {
+              "you": 65
+            },
+            "stopYear": "2031",
+            "status": "final",
+            "verdict": "yes",
+            "lasted": 0.986,
+            "outOfTen": {
+              "words": "in more than 9 futures out of 10",
+              "only": false,
+              "count": 9
+            },
+            "runOutAge": 95,
+            "monthly": {
+              "careful": 2430,
+              "middling": 3130,
+              "good": 4140
+            },
+            "yearly": {
+              "careful": 29160,
+              "middling": 37560,
+              "good": 49680
+            },
+            "lastedAt": {
+              "careful": 0.9,
+              "middling": 0.505,
+              "good": 0.1
+            },
+            "runOutAgeAt": {
+              "careful": 95,
+              "middling": 82,
+              "good": 76
+            },
+            "spare": 430,
+            "potAtStop": {
+              "careful": 446627,
+              "middling": 605911,
+              "good": 767032,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "pension": 559303,
+                  "savings": 46609
+                }
+              ]
+            },
+            "paidIn": {
+              "total": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "amount": 0
+                }
+              ]
+            },
+            "yearsSaving": 5,
+            "gapYears": 0,
+            "phases": null,
+            "oneMoreYear": null
+          },
+          {
+            "age": 67,
+            "ages": {
+              "you": 67
+            },
+            "stopYear": "2033",
+            "status": "final",
+            "verdict": "yes",
+            "lasted": 0.993,
+            "outOfTen": {
+              "words": "in more than 9 futures out of 10",
+              "only": false,
+              "count": 9
+            },
+            "runOutAge": 95,
+            "monthly": {
+              "careful": 2600,
+              "middling": 3430,
+              "good": 4730
+            },
+            "yearly": {
+              "careful": 31200,
+              "middling": 41160,
+              "good": 56760
+            },
+            "lastedAt": {
+              "careful": 0.902,
+              "middling": 0.5,
+              "good": 0.1
+            },
+            "runOutAgeAt": {
+              "careful": 95,
+              "middling": 83,
+              "good": 76
+            },
+            "spare": 600,
+            "potAtStop": {
+              "careful": 457380,
+              "middling": 638631,
+              "good": 871670,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "pension": 589505,
+                  "savings": 49125
+                }
+              ]
+            },
+            "paidIn": {
+              "total": 0,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "amount": 0
+                }
+              ]
+            },
+            "yearsSaving": 7,
+            "gapYears": 0,
+            "phases": null,
+            "oneMoreYear": null
+          }
+        ],
+        "earliest": {
+          "yes": 60,
+          "close": 60
+        },
+        "pensionOpens": {
+          "you": 60
+        },
+        "gapYears": 0,
+        "savingsNeeded": null,
+        "partTime": null,
+        "saving": [
+          {
+            "who": "you",
+            "stopAge": 60,
+            "yearsSaving": 0,
+            "potToday": {
+              "pension": 480000,
+              "savings": 40000
+            },
+            "payIn": {
+              "total": 0,
+              "own": null,
+              "employer": null,
+              "savings": 0
+            },
+            "potAtStop": {
+              "pension": {
+                "careful": 480000,
+                "middling": 480000,
+                "good": 480000
+              },
+              "savings": {
+                "careful": 40000,
+                "middling": 40000,
+                "good": 40000
+              },
+              "total": {
+                "careful": 520000,
+                "middling": 520000,
+                "good": 520000
+              }
+            },
+            "paidIn": {
+              "total": 0
+            },
+            "mix": {
+              "saving": "balanced",
+              "drawing": "balanced",
+              "slideYears": 0
+            },
+            "chargeAYear": 0.005
+          }
+        ],
+        "guaranteed": {
+          "monthlyAfterTax": 1045.63
+        },
+        "handOver": {
+          "c": {
+            "ok": true,
+            "same": true
+          }
+        },
+        "assumed": [
+          {
+            "id": "stop-age",
+            "field": "stop.age",
+            "source": "entered",
+            "value": 60,
+            "text": "You stop at 60.",
+            "parts": [
+              "You stop at ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "spend-steady",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "You spend the same each month, going up with prices, from when you stop. No cuts in bad years.",
+            "parts": [
+              "You spend the same each month, going up with prices, from when you stop. No cuts in bad years."
+            ]
+          },
+          {
+            "id": "no-part-time",
+            "field": "partTime.has",
+            "source": "default",
+            "value": false,
+            "text": "No part-time work after you stop.",
+            "parts": [
+              "No part-time work after you stop."
+            ]
+          },
+          {
+            "id": "state-pension-full",
+            "field": "you.statePension.kind",
+            "source": "default",
+            "value": 12547.6,
+            "text": "The full State Pension of £1,046 a month from age 67. Yours may be different — check your forecast.",
+            "parts": [
+              "The full State Pension",
+              " of ",
+              {
+                "fixed": "£1,046"
+              },
+              " a month from age ",
+              {
+                "fixed": "67"
+              },
+              ".",
+              " Yours may be different — check your forecast."
+            ]
+          },
+          {
+            "id": "state-pension-age",
+            "field": null,
+            "source": "rule",
+            "value": 67,
+            "text": "Your State Pension age of 67 comes from your age.",
+            "parts": [
+              "Your State Pension age of ",
+              {
+                "fixed": "67"
+              },
+              " comes from your age."
+            ]
+          },
+          {
+            "id": "quarter-tax-free",
+            "field": null,
+            "source": "rule",
+            "value": 0.25,
+            "text": "A quarter of each pension withdrawal is tax-free.",
+            "parts": [
+              "A quarter of each pension withdrawal is tax-free."
+            ]
+          },
+          {
+            "id": "risk-drawing",
+            "field": "risk",
+            "source": "default",
+            "value": "balanced",
+            "text": "Once stopped: Balanced, about half in shares, the rest in bonds and cash.",
+            "parts": [
+              "Once stopped: ",
+              "Balanced, about half in shares, the rest in bonds and cash."
+            ]
+          },
+          {
+            "id": "plan-to",
+            "field": "endAge",
+            "source": "default",
+            "value": 95,
+            "text": "The money needs to last until you are 95.",
+            "parts": [
+              "The money needs to last until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
+            "id": "todays-prices",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "All figures are in today's prices.",
+            "parts": [
+              "All figures are in today's prices."
+            ]
+          },
+          {
+            "id": "no-final-salary",
+            "field": "you.finalSalary.has",
+            "source": "default",
+            "value": false,
+            "text": "No final-salary pension.",
+            "parts": [
+              "No final-salary pension."
+            ]
+          },
+          {
+            "id": "isa-fixed-growth",
+            "field": null,
+            "source": "rule",
+            "value": 0.03,
+            "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.",
+            "parts": [
+              "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+              {
+                "fixed": "3"
+              },
+              "% a year before rising prices, so they lose ground whenever prices rise faster than that."
+            ]
+          },
+          {
+            "id": "tax-rules",
+            "field": null,
+            "source": "rule",
+            "value": "2026/27",
+            "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+            "parts": [
+              "Tax rules for ",
+              {
+                "fixed": "2026/27"
+              },
+              " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+              {
+                "fixed": "£100,000"
+              },
+              " point where the allowance starts to be withdrawn stays fixed."
+            ]
+          },
+          {
+            "id": "futures",
+            "field": null,
+            "source": "rule",
+            "value": 1000,
+            "text": "Tested against 1,000 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
+            "parts": [
+              "Tested against ",
+              {
+                "fixed": "1,000"
+              },
+              " possible futures, each pieced together from stretches of US share returns and US price rises since ",
+              {
+                "fixed": "1871"
+              },
+              ". Share returns are cut by ",
+              {
+                "fixed": "1.5"
+              },
+              "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "id": "state-pension-assumed",
+            "severity": "note",
+            "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
+            "parts": [
+              "This assumes the full State Pension. If yours is lower, so is the figure."
+            ]
+          }
+        ],
+        "sentences": {
+          "head": {
+            "id": "a.head.yes",
+            "text": "Yes — you could stop at 60",
+            "parts": [
+              "Yes — you could stop at ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              }
+            ]
+          },
+          "sub": {
+            "id": "a.sub",
+            "text": "spending £2,000 a month after tax from 60 until you are 95, going up each year with prices",
+            "parts": [
+              "spending ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month after tax",
+              " from ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              },
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", going up each year with prices"
+            ]
+          },
+          "line": {
+            "id": "a.line",
+            "text": "Stopping at 60 and spending £2,000 a month, your money lasted to 95 in 9 futures out of 10.",
+            "parts": [
+              "Stopping at ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              },
+              " and spending ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month, your money lasted to ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              " ",
+              "in ",
+              {
+                "fixed": "9"
+              },
+              " futures out of ",
+              {
+                "fixed": "10"
+              },
+              "."
+            ]
+          },
+          "bad": {
+            "id": "a.bad.yes",
+            "text": "In a bad case (the worst 1 in 10) it still lasts to 95. You could spend up to about £2,090 a month and it would still last in 9 futures out of 10.",
+            "parts": [
+              "In a bad case (the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              ")",
+              " it still lasts to ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ". You could spend up to about ",
+              {
+                "key": "shown.monthly.careful",
+                "kind": "money"
+              },
+              " a month and it would still last in ",
+              {
+                "fixed": "9"
+              },
+              " futures out of ",
+              {
+                "fixed": "10"
+              },
+              "."
+            ]
+          },
+          "range": {
+            "id": "a.range",
+            "text": "At 60 you could spend: careful £2,090, middling £2,530, good £3,100 a month.",
+            "parts": [
+              "At ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              },
+              " you could spend: careful ",
+              {
+                "key": "shown.monthly.careful",
+                "kind": "money"
+              },
+              ", middling ",
+              {
+                "key": "shown.monthly.middling",
+                "kind": "money"
+              },
+              ", good ",
+              {
+                "key": "shown.monthly.good",
+                "kind": "money"
+              },
+              " a month."
+            ]
+          },
+          "pot": {
+            "id": "a.pot.now",
+            "text": "Your pension and savings come to £520,000 today.",
+            "parts": [
+              "Your pension and savings",
+              " come to ",
+              {
+                "key": "shown.potAtStop.middling",
+                "kind": "money"
+              },
+              " today."
+            ]
+          },
+          "pays": [
+            {
+              "id": "a.pays.pots",
+              "text": "From 60 until 67: £2,000 a month, all from your pot and savings.",
+              "parts": [
+                "From ",
+                {
+                  "key": "shown.phases.0.ages.you.from",
+                  "kind": "age"
+                },
+                " until ",
+                {
+                  "key": "shown.phases.0.ages.you.to",
+                  "kind": "age"
+                },
+                ": ",
+                {
+                  "key": "shown.phases.0.shown.takeHome",
+                  "kind": "money"
+                },
+                " a month, all from ",
+                "your pot and savings",
+                "."
+              ]
+            },
+            {
+              "id": "a.pays.tax",
+              "text": "Tax of £106 a month is already taken off.",
+              "parts": [
+                "Tax of ",
+                {
+                  "key": "shown.phases.0.tax",
+                  "kind": "money"
+                },
+                " a month is already taken off."
+              ]
+            },
+            {
+              "id": "a.pays.mixed",
+              "text": "From 67: £1,046 State Pension + £954 from your pot and savings.",
+              "parts": [
+                "From ",
+                {
+                  "key": "shown.phases.1.ages.you.from",
+                  "kind": "age"
+                },
+                ": ",
+                {
+                  "key": "shown.phases.1.shown.statePension",
+                  "kind": "money"
+                },
+                " ",
+                "State Pension",
+                " + ",
+                {
+                  "key": "shown.phases.1.shown.fromPots",
+                  "kind": "money"
+                },
+                " from ",
+                "your pot and savings",
+                "."
+              ]
+            },
+            {
+              "id": "a.pays.tax",
+              "text": "Tax of £168 a month is already taken off.",
+              "parts": [
+                "Tax of ",
+                {
+                  "key": "shown.phases.1.tax",
+                  "kind": "money"
+                },
+                " a month is already taken off."
+              ]
+            }
+          ],
+          "chart": [
+            {
+              "id": "a.chart.row",
+              "text": "At 60, you could spend about £2,090 a month; £2,000 a month lasted in 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.0.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.0.monthly.careful",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in ",
+                {
+                  "fixed": "9"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 61, you could spend about £2,140 a month; £2,000 a month lasted in more than 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.1.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.1.monthly.careful",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in more than ",
+                {
+                  "fixed": "9"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 62, you could spend about £2,200 a month; £2,000 a month lasted in more than 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.2.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.2.monthly.careful",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in more than ",
+                {
+                  "fixed": "9"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 65, you could spend about £2,430 a month; £2,000 a month lasted in more than 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.3.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.3.monthly.careful",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in more than ",
+                {
+                  "fixed": "9"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 67, you could spend about £2,600 a month; £2,000 a month lasted in more than 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.4.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.4.monthly.careful",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in more than ",
+                {
+                  "fixed": "9"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            }
+          ],
+          "oneMore": {
+            "id": "a.oneMore",
+            "text": "Working until 61 instead of 60 buys about £50 a month more for life.",
+            "parts": [
+              "Working until ",
+              {
+                "key": "shown.oneMoreYear.toAge",
+                "kind": "age"
+              },
+              " instead of ",
+              {
+                "key": "shown.age",
+                "kind": "age"
+              },
+              " buys about ",
+              {
+                "key": "shown.oneMoreYear.extraMonthly",
+                "kind": "money"
+              },
+              " a month more for life."
+            ]
+          },
+          "oneMoreMoves": {
+            "id": "a.oneMore.moves",
+            "text": "It moves £2,000 a month from lasting in 9 futures out of 10 to more than 9.",
+            "parts": [
+              "It moves ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month from lasting ",
+              "in ",
+              {
+                "fixed": "9"
+              },
+              " futures out of ",
+              {
+                "fixed": "10"
+              },
+              " to ",
+              "more than ",
+              {
+                "fixed": "9"
+              },
+              "."
+            ]
+          },
+          "change": {
+            "id": "a.change",
+            "text": "Now: yes at 60, 9 futures out of 10.",
+            "parts": [
+              "Now: ",
+              "yes",
+              " at ",
+              {
+                "key": "headline.age",
+                "kind": "age"
+              },
+              ", ",
+              {
+                "fixed": "9"
+              },
+              " futures out of ",
+              {
+                "fixed": "10"
+              },
+              "."
+            ]
+          }
+        },
+        "basis": {
+          "today": "2026-09-30",
+          "futures": 1000,
+          "seed": 0,
+          "failuresAllowed": 100,
+          "closeAllowed": 250,
+          "historyEnd": "2023-06",
+          "engineVersion": "6.17.0",
+          "endAge": 95,
+          "detail": "chart",
+          "lifeYears": 35,
+          "bondDraws": "life",
+          "cashRule": "previous-year",
+          "grid": "yearly",
+          "strategyId": "pots-and-valves",
+          "cutsSwitchedOff": true,
+          "split": [
+            {
+              "who": "you",
+              "share": 1
+            }
+          ]
+        },
+        "units": {
+          "money": "todays-prices",
+          "tax": "after-tax",
+          "period": "month",
+          "who": "household"
+        }
+      },
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": "chart",
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true
+  }
+}

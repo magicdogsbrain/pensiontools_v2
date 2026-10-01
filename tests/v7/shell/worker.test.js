@@ -226,3 +226,47 @@ describe('the worker client', () => {
     });
   });
 });
+
+describe('the worker client, one question at a time (step 4: each question in its own lane)', () => {
+  const echo = () => createHandler({
+    a: { answer: (inputs, env) => ({ status: 'ok', q: 'a', n: inputs.n, detail: env.detail }) },
+    c: { answer: (inputs) => ({ status: 'ok', q: 'c', n: inputs.n }) }
+  });
+  it('stop(q) ends only q\'s answers; another question\'s answer is sent again to a fresh worker and still arrives', async () => {
+    const { makeWorker, made } = makeFakeWorker(echo());
+    const client = createWorkerClient({ makeWorker });
+    await client.init('2026-09-30');
+    const c = client.answer('c', { n: 1 }, ENV);
+    const a = client.answer('a', { n: 2 }, { ...ENV, detail: 'all' }).then(() => 'resolved', (e) => e.code);
+    client.stop('a');
+    expect(made[0].terminated).toBe(true);
+    expect(await a).toBe('stopped');
+    expect(await c).toEqual({ status: 'ok', q: 'c', n: 1 });
+    expect(made.length).toBe(2);
+    expect(made[1].received.map((m) => [m.type, m.q])).toEqual([['init', undefined], ['answer', 'c']]);
+  });
+  it('stop(q) with nothing of q under way leaves the worker alone', async () => {
+    const { makeWorker, made } = makeFakeWorker(echo());
+    const client = createWorkerClient({ makeWorker });
+    await client.init('2026-09-30');
+    const c = client.answer('c', { n: 1 }, ENV);
+    client.stop('a');
+    expect(made[0].terminated).toBe(false);
+    expect((await c).n).toBe(1);
+  });
+  it('stop() with no question ends every answer, as before', async () => {
+    const { makeWorker } = makeFakeWorker(echo());
+    const client = createWorkerClient({ makeWorker });
+    await client.init('2026-09-30');
+    const out = [client.answer('c', { n: 1 }, ENV), client.answer('a', { n: 2 }, ENV)].map((p) => p.then(() => 'resolved', (e) => e.code));
+    client.stop();
+    expect(await Promise.all(out)).toEqual(['stopped', 'stopped']);
+  });
+  it('the env reaches the worker as sent, detail included', async () => {
+    const { makeWorker, made } = makeFakeWorker(echo());
+    const client = createWorkerClient({ makeWorker });
+    const r = await client.answer('a', { n: 3 }, { ...ENV, detail: 'chart' });
+    expect(r.detail).toBe('chart');
+    expect(made[0].received.at(-1).env).toEqual({ ...ENV, detail: 'chart' });
+  });
+});

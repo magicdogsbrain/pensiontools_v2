@@ -21,7 +21,15 @@ const ROWS = [
   ['#/c/answer', r('step', 'c', 'answer'), 'c.answer'],
   ['#/c/ways', r('step', 'c', 'ways'), 'notBuilt'],
   ['#/c/keep', r('step', 'c', 'keep'), 'notBuilt'],
-  ...['a', 'b', 'd', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
+  ['#/a/numbers', r('step', 'a', 'numbers'), 'a.numbers'],
+  ['#/a/answer', r('step', 'a', 'answer'), 'a.answer'],
+  ['#/a/ages', r('step', 'a', 'ages'), 'a.ages'],
+  ['#/a/keep', r('step', 'a', 'keep'), 'notBuilt'],
+  ['#/b/numbers', r('step', 'b', 'numbers'), 'b.numbers'],
+  ['#/b/answer', r('step', 'b', 'answer'), 'b.answer'],
+  ['#/b/choices', r('step', 'b', 'choices'), 'b.choices'],
+  ['#/b/keep', r('step', 'b', 'keep'), 'notBuilt'],
+  ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
 ];
 const FOCUSED = [
   ['#/c/numbers?focus=you.age', r('step', 'c', 'numbers', 'you.age')],
@@ -29,7 +37,7 @@ const FOCUSED = [
   ['#/c/answer?focus=take', r('step', 'c', 'answer', 'take')],
   ['#/?focus=you.pot', r('front', null, null, 'you.pot')]
 ];
-const UNKNOWN = ['#/plan/abc123/c/answer', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense',
+const UNKNOWN = ['#/plan/abc123/c/answer', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense',
   '#/c/answer/extra', '#/c/numbers?focus=', '#/c/numbers?focus=you.pot=250000', '#/c/numbers?pot=250000', '#/C/numbers', '#/c/numbers?focus=1'];
 
 describe('parse and format', () => {

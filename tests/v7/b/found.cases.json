@@ -1,0 +1,4 @@
+{
+  "what": "Cases found by B's random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswerB. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }.",
+  "cases": []
+}

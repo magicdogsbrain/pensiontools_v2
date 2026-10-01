@@ -182,3 +182,75 @@ describe('the search settles on the brackets alone', () => {
     return { plan, futures: futuresList(30, plan.years, env) };
   }
 });
+
+/*
+ * Step 4 (the saving years): the new shapes the fast path takes, each against today's engine run by run
+ * (step 4 brief 4.6; test plan 3.6) — an income that ends (part-time work), a finite ISA rate (env.savingsGrowth),
+ * and per-future starting pots (the stop runner). The locked run's reference is the chain in tests/v7/saving/locked.test.js.
+ */
+import { stopAtPlan, createStopRunner, bandAt } from '../saving/_saving.js';
+import { saver } from '../saving/invariants.js';
+import { identityCases, perLifeBandReference } from './identity.js';
+
+describe('the new shapes of step 4: the replica is today\'s engine', () => {
+  const env = { today: TEST_ENV.today, seed: 0 };
+  const same = (a, b) => a.failed === b.failed && a.failMonth === b.failMonth && a.finalEquity === b.equity && a.finalBond === b.bond && a.finalCash === b.cash && a.finalIsa === b.isa;
+
+  it('an income that ends (N ∈ {1, 3, 10} years, £1 / £12,570 / £50,000 a year) and a finite ISA rate: failed, the month and the end pots to the bit', () => {
+    const households = [...fixtures.map((f) => f.inputs), ...random(15, env)];
+    let compared = 0;
+    for (const inputs of households) {
+      const c = identityCases(inputs, env, 8, [0, 30, 200, 600]);
+      if (!c) continue;
+      for (const configs of c.configsAtK) {
+        for (const { config, role } of configs) {
+          const shapes = [];
+          if (role === 'pension') for (const N of [1, 3, 10]) for (const annual of [1, 12570, 50000]) shapes.push({ ...config, extraIncomes: [...(config.extraIncomes || []), { startYear: 0, endYear: N - 1, annual, indexation: 'cpi' }] });
+          for (const isaReturn of [0, 0.03, 0.05]) shapes.push({ ...config, isaReturn });
+          for (const shaped of shapes) {
+            expect(fastEligible(shaped)).toBe(true);
+            for (const future of c.futures) {
+              const a = simulate(shaped, future.returns, future.seed);
+              const b = simulateFast(shaped, future);
+              if (!same(a, b)) expect.fail(`differs: ${JSON.stringify(inputs)} ${JSON.stringify(shaped.extraIncomes)} isa ${shaped.isaReturn} in future ${future.id}`);
+              compared++;
+            }
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(3000);
+  }, 60_000);
+
+  it('per-future pots, a stop now in any mix: the band on the stop runner is the band read off each life\'s most, by today\'s engine', () => {
+    let compared = 0;
+    for (const [h, n] of [
+      [saver({ age: 62, pot: 300_000, isa: 40_000, stopAge: 62 }), 12],
+      [saver({ age: 66, pot: 150_000, stopAge: 66, partner: { age: 63, pot: 250_000, isa: 20_000 } }), 12],
+      [saver({ age: 60, pot: 500_000, stopAge: 60, finalSalary: { yearly: 9_000, fromAge: 65 }, risk: 'adventurous' }), 12]
+    ]) {
+      const sp = stopAtPlan(h, h.people[0].age, { ...TEST_ENV, futures: n });
+      // every life a different pot: from a third to twice today's, by life
+      const runner = createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: (i, j) => sp.potsOf(i)[j].pension * (0.33 + (i * 7919 % 17) / 10) });
+      const band = bandAt(sp, runner);
+      expect(perLifeBandReference(sp, runner, sp.S)).toEqual(band.monthly);
+      compared++;
+    }
+    expect(compared).toBe(3);
+  }, 60_000);
+
+  it('per-future pots after saving years, all-shares mix: the same', () => {
+    const SHARES = { equity: 1, bond: 0, cash: 0 };
+    for (const h of [
+      saver({ age: 45, pot: 120_000, payIn: 700, stopAge: 60, mix: SHARES }),
+      saver({ age: 50, pot: 60_000, isa: 50_000, payIn: 500, savingsIn: 300, stopAge: 58, mix: SHARES }),
+      saver({ age: 48, pot: 200_000, payIn: 300, stopAge: 61, mix: SHARES, partner: { age: 52, pot: 90_000, isa: 30_000, payIn: 600 } })
+    ]) {
+      const stopAge = h.people[0].stopWork.age;
+      const sp = stopAtPlan(h, stopAge, { ...TEST_ENV, futures: 12, mix: SHARES, savingMix: SHARES });
+      const runner = createStopRunner(sp);
+      const band = bandAt(sp, runner);
+      expect(perLifeBandReference(sp, runner, sp.S)).toEqual(band.monthly);
+    }
+  }, 60_000);
+});

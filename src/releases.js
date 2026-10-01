@@ -36,6 +36,42 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.18.0', date: '2026-10-01', engineVersion: '6.17.0',
+    title: 'Keep an answer from the preview as a plan, five corrections, and faster tax sums',
+    summary: 'An answer from the preview question pages (pensiontools.uk/v7/) can now become a plan here, under a name you choose — we suggest one such as "Stop at 60 · £1,800 a month", never "My plan". It is always a new plan beside your others: nothing you have is overwritten and a locked plan is never touched. Your figures wait in this browser until the plan is made, are never used after a day, and never go into the page address. Five corrections reach every user: the pots a plan retiring later starts from are now stated correctly, the Household table follows a stepped income shape, start years are right west of Greenwich, and "Just try it" no longer deletes plans already in the tab. Working out the before-tax amount for a take-home figure is now three to four times faster, with identical results.',
+    changes: [
+      'From a preview answer ("What is that a month?", "When can I afford to stop work?", "Am I saving enough?") to a new plan: you confirm the name, and the plan opens at Stress tester → Settings with a note saying where it came from and why its own test can differ from the quick answer, giving the quick answer\'s figure (for example "the money lasted to 95 in 4 futures out of 10 (43%)"). A couple gets two linked plans, each saying whose part of the monthly amount it holds.',
+      'On a plan made from a preview answer, the Budget page shows your budget as a guide beside the target you chose, and the income-shape chart marks it "your budget (a guide)". The budget never sets the target unless you press "Use as the start of my income shape".',
+      'In a browser tab that already holds plans made without an account, the landing page offers "Carry on with the plans in this tab".',
+      'The before-tax amount for a take-home figure is found three to four times faster. Every result is the same to the last digit: the old search is kept in the tests and compared on hundreds of thousands of figures.',
+      'Preview at /v7/: "When can I afford to stop work?" and "Am I saving enough?" join "What is that a month?", which now asks whether you are still paying in (your part and your employer\'s). The three give the same figure for the same household. A "What would you spend?" step lets you work out a budget line by line or put in one figure; the figure used is always your own.'
+    ],
+    corrections: [
+      'Plans retiring later with pots at retirement set: the line above Monte Carlo, History and Scenarios said the runs start from your pots today; they start from the pots at retirement, and the line now says so (the results themselves are unchanged).',
+      'With pots at retirement typed into the Timing block, its line said every strategy was priced on the planner\'s own projection. It is priced on the figures you typed; the line now says so and shows the projection for comparison.',
+      'Household tab: for a plan whose income shape is a set of steps with no saved year-by-year schedule, the year-by-year table, the survivor and care checks and the tax note used the first step in every year. They now follow the steps, as the plan\'s own test does.',
+      'In time zones west of Greenwich (the Americas), an age recorded on the same day and month as the State Pension date counted that day as an extra birthday, so the plan started a tax year early. Dates are now read as the day you are in.',
+      '"Just try it — no account" in a tab that already held plans made without an account deleted all but one of them. It now carries on with them.'
+    ],
+    effects: {
+      budget: ['A plan made from a preview answer: the summary shows the budget\'s total as a guide beside the plan\'s own target. Every other plan: unchanged.'],
+      stress: ['Plans retiring later with pots at retirement: the starting-balances line now gives the pots at retirement the runs use; no figure moves. Plans with pots at retirement typed in the Timing block: its line now says those figures price the strategies. Only west of Greenwich, where the age was recorded on the State Pension date\'s day and month: the start year moves to the right one, and the results with it.'],
+      strategies: ['Only the time-zone case above: the start year, and with it the ladder and costs, move to the right year.'],
+      decision: ['No effect: months already recorded, the saved start year and a locked plan\'s document keep their figures.'],
+      accumulation: [],
+      household: ['Plans whose income shape is steps without a saved schedule (every plan made from a preview answer): the year-by-year table and the survivor, care and tax checks now follow the steps.']
+    },
+    actions: ['If you live west of Greenwich, check your plan\'s start year in Stress tester → Settings → Timing.', 'If you use the Household tab with a stepped income shape, run the check again.'],
+    notes: ['Plans made from a preview answer are ordinary plans, kept where your other plans are: no new kind of data and no new service. The privacy policy now describes the figures held in the browser while a plan is made, and the note left in the tab saying whether a plan was made.', 'Engine version unchanged (6.17.0): no strategy\'s arithmetic changed.'],
+    affects: (scenario) => {
+      const out = [];
+      if (scenario && scenario.fromAnswer) out.push('This plan was made from a preview answer: its description gives the quick answer\'s own figure beside the planner\'s.');
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      if (s && s.retired === false && s.potAtRetirement) out.push('This plan retires later: Monte Carlo now says it starts from your pots at retirement.');
+      return out;
+    }
+  },
+  {
     version: '6.17.0', date: '2026-09-30', engineVersion: '6.17.0',
     title: 'Diversifiers run down everywhere, tax-free plans run twice as fast, and a preview of the next version',
     summary: 'Three engine changes and a first look at the next version of PensionTools. Your diversifiers sleeve now runs down over the plan like shares and bonds in the Glidepath table and in the "which pot pays" decision, as it already did in the protection test. Plans that take a quarter of each withdrawal tax-free run about twice as fast, with identical results. The last copies of the old tax sum are gone. And a preview of the next version is at pensiontools.uk/v7/ — one question so far, "I\'ve got about £X, what is that a month?" — separate from this app and unable to touch a saved plan.',
@@ -56,7 +92,7 @@ export const RELEASES = [
       household: [], budget: ['Before-tax income is corrected above £72,568 of take-home.'], accumulation: []
     },
     actions: ['If your plan has a diversifiers sleeve, re-run the stress test.'],
-    notes: ['The preview at /v7/ is the first of several steps; it cannot open or save a plan yet.'],
+    notes: ['The preview at /v7/ is the first of several steps; it cannot open or save a plan yet (6.18.0 added that).'],
     affects: (scenario) => {
       const s = scenario && scenario.stressTool && scenario.stressTool.settings;
       return (s && +s.diversifierStart > 0) ? ['This plan has a diversifiers sleeve: the Glidepath table and "which pot pays" now use its run-down target. Re-run the stress test.'] : [];

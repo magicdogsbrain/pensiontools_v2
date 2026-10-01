@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.17.0",
+    "appVersion": "6.18.0",
     "historyEnd": null
   },
   "session": {
@@ -67,7 +67,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.17.0",
+      "inputsKey": "{\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.18.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -867,7 +867,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.17.0",
+          "engineVersion": "6.18.0",
           "startAge": 55,
           "endAge": 95,
           "accessAge": 57,

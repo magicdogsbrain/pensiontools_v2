@@ -43,7 +43,7 @@ jobs:
     # pictures: about 4 minutes more, planned under 12 minutes in all against the 15-minute limit (test plan
     # A–B 13.3). If it runs over, cut in that plan's order — never the journeys' counted first answers.
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     # Split three ways (step 4 tripled the browser tests); each shard runs its third on its own runner.
     strategy:
       fail-fast: false
@@ -69,8 +69,10 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.v }}
       - if: steps.pwcache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium webkit firefox
+      # The system libraries come from Ubuntu's mirror, which has stalled at ~100 kB/s on some runners (1 Oct 2026: two
+      # 20-minute hangs on one shard). Each try is capped at 8 minutes; three tries.
       - if: steps.pwcache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit firefox
+        run: for i in 1 2 3; do timeout 480 npx playwright install-deps chromium webkit firefox && exit 0; echo "install-deps try $i stalled; retrying"; done; exit 1
       # The published build (dist/prod, the current app and V7 exactly as deployed) and V7's test build (dist/test).
       - run: npm run e2e:build
       - run: npx playwright test --shard=${{ matrix.shard }}/3

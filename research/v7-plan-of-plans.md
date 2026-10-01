@@ -170,3 +170,12 @@ doing the building that should compress, but it is a large job and the estimate 
   the cap good" reading collapsed small pots); "good" = best 1 in 10.
 - Next: door A (when can I stop) and door B (saving years engine) — the largest new engine; then D; then E and
   holdings; then month-by-month carry-over and cutover.
+- 1 Oct 2026: steps 4–5 in the preview — A and B on the saving-years engine; C asks "still paying in?" (owner's
+  report: a 55-year-old with £275,000 paying £500 + £300 could not say so); ONE joint test for A, B and C (a life
+  runs from today through saving and drawing; careful = lasts in 9 of 10), so the three agree to the pound.
+  6.18.0: "Save this as a plan" (owner: named by the person, suggested "Stop at 67 · £2,290 a month", never "My
+  plan") into a NEW plan in today's planner; the budget step (owner: a guide only, skippable with one figure and
+  told so; the figure in the box is always the person's own); five corrections; netToGross 3–4x faster, bit-identical.
+  CI: browser tests in three shards, answer-time budgets scaled by the runner's measured speed.
+- Open with the owner: charges once drawing (recommended 0.5% a year throughout, both apps); couples who stop in
+  different years (his own household) — recommended next; then D.

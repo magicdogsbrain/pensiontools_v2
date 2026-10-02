@@ -17,6 +17,7 @@
 import { SCHEMAS } from '../state/select.js';
 import { cleanSheet } from '../state/budget.js';
 import { keptKeep } from '../state/initial.js';
+import { hasShape, stepsPath, shapePaths, isShapePath, cleanSteps, keptShapeExtras } from '../state/shapeDraft.js';
 
 export const DRAFT_KEY = 'pt_v7_draft';
 
@@ -36,13 +37,22 @@ function clean(kept) {
   for (const q of Object.keys(SCHEMAS)) {
     const d = kept[q];
     if (!d || typeof d !== 'object' || Array.isArray(d)) continue;
-    const paths = new Set(SCHEMAS[q].fields.map((f) => f.path));
+    // the spending shape's paths are the question's own (research/v7/spending-shape.md 3.2): its later steps are one list
+    const paths = new Set([...SCHEMAS[q].fields.map((f) => f.path), ...shapePaths(q)]);
     const values = {};
     if (d.values && typeof d.values === 'object' && !Array.isArray(d.values)) {
-      for (const [path, v] of Object.entries(d.values)) if (paths.has(path) && (typeof v === 'string' || typeof v === 'boolean')) values[path] = v;
+      for (const [path, v] of Object.entries(d.values)) {
+        if (hasShape(q) && path === stepsPath(q)) {
+          const steps = cleanSteps(q, v);
+          if (steps && steps.length) values[path] = steps;
+        } else if (paths.has(path) && (typeof v === 'string' || typeof v === 'boolean')) values[path] = v;
+      }
     }
-    const list = (a) => (Array.isArray(a) ? [...new Set(a.filter((p) => typeof p === 'string' && paths.has(p)))] : []);
+    // a step's box ("spend.steps.2.fromAge") is marked as its own path
+    const list = (a) => (Array.isArray(a) ? [...new Set(a.filter((p) => typeof p === 'string' && (paths.has(p) || isShapePath(q, p))))] : []);
     out[q] = { values, touched: list(d.touched), asked: d.asked === true, revealed: list(d.revealed) };
+    // the spending shape's Undo, its line and the figure its steps were set against (shapeDraft.js keptShapeExtras)
+    Object.assign(out[q], keptShapeExtras(q, d));
     // A and B: where the figures were brought over from ("we have brought your figures over …"), kept across a reload
     if (q !== 'c') out[q].carriedFrom = ['a', 'b', 'c'].includes(d.carriedFrom) && d.carriedFrom !== q ? d.carriedFrom : null;
     // A and B: how the spending is being chosen, and whether the "you are skipping the budget" note has been shown

@@ -192,6 +192,8 @@ export const B = {
       payIn: ['what goes in each month from', 'to'],
       partnerPayIn: ['what goes into your partner’s pension each month from', 'to'],
       spend: ['the spending from', 'to'],
+      /** the spending shape (research/v7/spending-shape.md 6.5): "from steps by age to the same every year" */
+      shape: ['the spending from', 'to'],
       savingRisk: ['the risk while saving from', 'to'],
       risk: ['the risk once stopped from', 'to'],
       confidence: ['how often it should last from', 'to'],
@@ -338,6 +340,31 @@ export const B = {
       }
     },
     'spend.level': { label: 'The level', options: { minimum: 'Basic', moderate: 'Moderate', comfortable: 'Comfortable' } },
+
+    // the spending shape (research/v7/spending-shape.md 3.2, 7.3): drawn by its own block (components/StepsField.jsx, with
+    // the words of copy/shape.js); these are the input list's own words, for the checks and the hand-overs
+    'spend.then': {
+      label: 'What happens from the start',
+      options: { level: 'stays the same', falls: 'falls by a percentage a year', glides: 'moves evenly to the next step' },
+      errors: { glidesLast: 'There is no later step to move towards. Add one, or choose another.' }
+    },
+    'spend.fallsPct': {
+      label: 'Falls by, a year',
+      errors: {
+        required: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        notANumber: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        tooLow: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        tooHigh: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.'
+      }
+    },
+    'spend.steps': {
+      label: 'Later steps by age',
+      errors: {
+        'shape-steps': 'Check the ages of your steps: each later than the one before, after you stop and before the end of the plan.',
+        tooMany: 'That is more steps than years in the plan. Remove one.',
+        notAnOption: 'Check your steps by age.'
+      }
+    },
 
     'partner.age': {
       label: 'Partner’s age',

@@ -1,0 +1,3145 @@
+{
+  "version": 1,
+  "asOf": "2026-10-02",
+  "against": "6.20.2",
+  "rule": {
+    "date": "2 Oct 2026",
+    "words": "We NEED to have the same or better optionally than V6. We MUST offer as many steps and tapers as V6! ... In general - optional it must be at least v6. We must have Gogo, goslow and nogo years."
+  },
+  "summary": [
+    "One row for every thing a person can see, set or press in today's app, and for every key it saves. The rows started from section 4 of the square-one audit (research/v7/square-one-audit.md) and were completed from the code: the test reads every key today's app saves straight from the code and the twelve test plans, so a new key fails the test until it has a row here.",
+    "**Built** means the /v7/ preview offers it, named by file. **Building now** marks work under way (none at present: the spending shape's steps and tapers are built, and its other parts are designed). **Designed** names the V7 document and section. **Planned** names the step that delivers it; \"no V7 design yet\" marks the ones no V7 document gives a place, which by the owner's rule stay unless the owner retires them. **Retired** gives the release-note reason; a retired option waits for the owner.",
+    "Where only part of a thing is in V7, the row is split (the part V7 has is built, the rest planned) or its note says what is missing. Line numbers are today's working copy (6.20.2) and will drift; the names beside them are the lasting reference. The spending shape's rows were checked in a browser on 2 Oct 2026, at 390 and 1280 px, beside today's planner's editor (guest only); the other rows' V7 files were read, not exercised."
+  ],
+  "areas": [
+    {
+      "id": "ways-in",
+      "title": "Ways in, and finding your way"
+    },
+    {
+      "id": "budget",
+      "title": "Budget"
+    },
+    {
+      "id": "income-shape",
+      "title": "Spending shape: income steps and tapers",
+      "note": "The owner, 2 Oct 2026: \"We MUST offer as many steps and tapers as V6! … We must have Gogo, goslow and nogo years.\" Every option of today's \"Your income shape\", and the dated extra spends drawn on it, is a row of its own. The steps, the three tapers and go-go, go-slow and no-go are built in the preview; the parts that are not are rows of their own, each designed in spending-shape.md §15-§17 and listed under \"The spending shape: not yet in V7\" below. The test holds every row built or designed, none retired, and none waiting on a thing with no V7 design."
+    },
+    {
+      "id": "timing",
+      "title": "Who, and when the plan starts"
+    },
+    {
+      "id": "pots",
+      "title": "Pots and the drawing mix"
+    },
+    {
+      "id": "income",
+      "title": "State Pension, final salary, other income and lump sums"
+    },
+    {
+      "id": "tax",
+      "title": "Tax and the tax-free part"
+    },
+    {
+      "id": "protection",
+      "title": "Cuts in a slump, and the reserve"
+    },
+    {
+      "id": "strategies",
+      "title": "Strategies and their dials"
+    },
+    {
+      "id": "testing",
+      "title": "Testing the plan"
+    },
+    {
+      "id": "lock",
+      "title": "Lock and the plan document"
+    },
+    {
+      "id": "month",
+      "title": "Month by month (the Decision tool) and tax years"
+    },
+    {
+      "id": "saving",
+      "title": "Saving years (Accumulation)"
+    },
+    {
+      "id": "holdings",
+      "title": "What you hold, and the move (Transition)"
+    },
+    {
+      "id": "couples",
+      "title": "Couples (Household)"
+    },
+    {
+      "id": "plan-account",
+      "title": "Plan and account"
+    },
+    {
+      "id": "machinery",
+      "title": "Machinery: keys no person sees"
+    }
+  ],
+  "steps": {
+    "done": {
+      "title": "Built in the /v7/ preview",
+      "source": "plan of plans steps 3-5; 6.18.0-6.20.0"
+    },
+    "now-spending-shape": {
+      "short": "spending shape",
+      "title": "V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026)",
+      "source": "owner, 2 Oct 2026"
+    },
+    "shape-next": {
+      "short": "the shape, part 2",
+      "title": "The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion",
+      "source": "owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17"
+    },
+    "s1-safety": {
+      "title": "Safety fixes in today's app",
+      "source": "square-one audit §5 item 1; 6.20.x"
+    },
+    "s2-saver-reading": {
+      "title": "The saver's reading made trustworthy",
+      "source": "square-one audit §5 item 2"
+    },
+    "s4-open-plan": {
+      "title": "V7 opens a saved plan, read-only, with a \"Your plan\" rail for every life stage",
+      "source": "square-one audit §5 item 4"
+    },
+    "s5-lock": {
+      "title": "Lock from V7",
+      "source": "square-one audit §5 item 5"
+    },
+    "s6-design": {
+      "title": "Design before building: E's answer contract, \"Holdings and the move\", the switch-over plan",
+      "source": "square-one audit §5 item 6"
+    },
+    "s7-d": {
+      "title": "Question D, reading the plan directly",
+      "source": "square-one audit §5 item 7"
+    },
+    "s8-e": {
+      "title": "Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document",
+      "source": "square-one audit §5 item 8; plan of plans step 7"
+    },
+    "s9-switch": {
+      "title": "The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired",
+      "source": "square-one audit §5 item 9; plan of plans step 8"
+    },
+    "s10-after": {
+      "title": "After 7.0: question F, property and equity release, the annuity comparison, trust pages",
+      "source": "square-one audit §5 item 10; plan of plans step 9"
+    },
+    "v6-retired": {
+      "title": "Already retired inside today's app: nothing for V7 to carry",
+      "source": "today's code"
+    }
+  },
+  "keyNotes": {
+    "strategyParams.buckets-in-order.bucketBand": "how far above its path (%) a bucket must be before its surplus refills the next one (default 10)",
+    "strategyParams.buckets-in-order.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.buckets-in-order.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.ladder-and-ratchet.ladderYears": "years of income bought up front with index-linked gilts (default 15)",
+    "strategyParams.ladder-and-ratchet.drawAnnual": "the income bolted on, £ a year before tax (blank: the plan's target)",
+    "strategyParams.ladder-and-ratchet.triggerMode": "\"band\": sell only well above the path; \"calendar\": review every 5 years",
+    "strategyParams.ladder-and-ratchet.bandThreshold": "how far above the path counts as well above (times the path, default 1.2)",
+    "strategyParams.ladder-and-ratchet.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.ladder-and-ratchet.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.bridge-and-engine.bridgeAge": "the age the bridge is bought to (default 67)",
+    "strategyParams.bridge-and-engine.cashYears": "years paid from cash before the first gilt (default 3)",
+    "strategyParams.bridge-and-engine.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.bridge-and-engine.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.floor-and-flex.essentialsAnnual": "the essentials bought as a floor, £ a year before tax",
+    "strategyParams.floor-and-flex.horizonAge": "the age the floor is paid to (92, 95 or 100)",
+    "strategyParams.floor-and-flex.sleeveRate": "the share of the flex sleeve paid out each year (3% to 5%, default 4%)",
+    "strategyParams.floor-and-flex.treatsRule": "treats as a share of the sleeve, or a fixed amount (the target less the essentials)",
+    "strategyParams.floor-and-flex.ratchet": "off; extend the floor past its end age; or raise the floor when markets boom",
+    "strategyParams.floor-and-flex.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.floor-and-flex.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.floor-the-schedule.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.floor-the-schedule.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.floor-to-age.floorToAge": "the age the schedule is bought to (default 80)",
+    "strategyParams.floor-to-age.borrowedFloor": "after a rotation: the income sold, kept to buy back later",
+    "strategyParams.floor-to-age.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.floor-to-age.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.full-il-gilt.cashYears": "years funded from cash before the first gilt (default 2)",
+    "strategyParams.full-il-gilt.bridgeCash": "pension cash held to pay until the first April",
+    "strategyParams.full-il-gilt.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.full-il-gilt.isaTotal": "the ISA total this strategy may use",
+    "strategyParams.gilt-rotation.cashYears": "years funded from cash before the first gilt (default 2)",
+    "strategyParams.gilt-rotation.bridgeCash": "pension cash held to pay until the first April",
+    "strategyParams.gilt-rotation.rotateCutAge": "rungs paying for ages above this are the block sold in a rotation (default 75)",
+    "strategyParams.gilt-rotation.rotateTrigger": "how far shares must fall below their high to trigger a rotation, % (default 30)",
+    "strategyParams.gilt-rotation.rotateDisarmYears": "how many years before the sold block starts paying the trigger switches off (default 8)",
+    "strategyParams.gilt-rotation.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
+    "strategyParams.gilt-rotation.isaTotal": "the ISA total this strategy may use"
+  },
+  "rows": [
+    {
+      "id": "ways.front-door",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Landing page, welcome tour and set-up wizard",
+      "what": "Shows a new person what the app does, then asks name, single or couple, ages and retirement age, and where to start: work out my budget, can I afford to retire, this month's withdrawal, or I'm already drawing.",
+      "whereV6": "LandingPage.js, OnboardingPage.js, SetupWizard.js:226-270",
+      "who": "New people",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/v7/screens/FrontDoor.jsx",
+        "src/v7/rail/questions.js"
+      ],
+      "step": "done",
+      "note": "Replaced by the six questions in the person's own words. The wizard's \"I'm already drawing\" door is question D (step s7-d)."
+    },
+    {
+      "id": "ways.no-account",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Try it without an account",
+      "what": "Lets a visitor see answers before signing up.",
+      "whereV6": "\"Just try it — no account\" (index.html:5036-5071)",
+      "who": "Visitors",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/v7/effects/draftStore.js",
+        "src/v7/screens/FrontDoor.jsx"
+      ],
+      "step": "done",
+      "note": "Better: V7 answers on the visitor's own figures with no account; what was typed stays in the tab."
+    },
+    {
+      "id": "ways.example-plan",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "A ready-made example plan",
+      "what": "Opens a worked example plan (about £1m, already retired) to look around every tool before typing anything.",
+      "whereV6": "Guest example plan and the ?demo=1m link (index.html:5036-5084)",
+      "who": "Visitors",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "gap": true,
+      "note": "V7's answers on your own figures are the new way in; an example to look around has no V7 home yet."
+    },
+    {
+      "id": "ways.guest-trial",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Guest mode: three active hours, reminders, then hand-over into an account",
+      "what": "A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up.",
+      "whereV6": "GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html)",
+      "who": "Visitors",
+      "keys": [
+        "browser.pt_guest_minutes",
+        "browser.pt_guest_nag_level",
+        "browser.pt_guest_handoff",
+        "browser.pt_guest_scenarios"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "gap": true,
+      "note": "V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell."
+    },
+    {
+      "id": "ways.next-step",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Next-step banner",
+      "what": "One sentence at the top saying what to do next for this plan, with a button, dismissable per plan.",
+      "whereV6": "index.html:8143-8196; NextStep.js",
+      "who": "Everyone",
+      "keys": [
+        "browser.nextStepDismissed:"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "The rail's \"next\" sentence, by question and by stage (also §1.4)."
+    },
+    {
+      "id": "ways.life-stages",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Life stages lead the way",
+      "what": "Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it.",
+      "whereV6": "LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.3",
+      "step": "s4-open-plan",
+      "note": "Stages in V7's words, and which questions each stage is offered (§1.5 table). Needs V7 to open a saved plan."
+    },
+    {
+      "id": "ways.journey",
+      "area": "ways-in",
+      "kind": "record",
+      "name": "Journey: when the plan moved between stages",
+      "what": "Keeps the dates on which the plan's stage changed (saving, approaching, committed, running).",
+      "whereV6": "scenario.journey (ScenarioRepository.saveActiveJourney)",
+      "who": "Everyone",
+      "keys": [
+        "plan.journey"
+      ],
+      "status": "planned",
+      "step": "s4-open-plan",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "ways.phone",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "Finding your way on a phone",
+      "what": "A bottom bar (Budget, Stress, Strategies, Decide) and a More menu for the other tabs.",
+      "whereV6": "index.html:2235-2240, 8250-8284; mobileMenu.js",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/v7/components/Rail.jsx"
+      ],
+      "step": "done",
+      "note": "The rail is one line under the header that opens as a sheet. The locked plan's rail on a phone is designed (rail-screens-language.md §1.7)."
+    },
+    {
+      "id": "ways.open-tab",
+      "area": "ways-in",
+      "kind": "machinery",
+      "name": "Open today's app on a given tab",
+      "what": "A one-off note in the tab that tells today's app which tab to open next (used when another page sends someone in).",
+      "whereV6": "sessionStorage pt_open_tab (index.html:4663-4664)",
+      "who": "Everyone",
+      "keys": [
+        "browser.pt_open_tab"
+      ],
+      "status": "planned",
+      "step": "s4-open-plan",
+      "note": "\"Change this\" on V7's plan rail opens today's tool on the right tab through it (square-one-audit.md §5 item 4)."
+    },
+    {
+      "id": "budget.lines",
+      "area": "budget",
+      "kind": "option",
+      "name": "Spending lines",
+      "what": "Lists what you spend, line by line, each a month or a year, after tax, at today's prices; lines can be added, named and removed.",
+      "whereV6": "Budget tab: Essential and Lifestyle spending (index.html:3887-3953; BudgetModel.js)",
+      "who": "Savers, retired",
+      "keys": [
+        "plan.budgetTool",
+        "budget.lines",
+        "budget.lines[].id",
+        "budget.lines[].label",
+        "budget.lines[].annual",
+        "budget.lines[].period"
+      ],
+      "status": "built",
+      "files": [
+        "src/v7/components/Budget.jsx",
+        "src/v7/state/budget.js",
+        "src/answers/keep/budgetSheet.js"
+      ],
+      "step": "done",
+      "note": "The budget step of A and B; a plan made from an answer carries the lines into the plan's Budget."
+    },
+    {
+      "id": "budget.headings",
+      "area": "budget",
+      "kind": "setting",
+      "name": "Lines grouped by heading",
+      "what": "Groups lines under headings (home and bills, food, getting about, holidays, health, family and giving, other).",
+      "whereV6": "Walk-through groups (index.html BUD_WIZ_GROUPS); a heading carried from V7",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.lines[].heading",
+        "budget.lines[].wizGroup"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/keep/budgetSheet.js",
+        "src/v7/components/Budget.jsx"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "budget.essential",
+      "area": "budget",
+      "kind": "option",
+      "name": "Essential or lifestyle, and the essentials total",
+      "what": "Marks each line essential or lifestyle and shows the essentials as their own total.",
+      "whereV6": "Budget tab: two lists (index.html:3887-3906)",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.lines[].tier",
+        "budget.oneOffs[].tier"
+      ],
+      "status": "built",
+      "files": [
+        "src/v7/components/Budget.jsx",
+        "src/answers/keep/budgetSheet.js"
+      ],
+      "step": "done",
+      "note": "In V7 the essentials total is for the person's own judgement; it never becomes a floor (owner, 1 Oct 2026)."
+    },
+    {
+      "id": "budget.typical",
+      "area": "budget",
+      "kind": "option",
+      "name": "Typical UK amounts as hints",
+      "what": "Shows beside each line what a typical household spends on it, at the chosen national level.",
+      "whereV6": "Budget tab and walk-through \"use this\" chips (BudgetModel.typicalMonthlyFor)",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.lines[].hint",
+        "budget.oneOffs[].hint"
+      ],
+      "status": "built",
+      "files": [
+        "src/v7/components/Budget.jsx",
+        "src/answers/keep/budgetSheet.js"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "budget.fill-typical",
+      "area": "budget",
+      "kind": "option",
+      "name": "Fill the blanks with typical amounts",
+      "what": "One press fills every empty line with the typical UK amount, to edit from there.",
+      "whereV6": "Budget tab: \"Fill blanks with typical UK amounts\" (index.html:3911)",
+      "who": "Savers, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "budget-step.md shows typical amounts as hints only, never filled in. By the rule of 2 Oct the one-press fill stays unless the owner retires it."
+    },
+    {
+      "id": "budget.levels",
+      "area": "budget",
+      "kind": "option",
+      "name": "National guide levels",
+      "what": "Minimum, moderate and comfortable retirement spending for one or two people, to aim at or compare with.",
+      "whereV6": "Budget tab: \"What are you aiming for?\" (index.html:3888-3895)",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.plsaTier"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/v7/components/Budget.jsx"
+      ],
+      "step": "done",
+      "note": "A guide beside the spending box, or the figure itself when picked."
+    },
+    {
+      "id": "budget.walkthrough",
+      "area": "budget",
+      "kind": "option",
+      "name": "Guided walk-through",
+      "what": "Takes you through the budget category by category, with a tip for each (care costs, holidays in the early years, car replacement).",
+      "whereV6": "Budget → Guided walk-through (index.html:12190-12600)",
+      "who": "Savers, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7's sheet covers the lines by heading on one page; the step-by-step walk-through with its tips has no V7 design."
+    },
+    {
+      "id": "budget.breakdown",
+      "area": "budget",
+      "kind": "option",
+      "name": "Break a line into sub-items",
+      "what": "A small calculator under a line: list the parts (e.g. each insurance), and their total becomes the line.",
+      "whereV6": "Budget lines \"break it down\" (index.html:12488-12540)",
+      "who": "Budget keepers",
+      "keys": [
+        "budget.lines[].breakdown",
+        "budget.lines[].breakdown[].label",
+        "budget.lines[].breakdown[].amount",
+        "budget.lines[].breakdown[].period"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.sums",
+      "area": "budget",
+      "kind": "option",
+      "name": "Sums in the amount boxes",
+      "what": "An amount box takes a sum such as =200*12 or 1,200 and works it out.",
+      "whereV6": "BudgetModel.evalAmountExpr",
+      "who": "Budget keepers",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.line-ages",
+      "area": "budget",
+      "kind": "option",
+      "name": "A line from or to an age",
+      "what": "A line can start or stop at an age, e.g. the mortgage ends at 63, or care costs from 85.",
+      "whereV6": "Budget line age band (index.html:11641-11670; BudgetModel.lineActiveAtAge)",
+      "who": "Retired, approaching",
+      "keys": [
+        "budget.lines[].fromAge",
+        "budget.lines[].toAge"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "note": "D adds one later amount (answer-D.md §5.3); lines by age need E's spending section, alongside the spending shape."
+    },
+    {
+      "id": "budget.one-offs",
+      "area": "budget",
+      "kind": "option",
+      "name": "One-off and every-few-years costs",
+      "what": "Lists costs that come at an age or every few years (a car every 8 years, a roof).",
+      "whereV6": "Budget: One-off & periodic costs (index.html:3940-3946)",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.oneOffs",
+        "budget.oneOffs[].id",
+        "budget.oneOffs[].label",
+        "budget.oneOffs[].amount",
+        "budget.oneOffs[].atAge",
+        "budget.oneOffs[].everyYears"
+      ],
+      "status": "built",
+      "files": [
+        "src/v7/components/Budget.jsx",
+        "src/answers/keep/budgetSheet.js"
+      ],
+      "step": "done",
+      "note": "Shown as a guide beside the figure, not added to it (budget-step.md)."
+    },
+    {
+      "id": "budget.ages",
+      "area": "budget",
+      "kind": "setting",
+      "name": "Horizon: age today, retirement age, plan to age",
+      "what": "The three ages the budget is worked over; whether you have retired; when the age was given.",
+      "whereV6": "Budget: Horizon (index.html:3842-3856)",
+      "who": "Everyone",
+      "keys": [
+        "budget.currentAge",
+        "budget.retirementAge",
+        "budget.endAge",
+        "budget.retired",
+        "budget.agesSetByUser",
+        "budget.currentAgeAsOf"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/a/schema.js",
+        "src/answers/b/schema.js"
+      ],
+      "step": "done",
+      "note": "V7 asks the ages once, in each question."
+    },
+    {
+      "id": "budget.partner-facts",
+      "area": "budget",
+      "kind": "setting",
+      "name": "Partner's age, retirement age, retired or not",
+      "what": "The partner's ages, kept on the budget for a couple.",
+      "whereV6": "Set-up wizard and Household → Create their plan (index.html:4900-4926, 10877-10887)",
+      "who": "Couples",
+      "keys": [
+        "budget.partnerAge",
+        "budget.partnerRetirementAge",
+        "budget.partnerRetired"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done",
+      "note": "V7 asks the partner's age and stop on the first screen (partnerStopFields)."
+    },
+    {
+      "id": "budget.who-pays",
+      "area": "budget",
+      "kind": "option",
+      "name": "Who pays: me, partner or shared, and my share",
+      "what": "For a couple, each line and one-off is paid by me, my partner or shared, with my share as a percentage (budget-wide or per line).",
+      "whereV6": "Budget: Sharing with a partner (index.html:3859-3883)",
+      "who": "Couples",
+      "keys": [
+        "budget.sharedWithPartner",
+        "budget.mySharePct",
+        "budget.lines[].paidBy",
+        "budget.lines[].mySharePct",
+        "budget.oneOffs[].paidBy",
+        "budget.oneOffs[].mySharePct"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7's budget is the household's (budget-step.md)."
+    },
+    {
+      "id": "budget.split-over-time",
+      "area": "budget",
+      "kind": "option",
+      "name": "Who pays, changing over time",
+      "what": "My share of shared costs can change at an age, e.g. 70% until her pension starts at 63, then 50/50.",
+      "whereV6": "Budget: \"Change who pays over time\" (index.html:3876-3880; BudgetModel.budgetSharePctAtAge)",
+      "who": "Couples",
+      "keys": [
+        "budget.splitPhases",
+        "budget.splitPhases[].fromAge",
+        "budget.splitPhases[].mySharePct"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.headroom",
+      "area": "budget",
+      "kind": "option",
+      "name": "Headroom on top of the budget",
+      "what": "Adds a monthly margin on top of the budget's total when it becomes the plan's target.",
+      "whereV6": "Budget: Your spending need (index.html:12167-12170)",
+      "who": "Savers, retired",
+      "keys": [
+        "budget.targetHeadroomMonthly"
+      ],
+      "status": "retired",
+      "reason": "The spending figure is now always your own, with the budget as a guide beside it (owner, 1 Oct 2026), so there is no budget total to add a margin to: type the figure with the margin you want.",
+      "step": "s9-switch",
+      "owner": "to confirm (follows from the rule of 1 Oct 2026 that the budget is a guide; budget-step.md)"
+    },
+    {
+      "id": "budget.use-as-target",
+      "area": "budget",
+      "kind": "option",
+      "name": "Use the budget's total as the spending figure",
+      "what": "Copies the budget's total into the plan's spending figure.",
+      "whereV6": "Budget: \"Use as the start of my income shape\" (index.html:12172-12200; BudgetToPlan.js)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/v7/state/budget.js",
+        "src/v7/state/reduce.js",
+        "src/v7/components/Budget.jsx"
+      ],
+      "step": "done",
+      "note": "Changed on purpose: one tap copies the total into the box and the person can change it; nothing else flows from the budget (owner, 1 Oct 2026). Today's button also writes the essentials into Floor & Flex."
+    },
+    {
+      "id": "budget.spreadsheet",
+      "area": "budget",
+      "kind": "option",
+      "name": "Export and import the budget as a spreadsheet",
+      "what": "Downloads the whole budget as a CSV that opens in Google Sheets or Excel, and reads an edited one back, with one undo.",
+      "whereV6": "Budget: Export CSV / Import CSV (index.html:3912-3913; BudgetModel.budgetToCsv, parseBudgetCsv)",
+      "who": "Budget keepers",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.missed",
+      "area": "budget",
+      "kind": "option",
+      "name": "Did you miss anything?",
+      "what": "Suggests common costs not yet in the budget, one press to add each.",
+      "whereV6": "Budget: \"Did you miss anything?\" (BudgetModel.missingSuggestions)",
+      "who": "Savers, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.sanity",
+      "area": "budget",
+      "kind": "option",
+      "name": "A nudge when an amount looks wrong",
+      "what": "Flags an amount that is far below or far above what households typically spend on that line (a nudge, never a block).",
+      "whereV6": "Budget lines and walk-through (BudgetModel.typicalSanityFlag)",
+      "who": "Savers, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.edit-tools",
+      "area": "budget",
+      "kind": "option",
+      "name": "Reset, duplicate a line, undo a removal",
+      "what": "Start the budget again (ages kept), duplicate a line or one-off, and undo a line removed by mistake.",
+      "whereV6": "Budget (index.html:12024-12080)",
+      "who": "Budget keepers",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "budget.cache",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The budget's version and stored totals",
+      "what": "A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save.",
+      "whereV6": "BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version)",
+      "who": "Nobody sees it",
+      "keys": [
+        "budget.version",
+        "budget.derived"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "budget.screen-state",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "Whether a line's panels were left open",
+      "what": "Whether a line's age band or breakdown was open on screen when it was saved.",
+      "whereV6": "Budget lines (index.html:11660-11670, 12491)",
+      "who": "Nobody sees it",
+      "keys": [
+        "budget.lines[]._bandOpen",
+        "budget.lines[].breakdownOpen"
+      ],
+      "status": "retired",
+      "reason": "Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost.",
+      "step": "s9-switch"
+    },
+    {
+      "id": "income.steps",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Steps by age: \"from age X take £Y a year\"",
+      "what": "The spending shape: each step is the total income wanted from an age on (State Pension, other pensions and the pot together), as many steps as wanted. One step is level for life.",
+      "whereV6": "Stress tester → Settings → Your income shape (index.html:3198-3215, 9118-9162; IncomeSchedule.js)",
+      "who": "Approaching, retired, savers planning",
+      "keys": [
+        "stress.incomeShape",
+        "stress.incomeSteps",
+        "decision.incomeShape",
+        "decision.incomeSteps",
+        "incomeSteps[].fromAge",
+        "incomeSteps[].amount"
+      ],
+      "status": "built",
+      "step": "done",
+      "note": "A and B: on the spend step, under the figure, \"Does what you spend change as you get older?\" → \"Change it with age\": any number of steps by age (up to one a year of the plan), each a month after tax. C: the same block under \"Add more detail\", each step a share of what you start on. Each year's figure is today's own IncomeSchedule.amountAtAge (imported). A couple's ages are yours, with your partner's beside each step.",
+      "files": [
+        "src/answers/shared/shape.js",
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/validate.js",
+        "src/v7/components/StepsField.jsx",
+        "src/v7/screens/a/SpendScreen.jsx",
+        "src/v7/screens/c/NumbersScreen.jsx",
+        "src/answers/shared/toEngine.js"
+      ]
+    },
+    {
+      "id": "income.add-remove",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Add a step, remove a step",
+      "what": "\"+ Add a step\" adds one ten years after the last and £10,000 lower; any step but the first can be removed. No limit on how many.",
+      "whereV6": "window.addIncomeStep / rmIncomeStep (index.html:9156-9162)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/components/StepsField.jsx",
+        "src/v7/state/shapeDraft.js",
+        "src/v7/state/reduce.js"
+      ],
+      "note": "\"+ Add a step\" adds one 10 years after the last and 10% lower (today: £10,000 a year lower), and puts the keyboard in its age box; \"Remove the step from 75\" on every step after the first. No limit but one a year of the plan."
+    },
+    {
+      "id": "income.decline",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "A taper within a step: falling by a real % a year",
+      "what": "Each step can fall each year by 0% to 5% in today's money, in quarter-point steps, compounding (£60,000 at 1% pays £59,400 the next year).",
+      "whereV6": "The slider on each step (index.html:9133-9136; IncomeSchedule.amountAtAge)",
+      "who": "Approaching, retired",
+      "keys": [
+        "incomeSteps[].decline"
+      ],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/answers/shared/shape.js",
+        "src/v7/components/StepsField.jsx",
+        "src/answers/shared/validate.js"
+      ],
+      "note": "Every step, the first included, \"falls by …% a year\": 0.25% to 10% in quarter points (today's slider stops at 5%), compounding at today's prices, by today's own amountAtAge."
+    },
+    {
+      "id": "income.glide",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "A taper to the next step: glide evenly",
+      "what": "Instead of a cliff, a step can walk down in a straight line to the next step's amount, arriving as that step starts.",
+      "whereV6": "\"glide evenly to the next step\" on each step (index.html:9137; IncomeSchedule.amountAtAge)",
+      "who": "Approaching, retired",
+      "keys": [
+        "incomeSteps[].glideToNext"
+      ],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/answers/shared/shape.js",
+        "src/v7/components/StepsField.jsx",
+        "src/answers/shared/validate.js"
+      ],
+      "note": "\"moves evenly to the next step\" on every step but the last: a straight line in pounds arriving as the next step starts, by today's own amountAtAge."
+    },
+    {
+      "id": "income.phases",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Go-go, go-slow and no-go years",
+      "what": "Explains the three phases of retirement spending, go-go (travel, projects, while fit), go-slow (from the mid-70s, typically drifting down 1-2% a year) and no-go (the basics, and care if it comes), and colours the years of the picture by phase (to 75, 75 to 85, 85 on).",
+      "whereV6": "Your income shape: the words above the steps and the bar colours (index.html:3199-3200; incomeShapeGraphic.js)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/copy/shape.js",
+        "src/v7/components/ShapeChart.jsx",
+        "src/answers/shared/shape.js"
+      ],
+      "note": "The words above the steps name go-go (travel, projects), go-slow (from the mid-70s) and no-go (less again, though care can cost more); the picture draws the three bands at 75 and 85 (a couple: of the younger of you)."
+    },
+    {
+      "id": "income.suggest",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Suggest go-slow and no-go steps",
+      "what": "One press adds suggested later steps from the first: 15% lower from 75 and 30% lower from 85, never below the budget's essentials, rounded to £500. Typical, not yours: edit freely.",
+      "whereV6": "\"Suggest go-slow & no-go steps\" (index.html:8412-8419; incomeShapeGraphic.suggestSteps)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/answers/shared/shape.js",
+        "src/v7/state/reduce.js",
+        "src/v7/components/StepsField.jsx"
+      ],
+      "note": "\"Suggest go-go, go-slow and no-go years\": today's suggestSteps in V7's units: 15% less from 75 and 30% less from 85, never below the budget's essentials, to the nearest £10 a month (today: £500 a year); for a couple, from when the younger of you is 75 and 85. Says what it filled in, and has Undo (today's has none). The preset \"Slowly less\" is today's old \"declining with age\" (smileToSteps)."
+    },
+    {
+      "id": "income.start-from-budget",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Start from my budget",
+      "what": "Sets the first step from the budget's total with tax added on.",
+      "whereV6": "\"Start from my budget\" (index.html:8394-8404)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "note": "\"Use £X a month\" copies the budget's total into the figure (the budget stays a guide: owner, 1 Oct 2026); later steps are kept, as today, and \"Move the later steps in proportion\" is offered.",
+      "files": [
+        "src/v7/components/Budget.jsx",
+        "src/v7/state/reduce.js",
+        "src/v7/components/StepsField.jsx"
+      ]
+    },
+    {
+      "id": "income.start-from-number",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Start from a number",
+      "what": "Sets the first step from a figure typed in.",
+      "whereV6": "\"or a number: … Use it\" (index.html:8405-8411)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/screens/a/SpendScreen.jsx",
+        "src/answers/shared/schemaParts.js",
+        "src/v7/components/StepsField.jsx"
+      ],
+      "note": "The figure box on the spend step is the first amount; \"The same every year\" clears the steps (today's \"or a number\" replaces them all)."
+    },
+    {
+      "id": "income.staircase",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "The staircase picture",
+      "what": "Draws the shape as a bar for each year of age, coloured by go-go, go-slow and no-go, with a line along the tops.",
+      "whereV6": "incomeStaircaseSvg (src/ui/incomeShapeGraphic.js; index.html:8322-8350)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/state/select.js"
+      ],
+      "note": "A bar a year from the start to the end of the plan, at 390 px with no sideways scroll; tap or point at a bar to read that year; \"Show each year\" opens a table. The motion as the steps change is its own row (income.staircase-motion), not built."
+    },
+    {
+      "id": "income.staircase-motion",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "The picture moves from the old shape to the new one",
+      "what": "When a step changes, the bars ease from their old heights to the new ones (about half a second) instead of jumping.",
+      "whereV6": "animateIncomeShape (src/ui/incomeShapeGraphic.js; called from renderIncomeShapePreview, index.html:8322-8350)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §15.4",
+      "step": "shape-next",
+      "note": "Not built: V7's picture jumps to the new shape. Designed: each bar scales from its old height to its new one, and not at all for anyone who has asked their device for less motion."
+    },
+    {
+      "id": "income.layers",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "State Pension and other income as layers",
+      "what": "Inside each year's bar: the State Pension from its date, other income and a final-salary pension, income streams for their years, and on top what the pot must supply.",
+      "whereV6": "incomeStaircaseSvg sp / other / events (index.html:8327-8346)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/state/select.js",
+        "src/answers/shared/shapeAnswer.js"
+      ],
+      "note": "On the answer's picture (A, B and C): each year's bar has the State Pension and other pensions (and pay or part-time work) after tax drawn lighter, and what the pension and savings pay darker, from the answer's own year-by-year rows. The same layers while the steps are set (income.layers-editing), the budget's total (income.budget-mark) and the markers for lump sums and one-off spends (income.markers) are rows of their own, not built."
+    },
+    {
+      "id": "income.layers-editing",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "The layers while you set the steps",
+      "what": "As the steps are set, before any test is run, the picture already shows the State Pension and other income inside each bar, and what the pot must supply on top.",
+      "whereV6": "renderIncomeShapePreview → incomeStaircaseSvg sp / other (index.html:8322-8350)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §15.1",
+      "step": "shape-next",
+      "note": "Not built: the spend step's picture shows the shape alone (\"Each bar is one year of your life\"); the layers come with the answer. Designed: the spend step reads the year-by-year income you get anyway from the plan the inputs already make (yearsOf, no engine run), once a stop age is known."
+    },
+    {
+      "id": "income.budget-mark",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "The budget's total marked on the picture",
+      "what": "A short line at the left of the picture marks the budget's total (with tax added), so the first step can be read against it.",
+      "whereV6": "incomeStaircaseSvg budgetGross (src/ui/incomeShapeGraphic.js)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §15.1",
+      "step": "shape-next",
+      "note": "Not built as a mark: V7 says it in words beside each later step (\"85% of the start, 71% of your budget (a guide)\"). Designed: a short dashed mark at the budget's total a month, named in the key, a guide only."
+    },
+    {
+      "id": "income.markers",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Lump sums and one-off spends marked at their ages",
+      "what": "A lump sum arriving (▲) and a one-off spend (▼, with its years) are drawn on the picture at their ages, with their amounts.",
+      "whereV6": "incomeStaircaseSvg events (src/ui/incomeShapeGraphic.js:74-80)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §15.3",
+      "step": "shape-next",
+      "waitsFor": [
+        "inc.extra-spends",
+        "inc.lump-sums"
+      ],
+      "note": "Waits for one-off costs (§16) and lump sums (§17), which V7 does not have yet. Designed: a mark under the bar of that year, its amount in the year's line and in the table."
+    },
+    {
+      "id": "income.essentials-line",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Below the essentials turns orange",
+      "what": "The budget's essentials are a line on the picture; a step below them turns orange and a note says the floor strategies will not buy less than the bills.",
+      "whereV6": "incomeStaircaseSvg essentials; incomeShapeNote (index.html:8380-8385)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "note": "With a budget: the essentials are a dashed line, a year below them is marked in the warning colour, and a note says so in words (\"That is allowed: it is your figure\"). A guide only: never a floor (owner, 1 Oct 2026).",
+      "files": [
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/state/select.js",
+        "src/v7/components/StepsField.jsx",
+        "src/v7/copy/shape.js"
+      ]
+    },
+    {
+      "id": "income.guaranteed-floor",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Never below guaranteed income",
+      "what": "A year whose step would fall below the income that arrives anyway (State Pension, other pensions) is held there, with a note from which age.",
+      "whereV6": "guaranteedAtYear; incomeShapeNote (index.html:8340-8383)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/answers/shared/toEngine.js",
+        "src/answers/shared/shapeAnswer.js"
+      ],
+      "note": "The engine takes nothing from the pots in a year whose State Pension and other pensions (after tax) pay more than the step; the answer's note \"shape-below-income\" says from which age, and the picture shows that year's bar as the income itself. Today's editor also says it while the steps are set: that is its own row (income.below-income-live), not built."
+    },
+    {
+      "id": "income.below-income-live",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "\"Below the income you get anyway\", said while setting the steps",
+      "what": "While the steps are set, an orange note says from which age a step is below the income that arrives anyway (State Pension, other pensions), which then pays instead.",
+      "whereV6": "incomeShapeNote (index.html:8375)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §15.2",
+      "step": "shape-next",
+      "note": "Not built: V7 says it on the answer only. Designed: the same words on the spend step, from the same year-by-year income as the layers (§15.1)."
+    },
+    {
+      "id": "income.budget-share",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Each later step as a share of the budget",
+      "what": "Beside each later step: its amount as a % of the budget (or of \"your budget (a guide)\" on a plan made from a V7 answer).",
+      "whereV6": "renderIncomeSteps (index.html:9127-9129)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/state/select.js",
+        "src/v7/components/StepsField.jsx",
+        "src/v7/copy/shape.js"
+      ],
+      "note": "Beside each later step: \"85% of the start\", and with a budget \"85% of the start, 71% of your budget (a guide)\", as today's \"— 85% of today's budget\"."
+    },
+    {
+      "id": "income.first-step-net",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "The first step's take-home a month",
+      "what": "Says what the first step leaves a month after tax at today's bands.",
+      "whereV6": "incomeShapeNote (index.html:8383-8385)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/v7/screens/a/SpendScreen.jsx",
+        "src/v7/copy/shape.js"
+      ],
+      "note": "Not needed as a separate line: every V7 figure is typed and shown after tax, a month (today's line turns its before-tax step into take-home). The answer's \"what it is made of\" shows the tax."
+    },
+    {
+      "id": "income.lump-to-steps",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Turn a lump sum into income",
+      "what": "For each lump sum: what it could add a year if spread over the years left, and one press to add that to the steps from its age (the lump stays as the money that pays for it).",
+      "whereV6": "incomeShapeLumps; window.spendLumpSum (index.html:8352-8392)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/spending-shape.md §17.3",
+      "step": "shape-next",
+      "waitsFor": "inc.lump-sums",
+      "note": "Waits for lump sums (inc.lump-sums, designed in spending-shape.md §17). Then \"Turn it into income\" gives what the lump sum could add a month over the years left, after tax, and one tap raises the step in force at its age and every later one by that (raiseFrom(age, a month): today's \"Add £X/yr to my income from 67\", spending-shape.md §2 T16). The test of it is marked to-do (tests/v7/screens/shapeParity.test.js T16)."
+    },
+    {
+      "id": "inc.extra-spends",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Extra spends in a given year",
+      "what": "A car, a roof, a wedding: an amount drawn on top of the income shape in a plan year (or several), taxed like income, which every strategy must fund.",
+      "whereV6": "Income streams & lump sums: + Extra spend (index.html:10636-10637)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.extraWithdrawals",
+        "extraWithdrawals[].label",
+        "extraWithdrawals[].amount",
+        "extraWithdrawals[].year",
+        "extraWithdrawals[].years",
+        "extraWithdrawals[].indexation"
+      ],
+      "status": "designed",
+      "step": "shape-next",
+      "note": "Not built. Designed inside the spending shape: \"Any one-off costs?\" under the steps (A, B, D; C under \"Add more detail\"): an amount after tax at an age, once or every year for a number of years, going up with prices or a fixed sum, with a name. Each year's need is the shape's figure plus that year's costs; kept plans get today's extraWithdrawals, exact to the year. The budget's one-off costs stay a guide: one tap copies them.",
+      "doc": "research/v7/spending-shape.md §16"
+    },
+    {
+      "id": "income.schedule",
+      "area": "income-shape",
+      "kind": "setting",
+      "name": "The year-by-year figure every tool reads",
+      "what": "The shape compiled to one figure a year from the plan's start age, read by every strategy, the stress tests and the Decision tool; the first step is the Decision tool's target.",
+      "whereV6": "compiledTargetSchedule on save (index.html:11294-11333; IncomeSchedule.compileSteps)",
+      "who": "Everyone",
+      "keys": [
+        "stress.targetSchedule",
+        "decision.targetSchedule",
+        "stress.baseSalary",
+        "decision.baseSalary",
+        "stress.shapeAgeNow",
+        "decision.shapeAgeNow"
+      ],
+      "status": "built",
+      "step": "done",
+      "files": [
+        "src/answers/shared/toEngine.js",
+        "src/answers/shared/shape.js",
+        "src/answers/keep/planSeed.js",
+        "src/services/PlanSeed.js"
+      ],
+      "note": "Every V7 answer (C, A, B) works out each year's figure from the shape and tests it year by year. \"Save this as a plan\" writes seed version 3 for a shaped answer, and today's planner turns it into its own income steps (compressSteps) that give the answer's after-tax figure in every year, to the pound."
+    },
+    {
+      "id": "income.gross-today",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "Amounts before tax, in today's money",
+      "what": "Every step is £ a year before tax at today's prices; tax comes out of it.",
+      "whereV6": "Your income shape (index.html:9139)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "step": "done",
+      "note": "V7 asks after tax, a month (square-one-audit.md §5); the kept plan carries today's before-tax, a-year steps, each year grossed up by today's own grossUpAnnual, so both readings hold.",
+      "files": [
+        "src/services/PlanSeed.js",
+        "src/answers/keep/planSeed.js"
+      ]
+    },
+    {
+      "id": "income.spending-figure",
+      "area": "income-shape",
+      "kind": "option",
+      "name": "What you want to spend, take-home, a month or a year",
+      "what": "The spending need typed as take-home, a month or a year, with the gross worked out and a chip to use the budget's figure.",
+      "whereV6": "Decision tool → Settings → Spending need (index.html:2553-2575); the hidden Stress box",
+      "who": "Everyone",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/v7/screens/a/SpendScreen.jsx",
+        "src/v7/screens/b/SpendScreen.jsx"
+      ],
+      "step": "done",
+      "note": "One figure a month after tax, or a national level. Today's box also takes the figure a year; V7 asks a month only."
+    },
+    {
+      "id": "timing.age",
+      "area": "timing",
+      "kind": "setting",
+      "name": "Age today",
+      "what": "Your age now, dated, which with the State Pension date pins every plan year to a tax year and an age.",
+      "whereV6": "Stress → Settings → When your plan starts (index.html:3150-3166)",
+      "who": "Everyone",
+      "keys": [
+        "stress.currentAge",
+        "stress.currentAgeAsOf"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done",
+      "note": "Asked in every question."
+    },
+    {
+      "id": "timing.stop",
+      "area": "timing",
+      "kind": "setting",
+      "name": "Retired already, or retiring at an age",
+      "what": "\"I have already retired\" or \"I will retire at age X\".",
+      "whereV6": "Stress → Settings → When your plan starts (index.html:3153-3154)",
+      "who": "Everyone",
+      "keys": [
+        "stress.retired",
+        "stress.retireAge"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/a/schema.js",
+        "src/answers/b/schema.js",
+        "src/answers/c/schema.js"
+      ],
+      "step": "done",
+      "note": "A and B ask the stop age (or \"I've already stopped\"); C asks when the money starts."
+    },
+    {
+      "id": "timing.plan-start",
+      "area": "timing",
+      "kind": "option",
+      "name": "Plan starts this tax year or next April",
+      "what": "Which tax year is the plan's year 0; months before it are bridge months, lived on cash.",
+      "whereV6": "Stress → Settings → \"Plan starts\" (index.html:3155; PlanTiming.js)",
+      "who": "Retired, approaching",
+      "keys": [
+        "stress.firstTaxYear",
+        "decision.firstTaxYear",
+        "stress.legacyFirstTaxYear"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "note": "square-one-audit.md §5: offer \"I've stopped; my plan's income starts next April\" as a plain choice."
+    },
+    {
+      "id": "timing.pots-projected",
+      "area": "timing",
+      "kind": "option",
+      "name": "Pots at retirement, projected",
+      "what": "For someone still working, projects the pots to the retirement age from today's pots and payments.",
+      "whereV6": "When your plan starts: the projection line (index.html:8953-8957)",
+      "who": "Savers, approaching",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/shared/saving.js",
+        "src/v7/components/Pots.jsx"
+      ],
+      "step": "done",
+      "note": "Better: the saving-years engine gives a middling and a bad case."
+    },
+    {
+      "id": "timing.pots-typed",
+      "area": "timing",
+      "kind": "option",
+      "name": "Pots at retirement, typed in",
+      "what": "Overrides the projection with the pension and ISA you expect to have on the day, in today's money.",
+      "whereV6": "When your plan starts: \"Or SIPP at retirement\", \"ISA at retirement\" (index.html:3160-3161)",
+      "who": "Approaching",
+      "keys": [
+        "stress.potAtRetirement",
+        "potAtRetirement.sipp",
+        "potAtRetirement.isa",
+        "potAtRetirement.source"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it."
+    },
+    {
+      "id": "timing.duration",
+      "area": "timing",
+      "kind": "setting",
+      "name": "How long the plan runs",
+      "what": "The plan's length in years (the age it runs to).",
+      "whereV6": "Stress → Settings → Duration; Decision → Depletion Duration",
+      "who": "Everyone",
+      "keys": [
+        "stress.duration",
+        "decision.duration"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done",
+      "note": "Asked as the age to plan to (endAge, 75 to 105, 95 by default)."
+    },
+    {
+      "id": "timing.longevity",
+      "area": "timing",
+      "kind": "option",
+      "name": "Suggest a plan length from longevity",
+      "what": "Suggests the length from age and sex: a 1-in-10 chance of living beyond (cautious), 1 in 4, or average.",
+      "whereV6": "Stress → Settings → \"Suggest from longevity\" (index.html:3311-3326; LongevityModel.js)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "timing.stale-draft",
+      "area": "timing",
+      "kind": "option",
+      "name": "\"Update this draft to today\"",
+      "what": "A draft whose start year has passed is offered an update to today; \"Leave it\" is remembered.",
+      "whereV6": "Stale-draft banner (index.html:2954, 9020-9050)",
+      "who": "Retired drafts",
+      "keys": [
+        "stress.staleDraftDismissedFor"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "pots.pension",
+      "area": "pots",
+      "kind": "setting",
+      "name": "Pension pot, split into shares, bonds and cash",
+      "what": "The pension total and how it splits into the three pots the plan draws from; their floors run down over the plan (the glidepath).",
+      "whereV6": "Stress and Decision → Settings → Your allocation (index.html:3329-3333)",
+      "who": "Everyone",
+      "keys": [
+        "stress.equityMin",
+        "stress.bondMin",
+        "stress.cashTarget",
+        "decision.equityMin",
+        "decision.bondMin",
+        "decision.cashTarget"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/toEngine.js"
+      ],
+      "step": "done",
+      "note": "V7 asks the pension total; the split follows the risk level."
+    },
+    {
+      "id": "pots.risk",
+      "area": "pots",
+      "kind": "option",
+      "name": "Risk level: cautious, balanced, adventurous",
+      "what": "Sets the mix of shares, bonds and cash, or switches to testing a list of funds.",
+      "whereV6": "Your allocation: Pick a risk level / Test on a list of funds (index.html:3303-3306, 3379-3393)",
+      "who": "Everyone",
+      "keys": [
+        "stress.allocMode",
+        "decision.allocMode"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/toEngine.js"
+      ],
+      "step": "done",
+      "note": "V7 has a risk level while drawing and another while saving."
+    },
+    {
+      "id": "pots.funds-to-test",
+      "area": "pots",
+      "kind": "option",
+      "name": "Test on a list of funds",
+      "what": "A list of funds, each tagged to a bucket and a sub-class (searched, typed or pasted from a platform), becomes the allocation the plan is tested on. Each strategy keeps its own list.",
+      "whereV6": "Your allocation → Test on a list of funds (index.html:3407-3430; PortfolioTagger.js, FundCatalogue.js)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.taggedFunds",
+        "decision.taggedFunds",
+        "stress.subAsset",
+        "decision.subAsset",
+        "taggedFunds[].ticker",
+        "taggedFunds[].value",
+        "taggedFunds[].wrapper",
+        "taggedFunds[].subClass",
+        "taggedFunds[].ocf",
+        "taggedFunds[].contribution"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"mix\" step: a pot and a risk level; a fund list there is the intended retirement portfolio."
+    },
+    {
+      "id": "pots.example-portfolio",
+      "area": "pots",
+      "kind": "option",
+      "name": "An example ETF portfolio for the risk level",
+      "what": "Shows an illustrative fund portfolio for the chosen level (not advice).",
+      "whereV6": "\"See an example ETF portfolio for this level\" (index.html:3398-3401; ModelPortfolios.js)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "pots.diversifiers",
+      "area": "pots",
+      "kind": "option",
+      "name": "Diversifiers sleeve: gold and trend/macro",
+      "what": "Carves a slice into assets that tend to hold up when shares fall, held flat and sold first in a downturn; the target rises with prices and runs down like the others.",
+      "whereV6": "Your allocation: Diversifiers sleeve (index.html:3394-3397)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.diversifierStart",
+        "decision.diversifierStart"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "pots.bond-tent",
+      "area": "pots",
+      "kind": "option",
+      "name": "Bond tent",
+      "what": "Shares rise over time: bond-heavy early, when the pot is largest and most exposed to an early crash, share-heavy later, centred on the risk level; a tagged plan sets its end mix.",
+      "whereV6": "Your allocation: Bond tent (index.html:3452-3462)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.equityGlideEnabled",
+        "decision.equityGlideEnabled",
+        "stress.glideEndgame",
+        "decision.glideEndgame"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "pots.isa",
+      "area": "pots",
+      "kind": "setting",
+      "name": "ISA (and savings) total",
+      "what": "The ISA held beside the pension, drawn as its own pot.",
+      "whereV6": "Your allocation: Total in your ISA (index.html:3335)",
+      "who": "Everyone",
+      "keys": [
+        "stress.isaBalance",
+        "decision.isaBalance"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/a/schema.js",
+        "src/answers/b/schema.js",
+        "src/answers/c/schema.js"
+      ],
+      "step": "done",
+      "note": "Asked as savings (ISAs and other savings)."
+    },
+    {
+      "id": "pots.isa-use",
+      "area": "pots",
+      "kind": "option",
+      "name": "How the ISA is used",
+      "what": "Tax-efficient (tops up income before higher-rate tax), make it last to the State Pension, or hold it (never drawn for income; it still rescues a plan whose pension runs out).",
+      "whereV6": "Your allocation: How the ISA is used (index.html:3337-3343)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.isaDrawdownStrategy",
+        "decision.isaDrawdownStrategy"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "pots.isa-growth",
+      "area": "pots",
+      "kind": "setting",
+      "name": "How the ISA grows, and its floor",
+      "what": "The ISA's steady growth rate (3% a year) and the floor it is drawn down towards.",
+      "whereV6": "Settings defaults (constants.js ISA_DEFAULTS; design/settings-model.md)",
+      "who": "Everyone",
+      "keys": [
+        "stress.isaReturn",
+        "stress.isaMin",
+        "decision.isaReturn",
+        "decision.isaMin"
+      ],
+      "status": "designed",
+      "doc": "research/v7/answer-D.md §2.2",
+      "step": "s7-d",
+      "note": "One choice under the savings box: \"Mostly cash\" (prices less 1%) or \"Invested like my pension\"."
+    },
+    {
+      "id": "pots.taxable",
+      "area": "pots",
+      "kind": "option",
+      "name": "A taxable account (GIA)",
+      "what": "Money held outside a pension or ISA: how much, what it holds (shares, gilts, bond funds, a mix, cash) and the tax band it is taxed at; it is drawn first and taxed each year.",
+      "whereV6": "Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.taxableStart",
+        "stress.taxableMix",
+        "stress.giaTaxBand",
+        "decision.taxableStart",
+        "decision.taxableMix",
+        "decision.giaTaxBand"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it."
+    },
+    {
+      "id": "pots.charges",
+      "area": "pots",
+      "kind": "option",
+      "name": "Charges (funds and platform), % a year",
+      "what": "One charge a year taken off monthly from funds and cash, while saving and while drawing.",
+      "whereV6": "Stress → Settings → Charges (6.19.0; Charges.js)",
+      "who": "Everyone",
+      "keys": [
+        "stress.chargesPct"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/services/Charges.js",
+        "src/answers/shared/toEngine.js"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "inc.state-pension",
+      "area": "income",
+      "kind": "setting",
+      "name": "State Pension amount",
+      "what": "The State Pension from the forecast: full, a forecast amount, or none.",
+      "whereV6": "Stress and Decision → Settings → State Pension (index.html:3546-3561)",
+      "who": "Everyone",
+      "keys": [
+        "stress.spWeeklyAmount",
+        "decision.spWeeklyAmount"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "inc.state-pension-date",
+      "area": "income",
+      "kind": "option",
+      "name": "State Pension start date, typed from the forecast",
+      "what": "The exact date it starts, as on the forecast (also the birthday the plan reckons ages from).",
+      "whereV6": "State Pension: SP Start Date (index.html:3550)",
+      "who": "Everyone",
+      "keys": [
+        "stress.spStartDate",
+        "decision.spStartDate"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it."
+    },
+    {
+      "id": "inc.state-pension-old",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The old State Pension fields",
+      "what": "The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date.",
+      "whereV6": "design/settings-model.md (read-time fallback)",
+      "who": "Nobody sees it",
+      "keys": [
+        "stress.statePension",
+        "stress.statePensionYear",
+        "decision.statePension",
+        "decision.statePensionYear"
+      ],
+      "status": "planned",
+      "step": "s4-open-plan",
+      "note": "V7 must read an old plan the same way (fallback only, never asked)."
+    },
+    {
+      "id": "inc.final-salary",
+      "area": "income",
+      "kind": "setting",
+      "name": "Final-salary pension: amount and start",
+      "what": "A defined-benefit pension: how much a year, in today's money, and when it starts.",
+      "whereV6": "Other income: Defined-Benefit Pension, DB Starts as a plan year (index.html:3508-3534)",
+      "who": "Everyone",
+      "keys": [
+        "stress.dbAmount",
+        "stress.dbStartYear"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/household.js"
+      ],
+      "step": "done",
+      "note": "Better: V7 asks the start by age, not plan year, for each person."
+    },
+    {
+      "id": "inc.final-salary-rises",
+      "area": "income",
+      "kind": "option",
+      "name": "How a final-salary pension rises",
+      "what": "Rises with prices capped at 5%, with full prices, or not at all.",
+      "whereV6": "Other income: DB Increases (index.html:3528-3532)",
+      "who": "Everyone",
+      "keys": [
+        "stress.dbIndexation"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7's household takes all three (household.js) but the forms always say prices capped at 5%."
+    },
+    {
+      "id": "inc.other",
+      "area": "income",
+      "kind": "setting",
+      "name": "Other income or pension",
+      "what": "Another taxable income a year from now, rising with prices capped at 4%.",
+      "whereV6": "Other income: Other Income/Pension (index.html:3512)",
+      "who": "Everyone",
+      "keys": [
+        "stress.other"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "D designs income you have bought (answer-D.md §5.2); a general other income has no V7 form."
+    },
+    {
+      "id": "inc.part-time",
+      "area": "income",
+      "kind": "option",
+      "name": "Part-time work for some years",
+      "what": "Earnings for a number of years after stopping.",
+      "whereV6": "Income streams (index.html:3537-3542)",
+      "who": "Approaching",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/a/schema.js",
+        "src/answers/a/answer.js"
+      ],
+      "step": "done",
+      "note": "A's \"Would some part-time work help?\"; D designs the same for the retired (answer-D.md §3.6)."
+    },
+    {
+      "id": "inc.streams",
+      "area": "income",
+      "kind": "option",
+      "name": "Income for some years",
+      "what": "Any taxable income between two plan years (rent that ends, part-time work, a small pension), with how it rises.",
+      "whereV6": "Stress → Settings → Income streams & lump sums (index.html:3535-3545, 10635-10641)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.extraIncomes",
+        "extraIncomes[].label",
+        "extraIncomes[].annual",
+        "extraIncomes[].startYear",
+        "extraIncomes[].endYear",
+        "extraIncomes[].indexation"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "Only part-time work from the stop is asked in V7 (row above)."
+    },
+    {
+      "id": "inc.lump-sums",
+      "area": "income",
+      "kind": "option",
+      "name": "One-off lump sums",
+      "what": "Money arriving in a plan year (an inheritance, downsizing): where it can legally go (ISA allowance, pension up to earnings or the £10,000 limit, the rest taxable), what it is held in, and the Decision tool's advice in its year.",
+      "whereV6": "Income streams & lump sums: + One-off lump sum (index.html:10639-10660; TaxableSleeve.routeWindfall)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.windfalls",
+        "decision.windfalls",
+        "windfalls[].label",
+        "windfalls[].amount",
+        "windfalls[].year",
+        "windfalls[].wrapper",
+        "windfalls[].mix",
+        "windfalls[].toIsa"
+      ],
+      "status": "designed",
+      "step": "shape-next",
+      "doc": "research/v7/spending-shape.md §17",
+      "note": "Not built. Designed: \"Money you expect to come in\" on the pots step (A, B; C under \"Add more detail\"): an amount at an age, and what it is (cash, an inherited pension, an inherited ISA). Where it can go is today's own routeWindfall (the ISA allowance, the pension within its limit, the rest a taxable account); kept plans get today's windfalls."
+    },
+    {
+      "id": "tax.bands",
+      "area": "tax",
+      "kind": "option",
+      "name": "Tax thresholds",
+      "what": "Personal allowance, basic-rate limit and higher-rate limit for year 0, which can be changed.",
+      "whereV6": "Stress → Settings → Tax thresholds (index.html:3476-3500)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.pa",
+        "stress.brl",
+        "stress.hrl"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7 uses today's bands (toEngine.js BANDS) and they cannot be changed."
+    },
+    {
+      "id": "tax.mode",
+      "area": "tax",
+      "kind": "option",
+      "name": "Thresholds rise with prices, or stay frozen",
+      "what": "Whether the tax bands rise with inflation or stay where they are.",
+      "whereV6": "Tax thresholds: Tax Threshold Mode (index.html:3492-3497)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.taxMode"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "tax.tax-free-cash",
+      "area": "tax",
+      "kind": "option",
+      "name": "The 25% tax-free part: in each withdrawal, or kept separate",
+      "what": "Take a quarter of every withdrawal tax-free (UFPLS), or count every withdrawal as taxable because the tax-free sum is taken or kept for something else.",
+      "whereV6": "How you'll take this pension (index.html:2982-2994)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.accessMethod",
+        "decision.accessMethod"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/toEngine.js"
+      ],
+      "step": "done",
+      "note": "V7 takes a quarter of each withdrawal tax-free unless you say it is already taken."
+    },
+    {
+      "id": "tax.ufpls-years",
+      "area": "tax",
+      "kind": "option",
+      "name": "Tax-free part for some years, then the rest into the ISA",
+      "what": "Take the tax-free quarter for a number of years, then move the remaining 25% into the ISA before switching to drawdown.",
+      "whereV6": "How you'll take this pension: UFPLS for how many years (index.html:3002-3014)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.ufplsYears",
+        "stress.ufplsThenPcls",
+        "decision.ufplsYears",
+        "decision.ufplsThenPcls"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "F's \"tax-free cash and which pot first\" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E."
+    },
+    {
+      "id": "tax.band-fill",
+      "area": "tax",
+      "kind": "option",
+      "name": "Fill the basic-rate band and recycle into the ISA",
+      "what": "Draws extra pension up to the 20% band even when spending does not need it, and moves the net into the ISA (up to £20,000 a year).",
+      "whereV6": "How you'll take this pension: band fill (index.html:3016-3025)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.bandFillRecycle",
+        "decision.bandFillRecycle"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "No test plan uses it yet (square-one-audit.md §4)."
+    },
+    {
+      "id": "tax.bed-and-isa",
+      "area": "tax",
+      "kind": "option",
+      "name": "Bed-and-ISA £20,000 a year",
+      "what": "Moves £20,000 a year from the taxable account into the ISA whenever the allowance is unused.",
+      "whereV6": "Your allocation (index.html:3377-3380)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.bedAndIsa",
+        "decision.bedAndIsa"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "tax.earnings",
+      "area": "tax",
+      "kind": "setting",
+      "name": "Relevant UK earnings",
+      "what": "Earnings this year, which set how much of a lump sum can go into the pension.",
+      "whereV6": "Your allocation: Relevant UK earnings (index.html:3365-3370)",
+      "who": "Approaching",
+      "keys": [
+        "stress.relevantEarnings",
+        "decision.relevantEarnings"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "prot.cuts",
+      "area": "protection",
+      "kind": "option",
+      "name": "Cuts in a slump",
+      "what": "After a set number of months below the glidepath, income is cut by a set share (half the cut for the first months, the whole cut if it lasts), the cash buffer is kept, and missed income is made up later.",
+      "whereV6": "Stress and Decision → Settings → Protection (index.html:3584-3611; ProtectionStrategy.js)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.consecutiveLimit",
+        "stress.protectionMult",
+        "stress.protectionEscalateMonths",
+        "stress.recoveryBuffer",
+        "stress.disableProtection",
+        "decision.consecutiveLimit",
+        "decision.protectionFactor",
+        "decision.protectionEscalateMonths",
+        "decision.recoveryBuffer",
+        "decision.disableProtection"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7's answers run with cuts off (save-as-plan.md §C.3)."
+    },
+    {
+      "id": "prot.reserve",
+      "area": "protection",
+      "kind": "option",
+      "name": "Emergency reserve (\"Break Glass HODL\")",
+      "what": "A reserve touched only when the plan would otherwise fail.",
+      "whereV6": "Stress → Settings → Break Glass HODL (index.html:3613-3630)",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.hodlEnabled",
+        "stress.hodlValue"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "No test plan uses it yet (square-one-audit.md §4)."
+    },
+    {
+      "id": "strat.pots-and-valves",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Pots & Valves",
+      "what": "One flexible portfolio in three pots; rules decide which pot pays each month, with floors that run down over the plan and cuts in a slump.",
+      "whereV6": "Stress → Settings → Income strategy; Strategies → Pots & Valves",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.pots-and-valves"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7's answers draw this way today, with the cuts off."
+    },
+    {
+      "id": "strat.buckets",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Buckets in order",
+      "what": "Cash pays first, then bonds, then shares; surplus refills from above when it is more than a set band over its path. Dials: the band, and the pension and ISA totals.",
+      "whereV6": "Income strategy: Buckets in order (index.html:3170-3175)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.buckets-in-order",
+        "strategyParams.buckets-in-order.bucketBand",
+        "strategyParams.buckets-in-order.sippTotal",
+        "strategyParams.buckets-in-order.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.ladder-ratchet",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Ladder & Ratchet",
+      "what": "Buys index-linked gilts for the first years of income and rides the rest in shares, selling only when shares are well above their path or on a calendar. Dials: years bought, the income bolted on, the trigger, the band, the pension and ISA totals.",
+      "whereV6": "Income strategy: Ladder & Ratchet (index.html:3218-3256)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.ladder-and-ratchet",
+        "strategyParams.ladder-and-ratchet.ladderYears",
+        "strategyParams.ladder-and-ratchet.drawAnnual",
+        "strategyParams.ladder-and-ratchet.triggerMode",
+        "strategyParams.ladder-and-ratchet.bandThreshold",
+        "strategyParams.ladder-and-ratchet.sippTotal",
+        "strategyParams.ladder-and-ratchet.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.bridge-engine",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Bridge & engine",
+      "what": "Every year to the bridge age (usually the State Pension) bought now, cash first then one gilt a year; the rest rides in shares untouched, then pays by withdrawals. Dials: the bridge age, years in cash, the pension and ISA totals.",
+      "whereV6": "Income strategy: Bridge & engine; Your pot (index.html:3166-3169)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.bridge-and-engine",
+        "strategyParams.bridge-and-engine.bridgeAge",
+        "strategyParams.bridge-and-engine.cashYears",
+        "strategyParams.bridge-and-engine.sippTotal",
+        "strategyParams.bridge-and-engine.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.floor-flex",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Floor & Flex",
+      "what": "Buys the essentials as a floor to an age with gilts; the rest is a flex sleeve paying a set share each year; booms can extend or raise the floor. Dials: essentials, the floor's end age, the sleeve rate, the treats rule, the ratchet, the pension and ISA totals.",
+      "whereV6": "Income strategy: Floor & Flex (index.html:3258-3296)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.floor-and-flex",
+        "strategyParams.floor-and-flex.essentialsAnnual",
+        "strategyParams.floor-and-flex.horizonAge",
+        "strategyParams.floor-and-flex.sleeveRate",
+        "strategyParams.floor-and-flex.treatsRule",
+        "strategyParams.floor-and-flex.ratchet",
+        "strategyParams.floor-and-flex.sippTotal",
+        "strategyParams.floor-and-flex.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7 never fills the essentials from the budget (owner, 1 Oct 2026)."
+    },
+    {
+      "id": "strat.floor-schedule",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Floor the schedule",
+      "what": "Buys the whole income shape, year by year, with index-linked gilts. Dials: the pension and ISA totals.",
+      "whereV6": "Income strategy: Floor the schedule",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.floor-the-schedule",
+        "strategyParams.floor-the-schedule.sippTotal",
+        "strategyParams.floor-the-schedule.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.floor-to-age",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Floor to an age, then decide",
+      "what": "Buys the income shape to an age with gilts and leaves the decision about the years after it for later. After a rotation is carried out the plan moves here, keeping a record of the income it sold (the borrowed floor) and what it would cost today to buy back. Dials: the age, the borrowed floor, the pension and ISA totals.",
+      "whereV6": "Income strategy: Floor to an age; Your pot (index.html:3165)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.floor-to-age",
+        "strategyParams.floor-to-age.floorToAge",
+        "strategyParams.floor-to-age.borrowedFloor",
+        "strategyParams.floor-to-age.sippTotal",
+        "strategyParams.floor-to-age.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.full-gilt",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Full index-linked gilt ladder",
+      "what": "Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the pension and ISA totals.",
+      "whereV6": "Income strategy: Full index-linked gilt ladder (index.html:3184-3192)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.full-il-gilt",
+        "strategyParams.full-il-gilt.cashYears",
+        "strategyParams.full-il-gilt.bridgeCash",
+        "strategyParams.full-il-gilt.sippTotal",
+        "strategyParams.full-il-gilt.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.gilt-rotation",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Gilt ladder + rotation",
+      "what": "The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the pension and ISA totals.",
+      "whereV6": "Income strategy: Gilt ladder + rotation (index.html:3186-3189; strategies/GiltRotation.js)",
+      "who": "Approaching, retired",
+      "keys": [
+        "strategies.gilt-rotation",
+        "strategyParams.gilt-rotation.cashYears",
+        "strategyParams.gilt-rotation.bridgeCash",
+        "strategyParams.gilt-rotation.rotateCutAge",
+        "strategyParams.gilt-rotation.rotateTrigger",
+        "strategyParams.gilt-rotation.rotateDisarmYears",
+        "strategyParams.gilt-rotation.sippTotal",
+        "strategyParams.gilt-rotation.isaTotal"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+    },
+    {
+      "id": "strat.choose",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Choose the plan's strategy; switch and come back",
+      "what": "Picks one strategy for the plan; switching puts each strategy's own inputs away and brings them back when you return.",
+      "whereV6": "Income strategy buttons (index.html:3137-3148); StrategyState.js",
+      "who": "Approaching, retired",
+      "keys": [
+        "stress.strategyId",
+        "stress.strategyParams",
+        "stress.strategyState",
+        "decision.strategyId",
+        "decision.strategyParams",
+        "strategyState.strategyParams",
+        "strategyState.allocMode",
+        "strategyState.taggedFunds",
+        "strategyState.savedAt"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"mix\" and \"compare\" steps."
+    },
+    {
+      "id": "strat.costs",
+      "area": "strategies",
+      "kind": "option",
+      "name": "What a ladder or floor costs today, against your pot",
+      "what": "As the dials change: the cost of the gilts at today's real yields, what is left for shares, the first year's treats, and an illustrative ladder, or \"not affordable\".",
+      "whereV6": "refreshStrategyCosts (index.html:9729-9796)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "Part of each strategy's dials in E's \"compare\" step; no V7 design draws it."
+    },
+    {
+      "id": "strat.compare",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Compare all nine on your plan",
+      "what": "Ranks the strategies on your plan by a score, paid in full, coverage and the worst 12 months.",
+      "whereV6": "Strategies → Overview (index.html:10146-10237)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "Owner's decision pending: one kind of verdict (\"lasts in 9 futures out of 10\") for all nine (square-one-audit.md §6 question 2)."
+    },
+    {
+      "id": "strat.pages",
+      "area": "strategies",
+      "kind": "option",
+      "name": "A page for each strategy",
+      "what": "For each strategy: how the machine works, its dials, three real starts in history, and how it fails.",
+      "whereV6": "Strategies → one page per strategy",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "E's outline names \"compare\" but no V7 design draws a page per strategy."
+    },
+    {
+      "id": "strat.try-in-copy",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Try this strategy in a copy of the plan",
+      "what": "Makes a copy of the plan on another strategy, with the pot totals carried over; the original is untouched.",
+      "whereV6": "\"Try this strategy in a COPY of this plan\" (index.html:3216-3217, 9707-9727)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s8-e",
+      "note": "\"Keep a try-a-change result as a separate plan\"."
+    },
+    {
+      "id": "strat.gilts-explained",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Gilt ladders explained, with a worked example",
+      "what": "What a gilt ladder is and what one costs today, for an amount and a number of years.",
+      "whereV6": "Strategies → Gilt ladders explained; Stress → Drawdown (index.html:2904-2916)",
+      "who": "Approaching",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"move\" step."
+    },
+    {
+      "id": "strat.order-sheet",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Gilt order sheet",
+      "what": "Which gilts to buy and how many (SEDOLs and nominal amounts), priced at the latest prices.",
+      "whereV6": "Strategy pages; gilt ladder pricing (index.html:6203-6250; GiltLadderPlan.js, LinkerUniverse.js)",
+      "who": "Approaching, running",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"move\" step."
+    },
+    {
+      "id": "strat.rotation-watch",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Rotation watch and ticket",
+      "what": "For gilt ladder + rotation: how far shares are below their high, the ticket to act on when the trigger fires, and the guided switch that sells the block, buys shares and records the income sold.",
+      "whereV6": "RotationStatus.js; strategy page; executeRotation (index.html:9385)",
+      "who": "Running",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s8-e",
+      "note": "The locked rail's \"move\" station."
+    },
+    {
+      "id": "strat.assumptions",
+      "area": "strategies",
+      "kind": "option",
+      "name": "Assumptions and data",
+      "what": "Where every figure comes from: the return history, inflation, gilt prices, and what is assumed.",
+      "whereV6": "Strategies → Assumptions & data",
+      "who": "Everyone",
+      "keys": [],
+      "status": "planned",
+      "step": "s10-after",
+      "note": "The trust pages (product-plan.md); V7 already says what each answer assumed (src/v7/components/Assumed.jsx)."
+    },
+    {
+      "id": "test.monte-carlo",
+      "area": "testing",
+      "kind": "option",
+      "name": "Monte Carlo: a thousand futures",
+      "what": "Runs the plan through 1,000 simulated futures and shows how often it lasts, with cones of income and wealth.",
+      "whereV6": "Stress → Monte Carlo (index.html:2779-2815)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"answer\" step. V7's answers already run futures (src/answers/shared/futures.js) on the 9-in-10 bar."
+    },
+    {
+      "id": "test.history",
+      "area": "testing",
+      "kind": "option",
+      "name": "Every start year in history",
+      "what": "Runs the plan from every start year in the record and shows the worst sequences.",
+      "whereV6": "Stress → Historical (index.html:2840-2860)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"answer\" step: \"Does it come through the bad times?\""
+    },
+    {
+      "id": "test.scenarios",
+      "area": "testing",
+      "kind": "option",
+      "name": "Named stress scenarios",
+      "what": "Runs the plan through named crashes and bad decades.",
+      "whereV6": "Stress → Scenarios (index.html:2862-2881)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"answer\" step."
+    },
+    {
+      "id": "test.try",
+      "area": "testing",
+      "kind": "option",
+      "name": "Try a strategy, never saved",
+      "what": "A what-if on any strategy, pot, ISA, income, years and cuts, run without changing the plan (works on a locked plan too); \"Use this strategy for my plan\" adopts it on an unlocked one.",
+      "whereV6": "Stress → Monte Carlo → Try a strategy (index.html:2818-2836)",
+      "who": "Everyone, locked plans too",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s8-e",
+      "note": "\"Test the plan: try-only\". V7's answers have Try a change (src/v7/components/TryAChange.jsx), and with a spending shape \"Try it the same every year\" and \"Put back my steps by age\" (today's \"Income: … A flat amount\")."
+    },
+    {
+      "id": "test.explainers",
+      "area": "testing",
+      "kind": "option",
+      "name": "\"What is this doing?\"",
+      "what": "A plain explanation beside each test of what it runs and what its figures mean.",
+      "whereV6": "Stress → Monte Carlo, Historical, Scenarios: \"What is this doing?\" (openStressExplainer)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7 says what each answer assumed (src/v7/components/Assumed.jsx); an explanation of each test needs E."
+    },
+    {
+      "id": "test.optimise",
+      "area": "testing",
+      "kind": "option",
+      "name": "Compare allocations and apply the best split",
+      "what": "Searches the share, bond and cash split for Pots & Valves and offers to apply it.",
+      "whereV6": "Stress → \"Compare allocations (Pots & Valves)\" (index.html:6683-6834)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "test.schedule",
+      "area": "testing",
+      "kind": "option",
+      "name": "Drawdown schedule and the ISA bridge table",
+      "what": "Year by year: what is drawn from the pension and ISA, tax, and what is left; for a bought strategy its own schedule (income middle and 1 in 10).",
+      "whereV6": "Stress → Drawdown (index.html:2882, 7168, 13216-13240)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "A's \"What pays the bills before my State Pension starts?\" (rail-screens-language.md §1.5) is a summary, not built."
+    },
+    {
+      "id": "test.glidepath",
+      "area": "testing",
+      "kind": "option",
+      "name": "The glidepath picture",
+      "what": "Draws the pots' floors running down over the plan at an assumed inflation.",
+      "whereV6": "Stress → Glidepath (index.html:2925-2945)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "lock.lock",
+      "area": "lock",
+      "kind": "option",
+      "name": "Lock the plan and make the plan document",
+      "what": "Freezes the settings of both tools and writes the plan as committed; the first Decision record also locks it.",
+      "whereV6": "Stress → Settings → \"Lock plan & create the plan document\" (index.html:3636, 8510-8541; PlanLock.js)",
+      "who": "Approaching, locked",
+      "keys": [
+        "decision.locked",
+        "decision.lockedAt",
+        "decision.lockedBy"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s5-lock",
+      "note": "E's \"lock\" step; A and B (and later D) end with \"Lock this plan?\" (square-one-audit.md §5 item 5)."
+    },
+    {
+      "id": "lock.unlock",
+      "area": "lock",
+      "kind": "option",
+      "name": "Unlock to change the plan",
+      "what": "Unlocking keeps the plan document as a past version (last ten) and counts the unlocks.",
+      "whereV6": "Lock banner \"Unlock to edit\" (index.html:13070-13090)",
+      "who": "Locked plans",
+      "keys": [
+        "decision.unlockedAt",
+        "decision.unlockCount",
+        "plan.planDocumentArchive",
+        "plan.decisionTool.planOfRecordArchive"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s5-lock",
+      "note": "\"Unlock to change the plan\" keeps the document as a past version."
+    },
+    {
+      "id": "lock.document",
+      "area": "lock",
+      "kind": "option",
+      "name": "The plan document",
+      "what": "The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand.",
+      "whereV6": "Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js)",
+      "who": "Locked plans",
+      "keys": [
+        "plan.planDocument"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "The \"Your plan\" station reads the document only, never live settings."
+    },
+    {
+      "id": "lock.ladder-card",
+      "area": "lock",
+      "kind": "option",
+      "name": "The ladder card",
+      "what": "For a locked gilt plan: what arrives when, what has been bought, and what the same gilts would cost today, as a comparison only.",
+      "whereV6": "Plan document and strategy page (LadderPosition.js)",
+      "who": "Locked plans with a ladder",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "The \"Your plan\" and \"Moving to your plan's mix\" stations (\"6 of 18 gilts bought\")."
+    },
+    {
+      "id": "lock.plan-of-record",
+      "area": "lock",
+      "kind": "machinery",
+      "name": "The plan of record",
+      "what": "The drawdown and glidepath projection frozen when the Decision plan locked: a yardstick that does not move.",
+      "whereV6": "ScenarioRepository.saveActivePlanOfRecord",
+      "who": "Nobody sees it directly",
+      "keys": [
+        "plan.decisionTool.planOfRecord"
+      ],
+      "status": "planned",
+      "step": "s4-open-plan",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "lock.where",
+      "area": "lock",
+      "kind": "option",
+      "name": "Where you are",
+      "what": "Reads the recorded months against the document: took this, the plan said that.",
+      "whereV6": "Plan document strip (PlanDocument.whereAmI)",
+      "who": "Locked plans",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "The \"Where you are\" station."
+    },
+    {
+      "id": "lock.arrival",
+      "area": "lock",
+      "kind": "option",
+      "name": "Arrival check",
+      "what": "The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again.",
+      "whereV6": "LifeStage.js:136-147; index.html:6023-6033",
+      "who": "Locked savers at their stop",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "P.arrived."
+    },
+    {
+      "id": "lock.newer",
+      "area": "lock",
+      "kind": "option",
+      "name": "\"Saved by a newer version\"",
+      "what": "A plan saved by a newer version of the app is shown read-only, with a reload button.",
+      "whereV6": "planNewerBanner (index.html; storage/schema.js)",
+      "who": "Everyone",
+      "keys": [
+        "plan.schemaVersion"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s4-open-plan",
+      "note": "P.readonly."
+    },
+    {
+      "id": "lock.guard",
+      "area": "lock",
+      "kind": "option",
+      "name": "Nothing changes a locked plan",
+      "what": "Every button that writes settings refuses on a locked plan and says where the unlock is; records, holdings and the budget stay editable.",
+      "whereV6": "LockedPlanGuard.js (6.20.2, in progress)",
+      "who": "Locked plans",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s1-safety",
+      "note": "\"What a locked plan can and cannot do on the rail\"."
+    },
+    {
+      "id": "month.entry",
+      "area": "month",
+      "kind": "record",
+      "name": "Record a month",
+      "what": "This month's fund values (by bucket, or fund by fund), the ISA, diversifiers, the taxable account and its cost; \"paid this month already\".",
+      "whereV6": "Decision → Monthly Entry (index.html:2291-2393; DecisionPanel.js)",
+      "who": "Run-up, running",
+      "keys": [
+        "plan.decisionTool.history"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s9-switch",
+      "note": "The \"This month\" station. Owner's decision pending: 7.0 may ship with Month by month on today's screen (square-one-audit.md §6 question 3)."
+    },
+    {
+      "id": "month.advice",
+      "area": "month",
+      "kind": "option",
+      "name": "What to draw and from where",
+      "what": "The month's recommendation: how much, from which pot, what to sell or rebalance, the tax summary.",
+      "whereV6": "Decision → Monthly Entry → Calculate (legacyDecision.js)",
+      "who": "Run-up, running",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s9-switch"
+    },
+    {
+      "id": "month.cadence",
+      "area": "month",
+      "kind": "option",
+      "name": "How often you draw",
+      "what": "Monthly, quarterly or a year at a time.",
+      "whereV6": "Decision → Monthly Entry: How often you draw (index.html:2301-2310, 5960-5970)",
+      "who": "Run-up, running",
+      "keys": [
+        "decision.cadence"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s9-switch"
+    },
+    {
+      "id": "month.history",
+      "area": "month",
+      "kind": "option",
+      "name": "History, plan against actual",
+      "what": "Every recorded month by tax year, against the plan; delete a year or everything.",
+      "whereV6": "Decision → History (index.html:2707-2740)",
+      "who": "Running",
+      "keys": [],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s9-switch",
+      "note": "The \"Where you are\" station."
+    },
+    {
+      "id": "month.exports",
+      "area": "month",
+      "kind": "option",
+      "name": "A spreadsheet per tax year, and PDFs",
+      "what": "Downloads each tax year's records and prints the documents.",
+      "whereV6": "Decision → History / Tax Years (index.html:2707-2750)",
+      "who": "Running",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried over with Month by month (square-one-audit.md §4)."
+    },
+    {
+      "id": "month.tax-year",
+      "area": "month",
+      "kind": "option",
+      "name": "Set up a tax year",
+      "what": "Each April: the bands, last year's price rise, other income, the ISA to use, the tax-efficiency choice, income and tax already this year, the start month and the confirmed target; edit a year or set it up again.",
+      "whereV6": "TaxYearSetupWizard.js; Decision → Tax Years (index.html:14420-14470)",
+      "who": "Run-up, running",
+      "keys": [
+        "plan.decisionTool.taxYears",
+        "taxYear.pa",
+        "taxYear.brl",
+        "taxYear.hrl",
+        "taxYear.cpi",
+        "taxYear.other",
+        "taxYear.cgtExemptionUsed",
+        "taxYear.isaSavingsAllocation",
+        "taxYear.isaSavingsUsed",
+        "taxYear.isTaxEfficient",
+        "taxYear.taxEfficiencyChoice",
+        "taxYear.grossIncomeToDate",
+        "taxYear.taxPaidToDate",
+        "taxYear.startMonth",
+        "taxYear.confirmedSalary",
+        "taxYear.remainingMonths",
+        "taxYear.statePension",
+        "taxYear.expectedMonthly",
+        "taxYear.yearSetupComplete"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.6",
+      "step": "s9-switch",
+      "note": "P.taxyear: \"Next: set up the {2027/28} tax year.\""
+    },
+    {
+      "id": "month.copy",
+      "area": "month",
+      "kind": "option",
+      "name": "Copy settings between the two tools",
+      "what": "\"Copy from Decision Tool\" seeds the Stress tester from the committed plan; \"Use ALL Stress settings\" or \"Copy target amount only\" goes the other way.",
+      "whereV6": "Stress → Settings (index.html:3563-3567); Decision → Settings (index.html:2648-2660)",
+      "who": "Approaching, retired",
+      "keys": [],
+      "status": "retired",
+      "reason": "V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between: every figure the copy carried is in the one plan.",
+      "step": "s9-switch",
+      "owner": "to confirm"
+    },
+    {
+      "id": "month.seeded",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "Where a copy came from",
+      "what": "Which tool a settings copy came from, when, and a fingerprint of the source (for a \"changed since you copied\" note).",
+      "whereV6": "seedStressFromDecision / seedDecisionFromStress (ScenarioRepository.js)",
+      "who": "Nobody sees it directly",
+      "keys": [
+        "stress.seededFrom",
+        "stress.seededAt",
+        "stress.decisionChecksum",
+        "decision.seededFrom"
+      ],
+      "status": "retired",
+      "reason": "Belongs to \"Copy settings between the two tools\" (retired with it, once the owner agrees); old plans keep these keys untouched.",
+      "step": "s9-switch"
+    },
+    {
+      "id": "save.pay-in",
+      "area": "saving",
+      "kind": "setting",
+      "name": "What you pay in, and your employer",
+      "what": "What you pay each month from take-home, and what your employer adds.",
+      "whereV6": "Accumulation → Contributions (index.html:3677-3702)",
+      "who": "Savers",
+      "keys": [
+        "accumulation.netMonthly",
+        "accumulation.employerMonthly"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/v7/components/PayInSplit.jsx"
+      ],
+      "step": "done",
+      "note": "One figure that lands in the pension, or split into your part and your employer's."
+    },
+    {
+      "id": "save.relief",
+      "area": "saving",
+      "kind": "option",
+      "name": "How tax relief works, and your salary",
+      "what": "Relief at source, net pay or salary sacrifice, with your salary, so the higher-rate reclaim and the NI saving are shown.",
+      "whereV6": "Accumulation → How relief works; Salary (index.html:3682-3692; AccumulationEngine.contributionBreakdown)",
+      "who": "Savers",
+      "keys": [
+        "accumulation.schemeType",
+        "accumulation.salary"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7 takes what lands in the pension, the tax added back included; it does not ask how relief is given."
+    },
+    {
+      "id": "save.escalation",
+      "area": "saving",
+      "kind": "option",
+      "name": "Raise payments by a % a year",
+      "what": "Payments rise by a set percentage each year.",
+      "whereV6": "Accumulation → Raise contributions by (index.html:3700)",
+      "who": "Savers",
+      "keys": [
+        "accumulation.escalationPct"
+      ],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "save.ages-pot",
+      "area": "saving",
+      "kind": "setting",
+      "name": "Age, retiring age, pension today",
+      "what": "The Accumulation planner's own age, retirement age and pot today.",
+      "whereV6": "Accumulation → About you (index.html:3678-3681)",
+      "who": "Savers",
+      "keys": [
+        "accumulation.currentAge",
+        "accumulation.retirementAge",
+        "accumulation.potNow"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js",
+        "src/answers/b/schema.js"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "save.planner",
+      "area": "saving",
+      "kind": "machinery",
+      "name": "The Accumulation planner's part of the plan",
+      "what": "Where the saving years' settings are kept on the plan.",
+      "whereV6": "scenario.accumulationTool.settings",
+      "who": "Nobody sees it directly",
+      "keys": [
+        "plan.accumulationTool",
+        "plan.accumulationTool.settings"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/keep/planSeed.js",
+        "src/services/PlanSeed.js"
+      ],
+      "step": "done",
+      "note": "A plan made from a V7 answer with money still going in carries it."
+    },
+    {
+      "id": "save.projection",
+      "area": "saving",
+      "kind": "option",
+      "name": "Projection to the retirement age",
+      "what": "The pot at each age at 2%, 5% and 8%, with what was paid in.",
+      "whereV6": "Accumulation → Projection (AccumulationEngine.js:41)",
+      "who": "Savers",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/shared/saving.js",
+        "src/v7/components/Pots.jsx"
+      ],
+      "step": "done",
+      "note": "Replaced, better: the saving-years engine with a middling and a bad case."
+    },
+    {
+      "id": "save.own-mix",
+      "area": "saving",
+      "kind": "option",
+      "name": "A projection at your own holdings' mix",
+      "what": "A fourth projection line at the expected return of what you hold, net of its costs.",
+      "whereV6": "Accumulation → Projection: Your mix (6.7.0)",
+      "who": "Savers",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true,
+      "note": "V7 projects at a risk level while saving (savingRisk)."
+    },
+    {
+      "id": "save.when-retire",
+      "area": "saving",
+      "kind": "option",
+      "name": "When could I retire?",
+      "what": "Which age clears the bar for an income wanted, if saving carries on.",
+      "whereV6": "Accumulation → When could I retire? (RetireSweep.js)",
+      "who": "Savers, approaching",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/a/answer.js",
+        "src/v7/screens/a/AgesScreen.jsx",
+        "src/v7/components/AgesChart.jsx"
+      ],
+      "step": "done",
+      "note": "A's every-age table, on the saving-years engine."
+    },
+    {
+      "id": "save.on-track",
+      "area": "saving",
+      "kind": "option",
+      "name": "Am I on track?",
+      "what": "The pot needed for the plan's target and whether the saving gets there.",
+      "whereV6": "Accumulation → Am I on track? (index.html:3741-3750)",
+      "who": "Savers",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/b/answer.js",
+        "src/v7/screens/b/AnswerScreen.jsx",
+        "src/v7/screens/b/ChoicesScreen.jsx"
+      ],
+      "step": "done",
+      "note": "B, with the monthly amount that gets there and the options if it does not fit. Owner's decision pending: one bar, 9 in 10, everywhere."
+    },
+    {
+      "id": "save.warnings",
+      "area": "saving",
+      "kind": "option",
+      "name": "Payment warnings",
+      "what": "Warns when payments pass the annual allowance, the £10,000 limit after drawing, or relevant earnings.",
+      "whereV6": "Accumulation (AccumulationEngine.contributionWarnings)",
+      "who": "Savers",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/b/answer.js",
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done",
+      "note": "Annual allowance, the £10,000 limit, the ISA allowance, and paying in past 75."
+    },
+    {
+      "id": "save.pot-record",
+      "area": "saving",
+      "kind": "record",
+      "name": "Record this month's pot",
+      "what": "One line a month while saving (pension, ISA, taxable), read against the locked plan's saving path.",
+      "whereV6": "Accumulation → Record this month's pot (index.html:3728-3739, 8795-8830)",
+      "who": "Locked savers",
+      "keys": [
+        "plan.accumulationTool.history"
+      ],
+      "status": "planned",
+      "step": "s4-open-plan",
+      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4); the reading is fixed first (item 2)."
+    },
+    {
+      "id": "hold.record",
+      "area": "holdings",
+      "kind": "record",
+      "name": "What you hold",
+      "what": "One record of what you actually hold, line by line by wrapper (pension, ISA, taxable, cash): ticker, name, SEDOL, units, value, cost, payments, sub-class, kind, date; typed or pasted from a platform; never the funds a strategy is tested on.",
+      "whereV6": "Transition → What you hold; Accumulation → Record what I hold (TransitionView.js:41-89; HoldingsRecord.js, HoldingsPaste.js)",
+      "who": "Everyone",
+      "keys": [
+        "plan.holdings",
+        "holdings.version",
+        "holdings.updatedAt",
+        "holdings.source",
+        "holdings.offerDismissed",
+        "holdings.lines",
+        "holdings.lines[].wrapper",
+        "holdings.lines[].ticker",
+        "holdings.lines[].name",
+        "holdings.lines[].sedol",
+        "holdings.lines[].units",
+        "holdings.lines[].value",
+        "holdings.lines[].ocf",
+        "holdings.lines[].contribution",
+        "holdings.lines[].subClass",
+        "holdings.lines[].kind",
+        "holdings.lines[].asOf"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"hold\" step and the locked rail's \"What you hold\" station (§1.6). The \"Holdings and the move\" sub-plan is not written (square-one-audit.md §5 item 6)."
+    },
+    {
+      "id": "hold.move",
+      "area": "holdings",
+      "kind": "option",
+      "name": "Moving to the plan's mix",
+      "what": "The buy and sell list, the cash to hold, the schedule and the tick-offs as each move is placed.",
+      "whereV6": "Transition (TransitionView.js:90-163; TransitionPlanner.js)",
+      "who": "Approaching, locked",
+      "keys": [
+        "plan.transition"
+      ],
+      "status": "designed",
+      "doc": "research/v7/rail-screens-language.md §1.5",
+      "step": "s8-e",
+      "note": "E's \"move\" step, which says on its face that it is optional and what skipping it costs."
+    },
+    {
+      "id": "couple.link",
+      "area": "couples",
+      "kind": "option",
+      "name": "The partner's linked plan",
+      "what": "Links this plan to the partner's own plan, or creates theirs and switches to it.",
+      "whereV6": "Household → The two plans (index.html:3766-3830)",
+      "who": "Couples",
+      "keys": [
+        "plan.household",
+        "household.partnerScenarioId"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/household.js",
+        "src/services/PlanSeed.js"
+      ],
+      "step": "done",
+      "note": "Better: a couple's figures on the first screen; saving makes the two linked plans."
+    },
+    {
+      "id": "couple.joint",
+      "area": "couples",
+      "kind": "option",
+      "name": "Will the money last for both of us?",
+      "what": "Runs the two plans together.",
+      "whereV6": "Household → Run the household check (HouseholdService.js)",
+      "who": "Couples",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/shared/household.js",
+        "src/answers/shared/toEngine.js"
+      ],
+      "step": "done",
+      "note": "Every V7 answer is the household's; 6.20.0 adds couples who stop in different years."
+    },
+    {
+      "id": "couple.survivor",
+      "area": "couples",
+      "kind": "option",
+      "name": "Survivor check",
+      "what": "What happens to the money if one of you dies.",
+      "whereV6": "HouseholdService.js:163-237",
+      "who": "Couples",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Gets a station at the switch (square-one-audit.md §5 item 9); \"today's planner keeps them\" until then (answer-D.md §8)."
+    },
+    {
+      "id": "couple.care",
+      "area": "couples",
+      "kind": "option",
+      "name": "Care-cost check",
+      "what": "Whether the money stands a spell of care costs for one of you.",
+      "whereV6": "HouseholdService.js:163-237",
+      "who": "Couples",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Gets a station at the switch (square-one-audit.md §5 item 9)."
+    },
+    {
+      "id": "acct.plans",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Your plans: switch, new, duplicate, rename",
+      "what": "A menu of plans: open one, start a new one, duplicate one, rename it and describe it.",
+      "whereV6": "Header plan menu (index.html:2205-2221)",
+      "who": "Everyone",
+      "keys": [
+        "plan.isActive",
+        "plan.planDetails",
+        "planDetails.name",
+        "planDetails.description"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Plan menu in V7's shell (square-one-audit.md §5 item 9)."
+    },
+    {
+      "id": "acct.download",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Download a plan",
+      "what": "Saves a copy of the plan (JSON) on your own computer.",
+      "whereV6": "Plan menu → Download this plan (PlanExport.js)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Plan menu in V7's shell."
+    },
+    {
+      "id": "acct.from-answer",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Save a V7 answer as a new plan",
+      "what": "A V7 answer becomes a named plan in today's planner; a couple's becomes two linked plans; the answer it came from is kept with it.",
+      "whereV6": "NewPlanFromSeed.js; PlanSeed.js (6.18.0)",
+      "who": "Everyone",
+      "keys": [
+        "plan.fromAnswer",
+        "browser.pt_v7_plan_seed",
+        "browser.pt_v7_plan_receipt"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/keep/planSeed.js",
+        "src/v7/effects/planSeed.js",
+        "src/v7/components/KeepPanel.jsx",
+        "src/services/PlanSeed.js"
+      ],
+      "step": "done"
+    },
+    {
+      "id": "acct.whats-new",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "What's new",
+      "what": "A once-only pop-up for each minor release, and every release listed on a page.",
+      "whereV6": "Version chip; Strategies → What's new (src/releases.js)",
+      "who": "Everyone",
+      "keys": [
+        "profile.lastSeenVersion",
+        "browser.pt_lastSeenVersion"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "What's new in V7's shell (square-one-audit.md §5 item 9)."
+    },
+    {
+      "id": "acct.sign-in",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Sign in and out",
+      "what": "Email and password or Google, a verified email, and signing out after an hour idle across tabs.",
+      "whereV6": "AuthPanel.js; index.html:5640-5700",
+      "who": "Everyone",
+      "keys": [
+        "browser.pt_lastActivity"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Must exist in V7 at the switch (data protection; square-one-audit.md §4)."
+    },
+    {
+      "id": "acct.delete",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Delete the account, or reset",
+      "what": "Deletes the account and every plan, or deletes all data and starts again.",
+      "whereV6": "Header: Delete Account, Reset (index.html:2228-2231)",
+      "who": "Everyone",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Must exist in V7 at the switch (data protection)."
+    },
+    {
+      "id": "acct.reset-settings",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Reset a tool's settings to the defaults",
+      "what": "Puts the Stress tester's or the Decision tool's settings back to the defaults (refused on a locked plan).",
+      "whereV6": "Stress and Decision → Settings → Reset to Defaults",
+      "who": "Everyone",
+      "keys": [],
+      "status": "planned",
+      "step": "s8-e",
+      "gap": true
+    },
+    {
+      "id": "acct.tools",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Which tools a plan shows",
+      "what": "Turns tools on or off for a plan, with a short wizard when a tool is added.",
+      "whereV6": "Plan settings; add-a-tool wizard (index.html:5585-5620)",
+      "who": "Everyone",
+      "keys": [
+        "plan.enabledTools"
+      ],
+      "status": "retired",
+      "reason": "V7 has no tool tabs: the rail shows the steps the plan's stage needs, so there is nothing to switch on or off.",
+      "step": "s9-switch",
+      "owner": "to confirm"
+    },
+    {
+      "id": "acct.admin",
+      "area": "plan-account",
+      "kind": "option",
+      "name": "Administration",
+      "what": "The owner's panel: the fund catalogue, the typical amounts, the queue of unknown tickers.",
+      "whereV6": "Header gear (index.html:12840-12900)",
+      "who": "The owner",
+      "keys": [],
+      "status": "planned",
+      "step": "s9-switch",
+      "gap": true,
+      "note": "Owner only; could stay on the previous version's page."
+    },
+    {
+      "id": "mach.plan-fields",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The plan's own fields",
+      "what": "The plan's id, when it was made and last changed.",
+      "whereV6": "FirestoreService.js",
+      "who": "Nobody sees it",
+      "keys": [
+        "plan.id",
+        "plan.createdAt",
+        "plan.lastModified"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "mach.parts",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The parts a plan is kept in",
+      "what": "The Stress tester's, the Decision tool's and the Budget's parts of a plan.",
+      "whereV6": "ScenarioRepository.js",
+      "who": "Nobody sees it",
+      "keys": [
+        "plan.stressTool",
+        "plan.stressTool.settings",
+        "plan.decisionTool",
+        "plan.decisionTool.settings",
+        "plan.budgetTool.settings"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "mach.strategy-block",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The plan's strategy block",
+      "what": "Which strategy the plan runs, with its dials, when it was chosen and the engine version.",
+      "whereV6": "ScenarioRepository.defaultStrategyBlock / setActiveStrategy",
+      "who": "Nobody sees it directly",
+      "keys": [
+        "plan.strategy",
+        "strategy.id",
+        "strategy.params",
+        "strategy.lockedAt",
+        "strategy.engineVersion"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "mach.configured",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "Settings have been saved once",
+      "what": "Marks a plan whose settings have been through Settings at least once, so the tool opens straight away.",
+      "whereV6": "saveStressSettingsUI / saveDecisionSettingsUI",
+      "who": "Nobody sees it",
+      "keys": [
+        "stress.configured",
+        "decision.configured"
+      ],
+      "status": "planned",
+      "step": "s9-switch",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+    },
+    {
+      "id": "mach.declining",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The old \"Declining with age\" spending profile",
+      "what": "A spending profile that drifted down with age, applied on top of the income steps.",
+      "whereV6": "Settings → Spending (until 6.2.1); IncomeSchedule.smileToSteps",
+      "who": "Nobody sees it now",
+      "keys": [
+        "stress.spendingProfile",
+        "decision.spendingProfile",
+        "stress.spendingMigratedFrom",
+        "decision.spendingMigratedFrom"
+      ],
+      "status": "retired",
+      "reason": "Retired in 6.2.1: \"Declining with age\" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset \"Slowly less\" (src/answers/shared/shape.js slowlyLess, today's smileToSteps).",
+      "step": "v6-retired"
+    },
+    {
+      "id": "mach.old-names",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "Old names of the three pot floors",
+      "what": "The names the shares, bonds and cash floors had before they were renamed.",
+      "whereV6": "storage/migrations.js toV1; StressRepository.js:223-230",
+      "who": "Nobody sees it",
+      "keys": [
+        "stress.pacwMin",
+        "stress.cgtMin",
+        "stress.csh2Target"
+      ],
+      "status": "retired",
+      "reason": "Renamed before 6.15.0 to equityMin, bondMin and cashTarget; kept beside the new names on old plans and read only to fill a missing new one.",
+      "step": "v6-retired"
+    },
+    {
+      "id": "mach.dotted",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "Copies under dotted names",
+      "what": "Copies of a plan's parts that an old storage fault wrote under names with dots in them.",
+      "whereV6": "tests/fixtures/plans/08-dotted-keys.json; normalizeScenario",
+      "who": "Nobody sees it",
+      "keys": [
+        "plan.dotted:decisionTool.settings",
+        "plan.dotted:decisionTool.history",
+        "plan.dotted:decisionTool.taxYears",
+        "plan.dotted:stressTool.settings",
+        "plan.dotted:planDetails.name"
+      ],
+      "status": "retired",
+      "reason": "Never a setting: copies a storage fault wrote, folded back into the plan when it is opened.",
+      "step": "v6-retired"
+    },
+    {
+      "id": "mach.risk-mode",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "riskMode on the example plan",
+      "what": "A field written only by the guest example plan.",
+      "whereV6": "Guest example plan (index.html:5048)",
+      "who": "Nobody sees it",
+      "keys": [
+        "stress.riskMode"
+      ],
+      "status": "retired",
+      "reason": "Read by nothing in today's app; the example plan's allocMode carries the same thing.",
+      "step": "v6-retired"
+    },
+    {
+      "id": "mach.start-date",
+      "area": "machinery",
+      "kind": "machinery",
+      "name": "The Decision tool's old start date",
+      "what": "An early Decision field for when the plan started, always empty.",
+      "whereV6": "DecisionRepository.getDefaultDecisionDB",
+      "who": "Nobody sees it",
+      "keys": [
+        "decision.startDate"
+      ],
+      "status": "retired",
+      "reason": "Read by nothing; the plan's start is its first tax year (design/settings-model.md lists it as a dead field).",
+      "step": "v6-retired"
+    }
+  ]
+}

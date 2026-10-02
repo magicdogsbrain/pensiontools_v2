@@ -43,8 +43,23 @@ export const A = Object.freeze({
   KEEP_SAVE:       'keep/save',        // { q }                              checks the answer and the name; saving: true → the effect
   KEEP_SENT:       'keep/sent',        // { q, name, createdAt }             the effect wrote the seed (then opens ../#new-plan)
   KEEP_FAILED:     'keep/failed',      // { q, problem: 'storage' | 'notReady' }
-  KEEP_BACK:       'keep/back'         // { q, outcome, name? } on coming back: 'waiting' | 'taken' (made, as `name`) |
+  KEEP_BACK:       'keep/back',        // { q, outcome, name? } on coming back: 'waiting' | 'taken' (made, as `name`) |
                                        // 'declined' ("Not now") | 'notMade' | 'gone' (too old, deleted) | 'unknown' (no word)
+
+  // ---- the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's "Add more detail" ----------
+  // The first amount's own "then" and fall are fields of the input list (draft/set); the later steps are one value, a list,
+  // edited here. Box marks and errors know a step's box as "<base>.steps.<i>.<field>" (state/shapeDraft.js).
+  SHAPE_STEP:      'shape/step',       // { q, i, field, value }             one box of later step i, as typed (then: level | falls | glides)
+  SHAPE_TOUCH:     'shape/touch',      // { q, i, field }                    step i's box has been left
+  SHAPE_ADD:       'shape/add',        // { q }                              a step 10 years after the last (or the start), 10% less
+  SHAPE_REMOVE:    'shape/remove',     // { q, i }
+  SHAPE_SORT:      'shape/sort',       // { q }                              the steps in order of age (once the keyboard leaves them)
+  SHAPE_SUGGEST:   'shape/suggest',    // { q }                              go-go, go-slow and no-go: 15% less from 75, 30% from 85
+                                       //                                     (of the younger of you), never below the budget's essentials
+  SHAPE_PRESET:    'shape/preset',     // { q, id: 'level' | 'slowly' }      "The same every year" / "Slowly less" (today's old setting)
+  SHAPE_UNDO:      'shape/undo',       // { q }                              the shape before the last suggestion or preset
+  SHAPE_RESCALE:   'shape/rescale'     // { q, from? }                       A, B: the later steps × new figure ÷ the figure they were set
+                                       //                                     against (or `from`: "Try a change" moving the start by £100)
 });
 
 /**
@@ -62,5 +77,8 @@ export const A_NEXT = Object.freeze({
 
 export const ACTION_TYPES = Object.freeze(Object.values(A));
 
-/** The ids `ui/toggle` accepts: C's, and A's and B's blocks (split, partTime, pots, levers, chart). */
-export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart']);
+/**
+ * The ids `ui/toggle` accepts: C's, and A's and B's blocks (split, partTime, pots, levers, chart); the spending shape's
+ * block and its table of every year (shape, shapeYears).
+ */
+export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears']);

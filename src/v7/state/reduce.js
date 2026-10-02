@@ -12,8 +12,11 @@
  */
 import { A, OPENABLE } from './actions.js';
 import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep } from './initial.js';
-import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, SPEND_PATHS, numbersPaths, skipNoteDue, spendView, keepView } from './select.js';
-import { carryFor } from './carry.js';
+import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
+import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
+  touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
+import { suggest as suggestShape, preset as presetShape, rescale as rescaleAmount } from './shapeModel.js';
+import { carryFor, carriedSteps, atStartOf } from './carry.js';
 import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
@@ -43,7 +46,7 @@ function noteShown(before, after) {
   if (!skipNoteDue(before, r.q)) return after;
   return withDraft(after, r.q, { ...after.draft[r.q], skipNoted: true });
 }
-const hasField = (q, path) => !!SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.path === path);
+const hasField = (q, path) => !!SCHEMAS[q] && (SCHEMAS[q].fields.some((f) => f.path === path) || (hasShape(q) && path !== stepsPath(q) && shapePaths(q).includes(path)));
 const closeRail = (ui) => (ui.railOpen ? { ...ui, railOpen: false } : ui);
 /** A's and B's answers carry detail and extending; C's do not, and keep C's shape. */
 const hasDetail = (answer) => !!answer && 'extending' in answer;
@@ -91,10 +94,209 @@ function carried(state, from, to) {
     } else continue;
     mark(toPath);
   }
+  // The spending shape goes with the household's figures (spending-shape.md 4.5; carry.js carriedSteps): measured against
+  // the figure the target's box now holds (C → A, B: C's amount to take, else its careful start, which the box then takes
+  // too), or the figure the source uses (A, B → C).
+  let shapeMoved = false;
+  if (hasShape(from) && hasShape(to)) {
+    let base = null;
+    if (SHAPE_UNIT[from] === 'share' && SHAPE_UNIT[to] !== 'share' && stepsOf(from, source.values).length) {
+      base = typedNumber(values['spend.amount']);
+      const careful = readable && answer.result && answer.result.monthly ? answer.result.monthly.careful : null;
+      if (base === null && typeof careful === 'number' && careful > 0) {
+        base = Math.floor(careful);
+        values['spend.amount'] = asTyped(base);
+        values['spend.kind'] = 'amount';
+        mark('spend.amount');
+      }
+    } else if (SHAPE_UNIT[from] !== 'share' && SHAPE_UNIT[to] === 'share') {
+      base = shapeContext(state, from).first;
+    }
+    // a stop past one of the source's steps (A's "show me ages"): the target starts there, so it starts on the step in force
+    // — the shape from it, and (B) the figure the source tested there in the box, to the pound, down (carry.js atStartOf)
+    let src = source.values;
+    if (SHAPE_UNIT[from] === 'perMonth') {
+      const at = atStartOf(from, source.values, shapeContext(state, from).first, shapeContext(withDraft(state, to, { ...target, values }), to).startAge);
+      if (at) {
+        src = at.values;
+        if (SHAPE_UNIT[to] === 'share') base = at.first;
+        else {
+          values['spend.amount'] = asTyped(Math.floor(at.first + 1e-9));
+          values['spend.kind'] = 'amount';
+          mark('spend.amount');
+        }
+      }
+    }
+    const shape = carriedSteps(from, to, src, base);
+    if (shape) {
+      for (const [p, v] of Object.entries(shape)) {
+        if (v === undefined) { if (p in values) { delete values[p]; shapeMoved = true; } continue; }
+        values[p] = v;
+        shapeMoved = true;
+        if (p === stepsPath(to)) v.forEach((x, i) => stepFields(to).forEach((f) => mark(stepBox(to, i, f))));
+        else mark(p);
+      }
+    }
+  }
   const draft = { ...target, values, touched };
+  // the target's own Undo, its line and the figure its steps were set against belong to the shape it had: gone with it
+  if (shapeMoved) { delete draft.shapeUndo; delete draft.shapeNote; delete draft.shapeBase; }
   if ('carriedFrom' in target) draft.carriedFrom = from;
   const route = opens ? tidyRoute({ screen: 'step', q: opens.q, step: opens.step, planId: null, focus: opens.focus }) : state.route;
   return { ...withDraft(state, to, draft), route, ui: closeRail(state.ui) };
+}
+
+// ---- the spending shape (research/v7/spending-shape.md 4.3; state/shapeDraft.js) ---------------------------------------
+
+/** The block opened when a box of the shape has a problem (on "Show", or a step added after the question was asked). */
+function withShapeOpen(state, q, errors) {
+  if (!hasShape(q) || state.ui.open.includes('shape') || !Object.keys(errors || {}).some((p) => isShapePath(q, p))) return state;
+  return { ...state, ui: { ...state.ui, open: [...state.ui.open, 'shape'] } };
+}
+
+/**
+ * draft[q] with its values' later steps replaced (an empty list is no steps) and `more` over the draft. `byHand`: an edit
+ * by hand — the line about the last suggestion and its Undo go, and the steps are now set against the figure in use.
+ */
+function withSteps(state, q, steps, more = {}, byHand = true) {
+  const draft = state.draft[q];
+  const values = { ...draft.values };
+  if (steps.length) values[stepsPath(q)] = steps;
+  else delete values[stepsPath(q)];
+  const next = { ...draft, values, ...more };
+  if (byHand) {
+    delete next.shapeNote;
+    delete next.shapeUndo;
+    const ctx = shapeContext(state, q);
+    if (ctx && typeof ctx.first === 'number') next.shapeBase = ctx.first;
+  }
+  if ('carriedFrom' in draft && draft.carriedFrom !== null) next.carriedFrom = null;
+  return withDraft(state, q, next);
+}
+
+/** A figure for a box: whole numbers with their commas ("2,130"), pence only where the figure has them. */
+function boxText(n, unit) {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '';
+  if (unit === 'share') return String(Math.round(n * 100) / 100);
+  const whole = Math.round(n * 100) % 100 === 0;
+  const [int, dec] = (whole ? Math.round(n).toFixed(0) : n.toFixed(2)).split('.');
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (dec ? `.${dec}` : '');
+}
+
+/** The model's shape (numbers) as the boxes of a draft (text). */
+function shapeAsTyped(q, model) {
+  const unit = SHAPE_UNIT[q];
+  const out = {};
+  const start = model.start || {};
+  if (start.then === 'falls' || start.then === 'glides') out[thenPath(q)] = start.then;
+  if (start.then === 'falls') out[fallsPath(q)] = String(start.fallsPct);
+  const steps = (model.steps || []).map((x) => ({ fromAge: String(x.fromAge), [unit]: boxText(x[unit], unit), then: THENS.includes(x.then) ? x.then : 'level',
+    fallsPct: x.then === 'falls' && typeof x.fallsPct === 'number' ? String(x.fallsPct) : '' }));
+  if (steps.length) out[stepsPath(q)] = steps;
+  return out;
+}
+
+/** A suggestion or preset: the shape replaced, what it was kept for Undo, and the line saying what was done. */
+function replacedShape(state, q, model, note) {
+  const d = state.draft[q];
+  const undo = { values: shapeValuesOf(q, d.values) };
+  const values = withShapeValues(q, d.values, shapeAsTyped(q, model));
+  const ctx = shapeContext(state, q);
+  const touched = d.touched.filter((t) => !isShapePath(q, t) || shapePaths(q).includes(t));
+  const next = { ...d, values, touched, shapeUndo: undo, shapeNote: note };
+  if (ctx && typeof ctx.first === 'number') next.shapeBase = ctx.first;
+  else delete next.shapeBase;
+  if ('carriedFrom' in d && d.carriedFrom !== null) next.carriedFrom = null;
+  return withDraft(state, q, next);
+}
+
+function shapeReduce(state, action, refuse) {
+  const q = action.q;
+  const draft = q ? state.draft[q] : null;
+  if (!draft || !hasShape(q)) return refuse(`${action.type}: question "${q}" has no spending shape`);
+  const steps = stepsOf(q, draft.values);
+  const unit = SHAPE_UNIT[q];
+  const okIndex = (i) => Number.isInteger(i) && i >= 0 && i < steps.length;
+  switch (action.type) {
+    case A.SHAPE_STEP: {
+      const { i, field, value } = action;
+      if (!stepFields(q).includes(field) || typeof value !== 'string') return refuse(`shape/step: no box ${field} in "${q}"`);
+      if (field === 'then' && !THENS.includes(value)) return refuse(`shape/step: "${value}" is not a then`);
+      if (!okIndex(i)) return state;                                       // a step already gone (a second press): nothing to do
+      if (steps[i][field] === value) return state;
+      const next = steps.map((x, k) => (k === i ? { ...x, [field]: value } : x));
+      return withSteps(state, q, next);
+    }
+    case A.SHAPE_TOUCH: {
+      const { i, field } = action;
+      if (!stepFields(q).includes(field)) return refuse(`shape/touch: no box ${field} in "${q}"`);
+      if (!okIndex(i)) return state;
+      const box = stepBox(q, i, field);
+      if (draft.touched.includes(box)) return state;
+      return withDraft(state, q, { ...draft, touched: [...draft.touched, box] });
+    }
+    case A.SHAPE_ADD: {
+      const ctx = shapeContext(state, q);
+      const step = newStep(q, steps, { startAge: ctx.startAge !== null ? ctx.startAge : ctx.youAge, endAge: ctx.endAge, first: ctx.first });
+      const i = steps.length;
+      // after "Show", the new step's boxes are "revealed": no sentence under them until they are left or it is pressed again
+      const revealed = draft.asked ? [...(draft.revealed || []), ...stepFields(q).map((f) => stepBox(q, i, f))] : draft.revealed;
+      return withSteps(state, q, [...steps, step], { revealed });
+    }
+    case A.SHAPE_REMOVE: {
+      const { i } = action;
+      if (!okIndex(i)) return state;                                       // already removed (a second press)
+      const next = steps.filter((x, k) => k !== i);
+      return withSteps(state, q, next, { touched: touchedWithout(q, draft.touched, i), revealed: touchedWithout(q, draft.revealed || [], i) });
+    }
+    case A.SHAPE_SORT: {
+      const sorted = sortedSteps(q, steps);
+      if (!sorted) return state;
+      return withSteps(state, q, sorted.steps, { touched: touchedReordered(q, draft.touched, sorted.order), revealed: touchedReordered(q, draft.revealed || [], sorted.order) }, false);
+    }
+    case A.SHAPE_SUGGEST: {
+      const ctx = shapeContext(state, q);
+      const start = ctx.startAge !== null ? ctx.startAge : ctx.youAge;
+      if (unit === 'perMonth' && !(ctx.first > 0)) return withDraft(state, q, { ...draft, shapeNote: { kind: 'suggestNeedsFirst' } });
+      if (start === null) return state;
+      const s = suggestShape(unit, ctx.first, start, ctx.olderBy, ctx.essentials);
+      const note = { kind: 'suggest', values: { age75: s.age75, age85: s.age85, ...(s.floor ? { floor: s.floor } : {}), couple: ctx.couple && ctx.olderBy > 0 } };
+      return replacedShape(state, q, s, note);
+    }
+    case A.SHAPE_PRESET: {
+      if (!['level', 'slowly'].includes(action.id)) return refuse(`shape/preset: no preset "${action.id}"`);
+      const ctx = shapeContext(state, q);
+      const start = ctx.startAge !== null ? ctx.startAge : ctx.youAge;
+      if (action.id === 'slowly' && unit === 'perMonth' && !(ctx.first > 0)) return withDraft(state, q, { ...draft, shapeNote: { kind: 'suggestNeedsFirst' } });
+      // "Slowly less" counts its years from when the money starts, as today's smileToSteps does from the plan's start: with
+      // "show me ages" there is no start yet, so it asks for one (review, 2 Oct 2026 — from today's age it was not today's
+      // "declining with age" for any stop shown, and every stop past its fifth year started on a figure never typed)
+      if (action.id === 'slowly' && ctx.startAge === null) return withDraft(state, q, { ...draft, shapeNote: { kind: 'slowlyNeedsStop' } });
+      const model = presetShape(unit, action.id, ctx.first, start);
+      if (!model) return state;
+      return replacedShape(state, q, model, { kind: action.id });
+    }
+    case A.SHAPE_UNDO: {
+      if (!draft.shapeUndo) return state;
+      const values = withShapeValues(q, draft.values, draft.shapeUndo.values);
+      const { shapeUndo, ...rest } = draft;
+      return withDraft(state, q, { ...rest, values, shapeNote: { kind: 'undone' } });
+    }
+    case A.SHAPE_RESCALE: {
+      // from the figure the steps were set against — or, from "Try a change", the figure the press moved from (`from`)
+      const ctx = shapeContext(state, q);
+      const from = typeof action.from === 'number' && action.from > 0 ? action.from : draft.shapeBase;
+      if (unit !== 'perMonth' || typeof from !== 'number' || !(ctx.first > 0) || from === ctx.first) return state;
+      const next = steps.map((x) => {
+        const n = typedNumber(x.perMonth);
+        const moved = rescaleAmount(n, from, ctx.first);
+        return moved === null ? x : { ...x, perMonth: boxText(moved, unit) };
+      });
+      return withSteps(state, q, next, { shapeBase: ctx.first, shapeNote: { kind: 'rescaled' } }, false);
+    }
+    default:
+      return refuse(`unknown action "${action.type}"`);
+  }
 }
 
 export function reduce(state, action) {
@@ -114,6 +316,12 @@ export function reduce(state, action) {
     // ---- what was typed -------------------------------------------------------------------------------------
     case A.DRAFT_SET: {
       if (!draft || !hasField(q, action.path)) return refuse(`draft/set: no field "${q}.${action.path}"`);
+      // the later steps of the spending shape are one list, edited step by step (shape/*): a text can only empty it
+      if (hasShape(q) && action.path === stepsPath(q)) {
+        if (!(action.path in draft.values)) return state;
+        const { [action.path]: gone, ...rest } = draft.values;
+        return withDraft(state, q, { ...draft, values: rest, ...('carriedFrom' in draft && draft.carriedFrom !== null ? { carriedFrom: null } : {}) });
+      }
       const values = { ...draft.values };
       // Text is held exactly as typed; yes/no as a boolean. Anything else empties the box.
       if (typeof action.value === 'string' || typeof action.value === 'boolean') values[action.path] = action.value;
@@ -143,13 +351,15 @@ export function reduce(state, action) {
       const parsed = parsedDraft(state, q);
       // A's and B's spend step asks for the spending only: with that right, the answer step opens — and asks there for
       // anything else still missing (rule R3), never a bounce back to the numbers step.
-      const fromSpend = SPEND_STEP[q] && onStepOf(state.route, q, 'spend') && !SPEND_PATHS.some((p) => parsed.errors[p]);
+      const fromSpend = SPEND_STEP[q] && onStepOf(state.route, q, 'spend') && !Object.keys(parsed.errors).some(isSpendPath);
       const canAnswer = (parsed.ok || fromSpend) && BUILT[q] && BUILT[q].steps.some((s) => s.id === 'answer');
       if (!canAnswer) {
         // A figure that needs another look inside "Add more detail" (C's "make it last to age" before the start age, the
         // reviewers' dead end): the block opens, so the box and its sentence are on screen for the form to focus.
-        const inMore = SCHEMAS[q] && SCHEMAS[q].fields.some((f) => f.group === 'more' && parsed.errors[f.path]);
-        return inMore && !next.ui.open.includes('more') ? { ...next, ui: { ...next.ui, open: [...next.ui.open, 'more'] } } : next;
+        const inMore = SCHEMAS[q] && (SCHEMAS[q].fields.some((f) => f.group === 'more' && parsed.errors[f.path]) || (q === 'c' && Object.keys(parsed.errors).some((p) => isShapePath(q, p))));
+        const opened = inMore && !next.ui.open.includes('more') ? { ...next, ui: { ...next.ui, open: [...next.ui.open, 'more'] } } : next;
+        // a step of the spending shape that needs another look: its block opens, so the box and its sentence are on screen
+        return withShapeOpen(opened, q, parsed.errors);
       }
       return noteShown(state, { ...next, route: tidyRoute({ screen: 'step', q, step: 'answer', planId: null, focus: null }), ui: closeRail(next.ui) });
     }
@@ -343,6 +553,17 @@ export function reduce(state, action) {
       if (k.back === action.outcome && (!made || made === k.sent.name)) return state;
       return withKeep(state, q, { ...k, back: action.outcome, ...(made ? { sent: { ...k.sent, name: made } } : {}) });
     }
+
+    case A.SHAPE_STEP:
+    case A.SHAPE_TOUCH:
+    case A.SHAPE_ADD:
+    case A.SHAPE_REMOVE:
+    case A.SHAPE_SORT:
+    case A.SHAPE_SUGGEST:
+    case A.SHAPE_PRESET:
+    case A.SHAPE_UNDO:
+    case A.SHAPE_RESCALE:
+      return shapeReduce(state, action, refuse);
 
     case A.STATE_REPLACE: {
       // The test hook only: draws any named state. Refused in the published build.

@@ -7,6 +7,8 @@
  *   moreFields()                 savingsIn, savingRisk, risk, charge, endAge
  *   chargeField()                the one fund and platform charge, percent a year (6.19.0): in C's "more" too
  *   SPEND_FIELDS                 spend.kind / amount / level — the same paths in A and B
+ *   shapeFields(base)            what is spent changing with age: <base>.then / fallsPct / steps (A, B 'spend'; C 'shape')
+ *   shapeOfInputs(inputs, base, first)   the household model's shape from checked inputs, or null (spending-shape.md 3)
  *   agesToShow(inputs, env, detail, earliestYes)   the stop ages an A result carries (conflict 31): the asked person's
  *   gridToShow(inputs, env)      the rows and columns of B's choices step (conflict 37): the asked person's stop ages
  *   alreadyStopped(inputs, today)   the retired view's rule (conflict 44): also when a couple have both stopped
@@ -29,6 +31,7 @@
 import { RULES, SAVING } from './rules.js';
 import { bornFromAge, wholeStatePensionAge, firstOpenAge, APART, PAY_COVERS } from './household.js';
 import { CHARGES_LIMITS } from '../../services/Charges.js';
+import { SHAPE_LIMITS, THEN, isTrivial } from './shape.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -231,6 +234,44 @@ export const SPEND_FIELDS = [
     boundaries: [1, 500, 1_200, 1_867, 2_608, 3_592, 4_917, 10_000, 50_000] },                                                    // PLSA 2024 ÷ 12
   { path: 'spend.level', type: 'choice', options: ['minimum', 'moderate', 'comfortable'], required: true, when: { 'spend.kind': 'level' }, group: 'spend' }
 ];
+
+/**
+ * What is spent changing with age (research/v7/spending-shape.md 3.2): A and B under `spend` (later steps in £ a month),
+ * C under `shape` (later steps as a share of what it works out you start on, 100 = the same). `<base>.then` — what the
+ * first amount does: 'level', 'falls' (by `<base>.fallsPct`% a year) or 'glides' (moves evenly to the first step) — and
+ * `<base>.steps`, the later steps (validate.js type `steps`: each { fromAge, perMonth | share, then, fallsPct? }).
+ * NONE has a default: not answered is the same every year, and the checked inputs of a form that never answers them are
+ * today's, key for key (the rule C's payIn.has set). Group 'shape': drawn by the spending shape's own block, never as
+ * ordinary boxes. The rule 'shape-steps' (validate.js) checks the steps against the stop, the start and the end.
+ */
+export function shapeFields(base) {
+  const unit = base === 'shape' ? 'share' : 'perMonth';
+  const falls = SHAPE_LIMITS.fallsPct;
+  return [
+    { path: `${base}.then`, type: 'choice', options: [...THEN], group: 'shape' },
+    { path: `${base}.fallsPct`, type: 'percent', min: falls.min, max: falls.max, step: falls.step, required: true, when: { [`${base}.then`]: 'falls' }, group: 'shape',
+      boundaries: [falls.min, 1, 2.5, falls.max] },
+    { path: `${base}.steps`, type: 'steps', unit, group: 'shape' }
+  ];
+}
+
+/**
+ * The household model's shape (household.shape; shared/shape.js) from checked inputs of A, B (`base` 'spend', the first
+ * amount `first` £ a month) or C (`base` 'shape', shares): null when nothing of it was answered or it never changes
+ * (shape.js isTrivial) — a household with no shape is today's, key for key.
+ */
+export function shapeOfInputs(inputs, base, first) {
+  const s = inputs && inputs[base];
+  if (!s || typeof s !== 'object') return null;
+  const unit = base === 'shape' ? 'share' : 'perMonth';
+  const start = s.then === 'falls' ? { then: 'falls', fallsPct: s.fallsPct } : s.then === 'glides' ? { then: 'glides' } : { then: 'level' };
+  const steps = (Array.isArray(s.steps) ? s.steps : []).map((x) => ({
+    fromAge: x.fromAge, [unit]: x[unit], then: x.then || 'level', ...(x.then === 'falls' ? { fallsPct: x.fallsPct } : {})
+  }));
+  const shape = { unit, ...(unit === 'perMonth' ? { first } : {}), start, steps };
+  if (unit === 'perMonth' && !(first > 0)) return null;
+  return isTrivial(shape, unit === 'share' ? 1 : first) ? null : shape;
+}
 
 /** The PLSA level as £ a month, to the pound. */
 export function spendLevelAMonth(household, level) {

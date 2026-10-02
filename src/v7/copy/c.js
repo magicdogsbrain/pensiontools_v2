@@ -324,6 +324,30 @@ export const C = {
         'end-after-start-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
       }
     },
+    // the spending shape (research/v7/spending-shape.md 3.2, 7.3): drawn by its own block (components/StepsField.jsx, with
+    // the words of copy/shape.js); these are the input list's own words, for the checks and the hand-overs
+    'shape.then': {
+      label: 'What happens from the start',
+      options: { level: 'stays the same', falls: 'falls by a percentage a year', glides: 'moves evenly to the next step' },
+      errors: { glidesLast: 'There is no later step to move towards. Add one, or choose another.' }
+    },
+    'shape.fallsPct': {
+      label: 'Falls by, a year',
+      errors: {
+        required: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        notANumber: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        tooLow: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.',
+        tooHigh: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.'
+      }
+    },
+    'shape.steps': {
+      label: 'Later ages, as a share of what you start on',
+      errors: {
+        'shape-steps': 'Check the ages of your steps: each later than the one before, after the start and before the end of the plan.',
+        tooMany: 'That is more steps than years in the plan. Remove one.',
+        notAnOption: 'Check your steps by age.'
+      }
+    },
     take: {
       label: 'Take, a month',
       help: 'Any amount you have in mind.',

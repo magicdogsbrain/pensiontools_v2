@@ -29,7 +29,8 @@ export const LAYOUT_A = {
   you: ['you.age', 'you.pot', 'you.payIn.kind', 'savings', 'stop.kind', 'partTime.has', 'you.statePension.kind', 'you.finalSalary.has'],
   partner: ['partner.age', 'partner.pot', 'partner.stop.kind', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
   more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge'],
-  spend: ['spend.kind'],
+  // the spending shape's fields: drawn by its own block under the figure (StepsField), never by LayoutField
+  spend: ['spend.kind', 'spend.then', 'spend.steps'],
   /** Drawn first under more detail, each only while it applies (someone who has stopped). */
   taxFree: ['you.taxFreeTaken', 'partner.taxFreeTaken']
 };
@@ -64,6 +65,9 @@ function drawnInside(form, layout, path) {
  * there, not again here.
  */
 export function LayoutField({ form, path, dispatch, layout }) {
+  // the spending shape's fields are its block's own (StepsField, on the spend step), never ordinary boxes
+  const field = form.byPath.get(path);
+  if (field && field.group === 'shape') return null;
   if (path.endsWith('.payIn.kind')) return <PayInSplit who={path.split('.')[0]} form={form} dispatch={dispatch} />;
   if (path === 'spend.kind') return <FieldGroup form={form} path={path} dispatch={dispatch} extra={<LevelLine form={form} />} />;
   if (drawnInside(form, layout, path)) return null;

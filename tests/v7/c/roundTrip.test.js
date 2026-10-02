@@ -12,7 +12,7 @@ import { checkScreen } from '../render/checkScreen.js';
 import { applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { money } from '../../../src/answers/shared/format.js';
 
-const FIELDS = SCHEMA_C.fields.filter((f) => f.group !== 'try');
+const FIELDS = SCHEMA_C.fields.filter((f) => f.group !== 'try' && f.group !== 'shape');   // the spending shape's block has its own round trip (screens/spendShape.test.js)
 
 /** Money as people type it: plain, with commas, with a pound sign, with a stray space. */
 const typedMoney = (f) => fc.tuple(fc.integer({ min: f.min, max: f.max }), fc.constantFrom('plain', 'commas', 'pound', 'space'))

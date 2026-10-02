@@ -22,6 +22,15 @@
  * own (stopsOf, from the answer's mapping at the stop it shows), never re-derived here. When everyone stops in the same
  * year the seed is version 1's, key for key, plus those keys (each person's stop and years then the household's, and
  * `untilBothStop` null): tests/v7/keep/planSeed.test.js holds it to the frozen 6.19.0 builder.
+ *
+ * Seed version 3 (research/v7/spending-shape.md 8): an answer whose spending changes with age (the answer carries `byYear`).
+ * Every version 2 field, plus `spend.shape` — the household's shape as it was tested ({ unit: 'perMonth', start: { then,
+ * fallsPct? }, steps: [{ fromAge, perMonth, then, fallsPct? }] }: A and B as typed; C at its careful start, to the penny),
+ * kept for the record, the name and the description — and each person's `takeHome` rows EXACT TO THE YEAR: one row for
+ * each year their after-tax amount changes (one person: what is spent that year, the shape itself; a couple: each one's
+ * part that year, from the answer's own year-by-year breakdown), neighbours merged only when equal to the penny. Today's
+ * planner turns them into income steps that give the same after-tax amount every year (src/services/PlanSeed.js). A flat
+ * spend still writes version 2, byte for byte.
  */
 import { toHousehold as toHouseholdC } from '../c/toHousehold.js';
 import { toHousehold as toHouseholdA } from '../a/toHousehold.js';
@@ -34,6 +43,8 @@ import { checkSheet, sheetForSeed } from './budgetSheet.js';
 export const SEED_KEY = 'pt_v7_plan_seed';
 /** 2 from 6.20.0: each person at their own stop. Today's planner still reads 1 (src/services/PlanSeed.js). */
 export const SEED_VERSION = 2;
+/** 3: what is spent changes with age — written only then (spending-shape.md 8.1); a flat spend is version 2. */
+export const SEED_VERSION_SHAPE = 3;
 /** A seed older than this is discarded unread (Contract C.2). */
 export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /**
@@ -122,6 +133,65 @@ function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
 }
 
 /**
+ * A person's part of the spending, exact to the year (seed version 3, spending-shape.md 8.1): one row for each year it
+ * changes, from the answer's year-by-year rows (`byYear`). One person: what is spent that year — the shape itself, as
+ * today's single row is the amount itself (today's planner applies its own floor for the incomes you get anyway). A couple:
+ * each one's own take-home that year; the years one of them is still working are not theirs to pay (their pay covers it).
+ * Neighbours are merged only when equal to the penny.
+ */
+function takeHomeByYear(who, couple, ageAtStop, byYear) {
+  const rows = [];
+  for (const y of byYear) {
+    const from = y.ages && Number.isFinite(y.ages[who]) ? y.ages[who] : null;
+    if (from === null) continue;
+    let perMonth;
+    if (!couple) perMonth = round2(y.spend);
+    else {
+      const mine = (y.byPerson || []).find((b) => b.who === who);
+      if (!mine || mine.working === true || !isNum(mine.takeHome)) continue;
+      perMonth = round2(mine.takeHome);
+    }
+    const last = rows[rows.length - 1];
+    if (last && last.perMonth === perMonth) continue;
+    rows.push({ fromAge: from, perMonth });
+  }
+  return rows.length ? rows : [{ fromAge: ageAtStop, perMonth: 0 }];
+}
+
+/** A "then" as the seed keeps it: { then, fallsPct? }. */
+const thenOf = (x) => (x.then === 'falls' ? { then: 'falls', fallsPct: x.fallsPct } : { then: x.then === 'glides' ? 'glides' : 'level' });
+
+/**
+ * The household's shape as it was tested (seed version 3): A and B as typed (£ a month); C's shares at its careful start,
+ * to the penny. Ages are yours. A stop at or after a step (A's "show me ages", review 2 Oct 2026) starts on that step:
+ * the step in force is then the start — its fall or move counts on from the stop exactly as from its own age (a fall
+ * compounds, a straight line stays straight) — and only the steps after the start follow, so the plan's summary, name
+ * and description start from the figure tested (spendStartOf), in age order.
+ */
+function seedShapeOf(source, result) {
+  const inputs = result.inputs;
+  const base = source === 'c' ? inputs.shape : inputs.spend;
+  if (!base || typeof base !== 'object') return null;
+  const careful = source === 'c' ? result.monthly.careful : null;
+  const all = (Array.isArray(base.steps) ? base.steps : []).map((x) => ({
+    fromAge: x.fromAge, perMonth: source === 'c' ? round2(careful * x.share / 100) : x.perMonth, ...thenOf(x)
+  }));
+  const startAge = inForceAt(result);
+  if (startAge === null) return { unit: 'perMonth', start: thenOf(base), steps: all };
+  const inForce = all.filter((x) => x.fromAge <= startAge).pop();
+  return { unit: 'perMonth', start: thenOf(inForce), steps: all.filter((x) => x.fromAge > startAge) };
+}
+
+/** Your age at the start when a step is in force from it (the answer's shapeNotes.inForce and its first year); else null. */
+function inForceAt(result) {
+  const y = Array.isArray(result.byYear) && result.byYear.length ? result.byYear[0] : null;
+  return result.shapeNotes && result.shapeNotes.inForce && y && isNum(y.age) ? y.age : null;
+}
+
+/** The figure a month the seed holds: the answer's (A, B: as typed) — or, a step in force from the start, the one tested. */
+const spendStartOf = (result) => (inForceAt(result) !== null ? result.byYear[0].spend : result.spend.perMonth);
+
+/**
  * What goes in each month, as the question was given it; null when nothing goes in (or, from now, nothing more will).
  * `savingsInShare`: a couple apart, this person's part of what goes into savings each month as the household has it (those
  * still working today share it); otherwise (null) an even split, as before.
@@ -151,7 +221,7 @@ function payInOf(source, result, who, later, count, savingsInShare = null) {
  * them are with whoever stops first and what goes into savings each month with those still working (the household's own
  * split, household.js 'savings-first'), and nothing goes in for whoever has stopped.
  */
-function personOf({ source, result, today, who, index, stop, years, household, couple, perMonth, apart }) {
+function personOf({ source, result, today, who, index, stop, years, household, couple, perMonth, apart, byYear = null }) {
   const inputs = result.inputs;
   const raw = inputs[who];
   const count = couple ? 2 : 1;
@@ -191,7 +261,8 @@ function personOf({ source, result, today, who, index, stop, years, household, c
     // "Already had the tax-free part?" (asked of someone who has stopped): yes → everything taken out is taxed
     taxFreeQuarter: raw.taxFreeTaken !== true,
     partTime: pt ? { yearly: pt.yearly, years: pt.years } : null,
-    takeHome: takeHomeOf(who, couple, ageAtStop, perMonth, phasesOf(source, result)),
+    // exact to the year when what is spent changes with age (seed version 3); else one row per stretch, as before
+    takeHome: byYear ? takeHomeByYear(who, couple, ageAtStop, byYear) : takeHomeOf(who, couple, ageAtStop, perMonth, phasesOf(source, result)),
     stop: { kind: stop.kind, yearsFromNow: stop.yearsFromNow },
     years
   };
@@ -265,18 +336,22 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
   const spend = source === 'c'
     ? { perMonth: result.monthly.careful, from: 'careful', level: null, budgetSkipped: null }
     : {
-      perMonth: result.spend.perMonth,
+      perMonth: spendStartOf(result),
       from: result.spend.kind === 'level' ? 'level' : spendHow === 'lines' ? 'budget' : 'typed',
       level: result.spend.kind === 'level' ? result.spend.level : null,
       budgetSkipped: spendHow !== 'lines'
     };
 
-  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, stop: ownStop(w), years: ownYears(w), household, couple, perMonth: spend.perMonth, apart }));
+  // what is spent changing with age (spending-shape.md 8.1): the answer's year-by-year rows, and the shape as it was tested
+  const byYear = Array.isArray(result.byYear) && result.byYear.length ? result.byYear : null;
+  const shape = byYear ? seedShapeOf(source, result) : null;
+  if (shape) spend.shape = shape;
+  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, stop: ownStop(w), years: ownYears(w), household, couple, perMonth: spend.perMonth, apart, byYear: shape ? byYear : null }));
   const sheet = budget ? sheetForSeed(checkSheet(budget, { household: couple ? 'couple' : 'single', level: spend.level || 'moderate', today })) : null;
   const basis = result.basis;
 
   return {
-    seedVersion: SEED_VERSION,
+    seedVersion: shape ? SEED_VERSION_SHAPE : SEED_VERSION,
     createdAt,
     today,
     source,

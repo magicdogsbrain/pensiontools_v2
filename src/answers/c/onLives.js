@@ -26,10 +26,11 @@
  * "when you start", or said another way — is C as before: from now (answer.js) or here, byte for byte.
  */
 import { SAVING, firstAccessAge, RULES } from '../shared/rules.js';
-import { payInTotalOf, earliestPensionStart, stopYearsOf } from '../shared/schemaParts.js';
+import { payInTotalOf, earliestPensionStart, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
-import { potsShareOf } from '../shared/toEngine.js';
+import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
+import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
 import { savingRows } from '../shared/saving.js';
 import { apartOf } from '../shared/apart.js';
@@ -154,6 +155,25 @@ export function saverInputsOf(inputs, stopAge = inputs.start.kind === 'age' ? in
   };
 }
 
+/**
+ * A's household for C's inputs at a start age (saverInputsOf, A's mapping), with C's own spending shape on it — later steps
+ * as shares of what you start on (spending-shape.md 3): A's mapping reads a shape in pounds, which C does not have.
+ */
+function saverHouseholdOf(inputs, startAge, env) {
+  const { household } = toSaverHousehold(saverInputsOf(inputs, startAge), env, startAge);
+  const shape = shapeOfInputs(inputs, 'shape');
+  if (shape) household.shape = shape;
+  return household;
+}
+
+/** What the pots pay in the years [from, to) at a year-0 amount of H, year by year (a shape: spending-shape.md 5.2). */
+function needIn(plan, H, from, to) {
+  const need = potsNeedByYear(plan, H);
+  let sum = 0;
+  for (let y = Math.max(0, from); y < Math.min(to, plan.years); y++) sum += need[y];
+  return sum;
+}
+
 /** A's phase read as C's: C's fields only (no part-time at C), the shown take-home the same sum. */
 function asCPhase(p) {
   const out = {
@@ -232,9 +252,11 @@ function closedYearsOf(inputs, sp, band, env) {
   const gap = [...new Set(closed.map((l) => l.years))].sort((a, b) => a - b).find((y) => openAt(y) >= total / 2);
   const until = startAge + gap;
   const reachable = mid.reduce((t, q, j) => t + q.isa + (closed.some((l) => l.who === plan.people[j].who) ? 0 : q.pension), 0);
-  const later = bandOn(inputs, toSaverHousehold(saverInputsOf(inputs, until), env, until).household, until, env);
+  const later = bandOn(inputs, saverHouseholdOf(inputs, until, env), until, env);
   const H = later.band.monthly.careful * 12;
-  const need = plan.periods.filter((per) => per.from < gap).reduce((t, per) => t + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
+  // (a shape: year by year — spending-shape.md 5.2)
+  const need = plan.shape && plan.shape.r ? needIn(plan, H, 0, gap)
+    : plan.periods.filter((per) => per.from < gap).reduce((t, per) => t + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
   if (reachable >= need) return null;
   const opening = closed.filter((l) => l.years === gap).map((l) => l.who);
   const partner = plan.people.find((p) => p.who === 'partner');
@@ -280,9 +302,9 @@ function closedYearsApart(inputs, sp, band, env) {
   if (!(until > sp.stopAge && inputs.endAge > younger + last && last - first < RULES.maxYears)) return null;
   // what can pay from the check: the savings of those who have stopped by then, and every pension open then
   const reachable = plan.people.reduce((t, p, j) => (p.join > cy ? t : t + mid[j].isa + (closed.some((x) => x.j === j) ? 0 : mid[j].pension)), 0);
-  const later = bandOn(inputs, toSaverHousehold(saverInputsOf(inputs, until), env, until).household, until, env);
+  const later = bandOn(inputs, saverHouseholdOf(inputs, until, env), until, env);
   const H = later.band.monthly.careful * 12;
-  const need = plan.periods.filter((per) => per.to > cy && per.from < gap)
+  const need = plan.shape && plan.shape.r ? needIn(plan, H, cy, gap) : plan.periods.filter((per) => per.to > cy && per.from < gap)
     .reduce((t, per) => t + Math.max(0, H * potsShareOf(per) - per.netTotal) * (Math.min(per.to, gap) - Math.max(per.from, cy)), 0);
   if (reachable >= need) return null;
   return {
@@ -301,7 +323,7 @@ export function answerOnLives(checked, env, ctx) {
   const inputs = checked.inputs;
   const n = env.futures;
   const startAge = livesStartAge(inputs, env.today);
-  const { household } = toSaverHousehold(saverInputsOf(inputs, startAge), env, startAge);
+  const household = saverHouseholdOf(inputs, startAge, env);
   const hp = validateHousehold(household, env.today);
   if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
 
@@ -351,12 +373,16 @@ export function answerOnLives(checked, env, ctx) {
   // the age from which the pay of the one still working covers all of what is spent
   const cover = plan.apart && plan.apart.coversGap && band.monthly.careful > 0 ? coverAt(sp, runner, band.monthly.careful * 12) : null;
   const apart = apartOf(plan, inputs, own, cover);
+  // what you could spend changing with age (spending-shape.md 6.2): the three amounts at the start with the later steps in
+  // proportion, and each year's figures at the careful amount
+  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: band.monthly, H0: band.monthly.careful * 12,
+    yearly: phasesAt(sp, band.monthly.careful * 12, null, { yearly: true }).map(asCPhase) }) : null;
   const result = {
     status: 'ok', inputs,
-    monthly: { ...band.monthly }, yearly: { ...band.yearly }, lasted: { ...band.lastedAt }, runOutAge: { ...band.runOutAgeAt }, whose: plan.whose,
+    monthly: { ...band.monthly }, yearly: { ...band.yearly }, ...(shaped || {}), lasted: { ...band.lastedAt }, runOutAge: { ...band.runOutAgeAt }, whose: plan.whose,
     ...(apart ? { apart } : {}),
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
-    phases: phasesAt(sp, band.monthly.careful * 12).map(asCPhase),
+    phases: shaped ? markShapeMoves(phasesAt(sp, band.monthly.careful * 12).map(asCPhase), shaped.byYear) : phasesAt(sp, band.monthly.careful * 12).map(asCPhase),
     take,
     payIn: { total: payInTotal, byPerson: saving.map((s) => ({ who: s.who, total: s.payIn.total })) },
     potAtStart,

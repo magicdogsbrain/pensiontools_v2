@@ -14,7 +14,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields } from '../shared/schemaParts.js';
 
 const STOP_KIND = stopKindField('b');
 
@@ -31,6 +31,8 @@ export const SCHEMA_B = {
       boundaries: [18, 50, 52, 53, 54, 55, 56, 57, 58, 60, 62, 65, 66, 67, 68, 75], ...(STOP_KIND ? { whenNot: { 'stop.kind': 'already' } } : {}) },
 
     ...SPEND_FIELDS,
+    // What is spent changing with age (research/v7/spending-shape.md 3.2): no default — not answered, the same every year
+    ...shapeFields('spend'),
 
     // The partner block: every field also has  when: { household: 'couple' }. Their stop is their own, not answered being
     // "when you do" (conflict 17's same year); the pay line once it is their own; their pay-in, hidden once they have stopped.
@@ -52,6 +54,7 @@ export const SCHEMA_B = {
     { id: 'stop-after-now', fields: ['stop.age', 'you.age'] },   // stop.age > you.age
     { id: 'end-after-stop', fields: ['endAge'] },                // endAge > the younger person's age at the stop
     { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] },  // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
+    { id: 'shape-steps', fields: ['spend.steps'] },               // the steps' ages: after the stop, before the end, rising (each under its box)
     // couples-different-years.md 3.3 (end-after-stop above looks at the LATER stop, under RULES.maxYears after the first)
     ...(APART.askAboutPartner ? [{ id: 'partner-stop-after-now', fields: ['partner.stop.age', 'partner.age'] }] : []),   // you have stopped: they stop after today
     { id: 'partner-stop-not-before-now', fields: ['partner.stop.age', 'partner.age'] },  // partner.stop.age ≥ partner.age

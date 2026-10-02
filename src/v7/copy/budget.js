@@ -79,6 +79,10 @@ export const BUDGET = {
   answer: {
     noBudget: 'Spending: {amount} a month, your own figure (no budget yet).',
     noBudgetLevel: 'Spending: {amount} a month, the {level} level (no budget yet).',
+    /** With steps by age (spending-shape.md 7.2): the figure is where the spending begins, then the steps. */
+    noBudgetShaped: 'Spending: {amount} a month, then as you set it by age: your own figures (no budget yet).',
+    noBudgetLevelShaped: 'Spending: {amount} a month, the {level} level, then as you set it by age (no budget yet).',
+    fromBudgetShaped: 'Spending: {amount} a month, your budget’s total, then as you set it by age.',
     workItOut: 'Work it out line by line',
     fromBudget: 'Spending: {amount} a month, your budget’s total.',
     ownWithBudget: 'Spending: {amount} a month, your own figure.',

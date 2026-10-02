@@ -10,10 +10,12 @@
  *   payKeepsPensions(plan)               → whether a State Pension or final-salary pension starts while its holder still works
  *   apartAssumed(result, opts)           → the lines under what was assumed: 'stop-apart', 'stop-apart-cover',
  *                                          'partner-already', 'you-already', 'savings-first', 'pay-keeps-pensions'
- *   apartWarnings(result, opts)          → 'apart-cover-used' (a bad case leans on the pay) and 'drawdown-2028'
+ *   apartWarnings(result, opts)          → 'apart-cover-used' (a bad case leans on the pay) and 'drawdown-2028' (the 2028
+ *                                          note: for everyone it applies to, owner 2 Oct 2026 — not only a couple apart)
  *
- * A household whose people stop in the same year has no `plan.apart`: nothing here reaches it, so every answer of a
- * same-year couple or a single person is today's, word for word (tests/v7/shared/answers.sameYear.test.js).
+ * A household whose people stop in the same year has no `plan.apart`: nothing here reaches it but the 2028 note, so every
+ * other word of a same-year couple's or a single person's answer is today's (tests/v7/shared/answers.sameYear.test.js and
+ * answers.flat.test.js allow that one note and nothing else).
  *
  * The words keep the language guide's rules (rail-screens-language.md 3): ages, never a wait; "stops", never "stop work at
  * 60" (C is read by people who have stopped); "a bad case (the worst 1 in 10)"; "could", never "will".
@@ -141,17 +143,20 @@ export function apartAssumed(result, { workerPaysIn, keepsPensions, youAlready =
 }
 
 /**
- * The warnings for a couple who stop in different years, in order — each { id, severity, parts }. Nothing for a
- * household whose people stop in the same year.
- * @param {object} result   the answer so far: `apart` filled in
+ * The warnings for a couple who stop in different years, in order — each { id, severity, parts } — and the 2028 note for
+ * EVERYONE it applies to. 'apart-cover-used' only for a couple apart. 'drawdown-2028' for whoever before2028 names — one
+ * person, a couple stopping together or apart, "I've already stopped" (the owner, 2 Oct 2026: "the 2028 drawdown warning
+ * for everyone it applies to"; until then it showed only for a couple apart, couples-different-years.md 12). The words
+ * are the same whoever it is: "Move into drawdown what you will need before 57 by 5 April 2028: after that, nothing new can
+ * be taken until you are 57." Nothing else here reaches a household whose people stop in the same year.
+ * @param {object} result   the answer so far: `apart` filled in when the two stop in different years
  * @param {{ drawdown: string[] }} opts   before2028's people
  */
 export function apartWarnings(result, { drawdown = [] } = {}) {
   const ap = result.apart;
-  if (!ap) return [];
   const out = [];
   const warn = (id, severity, parts) => { out.push({ id, severity, parts: parts.flat(Infinity).filter((p) => p !== '' && p != null) }); };
-  if (ap.coverUsed) {
+  if (ap && ap.coverUsed) {
     const first = ap.coverUsed.who;
     const part = ap.payCovers === 0.5 ? 'half' : 'part';
     warn('apart-cover-used', 'important', first === 'you'

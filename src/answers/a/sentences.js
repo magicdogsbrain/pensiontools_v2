@@ -32,6 +32,7 @@ import { shareCutPercent } from '../shared/futures.js';
 import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
+import { atTheStart, couldAtTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -127,6 +128,8 @@ export function factsOf(result, ctx = {}) {
     firstOpen, runOutYears: shown.runOutAge - (younger + checkYears), checkFromAge: younger + checkYears,
     couple, S, stopNow: S === 0, people, used, saving,
     asked: result.askedAbout === 'partner' ? 'partner' : 'you', apart: ap, apartCtx: ctx.apart || null,
+    // who moves money into drawdown before 6 April 2028 at 55 or 56 — everyone it applies to (owner, 2 Oct 2026)
+    drawdown2028: ctx.drawdown2028 || (ctx.apart && ctx.apart.drawdown) || [],
     anySavings: (inputs.savings || 0) > 0 || (saving && (inputs.savingsIn || 0) > 0) || savingsAtStop > 0,
     anyPension: people.some((x) => x.pension),
     money: shown.potAtStop.good > 0,
@@ -164,7 +167,8 @@ function paysLines(result, facts) {
   const phases = result.shown.phases || [];
   const at = (i) => `shown.phases.${i}`;
   const from = (i) => (facts.couple ? ['From when you are ', A(`${at(i)}.ages.you.from`)] : ['From ', A(`${at(i)}.ages.you.from`)]);
-  const span = (i) => (i + 1 < phases.length ? [...from(i), ' until ', A(`${at(i)}.ages.you.to`)] : from(i));
+  // (a phase the spending shape moves inside shows its first year's figures: "(in its first year)", spending-shape.md 7.2)
+  const span = (i) => [...(i + 1 < phases.length ? [...from(i), ' until ', A(`${at(i)}.ages.you.to`)] : from(i)), phases[i].shapeMoves ? ' (in its first year)' : ''];
   phases.forEach((ph, i) => {
     if (ph.fromPay !== undefined && facts.apart) {
       // couples apart, before the second stop: what the money of the one who has stopped pays, and what the pay of the one
@@ -243,6 +247,10 @@ export function sentencesFor(result, facts) {
   // couples apart, and the answer about your partner ("I've already stopped"): the person each row is about
   const ap = facts.apart;
   const p = facts.asked === 'partner';
+  // what the shown stop tested (spending-shape.md 6.3): the spending as typed — or, a stop at or after a step, the step in
+  // force from it (the shape's own first figure), never the first amount typed, which no year of that stop has
+  const inForce = Boolean(result.shapeNotes && result.shapeNotes.inForce);
+  const SP = inForce ? 'spendShape.0.perMonth' : 'spend.perMonth';
 
   // the headline: the verdict at the named age, or the earliest age that lasted
   if (h.kind === 'earliest') out.head = p ? S('a.head.earliest.partner', ['Your partner could stop at ', A('earliest.yes'), ' on these figures']) : S('a.head.earliest', ['You could stop at ', A('earliest.yes'), ' on these figures']);
@@ -261,10 +269,12 @@ export function sentencesFor(result, facts) {
     // what is spent runs from the first stop: now, or when the first of you stops
     const firstFrom = !ap || ap.stops[ap.first].already ? ['from now']
       : ap.first === 'you' ? ['from when you stop at ', A('apart.stops.you.age')] : ['from when your partner stops at ', A('apart.stops.partner.age')];
-    out.sub = S('a.sub.apart', ['spending ', M('spend.perMonth'), ' a month after tax between you, ', ...firstFrom, ' ', ...untilEnd, ', going up each year with prices']);
+    out.sub = S('a.sub.apart', ['spending ', M(SP), ' a month after tax between you, ', ...firstFrom, ' ', ...untilEnd, ', going up each year with prices']);
   } else {
-    out.sub = S('a.sub', ['spending ', M('spend.perMonth'), ' a month after tax', c ? ' between you, from when you are ' : ' from ', A('shown.age'), ' ', ...untilEnd, ', going up each year with prices']);
+    out.sub = S('a.sub', ['spending ', M(SP), ' a month after tax', c ? ' between you, from when you are ' : ' from ', A('shown.age'), ' ', ...untilEnd, ', going up each year with prices']);
   }
+  // what is spent changing with age (spending-shape.md 6.3): the spend as typed is the start; the steps follow
+  if (shapeMoves(result.spendShape)) out.shape = atTheStart('a.shape', result.spendShape, 'spendShape');
 
   // the sentence: the count out of 10 never contradicts the verdict (lasted in 85–90% reads "just under 9")
   const justUnder = isJustUnder(shown);
@@ -272,25 +282,29 @@ export function sentencesFor(result, facts) {
   if (h.kind === 'earliest') {
     const k = result.ages.findIndex((r) => r.age === shown.age);
     const before = k > 0 ? [' At ', A(`ages.${k - 1}.age`), ' it lasted ', ...lastedWords(result.ages[k - 1].lasted), '.'] : [];
+    // (past a step, the stops before tested other figures: what is spent "as you set it", whose start the sub line names)
+    // (the parts of a flat answer are as they were, item for item: the pinned fixtures hold them)
     out.line = p
-      ? S('a.line.earliest', ['The earliest age your partner could stop at, with ', M('spend.perMonth'), ' a month lasting to ', A('basis.endAge'), ' in ', F('9'), ' futures out of ', F('10'), ', is ', A('earliest.yes'), '.', ...before])
-      : S('a.line.earliest', ['The earliest age at which ', M('spend.perMonth'), ' a month lasted to ', A('basis.endAge'), ' in ', F('9'), ' futures out of ', F('10'), ' is ', A('earliest.yes'), '.', ...before]);
+      ? S('a.line.earliest', [...(inForce ? ['The earliest age your partner could stop at, with what you spend, as you set it, lasting to ']
+        : ['The earliest age your partner could stop at, with ', M('spend.perMonth'), ' a month lasting to ']), A('basis.endAge'), ' in ', F('9'), ' futures out of ', F('10'), ', is ', A('earliest.yes'), '.', ...before])
+      : S('a.line.earliest', [...(inForce ? ['The earliest age at which what you spend, as you set it, lasted to ']
+        : ['The earliest age at which ', M('spend.perMonth'), ' a month lasted to ']), A('basis.endAge'), ' in ', F('9'), ' futures out of ', F('10'), ' is ', A('earliest.yes'), '.', ...before]);
   } else if (h.kind === 'noneWorked') {
-    out.line = S('a.line', [...(p ? ['With your partner stopping at ', A('shown.age')] : ['At ', A('shown.age')]), ', ', M('spend.perMonth'), ' a month lasted to ', A('basis.endAge'), ' ', ...count, '.']);
+    out.line = S('a.line', [...(p ? ['With your partner stopping at ', A('shown.age')] : ['At ', A('shown.age')]), ', ', M(SP), ' a month lasted to ', A('basis.endAge'), ' ', ...count, '.']);
   } else if (p) {
     // "With you already stopped, your partner stopping at 56, and spending £3,200 a month between you, the money lasted …"
-    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['With you already stopped, your partner stopping at ', A('shown.age'), ', and spending ', M('spend.perMonth'),
+    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['With you already stopped, your partner stopping at ', A('shown.age'), ', and spending ', M(SP),
       ' a month between you, the money lasted until the younger of you was ', A('basis.endAge'), ' ', ...count, '.']);
   } else if (ap) {
     // "Stopping at 60, with your partner stopping at 62, and spending £3,200 a month between you, the money lasted until
     // the younger of you was 95 in 9 futures out of 10." (couples-different-years.md 2.4)
     const theirs = ap.stops.partner.already ? ['already stopped'] : ['stopping at ', A('apart.stops.partner.age')];
-    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping at ', A('shown.age'), ', with your partner ', ...theirs, ', and spending ', M('spend.perMonth'),
+    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping at ', A('shown.age'), ', with your partner ', ...theirs, ', and spending ', M(SP),
       ' a month between you, the money lasted until the younger of you was ', A('basis.endAge'), ' ', ...count, '.']);
   } else if (c) {
-    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping when you are ', A('shown.age'), ' and spending ', M('spend.perMonth'), ' a month between you, your money lasted until the younger of you is ', A('basis.endAge'), ' ', ...count, '.']);
+    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping when you are ', A('shown.age'), ' and spending ', M(SP), ' a month between you, your money lasted until the younger of you is ', A('basis.endAge'), ' ', ...count, '.']);
   } else {
-    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping at ', A('shown.age'), ' and spending ', M('spend.perMonth'), ' a month, your money lasted to ', A('basis.endAge'), ' ', ...count, '.']);
+    out.line = S(justUnder ? 'a.line.justUnder' : 'a.line', ['Stopping at ', A('shown.age'), ' and spending ', M(SP), ' a month, your money lasted to ', A('basis.endAge'), ' ', ...count, '.']);
   }
 
   // the bad case
@@ -304,7 +318,8 @@ export function sentencesFor(result, facts) {
       out.bad = S('a.bad.earliest', [...BAD_CAP, ', stopping at ', A('earliest.yes'), ' still lasts to ', A('basis.endAge'), '.', ...prev]);
     }
   } else if (yes) {
-    out.bad = S('a.bad.yes', [...BAD_CAP, ' it still lasts to ', A('basis.endAge'), '. You could spend up to about ', M('shown.monthly.careful'), ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']);
+    out.bad = S('a.bad.yes', [...BAD_CAP, ' it still lasts to ', A('basis.endAge'), '. You could spend up to about ', M('shown.monthly.careful'),
+      shapeMoves(result.shapeAt && result.shapeAt.careful) ? ' a month at the start, the later steps in proportion, and it would still last in ' : ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']);
   } else {
     const nearest = result.earliest.yes;
     const tail = nearest === null ? []
@@ -346,6 +361,10 @@ export function sentencesFor(result, facts) {
       ...BAD_CAP, ' it is ', P('shown.potAtStop.careful'), ', and in ', ...GOOD, ' ', P('shown.potAtStop.good'), '.']);
   }
 
+  // the careful amount at the start, with the later steps moved in proportion (spending-shape.md 6.1, 6.3)
+  if (result.status === 'ok' && shown.monthly.careful > 0 && shapeMoves(result.shapeAt && result.shapeAt.careful)) {
+    out.couldShape = couldAtTheStart('a.couldSpend.shape', result.shapeAt.careful, 'shapeAt.careful');
+  }
   out.pays = paysLines(result, facts);
   if (result.savingsNeeded) {
     if (ap) {
@@ -359,7 +378,11 @@ export function sentencesFor(result, facts) {
   }
 
   // the ages side by side, one sentence a row (for screen readers)
-  out.chart = result.ages.map((r, k) => S('a.chart.row', [p ? 'Your partner stopping at ' : 'At ', A(`ages.${k}.age`), ', you could spend about ', M(`ages.${k}.monthly.careful`), ' a month; ', M('spend.perMonth'), ' a month lasted ', ...countWords(r), '.']));
+  // (with a spending shape each figure is the start: the later steps go with it, spending-shape.md 6.3)
+  const atStart = shapeMoves(result.spendShape);
+  // (a row at or after a step tested that step's figure: spendAtStart, spending-shape.md 6.3)
+  out.chart = result.ages.map((r, k) => S('a.chart.row', [p ? 'Your partner stopping at ' : 'At ', A(`ages.${k}.age`), ', you could spend about ', M(`ages.${k}.monthly.careful`),
+    atStart ? ' a month at the start; ' : ' a month; ', M(r.spendAtStart !== undefined ? `ages.${k}.spendAtStart` : 'spend.perMonth'), atStart ? ' a month at the start, as you set it, lasted ' : ' a month lasted ', ...countWords(r), '.']));
 
   // under the every-age table: the ages before a pension can be touched, and the ages left out (the asked person's)
   if (result.basis.detail === 'all' && result.status === 'ok') {
@@ -383,7 +406,8 @@ export function sentencesFor(result, facts) {
   if (o && result.status === 'ok') {
     const working = p ? 'Your partner working until ' : 'Working until ';
     out.oneMore = !o.sameish && o.extraMonthly > 0
-      ? S('a.oneMore', [working, A('shown.oneMoreYear.toAge'), ' instead of ', A('shown.age'), ' buys about ', M('shown.oneMoreYear.extraMonthly'), ' a month more for life.'])
+      ? S('a.oneMore', [working, A('shown.oneMoreYear.toAge'), ' instead of ', A('shown.age'), ' buys about ', M('shown.oneMoreYear.extraMonthly'),
+        shapeMoves(result.spendShape) ? ' a month more at the start, with the later steps in proportion.' : ' a month more for life.'])
       : !o.sameish && o.extraMonthly < 0
         // the next age's futures start in other markets: the careful amount can fall (tests/v7/a/exceptions.md, M-A4)
         ? S('a.oneMore.less', [working, A('shown.oneMoreYear.toAge'), ' instead of ', A('shown.age'), ' does not add to what you could spend on these futures: it is about ',
@@ -395,9 +419,13 @@ export function sentencesFor(result, facts) {
         ? [', and ', ...BAD, ' from running out at ', A('shown.oneMoreYear.runOutFrom'), ' to lasting to ', A('basis.endAge')]
         : o.runOutTo !== o.runOutFrom ? [', and ', ...BAD, ' from running out at ', A('shown.oneMoreYear.runOutFrom'), ' to running out at ', A('shown.oneMoreYear.runOutTo')] : [])
       : [];
-    if (moved) out.oneMoreMoves = S('a.oneMore.moves', ['It moves ', M('spend.perMonth'), ' a month from lasting ', ...plainWords(o.lastedFrom), ' to ', ...countParts(o.lastedTo), ...bad, '.']);
+    // (the next stop past a step starts on another figure than this one: then it is what you spend, as you set it)
+    const next = result.ages.find((x) => x.age === o.toAge);
+    const tested = (row) => (row && row.spendAtStart !== undefined ? row.spendAtStart : result.spend.perMonth);
+    const same = tested(next) === tested(shown);
+    if (moved) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It moves ', M(SP), ' a month from lasting '] : ['It moves what you spend, as you set it, from lasting ']), ...plainWords(o.lastedFrom), ' to ', ...countParts(o.lastedTo), ...bad, '.']);
     // the count stays, the bad case moves: "It keeps £2,200 a month lasting in 7 futures out of 10, and moves a bad case …"
-    else if (bad.length) out.oneMoreMoves = S('a.oneMore.moves', ['It keeps ', M('spend.perMonth'), ' a month lasting ', ...plainWords(o.lastedTo), ', and moves ', ...bad.slice(1), '.']);
+    else if (bad.length) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It keeps ', M(SP), ' a month lasting '] : ['It keeps what you spend, as you set it, lasting ']), ...plainWords(o.lastedTo), ', and moves ', ...bad.slice(1), '.']);
   }
 
   // part-time work
@@ -405,7 +433,7 @@ export function sentencesFor(result, facts) {
   if (pt) {
     out.partTime = S('a.partTime', ['That is with ', M('partTime.yearly'), ' a year from part-time work for ', F(pt.years), yearsWord(pt.years), ' after you stop (from ', A('partTime.fromAge'), ' until ', A('partTime.toAge'), '), taxed as income. Without it, the money lasted ', ...lastedWords(pt.lastedWithout), '.']);
     if (outOfTen(pt.oneMore.lasted).words !== outOfTen(pt.lastedWith).words) {
-      out.partTimeOneMore = S('a.partTime.oneMore', ['One more year of part-time work, until ', F(pt.toAge + 1), ', moves ', M('spend.perMonth'), ' a month from lasting ', ...plainWords(pt.lastedWith), ' to ', ...countParts(pt.oneMore.lasted), '.']);
+      out.partTimeOneMore = S('a.partTime.oneMore', ['One more year of part-time work, until ', F(pt.toAge + 1), ', moves ', M(SP), ' a month from lasting ', ...plainWords(pt.lastedWith), ' to ', ...countParts(pt.oneMore.lasted), '.']);
     }
   }
 
@@ -604,9 +632,9 @@ export function warningsFor(result, facts) {
       warn('savings-run-short', 'important', [...BAD_CAP, ' your savings run out ', ...ageOfRunOut(facts), ', before ', first.who === 'you' ? 'you can touch your pension at ' : 'your partner can touch their pension at ', A(`pensionOpens.${first.who}`), '.']);
     }
   }
-  // couples apart: a bad case that leans on the pay of the one still working, and money moved into drawdown before
-  // 6 April 2028 (shared/apart.js, the same words in C, A and B)
-  for (const w of apartWarnings(result, { drawdown: (facts.apartCtx && facts.apartCtx.drawdown) || [] })) warn(w.id, w.severity, w.parts);
+  // couples apart: a bad case that leans on the pay of the one still working; and, for everyone it applies to, money moved
+  // into drawdown before 6 April 2028 (shared/apart.js, the same words in C, A and B)
+  for (const w of apartWarnings(result, { drawdown: facts.drawdown2028 || [] })) warn(w.id, w.severity, w.parts);
   if (facts.partnerRetired) {
     warn('partner-stops-with-you', 'note', ["Your partner is past their State Pension age. These figures leave their money alone until you stop at ", A('shown.age'),
       ', and do not count anything they take before then.']);
@@ -626,9 +654,11 @@ export function warningsFor(result, facts) {
   // no row lasted: every later age to 75 was tried as well (an age named that does not last is followed up to 75 until
   // one does, and that one is a row), so it is every age, not only those shown
   if (result.status === 'ok' && !result.ages.some((r) => r.verdict === 'yes')) {
+    // (a stop at or after a step starts on the step: then the rows tested more than one figure — what you spend, as you set it)
+    const at = result.ages.some((r) => r.spendAtStart !== undefined) ? ['what you spend, as you set it.'] : [M('spend.perMonth'), ' a month.'];   // (flat: the parts as they were)
     warn('not-in-range', 'important', result.stop.kind === 'ages'
-      ? ['No age up to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', M('spend.perMonth'), ' a month.']
-      : ['No age from ', A('ages.0.age'), ' to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', M('spend.perMonth'), ' a month.']);
+      ? ['No age up to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', ...at]
+      : ['No age from ', A('ages.0.age'), ' to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', ...at]);
   }
   if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead from the stop, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
   if (result.status === 'ok' && (shown.phases || []).some((ph) => ph.byPerson.some((b) => b.higherRate))) {
@@ -651,8 +681,11 @@ export function warningsFor(result, facts) {
       '% a year before rising prices, whatever markets do, so for this answer that one figure matters most. Invested ISAs could do better or worse.']);
   }
   // (couples apart: what the pay of the one still working covers is not the pensions')
-  if (result.status === 'ok' && (shown.phases || []).length && shown.phases.every((ph) => ph.fromPots <= 0.005 && ph.takeHome - (ph.fromPay || 0) >= result.spend.perMonth - 0.005)) {
-    warn('target-below-pensions', 'note', [afterPhrase(facts).charAt(0).toUpperCase() + afterPhrase(facts).slice(1), ' alone cover ', M('spend.perMonth'), ' a month from ', A('shown.age'), '; the pot is not needed for that.']);
+  // (a stop at or after a step: the spending it tested is the step's — spendAtStart, and spendShape's first figure in words)
+  const inForce = Boolean(result.shapeNotes && result.shapeNotes.inForce);
+  const shownSpend = shown.spendAtStart !== undefined ? shown.spendAtStart : result.spend.perMonth;
+  if (result.status === 'ok' && (shown.phases || []).length && shown.phases.every((ph) => ph.fromPots <= 0.005 && ph.takeHome - (ph.fromPay || 0) >= shownSpend - 0.005)) {
+    warn('target-below-pensions', 'note', [afterPhrase(facts).charAt(0).toUpperCase() + afterPhrase(facts).slice(1), ' alone cover ', M(inForce ? 'spendShape.0.perMonth' : 'spend.perMonth'), ' a month from ', A('shown.age'), '; the pot is not needed for that.']);
   }
   if (result.saving.some((x) => x.potAtStop.pension.good > RULES.largePot)) {
     warn('large-pot', 'note', ['The tax-free part of a pension is limited to ', F(money(RULES.taxFreeLimit)), ' in total. That limit is included.']);
@@ -660,6 +693,8 @@ export function warningsFor(result, facts) {
   if (facts.money && shown.potAtStop.middling < RULES.smallPot) {
     warn('small-pot', 'note', ['With a pot this size, many people take it as one or a few lump sums instead of a monthly income.']);
   }
+  // what is spent changing with age (spending-shape.md 7.4): a stop after a step; the incomes you get anyway pay more
+  for (const w of shapeWarnings(result, { couple: facts.couple, stopKey: 'shown.age' })) warn(w.id, w.severity, w.parts);
   return out;
 }
 
@@ -670,4 +705,9 @@ export function textsFor(result, ctx) {
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);
   return finishTexts(result);
+}
+
+/** Whether a shape's list says more than its start: a later step, or a start that falls or moves evenly. */
+function shapeMoves(list) {
+  return Array.isArray(list) && (list.length > 1 || Boolean(list[0] && list[0].then !== 'level'));
 }

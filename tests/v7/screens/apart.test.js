@@ -649,7 +649,11 @@ describe('7 — today, byte for byte', () => {
    * from now, which gains the tax-free question: taken out, those screens are today's byte for byte too.
    */
   const TODAY = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/screens/today.hashes.json'), 'utf8'));
-  const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]'];
+  // …and the spending shape's block under C's more detail (research/v7/spending-shape.md 4.1), closed: taken out, today's
+  // …and the 2028 drawdown note, now for everyone it applies to (owner, 2 Oct 2026): a/answer-A2-couple (you 55, stopping at 56)
+  // gains it; taken out, today's (tests/v7/shared/answers.flat.test.js holds who it is said to)
+  const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
+    '[data-warning-id="drawdown-2028"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);
 
   it.each(Object.keys(TODAY))('%s', (name) => {

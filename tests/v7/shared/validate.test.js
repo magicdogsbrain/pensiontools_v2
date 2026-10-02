@@ -106,7 +106,7 @@ describe('every boundary passes; one below and one above fail', () => {
       expect(LIMIT_ERRORS, `${f.path} = ${b} gave ${e}`).not.toContain(e);
     }
     const below = parseDraft(SCHEMA_C, { ...draftWhere(f), [f.path]: String(f.min - 1) }, TEST_ENV).errors[f.path];
-    expect(f.min === 0 ? 'notANumber' : 'tooLow').toBe(below);   // "-1" is not a number a person can mean
+    expect(f.min - 1 < 0 ? 'notANumber' : 'tooLow').toBe(below);   // "-1" (or "-0.75") is not a number a person can mean
     expect(parseDraft(SCHEMA_C, { ...draftWhere(f), [f.path]: String(f.max + 1) }, TEST_ENV).errors[f.path]).toBe('tooHigh');
     // the same limits for real values (what answerC is given)
     const typed = (v) => checkInputs(SCHEMA_C, nest({ ...draftTyped(f), [f.path]: v }), TEST_ENV).errors[f.path];

@@ -52,8 +52,54 @@
  *   second stop (warning 'apart-cover-used'); null when that never happens before the second stop.
  *   Assumed ids added: 'stop-apart' (the pay line, field untilBothStop), 'stop-apart-cover' (Half or All, coversGap),
  *   'partner-already', 'savings-first' (savings with whoever stops first), 'pay-keeps-pensions' (a State Pension or
- *   final-salary pension paid to the one still working goes with their pay). Warning ids added: 'apart-cover-used'.
+ *   final-salary pension paid to the one still working goes with their pay). Warning ids added: 'apart-cover-used'; and
+ *   'drawdown-2028' (severity 'note') — for EVERYONE (owner, 2 Oct 2026) it applies to (anyone 55 or 56 on 6 April 2028 who first
+ *   draws before then: one person, a couple together or apart), not only a couple apart (shared/apart.js before2028).
  *   'stop-together' / 'both-stop-together' only when the partner question was not answered.
+ *
+ * ---- What is spent changing with age (research/v7/spending-shape.md; src/answers/shared/shape.js) ---------------------
+ *
+ * @typedef {object} ShapeInputs              A and B under `spend`, C under `shape` (schemaParts.js shapeFields). NONE has a
+ *   default: not answered is the same every year, and the checked inputs of a form that never answers them are today's,
+ *   key for key (an empty list of steps is no list).
+ * @property {'level' | 'falls' | 'glides'} [then]   What the first amount does: stays the same, falls by `fallsPct`% a year
+ *   (0.25 to 10, quarter steps), or moves evenly to the first step (never with no step).
+ * @property {number} [fallsPct]
+ * @property {{ fromAge: number, perMonth?: number, share?: number, then: 'level' | 'falls' | 'glides', fallsPct?: number }[]} [steps]
+ *   Later steps by YOUR age (whole, rising, after your age today and the household's start — A, B the first stop; C the
+ *   start — and before your age at the end): A and B £1 to £50,000 a month after tax; C a share of the start, 1 to 500 on
+ *   0.01. Rule id 'shape-steps'; problems keyed by box ('spend.steps.2.fromAge'), messageIds: fromAge 'required' |
+ *   'notANumber' | 'beforeNow' | 'beforeStop' (A, B) | 'beforeStart' (C) | 'afterEnd' | 'order'; the amount or share
+ *   'required' | 'notANumber' | 'tooLow' | 'tooHigh'; an item's fallsPct 'range'; then 'notAnOption' | 'glidesLast'; the
+ *   list 'tooMany'; `<base>.then` 'glidesLast'; `<base>.fallsPct` the usual percent ids.
+ *
+ * @typedef {object} ShapeStep                One line of a shape's list, at a household amount a month at the start.
+ * @property {number} fromAge                 Your age (the start: your age at the household's start).
+ * @property {number} perMonth                £ a month after tax that year, today's prices (careful lists rounded DOWN to £10 from
+ *   £1,000, £5 below; middling and good to the nearest; as typed: to the pound).
+ * @property {'level' | 'falls' | 'glides'} then
+ * @property {number} [fallsPct]
+ * @property {number} [endAge]                A fall: its last year (the year before the next step, or the plan's last).
+ *   Moving evenly: the next step's age, where it arrives.
+ * @property {number} [endPerMonth]
+ *
+ * @typedef {object} ShapedAnswer             On an answer of C, A or B ONLY when the household has a shape that changes (a
+ *   flat answer has none of these keys — tests/v7/shared/answers.flat.test.js):
+ * @property {{ careful: ShapeStep[], middling: ShapeStep[], good: ShapeStep[] }} [shapeAt]   Each solved start ("about £2,300 a
+ *   month at the start") with the later steps moved in proportion. C: monthly; A: the shown row's band; B: the band at the
+ *   stop paying in as now (the "spend less" lever).
+ * @property {ShapeStep[]} [spendShape]       A and B: the spending as typed and tested (the start: the figure, or the step in
+ *   force from it when the stop is after a step).
+ * @property {{ age: number, ages: object, spend: number, takeHome: number, fromPots: number, fromPension: number, fromSavings: number,
+ *              statePension: number, finalSalary: number, tax: number, pensionOpen?: boolean, fromWork?: number, fromPay?: number,
+ *              byPerson: { who: string, takeHome: number, working?: boolean }[] }[]} [byYear]
+ *   One row a year at the amount the answer is about, on the pots its phases read: `spend` the shape's figure that year,
+ *   `takeHome` never under the incomes you get anyway. The chart's table and the plan seed's rows (seed version 3).
+ * @property {{ inForce: null | { age: number, perMonth: number }, belowIncome: null | { age: number, perMonth: number } }} [shapeNotes]
+ *   Warnings added (severity 'note'): 'shape-step-in-force' (A: the stop is after a step), 'shape-below-income' (from an
+ *   age the State Pension and other pensions pay more than the shape). Sentences added: 'c.shape', 'a.shape' (the spend as
+ *   typed), 'a.couldSpend.shape' (key `couldShape`), 'b.shape'; 'a.bad.yes' and 'b.lever.spendLess' say "at the start, the
+ *   later steps in proportion". Phases (and made-of lines) are cut at each step's first year.
  *
  * @typedef {string | { key: string, kind: 'money' | 'age' | 'pot' } | { fixed: string }} Part
  *   `key` is a dotted path into the result ('monthly.careful', 'phases.1.shown.fromPots', 'inputs.you.pot').
@@ -161,7 +207,10 @@
  * @property {Three} yearly
  * @property {Three} lastedAt
  * @property {Three} runOutAgeAt
- * @property {number} spare                   max(0, monthly.careful − spend.perMonth)
+ * @property {number} spare                   max(0, monthly.careful − the spending this row tested: spendAtStart, or spend.perMonth)
+ * @property {number} [spendAtStart]          Only when what is spent changes with age and this stop is at or after a step: the
+ *   step in force is the start (spending-shape.md 6.3), so this row tested THIS figure, £ a month to the penny — not the
+ *   first amount typed. Its verdict, lasted and spare are at it. Absent on every other row, and on every flat answer.
  * @property {Three & { byPerson: { who: string, pension: number, savings: number }[] }} potAtStop   Household pension + savings, today's prices, whole £; byPerson at the middling position.
  * @property {{ total: number, byPerson: { who: string, amount: number }[] }} paidIn                Over the saving years, today's prices.
  * @property {number} yearsSaving             S

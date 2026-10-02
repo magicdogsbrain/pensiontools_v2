@@ -40,6 +40,21 @@ import { createFastRunner } from './fastEngine.js';
 /** £ a month per step of the search. */
 export const STEP = 10;
 
+/**
+ * The search's floor and ceiling, in steps (£10 a month of the year-0 amount). kLow lasts in every future: the pots pay
+ * nothing at it (plan.guaranteedAtStartAYear). kMax fails in every future of two months or more: the pots asked for more
+ * than all they hold. Without a shape kMax = kLow + the pots + 12 steps, as always. With one (spending-shape.md 5.3) the
+ * floor is the lowest over the years, so the ceiling is read from the first year the pots pay a part that could run out —
+ * its own floor (plan.shape.topAYear) and the share of the year-0 amount they pay then (plan.shape.topShare).
+ * @returns {{ kLow: number, kMax: number }}
+ */
+export function bandRange(plan) {
+  const kLow = Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);
+  const s = plan.shape;
+  if (!(s && s.r && Number.isFinite(s.topAYear) && s.topShare > 0)) return { kLow, kMax: kLow + Math.ceil(plan.totalPots / STEP) + 12 };
+  return { kLow, kMax: Math.max(kLow, Math.floor(s.topAYear / 12 / STEP + 1e-9)) + Math.ceil(plan.totalPots / STEP / s.topShare) + 12 };
+}
+
 /** The positions in a sorted spread of n figures. */
 export function bandIndexes(n) {
   return { careful: Math.floor(n / 10), middling: Math.floor(n / 2), good: n - Math.ceil(n / 10) };
@@ -107,8 +122,8 @@ const gapFor = (g, k) => Math.max(g.least, Math.round(Math.abs(k) * g.share));
  */
 export function createBandSolver(plan, futures, opts = {}) {
   const n = futures.length;
-  const kLow = Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);        // lasts in every future: the pots pay nothing
-  const kMax = kLow + Math.ceil(plan.totalPots / STEP) + 12;                     // fails in every future of two months or more
+  // kLow lasts in every future (the pots pay nothing); kMax fails in every future of two months or more (bandRange)
+  const { kLow, kMax } = bandRange(plan);
   const lo = new Int32Array(n).fill(kLow);                                       // known to last
   const hi = new Float64Array(n).fill(Infinity);                                 // known to fail
   const runner = opts.runner || createFastRunner(plan, futures);
@@ -350,8 +365,8 @@ export function createBandSolver(plan, futures, opts = {}) {
  * @param {{ kLow?: number, kMax?: number }} [range]
  */
 export function mostPerFuture(plan, future, range = {}) {
-  const kLow = range.kLow ?? Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);
-  const kMax = range.kMax ?? kLow + Math.ceil(plan.totalPots / STEP) + 12;
+  const kLow = range.kLow ?? bandRange(plan).kLow;
+  const kMax = range.kMax ?? (range.kLow === undefined ? bandRange(plan).kMax : kLow + Math.ceil(plan.totalPots / STEP) + 12);
   const lasts = (k) => !runFuture(configsAt(plan, k * STEP * 12), future).failed;
   if (lasts(kMax)) return kMax * STEP;
   let g = kLow;

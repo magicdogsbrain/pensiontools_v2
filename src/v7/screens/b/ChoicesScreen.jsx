@@ -15,7 +15,7 @@ export function ChoicesScreen(state, dispatch) {
   const frame = saverFrame(state, 'b');
   const t = B.choices;
   let body;
-  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} />;
+  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} state={state} />;
   else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else {

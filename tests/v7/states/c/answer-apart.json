@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.20.2",
+    "appVersion": "6.21.0",
     "historyEnd": null
   },
   "session": {
@@ -75,7 +75,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"couple\",\"partner\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":350,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":450000,\"statePension\":{\"kind\":\"full\"},\"stop\":{\"age\":56,\"kind\":\"age\"}},\"risk\":\"balanced\",\"savings\":60000,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":56,\"finalSalary\":{\"has\":false},\"pot\":500000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.20.2",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"couple\",\"partner\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":350,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":450000,\"statePension\":{\"kind\":\"full\"},\"stop\":{\"age\":56,\"kind\":\"age\"}},\"risk\":\"balanced\",\"savings\":60000,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":56,\"finalSalary\":{\"has\":false},\"pot\":500000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.21.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -1243,7 +1243,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.20.2",
+          "engineVersion": "6.21.0",
           "startAge": 55,
           "endAge": 95,
           "accessAge": 55,

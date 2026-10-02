@@ -43,6 +43,12 @@
  * @property {number} planToAge                 for a couple: until the YOUNGER person is this age
  * @property {{ kind: 'risk', level: 'cautious'|'balanced'|'adventurous' } | { kind: 'mix', equity: number, bond: number, cash: number }} portfolio
  * @property {{ id: string }} strategy
+ * @property {{ unit: 'perMonth' | 'share', first?: number, start: { then: string, fallsPct?: number },
+ *             steps: { fromAge: number, perMonth?: number, share?: number, then: string, fallsPct?: number }[] }} [shape]
+ *   What is spent changing with age (research/v7/spending-shape.md 3; shared/shape.js): present ONLY when the question was
+ *   given a shape that changes (schemaParts.js shapeOfInputs), so a household without one is today's, key for key. Ages are
+ *   YOUR ages (the person at the keyboard); `first` is the first amount, £ a month, for 'perMonth'; a 'share' step is a
+ *   percentage of the start. The adapter turns it into a figure for each year (toEngine.js plan.shape).
  * @property {{ payCovers: 0 | 0.5 | 1 }} [untilBothStop]   Couples who stop in different years (couples-different-years.md
  *   3.4): present ONLY when the two people's stops differ (stopsOf: a join after year 0), so a same-year household is
  *   today's, key for key. Until the second stop, the pay of the one still working covers this share of what the household
@@ -51,6 +57,7 @@
  */
 import { fullStatePensionYearly, addYears, accessAgeOn, RULES } from './rules.js';
 import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS, isChargesPct } from '../../services/Charges.js';
+import { SHAPE_LIMITS, THEN } from './shape.js';
 
 /**
  * The owner's answers on couples who stop work in different years (research/v7/couples-different-years.md, "Questions
@@ -394,6 +401,8 @@ export function expandHousehold(short, now) {
     household.saving = { risk: sv.risk || level };
   }
   if (apart) household.untilBothStop = { payCovers: given ? src.untilBothStop.payCovers : PAY_COVERS[APART.payCoversDefault] };
+  // what is spent changing with age: carried as given, only when there is one (spending-shape.md 5.1)
+  if (src.shape && typeof src.shape === 'object') household.shape = JSON.parse(JSON.stringify(src.shape));
   return { household, assumed };
 }
 
@@ -458,6 +467,9 @@ export function validateHousehold(household, now) {
     if (![pf.equity, pf.bond, pf.cash].every((v) => isNum(v) && v >= 0) || Math.abs(sum - 1) > 1e-9) bad('portfolio', 'notAnOption');
   } else bad('portfolio.kind', 'notAnOption');
 
+  // What is spent changing with age (spending-shape.md 3.7), when the household has it.
+  if (h.shape !== undefined) shapeProblems(h.shape).forEach((x) => bad(x.field, x.problem));
+
   // The pay line of a couple who stop in different years (couples-different-years.md 3.4): half, all or none.
   if (h.untilBothStop !== undefined && !(h.untilBothStop && PAY_COVERS_VALUES.includes(h.untilBothStop.payCovers))) bad('untilBothStop.payCovers', 'notAnOption');
   // People who stop in different years must say how the years apart are paid (step 4 brief conflict 17 asked them to stop
@@ -475,6 +487,39 @@ export function validateHousehold(household, now) {
     if (h.planToAge <= younger || Math.max(...waits) - Math.min(...waits) >= RULES.maxYears) bad('planToAge', 'end-after-start');
   }
   return problems;
+}
+
+/**
+ * A household's shape against the model's limits (spending-shape.md 3.7): a unit; for £ a month a first amount; each "then"
+ * one of the three, a fall within its limits; ages whole and rising; amounts within their limits; "moves evenly" never on
+ * the last. → { field, problem }[] (the form's own checks say the same in words, by box: validate.js).
+ */
+function shapeProblems(shape) {
+  const out = [];
+  const bad = (field, problem) => out.push({ field, problem });
+  if (!shape || !['perMonth', 'share'].includes(shape.unit)) { bad('shape.unit', 'notAnOption'); return out; }
+  if (shape.unit === 'perMonth' && !(isNum(shape.first) && shape.first > 0)) bad('shape.first', 'required');
+  const thenOk = (t, f, at) => {
+    if (!THEN.includes(t)) bad(`${at}.then`, 'notAnOption');
+    else if (t === 'falls' && !(isNum(f) && f >= SHAPE_LIMITS.fallsPct.min && f <= SHAPE_LIMITS.fallsPct.max)) bad(`${at}.fallsPct`, 'notANumber');
+  };
+  const start = shape.start || {};
+  thenOk(start.then || 'level', start.fallsPct, 'shape.start');
+  const steps = Array.isArray(shape.steps) ? shape.steps : [];
+  const lim = SHAPE_LIMITS[shape.unit];
+  steps.forEach((x, i) => {
+    const at = `shape.steps.${i}`;
+    if (!(Number.isInteger(x.fromAge) && x.fromAge >= HOUSEHOLD_LIMITS.age.min && x.fromAge <= 130)) bad(`${at}.fromAge`, 'notANumber');
+    else if (i > 0 && !(x.fromAge > steps[i - 1].fromAge)) bad(`${at}.fromAge`, 'notANumber');
+    const v = x[shape.unit];
+    if (!isNum(v)) bad(`${at}.${shape.unit}`, 'required');
+    else if (v < lim.min) bad(`${at}.${shape.unit}`, 'tooLow');
+    else if (v > lim.max) bad(`${at}.${shape.unit}`, 'tooHigh');
+    thenOk(x.then || 'level', x.fallsPct, at);
+  });
+  if (steps.length && steps[steps.length - 1].then === 'glides') bad(`shape.steps.${steps.length - 1}.then`, 'notAnOption');
+  if (!steps.length && start.then === 'glides') bad('shape.start.then', 'notAnOption');
+  return out;
 }
 
 export { isoOf as isoDate };

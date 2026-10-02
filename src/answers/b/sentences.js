@@ -18,6 +18,7 @@ import { money, partsText, lastedText } from '../shared/format.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, SAVING } from '../shared/rules.js';
 import { apartAssumed, apartWarnings } from '../shared/apart.js';
+import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -106,7 +107,9 @@ function payersWords(facts) {
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 /** " Paying in as now, about £1,460 a month from 60 lasted in 9 futures out of 10." — or that no amount did. */
 const carefulNowParts = (result, p = false) => (result.monthlyIfShort > 0
-  ? [' Paying in as now, about ', M('monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
+  // (with a spending shape the figure is the start, and the later steps go with it: spending-shape.md 6.4)
+  ? [' Paying in as now, about ', M('monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'),
+    shapeMoves(result.spendShape) ? ', with the later steps in proportion, lasted in ' : ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
   : [p ? ' Paying in as now, no amount a month from when your partner stops at ' : ' Paying in as now, no amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']);
 
 /**
@@ -280,7 +283,10 @@ export function sentencesFor(result, facts) {
       ': your money lasted ', countParts(lv.payMore.lasted), '.']);
   }
   if (lv.spendLess) {
-    lever.spendLess = S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month, not ', M('spend.perMonth'), ': ', nowParts(result), ' as now, your money lasted ', countParts(lv.spendLess.lasted), '.']);
+    lever.spendLess = shapeMoves(result.spendShape)
+      // a shape (spending-shape.md 6.4): the whole shape moves to the careful start
+      ? S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month at the start, not ', M('spend.perMonth'), ', the later steps in proportion: ', nowParts(result), ' as now, your money lasted ', countParts(lv.spendLess.lasted), '.'])
+      : S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month, not ', M('spend.perMonth'), ': ', nowParts(result), ' as now, your money lasted ', countParts(lv.spendLess.lasted), '.']);
   }
   if (lv.moreRisk) {
     const words = LEVEL_WORDS[lv.moreRisk.level];
@@ -291,7 +297,8 @@ export function sentencesFor(result, facts) {
   lever.accept = st === 'guaranteed-only'
     ? S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now.'])
     : S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now: your money lasted ', countParts(lv.accept.lasted), '.',
-      ...(lv.accept.monthlyIfShort > 0 ? [' About ', M('levers.accept.monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
+      ...(lv.accept.monthlyIfShort > 0 ? [' About ', M('levers.accept.monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'),
+        shapeMoves(result.spendShape) ? ', with the later steps in proportion, lasted in ' : ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
         : [p ? ' No amount a month from when your partner stops at ' : ' No amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.'])]);
   out.lever = lever;
 
@@ -311,6 +318,8 @@ export function sentencesFor(result, facts) {
     : number === null
       ? S('b.change', ['Now: more than ', F(money(SAVING.potMax)), p ? ' by the time your partner is ' : ' by ', A('stop.age'), '.'])
       : S('b.change', ['Now: ', result.onCourse ? 'on course for ' : 'not on course for ', p ? ['your partner at ', A('stop.age')] : A('stop.age'), ', lasted ', countParts(result.chance.lasted), '.']);
+  // what is spent changing with age (spending-shape.md 6.4): the spend as typed is the start; the steps follow, as tested
+  if (shapeMoves(result.spendShape)) out.shape = atTheStart('b.shape', result.spendShape, 'spendShape');
   return out;
 }
 
@@ -461,9 +470,9 @@ export function warningsFor(result, facts) {
       warn('no-savings-for-gap', 'important', ['With no ISA or savings, nothing pays the years before a pension can be touched. The savings part above is what they would need.']);
     }
   }
-  // couples apart: a bad case that leans on the pay of the one still working, and money moved into drawdown before
-  // 6 April 2028 (shared/apart.js, the same words in C, A and B)
-  for (const w of apartWarnings(result, { drawdown: (facts.apart && facts.apart.drawdown) || [] })) warn(w.id, w.severity, w.parts);
+  // couples apart: a bad case that leans on the pay of the one still working; and, for everyone it applies to, money moved
+  // into drawdown before 6 April 2028 (shared/apart.js, the same words in C, A and B)
+  for (const w of apartWarnings(result, { drawdown: facts.drawdown2028 || (facts.apart && facts.apart.drawdown) || [] })) warn(w.id, w.severity, w.parts);
   if (facts.partnerRetired) {
     warn('partner-stops-with-you', 'note', ["Your partner is past their State Pension age. These figures leave their money alone until you stop at ", A('stop.age'),
       ', and do not count anything they take before then.']);
@@ -499,5 +508,12 @@ export function warningsFor(result, facts) {
   if (result.number && result.number.careful > 0 && result.number.careful < RULES.smallPot) {
     warn('small-pot', 'note', ['With a pot this size, many people take it as one or a few lump sums instead of a monthly income.']);
   }
+  // what is spent changing with age (spending-shape.md 7.4): the incomes you get anyway pay more than the shape
+  for (const w of shapeWarnings(result, { couple: facts.couple })) warn(w.id, w.severity, w.parts);
   return out;
+}
+
+/** Whether a shape's list says more than its start: a later step, or a start that falls or moves evenly. */
+function shapeMoves(list) {
+  return Array.isArray(list) && (list.length > 1 || Boolean(list[0] && list[0].then !== 'level'));
 }

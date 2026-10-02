@@ -25,6 +25,7 @@ import { withFixedCounts } from './MadeOf.jsx';
 import { LinkButton } from './Button.jsx';
 import { href } from '../router/routes.js';
 import { A } from '../copy/a.js';
+import { SHAPE } from '../copy/shape.js';
 
 const set = (path, value) => ({ type: 'draft/set', q: 'a', path, value });
 
@@ -56,7 +57,8 @@ export function AgesChart({ result, dispatch, table = false }) {
       <thead>
         <tr>
           <th scope="col">{aboutPartner ? t.chartAgePartner : ownStop ? t.chartAgeOwn : together ? t.chartAgeCouple : t.chartAge}</th>
-          <th scope="col">{t.chartSpend}</th>
+          {/* with steps by age, each row's figure is the start's: the later steps move with it (spending-shape.md 6.3) */}
+          <th scope="col">{result.shapeAt ? SHAPE.answer.agesColumn : t.chartSpend}</th>
           <th scope="col">{t.chartLasted} <Money source={result} k="basis.endAge" kind="age" /></th>
           {table && <th scope="col" class="col-wide">{withFixedCounts(t.tableRunOut)}</th>}
           {table && <th scope="col" class="col-wide">{t.tablePot}</th>}

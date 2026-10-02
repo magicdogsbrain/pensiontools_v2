@@ -92,14 +92,15 @@ describe('reading the seed (C.2): one day, one version, never a bad one kept', (
     expect(readSeed(s, created - 6 * 60 * 1000)).toEqual({ problem: 'future', createdAt: CREATED_AT });
     expect(s.has(SEED_KEY)).toBe(false);
   });
-  it('a version this code does not know is deleted (old or new); 1 and 2 are read', () => {
-    for (const v of [0, 3, '1', '2', 1.5, undefined]) {
+  it('a version this code does not know is deleted (old or new); 1, 2 and 3 are read', () => {
+    // 3: what is spent changes with age (research/v7/spending-shape.md 8; tests/v7/keep/planSeed.shape.test.js reads one)
+    for (const v of [0, 4, '1', '2', '3', 1.5, undefined]) {
       const s = stored({ ...seedA(), seedVersion: v });
       expect(readSeed(s, NOW_MS).problem).toBe('version');
       expect(s.has(SEED_KEY)).toBe(false);
     }
     expect(SEED_VERSION).toBe(2);
-    expect(SEED_VERSIONS).toEqual([1, 2]);
+    expect(SEED_VERSIONS).toEqual([1, 2, 3]);
     expect(readSeed(stored(seedA()), NOW_MS).seed.seedVersion).toBe(1);
     expect(readSeed(stored(seedApart()), NOW_MS).seed.seedVersion).toBe(2);
   });

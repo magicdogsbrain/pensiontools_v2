@@ -190,3 +190,144 @@ test.describe('save this as a plan (the published build)', () => {
     });
   });
 });
+
+/*
+ * The spending shape, kept as a plan (research/v7/spending-shape.md 8, 9.7; the owner, 2 Oct 2026: "We MUST offer as many
+ * steps and tapers as V6! … We must have Gogo, goslow and nogo years."), end to end on the PUBLISHED build with today's
+ * real planner at /, without an account (the plans live in this tab only; every request outside the local server is
+ * stopped, so nothing signs in): a person sets go-go £3,000 a month from 62, go-slow from 75 falling 2% a year, no-go
+ * £2,000 a month from 85, in "When can I afford to stop work?"; saves it; and today's planner holds income steps whose
+ * after-tax amount is the answer's in every year, to 50p a month. The household is made up (round, generic figures).
+ */
+test.describe('the spending shape, kept as a plan, in today\'s planner', () => {
+  test.use({ outside: 'block' });
+  test('A with go-go, go-slow and no-go → "Save as a plan" → today\'s planner: the same spending in every year', async ({ page, watch }) => {
+    waitsFor(...NEEDS.a);
+    const { SEED_VERSIONS, SEED_WORDS } = await import('../src/services/PlanSeed.js');
+    test.skip(!SEED_VERSIONS.includes(3), 'waits for today\'s planner to read a seed whose spending changes with age (seed version 3: spending-shape.md 8.2)');
+    test.setTimeout(300_000);
+    // as on the live site today: the planner's engine worker asks for the market files beside itself (e2e/old-app-unchanged.spec.js)
+    watch.allow(/^asked for a file that is not there: \/assets\/data\/(gilts|equity)\.json$/);
+    const { amountAtAge } = await import('../src/services/IncomeSchedule.js');
+    const { grossToNet } = await import('../src/services/TaxCalculator.js');
+    const app = v7(page, 'prod', 'a');
+    let answer = null;
+
+    await app.step('the numbers, the figure, and the shape: £3,000 from 62; from 75 falling 2% a year; £2,000 from 85', async () => {
+      await app.open('#/a/numbers');
+      await app.ready();
+      await app.fill({ 'you.age': '55', 'you.pot': '450000', 'stop.age': '62' });
+      await app.toSpend('a');
+      await app.set('spend.amount', '3000');
+      await app.click('a.shape.open');
+      for (const [age, amount] of [['75', '3000'], ['85', '2000']]) {
+        await app.click('a.shape.add');
+        const i = age === '75' ? 0 : 1;
+        await app.id(`a.spend.steps.${i}.fromAge`).fill(age);
+        await app.id(`a.spend.steps.${i}.perMonth`).fill(amount);
+      }
+      await app.id('a.spend.steps.0.then').selectOption('falls');
+      await app.id('a.spend.steps.0.fallsPct').fill('2');
+      await expect(app.id('a.shape.summary')).toHaveCount(0);                       // open: the steps themselves are on screen
+      app.typed['spend.steps'] = [{ fromAge: '75', perMonth: '3000', then: 'falls', fallsPct: '2' }, { fromAge: '85', perMonth: '2000', then: 'level', fallsPct: '' }];
+    });
+
+    await app.step('the answer: the engine\'s, for the spending as set; each year drawn', async () => {
+      await app.click('a.action.show');
+      await app.at('a.answer');
+      await app.ready(120_000);
+      answer = app.engine({ ...FINAL_ENV, detail: 'chart' });
+      expect(answer.spendShape.map((x) => [x.fromAge, x.then])).toEqual([[62, 'level'], [75, 'falls'], [85, 'level']]);
+      await expect(app.id('a.shape.answer.list')).toContainText('£3,000 a month from 62; £3,000 from 75, falling 2% a year to');
+    }, { answer: () => answer });
+
+    await test.step('"Save as a plan": today\'s planner, without an account, makes the plan', async () => {
+      await app.id('a.action.save').scrollIntoViewIfNeeded();
+      await app.click('a.action.save');
+      await page.waitForURL((u) => u.origin === PROD && !u.pathname.startsWith('/v7/'));
+      await page.getByRole('button', { name: SEED_WORDS.carryOn }).click();
+      await page.getByRole('button', { name: SEED_WORDS.save }).click();
+      await expect(page.locator('#seedNote')).toBeVisible({ timeout: 60_000 });
+    });
+
+    await test.step('its income steps give the answer\'s spending, after tax, in every year — to 50p a month', async () => {
+      const plans = await page.evaluate(() => JSON.parse(sessionStorage.getItem('pt_guest_scenarios') || '[]'));
+      const made = plans.filter((p) => p.fromAnswer);
+      expect(made).toHaveLength(1);
+      expect(made[0].fromAnswer.seedVersion).toBe(3);
+      const S = made[0].stressTool.settings;
+      expect(S.incomeShape).toBe('phases');
+      expect(S.incomeSteps.length).toBeGreaterThan(2);
+      for (const row of answer.byYear) {
+        const gross = Math.round(amountAtAge(S.incomeSteps, row.age));
+        const net = grossToNet(gross, S.pa, S.brl, S.hrl) / 12;
+        expect(Math.abs(net - row.spend), `at ${row.age}: the plan ${net.toFixed(2)}, the answer ${row.spend}`).toBeLessThanOrEqual(0.5);
+      }
+    });
+  });
+
+  // Review, 2 Oct 2026: a fall faster than today's slider goes (7.5% a year, each year under the personal allowance) was
+  // kept as one step whose slider showed 5% beside a label saying 7.5%. Now it is one step a year; every fall written fits
+  // the slider (min 0, max 5, quarter points), and every year is still the answer's figure.
+  test('A falling 7.5% a year from the stop, under the personal allowance → "Save as a plan" → every fall fits today\'s slider, every year exact', async ({ page, watch }) => {
+    waitsFor(...NEEDS.a);
+    const { SEED_WORDS, PLANNER_DECLINE } = await import('../src/services/PlanSeed.js');
+    test.setTimeout(300_000);
+    watch.allow(/^asked for a file that is not there: \/assets\/data\/(gilts|equity)\.json$/);
+    const { amountAtAge } = await import('../src/services/IncomeSchedule.js');
+    const { grossToNet } = await import('../src/services/TaxCalculator.js');
+    const app = v7(page, 'prod', 'a');
+    let answer = null;
+
+    await app.step('55, £200,000, stopping at 58; £900 a month falling 7.5% a year; £1,100 from 67', async () => {
+      await app.open('#/a/numbers');
+      await app.ready();
+      await app.fill({ 'you.age': '55', 'you.pot': '200000', 'stop.age': '58' });
+      await app.toSpend('a');
+      await app.set('spend.amount', '900');
+      await app.click('a.shape.open');
+      await app.id('a.spend.then').selectOption('falls');
+      await app.id('a.spend.fallsPct').fill('7.5');
+      await app.click('a.shape.add');
+      await app.id('a.spend.steps.0.fromAge').fill('67');
+      await app.id('a.spend.steps.0.perMonth').fill('1100');
+      app.typed['spend.then'] = 'falls';
+      app.typed['spend.fallsPct'] = '7.5';
+      app.typed['spend.steps'] = [{ fromAge: '67', perMonth: '1100', then: 'level', fallsPct: '' }];
+    });
+
+    await app.step('the answer', async () => {
+      await app.click('a.action.show');
+      await app.at('a.answer');
+      await app.ready(120_000);
+      answer = app.engine({ ...FINAL_ENV, detail: 'chart' });
+      expect(answer.spendShape[0]).toMatchObject({ fromAge: 58, perMonth: 900, then: 'falls', fallsPct: 7.5 });
+    }, { answer: () => answer });
+
+    await test.step('"Save as a plan": today\'s planner makes it', async () => {
+      await app.id('a.action.save').scrollIntoViewIfNeeded();
+      await app.click('a.action.save');
+      await page.waitForURL((u) => u.origin === PROD && !u.pathname.startsWith('/v7/'));
+      await page.getByRole('button', { name: SEED_WORDS.carryOn }).click();
+      await page.getByRole('button', { name: SEED_WORDS.save }).click();
+      await expect(page.locator('#seedNote')).toBeVisible({ timeout: 60_000 });
+    });
+
+    await test.step('every fall fits today\'s slider, and every year is the answer\'s figure to 50p a month', async () => {
+      const plans = await page.evaluate(() => JSON.parse(sessionStorage.getItem('pt_guest_scenarios') || '[]'));
+      const made = plans.filter((p) => p.fromAnswer);
+      expect(made).toHaveLength(1);
+      const S = made[0].stressTool.settings;
+      for (const st of S.incomeSteps) {
+        if (!st.decline) continue;
+        expect(st.decline, JSON.stringify(st)).toBeLessThanOrEqual(PLANNER_DECLINE.max);
+        expect(Number.isInteger(st.decline / PLANNER_DECLINE.step), JSON.stringify(st)).toBe(true);
+      }
+      for (const row of answer.byYear) {
+        const gross = Math.round(amountAtAge(S.incomeSteps, row.age));
+        const net = grossToNet(gross, S.pa, S.brl, S.hrl) / 12;
+        expect(Math.abs(net - row.spend), `at ${row.age}: the plan ${net.toFixed(2)}, the answer ${row.spend}`).toBeLessThanOrEqual(0.5);
+      }
+    });
+  });
+});

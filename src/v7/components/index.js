@@ -25,3 +25,6 @@ export { Retired, isRetired } from './Retired.jsx';
 // The budget step and "Save this as a plan" (research/v7/budget-step.md, save-as-plan.md)
 export { SpendHow, BudgetSheet, SpendBeside, SpendLine, BudgetAgainstC } from './Budget.jsx';
 export { KeepPanel, PLANNER_LINK } from './KeepPanel.jsx';
+// The spending shape (research/v7/spending-shape.md 4)
+export { StepsField, stepErrorText } from './StepsField.jsx';
+export { ShapeChart, ShapeAnswer, scaleTop, yearWords } from './ShapeChart.jsx';

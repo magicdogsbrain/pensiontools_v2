@@ -8,8 +8,8 @@
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel } from '../../components/index.js';
-import { isCurrent, cAnswerYouStopped } from '../../state/select.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer } from '../../components/index.js';
+import { isCurrent, cAnswerYouStopped, isShapePath } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -85,7 +85,9 @@ export function AnswerScreen(state, dispatch) {
     body = (
       <AskForm form={form} dispatch={dispatch} data-region="form" class="ask short-form">
         <p class="lead">{wrong.length && !(wrong.includes('you.pot') && wrong.includes('you.age')) ? C.answer.needFix : C.answer.needTwo}</p>
-        {FIELDS.filter((f) => need.has(f.path)).map((f) => <Field key={f.path} form={form} path={f.path} dispatch={dispatch} />)}
+        {FIELDS.filter((f) => need.has(f.path) && f.group !== 'shape').map((f) => <Field key={f.path} form={form} path={f.path} dispatch={dispatch} />)}
+        {/* a problem in the spending shape's steps: its block, open, with the sentence under the box */}
+        {wrong.some((p) => isShapePath('c', p)) && <StepsField state={state} q="c" dispatch={dispatch} forceOpen />}
         <div class="actions-row">
           <Button testid="c.action.show" kind="primary" type="submit">{C.buttons.show}</Button>
           <LinkButton href={href.step('c', 'numbers')}>{C.buttons.otherQuestionsFirst}</LinkButton>
@@ -116,6 +118,8 @@ export function AnswerScreen(state, dispatch) {
     // until 67, rising with prices; the pot invested at Balanced … until then"), and what the pot could be by then.
     const payIn = s.payIn && <Sentence s={s.payIn} source={result} class="pay-in-line" data-testid="c.answer.payIn" />;
     const potThen = s.pot && <Sentence s={s.pot} source={result} class="pot-line" data-testid="c.answer.pot" />;
+    // spending that changes with age (spending-shape.md 7.2 c.shape): "That is at the start. Then, as you set it: …"
+    const shapeLine = s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="c.answer.shape" />;
 
     body = (
       <>
@@ -126,7 +130,7 @@ export function AnswerScreen(state, dispatch) {
             ? <><Sentence s={s.none} source={result} class="none" />{warnings}{take}{assumed}</>
             : s.head && s.line && !s.nothing
               ? (
-                <Headline result={result} afterLine={payIn || potThen ? <>{payIn}{potThen}</> : null}>
+                <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}>
                   {s.small && (
                     <div class="small-pot">
                       <Sentence s={s.small} source={result} />
@@ -141,6 +145,7 @@ export function AnswerScreen(state, dispatch) {
               )
               : <><Sentence s={s.nothing} source={result} class="nothing" />{warnings}{take}{result.status !== 'none' && madeOf}{assumed}</>}
         </div>
+        <ShapeAnswer state={state} q="c" dispatch={dispatch} />
         <BudgetAgainstC state={state} />
         <TryAChange state={state} form={form} result={result} dispatch={dispatch} />
         <WhatNext result={result} dispatch={dispatch} />

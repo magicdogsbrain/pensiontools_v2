@@ -9,8 +9,12 @@
  * "When does your partner stop work?" (with the pay line under it once their stop is their own), drawn by PersonBlock in
  * the list's order; "Already had the tax-free part?" is asked first under more detail, for you from now and for a partner
  * who already has stopped, only while it applies.
+ *
+ * The spending shape (research/v7/spending-shape.md 4.1): under "Add more detail", after the tax-free part and before the
+ * savings — "Does what you spend change as you get older?", with each later age as a share of what C works out you could
+ * start on (StepsField).
  */
-import { AskForm, Field, FieldGroup, PersonBlock, formView, focusField, Button, LinkButton } from '../../components/index.js';
+import { AskForm, Field, FieldGroup, PersonBlock, formView, focusField, Button, LinkButton, StepsField } from '../../components/index.js';
 import { href } from '../../router/routes.js';
 import { C } from '../../copy/c.js';
 
@@ -63,6 +67,7 @@ export function NumbersScreen(state, dispatch) {
               </div>
               <FieldGroup form={form} path="you.taxFreeTaken" dispatch={dispatch} />
               <FieldGroup form={form} path="partner.taxFreeTaken" dispatch={dispatch} />
+              <StepsField state={state} q="c" dispatch={dispatch} level={3} />
               <Field form={form} path="savings" dispatch={dispatch} />
               <Field form={form} path="risk" dispatch={dispatch} />
               <Field form={form} path="charge" dispatch={dispatch} />

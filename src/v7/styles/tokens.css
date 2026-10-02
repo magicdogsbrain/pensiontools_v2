@@ -29,6 +29,14 @@
   --fill-choice:    #a5b4fc;   /* a chosen chip: today's --accent (#6366f1) is under 3:1 on the raised surface, so a lighter indigo */
   --on-choice:      #0f0f1a;
 
+  /* the spending shape's picture (research/v7/spending-shape.md 4.4): each bar colour 3:1 on the card, the warning colour
+     never the only signal (the words say it too) */
+  --chart-income:   #dce8f2;   /* the part your State Pension and other pensions pay: the lighter part of a bar */
+  --chart-pots:     #7eb8da;   /* the part from your pension and savings (today's --primary) */
+  --chart-below:    #f0a35e;   /* a year under the budget's essentials (today's orange) */
+  --chart-guide:    #f0c674;   /* the budget's essentials, dashed */
+  --chart-band:     #252540;   /* the go-slow band behind the bars (the raised surface) */
+
   /* lines */
   --line:           #2a2a4a;   /* today's --border: decoration only */
   --line-strong:    #8e8ea8;   /* the edge of a box: 3:1 on every surface (the white-on-grey lesson) */

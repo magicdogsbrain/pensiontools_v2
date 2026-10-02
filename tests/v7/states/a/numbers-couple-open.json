@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.20.2",
+    "appVersion": "6.21.0",
     "historyEnd": null
   },
   "session": {

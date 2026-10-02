@@ -8,7 +8,8 @@
 import { Money, AgesChart, Working, Problem, Retired, isRetired, withFixedCounts, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';
 import { A } from '../../copy/a.js';
-import { saverFrame, ShortForm, AnswerRegion } from './AnswerScreen.jsx';
+import { SHAPE } from '../../copy/shape.js';
+import { saverFrame, ShortForm, AnswerRegion, spendingWords } from './AnswerScreen.jsx';
 
 /**
  * Why the first rows pay little or nothing: a pension cannot be touched before the age the answer gives
@@ -46,7 +47,7 @@ export function AgesScreen(state, dispatch) {
   const frame = saverFrame(state, 'a');
   const t = A.answer;
   let body;
-  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} />;
+  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} state={state} />;
   else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else {
@@ -56,10 +57,10 @@ export function AgesScreen(state, dispatch) {
       <AnswerRegion words={A} stale={stale} first={first}>
         <section class="block every-age" aria-labelledby="every-age-title">
           <h2 id="every-age-title">{t.tableTitle}</h2>
-          <p class="note">{t.chartSpending} <Money source={result} k="spend.perMonth" /> {t.aMonth}</p>
+          <p class="note">{t.chartSpending} <Money source={result} k="spend.perMonth" /> {spendingWords(result, t)}</p>
           <AgesChart result={result} dispatch={dispatch} table={all} />
           {!all && <p class="working-note" role="status">{t.chartWorking}</p>}
-          <p class="note chart-key">{withFixedCounts(t.chartKey)}</p>
+          <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : t.chartKey)}</p>
           {all && <ClosedNotes result={result} />}
           {all && <From50 result={result} />}
           {all && <p class="note">{t.chartPress}</p>}

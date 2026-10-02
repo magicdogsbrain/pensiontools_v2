@@ -122,11 +122,37 @@ export function decisionEntryAllowed(stage, entryMonth) {
     const gate = stage.startMonth || (stage.firstTaxYear + '-04');
     if (!/^\d{4}-\d{2}$/.test(key) || key < gate) {
       const [y, m] = gate.split('-').map(Number);
-      const mon = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+      const mon = MONTHS[m - 1];
       return { ok: false, reason: 'This plan is locked and you retire in ' + mon + ' ' + y + ' (plan year 0 is ' + stage.startLabel + '). Monthly entries open then — until then you are still saving, so record your pot on the Accumulation planner instead.' };
     }
   }
   return { ok: true };
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/**
+ * Before a Decision month locks a SAVER's plan (6.20.2). Recording a month, or setting up its tax year, locks the plan
+ * (PlanLock.lockPlanIfNeeded). For someone still saving that is rarely meant: the lock writes no saving path, freezes
+ * the plan, and the Decision tool then takes no more months until they stop (decisionEntryAllowed). So a plan in future
+ * mode, before the month it stops and not locked yet, asks first. Everyone else keeps today's behaviour: null.
+ * @returns {{ title: string, paragraphs: string[], okLabel: string, cancelLabel: string }|null}
+ */
+export function decisionLockQuestion(stage) {
+  if (!stage || stage.locked || stage.timingMode !== 'future' || !stage.beforeStart) return null;
+  const m = /^(\d{4})-(\d{2})$/.exec(String(stage.startMonth || ''));
+  const when = m ? MONTHS[+m[2] - 1] + ' ' + m[1] : 'you retire (' + stage.startLabel + ')';
+  return {
+    title: 'Lock this plan?',
+    paragraphs: [
+      'Your plan says you are still saving until ' + when + '. Recording a month in the Decision tool locks the plan.',
+      'Locking freezes the plan: its Stress tester and Decision tool settings cannot be changed until you unlock it, and the Decision tool takes no more months until you stop saving.',
+      'While you are saving, record your pot each month on the Accumulation tab instead. That does not lock anything.',
+      'To lock the plan on purpose, use Stress tester → Settings → "Lock plan & create the plan document". It also writes the plan document, which follows your saving month by month.'
+    ],
+    okLabel: 'Lock the plan and carry on',
+    cancelLabel: 'Not now'
+  };
 }
 
 /**

@@ -30,11 +30,50 @@ import { defaultBudget } from '../services/BudgetModel.js';
 import { deriveTiming } from '../services/PlanTiming.js';
 import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
+import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
+import { getDefaultStressSettings } from './stressDefaults.js';
+import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedScenarios = null;
 let cachedActiveScenario = null;
+
+// The Stress and Decision settings of every loaded plan AS STORED: the lock guard's yardstick (6.20.2,
+// services/LockedPlanGuard.js). The cached plan objects cannot be it: they are handed out by reference, and some readers
+// adjust them in memory (the Budget's age today folded into the Stress copy, the old "Declining with age" rewrite of the
+// Decision copy). Taken when the plans are loaded; moved on by every settings write that succeeds; dropped, with every
+// other copy, when the store refuses a write because the plan was locked elsewhere (planCopies.js).
+let storedSettings = new Map();   // plan id → { stress, decision }
+const copyOf = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+function rememberStored(scenario) {
+  if (scenario && scenario.id != null) storedSettings.set(scenario.id, { stress: copyOf(scenario.stressTool?.settings), decision: copyOf(scenario.decisionTool?.settings) });
+}
+function storedOf(scenario) {
+  if (!storedSettings.has(scenario.id)) rememberStored(scenario);
+  return storedSettings.get(scenario.id) || { stress: undefined, decision: undefined };
+}
+/**
+ * Refuse a write that would change a locked plan's settings (PlanLockedError, nothing written). A locked plan with no
+ * Stress settings saved reads the defaults (getActiveStressSettings), so those are what a write is measured against.
+ */
+function refuseIfLocked(scenario, kind, settings) {
+  const st = storedOf(scenario);
+  const stored = kind === 'stress' && st.stress === undefined ? getDefaultStressSettings() : st[kind];
+  const keys = lockedWriteRefusal(kind, { locked: isLockedSettings(st.decision), stored, next: settings });
+  if (keys) throw new PlanLockedError(keys);
+}
+
+// A write the STORE refused (FirestoreService.saveScenario, 6.20.2): the plan was locked after this tab loaded it — on
+// another device, or in another tab. Every copy this tab holds is out of date, so all of them are dropped (planCopies.js:
+// this module's, the Stress and Decision repositories'): the next read loads the plan as stored (locked), and the tab's
+// own check refuses from then on, before anything is sent.
+onPlanCopyStale(() => invalidateScenarioCache());
+/** saveScenario for a write the store may refuse as locked (settings, strategy): on that refusal the tab's copies go. */
+async function saveGuardedWrite(id, data) {
+  try { await saveScenario(id, data); }
+  catch (e) { if (isPlanLockedError(e)) dropStalePlanCopies(); throw e; }
+}
 
 /**
  * Check if Firebase is available
@@ -49,56 +88,16 @@ function isFirebaseAvailable() {
 export function invalidateScenarioCache() {
   cachedScenarios = null;
   cachedActiveScenario = null;
+  storedSettings = new Map();
 }
 
 // ============================================================================
 // DEFAULT SETTINGS
 // ============================================================================
 
-/**
- * Default stress settings for a new scenario.
- *
- * NOT the fund and platform charge (6.19.0): this map is also the fallback merged UNDER a stored plan's settings
- * (seedStressFromDecision), and a locked plan from before charges must keep reading none (0%). The default charge is
- * written by getDefaultScenario (every new plan) and by the readers below that know the plan is unlocked.
- */
-export function getDefaultStressSettings() {
-  return {
-    equityMin: DRAWDOWN_DEFAULTS.EQUITY_MIN,
-    bondMin: DRAWDOWN_DEFAULTS.BOND_MIN,
-    cashTarget: DRAWDOWN_DEFAULTS.CASH_TARGET,
-    duration: DRAWDOWN_DEFAULTS.DURATION_YEARS,
-    baseSalary: DRAWDOWN_DEFAULTS.BASE_SALARY,
-    other: 0,
-    statePension: 12000,
-    statePensionYear: 12,
-    // Timing (6.4.0, see services/PlanTiming.js): age today + retired / retire-at-age → the saved
-    // first tax year the plan starts in. Null until the Timing block or the setup wizard sets them;
-    // a plan without an age today keeps the old implicit "starts next April".
-    currentAge: null,
-    currentAgeAsOf: null,
-    retired: null,
-    retireAge: null,
-    firstTaxYear: null,
-    potAtRetirement: null,
-    pa: TAX_DEFAULTS.PERSONAL_ALLOWANCE,
-    brl: TAX_DEFAULTS.BASIC_RATE_LIMIT,
-    hrl: TAX_DEFAULTS.HIGHER_RATE_LIMIT,
-    taxMode: 'inflates',
-    protectionMult: SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER,
-    consecutiveLimit: DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
-    disableProtection: false,
-    recoveryBuffer: DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
-    hodlEnabled: SIMULATION_DEFAULTS.HODL_ENABLED,
-    hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
-    // ISA as a depleting pot (see design/settings-model.md) — read by BOTH engines
-    // (SimulationEngine + legacyDecision via planDrawdown).
-    isaBalance: 0,
-    isaReturn: ISA_DEFAULTS.RETURN,
-    isaMin: ISA_DEFAULTS.MIN,
-    isaDrawdownStrategy: ISA_DEFAULTS.DRAWDOWN_STRATEGY
-  };
-}
+// Default stress settings for a new scenario: in storage/stressDefaults.js since 6.20.2, so the store's lock check
+// (FirestoreService.saveScenario) can read what a locked plan with no Stress settings reads, without importing this module.
+export { getDefaultStressSettings };
 
 /**
  * Default decision settings for a new scenario
@@ -378,6 +377,7 @@ export async function listScenariosAsync() {
   try {
     const scenarios = await loadAllScenarios();
     scenarios.forEach(ensureStrategyBlock);
+    scenarios.forEach(rememberStored);
     cachedScenarios = scenarios;
     return scenarios;
   } catch (error) {
@@ -650,14 +650,45 @@ export async function saveActiveStressSettings(settings) {
   if (!scenario) {
     throw new Error('No active scenario');
   }
+  // A locked plan's settings are frozen (6.20.2): only the named bookkeeping keys may change (services/LockedPlanGuard.js).
+  refuseIfLocked(scenario, 'stress', settings);
 
-  await saveScenario(scenario.id, { 'stressTool.settings': settings });
+  await saveGuardedWrite(scenario.id, { 'stressTool.settings': settings });
+  storedOf(scenario).stress = copyOf(settings);
 
   // Update cache
   if (cachedActiveScenario) {
     if (!cachedActiveScenario.stressTool) cachedActiveScenario.stressTool = {};
     cachedActiveScenario.stressTool.settings = settings;
   }
+}
+
+/**
+ * Is the active plan locked, as stored? (The planner's own flag, decisionTool.settings.locked.) False with no plan open.
+ * @returns {Promise<boolean>}
+ */
+export async function activePlanLocked() {
+  const scenario = await getActiveScenarioAsync();
+  return !!scenario && isLockedSettings(storedOf(scenario).decision);
+}
+
+/**
+ * The active plan's settings exactly as stored (a copy), never the copy in memory that readers adjust: 'stress' or
+ * 'decision'. Undefined when the plan has none saved (or no plan is open).
+ * @param {'stress'|'decision'} kind
+ */
+export async function storedActiveSettings(kind) {
+  const scenario = await getActiveScenarioAsync();
+  return scenario ? copyOf(storedOf(scenario)[kind]) : undefined;
+}
+
+/**
+ * Throws PlanLockedError (and writes nothing) when saving `settings` as the active plan's `kind` settings would change
+ * a locked plan — for a caller that writes more than the settings in one go and must refuse before any of it.
+ */
+export async function assertActiveSettingsWritable(kind, settings) {
+  const scenario = await getActiveScenarioAsync();
+  if (scenario) refuseIfLocked(scenario, kind, settings);
 }
 
 /**
@@ -679,8 +710,11 @@ export async function saveActiveDecisionSettings(settings) {
   if (!scenario) {
     throw new Error('No active scenario');
   }
+  // A locked plan's settings are frozen (6.20.2): the unlock only (services/LockedPlanGuard.js).
+  refuseIfLocked(scenario, 'decision', settings);
 
-  await saveScenario(scenario.id, { 'decisionTool.settings': settings });
+  await saveGuardedWrite(scenario.id, { 'decisionTool.settings': settings });
+  storedOf(scenario).decision = copyOf(settings);
 
   // Update cache
   if (cachedActiveScenario) {
@@ -850,12 +884,13 @@ export async function saveActiveHoldings(record) {
   return holdings;
 }
 
-/** Switch the active plan's strategy (a switch, not a lock — never blocks anything). */
+/** Switch the active plan's strategy (a switch, not a lock). Refused on a locked plan (6.20.2): its strategy is part of it. */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) throw new Error('No active scenario');
+  if (isLockedSettings(storedOf(scenario).decision)) throw new PlanLockedError(['strategy']);
   const block = { id, params, lockedAt: new Date().toISOString(), engineVersion: ENGINE_VERSION };
-  await saveScenario(scenario.id, { strategy: block });
+  await saveGuardedWrite(scenario.id, { strategy: block });
   if (cachedActiveScenario) cachedActiveScenario.strategy = block;
   return block;
 }

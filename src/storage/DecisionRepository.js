@@ -19,8 +19,13 @@ import {
   saveActiveTaxYears,
   getActiveHistory,
   saveActiveHistory,
-  invalidateScenarioCache
+  invalidateScenarioCache,
+  activePlanLocked,
+  storedActiveSettings,
+  assertActiveSettingsWritable
 } from './ScenarioRepository.js';
+import { onPlanCopyStale } from './planCopies.js';
+import { PlanLockedError, isPlanLockedError, lockedWriteRefusal, lockedSettingsToWrite } from '../services/LockedPlanGuard.js';
 
 // In-memory cache for the combined decision DB (all from active scenario)
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -82,6 +87,8 @@ function isFirebaseAvailable() {
 export function invalidateCache() {
   cachedDecisionDB = null;
 }
+// The plan was locked after this tab loaded it (the store refused a write, 6.20.2): this copy goes with the others.
+onPlanCopyStale(invalidateCache);
 
 /**
  * Loads decision database - returns defaults if not logged in
@@ -160,22 +167,32 @@ export async function saveDecisionDB(db) {
   }
 
   try {
+    // A locked plan (6.20.2): this save is a tax year's (the ISA used so far, a year set up or removed), and the
+    // settings ride along. They are written as stored, with only the named bookkeeping changes taken from the copy in
+    // memory (services/LockedPlanGuard.js) — a change made to that copy can never reach a locked plan this way. A
+    // settings change itself is refused earlier, by saveDecisionSettings.
+    let settings = db.settings;
+    if (await activePlanLocked()) {
+      const w = lockedSettingsToWrite('decision', await storedActiveSettings('decision'), db.settings);
+      if (w.dropped.length) console.warn('Locked plan: settings changed in memory were not saved:', w.dropped);
+      settings = w.settings;
+    }
     db.lastModified = new Date().toISOString();
     db.checksum = generateDecisionChecksum(db);
 
-    // Save settings and taxYears to the active scenario
-    await Promise.all([
-      saveActiveDecisionSettings(db.settings),
-      saveActiveTaxYears(db.taxYears)
-    ]);
+    // Save settings, then taxYears, to the active scenario. One after the other (6.20.2): when the store refuses the
+    // settings — the plan was locked on another device after this tab loaded it — this tab's tax years, as old as its
+    // settings, are not written over the ones that device saved.
+    await saveActiveDecisionSettings(settings);
+    await saveActiveTaxYears(db.taxYears);
 
     // Update cache
     cachedDecisionDB = db;
   } catch (error) {
-    console.error('Error saving decision data:', error);
-    // A plan saved by a newer version of the app (a tab left open across a release): pass the refusal on as it
-    // is, so the screen can say "reload the page" instead of a generic failure (6.15.0).
-    if (error && error.code === 'plan-newer-than-app') throw error;
+    if (!isPlanLockedError(error)) console.error('Error saving decision data:', error);   // a refusal is not a fault
+    // A plan saved by a newer version of the app (a tab left open across a release), or a locked plan (6.20.2): pass
+    // the refusal on as it is, so the screen can say why in plain words instead of a generic failure.
+    if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
     throw new Error('Failed to save decision data');
   }
 }
@@ -245,8 +262,16 @@ export async function getDecisionSettingsAsync() {
  */
 export async function saveDecisionSettings(settings) {
   const db = await loadDecisionDBAsync();
-  db.settings = { ...db.settings, ...settings };
-  await saveDecisionDB(db);
+  // A locked plan (6.20.2): the change asked for may only be the unlock (services/LockedPlanGuard.js) — not even how
+  // often months are recorded, which is in the settings checksum. Anything else is refused here, before a byte is
+  // written or the copy in memory is touched.
+  if (await activePlanLocked()) {
+    const stored = await storedActiveSettings('decision');
+    const keys = lockedWriteRefusal('decision', { locked: true, stored, next: { ...stored, ...settings } });
+    if (keys) throw new PlanLockedError(keys);
+  }
+  // The copy in memory changes only once the write has gone through.
+  await saveDecisionDB({ ...db, settings: { ...db.settings, ...settings } });
 }
 
 /**
@@ -572,9 +597,13 @@ export async function wipeAllDecisionData() {
   }
 
   const defaultDB = getDefaultDecisionDB();
+  // A locked plan refuses the whole reset before any of it is written (6.20.2): its records and tax years stay with it.
+  await assertActiveSettingsWritable('decision', defaultDB.settings);
 
+  // The settings first (6.20.2): if the store refuses them (the plan was locked after this tab loaded it), the records
+  // and tax years are not wiped either.
+  await saveActiveDecisionSettings(defaultDB.settings);
   await Promise.all([
-    saveActiveDecisionSettings(defaultDB.settings),
     saveActiveTaxYears({}),
     saveActiveHistory([])
   ]);

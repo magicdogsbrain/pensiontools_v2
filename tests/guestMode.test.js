@@ -66,6 +66,40 @@ describe('guest mode — everything works, nothing leaves the tab', () => {
   });
 });
 
+describe('a guest\'s stored plans are never the objects the app holds (review of 6.20.2)', () => {
+  // Signed in, every read is a fresh copy from Firestore. A guest's store handed out its own objects (a shallow copy of
+  // each plan), so a change made in memory — the Budget's age folded into the Stress copy on load — became the stored
+  // plan's, and the next unrelated save or the sign-in hand-off carried it.
+  it('a loaded plan changed in memory changes nothing stored, before or after any save', async () => {
+    enterGuestMode(); clearGuestData();
+    const id = await createScenario({ planDetails: { name: 'P' }, isActive: true, stressTool: { settings: { currentAge: 48, equityMin: 7 } }, decisionTool: { settings: { locked: true }, history: [], taxYears: {} } });
+    const [a] = await loadAllScenarios();
+    a.stressTool.settings.currentAge = 50;
+    a.decisionTool.settings.spendingProfile = 'flat';
+    expect((await loadScenario(id)).stressTool.settings.currentAge).toBe(48);
+    await saveScenario(id, { journey: [] });
+    const [b] = await loadAllScenarios();
+    b.stressTool.settings.currentAge = 51;
+    await saveScenario(id, { holdings: { lines: [] } });
+    expect((await loadAllScenarios())[0].stressTool.settings).toEqual({ currentAge: 48, equityMin: 7 });
+    expect(guestSnapshot()[0].stressTool.settings.currentAge).toBe(48);
+    expect(guestSnapshot()[0].decisionTool.settings).toEqual({ locked: true });
+    leaveGuestMode(); clearGuestData();
+  });
+  it('what was handed to a save is copied: changing it afterwards changes nothing stored', async () => {
+    enterGuestMode(); clearGuestData();
+    const settings = { currentAge: 48 };
+    const plan = { planDetails: { name: 'P' }, isActive: true, stressTool: { settings: { currentAge: 1 } }, decisionTool: { settings: {}, history: [], taxYears: {} } };
+    const id = await createScenario(plan);
+    plan.stressTool.settings.currentAge = 99;
+    expect((await loadScenario(id)).stressTool.settings.currentAge).toBe(1);
+    await saveScenario(id, { 'stressTool.settings': settings });
+    settings.currentAge = 50;
+    expect((await loadScenario(id)).stressTool.settings.currentAge).toBe(48);
+    leaveGuestMode(); clearGuestData();
+  });
+});
+
 describe('guest plans carry the schema version and go through the same upgrade (6.15.0)', () => {
   it('a plan a guest creates is born current, the version at its root and in neither settings map', async () => {
     enterGuestMode(); clearGuestData(); invalidateScenarioCache(); invalidateStressCache();

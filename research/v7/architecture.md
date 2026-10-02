@@ -105,8 +105,12 @@ slice: the income-tax sum above £100,000, and the `planDrawdown` speed-up.
 
 Both proposals protect a locked plan the same way: V7 reads saved plans through today's repositories (so the
 version check and upgrade chain apply), turns saved settings into engine inputs through today's functions
-(so there is one path from plan to numbers), and refuses to write a locked plan's Decision settings, history
-or plan documents.
+(so there is one path from plan to numbers), and refuses to write a locked plan's Stress or Decision settings,
+history or plan documents. Since 6.20.2 today's repositories enforce the settings half themselves: every save of a
+locked plan's Stress or Decision settings is refused unless it changes only a named bookkeeping key (the plan-start
+pin, the unlock itself; the list is in `src/services/LockedPlanGuard.js`), and the store applies the same rule to the
+plan as stored, just before it writes, so a tab that loaded the plan before it was locked elsewhere is refused too.
+V7 inherits the rule by going through them.
 
 For the first slice the protection is stronger and simpler: **V7 cannot write a plan because it cannot
 import the code that does.** The import test fails the build if any file under `src/v7/` imports

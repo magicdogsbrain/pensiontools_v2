@@ -125,9 +125,10 @@ describe('the timing check at 1,000 lives', () => {
     };
     for (const [step, [x, t]] of Object.entries(steps)) console.log(`a partner with nothing — ${step}: apart ${Math.round(x)} ms, together ${Math.round(t)} ms, ratio ${(x / t).toFixed(3)}`);
     // 1.10 is the design's limit, held on a machine running this file on its own. On a 2-core CI runner the suite runs
-    // test files side by side, and a wall-clock ratio there wanders by about ±10% (2 Oct 2026: B at 1.110 in CI, 1.02
-    // here), so CI holds 1.25 and prints the ratio.
-    const limit = process.env.CI ? 1.25 : 1.10;
+    // test files side by side and a wall-clock ratio there is noise (2 Oct 2026: B 1.110, then A's chart 1.313, against
+    // 1.01–1.02 here), so CI holds the same 1.5 guard as the cases above and prints the ratio. That the engine does the
+    // same work apart and together is held exactly, by count, in apart.identity.test.js.
+    const limit = process.env.CI ? 1.5 : 1.10;
     for (const [step, [x, t]] of Object.entries(steps)) expect(x / t, step).toBeLessThanOrEqual(limit);
   }, LONG);
 });

@@ -152,18 +152,25 @@ describe('the adapter hands the household\'s charge to every run', () => {
 
 describe('closed forms in the drawing years: a flat future, 0% on everything, the pension in cash, nothing drawn', () => {
   const FLAT = { ...ENV, futures: 1, futureReturns: () => ({ equity: {}, inflation: {} }), mix: { equity: 0, bond: 0, cash: 1 } };
+  // how the ISA grows (6.22.0): with no choice at the engine's fixed 3%; "Mostly cash" at the cash rule, nothing at flat
+  // prices; "invested" at the pension's mix, here all cash — so nothing either. The charge comes off after it either way.
   for (const pct of [0.05, 0.5, 3]) {
-    it(`at ${pct}%: the pension ends at pot × (1 − c)^years, the ISA at isa × ((1 + 3%)(1 − c))^years`, () => {
-      const h = householdC({ you: { pot: 300_000, age: 65, statePension: { kind: 'none' } }, savings: 50_000 }, FLAT, pct);
-      const plan = enginePlan(h, FLAT);
-      const [{ config }] = configsAt(plan, 0);
-      const [future] = futuresList(1, plan.years, FLAT);
-      const r = simulateFast(config, future);
-      const Y = plan.years;
-      expect(r.failed).toBe(false);
-      expect(Math.abs(r.cash / (300_000 * Math.pow(1 - pct / 100, Y)) - 1)).toBeLessThan(1e-12);
-      expect(Math.abs(r.isa / (50_000 * Math.pow((1 + ISA_DEFAULTS.RETURN) * (1 - pct / 100), Y)) - 1)).toBeLessThan(1e-11);
-      expect(same(simulate(config, future.returns, future.seed), r)).toBe(true);
+    it(`at ${pct}%: the pension ends at pot × (1 − c)^years, the ISA at isa × ((1 + g)(1 − c))^years (g: 3% with no choice, 0 for cash at flat prices)`, () => {
+      const base = householdC({ you: { pot: 300_000, age: 65, statePension: { kind: 'none' } }, savings: 50_000 }, FLAT, pct);
+      expect(base.isaGrowth).toBe('cash');                                  // the form's default, with savings
+      const { isaGrowth: given, ...none } = base;
+      void given;
+      for (const [h, g] of [[none, ISA_DEFAULTS.RETURN], [base, 0], [{ ...base, isaGrowth: 'invested' }, 0]]) {
+        const plan = enginePlan(h, FLAT);
+        const [{ config }] = configsAt(plan, 0);
+        const [future] = futuresList(1, plan.years, FLAT);
+        const r = simulateFast(config, future);
+        const Y = plan.years;
+        expect(r.failed).toBe(false);
+        expect(Math.abs(r.cash / (300_000 * Math.pow(1 - pct / 100, Y)) - 1)).toBeLessThan(1e-12);
+        expect(Math.abs(r.isa / (50_000 * Math.pow((1 + g) * (1 - pct / 100), Y)) - 1), String(h.isaGrowth)).toBeLessThan(1e-11);
+        expect(same(simulate(config, future.returns, future.seed), r)).toBe(true);
+      }
     });
   }
 });

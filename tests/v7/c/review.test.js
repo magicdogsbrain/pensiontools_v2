@@ -127,7 +127,14 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(warning(a, 'pension-locked-partner').text).toBe("Your partner can't take money from their pension until they are 57 (April 2028 rules). Until then it is left alone and the rest of the money pays.");
     expect(checkTrace(a)).toEqual([]);
     const without = ok(answerC(inputs, ENV), inputs);
-    for (const k of ['careful', 'middling', 'good']) expect(a.monthly[k], k).toBeGreaterThanOrEqual(without.monthly[k]);
+    // More savings never lowers the careful amount. Held as "Mostly cash" (6.22.0, the default) they can lower the middle
+    // and good ones for this couple: the partner's savings carry their share of the spending for the whole plan in a run of
+    // their own, and cash falls behind prices (exceptions.md, "Savings held as cash beside a closed pension"). Invested
+    // like the pension, they lower none of the three.
+    expect(a.inputs.isaGrowth).toBe('cash');
+    expect(a.monthly.careful).toBeGreaterThanOrEqual(without.monthly.careful);
+    const invested = ok(answerC({ ...withSavings, isaGrowth: 'invested' }, ENV), { ...withSavings, isaGrowth: 'invested' });
+    for (const k of ['careful', 'middling', 'good']) expect(invested.monthly[k], k).toBeGreaterThanOrEqual(without.monthly[k]);
     // a partner with savings and no pension is the same household as one with savings and a £1 pension
     const none = ok(answerC({ ...withSavings, partner: { age: 50, pot: 0 } }, ENV));
     const one = ok(answerC({ ...withSavings, partner: { age: 50, pot: 1 } }, ENV));
@@ -293,11 +300,14 @@ describe('4 under the earliest pension age, through the form — a start at an a
 });
 
 describe('5 savings', () => {
-  it('are treated as ISA money growing at a fixed 3% a year, the engine\'s own figure', () => {
-    expect(RULES.savingsGrowth).toBe(ISA_DEFAULTS.RETURN);
+  it('are treated as ISA money that grows as the household chooses: "Mostly cash" unless chosen (6.22.0; the fixed 3% is only a run with no choice)', () => {
+    expect(RULES.savingsGrowth).toBe(ISA_DEFAULTS.RETURN);                  // what a run with no choice still uses: the engine's own figure
     const a = ok(answerC({ you: { pot: 250000, age: 58 }, savings: 20000 }, ENV));
-    expect(assumed(a, 'savings-as-isa').text).toBe('Your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year.');
-    expect(texts(a)).not.toMatch(/what cash earns/);
+    expect(assumed(a, 'savings-growth')).toMatchObject({ field: 'isaGrowth', source: 'default', value: 'cash',
+      text: 'Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year\'s rise in prices less 1%, or not at all if prices rose by less than 1%.' });
+    expect(texts(a)).not.toMatch(/what cash earns|fixed 3%/);
+    const inv = ok(answerC({ you: { pot: 250000, age: 58 }, savings: 20000, isaGrowth: 'invested' }, ENV));
+    expect(assumed(inv, 'savings-growth').text).toBe('Your savings are treated as ISA money: tax-free to take. They are invested like your pension: the same mix of shares, bonds and cash, in the same futures.');
   });
 });
 

@@ -229,7 +229,7 @@ migration is needed: every new key is optional and is read with a default.
 | S.equityMin, bondMin, cashTarget | p.pension.today × RISK_PRESETS[seed.risk] .equity, .bond, .cash, in whole £. If today is £0 on a `'later'` plan, use atStop.middling instead (Q10) | £, today |
 | S.allocMode, taggedFunds, diversifierStart, equityGlideEnabled | `'risk'`, `[]`, 0, false. The intended mix is the risk level; there is no fund list and no holdings | — |
 | S.potAtRetirement | `'later'`: `{ sipp: p.pension.atStop.middling ‖ null, isa: p.savings.atStop.middling ‖ null, source: 'override' }`. `'now'`: null | £, today's prices |
-| S.isaBalance | p.savings.today. If that is £0 on a `'later'` plan, use atStop.middling (Q10) | £, today |
+| S.isaBalance | p.savings.today, £0 included. (Until the review of 6.22.0 a £0 on a `'later'` plan was replaced by atStop.middling (Q10); once 6.22.0 counted what goes into savings each month, that counted it twice. The runs start from potAtRetirement.isa when there is no ISA today: PlanTiming.isaAtRetirementOf.) | £, today |
 | S.isaDrawdownStrategy, isaReturn | the defaults, `'minimiseEarlyTax'` and 0.03 (= V7's savings growth) | — |
 | S.baseSalary | `Math.round(grossUpAnnual(p.takeHome[0].perMonth × 12))` | £ a year, before tax, today's prices |
 | S.incomeShape, incomeSteps | One row: `'level'`, `[{ fromAge: shapeAgeNow, amount: baseSalary }]`. More rows: `'phases'`, each row `{ fromAge, amount: Math.round(grossUpAnnual(perMonth × 12)) }`, with the first fromAge = shapeAgeNow. If the first rows are £0, set baseSalary to 0 and start the steps at the first row above £0. No targetSchedule is written (it is compiled from the steps) | £ a year, before tax |

@@ -70,6 +70,7 @@ import { RISK_PRESETS } from './GlidepathService.js';
 import { grossUpAnnual, defaultBudget, BUDGET_CATEGORIES, SUGGESTED_EXTRAS } from './BudgetModel.js';
 import { amountAtAge } from './IncomeSchedule.js';
 import { isChargesPct, DEFAULT_CHARGES_PCT } from './Charges.js';
+import { isIsaGrowth, DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
 /** The version V7 writes now for a flat spend (src/answers/keep/planSeed.js has the same value; a shaped spend writes 3). */
@@ -526,7 +527,8 @@ export function answerLastedWords(seed) {
   if (share === null) return '';
   const out = share >= 1 ? 'in every future it tried'
     : share >= 0.95 ? 'in more than 9 futures out of 10'
-    : share >= 0.85 ? 'in 9 futures out of 10'
+    : share >= 0.9 ? 'in 9 futures out of 10'
+    : share >= 0.85 ? 'in just under 9 futures out of 10'   // not the 9 in 10 "on course" is (6.22.0; V7's lastedText)
     : share >= 0.15 ? 'in ' + Math.round(share * 10) + ' futures out of 10'
     : share >= 0.05 ? 'in only 1 future out of 10'
     : share > 0 ? 'in fewer than 1 future out of 10' : 'in none of the futures it tried';
@@ -683,15 +685,18 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
   S.shapeAgeNow = deriveTiming(S, T).shapeAgeNow;
   S.duration = p.years;
 
-  // The pots: the intended mix is the risk level (never holdings). A £0 pot today on a plan stopping later cannot be
-  // scaled up, so the middling pot at the stop is written in its place (Q10); the true £0 is kept in fromAnswer.
+  // The pots: the intended mix is the risk level (never holdings). A £0 pension today on a plan stopping later cannot be
+  // scaled up (its mix is the three pots), so the middling pot at the stop is written in its place (Q10); the true £0 is
+  // kept in fromAnswer. Savings are one figure: today's £0 is written as it is, and the savings at the stop are the ISA at
+  // retirement, which the runs start from (PlanTiming.isaAtRetirementOf). Until the review of 6.22.0 the savings at the
+  // stop stood in for today's savings too, and the readers that now add what goes in each month counted it twice.
   const preset = RISK_PRESETS[seed.risk];
   const sippBase = later && !(p.pension.today > 0) ? p.pension.atStop.middling : p.pension.today;
   const equity = Math.round(sippBase * preset.equity), bond = Math.round(sippBase * preset.bond);
   Object.assign(S, {
     equityMin: equity, bondMin: bond, cashTarget: Math.round(sippBase) - equity - bond,
     allocMode: 'risk', taggedFunds: [], diversifierStart: 0, equityGlideEnabled: false,
-    isaBalance: later && !(p.savings.today > 0) ? p.savings.atStop.middling : p.savings.today,
+    isaBalance: p.savings.today,
     isaDrawdownStrategy: 'minimiseEarlyTax', isaReturn: 0.03,
     potAtRetirement: later ? { sipp: p.pension.atStop.middling || null, isa: p.savings.atStop.middling || null, source: 'override' } : null
   });
@@ -722,21 +727,28 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
   // only — the Decision settings never carry it.
   const answerCharge = seed.inputs && seed.inputs.charge;
   S.chargesPct = isChargesPct(answerCharge) ? answerCharge : DEFAULT_CHARGES_PCT;
+  // How the ISA and savings grow (6.22.0): the answer's own choice under its savings box ("Mostly cash" or "Invested like
+  // my pension"), carried in its checked inputs like the charge; a seed without one (an older V7 tab) or with an invalid
+  // one gives the default every new plan gets, "Mostly cash". A Stress setting only.
+  const answerIsaGrowth = seed.inputs && seed.inputs.isaGrowth;
+  S.isaGrowth = isIsaGrowth(answerIsaGrowth) ? answerIsaGrowth : DEFAULT_ISA_GROWTH;
 
   // Month by month: the wizard's two fields only — nothing recorded, not locked (Q11).
   plan.decisionTool = { settings: { ...getDefaultDecisionSettings(), duration: p.years, firstTaxYear: S.firstTaxYear }, history: [], taxYears: {} };
 
   // Money still going in: the saving section. V7's figures are what lands in the pension, the tax added back included;
   // relief at source makes gross = net ÷ 0.8, so the person's own part is entered as × 0.8 and what lands is V7's figure.
-  // A split with a part missing takes it as the rest of the total.
+  // A split with a part missing takes it as the rest of the total. What goes into savings each month (6.22.0) has its own
+  // box, "Into ISAs and savings" (isaMonthly): the section is written when either is above £0.
   const pay = p.payIn;
-  if (later && pay && pay.total > 0) {
+  const savingsIn = pay && isMoney(pay.savingsIn) && pay.savingsIn > 0 ? pay.savingsIn : 0;
+  if (later && pay && (pay.total > 0 || savingsIn > 0)) {
     const split = pay.kind === 'split';
     const employer = split ? (isMoney(pay.employer) ? pay.employer : Math.max(0, pay.total - (pay.own || 0))) : 0;
     const own = split ? (isMoney(pay.own) ? pay.own : Math.max(0, pay.total - employer)) : pay.total;
     plan.accumulationTool = { settings: {
       currentAge: p.ageToday, retirementAge: p.ageAtStop, potNow: p.pension.today, salary: 0, schemeType: 'ras',
-      netMonthly: round2(own * 0.8), employerMonthly: employer, escalationPct: 0
+      netMonthly: round2(own * 0.8), employerMonthly: employer, escalationPct: 0, ...(savingsIn > 0 ? { isaMonthly: savingsIn } : {})
     } };
   }
 

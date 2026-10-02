@@ -16,7 +16,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, agesToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, partTimeHidden, shapeFields } from '../shared/schemaParts.js';
+  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault } from '../shared/schemaParts.js';
 
 const hiddenWhenStopped = (f) => (Object.keys(partTimeHidden()).length ? { ...f, whenNot: partTimeHidden() } : f);
 
@@ -57,7 +57,11 @@ export const SCHEMA_A = {
     // "Add more detail" — all optional, each with a default that is listed under what was assumed (the tax-free part of
     // someone who has stopped has none: not answered is not taken).
     ...taxFreeFields('a'),
-    ...moreFields()
+    ...moreFields(),
+    // How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension". In the savings box's group (the first
+    // form), drawn straight under it; declared last because its default reads the savings and what goes into them each
+    // month — "Mostly cash" once there is money in savings, nothing at all otherwise (today's inputs, key for key).
+    isaGrowthField('you')
   ],
 
   // Checked by validate.js after every field has passed its own limits. The error goes on the FIRST field named.
@@ -76,6 +80,9 @@ export const SCHEMA_A = {
       { id: 'partner-stop-ages-past-75', fields: ['partner.stop.kind'] }                 // …and only while they are 75 or under
     ] : [])
   ],
+
+  /** Defaults that depend on other values (validate.js): how the savings grow, only once there is money in savings. */
+  defaultRules: { isaGrowth: savingsGrowthDefault },
 
   /** The stop ages a result carries (conflict 31): a rule of the list, never a choice a screen makes. */
   agesToShow,

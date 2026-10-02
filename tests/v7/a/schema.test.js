@@ -87,6 +87,8 @@ describe('SCHEMA_A — the declaration', () => {
   it('a default is an allowed value; an age is never assumed', () => {
     for (const f of SCHEMA_A.fields.filter((x) => 'default' in x)) {
       const d = f.default;
+      // a default by rule (6.22.0: how the savings grow, only once there is money in savings) names a rule of the list
+      if (d && typeof d === 'object') { expect(typeof SCHEMA_A.defaultRules[d.rule], f.path).toBe('function'); continue; }
       if (f.type === 'choice') expect(f.options).toContain(d);
       else if (f.type === 'yesNo') expect(typeof d).toBe('boolean');
       else if (d !== null) { expect(d).toBeGreaterThanOrEqual(f.min); expect(d).toBeLessThanOrEqual(f.max); }
@@ -94,7 +96,11 @@ describe('SCHEMA_A — the declaration', () => {
     expect(byPath.get('you.age').default).toBeUndefined();
     expect(byPath.get('partner.age').default).toBeUndefined();
     expect(byPath.get('stop.age').default).toBeUndefined();
-    expect(SCHEMA_A.defaultRules).toBeUndefined();
+    // the one rule of A's list (6.22.0): "Mostly cash" once there is money in savings, nothing otherwise
+    expect(Object.keys(SCHEMA_A.defaultRules)).toEqual(['isaGrowth']);
+    expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 1 })).toBe('cash');
+    expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 0, savingsIn: 1 })).toBe('cash');
+    expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 0, savingsIn: 0 })).toBeUndefined();
   });
 
   it('the groups are the blocks of the form', () => {
@@ -102,6 +108,7 @@ describe('SCHEMA_A — the declaration', () => {
     // the spending shape is its own block on the spend step (spending-shape.md 4.1)
     expect([...new Set(SCHEMA_A.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'shape', 'work', 'partner']);
     expect(byPath.get('savings').group).toBe('you');                   // on A's short form (conflict 23)
+    expect(byPath.get('isaGrowth').group).toBe('you');                 // how the savings grow, with them (6.22.0)
     expect(byPath.get('you.alreadyDrawing').group).toBe('more');
   });
 
@@ -156,7 +163,7 @@ describe('SCHEMA_A — the declaration', () => {
       household: 'single',
       you: { age: 50, pot: 250000, payIn: { kind: 'total', total: 600 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false } },
       savings: 40000, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 2000 }, partTime: { has: false },
-      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95
+      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, isaGrowth: 'cash'
     });
     expect(validate(SCHEMA_A, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_A, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
@@ -214,7 +221,7 @@ describe('the shared parts — one declaration for A, B and C', () => {
     expect(strip(SCHEMA_B.fields.find((f) => f.path === 'savings'))).toEqual(strip(cField('savings')));
   });
 
-  it('every path A and B share is the same field in both (`when` aside; required/default on you.payIn.total aside; savings\' group aside)', () => {
+  it('every path A and B share is the same field in both (`when` aside; required/default on you.payIn.total aside; savings\' group aside, and that of how they grow)', () => {
     const bByPath = new Map(SCHEMA_B.fields.map((f) => [f.path, f]));
     // the stop question and the partner's stop question differ by "show me ages", which only A has (A: an age in mind or
     // ages to look at; B: an age); B's stop age is hidden by "I've already stopped", A's is inside "An age"
@@ -222,7 +229,7 @@ describe('the shared parts — one declaration for A, B and C', () => {
     const exempt = (path, f) => {
       const { required, default: d, ...rest } = withoutWhen(f);
       if (path === 'you.payIn.total') return rest;
-      if (path === 'savings') { const { group, ...r } = { required, default: d, ...rest }; return r; }
+      if (path === 'savings' || path === 'isaGrowth') { const { group, ...r } = { required, default: d, ...rest }; return r; }
       return { required, default: d, ...rest };
     };
     let shared = 0;

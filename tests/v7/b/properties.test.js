@@ -89,13 +89,14 @@ describe('B — properties between two answers', () => {
   // by their pots, so behind a huge pension the closed partner's share is tiny and £6,000 "carries" the closed years, but
   // behind a real one their £3,000 runs out in month 17 — and the number search inflates the pension until the share is
   // small enough. Not this package's to change (B's answer and its floor); tests/v7/b/exceptions.md. `.fails` keeps it
-  // pinned: when B is fixed this goes red, and `.fails` comes off.
-  it.fails('PB4 found: a couple both closed at the stop — the guide number at £510 a month is no lower than at £500 (OPEN FAULT)', () => {
+  // pinned: when B is fixed this goes red, and `.fails` comes off. (6.22.0: the savings set aside grow as "Mostly cash", so
+  // the floor steps up £10 sooner and the fall moved with it: £594,000 at £490 a month, £75,000 at £500.)
+  it.fails('PB4 found: a couple both closed at the stop — the guide number at £500 a month is no lower than at £490 (OPEN FAULT)', () => {
     const couple = { household: 'couple', you: { pot: 0, age: 19, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 0 }, alreadyDrawing: false },
-      stop: { age: 56 }, spend: { kind: 'amount', amount: 500 }, partner: { age: 18, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 0 }, alreadyDrawing: false },
+      stop: { age: 56 }, spend: { kind: 'amount', amount: 490 }, partner: { age: 18, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 0 }, alreadyDrawing: false },
       savings: 0, savingsIn: 0, savingRisk: 'cautious', risk: 'cautious', charge: 0, endAge: 75, confidence: 'nineInTen' };
     const a = answerB(couple, ENV);
-    const b = answerB({ ...couple, spend: { kind: 'amount', amount: 510 } }, ENV);
+    const b = answerB({ ...couple, spend: { kind: 'amount', amount: 500 } }, ENV);
     for (const k of THREE) expect(b.number[k], k).toBeGreaterThanOrEqual(a.number[k] - STEP.pot);
   });
 

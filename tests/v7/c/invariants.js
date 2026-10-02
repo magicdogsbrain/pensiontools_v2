@@ -27,7 +27,7 @@ export function unsaveable(v, path = '', out = []) {
 const ASSUMED_FIELD = {
   'you.statePension.kind': 'state-pension-full', 'partner.statePension.kind': 'state-pension-full-partner',
   'you.finalSalary.has': 'no-final-salary', 'partner.finalSalary.has': 'no-final-salary-partner',
-  'partner.pot': 'partner-no-pot', savings: 'all-pension', risk: 'risk', charge: 'charges', endAge: 'plan-to', 'start.kind': 'start', 'start.age': 'start'
+  'partner.pot': 'partner-no-pot', savings: 'all-pension', isaGrowth: 'savings-growth', risk: 'risk', charge: 'charges', endAge: 'plan-to', 'start.kind': 'start', 'start.age': 'start'
 };
 
 export function checkAnswer(answer, given) {
@@ -203,7 +203,7 @@ export function checkAnswer(answer, given) {
     for (const [field, id] of Object.entries(ASSUMED_FIELD)) {
       const applies = Object.prototype.hasOwnProperty.call(flatten(answer.inputs), field);
       if (!applies || flat[field] !== undefined) continue;
-      if (field === 'savings' && !answer.assumed.some((a) => a.id === 'savings-as-isa') && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
+      if (field === 'savings' && !answer.assumed.some((a) => a.id === 'savings-growth') && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'risk' && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'start.age' && answer.inputs.start.kind !== 'age') continue;
       if (field === 'charge' && answer.status !== 'ok') continue;   // nothing held in funds or cash: nothing to charge
@@ -234,6 +234,13 @@ export function checkAnswer(answer, given) {
   for (const id of ['charge-saving', 'no-charges']) if (ids.includes(id)) fail('I10', `the old line ${id}`);
   const ch = answer.assumed.find((a) => a.id === 'charges');
   if (ch && (ch.field !== 'charge' || ch.value !== answer.inputs.charge)) fail('I10', `charges: field ${ch.field}, value ${ch.value} (input ${answer.inputs.charge})`);
+  // how the savings grow (6.22.0): said whenever the savings box is above £0, with its field and the choice in the inputs;
+  // the fixed-3% line is gone
+  if (answer.inputs.savings > 0) always.push('savings-growth');
+  else if (ids.includes('savings-growth')) fail('I10', 'a savings-growth line with no savings');
+  if (ids.includes('savings-as-isa')) fail('I10', 'the old line savings-as-isa');
+  const sg = answer.assumed.find((a) => a.id === 'savings-growth');
+  if (sg && (sg.field !== 'isaGrowth' || sg.value !== answer.inputs.isaGrowth)) fail('I10', `savings-growth: field ${sg.field}, value ${sg.value} (input ${answer.inputs.isaGrowth})`);
   for (const id of always) if (!ids.includes(id)) fail('I10', `assumed lacks ${id}`);
 
   // I11 every sentence carries its own numbers: text is the parts joined, and every key leads to a number

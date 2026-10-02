@@ -10,6 +10,7 @@
  * Pure: no DOM, no storage.
  */
 import { deriveTiming, taxYearLabel, taxYearStartOf, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
+import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 
 export const APPROACHING_YEARS = 5;   // how far out "approaching retirement" starts (Chris, 10 Sep 2026)
 
@@ -17,7 +18,7 @@ export const STAGES = Object.freeze({
   saving: {
     key: 'saving', label: 'Saving', chip: 'saving',
     leads: ['budget', 'accumulation'], readOnly: [], hidden: [],
-    banner: { text: 'You are saving. Set the income you will want (Budget), then check you are on track for it (Accumulation planner). The Stress tester can price the plan on the pots you will have at retirement.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
+    banner: { text: 'You are saving. Set the income you will want (Budget), then check you are on course for it (Accumulation planner). The Stress tester can price the plan on the pots you will have at retirement.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
   },
   approaching: {
     key: 'approaching', label: 'Approaching retirement', chip: 'approaching',
@@ -156,20 +157,71 @@ export function decisionLockQuestion(stage) {
 }
 
 /**
- * Arrival check: the first month after a locked-while-saving plan starts brings the real pots. Compare
- * them with what the plan was priced on. Returns null when nothing to check.
+ * Arrival check: the first month after a locked-while-saving plan starts brings the real pots. Compare them with what the
+ * locked plan expected at the stop — with the SAME measure as the monthly reading (6.22.0, services/SaverReading.js):
+ *  - a version-3 path (locks from 6.22.0): pension + ISA (when the path counts one) against the path's middle line at the
+ *    stop, both in pounds of the day. With no ISA figure above £0 in the entry — a blank box, or the Decision box left at
+ *    £0, which there means "use the tax year's ISA set-up" — the pension against the path's own pension line, and the
+ *    words say the ISA is left out (review of 6.22.0: a blank box was read as £0, so a saver on course was offered to
+ *    unlock and re-plan);
+ *  - an older path: the pension, put into the path's prices (2.5% a year, as the path was drawn), against the path's own
+ *    line at the stop (its "your mix" line when it has one, else the middle line);
+ *  - no path (locked with no pot on record, or before 6.7.0): the pension at retirement the plan was priced on, the pot
+ *    put into the prices of the day the document was written in the same way.
+ * Until 6.22.0 it set the pot in the pounds of the day against a figure in the prices of the lock, pension only, so a
+ * saver exactly on course after years of rising prices was told to unlock and re-plan.
+ * @param {{ sipp: number, isa?: number|string|null }} potsEntered   the first Decision entry's pension (equity + bond + cash)
+ *   and its ISA box as it stands (blank or null: no figure)
+ * @param {{ tolerance?: number, now?: Date, at?: string|Date }} [opts]   `at`: the entry's month ('YYYY-MM'); default this month (`now`)
+ * @returns {null | { expected, actual, compared, ratio, within, measure: 'path-v3'|'path-v3-pension'|'path-v2'|'priced', message }}
  */
-export function arrivalCheck(stage, planDocument, potsEntered, { tolerance = 0.10 } = {}) {
+export function arrivalCheck(stage, planDocument, potsEntered, { tolerance = 0.10, now = new Date(), at = now } = {}) {
   if (!stage || !planDocument || stage.timingMode !== 'future' || stage.beforeStart) return null;
-  const par = planDocument.pots?.potAtRetirement;
-  const expected = +(par?.sipp || 0) > 0 ? +par.sipp : +(planDocument.pots?.sipp || 0);
+  const doc = planDocument;
+  const sipp = +(potsEntered?.sipp || 0);
+  const isaFig = figureOrNull(potsEntered ? potsEntered.isa : null);
+  const isaIn = isaFig == null ? 0 : isaFig;
+  const version = savingPathVersion(doc);
+  const pathOk = version != null && Array.isArray(doc.accumulation.path) && doc.accumulation.path.length > 0;
+  const pctOff = (r) => (r > 1 ? '+' : '') + Math.round((r - 1) * 100) + '%';
+  const within = (r) => Math.abs(r - 1) <= tolerance;
+  const tail = (r) => (within(r) ? ' — within ' + Math.round(tolerance * 100) + '%. The locked plan runs as it is.'
+    : ' (' + pctOff(r) + '). Run the locked plan on what you have, or unlock and re-plan — the plan document is kept as version one either way.');
+  // A reading at the stop: the entry's month, but never read past the path's end (clamped to it).
+  if (pathOk) {
+    if (version === 3 && pathCountsIsa(doc) && !(isaIn > 0)) {
+      const line = v3PensionLineAt(doc, at);
+      if (!(line > 0)) return null;
+      const ratio = sipp / line;
+      return { expected: Math.round(line), actual: Math.round(sipp), compared: Math.round(sipp), ratio, within: within(ratio), measure: 'path-v3-pension',
+        message: 'Your pension pot is ' + gbp(sipp) + ' against ' + gbp(line) + ' the locked path expects in your pension at the stop (its middle line, in pounds of the day). No ISA figure was entered with this month, so your ISA is left out' + tail(ratio) };
+    }
+    const r = saverReading(doc, { at, pension: sipp, isa: isaIn });
+    if (!r || !(r.expected > 0) || r.compared == null) return null;
+    const ratio = r.compared / r.expected;
+    if (version === 3) {
+      const what = r.isaCounted ? 'Your pension and ISA come to ' : 'Your pension pot is ';
+      return { expected: r.expected, actual: r.actual, compared: r.compared, ratio, within: within(ratio), measure: 'path-v3',
+        message: what + gbp(r.actual) + ' against ' + gbp(r.expected) + ' the locked path expects at the stop (its middle line, in pounds of the day)' + tail(ratio) };
+    }
+    return { expected: r.expected, actual: r.actual, compared: r.compared, ratio, within: within(ratio), measure: 'path-v2',
+      message: 'Your pension pot is ' + gbp(r.actual) + pricesWords(doc, r.compared, r.prices.factor, 'the locked path was drawn') + ', against ' + gbp(r.expected) + ' the locked path expects at the stop' + tail(ratio) };
+  }
+  const par = doc.pots?.potAtRetirement;
+  const expected = +(par?.sipp || 0) > 0 ? +par.sipp : +(doc.pots?.sipp || 0);
   if (!(expected > 0)) return null;
-  const actual = +(potsEntered?.sipp || 0);
-  const ratio = actual / expected;
-  const within = Math.abs(ratio - 1) <= tolerance;
-  return { expected, actual, ratio, within, message: within
-    ? 'Your pot is ' + gbp(actual) + ' against ' + gbp(expected) + ' the plan was priced on — within ' + Math.round(tolerance * 100) + '%. The locked plan runs as it is.'
-    : 'Your pot is ' + gbp(actual) + ' against ' + gbp(expected) + ' the plan was priced on (' + (ratio > 1 ? '+' : '') + Math.round((ratio - 1) * 100) + '%). Run the locked plan on what you have, or unlock and re-plan — the plan document is kept as version one either way.' };
+  const pr = saverPrices({ createdAt: doc.createdAt, lockedAt: doc.lockedAt }, monthOf(at) || at);
+  const compared = sipp / pr.factor;
+  const ratio = compared / expected;
+  return { expected, actual: sipp, compared: Math.round(compared), ratio, within: within(ratio), measure: 'priced',
+    message: 'Your pot is ' + gbp(sipp) + pricesWords({ createdAt: doc.createdAt, lockedAt: doc.lockedAt }, compared, pr.factor, 'the plan document was written') + ', against ' + gbp(expected) + ' the plan was priced on' + tail(ratio) };
+}
+
+/** ", which is £Y in the prices of July 2026, when the locked path was drawn (prices assumed to rise 2.5% a year, as the path does)" */
+function pricesWords(doc, compared, factor, when) {
+  const start = pathStart(doc).at;
+  if (!start || !(Math.abs(factor - 1) >= 0.0005)) return '';
+  return ', which is ' + gbp(compared) + ' in the prices of ' + monthWords(start) + ', when ' + when + ' (prices assumed to rise ' + (OLD_PATH_CPI * 100).toFixed(1) + '% a year, as the path does)';
 }
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');

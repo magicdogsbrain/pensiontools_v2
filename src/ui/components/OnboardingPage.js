@@ -150,9 +150,9 @@ function renderOnboardingPage(userName, onStartWizard, opts = {}) {
           <p>For the years BEFORE retirement: say what you can spare from take-home pay and it works
           out the gross pension purchase under your scheme's tax relief (relief at source, net pay,
           or salary sacrifice — including the NI saving), projects your pot at the FCA's low/middle/high
-          growth rates, and checks whether you're on track for <strong>your own plan</strong> — the pot
-          your chosen strategy needs (a gilt ladder's price, or 85% Monte-Carlo success for an invested
-          drawdown) — with warnings for the £60,000 Annual Allowance, the £10,000 MPAA (spotted
+          growth rates, and checks whether you're on course for <strong>your own plan</strong> — the pot
+          your chosen strategy needs (a gilt ladder's price, or the pot that lasts in 9 futures out of 10 for an
+          invested drawdown) — with warnings for the £60,000 Annual Allowance, the £10,000 MPAA (spotted
           automatically from your Decision-tool history), and the minimum-pension-age rise to 57.</p>
           <p class="onboarding-tool-who"><strong>Best for:</strong> Anyone still contributing — including alongside a partner's drawdown plan.</p>
           <p class="onboarding-tool-need"><strong>What you'll need:</strong> Salary, what you can afford monthly, employer contribution, current pot value.</p>

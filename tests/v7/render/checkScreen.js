@@ -39,7 +39,8 @@
  * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1–3.2): whether a field applies
  * is the one exported rule (validate.js applies: `when` lists, `whenNot`); which options a choice offers, whether a
  * choice is asked at all, and whether the pay line is open are the screen's rules, written again here (optionsDrawn,
- * choiceDrawn, payLineOpen) so a screen that draws more or fewer goes red.
+ * choiceDrawn, payLineOpen) so a screen that draws more or fewer goes red. So is "How your savings grow" (6.22.0), drawn
+ * only once there is money in savings (savingsGrowthDrawn).
  */
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
@@ -192,10 +193,20 @@ export function liveValues(schema, shown) {
   return { paths, values };
 }
 
+/**
+ * "How your savings grow" (6.22.0) is drawn once there is money in savings, as checked — the savings box above £0, or
+ * money going into savings each month (the screen's rule, written again).
+ */
+export function savingsGrowthDrawn(state, q) {
+  const v = shownValues(state, q).parsed.values;
+  return (typeof v.savings === 'number' && v.savings > 0) || (typeof v.savingsIn === 'number' && v.savingsIn > 0);
+}
+
 /** A field that applies and is drawn on a form of question q (the pay line only when open; a choice only when asked). */
 function drawnField(state, q, f, live) {
   if (!live.paths.has(f.path)) return false;
   if (f.path === 'untilBothStop' && !payLineOpen(state, q)) return false;
+  if (f.path === 'isaGrowth' && !savingsGrowthDrawn(state, q)) return false;
   return choiceDrawn(q, f, live.values);
 }
 

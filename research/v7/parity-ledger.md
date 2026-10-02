@@ -18,12 +18,12 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 51 | 37 | 13 | 0 | 1 |
+| Built | 53 | 37 | 15 | 0 | 1 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 46 | 43 | 1 | 2 | 0 |
+| Designed | 45 | 43 | 0 | 2 | 0 |
 | Planned | 64 | 52 | 2 | 2 | 8 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
-| **All** | 171 | 135 | 16 | 4 | 16 |
+| **All** | 172 | 135 | 17 | 4 | 16 |
 
 Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3**.
 
@@ -31,7 +31,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3*
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 51 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 53 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 8 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -39,7 +39,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3*
 | `s4-open-plan` | V7 opens a saved plan, read-only, with a "Your plan" rail for every life stage (square-one audit §5 item 4) | 12 |
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
-| `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 1 |
+| `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
 | `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 64 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 26 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
@@ -141,7 +141,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **Bond tent** | Shares rise over time: bond-heavy early, when the pot is largest and most exposed to an early crash, share-heavy later, centred on the risk level; a tagged plan sets its end mix. | Your allocation: Bond tent (index.html:3452-3462) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.equityGlideEnabled` `decision.equityGlideEnabled` `stress.glideEndgame` `decision.glideEndgame` |
 | **ISA (and savings) total** | The ISA held beside the pension, drawn as its own pot. | Your allocation: Total in your ISA (index.html:3335) | Everyone | **Built**: `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`. Asked as savings (ISAs and other savings). | `done` | `stress.isaBalance` `decision.isaBalance` |
 | **How the ISA is used** | Tax-efficient (tops up income before higher-rate tax), make it last to the State Pension, or hold it (never drawn for income; it still rescues a plan whose pension runs out). | Your allocation: How the ISA is used (index.html:3337-3343) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.isaDrawdownStrategy` `decision.isaDrawdownStrategy` |
-| **How the ISA grows, and its floor** | The ISA's steady growth rate (3% a year) and the floor it is drawn down towards. | Settings defaults (constants.js ISA_DEFAULTS; design/settings-model.md) | Everyone | **Designed**: research/v7/answer-D.md §2.2. One choice under the savings box: "Mostly cash" (prices less 1%) or "Invested like my pension". | `s7-d` | `stress.isaReturn` `stress.isaMin` `decision.isaReturn` `decision.isaMin` |
+| **How the ISA and savings grow, and the ISA's floor** | One choice per plan: "Mostly cash" (the default; like the pension's cash, last year's rise in prices less 1%, never below nothing) or "Invested like my pension" (the pension's mix of shares, bonds and cash, in the same futures). A plan locked before the choice keeps a fixed 3% a year (isaReturn) until it is unlocked. Also the floor the ISA is drawn down towards (isaMin). | Stress tester → Settings → How your ISA and savings grow (index.html #ssIsaGrowthGroup; src/ui/isaGrowthSetting.js, src/services/IsaGrowth.js); the floor in the settings defaults (constants.js ISA_DEFAULTS) | Everyone | **Built**: `src/services/IsaGrowth.js`, `src/answers/shared/schemaParts.js`, `src/answers/shared/saving.js`, `src/answers/shared/toEngine.js`, `src/answers/shared/savingsGrowth.js`. One choice under the savings box in C, A and B ("Mostly cash" or "Invested like my pension"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes "Mostly cash" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing. | `done` | `stress.isaGrowth` `stress.isaReturn` `stress.isaMin` `decision.isaReturn` `decision.isaMin` |
 | **A taxable account (GIA)** | Money held outside a pension or ISA: how much, what it holds (shares, gilts, bond funds, a mix, cash) and the tax band it is taxed at; it is drawn first and taxed each year. | Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js) | Approaching, retired | **Planned** (no V7 design yet): answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it. | `s8-e` | `stress.taxableStart` `stress.taxableMix` `stress.giaTaxBand` `decision.taxableStart` `decision.taxableMix` `decision.giaTaxBand` |
 | **Charges (funds and platform), % a year** | One charge a year taken off monthly from funds and cash, while saving and while drawing. | Stress → Settings → Charges (6.19.0; Charges.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/services/Charges.js`, `src/answers/shared/toEngine.js` | `done` | `stress.chargesPct` |
 
@@ -219,11 +219,11 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **Lock the plan and make the plan document** | Freezes the settings of both tools and writes the plan as committed; the first Decision record also locks it. | Stress → Settings → "Lock plan & create the plan document" (index.html:3636, 8510-8541; PlanLock.js) | Approaching, locked | **Designed**: research/v7/rail-screens-language.md §1.5. E's "lock" step; A and B (and later D) end with "Lock this plan?" (square-one-audit.md §5 item 5). | `s5-lock` | `decision.locked` `decision.lockedAt` `decision.lockedBy` |
 | **Unlock to change the plan** | Unlocking keeps the plan document as a past version (last ten) and counts the unlocks. | Lock banner "Unlock to edit" (index.html:13070-13090) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "Unlock to change the plan" keeps the document as a past version. | `s5-lock` | `decision.unlockedAt` `decision.unlockCount` `plan.planDocumentArchive` `plan.decisionTool.planOfRecordArchive` |
-| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" station reads the document only, never live settings. | `s4-open-plan` | `plan.planDocument` |
+| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. | `s4-open-plan` | `plan.planDocument` |
 | **The ladder card** | For a locked gilt plan: what arrives when, what has been bought, and what the same gilts would cost today, as a comparison only. | Plan document and strategy page (LadderPosition.js) | Locked plans with a ladder | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" and "Moving to your plan's mix" stations ("6 of 18 gilts bought"). | `s4-open-plan` | — |
 | **The plan of record** | The drawdown and glidepath projection frozen when the Decision plan locked: a yardstick that does not move. | ScenarioRepository.saveActivePlanOfRecord | Nobody sees it directly | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s4-open-plan` | `plan.decisionTool.planOfRecord` |
 | **Where you are** | Reads the recorded months against the document: took this, the plan said that. | Plan document strip (PlanDocument.whereAmI) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Where you are" station. | `s4-open-plan` | — |
-| **Arrival check** | The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again. | LifeStage.js:136-147; index.html:6023-6033 | Locked savers at their stop | **Designed**: research/v7/rail-screens-language.md §1.6. P.arrived. | `s4-open-plan` | — |
+| **Arrival check** | The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again. | LifeStage.js:136-147; index.html:6023-6033 | Locked savers at their stop | **Designed**: research/v7/rail-screens-language.md §1.6. P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. | `s4-open-plan` | — |
 | **"Saved by a newer version"** | A plan saved by a newer version of the app is shown read-only, with a reload button. | planNewerBanner (index.html; storage/schema.js) | Everyone | **Designed**: research/v7/rail-screens-language.md §1.6. P.readonly. | `s4-open-plan` | `plan.schemaVersion` |
 | **Nothing changes a locked plan** | Every button that writes settings refuses on a locked plan and says where the unlock is; records, holdings and the budget stay editable. | LockedPlanGuard.js (6.20.2, in progress) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "What a locked plan can and cannot do on the rail". | `s1-safety` | — |
 
@@ -244,6 +244,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
 | **What you pay in, and your employer** | What you pay each month from take-home, and what your employer adds. | Accumulation → Contributions (index.html:3677-3702) | Savers | **Built**: `src/answers/shared/schemaParts.js`, `src/v7/components/PayInSplit.jsx`. One figure that lands in the pension, or split into your part and your employer's. | `done` | `accumulation.netMonthly` `accumulation.employerMonthly` |
+| **What goes into ISAs and savings each month** | A monthly amount into ISAs and other savings, from take-home pay (no tax relief), raised each year like the pension payments; it counts in the pots at retirement, the age spin and a plan locked while saving. | Accumulation → Contributions → Into ISAs and savings (index.html #acIsaMonthly, 6.22.0) | Savers | **Built**: `src/answers/shared/schemaParts.js`. V7 asked for it first ("savingsIn"); a plan made from an answer now keeps it in the planner's box. | `done` | `accumulation.isaMonthly` |
 | **How tax relief works, and your salary** | Relief at source, net pay or salary sacrifice, with your salary, so the higher-rate reclaim and the NI saving are shown. | Accumulation → How relief works; Salary (index.html:3682-3692; AccumulationEngine.contributionBreakdown) | Savers | **Planned** (no V7 design yet): V7 takes what lands in the pension, the tax added back included; it does not ask how relief is given. | `s8-e` | `accumulation.schemeType` `accumulation.salary` |
 | **Raise payments by a % a year** | Payments rise by a set percentage each year. | Accumulation → Raise contributions by (index.html:3700) | Savers | **Planned** (no V7 design yet) | `s8-e` | `accumulation.escalationPct` |
 | **Age, retiring age, pension today** | The Accumulation planner's own age, retirement age and pot today. | Accumulation → About you (index.html:3678-3681) | Savers | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/b/schema.js` | `done` | `accumulation.currentAge` `accumulation.retirementAge` `accumulation.potNow` |
@@ -251,9 +252,9 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **Projection to the retirement age** | The pot at each age at 2%, 5% and 8%, with what was paid in. | Accumulation → Projection (AccumulationEngine.js:41) | Savers | **Built**: `src/answers/shared/saving.js`, `src/v7/components/Pots.jsx`. Replaced, better: the saving-years engine with a middling and a bad case. | `done` | — |
 | **A projection at your own holdings' mix** | A fourth projection line at the expected return of what you hold, net of its costs. | Accumulation → Projection: Your mix (6.7.0) | Savers | **Planned** (no V7 design yet): V7 projects at a risk level while saving (savingRisk). | `s8-e` | — |
 | **When could I retire?** | Which age clears the bar for an income wanted, if saving carries on. | Accumulation → When could I retire? (RetireSweep.js) | Savers, approaching | **Built**: `src/answers/a/answer.js`, `src/v7/screens/a/AgesScreen.jsx`, `src/v7/components/AgesChart.jsx`. A's every-age table, on the saving-years engine. | `done` | — |
-| **Am I on track?** | The pot needed for the plan's target and whether the saving gets there. | Accumulation → Am I on track? (index.html:3741-3750) | Savers | **Built**: `src/answers/b/answer.js`, `src/v7/screens/b/AnswerScreen.jsx`, `src/v7/screens/b/ChoicesScreen.jsx`. B, with the monthly amount that gets there and the options if it does not fit. Owner's decision pending: one bar, 9 in 10, everywhere. | `done` | — |
+| **Am I on course?** | The pot needed for the plan's target and whether the saving gets there. | Accumulation → Am I on course? (index.html "Am I on course?"; src/services/OnCourse.js, src/ui/accumulationProjection.js) | Savers | **Built**: `src/answers/b/answer.js`, `src/v7/screens/b/AnswerScreen.jsx`, `src/v7/screens/b/ChoicesScreen.jsx`. B, with the monthly amount that gets there and the options if it does not fit. One bar everywhere from 6.22.0: on course = lasts in 9 futures out of 10 (OnCourse.ON_COURSE_SHARE = V7's BAND.careful). | `done` | — |
 | **Payment warnings** | Warns when payments pass the annual allowance, the £10,000 limit after drawing, or relevant earnings. | Accumulation (AccumulationEngine.contributionWarnings) | Savers | **Built**: `src/answers/b/answer.js`, `src/answers/shared/schemaParts.js`. Annual allowance, the £10,000 limit, the ISA allowance, and paying in past 75. | `done` | — |
-| **Record this month's pot** | One line a month while saving (pension, ISA, taxable), read against the locked plan's saving path. | Accumulation → Record this month's pot (index.html:3728-3739, 8795-8830) | Locked savers | **Planned**: A saver's station, "This month's pot" (square-one-audit.md §5 item 4); the reading is fixed first (item 2). | `s4-open-plan` | `plan.accumulationTool.history` |
+| **Record this month's pot** | One line a month while saving (pension, ISA, taxable), read against the locked plan's saving path. | Accumulation → Record this month's pot (index.html:3728-3739, 8795-8830) | Locked savers | **Planned**: A saver's station, "This month's pot" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js). | `s4-open-plan` | `plan.accumulationTool.history` |
 
 ## What you hold, and the move (Transition)
 
@@ -393,8 +394,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.incomeSteps` | Steps by age: "from age X take £Y a year" | Built |
 | `stress.isaBalance` | ISA (and savings) total | Built |
 | `stress.isaDrawdownStrategy` | How the ISA is used | Planned (no V7 design yet) |
-| `stress.isaMin` | How the ISA grows, and its floor | Designed |
-| `stress.isaReturn` | How the ISA grows, and its floor | Designed |
+| `stress.isaGrowth` | How the ISA and savings grow, and the ISA's floor | Built |
+| `stress.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
+| `stress.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.legacyFirstTaxYear` | Plan starts this tax year or next April | Planned |
 | `stress.other` | Other income or pension | Planned (no V7 design yet) |
 | `stress.pa` | Tax thresholds | Planned (no V7 design yet) |
@@ -456,8 +458,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.incomeSteps` | Steps by age: "from age X take £Y a year" | Built |
 | `decision.isaBalance` | ISA (and savings) total | Built |
 | `decision.isaDrawdownStrategy` | How the ISA is used | Planned (no V7 design yet) |
-| `decision.isaMin` | How the ISA grows, and its floor | Designed |
-| `decision.isaReturn` | How the ISA grows, and its floor | Designed |
+| `decision.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
+| `decision.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
 | `decision.locked` | Lock the plan and make the plan document | Designed |
 | `decision.lockedAt` | Lock the plan and make the plan document | Designed |
 | `decision.lockedBy` | Lock the plan and make the plan document | Designed |
@@ -569,6 +571,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `accumulation.currentAge` | Age, retiring age, pension today | Built |
 | `accumulation.employerMonthly` | What you pay in, and your employer | Built |
 | `accumulation.escalationPct` | Raise payments by a % a year | Planned (no V7 design yet) |
+| `accumulation.isaMonthly` | What goes into ISAs and savings each month | Built |
 | `accumulation.netMonthly` | What you pay in, and your employer | Built |
 | `accumulation.potNow` | Age, retiring age, pension today | Built |
 | `accumulation.retirementAge` | Age, retiring age, pension today | Built |

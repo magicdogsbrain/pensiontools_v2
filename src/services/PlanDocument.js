@@ -15,8 +15,14 @@ import { cleanSteps, amountAtAge } from './IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
 import { targetMixForYear, equityGlideFromRisk } from './GlidepathService.js';
-import { projectAccumulation, potOnPath, contributionBreakdown } from './AccumulationEngine.js';
+import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
+import { saverReading, saverPotOf } from './SaverReading.js';
+/** The monthly pot record the saver's reading reads (index.html's Accumulation tab writes it through potRecordOf and shows its
+ *  ISA through recordIsaOf, so a box left blank reads as no figure on the table and in the strip alike; review of 6.22.0). */
+export { potRecordOf, recordIsaOf } from './SaverReading.js';
 import { chargesPctOf } from './Charges.js';
+import { isaGrowthOf } from './IsaGrowth.js';
+import { isaFundsDecide } from './IsaFunds.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { holdingsLines, normaliseHoldings, normaliseWrapper, numOrNull } from './HoldingsRecord.js';
 import { cleanParams } from './StrategyState.js';
@@ -27,7 +33,11 @@ import { VERSION } from '../constants.js';
 // 2 (6.13.0): `holdingsAtLock` — what the person held when the plan was locked, from the holdings record —
 // for every strategy; the accumulation path projects from the holdings record or the recorded pot today,
 // never from the pots the strategy was tested on.
-export const PLAN_DOCUMENT_VERSION = 2;
+// 3 (6.22.0): `assumptions.isaGrowth` — how the plan's ISA and savings grow ('cash', 'invested', or null: the fixed 3% a
+// plan locked before the choice runs at); and, for a plan locked while still saving, a saving path drawn on V7's
+// saving-years engine (`accumulation.version` 3, services/SavingPath.js) — pension and ISA, 1,000 futures, the 1-in-10
+// lines, in pounds of the day. Documents written before are never rewritten; services/SaverReading.js reads both kinds.
+export const PLAN_DOCUMENT_VERSION = 3;
 export const CONTRACT_STRATEGIES = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
 export const DECISION_ASSUMED_CPI_FOR_RECORD = 0.04;   // = PlanLock.PLAN_OF_RECORD_CPI (not imported: PlanLock pulls in the repositories)
 
@@ -171,9 +181,11 @@ export function buildAccumulationPath({ settings = {}, timing, accumulation = nu
  * Build the document.
  * @param {object} a  { planName, settings (Stress), p (planFromSettings), r (stressTestStrategy, optional),
  *                      lockedAt, lockedBy, budgetGross, essentials, giltPricesAsOf, journey, accumulation,
- *                      holdings (the holdings record — what the person holds, see HoldingsRecord.js), now }
+ *                      holdings (the holdings record — what the person holds, see HoldingsRecord.js), now,
+ *                      savingPath (6.22.0: the saving path already drawn on V7's engine — services/SavingPath.js, which the
+ *                      lock loads on demand so this module stays pure and light; absent → the FCA path, as before) }
  */
-export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, holdings = null, now = new Date() } = {}) {
+export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, holdings = null, now = new Date(), savingPath = undefined } = {}) {
   const timing = deriveTiming(settings, now);
   const H = normaliseHoldings(holdings);   // absent → the empty record; never the Stress tester's fund list
   const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials, now });
@@ -195,7 +207,8 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
     planName, lockedAt: lockedAt || now.toISOString(), lockedBy: lockedBy || 'locked from Stress settings',
     timing: { ...timing, text: describeTiming(timing, settings, now), currentAgeAsOf: settings.currentAgeAsOf || null },
     journey: Array.isArray(journey) ? journey.map((j) => ({ stage: j.stage, label: j.label, at: j.at, ...(j.note ? { note: j.note } : {}) })) : [],
-    accumulation: buildAccumulationPath({ settings, timing, accumulation, holdings: H.lines }),   // null unless retiring later (6.7.0)
+    // null unless retiring later (6.7.0); drawn on V7's saving-years engine when the caller has it (6.22.0)
+    accumulation: savingPath !== undefined && timing.mode === 'future' ? savingPath : buildAccumulationPath({ settings, timing, accumulation, holdings: H.lines }),
     // What the person HELD when the plan was locked (6.13.0) — every strategy; the Transition tool's baseline.
     holdingsAtLock: { updatedAt: H.updatedAt, source: H.source, lines: H.lines },
     steps,
@@ -218,7 +231,11 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       cashYears: params.cashYears ?? null, bridgeCash: +params.bridgeCash || 0, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
       // Fund and platform charges the plan's figures were worked out at, percent a year (6.19.0). A document locked
       // before 6.19.0 has no key: its figures were worked out without charges.
-      chargesPct: chargesPctOf(settings)
+      chargesPct: chargesPctOf(settings),
+      // How the ISA and savings grow (6.22.0): 'cash', 'invested', or null — the fixed 3% a year of a plan without the
+      // choice. `isaFromFunds`: the ISA funds in the list of funds to test decide instead. A document written before
+      // 6.22.0 has no key: its ISA grew at a fixed 3% a year.
+      isaGrowth: isaGrowthOf(settings), ...(isaFundsDecide(settings) ? { isaFromFunds: true } : {})
     },
     decisionRun: {
       year0: taxYearLabel(timing.firstTaxYear), bridgeMonths: timing.bridgeMonths, contract,
@@ -529,24 +546,24 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   if (!doc || !doc.timing) return null;
   const ledgerPot = pensionPotFromHoldings(holdingsLines(holdings));
   const ledgerAsOf = holdings && !Array.isArray(holdings) && holdings.updatedAt ? holdings.updatedAt : null;
-  // Saver against the locked path (6.7.0): before a retire-later plan starts, read the latest pot record
-  // against the projection the plan was priced on. A plan locked with no pot on record has an empty path:
-  // say so (`pathMissing`) so the strip asks for the pot instead of comparing with nothing.
+  // Saver against the locked path (6.7.0; like with like from 6.22.0 — services/SaverReading.js): before a retire-later
+  // plan starts, the latest pot record is read against the locked saving path at the record's OWN month, counted from the
+  // path's own start (a refreshed document starts again), in the path's pounds, and with the ISA when the path counts
+  // one. A plan locked with no pot on record has an empty path: say so (`pathMissing`) so the strip asks for the pot.
   let saving = null;
   if (doc.accumulation && doc.timing.mode === 'future') {
-    const path = Array.isArray(doc.accumulation.path) ? doc.accumulation.path : [];
-    const lockedAt = new Date(doc.lockedAt || doc.createdAt || today);
-    const yearsElapsed = Math.max(0, (today.getTime() - lockedAt.getTime()) / (365.25 * 24 * 3600 * 1000));
-    const expected = path.length ? potOnPath(path, yearsElapsed, path[0].potMix != null ? 'potMix' : 'potMid') : null;
-    const low = path.length ? potOnPath(path, yearsElapsed, 'potLow') : null, high = path.length ? potOnPath(path, yearsElapsed, 'potHigh') : null;
-    const last = (accHistory || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).pop() || null;
-    const actual = last ? +(last.sipp ?? last.total ?? 0) : (potsToday != null ? +potsToday : (ledgerPot > 0 ? ledgerPot : null));
-    const actualSource = last ? 'record' : potsToday != null ? 'today' : ledgerPot > 0 ? 'holdings' : null;
+    const isaFig = wrapperFigure(holdings, 'ISA');
+    const pot = saverPotOf({ accHistory, potsToday, holdingsPension: ledgerPot, holdingsIsa: isaFig ? isaFig.value : null, holdingsAsOf: ledgerAsOf, today });
+    const r = saverReading(doc, { at: pot.at, pension: pot.pension, isa: pot.isa });
     const start = new Date(+doc.timing.firstTaxYear, 3, 6);
     const monthsToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / (30.44 * 24 * 3600 * 1000)));
-    saving = { monthsToGo, pathMissing: !path.length, expected: expected == null ? null : Math.round(expected), low: low == null ? null : Math.round(low), high: high == null ? null : Math.round(high), actual: actual == null ? null : Math.round(actual), actualSource, recordedAt: last ? last.date : (actualSource === 'holdings' ? ledgerAsOf : null),
-      band: actual == null || expected == null ? null : actual < (low ?? -Infinity) ? 'below the cautious line' : actual < expected ? 'below the locked path' : actual <= (high ?? Infinity) ? 'on or above the locked path' : 'above the strong line',
-      contributions: doc.accumulation.totalMonthly || 0 };
+    saving = {
+      monthsToGo, pathMissing: r.pathMissing, version: r.version, expected: r.expected, low: r.low, high: r.high,
+      actual: r.pathMissing || r.actual == null ? (pot.pension == null ? null : Math.round(pot.pension)) : r.actual,
+      compared: r.compared, pension: r.pension, isa: r.isa, isaCounted: r.isaCounted, missing: r.missing, prices: r.prices, at: r.at, start: r.start,
+      actualSource: pot.source, recordedAt: pot.source === 'record' ? pot.recordedAt : (pot.source === 'holdings' ? ledgerAsOf : null),
+      band: r.band, contributions: doc.accumulation.totalMonthly || 0, isaMonthly: doc.accumulation.isaMonthly || 0
+    };
   }
   const fty = +doc.timing.firstTaxYear;
   const y = planYearOf(today, fty);

@@ -15,6 +15,9 @@
  *   risk                     → portfolio { kind: 'risk', level }   (env.mix, tests only: an exact mix instead)
  *   charge                   → chargesPct, percent a year as typed (6.19.0: the household's one fund and platform charge,
  *                              taken while drawing — and, on the lives, while the money waits to be taken)
+ *   isaGrowth                → household.isaGrowth, 'cash' or 'invested' (6.22.0: how the savings grow, while the money waits
+ *                              to be taken and while it is drawn; on the form only once the savings box is above £0; not
+ *                              given, "Mostly cash")
  *   endAge                   → planToAge
  *   shape.then / fallsPct / steps → household.shape (spending-shape.md 3), only when it changes with age: { unit 'share',
  *                              start, steps } — each later step a share of what you start on, ages yours
@@ -23,8 +26,9 @@
  * @param {{ today: string, mix?: { equity: number, bond: number, cash: number } }} env
  * @returns {{ household: import('../shared/household.js').Household, assumed: { id: string, who?: string }[] }}
  */
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { expandHousehold } from '../shared/household.js';
-import { fullStatePensionYearly } from '../shared/rules.js';
+import { fullStatePensionYearly, RULES } from '../shared/rules.js';
 import { untilBothStopOf, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 
 function person(who, p, inputs) {
@@ -65,6 +69,9 @@ export function toHousehold(inputs, env) {
     jointSavings: inputs.savings || 0,
     planToAge: inputs.endAge,
     ...(typeof inputs.charge === 'number' && Number.isFinite(inputs.charge) ? { chargesPct: inputs.charge } : {}),
+    // how the savings grow (6.22.0): as chosen, else "Mostly cash" — also with no savings today, so any savings the answer
+    // works with (B's set aside for the years before a pension opens) grow as the form would grow them
+    isaGrowth: isIsaGrowth(inputs.isaGrowth) ? inputs.isaGrowth : RULES.isaGrowthDefault,
     ...untilBothStopOf(inputs),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }

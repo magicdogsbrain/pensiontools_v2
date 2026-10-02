@@ -99,7 +99,7 @@ describe('loading a plan (guest store = the same code path as Firestore)', () =>
     seedGuest([v1Plan()]);
     const s = await getStressSettingsAsync();
     expect(s.chargesPct).toBe(DEFAULT_CHARGES_PCT);
-    expect(stored()[0].schemaVersion).toBe(2);
+    expect(stored()[0].schemaVersion).toBe(SCHEMA_VERSION);
     expect(stored()[0].stressTool.settings.chargesPct).toBe(DEFAULT_CHARGES_PCT);
     expect(createSimulationConfigFromSettings({}, s).chargesPct).toBe(DEFAULT_CHARGES_PCT);
   });
@@ -110,7 +110,7 @@ describe('loading a plan (guest store = the same code path as Firestore)', () =>
     expect('chargesPct' in s).toBe(false);
     expect('chargesPct' in createSimulationConfigFromSettings({}, s)).toBe(false);
     const after = stored()[0];
-    expect(after.schemaVersion).toBe(2);
+    expect(after.schemaVersion).toBe(SCHEMA_VERSION);
     // The only Stress key the load writes is the plan's start (the 6.13.5 timing pin, for locked plans too); no charge.
     const { legacyFirstTaxYear, ...rest } = after.stressTool.settings;
     expect(rest).toEqual(plan.stressTool.settings);

@@ -13,6 +13,9 @@
  * The spending shape (research/v7/spending-shape.md 4.1): under "Add more detail", after the tax-free part and before the
  * savings — "Does what you spend change as you get older?", with each later age as a share of what C works out you could
  * start on (StepsField).
+ *
+ * How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension", straight under the savings box, once it is
+ * above £0 (FieldGroup draws a choice only while it is asked: select.js choiceAsked).
  */
 import { AskForm, Field, FieldGroup, PersonBlock, formView, focusField, Button, LinkButton, StepsField } from '../../components/index.js';
 import { href } from '../../router/routes.js';
@@ -69,6 +72,7 @@ export function NumbersScreen(state, dispatch) {
               <FieldGroup form={form} path="partner.taxFreeTaken" dispatch={dispatch} />
               <StepsField state={state} q="c" dispatch={dispatch} level={3} />
               <Field form={form} path="savings" dispatch={dispatch} />
+              <FieldGroup form={form} path="isaGrowth" dispatch={dispatch} />
               <Field form={form} path="risk" dispatch={dispatch} />
               <Field form={form} path="charge" dispatch={dispatch} />
               <Field form={form} path="endAge" dispatch={dispatch} />

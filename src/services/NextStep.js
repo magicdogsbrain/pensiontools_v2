@@ -25,7 +25,7 @@ export const NEXT_STEP_WORDS = Object.freeze({
   decisionBtn: 'Open the Decision Tool',
   // A plan from a V7 answer: the saver's sentence without "set the income you will want (Budget)" — the income is the
   // amount they chose; the budget is a guide beside it.
-  savingFromAnswer: 'You are saving. Check you are on track for the income you chose (Accumulation planner). The Stress tester can price the plan on the pots you will have at retirement.',
+  savingFromAnswer: 'You are saving. Check you are on course for the income you chose (Accumulation planner). The Stress tester can price the plan on the pots you will have at retirement.',
   guideAlone: 'Your budget is a guide: walk through what retirement costs (about 10 minutes) to see it beside the amount you chose. It changes nothing unless you choose to.',
   guideBtn: 'Open the budget walk-through'
 });

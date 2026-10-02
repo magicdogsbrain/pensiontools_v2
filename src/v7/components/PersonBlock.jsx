@@ -14,7 +14,8 @@
  * Couples who stop work in different years (research/v7/couples-different-years.md 2.1–2.3):
  *  - a field under "more detail" is drawn there, never inside the choice it depends on ("Already had the tax-free
  *    part?" hangs on "Now" in C and on "I've already stopped" in A and B, and is asked under more detail);
- *  - a choice that is not asked (select.js choiceAsked: B's stop for one person) draws nothing;
+ *  - a choice that is not asked (select.js choiceAsked: B's stop for one person; "How your savings grow" with no money in
+ *    savings) draws nothing;
  *  - `inside` puts a field in an option although its rule is not a `when` on that choice (B's stop age, hidden by "I've
  *    already stopped", is drawn inside "At an age");
  *  - a field whose `when` names this choice by a list ("one of") is drawn under it, not inside an option: the pay line,

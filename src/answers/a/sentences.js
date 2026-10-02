@@ -33,6 +33,7 @@ import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 import { atTheStart, couldAtTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
+import { savingsGrowthParts, mostlyCashParts } from '../shared/savingsGrowth.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -601,7 +602,8 @@ export function assumedFor(result, facts) {
     // (couples apart: the savings go with the one who stops first — 'savings-first', above)
     if (!ap && ((inputs.savings || 0) > 0 || (saving && inputs.savingsIn > 0))) line('savings-split', 'savings', 'rule', null, ['Your savings, and anything going into them, are split evenly between you.']);
   }
-  if ((inputs.savings || 0) > 0 || inputs.savingsIn > 0) line('isa-fixed-growth', null, 'rule', RULES.savingsGrowth, ['Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ', F(Math.round(RULES.savingsGrowth * 100)), '% a year before rising prices, so they lose ground whenever prices rise faster than that.']);
+  // how the savings grow (6.22.0), with Change: "Mostly cash" or "Invested like my pension", while saving and once stopped
+  if ((inputs.savings || 0) > 0 || inputs.savingsIn > 0) line('savings-growth', 'isaGrowth', src('isaGrowth'), inputs.isaGrowth, savingsGrowthParts(inputs.isaGrowth));
   if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if ((facts.money || facts.payInTotal > 0) && !facts.madeUpFutures) {
@@ -676,10 +678,8 @@ export function warningsFor(result, facts) {
     }
   }
   if (facts.people.some((x) => x.sp && x.spDefault)) warn('state-pension-assumed', 'note', ['This assumes the full State Pension. If yours is lower, so is the figure.']);
-  if (result.status === 'ok' && facts.savingsMostly) {
-    warn('savings-fixed-growth', 'important', ['Most of the money when you stop is in savings. Once you stop, savings are grown at a fixed ', F(Math.round(RULES.savingsGrowth * 100)),
-      '% a year before rising prices, whatever markets do, so for this answer that one figure matters most. Invested ISAs could do better or worse.']);
-  }
+  // most of the money at the stop is savings, held mostly as cash (6.22.0): how to say they are invested
+  if (result.status === 'ok' && facts.savingsMostly && (inputs.isaGrowth || RULES.isaGrowthDefault) === 'cash') warn('savings-mostly-cash', 'note', mostlyCashParts());
   // (couples apart: what the pay of the one still working covers is not the pensions')
   // (a stop at or after a step: the spending it tested is the step's — spendAtStart, and spendShape's first figure in words)
   const inForce = Boolean(result.shapeNotes && result.shapeNotes.inForce);

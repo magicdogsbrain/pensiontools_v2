@@ -426,8 +426,10 @@ export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
  * The savings the years before a pension opens need (B, brief conflict 38): the least whole £1,000 F, no less than
  * `from`, such that with every life's savings at the stop at least F (split between the people as the pension is) and
  * a pension of SAVING.potMax behind it, the spend fails in at most `fails` lives. The deterministic draw (`from`) is
- * not enough on its own: in the drawing years savings grow at the engine's fixed rate, so in a life with prices rising
- * faster the same pounds pay fewer months. null when four times `from` is still not enough.
+ * not enough on its own: in the drawing years savings grow as the household says (6.22.0: "Mostly cash" — last year's
+ * rise in prices less 1% — unless chosen; a household made by hand without a choice, at the engine's fixed rate), so in a
+ * life with prices rising faster than they grow the same pounds pay fewer months. null when four times `from` is still
+ * not enough.
  */
 export function savingsNeeded(sp, spendAYear, fails, from) {
   const step = SAVING.potStep;

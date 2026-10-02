@@ -18,8 +18,8 @@
  * The answer's own fields for two stops (`apart`, `askedAbout`) are the contract's (src/answers/shared/contract.js); until
  * the answers fill them, the answer states here carry them by hand, on a real answer.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { describe, it, expect, vi, afterAll } from 'vitest';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { h, render } from 'preact';
@@ -652,9 +652,17 @@ describe('7 — today, byte for byte', () => {
   // …and the spending shape's block under C's more detail (research/v7/spending-shape.md 4.1), closed: taken out, today's
   // …and the 2028 drawdown note, now for everyone it applies to (owner, 2 Oct 2026): a/answer-A2-couple (you 55, stopping at 56)
   // gains it; taken out, today's (tests/v7/shared/answers.flat.test.js holds who it is said to)
+  // …and "How your savings grow" under the savings box (6.22.0), once there is money in savings: taken out, today's
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
-    '[data-warning-id="drawdown-2028"]'];
+    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);
+  // …but the states that hold savings: their answers moved with how savings grow (6.22.0, "Mostly cash" unless chosen,
+  // where every answer grew them at a fixed 3% a year), so they draw what 6.22.0 draws — pinned, with the reason, in
+  // savingsGrowth.hashes.json (V7_PIN_SCREENS=1 re-pins those, and only those). Each must differ from its 6.19.0 drawing.
+  const MOVED_FILE = join(process.cwd(), 'tests/v7/screens/savingsGrowth.hashes.json');
+  const MOVED = JSON.parse(readFileSync(MOVED_FILE, 'utf8'));
+  const PIN = process.env.V7_PIN_SCREENS === '1';
+  afterAll(() => { if (PIN) writeFileSync(MOVED_FILE, JSON.stringify(MOVED, null, 1) + '\n'); });
 
   it.each(Object.keys(TODAY))('%s', (name) => {
     const [q, file] = name.split('/');
@@ -662,6 +670,21 @@ describe('7 — today, byte for byte', () => {
     for (const sel of NEW) for (const el of root.querySelectorAll(sel)) el.remove();
     const already = root.querySelector('[data-testid$=".stop.kind.already"]');
     if (already) already.closest('.option').remove();
-    expect(hash(root.innerHTML)).toBe(TODAY[name]);
+    const got = hash(root.innerHTML);
+    if (name in MOVED.hashes) {
+      if (PIN) MOVED.hashes[name] = got;
+      expect(got).toBe(MOVED.hashes[name]);
+      expect(got, `${name} draws as 6.19.0 did: take it off savingsGrowth.hashes.json`).not.toBe(TODAY[name]);
+    } else expect(got).toBe(TODAY[name]);
+  });
+
+  it('the states that moved with how savings grow hold savings, or are B\'s answers that set savings aside for the years before a pension opens', () => {
+    for (const name of Object.keys(MOVED.hashes)) {
+      expect(TODAY[name], name).toBeTypeOf('string');
+      const [q, file] = name.split('/');
+      const result = load(q, file).answers[q].result;
+      if (result.inputs.savings > 0 || result.inputs.savingsIn > 0) expect(result.inputs.isaGrowth, name).toBe('cash');
+      else expect(q === 'b' && result.outside, name).toBeTruthy();
+    }
   });
 });

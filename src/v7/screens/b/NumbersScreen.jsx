@@ -14,7 +14,8 @@ import { saverNumbers } from '../a/NumbersScreen.jsx';
 export const LAYOUT_B = {
   you: ['you.age', 'you.pot', 'you.payIn.kind', 'stop.kind', 'stop.age', 'you.statePension.kind', 'you.finalSalary.has'],
   partner: ['partner.age', 'partner.pot', 'partner.stop.kind', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
-  more: ['savings', 'you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence'],
+  // "How your savings grow" straight under the savings box, once there is money in savings (select.js choiceAsked)
+  more: ['savings', 'isaGrowth', 'you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence'],
   // the spending shape's fields: drawn by its own block under the figure (StepsField), never by LayoutField
   spend: ['spend.kind', 'spend.then', 'spend.steps'],
   /** Drawn first under more detail, each only while it applies (someone who has stopped). */

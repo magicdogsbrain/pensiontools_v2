@@ -128,7 +128,8 @@ describe('A — "when can I afford to stop work?"', () => {
     expect(s.spend).toEqual({ perMonth: 1900, from: 'typed', level: null, budgetSkipped: true });
     const [you] = s.people;
     expect(you.pension).toEqual({ today: 250000, atStop: { careful: 295340, middling: 417982 } });
-    expect(you.savings).toEqual({ today: 40000, atStop: { careful: 36402, middling: 53500 } });
+    // (6.22.0: the savings grow as "Mostly cash" while saving — they were £36,402 / £53,500 when they followed the pension's mix)
+    expect(you.savings).toEqual({ today: 40000, atStop: { careful: 32871, middling: 39245 } });
     expect(you.payIn).toEqual({ kind: 'total', total: 600, own: null, employer: null, savingsIn: 0 });
     expect(you.pensionOpensAge).toBe(r.pensionOpens.you);
     expect(you.takeHome).toEqual([{ fromAge: 60, perMonth: 1900 }]);

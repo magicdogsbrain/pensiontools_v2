@@ -120,7 +120,8 @@ describe('SCHEMA_C — the declaration', () => {
     expect(charge.boundaries).toEqual([0, 0.05, 0.5, 1, 3]);
     // in the more-detail block, between the risk level and the end age (the order A and B keep)
     const more = SCHEMA_C.fields.filter((f) => f.group === 'more').map((f) => f.path);
-    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'risk', 'charge', 'endAge']);   // the tax-free part: under more detail too
+    // the tax-free part: under more detail too; how the savings grow straight after them (6.22.0)
+    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge']);
     const at = (path) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', charge: path }, TEST_ENV);
     expect(at('1.35').inputs.charge).toBe(1.35);
     expect(at('0.07').errors).toEqual({ charge: 'notANumber' });
@@ -142,8 +143,13 @@ describe('SCHEMA_C — the declaration', () => {
     });
     expect(validate(SCHEMA_C, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_C, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
-    // every field that applies is in the checked inputs, but a question with no default that was not answered
-    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_C, r.values).filter((f) => f.required || 'default' in f).map((f) => f.path).sort());
+    // every field that applies is in the checked inputs, but a question with no default that was not answered — and how
+    // the savings grow while there are none (6.22.0: its default rule gives nothing, so C's inputs stay today's, key for key)
+    expect('isaGrowth' in r.inputs).toBe(false);
+    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_C, r.values).filter((f) => (f.required || 'default' in f) && f.path !== 'isaGrowth').map((f) => f.path).sort());
+    const saved = parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', savings: '40,000' }, TEST_ENV);
+    expect(JSON.stringify(Object.keys(saved.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge', 'take']));
+    expect(saved.inputs.isaGrowth).toBe('cash');
   });
 
   it('"still paying in" answered yes brings what goes in; answered no, or not at all, leaves nothing behind', () => {

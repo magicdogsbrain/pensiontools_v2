@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { stressConfigs, chargedStressConfigs, CHARGED_PCT } from './matrix.js';
+import { stressConfigs, chargedStressConfigs, CHARGED_PCT, isaGrowthStressConfigs, ISA_GROWTH_TWINS } from './matrix.js';
 import { pickStress } from './canonical.js';
 import { runMonteCarlo, runHistorical, analyzeResults } from '../../src/services/SimulationEngine.js';
 
@@ -21,8 +21,8 @@ const fixtures = JSON.parse(readFileSync(join(here, 'fixtures/stress.json'), 'ut
 
 describe('golden-master: stress engine', () => {
   it('every config reproduces its committed fixture exactly', () => {
-    expect(Object.keys(fixtures.cases).length).toBe(stressConfigs.length + chargedStressConfigs.length);
-    for (const c of [...stressConfigs, ...chargedStressConfigs]) {
+    expect(Object.keys(fixtures.cases).length).toBe(stressConfigs.length + chargedStressConfigs.length + isaGrowthStressConfigs.length);
+    for (const c of [...stressConfigs, ...chargedStressConfigs, ...isaGrowthStressConfigs]) {
       const mc = pickStress(analyzeResults(runMonteCarlo(c.config, fixtures.mcRuns)));
       const hist = pickStress(analyzeResults(runHistorical(c.config)));
       expect({ mc, hist }, `config: ${c.name}`).toEqual(fixtures.cases[c.name]);
@@ -45,6 +45,25 @@ describe('golden-master: stress engine', () => {
         expect(charged[kind].successRate, `${t.name} ${kind}`).toBeLessThanOrEqual(plain[kind].successRate);
       }
     });
+  });
+
+  // How the ISA grows (6.22.0): a new or migrated unlocked plan carries 0.5% charges AND the ISA choice ("Mostly cash" by
+  // default); a plan locked before the choice carries none and its ISA grows at the fixed 3%. Every config has a twin at
+  // each choice, the charged sibling with the choice and nothing else. With no ISA the choice has nothing to grow: the
+  // twin IS its sibling, figure for figure. With an ISA it moves (both ways: see the moved-by table in the report).
+  it('every config has a twin at each ISA choice: its charged sibling plus the choice; with no ISA the same figures, with one different', () => {
+    expect(ISA_GROWTH_TWINS.map((t) => t.isaGrowth)).toEqual(['cash', 'invested']);
+    expect(isaGrowthStressConfigs).toHaveLength(2 * stressConfigs.length);
+    for (const t of isaGrowthStressConfigs) {
+      const sibling = chargedStressConfigs.find((c) => c.name === t.sibling);
+      expect(sibling, t.name).toBeTruthy();
+      const { isaGrowth, ...rest } = t.config;
+      expect(isaGrowth, t.name).toBe(t.isaGrowth);
+      expect(rest, t.name).toEqual(sibling.config);
+      const plain = fixtures.cases[t.sibling], twin = fixtures.cases[t.name];
+      if (!(t.config.isaBalance > 0)) expect(twin, t.name).toEqual(plain);
+      else expect(twin, t.name).not.toEqual(plain);
+    }
   });
 
   it('BUG pinned: legacy State Pension is silently ignored (identical to no-SP)', () => {

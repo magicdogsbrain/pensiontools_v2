@@ -393,7 +393,12 @@ export function checkAnswerB(answer, given) {
   if (inputs.spend.kind === 'level') always.push('spend-level');
   if (inputs.savingRisk !== inputs.risk) always.push('slide');
   always.push('savings-in');
-  if (inputs.savingsIn > 0 || inputs.savings > 0) always.push('isa-fixed-growth');
+  // how the savings grow (6.22.0): said whenever there is money in savings, with its field and the choice in the inputs
+  if (inputs.savingsIn > 0 || inputs.savings > 0) always.push('savings-growth');
+  const sg = answer.assumed.find((a) => a.id === 'savings-growth');
+  if (sg && (sg.field !== 'isaGrowth' || sg.value !== inputs.isaGrowth)) fail('B12', `savings-growth: field ${sg.field}, value ${sg.value} (input ${inputs.isaGrowth})`);
+  if ((inputs.savings > 0 || inputs.savingsIn > 0) !== ('isaGrowth' in inputs) && given && given.isaGrowth === undefined) fail('B12', `isaGrowth in the inputs ${'isaGrowth' in inputs}, money in savings ${inputs.savings > 0 || inputs.savingsIn > 0}`);
+  if (ids.includes('isa-fixed-growth')) fail('B12', 'the line isa-fixed-growth went in 6.22.0');
   if (answer.outside) always.push('outside-first');
   for (const id of always) if (!ids.includes(id)) fail('B12', `assumed lacks ${id}`);
   if (answer.gapYears > 0 && !ids.some((id) => id.startsWith('pension-closed-until'))) fail('B12', 'a pension closed at the stop, and no pension-closed-until line');
@@ -403,7 +408,7 @@ export function checkAnswerB(answer, given) {
   if (inputs.savingRisk === inputs.risk && ids.includes('slide')) fail('B12', 'a slide line with one risk level');
   if (given) {
     const flat = flatten(given);
-    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charges', endAge: 'plan-to', confidence: 'confidence',
+    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charges', isaGrowth: 'savings-growth', endAge: 'plan-to', confidence: 'confidence',
       'you.statePension.kind': 'state-pension-full', 'partner.statePension.kind': 'state-pension-full-partner',
       'you.finalSalary.has': 'no-final-salary', 'partner.finalSalary.has': 'no-final-salary-partner', 'partner.pot': 'partner-no-pot' };
     const applies = flatten(inputs);

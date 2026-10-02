@@ -6,6 +6,9 @@
  *   saverFields(who, opts)       the pay-in block: payIn.kind / total / own / employer, and alreadyDrawing under more detail
  *   moreFields()                 savingsIn, savingRisk, risk, charge, endAge
  *   chargeField()                the one fund and platform charge, percent a year (6.19.0): in C's "more" too
+ *   isaGrowthField(group)        how ISAs and savings grow (6.22.0): "Mostly cash" or "Invested like my pension", in C, A, B
+ *   savingsGrowthAsked(values)   whether there is money in savings for that choice to grow (it is asked, and defaulted, then)
+ *   savingsGrowthDefault(values) its default rule: "Mostly cash" with money in savings, else none (today's inputs, key for key)
  *   SPEND_FIELDS                 spend.kind / amount / level — the same paths in A and B
  *   shapeFields(base)            what is spent changing with age: <base>.then / fallsPct / steps (A, B 'spend'; C 'shape')
  *   shapeOfInputs(inputs, base, first)   the household model's shape from checked inputs, or null (spending-shape.md 3)
@@ -31,6 +34,7 @@
 import { RULES, SAVING } from './rules.js';
 import { bornFromAge, wholeStatePensionAge, firstOpenAge, APART, PAY_COVERS } from './household.js';
 import { CHARGES_LIMITS } from '../../services/Charges.js';
+import { ISA_GROWTH_VALUES } from '../../services/IsaGrowth.js';
 import { SHAPE_LIMITS, THEN, isTrivial } from './shape.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
@@ -149,6 +153,34 @@ export function payInTotalOf(inputs, who) {
 export function chargeField() {
   return { path: 'charge', type: 'percent', min: CHARGES_LIMITS.min, max: CHARGES_LIMITS.max, step: CHARGES_LIMITS.step, default: SAVING.chargesPct, group: 'more',
     boundaries: [CHARGES_LIMITS.min, CHARGES_LIMITS.step, SAVING.chargesPct, 1, CHARGES_LIMITS.max] };
+}
+
+/**
+ * How ISAs and savings grow (6.22.0; research/saver-lock-and-savings-growth.md 3.6; the owner, 2 Oct 2026): ONE choice in
+ * C, A and B alike — "Mostly cash" ('cash': last year's rise in prices less 1%, never below nothing, as the pension's own
+ * cash grows) or "Invested like my pension" ('invested': the pension's mix, in the same futures) — taken while saving AND
+ * while drawing. It becomes the household's `isaGrowth` (household.js), which the saving years (saving.js) and every
+ * drawing run (toEngine.js) read; today's planner has the same setting (services/IsaGrowth.js).
+ *
+ * It is asked only once there is money in savings (savingsGrowthAsked): the savings box above £0, or — A and B — money
+ * going into savings each month. Its default is a rule (savingsGrowthDefault): "Mostly cash" then, and nothing at all
+ * otherwise, so the checked inputs of a household with no savings are today's, key for key (with nothing in savings
+ * there is nothing for the choice to grow). Declared after the boxes the rule reads (A and B: after savingsIn) and in the
+ * savings box's own group; drawn straight under the savings box (the screens' layouts).
+ */
+export function isaGrowthField(group) {
+  return { path: 'isaGrowth', type: 'choice', options: [...ISA_GROWTH_VALUES], default: { rule: 'isaGrowth' }, group };
+}
+
+/** Whether there is money in savings to grow, from flat values (checked, or parsed as typed): savings, or savings a month. */
+export function savingsGrowthAsked(values) {
+  const v = values || {};
+  return (isNum(v.savings) && v.savings > 0) || (isNum(v.savingsIn) && v.savingsIn > 0);
+}
+
+/** The default of isaGrowthField: "Mostly cash" (RULES.isaGrowthDefault) once there is money in savings; else none. */
+export function savingsGrowthDefault(values) {
+  return savingsGrowthAsked(values) ? RULES.isaGrowthDefault : undefined;
 }
 
 /** "Add more detail": savings in a month, the two risk levels, the one charge (saving and drawing), the end age. */

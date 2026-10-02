@@ -2340,6 +2340,2346 @@
         },
         "total": 78
       }
+    },
+    "base / SP from year 5 · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 214.84,
+          "p10": 146876.78,
+          "p25": 381511.98,
+          "p5": 50498.76,
+          "p50": 1102170.3,
+          "p75": 2973768.95,
+          "p90": 7411269,
+          "p95": 9665903.71
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.18,
+          "avgMonths": 81.08,
+          "maxConsecutive": 326,
+          "maxMonths": 338,
+          "p50Months": 23,
+          "p90Months": 264,
+          "p95Months": 297,
+          "pctWithProtection": 75.5,
+          "runsWithProtection": 151
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.92,
+          "p10": 28.17,
+          "p25": 30,
+          "p5": 26.33,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 11,
+        "finalValue": {
+          "min": 5028.77,
+          "p10": 144504.31,
+          "p25": 796569.65,
+          "p5": 31506.31,
+          "p50": 1555794.14,
+          "p75": 2644321.77,
+          "p90": 3209312.25,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 67.94,
+          "avgMonths": 88.32,
+          "maxConsecutive": 286,
+          "maxMonths": 304,
+          "p50Months": 32,
+          "p90Months": 264,
+          "p95Months": 287,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 57,
+        "successRate": 83.82,
+        "survival": {
+          "max": 30,
+          "min": 24.17,
+          "p10": 26.83,
+          "p25": 30,
+          "p5": 25.08,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "frozen tax thresholds · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 214.84,
+          "p10": 146876.78,
+          "p25": 381511.98,
+          "p5": 49322.45,
+          "p50": 1102170.3,
+          "p75": 2973768.95,
+          "p90": 7411269,
+          "p95": 9665903.71
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.18,
+          "avgMonths": 81.1,
+          "maxConsecutive": 326,
+          "maxMonths": 338,
+          "p50Months": 23,
+          "p90Months": 264,
+          "p95Months": 297,
+          "pctWithProtection": 75.5,
+          "runsWithProtection": 151
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.92,
+          "p10": 28.17,
+          "p25": 30,
+          "p5": 26.33,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 11,
+        "finalValue": {
+          "min": 5028.77,
+          "p10": 144414.56,
+          "p25": 796569.65,
+          "p5": 31506.31,
+          "p50": 1555794.14,
+          "p75": 2644321.77,
+          "p90": 3209312.25,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 67.94,
+          "avgMonths": 88.5,
+          "maxConsecutive": 286,
+          "maxMonths": 304,
+          "p50Months": 32,
+          "p90Months": 264,
+          "p95Months": 287,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 57,
+        "successRate": 83.82,
+        "survival": {
+          "max": 30,
+          "min": 24.17,
+          "p10": 26.83,
+          "p25": 30,
+          "p5": 25.08,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "protection disabled · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 58,
+        "finalValue": {
+          "min": 616.18,
+          "p10": 208499.81,
+          "p25": 527453.26,
+          "p5": 124255.59,
+          "p50": 1251358.5,
+          "p75": 3347407.37,
+          "p90": 7465363.78,
+          "p95": 10141888.22
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 0,
+          "avgMonths": 0,
+          "maxConsecutive": 0,
+          "maxMonths": 0,
+          "p50Months": 0,
+          "p90Months": 0,
+          "p95Months": 0,
+          "pctWithProtection": 0,
+          "runsWithProtection": 0
+        },
+        "successCount": 142,
+        "successRate": 71,
+        "survival": {
+          "max": 30,
+          "min": 17.25,
+          "p10": 22.92,
+          "p25": 28.17,
+          "p5": 20.67,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 21,
+        "finalValue": {
+          "min": 66198.58,
+          "p10": 299347.1,
+          "p25": 1098010.46,
+          "p5": 141436.56,
+          "p50": 1826944.67,
+          "p75": 2864886.15,
+          "p90": 3238867.42,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 0,
+          "avgMonths": 0,
+          "maxConsecutive": 0,
+          "maxMonths": 0,
+          "p50Months": 0,
+          "p90Months": 0,
+          "p95Months": 0,
+          "pctWithProtection": 0,
+          "runsWithProtection": 0
+        },
+        "successCount": 47,
+        "successRate": 69.12,
+        "survival": {
+          "max": 30,
+          "min": 18.58,
+          "p10": 21.25,
+          "p25": 26.92,
+          "p5": 19.75,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "HODL reserve enabled · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 0,
+          "p25": 119239.3,
+          "p5": 0,
+          "p50": 756439.24,
+          "p75": 2359798.9,
+          "p90": 7287554.77,
+          "p95": 9329364.24
+        },
+        "hodl": {
+          "avgUsed": 290875.6,
+          "maxUsed": 904476.14,
+          "pctUsingHodl": 18.5,
+          "runsUsingHodl": 37
+        },
+        "protection": {
+          "avgConsecutive": 59.6,
+          "avgMonths": 87.43,
+          "maxConsecutive": 357,
+          "maxMonths": 357,
+          "p50Months": 25,
+          "p90Months": 312,
+          "p95Months": 333,
+          "pctWithProtection": 77.5,
+          "runsWithProtection": 155
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 27.42,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 4,
+        "finalValue": {
+          "min": 0,
+          "p10": 0,
+          "p25": 241491.49,
+          "p5": 0,
+          "p50": 1471364.78,
+          "p75": 2604664.44,
+          "p90": 3065606.43,
+          "p95": 3588143.09
+        },
+        "hodl": {
+          "avgUsed": 447590.01,
+          "maxUsed": 677502.75,
+          "pctUsingHodl": 17.65,
+          "runsUsingHodl": 12
+        },
+        "protection": {
+          "avgConsecutive": 74.69,
+          "avgMonths": 94.6,
+          "maxConsecutive": 328,
+          "maxMonths": 341,
+          "p50Months": 31,
+          "p90Months": 291,
+          "p95Months": 313,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 64,
+        "successRate": 94.12,
+        "survival": {
+          "max": 30,
+          "min": 28,
+          "p10": 30,
+          "p25": 30,
+          "p5": 29.58,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "no State Pension configured (spWeeklyAmount 0) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 111,
+        "finalValue": {
+          "min": 3841.76,
+          "p10": 92347.64,
+          "p25": 367210.67,
+          "p5": 51268.23,
+          "p50": 1471324.5,
+          "p75": 4328347.18,
+          "p90": 7276920.65,
+          "p95": 8745528.1
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 73.43,
+          "avgMonths": 107.3,
+          "maxConsecutive": 321,
+          "maxMonths": 341,
+          "p50Months": 81,
+          "p90Months": 248,
+          "p95Months": 263,
+          "pctWithProtection": 80.5,
+          "runsWithProtection": 161
+        },
+        "successCount": 89,
+        "successRate": 44.5,
+        "survival": {
+          "max": 30,
+          "min": 17.83,
+          "p10": 23.08,
+          "p25": 26.92,
+          "p5": 21.5,
+          "p50": 29.67,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 29,
+        "finalValue": {
+          "min": 38324.22,
+          "p10": 122492.86,
+          "p25": 378590.51,
+          "p5": 43490.54,
+          "p50": 1084312.7,
+          "p75": 1815881.8,
+          "p90": 2654751.36,
+          "p95": 3055467.44
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 77.56,
+          "avgMonths": 98.06,
+          "maxConsecutive": 342,
+          "maxMonths": 342,
+          "p50Months": 65,
+          "p90Months": 256,
+          "p95Months": 286,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 39,
+        "successRate": 57.35,
+        "survival": {
+          "max": 30,
+          "min": 19.33,
+          "p10": 21.17,
+          "p25": 26.33,
+          "p5": 20,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "DROPPED-SP BUG: legacy statePension set but no spStartYear · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 111,
+        "finalValue": {
+          "min": 3841.76,
+          "p10": 92347.64,
+          "p25": 367210.67,
+          "p5": 51268.23,
+          "p50": 1471324.5,
+          "p75": 4328347.18,
+          "p90": 7276920.65,
+          "p95": 8745528.1
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 73.43,
+          "avgMonths": 107.3,
+          "maxConsecutive": 321,
+          "maxMonths": 341,
+          "p50Months": 81,
+          "p90Months": 248,
+          "p95Months": 263,
+          "pctWithProtection": 80.5,
+          "runsWithProtection": 161
+        },
+        "successCount": 89,
+        "successRate": 44.5,
+        "survival": {
+          "max": 30,
+          "min": 17.83,
+          "p10": 23.08,
+          "p25": 26.92,
+          "p5": 21.5,
+          "p50": 29.67,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 29,
+        "finalValue": {
+          "min": 38324.22,
+          "p10": 122492.86,
+          "p25": 378590.51,
+          "p5": 43490.54,
+          "p50": 1084312.7,
+          "p75": 1815881.8,
+          "p90": 2654751.36,
+          "p95": 3055467.44
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 77.56,
+          "avgMonths": 98.06,
+          "maxConsecutive": 342,
+          "maxMonths": 342,
+          "p50Months": 65,
+          "p90Months": 256,
+          "p95Months": 286,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 39,
+        "successRate": 57.35,
+        "survival": {
+          "max": 30,
+          "min": 19.33,
+          "p10": 21.17,
+          "p25": 26.33,
+          "p5": 20,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "shorter horizon (20y) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 77647.41,
+          "p10": 336944.41,
+          "p25": 705307.13,
+          "p5": 239589.3,
+          "p50": 1282832.07,
+          "p75": 2184360.21,
+          "p90": 3383376.88,
+          "p95": 4207235.54
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 19.65,
+          "avgMonths": 28.9,
+          "maxConsecutive": 186,
+          "maxMonths": 189,
+          "p50Months": 9,
+          "p90Months": 92,
+          "p95Months": 136,
+          "pctWithProtection": 61.5,
+          "runsWithProtection": 123
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 245332.31,
+          "p10": 371703.65,
+          "p25": 612460.78,
+          "p5": 314848.59,
+          "p50": 1201043.81,
+          "p75": 2447757.65,
+          "p90": 3359273.62,
+          "p95": 3702286.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 24.46,
+          "avgMonths": 34.31,
+          "maxConsecutive": 130,
+          "maxMonths": 168,
+          "p50Months": 11,
+          "p90Months": 115,
+          "p95Months": 130,
+          "pctWithProtection": 62.82,
+          "runsWithProtection": 49
+        },
+        "successCount": 78,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 78
+      }
+    },
+    "lower target salary (40k, binds below BRL) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 174264.95,
+          "p10": 845713.22,
+          "p25": 1590437.76,
+          "p5": 727814.94,
+          "p50": 3100229.37,
+          "p75": 5828851.28,
+          "p90": 12605810.06,
+          "p95": 14858171.73
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 20.95,
+          "avgMonths": 33.74,
+          "maxConsecutive": 198,
+          "maxMonths": 271,
+          "p50Months": 10,
+          "p90Months": 111,
+          "p95Months": 155,
+          "pctWithProtection": 61,
+          "runsWithProtection": 122
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 1321940.37,
+          "p10": 1821154.96,
+          "p25": 2654304.05,
+          "p5": 1519705,
+          "p50": 3945484.6,
+          "p75": 5239846.72,
+          "p90": 5881003.78,
+          "p95": 7138867.31
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 29.06,
+          "avgMonths": 38.99,
+          "maxConsecutive": 142,
+          "maxMonths": 176,
+          "p50Months": 13,
+          "p90Months": 127,
+          "p95Months": 156,
+          "pctWithProtection": 61.76,
+          "runsWithProtection": 42
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "partial first State-Pension year (ratio 0.5) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 3344.74,
+          "p10": 143036.73,
+          "p25": 377584.85,
+          "p5": 41124.24,
+          "p50": 1088729.99,
+          "p75": 2923268.63,
+          "p90": 7332107.47,
+          "p95": 9538258.18
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.4,
+          "avgMonths": 82.2,
+          "maxConsecutive": 324,
+          "maxMonths": 335,
+          "p50Months": 23,
+          "p90Months": 265,
+          "p95Months": 299,
+          "pctWithProtection": 76.5,
+          "runsWithProtection": 153
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.75,
+          "p10": 28.08,
+          "p25": 30,
+          "p5": 26.25,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 12,
+        "finalValue": {
+          "min": 7387.23,
+          "p10": 138803.67,
+          "p25": 906152.15,
+          "p5": 45100.64,
+          "p50": 1521783.17,
+          "p75": 2669626.8,
+          "p90": 3179908.46,
+          "p95": 3644776.8
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 68.53,
+          "avgMonths": 89.15,
+          "maxConsecutive": 298,
+          "maxMonths": 311,
+          "p50Months": 32,
+          "p90Months": 262,
+          "p95Months": 285,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 56,
+        "successRate": 82.35,
+        "survival": {
+          "max": 30,
+          "min": 24,
+          "p10": 26.67,
+          "p25": 30,
+          "p5": 24.83,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "base + £200k ISA (should beat base) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 259645.8,
+          "p25": 760746.34,
+          "p5": 97026.31,
+          "p50": 1909306.92,
+          "p75": 3915747.47,
+          "p90": 9665070.93,
+          "p95": 11353037.14
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 33.33,
+          "avgMonths": 55.9,
+          "maxConsecutive": 331,
+          "maxMonths": 344,
+          "p50Months": 13,
+          "p90Months": 192,
+          "p95Months": 248,
+          "pctWithProtection": 68.5,
+          "runsWithProtection": 137
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 28.75,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 160811.33,
+          "p10": 389658.68,
+          "p25": 1003294.91,
+          "p5": 275293.94,
+          "p50": 2502715.06,
+          "p75": 3670125.81,
+          "p90": 4614681.05,
+          "p95": 4837337.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 42.29,
+          "avgMonths": 58.34,
+          "maxConsecutive": 202,
+          "maxMonths": 270,
+          "p50Months": 18,
+          "p90Months": 185,
+          "p95Months": 242,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "base + £200k ISA / maximise longevity · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 259645.8,
+          "p25": 760746.34,
+          "p5": 97026.31,
+          "p50": 1909306.92,
+          "p75": 3915747.47,
+          "p90": 9665070.93,
+          "p95": 11353037.14
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 33.33,
+          "avgMonths": 55.9,
+          "maxConsecutive": 331,
+          "maxMonths": 344,
+          "p50Months": 13,
+          "p90Months": 192,
+          "p95Months": 248,
+          "pctWithProtection": 68.5,
+          "runsWithProtection": 137
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 28.75,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 160811.33,
+          "p10": 389658.68,
+          "p25": 1003294.91,
+          "p5": 275293.94,
+          "p50": 2502715.06,
+          "p75": 3670125.81,
+          "p90": 4614681.05,
+          "p95": 4837337.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 42.29,
+          "avgMonths": 58.34,
+          "maxConsecutive": 202,
+          "maxMonths": 270,
+          "p50Months": 18,
+          "p90Months": 185,
+          "p95Months": 242,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "declining spending smile (should beat flat base) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 12,
+        "finalValue": {
+          "min": 25527.19,
+          "p10": 222066.02,
+          "p25": 631006.33,
+          "p5": 137504.69,
+          "p50": 1463312.42,
+          "p75": 3275599.73,
+          "p90": 8059506.34,
+          "p95": 9863061.07
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 47.81,
+          "avgMonths": 71.86,
+          "maxConsecutive": 336,
+          "maxMonths": 339,
+          "p50Months": 21,
+          "p90Months": 255,
+          "p95Months": 289,
+          "pctWithProtection": 74,
+          "runsWithProtection": 148
+        },
+        "successCount": 188,
+        "successRate": 94,
+        "survival": {
+          "max": 30,
+          "min": 24.58,
+          "p10": 30,
+          "p25": 30,
+          "p5": 29.75,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 30024.3,
+          "p10": 268654.46,
+          "p25": 758875.98,
+          "p5": 191572.13,
+          "p50": 1989006.78,
+          "p75": 3067427.76,
+          "p90": 3729593.54,
+          "p95": 4012843.15
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 63.94,
+          "avgMonths": 80.78,
+          "maxConsecutive": 341,
+          "maxMonths": 345,
+          "p50Months": 30,
+          "p90Months": 256,
+          "p95Months": 319,
+          "pctWithProtection": 67.65,
+          "runsWithProtection": 46
+        },
+        "successCount": 65,
+        "successRate": 95.59,
+        "survival": {
+          "max": 30,
+          "min": 28.42,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "declining spending / 20y horizon (truncated smile) · charges 0.5% · ISA mostly cash": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 142455.49,
+          "p10": 466230.38,
+          "p25": 804161.48,
+          "p5": 340815.93,
+          "p50": 1441905.65,
+          "p75": 2349953.79,
+          "p90": 3587370.36,
+          "p95": 4485343.36
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 19.05,
+          "avgMonths": 27.76,
+          "maxConsecutive": 174,
+          "maxMonths": 174,
+          "p50Months": 9,
+          "p90Months": 88,
+          "p95Months": 125,
+          "pctWithProtection": 61.5,
+          "runsWithProtection": 123
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 446119.21,
+          "p10": 506935.82,
+          "p25": 820409.19,
+          "p5": 476965.35,
+          "p50": 1333096.48,
+          "p75": 2615423.22,
+          "p90": 3469410.65,
+          "p95": 3838414.21
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 24.03,
+          "avgMonths": 33.31,
+          "maxConsecutive": 130,
+          "maxMonths": 156,
+          "p50Months": 11,
+          "p90Months": 112,
+          "p95Months": 129,
+          "pctWithProtection": 61.54,
+          "runsWithProtection": 48
+        },
+        "successCount": 78,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 78
+      }
+    },
+    "base / SP from year 5 · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 214.84,
+          "p10": 146876.78,
+          "p25": 381511.98,
+          "p5": 50498.76,
+          "p50": 1102170.3,
+          "p75": 2973768.95,
+          "p90": 7411269,
+          "p95": 9665903.71
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.18,
+          "avgMonths": 81.08,
+          "maxConsecutive": 326,
+          "maxMonths": 338,
+          "p50Months": 23,
+          "p90Months": 264,
+          "p95Months": 297,
+          "pctWithProtection": 75.5,
+          "runsWithProtection": 151
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.92,
+          "p10": 28.17,
+          "p25": 30,
+          "p5": 26.33,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 11,
+        "finalValue": {
+          "min": 5028.77,
+          "p10": 144504.31,
+          "p25": 796569.65,
+          "p5": 31506.31,
+          "p50": 1555794.14,
+          "p75": 2644321.77,
+          "p90": 3209312.25,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 67.94,
+          "avgMonths": 88.32,
+          "maxConsecutive": 286,
+          "maxMonths": 304,
+          "p50Months": 32,
+          "p90Months": 264,
+          "p95Months": 287,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 57,
+        "successRate": 83.82,
+        "survival": {
+          "max": 30,
+          "min": 24.17,
+          "p10": 26.83,
+          "p25": 30,
+          "p5": 25.08,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "frozen tax thresholds · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 214.84,
+          "p10": 146876.78,
+          "p25": 381511.98,
+          "p5": 49322.45,
+          "p50": 1102170.3,
+          "p75": 2973768.95,
+          "p90": 7411269,
+          "p95": 9665903.71
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.18,
+          "avgMonths": 81.1,
+          "maxConsecutive": 326,
+          "maxMonths": 338,
+          "p50Months": 23,
+          "p90Months": 264,
+          "p95Months": 297,
+          "pctWithProtection": 75.5,
+          "runsWithProtection": 151
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.92,
+          "p10": 28.17,
+          "p25": 30,
+          "p5": 26.33,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 11,
+        "finalValue": {
+          "min": 5028.77,
+          "p10": 144414.56,
+          "p25": 796569.65,
+          "p5": 31506.31,
+          "p50": 1555794.14,
+          "p75": 2644321.77,
+          "p90": 3209312.25,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 67.94,
+          "avgMonths": 88.5,
+          "maxConsecutive": 286,
+          "maxMonths": 304,
+          "p50Months": 32,
+          "p90Months": 264,
+          "p95Months": 287,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 57,
+        "successRate": 83.82,
+        "survival": {
+          "max": 30,
+          "min": 24.17,
+          "p10": 26.83,
+          "p25": 30,
+          "p5": 25.08,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "protection disabled · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 58,
+        "finalValue": {
+          "min": 616.18,
+          "p10": 208499.81,
+          "p25": 527453.26,
+          "p5": 124255.59,
+          "p50": 1251358.5,
+          "p75": 3347407.37,
+          "p90": 7465363.78,
+          "p95": 10141888.22
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 0,
+          "avgMonths": 0,
+          "maxConsecutive": 0,
+          "maxMonths": 0,
+          "p50Months": 0,
+          "p90Months": 0,
+          "p95Months": 0,
+          "pctWithProtection": 0,
+          "runsWithProtection": 0
+        },
+        "successCount": 142,
+        "successRate": 71,
+        "survival": {
+          "max": 30,
+          "min": 17.25,
+          "p10": 22.92,
+          "p25": 28.17,
+          "p5": 20.67,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 21,
+        "finalValue": {
+          "min": 66198.58,
+          "p10": 299347.1,
+          "p25": 1098010.46,
+          "p5": 141436.56,
+          "p50": 1826944.67,
+          "p75": 2864886.15,
+          "p90": 3238867.42,
+          "p95": 3668563.28
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 0,
+          "avgMonths": 0,
+          "maxConsecutive": 0,
+          "maxMonths": 0,
+          "p50Months": 0,
+          "p90Months": 0,
+          "p95Months": 0,
+          "pctWithProtection": 0,
+          "runsWithProtection": 0
+        },
+        "successCount": 47,
+        "successRate": 69.12,
+        "survival": {
+          "max": 30,
+          "min": 18.58,
+          "p10": 21.25,
+          "p25": 26.92,
+          "p5": 19.75,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "HODL reserve enabled · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 0,
+          "p25": 119239.3,
+          "p5": 0,
+          "p50": 756439.24,
+          "p75": 2359798.9,
+          "p90": 7287554.77,
+          "p95": 9329364.24
+        },
+        "hodl": {
+          "avgUsed": 290875.6,
+          "maxUsed": 904476.14,
+          "pctUsingHodl": 18.5,
+          "runsUsingHodl": 37
+        },
+        "protection": {
+          "avgConsecutive": 59.6,
+          "avgMonths": 87.43,
+          "maxConsecutive": 357,
+          "maxMonths": 357,
+          "p50Months": 25,
+          "p90Months": 312,
+          "p95Months": 333,
+          "pctWithProtection": 77.5,
+          "runsWithProtection": 155
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 27.42,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 4,
+        "finalValue": {
+          "min": 0,
+          "p10": 0,
+          "p25": 241491.49,
+          "p5": 0,
+          "p50": 1471364.78,
+          "p75": 2604664.44,
+          "p90": 3065606.43,
+          "p95": 3588143.09
+        },
+        "hodl": {
+          "avgUsed": 447590.01,
+          "maxUsed": 677502.75,
+          "pctUsingHodl": 17.65,
+          "runsUsingHodl": 12
+        },
+        "protection": {
+          "avgConsecutive": 74.69,
+          "avgMonths": 94.6,
+          "maxConsecutive": 328,
+          "maxMonths": 341,
+          "p50Months": 31,
+          "p90Months": 291,
+          "p95Months": 313,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 64,
+        "successRate": 94.12,
+        "survival": {
+          "max": 30,
+          "min": 28,
+          "p10": 30,
+          "p25": 30,
+          "p5": 29.58,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "no State Pension configured (spWeeklyAmount 0) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 111,
+        "finalValue": {
+          "min": 3841.76,
+          "p10": 92347.64,
+          "p25": 367210.67,
+          "p5": 51268.23,
+          "p50": 1471324.5,
+          "p75": 4328347.18,
+          "p90": 7276920.65,
+          "p95": 8745528.1
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 73.43,
+          "avgMonths": 107.3,
+          "maxConsecutive": 321,
+          "maxMonths": 341,
+          "p50Months": 81,
+          "p90Months": 248,
+          "p95Months": 263,
+          "pctWithProtection": 80.5,
+          "runsWithProtection": 161
+        },
+        "successCount": 89,
+        "successRate": 44.5,
+        "survival": {
+          "max": 30,
+          "min": 17.83,
+          "p10": 23.08,
+          "p25": 26.92,
+          "p5": 21.5,
+          "p50": 29.67,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 29,
+        "finalValue": {
+          "min": 38324.22,
+          "p10": 122492.86,
+          "p25": 378590.51,
+          "p5": 43490.54,
+          "p50": 1084312.7,
+          "p75": 1815881.8,
+          "p90": 2654751.36,
+          "p95": 3055467.44
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 77.56,
+          "avgMonths": 98.06,
+          "maxConsecutive": 342,
+          "maxMonths": 342,
+          "p50Months": 65,
+          "p90Months": 256,
+          "p95Months": 286,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 39,
+        "successRate": 57.35,
+        "survival": {
+          "max": 30,
+          "min": 19.33,
+          "p10": 21.17,
+          "p25": 26.33,
+          "p5": 20,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "DROPPED-SP BUG: legacy statePension set but no spStartYear · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 111,
+        "finalValue": {
+          "min": 3841.76,
+          "p10": 92347.64,
+          "p25": 367210.67,
+          "p5": 51268.23,
+          "p50": 1471324.5,
+          "p75": 4328347.18,
+          "p90": 7276920.65,
+          "p95": 8745528.1
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 73.43,
+          "avgMonths": 107.3,
+          "maxConsecutive": 321,
+          "maxMonths": 341,
+          "p50Months": 81,
+          "p90Months": 248,
+          "p95Months": 263,
+          "pctWithProtection": 80.5,
+          "runsWithProtection": 161
+        },
+        "successCount": 89,
+        "successRate": 44.5,
+        "survival": {
+          "max": 30,
+          "min": 17.83,
+          "p10": 23.08,
+          "p25": 26.92,
+          "p5": 21.5,
+          "p50": 29.67,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 29,
+        "finalValue": {
+          "min": 38324.22,
+          "p10": 122492.86,
+          "p25": 378590.51,
+          "p5": 43490.54,
+          "p50": 1084312.7,
+          "p75": 1815881.8,
+          "p90": 2654751.36,
+          "p95": 3055467.44
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 77.56,
+          "avgMonths": 98.06,
+          "maxConsecutive": 342,
+          "maxMonths": 342,
+          "p50Months": 65,
+          "p90Months": 256,
+          "p95Months": 286,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 39,
+        "successRate": 57.35,
+        "survival": {
+          "max": 30,
+          "min": 19.33,
+          "p10": 21.17,
+          "p25": 26.33,
+          "p5": 20,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "shorter horizon (20y) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 77647.41,
+          "p10": 336944.41,
+          "p25": 705307.13,
+          "p5": 239589.3,
+          "p50": 1282832.07,
+          "p75": 2184360.21,
+          "p90": 3383376.88,
+          "p95": 4207235.54
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 19.65,
+          "avgMonths": 28.9,
+          "maxConsecutive": 186,
+          "maxMonths": 189,
+          "p50Months": 9,
+          "p90Months": 92,
+          "p95Months": 136,
+          "pctWithProtection": 61.5,
+          "runsWithProtection": 123
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 245332.31,
+          "p10": 371703.65,
+          "p25": 612460.78,
+          "p5": 314848.59,
+          "p50": 1201043.81,
+          "p75": 2447757.65,
+          "p90": 3359273.62,
+          "p95": 3702286.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 24.46,
+          "avgMonths": 34.31,
+          "maxConsecutive": 130,
+          "maxMonths": 168,
+          "p50Months": 11,
+          "p90Months": 115,
+          "p95Months": 130,
+          "pctWithProtection": 62.82,
+          "runsWithProtection": 49
+        },
+        "successCount": 78,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 78
+      }
+    },
+    "lower target salary (40k, binds below BRL) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 174264.95,
+          "p10": 845713.22,
+          "p25": 1590437.76,
+          "p5": 727814.94,
+          "p50": 3100229.37,
+          "p75": 5828851.28,
+          "p90": 12605810.06,
+          "p95": 14858171.73
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 20.95,
+          "avgMonths": 33.74,
+          "maxConsecutive": 198,
+          "maxMonths": 271,
+          "p50Months": 10,
+          "p90Months": 111,
+          "p95Months": 155,
+          "pctWithProtection": 61,
+          "runsWithProtection": 122
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 1321940.37,
+          "p10": 1821154.96,
+          "p25": 2654304.05,
+          "p5": 1519705,
+          "p50": 3945484.6,
+          "p75": 5239846.72,
+          "p90": 5881003.78,
+          "p95": 7138867.31
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 29.06,
+          "avgMonths": 38.99,
+          "maxConsecutive": 142,
+          "maxMonths": 176,
+          "p50Months": 13,
+          "p90Months": 127,
+          "p95Months": 156,
+          "pctWithProtection": 61.76,
+          "runsWithProtection": 42
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "partial first State-Pension year (ratio 0.5) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 38,
+        "finalValue": {
+          "min": 3344.74,
+          "p10": 143036.73,
+          "p25": 377584.85,
+          "p5": 41124.24,
+          "p50": 1088729.99,
+          "p75": 2923268.63,
+          "p90": 7332107.47,
+          "p95": 9538258.18
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 53.4,
+          "avgMonths": 82.2,
+          "maxConsecutive": 324,
+          "maxMonths": 335,
+          "p50Months": 23,
+          "p90Months": 265,
+          "p95Months": 299,
+          "pctWithProtection": 76.5,
+          "runsWithProtection": 153
+        },
+        "successCount": 162,
+        "successRate": 81,
+        "survival": {
+          "max": 30,
+          "min": 21.75,
+          "p10": 28.08,
+          "p25": 30,
+          "p5": 26.25,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 12,
+        "finalValue": {
+          "min": 7387.23,
+          "p10": 138803.67,
+          "p25": 906152.15,
+          "p5": 45100.64,
+          "p50": 1521783.17,
+          "p75": 2669626.8,
+          "p90": 3179908.46,
+          "p95": 3644776.8
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 68.53,
+          "avgMonths": 89.15,
+          "maxConsecutive": 298,
+          "maxMonths": 311,
+          "p50Months": 32,
+          "p90Months": 262,
+          "p95Months": 285,
+          "pctWithProtection": 70.59,
+          "runsWithProtection": 48
+        },
+        "successCount": 56,
+        "successRate": 82.35,
+        "survival": {
+          "max": 30,
+          "min": 24,
+          "p10": 26.67,
+          "p25": 30,
+          "p5": 24.83,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "base + £200k ISA (should beat base) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 259645.8,
+          "p25": 760746.34,
+          "p5": 97026.31,
+          "p50": 1909306.92,
+          "p75": 3915747.47,
+          "p90": 9665070.93,
+          "p95": 11353037.14
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 33.09,
+          "avgMonths": 55.67,
+          "maxConsecutive": 331,
+          "maxMonths": 341,
+          "p50Months": 13,
+          "p90Months": 192,
+          "p95Months": 248,
+          "pctWithProtection": 68.5,
+          "runsWithProtection": 137
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 26.83,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 160811.33,
+          "p10": 390355.86,
+          "p25": 1003294.91,
+          "p5": 282679.39,
+          "p50": 2502715.06,
+          "p75": 3670125.81,
+          "p90": 4614681.05,
+          "p95": 4837337.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 42.29,
+          "avgMonths": 58.34,
+          "maxConsecutive": 202,
+          "maxMonths": 270,
+          "p50Months": 18,
+          "p90Months": 185,
+          "p95Months": 242,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "base + £200k ISA / maximise longevity · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 0,
+          "p10": 259645.8,
+          "p25": 760746.34,
+          "p5": 97026.31,
+          "p50": 1909306.92,
+          "p75": 3915747.47,
+          "p90": 9665070.93,
+          "p95": 11353037.14
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 33.09,
+          "avgMonths": 55.67,
+          "maxConsecutive": 331,
+          "maxMonths": 341,
+          "p50Months": 13,
+          "p90Months": 192,
+          "p95Months": 248,
+          "pctWithProtection": 68.5,
+          "runsWithProtection": 137
+        },
+        "successCount": 197,
+        "successRate": 98.5,
+        "survival": {
+          "max": 30,
+          "min": 26.83,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 160811.33,
+          "p10": 390355.86,
+          "p25": 1003294.91,
+          "p5": 282679.39,
+          "p50": 2502715.06,
+          "p75": 3670125.81,
+          "p90": 4614681.05,
+          "p95": 4837337.55
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 42.29,
+          "avgMonths": 58.34,
+          "maxConsecutive": 202,
+          "maxMonths": 270,
+          "p50Months": 18,
+          "p90Months": 185,
+          "p95Months": 242,
+          "pctWithProtection": 66.18,
+          "runsWithProtection": 45
+        },
+        "successCount": 68,
+        "successRate": 100,
+        "survival": {
+          "max": 30,
+          "min": 30,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "declining spending smile (should beat flat base) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 12,
+        "finalValue": {
+          "min": 25527.19,
+          "p10": 222066.02,
+          "p25": 631006.33,
+          "p5": 137504.69,
+          "p50": 1463312.42,
+          "p75": 3275599.73,
+          "p90": 8059506.34,
+          "p95": 9863061.07
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 47.81,
+          "avgMonths": 71.86,
+          "maxConsecutive": 336,
+          "maxMonths": 339,
+          "p50Months": 21,
+          "p90Months": 255,
+          "p95Months": 289,
+          "pctWithProtection": 74,
+          "runsWithProtection": 148
+        },
+        "successCount": 188,
+        "successRate": 94,
+        "survival": {
+          "max": 30,
+          "min": 24.58,
+          "p10": 30,
+          "p25": 30,
+          "p5": 29.75,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 3,
+        "finalValue": {
+          "min": 30024.3,
+          "p10": 268654.46,
+          "p25": 758875.98,
+          "p5": 191572.13,
+          "p50": 1989006.78,
+          "p75": 3067427.76,
+          "p90": 3729593.54,
+          "p95": 4012843.15
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 63.94,
+          "avgMonths": 80.78,
+          "maxConsecutive": 341,
+          "maxMonths": 345,
+          "p50Months": 30,
+          "p90Months": 256,
+          "p95Months": 319,
+          "pctWithProtection": 67.65,
+          "runsWithProtection": 46
+        },
+        "successCount": 65,
+        "successRate": 95.59,
+        "survival": {
+          "max": 30,
+          "min": 28.42,
+          "p10": 30,
+          "p25": 30,
+          "p5": 30,
+          "p50": 30,
+          "p75": 30,
+          "p90": 30,
+          "p95": 30
+        },
+        "total": 68
+      }
+    },
+    "declining spending / 20y horizon (truncated smile) · charges 0.5% · ISA invested": {
+      "mc": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 142455.49,
+          "p10": 466230.38,
+          "p25": 804161.48,
+          "p5": 340815.93,
+          "p50": 1441905.65,
+          "p75": 2349953.79,
+          "p90": 3587370.36,
+          "p95": 4485343.36
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 19.05,
+          "avgMonths": 27.76,
+          "maxConsecutive": 174,
+          "maxMonths": 174,
+          "p50Months": 9,
+          "p90Months": 88,
+          "p95Months": 125,
+          "pctWithProtection": 61.5,
+          "runsWithProtection": 123
+        },
+        "successCount": 200,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 200
+      },
+      "hist": {
+        "failCount": 0,
+        "finalValue": {
+          "min": 446119.21,
+          "p10": 506935.82,
+          "p25": 820409.19,
+          "p5": 476965.35,
+          "p50": 1333096.48,
+          "p75": 2615423.22,
+          "p90": 3469410.65,
+          "p95": 3838414.21
+        },
+        "hodl": {
+          "avgUsed": 0,
+          "maxUsed": 0,
+          "pctUsingHodl": 0,
+          "runsUsingHodl": 0
+        },
+        "protection": {
+          "avgConsecutive": 24.03,
+          "avgMonths": 33.31,
+          "maxConsecutive": 130,
+          "maxMonths": 156,
+          "p50Months": 11,
+          "p90Months": 112,
+          "p95Months": 129,
+          "pctWithProtection": 61.54,
+          "runsWithProtection": 48
+        },
+        "successCount": 78,
+        "successRate": 100,
+        "survival": {
+          "max": 20,
+          "min": 20,
+          "p10": 20,
+          "p25": 20,
+          "p5": 20,
+          "p50": 20,
+          "p75": 20,
+          "p90": 20,
+          "p95": 20
+        },
+        "total": 78
+      }
     }
   }
 }

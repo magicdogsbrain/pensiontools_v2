@@ -73,6 +73,7 @@
       "risk": "balanced",
       "charge": 0.5,
       "endAge": 95,
+      "isaGrowth": "cash",
       "confidence": "nineInTen"
     },
     "whose": "you",
@@ -119,14 +120,14 @@
             "good": 936074
           },
           "savings": {
-            "careful": 16973,
-            "middling": 29714,
-            "good": 36853
+            "careful": 16374,
+            "middling": 20793,
+            "good": 27756
           },
           "total": {
-            "careful": 503491,
-            "middling": 805587,
-            "good": 972146
+            "careful": 502379,
+            "middling": 798218,
+            "good": 954454
           }
         },
         "paidIn": {
@@ -141,13 +142,13 @@
       }
     ],
     "number": {
-      "careful": 513000,
-      "middling": 343000,
-      "good": 258000,
+      "careful": 521000,
+      "middling": 346000,
+      "good": 267000,
       "byPerson": [
         {
           "who": "you",
-          "pot": 513000
+          "pot": 521000
         }
       ]
     },
@@ -166,11 +167,11 @@
       "now": 1400,
       "own": null,
       "employer": null,
-      "needed": 280,
+      "needed": 270,
       "extra": 0,
       "confidence": "nineInTen",
       "at": {
-        "nineInTen": 280,
+        "nineInTen": 270,
         "threeInFour": 0
       },
       "outside": null,
@@ -183,13 +184,13 @@
         "good": 936074
       },
       "needed": {
-        "careful": 334932,
-        "middling": 568038,
-        "good": 698658
+        "careful": 333578,
+        "middling": 566322,
+        "good": 696739
       }
     },
-    "short": 26482,
-    "monthlyIfShort": 2420,
+    "short": 34482,
+    "monthlyIfShort": 2430,
     "wholeLife": {
       "lasted": 0.975,
       "outOfTen": {
@@ -207,8 +208,8 @@
       "moreRisk": null,
       "accept": {
         "lasted": 0.975,
-        "short": 26482,
-        "monthlyIfShort": 2420
+        "short": 34482,
+        "monthlyIfShort": 2430
       }
     },
     "grid": null,
@@ -556,17 +557,22 @@
         ]
       },
       {
-        "id": "isa-fixed-growth",
-        "field": null,
-        "source": "rule",
-        "value": 3,
-        "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.",
+        "id": "savings-growth",
+        "field": "isaGrowth",
+        "source": "default",
+        "value": "cash",
+        "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
         "parts": [
-          "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+          "Your savings are treated as ISA money: tax-free to take. ",
+          "They grow like cash: by last year's rise in prices less ",
           {
-            "fixed": "3"
+            "fixed": "1"
           },
-          "% a year before rising prices, so they lose ground whenever prices rise faster than that."
+          "%, or not at all if prices rose by less than ",
+          {
+            "fixed": "1"
+          },
+          "%."
         ]
       },
       {
@@ -661,7 +667,7 @@
       },
       "line": {
         "id": "b.line",
-        "text": "To spend £2,000 a month from 60, you would want a pot of about £513,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
+        "text": "To spend £2,000 a month from 60, you would want a pot of about £521,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
         "parts": [
           "To spend ",
           {
@@ -698,7 +704,7 @@
       },
       "bad": {
         "id": "b.bad.onCourse",
-        "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £280 a month and it would still last in 9 futures out of 10.",
+        "text": "In a bad case (the worst 1 in 10), £1,400 a month as now, your money still lasts to 95. You could pay in as little as about £270 a month and it would still last in 9 futures out of 10.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -842,7 +848,7 @@
       "lever": {
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,420 a month from 60 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,430 a month from 60 lasted in 9 futures out of 10.",
           "parts": [
             "Keep paying in ",
             {

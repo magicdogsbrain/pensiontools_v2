@@ -188,7 +188,8 @@ function shortForm(q) {
   // `household` is buttons (add / remove a partner) and `payIn.kind` may be drawn as a "Split it up" button pair, not boxes.
   // B's stop question ("I've already stopped") is asked of a couple only (couples-different-years.md 2.2): one person is
   // asked the age alone, as before.
-  const skip = new Set(['household', 'you.payIn.kind', ...(q === 'b' ? ['stop.kind'] : [])]);
+  // "How your savings grow" (6.22.0) is asked only once there is money in savings: with nothing typed it is not drawn.
+  const skip = new Set(['household', 'you.payIn.kind', 'isaGrowth', ...(q === 'b' ? ['stop.kind'] : [])]);
   // the spending is the next step's (the budget step), and so is how it changes with age (the spending shape's block,
   // research/v7/spending-shape.md 4.1): not on the numbers step
   return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && f.group !== 'spend' && f.group !== 'shape' && !f.path.startsWith('partner.') && f.group !== 'try')

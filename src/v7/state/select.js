@@ -29,7 +29,8 @@
  * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1), from what each field shows
  * (flat values: the text typed, else the checked value, else the plain default — formView's `shown`):
  *   offeredOptions(q, field, values) → the options a choice offers on screen: only those that fit, and whatever is chosen
- *   choiceAsked(q, field, values)    → false for a choice whose one fitting option is what not answering it means
+ *   choiceAsked(q, field, values, checked)  → false for a choice whose one fitting option is what not answering it means,
+ *                                      and for "How your savings grow" while there is no money in savings (6.22.0)
  *   stopsApart(values)               → the partner's stop is their own ("They already have", an age, "show me ages")
  *   askedAboutValues(values)         → who A's and B's answer is about: 'you', or 'partner' after "I've already stopped"
  *   askedAboutOf(state, q)           → the same, from what is typed in question q
@@ -41,7 +42,7 @@ import { SCHEMA_C } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { parseDraft, fieldsThatApply, nest, applies } from '../../answers/shared/validate.js';
-import { alreadyStopped, askedAbout, payCoversOf } from '../../answers/shared/schemaParts.js';
+import { alreadyStopped, askedAbout, payCoversOf, savingsGrowthAsked } from '../../answers/shared/schemaParts.js';
 import { inputsKey } from './inputsKey.js';
 import { BUILT } from '../rail/questions.js';
 import { emptyKeep } from './initial.js';
@@ -259,10 +260,13 @@ export function offeredOptions(q, field, values) {
 
 /**
  * Whether a choice is asked at all: not when the one option it offers is what not answering it means and nothing is
- * chosen — B's stop for one person, where only an age fits, so the age box stands on its own as it always has.
+ * chosen — B's stop for one person, where only an age fits, so the age box stands on its own as it always has. "How your
+ * savings grow" (6.22.0) is asked only once there is money in savings (schemaParts.js savingsGrowthAsked, read from
+ * `checked`: the values as checked, numbers — a box as typed is text), as its default is given only then.
  */
-export function choiceAsked(q, field, values) {
+export function choiceAsked(q, field, values, checked = values) {
   if (!field || field.type !== 'choice') return true;
+  if (field.path === 'isaGrowth') return savingsGrowthAsked(checked);
   const offered = offeredOptions(q, field, values);
   return !(offered.length === 1 && offered[0] === NOT_ANSWERED[field.path] && blankValue((values || {})[field.path]));
 }

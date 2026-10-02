@@ -174,6 +174,13 @@ Rules a test enforces by reading `import` lines (`tests/v7/boundaries.test.js`):
 4. Only files in `src/v7/effects/` and `src/v7/testing/` use `window`, `location`, `sessionStorage`,
    `Worker` or the clock.
 
+One crossing the other way (6.22.0, research/saver-lock-and-savings-growth.md R9): today's app uses V7's saving-years
+engine in one place. `src/services/SavingPath.js` imports `src/answers/shared/{lives,saving,band}.js` to draw the
+saving path of a plan locked while still saving (plan document version 3). It is loaded only through
+`src/ui/savingPathForLock.js` with `await import(...)`, when a plan is locked or its document refreshed, so the main
+bundle carries none of V7's engine. No rule above forbids a service importing an answer module; it is named here so the
+next person to look sees it.
+
 ### 3.2 State
 
 One object. Everything a screen can show is in it; nothing is read back out of a box.

@@ -141,6 +141,7 @@
       "risk": "balanced",
       "charge": 0.5,
       "endAge": 95,
+      "isaGrowth": "cash",
       "confidence": "nineInTen"
     },
     "whose": "partner",
@@ -270,9 +271,9 @@
       }
     ],
     "number": {
-      "careful": 376000,
-      "middling": 110000,
-      "good": 8000,
+      "careful": 391000,
+      "middling": 121000,
+      "good": 22000,
       "byPerson": [
         {
           "who": "you",
@@ -280,7 +281,7 @@
         },
         {
           "who": "partner",
-          "pot": 376000
+          "pot": 391000
         }
       ]
     },
@@ -322,7 +323,7 @@
       }
     },
     "short": 0,
-    "monthlyIfShort": 3670,
+    "monthlyIfShort": 3640,
     "wholeLife": {
       "lasted": 0.95,
       "outOfTen": {
@@ -341,7 +342,7 @@
       "accept": {
         "lasted": 0.95,
         "short": 0,
-        "monthlyIfShort": 3670
+        "monthlyIfShort": 3640
       }
     },
     "grid": null,
@@ -441,10 +442,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 2212.02,
+            "fromPension": 2172.25,
             "fromSavings": 0,
-            "tax": 122.3,
-            "takeHome": 2089.72,
+            "tax": 116.34,
+            "takeHome": 2055.91,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -455,10 +456,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 1412.68,
+            "fromPension": 1452.46,
             "fromSavings": 0,
-            "tax": 2.4,
-            "takeHome": 1410.28,
+            "tax": 8.37,
+            "takeHome": 1444.09,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -488,12 +489,12 @@
           }
         },
         "takeHome": 3500,
-        "fromPension": 2712.53,
+        "fromPension": 2708.35,
         "fromSavings": 0,
-        "fromPots": 2712.53,
+        "fromPots": 2708.35,
         "statePension": 1045.63,
         "finalSalary": 0,
-        "tax": 258.16,
+        "tax": 253.98,
         "work": 0,
         "fromWork": 0,
         "byPerson": [
@@ -503,10 +504,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 1723.57,
+            "fromPension": 1695.68,
             "fromSavings": 0,
-            "tax": 258.16,
-            "takeHome": 2511.04,
+            "tax": 253.98,
+            "takeHome": 2487.34,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -517,10 +518,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 988.96,
+            "fromPension": 1012.66,
             "fromSavings": 0,
             "tax": 0,
-            "takeHome": 988.96,
+            "takeHome": 1012.66,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -565,10 +566,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 989.09,
+            "fromPension": 973.08,
             "fromSavings": 0,
-            "tax": 147.99,
-            "takeHome": 1886.74,
+            "tax": 145.59,
+            "takeHome": 1873.13,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -579,10 +580,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 667.36,
+            "fromPension": 683.37,
             "fromSavings": 0,
-            "tax": 99.73,
-            "takeHome": 1613.26,
+            "tax": 102.13,
+            "takeHome": 1626.87,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -953,17 +954,22 @@
         ]
       },
       {
-        "id": "isa-fixed-growth",
-        "field": null,
-        "source": "rule",
-        "value": 3,
-        "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.",
+        "id": "savings-growth",
+        "field": "isaGrowth",
+        "source": "default",
+        "value": "cash",
+        "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
         "parts": [
-          "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+          "Your savings are treated as ISA money: tax-free to take. ",
+          "They grow like cash: by last year's rise in prices less ",
           {
-            "fixed": "3"
+            "fixed": "1"
           },
-          "% a year before rising prices, so they lose ground whenever prices rise faster than that."
+          "%, or not at all if prices rose by less than ",
+          {
+            "fixed": "1"
+          },
+          "%."
         ]
       },
       {
@@ -1092,7 +1098,7 @@
       },
       "line": {
         "id": "b.line.partner",
-        "text": "Your partner needs about £376,000 in their pension when they stop at 56, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.",
+        "text": "Your partner needs about £391,000 in their pension when they stop at 56, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.",
         "parts": [
           "Your partner needs about ",
           {
@@ -1167,7 +1173,7 @@
       },
       "have": {
         "id": "b.have",
-        "text": "Your partner already has more than £376,000 in their pension. Paying in nothing more, your money lasted until the younger of you is 95 in 9 futures out of 10.",
+        "text": "Your partner already has more than £391,000 in their pension. Paying in nothing more, your money lasted until the younger of you is 95 in more than 9 futures out of 10.",
         "parts": [
           "Your partner already has more than ",
           {
@@ -1182,7 +1188,7 @@
             "kind": "age"
           },
           " ",
-          "in ",
+          "in more than ",
           {
             "fixed": "9"
           },
@@ -1285,7 +1291,7 @@
       "lever": {
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £850 a month as now: your money lasted in more than 9 futures out of 10. About £3,670 a month from when your partner stops at 56 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £850 a month as now: your money lasted in more than 9 futures out of 10. About £3,640 a month from when your partner stops at 56 lasted in 9 futures out of 10.",
           "parts": [
             "Keep paying in ",
             {

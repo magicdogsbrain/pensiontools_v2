@@ -14,7 +14,7 @@
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
 import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -90,6 +90,9 @@ export const SCHEMA_C = {
     // on. No default — not answered, the same every year.
     ...shapeFields('shape'),
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 150_000, 10_000_000] },
+    // How the savings grow (6.22.0): A's and B's very choice — "Mostly cash" (the default, once there are savings) or
+    // "Invested like my pension" — taken while the money waits to be taken and while it is drawn (schemaParts.js)
+    isaGrowthField('more'),
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
     // while the money is still invested before it is first taken and while it is drawn (schemaParts.js chargeField).
@@ -138,6 +141,8 @@ export const SCHEMA_C = {
       if (typeof age !== 'number') return accessAgeOn(env.today);
       const open = Math.max(age, firstAccessAge(age, env.today));
       return payingIn(values) ? Math.max(open, Math.min(RULES.stopAgeMax, statePensionAgeOf(age, env.today))) : open;
-    }
+    },
+    /** How the savings grow (6.22.0; schemaParts.js): "Mostly cash" once the savings box is above £0; otherwise none. */
+    isaGrowth: savingsGrowthDefault
   }
 };

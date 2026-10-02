@@ -18,7 +18,12 @@ import { resolve } from 'node:path';
 // 6.20.2's safety fixes (research/v7/square-one-audit.md §5 item 1) put their logic in modules — the lock guard in the
 // repositories, the next-step banner (src/services/NextStep.js), the phone's More sheet (src/ui/mobileMenu.js), the
 // Budget's income-shape arithmetic (src/services/BudgetToPlan.js) — and the script ends 52 lines shorter: 10,531.
-const MAX_LINES = 10531;
+// 6.22.0 (how the ISA grows, a saver's lock that reads true, one bar for "on course") put its logic in modules — the
+// setting's words and state (src/ui/isaGrowthSetting.js), the saver's reading (src/services/SaverReading.js) and path
+// (src/services/SavingPath.js, loaded by src/ui/savingPathForLock.js), the Accumulation planner's table and "Am I on
+// course?" (src/ui/accumulationProjection.js), the bar and its words (src/services/OnCourse.js) — and the script ends
+// 30 lines shorter: 10,501.
+const MAX_LINES = 10501;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

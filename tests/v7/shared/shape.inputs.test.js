@@ -147,7 +147,8 @@ describe('the household model: a shape only when it changes', () => {
     const ins = parseDraft(SCHEMA_C, { ...C0, 'shape.steps': [share(75, '85')] }, ENV).inputs;
     expect(toHouseholdC(ins, ENV).household.shape).toEqual({ unit: 'share', start: { then: 'level' }, steps: [{ fromAge: 75, share: 85, then: 'level' }] });
     const flat = parseDraft(SCHEMA_C, C0, ENV).inputs;
-    expect(Object.keys(toHouseholdC(flat, ENV).household)).toEqual(['inputVersion', 'people', 'spending', 'planToAge', 'portfolio', 'strategy', 'chargesPct']);
+    // (6.22.0: every form's household says how its savings grow — "Mostly cash" unless chosen)
+    expect(Object.keys(toHouseholdC(flat, ENV).household)).toEqual(['inputVersion', 'people', 'spending', 'planToAge', 'portfolio', 'strategy', 'chargesPct', 'isaGrowth']);
     expect(shapeOfInputs({}, 'shape')).toBeNull();
   });
 });

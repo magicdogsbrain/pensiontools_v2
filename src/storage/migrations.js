@@ -33,6 +33,7 @@ import { ENGINE_VERSION } from '../strategies/version.js';
 import { sortLegacyParams } from '../services/StrategyState.js';
 import { normaliseHoldings, HOLDINGS_VERSION } from '../services/HoldingsRecord.js';
 import { isChargesPct, DEFAULT_CHARGES_PCT } from '../services/Charges.js';
+import { isIsaGrowth, DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPlain = (v) => { if (!isObj(v)) return false; const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
@@ -145,9 +146,51 @@ function toV2(s) {
   return s;
 }
 
+/**
+ * 2 → 3 (6.22.0). How the ISA and savings grow (research/saver-lock-and-savings-growth.md §3.4; the owner's decision (B)
+ * of 2 Oct 2026). An UNLOCKED plan is given "Mostly cash" (`isaGrowth: 'cash'`) in its Stress settings — its ISA then grows
+ * like the cash in its pension, by last year's rise in prices less 1%. A LOCKED plan is not touched at all (the runner
+ * enforces it for the Stress settings): it has no setting, which every engine reads as today's fixed 3% a year, so it
+ * keeps its figures until it is unlocked (unlock then writes 'cash' — ScenarioRepository.unlockPatchesOf).
+ *  - A valid choice already saved is kept; anything else is replaced by 'cash'.
+ *  - A plan with no Stress settings is left without them (the reader gives an unlocked one the default).
+ *  - A plan whose list of funds to test holds ISA funds gets 'cash' too: those funds still decide its ISA (config.isaMix).
+ *  - What goes into ISAs each month (accumulationTool.settings.isaMonthly) is not written: none means nothing paid in,
+ *    which is what the plan said before.
+ *  - A plan made from a V7 answer before 6.22.0 for someone with no savings today but savings at the stop carries the
+ *    savings at the stop as today's ISA too (the seed's stand-in, Q10; review of 6.22.0). Untouched since, its ISA today is
+ *    written as the answer's £0: with the choice, the runs start from the ISA at retirement, the very same figure
+ *    (PlanTiming.isaAtRetirementOf), and a saver's path, the age spin and the Timing projection no longer start from
+ *    savings the person does not hold (seededIsaStandIn).
+ * Only the Stress settings are written, so decisionSettingsChecksum cannot move on any plan.
+ */
+function toV3(s) {
+  if (planLocked(s)) return s;
+  const st = isObj(s.stressTool) && isObj(s.stressTool.settings) ? s.stressTool.settings : null;
+  if (!st) return s;
+  if (!isIsaGrowth(st.isaGrowth)) st.isaGrowth = DEFAULT_ISA_GROWTH;
+  if (seededIsaStandIn(s, st)) st.isaBalance = 0;
+  return s;
+}
+
+/**
+ * Whether a plan still carries the seed's stand-in ISA: made from a V7 answer whose person had £0 of savings today and
+ * savings at the stop above £0, retiring later, its ISA at retirement still the answer's ('override', the savings at the
+ * stop) and its ISA today that same figure. Anything changed since — the ISA box, the Timing block, the answer — is left.
+ */
+function seededIsaStandIn(s, st) {
+  const person = isObj(s.fromAnswer) && Array.isArray(s.fromAnswer.people) && isObj(s.fromAnswer.people[0]) ? s.fromAnswer.people[0] : null;
+  const sv = person && isObj(person.savings) ? person.savings : null;
+  const atStop = sv && isObj(sv.atStop) && typeof sv.atStop.middling === 'number' ? sv.atStop.middling : NaN;
+  const par = isObj(st.potAtRetirement) ? st.potAtRetirement : null;
+  return !!sv && sv.today === 0 && atStop > 0 && st.retired === false && !!par && par.source === 'override'
+    && par.isa === atStop && st.isaBalance === atStop;
+}
+
 export const MIGRATIONS = [
   { to: 1, name: 'Version stamp; strategy block, renamed Stress keys, per-strategy settings and holdings shape written once', up: toV1 },
-  { to: 2, name: 'Fund and platform charges: 0.5% a year written into every unlocked plan; locked plans untouched', up: toV2 }
+  { to: 2, name: 'Fund and platform charges: 0.5% a year written into every unlocked plan; locked plans untouched', up: toV2 },
+  { to: 3, name: 'How ISAs and savings grow: "Mostly cash" written into every unlocked plan; locked plans untouched', up: toV3 }
 ];
 
 /**

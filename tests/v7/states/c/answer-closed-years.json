@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.21.0",
+    "appVersion": "6.22.0",
     "historyEnd": null
   },
   "session": {
@@ -67,7 +67,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.21.0",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":5000,\"start\":{\"age\":55,\"kind\":\"age\"},\"take\":null,\"you\":{\"age\":50,\"finalSalary\":{\"has\":false},\"pot\":300000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.22.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -87,6 +87,7 @@
             "age": 55
           },
           "savings": 5000,
+          "isaGrowth": "cash",
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
@@ -94,18 +95,18 @@
         },
         "monthly": {
           "careful": 180,
-          "middling": 240,
-          "good": 310
+          "middling": 200,
+          "good": 250
         },
         "yearly": {
           "careful": 2160,
-          "middling": 2880,
-          "good": 3720
+          "middling": 2400,
+          "good": 3000
         },
         "lasted": {
-          "careful": 0.903,
-          "middling": 0.549,
-          "good": 0.116
+          "careful": 0.943,
+          "middling": 0.575,
+          "good": 0.118
         },
         "runOutAge": {
           "careful": 95,
@@ -240,14 +241,14 @@
           ]
         },
         "potAtStart": {
-          "careful": 261964,
-          "middling": 355390,
-          "good": 449894,
+          "careful": 262258,
+          "middling": 354989,
+          "good": 448553,
           "byPerson": [
             {
               "who": "you",
-              "pension": 349564,
-              "savings": 5826
+              "pension": 348721,
+              "savings": 6267
             }
           ]
         },
@@ -273,14 +274,14 @@
                 "good": 442518
               },
               "savings": {
-                "careful": 4294,
-                "middling": 5826,
-                "good": 7375
+                "careful": 4376,
+                "middling": 4835,
+                "good": 6075
               },
               "total": {
-                "careful": 261964,
-                "middling": 355390,
-                "good": 449894
+                "careful": 262258,
+                "middling": 354989,
+                "good": 448553
               }
             },
             "paidIn": {
@@ -302,7 +303,7 @@
           ],
           "careful": 180,
           "partnerUntil": null,
-          "reachable": 5826,
+          "reachable": 4835,
           "need": 35280,
           "instead": {
             "age": 57,
@@ -313,8 +314,8 @@
             },
             "lasted": {
               "careful": 0.9,
-              "middling": 0.511,
-              "good": 0.101
+              "middling": 0.507,
+              "good": 0.1
             }
           }
         },
@@ -478,17 +479,22 @@
             ]
           },
           {
-            "id": "savings-as-isa",
-            "field": "savings",
-            "source": "rule",
-            "value": 5000,
-            "text": "Your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year.",
+            "id": "savings-growth",
+            "field": "isaGrowth",
+            "source": "default",
+            "value": "cash",
+            "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
             "parts": [
-              "Your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+              "Your savings are treated as ISA money: tax-free to take. ",
+              "They grow like cash: by last year's rise in prices less ",
               {
-                "fixed": "3"
+                "fixed": "1"
               },
-              "% a year."
+              "%, or not at all if prices rose by less than ",
+              {
+                "fixed": "1"
+              },
+              "%."
             ]
           },
           {
@@ -626,7 +632,7 @@
           },
           "bad": {
             "id": "c.bad",
-            "text": "In a bad case (the worst 1 in 10), £180 a month only just lasts to 95. If you took £240 a month instead, a bad case would run out at age 56.",
+            "text": "In a bad case (the worst 1 in 10), £180 a month only just lasts to 95. If you took £200 a month instead, a bad case would run out at age 56.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -663,7 +669,7 @@
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: careful £180, middling £240, good £310 a month.",
+            "text": "You could take: careful £180, middling £200, good £250 a month.",
             "parts": [
               "You could take: careful ",
               {
@@ -762,7 +768,7 @@
           },
           "pot": {
             "id": "c.pot",
-            "text": "By 55 your pot and savings could be about £355,000. In a bad case (the worst 1 in 10) they would be £262,000, and in a good case (the best 1 in 10) £450,000.",
+            "text": "By 55 your pot and savings could be about £355,000. In a bad case (the worst 1 in 10) they would be £262,000, and in a good case (the best 1 in 10) £449,000.",
             "parts": [
               "By ",
               {
@@ -858,7 +864,7 @@
           "seed": 0,
           "failuresAllowed": 100,
           "historyEnd": "2023-06",
-          "engineVersion": "6.21.0",
+          "engineVersion": "6.22.0",
           "startAge": 55,
           "endAge": 95,
           "accessAge": 57,

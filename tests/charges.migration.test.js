@@ -29,14 +29,16 @@ const NOW = new Date('2026-10-01T08:00:00.000Z');
 const AFTER_APRIL = new Date('2027-04-06T12:00:00.000Z');
 /** The fixture as a 6.15–6.18 app stored it: version 1, through the shipped step 1 only. */
 const atV1 = (f) => migrateScenario(normalised(f), { now: NOW, target: 1, migrations: MIGRATIONS.slice(0, 1) }).scenario;
+/** The chain as 6.19.0–6.21.0 shipped it: up to step 2 (step 3, 6.22.0, has its own file: tests/isaGrowth.storage.test.js). */
+const TO_V2 = { target: 2, migrations: MIGRATIONS.slice(0, 2) };
 const isLocked = (s) => !!(s && s.decisionTool && s.decisionTool.settings && s.decisionTool.settings.locked);
 const LOCKED = names.filter((f) => isLocked(normalised(f)));
 const UNLOCKED = names.filter((f) => !isLocked(normalised(f)));
 const bytes = (v) => JSON.stringify(v);
 
 describe('the step itself', () => {
-  it('is the second entry, named in plain English, and SCHEMA_VERSION is 2', () => {
-    expect(SCHEMA_VERSION).toBe(2);
+  it('is the second entry, named in plain English (SCHEMA_VERSION has moved on past it: 3 from 6.22.0)', () => {
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(2);
     expect(MIGRATIONS[1].to).toBe(2);
     expect(MIGRATIONS[1].name).toMatch(/charges/i);
     expect(MIGRATIONS[0].to).toBe(1);   // the shipped step is still first and unchanged in place
@@ -54,7 +56,7 @@ describe('an UNLOCKED plan gets the default, 0.5% a year, in its Stress settings
       expect(v1.schemaVersion).toBe(1);
       expect('chargesPct' in v1.stressTool.settings).toBe(false);
       for (const input of [normalised(f), v1]) {
-        const m = migrateScenario(input, { now: NOW });
+        const m = migrateScenario(input, { now: NOW, ...TO_V2 });
         expect(m.error).toBeNull();
         expect(m.to).toBe(2);
         const out = m.scenario;
@@ -73,7 +75,7 @@ describe('an UNLOCKED plan gets the default, 0.5% a year, in its Stress settings
     });
   }
   it('08 (phantom dotted keys) gets it too — the chain runs after normalisation', () => {
-    const u = upgradeScenario(load('08-dotted-keys.json'), { now: NOW });
+    const u = upgradeScenario(load('08-dotted-keys.json'), { now: NOW });   // the whole chain (to 3): step 2 is in it
     expect(u.error).toBeNull();
     expect(u.write).toBe(true);
     expect(u.scenario.stressTool.settings.chargesPct).toBe(DEFAULT_CHARGES_PCT);
@@ -87,7 +89,7 @@ describe('a LOCKED plan is not touched at all', () => {
       const raw = load(f);
       for (const input of [normalised(f), atV1(f)]) {
         const v1 = input.schemaVersion === 1 ? input : atV1(f);
-        const m = migrateScenario(input, { now: NOW });
+        const m = migrateScenario(input, { now: NOW, ...TO_V2 });
         expect(m.error).toBeNull();
         expect(m.scenario.schemaVersion).toBe(2);
         const out = m.scenario;
@@ -107,7 +109,7 @@ describe('a LOCKED plan is not touched at all', () => {
   }
   it('a locked plan that already carries a charge keeps it as it is', () => {
     const s = atV1('03-gilt-ladder-runup.json'); s.stressTool.settings.chargesPct = 1.25;
-    expect(migrateScenario(s, { now: NOW }).scenario.stressTool.settings.chargesPct).toBe(1.25);
+    expect(migrateScenario(s, { now: NOW, ...TO_V2 }).scenario.stressTool.settings.chargesPct).toBe(1.25);
   });
 });
 
@@ -117,7 +119,7 @@ describe('shape by shape', () => {
     decisionTool: { settings: { equityMin: 1 }, history: [], taxYears: {} },
     stressTool: { settings: { equityMin: 2 } }, ...over
   });
-  const up = (s) => migrateScenario(s, { now: NOW });
+  const up = (s) => migrateScenario(s, { now: NOW, ...TO_V2 });
 
   it('a charge already saved is kept (0 included); an invalid one is replaced by the default', () => {
     for (const v of [0, 0.05, 1.25, 3]) expect(up(base({ stressTool: { settings: { chargesPct: v } } })).scenario.stressTool.settings.chargesPct).toBe(v);
@@ -150,12 +152,12 @@ describe('shape by shape', () => {
   });
   it('is idempotent and clock-free: run again on its own output (version mark removed, a later clock) it changes nothing', () => {
     for (const f of names) {
-      const once = migrateScenario(normalised(f), { now: NOW }).scenario;
+      const once = migrateScenario(normalised(f), { now: NOW, ...TO_V2 }).scenario;
       const { schemaVersion, ...unstamped } = deepCopy(once);
-      const again = migrateScenario({ ...unstamped, schemaVersion: 1 }, { now: AFTER_APRIL });
+      const again = migrateScenario({ ...unstamped, schemaVersion: 1 }, { now: AFTER_APRIL, ...TO_V2 });
       expect(again.error, f).toBeNull();
       expect(again.scenario, f).toEqual(once);
-      expect(migrateScenario(once, { now: AFTER_APRIL }).changed, f).toBe(false);
+      expect(migrateScenario(once, { now: AFTER_APRIL, ...TO_V2 }).changed, f).toBe(false);
     }
   });
   it('the caller\'s object is never changed', () => {
@@ -191,13 +193,13 @@ describe('the runner enforces it: no step from 2 on may change a LOCKED plan\'s 
     expect(m.scenario.stressTool.settings.x).toBe(1);
   });
   it('step 1 (shipped) is not held to it, so a version-0 locked plan still makes the whole journey', () => {
-    for (const f of LOCKED) expect(migrateScenario(normalised(f), { now: NOW }).error, f).toBeNull();
+    for (const f of LOCKED) expect(migrateScenario(normalised(f), { now: NOW, ...TO_V2 }).error, f).toBeNull();
   });
 });
 
 describe('a tab left open across the release (the newer-than-app guard)', () => {
   it('a version-2 plan is newer than a version-1 app: handed back untouched, flagged, no write', () => {
-    const v2 = migrateScenario(normalised('02-pnv-draft.json'), { now: NOW }).scenario;
+    const v2 = migrateScenario(normalised('02-pnv-draft.json'), { now: NOW, ...TO_V2 }).scenario;
     expect(v2.schemaVersion).toBe(2);
     const before = bytes(v2);
     // The 6.15–6.18 app: its chain ends at step 1.
@@ -208,9 +210,9 @@ describe('a tab left open across the release (the newer-than-app guard)', () => 
     expect(bytes(v2)).toBe(before);
   });
   it('a plan from a version after this one is newer than this app', () => {
-    expect(isNewerSchema({ schemaVersion: 2 })).toBe(false);
-    expect(isNewerSchema({ schemaVersion: 3 })).toBe(true);
-    const u = upgradeScenario({ ...normalised('02-pnv-draft.json'), schemaVersion: 3 }, { now: NOW });
+    expect(isNewerSchema({ schemaVersion: SCHEMA_VERSION })).toBe(false);
+    expect(isNewerSchema({ schemaVersion: SCHEMA_VERSION + 1 })).toBe(true);
+    const u = upgradeScenario({ ...normalised('02-pnv-draft.json'), schemaVersion: SCHEMA_VERSION + 1 }, { now: NOW });
     expect(u.newer).toBe(true);
     expect(u.write).toBe(false);
     expect('chargesPct' in u.scenario.stressTool.settings).toBe(false);   // not given the default by an app that is older than it

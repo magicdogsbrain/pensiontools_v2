@@ -12,11 +12,12 @@ import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
-import { tagPortfolio } from '../services/PortfolioTagger.js';
+import { deriveIsaMix } from '../services/IsaFunds.js';
 import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
-import { pinTiming, timingPinPatch, potScaleOf } from '../services/PlanTiming.js';
+import { pinTiming, timingPinPatch, potScaleOf, isaAtRetirementOf } from '../services/PlanTiming.js';
 import { budgetAgesKnown } from '../services/BudgetModel.js';
 import { chargesPctOf, DEFAULT_CHARGES_PCT } from '../services/Charges.js';
+import { isaGrowthOf, DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
 export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
@@ -326,9 +327,9 @@ export async function resetStressSettings() {
   }
 
   const defaultDB = getDefaultStressDB();
-  // A reset plan is a new plan's settings, so it carries the default fund and platform charge (6.19.0). The screen
-  // refuses a reset while the plan is locked (index.html resetStressSettingsUI).
-  await saveActiveStressSettings({ ...defaultDB.settings, chargesPct: DEFAULT_CHARGES_PCT });
+  // A reset plan is a new plan's settings, so it carries the default fund and platform charge (6.19.0) and grows its ISA
+  // "Mostly cash" (6.22.0). The screen refuses a reset while the plan is locked (index.html resetStressSettingsUI).
+  await saveActiveStressSettings({ ...defaultDB.settings, chargesPct: DEFAULT_CHARGES_PCT, isaGrowth: DEFAULT_ISA_GROWTH });
   invalidateStressCache();
 }
 
@@ -396,8 +397,10 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     disableProtection: settings.disableProtection,
     hodlEnabled: settings.hodlEnabled,
     hodlValue: settings.hodlValue,
-    // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy)
-    isaBalance: (settings.isaBalance || 0) * ps.isa,
+    // ISA pot (tax-free top-up drawn via band management; see DrawdownStrategy). Retiring later: today's ISA scaled to the
+    // ISA at retirement — or, with no ISA today but money going into one, that ISA itself (a scale cannot lift £0; review of
+    // 6.22.0, PlanTiming.isaAtRetirementOf). A plan without the ISA choice: exactly as before.
+    isaBalance: isaAtRetirementOf(settings),
     isaReturn: settings.isaReturn,
     // Tax bands from settings (previously only supplied by UI call-site overrides — configs
     // built without overrides had pa/brl/hrl undefined, which NaN'd every draw).
@@ -449,29 +452,14 @@ export function createSimulationConfigFromSettings(overrides = {}, preloadedSett
     // Fund and platform charges (6.19.0, services/Charges.js): the plan's percent a year, taken off every charged pot
     // each month by every engine and strategy. Only when there is one — absent, 0 or invalid (a plan locked before
     // charges) leaves the config exactly as it always was, so its figures cannot move.
-    ...(chargesPctOf(settings) > 0 ? { chargesPct: chargesPctOf(settings) } : {})
+    ...(chargesPctOf(settings) > 0 ? { chargesPct: chargesPctOf(settings) } : {}),
+    // How the ISA grows (6.22.0, services/IsaGrowth.js): 'cash' or 'invested', only when the plan has the choice — without
+    // it (a plan locked before the choice) the ISA grows at isaReturn, exactly as before. No mix is passed: "invested"
+    // reads the run's own pension pots, so the optimiser and the pots-at-retirement scaling carry the ISA with them.
+    ...(isaGrowthOf(settings) ? { isaGrowth: isaGrowthOf(settings) } : {})
   };
 }
 
 
-/**
- * Asset mix of the ISA-wrapped tagged holdings, as bucket fractions (+ sub-class weights),
- * or null when there are none.
- */
-export function deriveIsaMix(taggedFunds) {
-  const isaHoldings = (taggedFunds || []).filter(
-    (f) => (f.wrapper || '').toUpperCase() === 'ISA' && +f.value > 0
-  );
-  if (!isaHoldings.length) return null;
-  const t = tagPortfolio(isaHoldings.map((f) => ({ ...f, wrapper: 'SIPP' })));
-  if (!(t.total > 0)) return null;
-  const mix = {
-    shares: t.buckets.shares / t.total,
-    bonds: t.buckets.bonds / t.total,
-    diversifiers: t.buckets.diversifiers / t.total,
-    cash: t.buckets.cash / t.total
-  };
-  if (Object.keys(t.bondWeights).length) mix.bondWeights = t.bondWeights;
-  if (Object.keys(t.diversifierWeights).length) mix.diversifierWeights = t.diversifierWeights;
-  return mix;
-}
+/** Asset mix of the ISA-wrapped tagged holdings (or null): moved to services/IsaFunds.js in the review of 6.22.0; kept here by name. */
+export { deriveIsaMix };

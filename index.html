@@ -3348,9 +3348,9 @@
                 </div>
               </div>
               <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                Your risk level shapes how the SIPP is invested. The ISA is kept separate and modelled with its
-                own steady return; choose above whether it tops up income tax-free, is rationed to the State
-                Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
+                Your risk level shapes how the SIPP is invested. The ISA is kept separate; how it grows is set below
+                ("How your ISA and savings grow"). Choose above whether it tops up income tax-free, is rationed to the
+                State Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
@@ -3459,6 +3459,21 @@
               </p>
               <div id="ssGlideEndgame" style="display:none; margin-top:10px;"></div>
               <div id="ssGlideMinNote" class="starting-note" style="display:none; margin-top:8px;"></div>
+            </div>
+            <!-- How the ISA and savings grow (6.22.0): ONE per-plan setting, stressTool.settings.isaGrowth ('cash' | 'invested').
+                 Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssIsaGrowthLocked
+                 ("A fixed 3% a year …") instead of the choice; so does a plan whose fund list holds ISA funds ("Follows the
+                 ISA funds …"). Words: src/ui/isaGrowthSetting.js. -->
+            <div class="form-group" id="ssIsaGrowthGroup" style="margin-top: 16px;">
+              <label>How your ISA and savings grow
+                <span class="hlp" tabindex="0" data-tip="How the money in your ISA and other savings grows in every run. &quot;Mostly cash&quot; grows it like the cash in your pension: by last year's rise in prices, less 1% a year, never below nothing. &quot;Invested like my pension&quot; grows it with your pension's shares, bonds and cash, in the same futures (your diversifiers and reserve are not part of it). The plan's fund and platform charge comes off either way. Pots &amp; Valves and Buckets in order use it; the other strategies spend the ISA as part of their own pot.">?</span>
+              </label>
+              <div id="ssIsaGrowthChoices">
+                <label class="hint" style="display:flex;align-items:flex-start;gap:6px;"><input type="radio" name="ssIsaGrowth" id="ssIsaGrowthCash" value="cash" checked style="width:auto;margin-top:3px;"> <span><strong>Mostly cash</strong> — like cash: by last year's rise in prices, less 1% a year, never below nothing. For cash ISAs, savings accounts and money-market funds.</span></label>
+                <label class="hint" style="display:flex;align-items:flex-start;gap:6px;"><input type="radio" name="ssIsaGrowth" id="ssIsaGrowthInvested" value="invested" style="width:auto;margin-top:3px;"> <span><strong>Invested like my pension</strong> — the same mix of shares, bonds and cash as your pension, in the same futures. For a stocks and shares ISA held like your pension.</span></label>
+              </div>
+              <p id="ssIsaGrowthLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
+              <p id="ssIsaGrowthHint" class="hint" style="margin:4px 0 0;">Used by Pots &amp; Valves and Buckets in order. The other strategies spend the ISA as part of their own pot.</p>
             </div>
             <!-- Fund and platform charges (6.19.0): ONE per-plan setting, stressTool.settings.chargesPct (percent a year).
                  Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssChargesLocked
@@ -3697,6 +3712,7 @@
               </div>
               <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Into ISAs and savings (£/mo) <span class="hlp" tabindex="0" data-tip="What you put into ISAs and other savings each month, from take-home pay (no tax relief). It is raised each year like your pension contributions, grows as Stress tester → Settings says (&quot;How your ISA and savings grow&quot;), and counts in your pots at retirement, the &quot;When could I retire?&quot; spin and a plan you lock while saving.">?</span></label><input type="number" id="acIsaMonthly" min="0" step="50" data-on-input="recalcAccumulation()"></div>
             </div>
             <div id="acBreakdown" style="margin-top:10px;"></div>
           </div>
@@ -3708,11 +3724,11 @@
           </div>
 
           <div class="settings-section" id="acSweepSection" style="border-color:var(--accent);">
-            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, which age clears 90%?</span></div>
+            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, which age is on course (the money lasting in 9 futures out of 10)?</span></div>
             <p class="hint" style="margin:0 0 8px;">For each age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age on your income shape. A compass you can re-run every year, not the full stress test.</p>
             <div class="row-flex">
               <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income I want (£/yr gross, today's money) <span class="hlp" tabindex="0" data-tip="Leave blank to use your income shape's first step (the plan's own steps, moved to start at each candidate age). Type a flat figure to spin a different level.">?</span><input type="number" id="acSweepIncome" step="1000" placeholder="from your income shape" style="width:150px;"></label>
-              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Confidence I want<select id="acSweepTarget" style="width:130px;"><option value="90" selected>90%</option><option value="85">85%</option><option value="75">75%</option><option value="95">95%</option></select></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Lasting in<select id="acSweepTarget" style="width:170px;"><option value="90" selected>9 in 10 (on course)</option><option value="85">85% of futures</option><option value="75">3 in 4 (75%)</option><option value="95">95% of futures</option></select></label>
               <button type="button" data-on-click="runRetireSweep()">Spin it</button>
             </div>
             <div id="acSweepResult" style="margin-top:10px;"></div>
@@ -3739,11 +3755,11 @@
           </div>
 
           <div class="settings-section">
-            <div class="section-title">Am I on track?</div>
+            <div class="section-title">Am I on course?</div>
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
               Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
-              Pension, access method) through the Monte Carlo to find the pot that gives
-              <strong>85% success</strong> — then compares your projection against it.
+              Pension, access method) through the Monte Carlo to find the pot that
+              <strong>lasts in 9 futures out of 10</strong> — "on course" — then compares your projection against it.
             </p>
             <button type="button" data-on-click="runOnTrackCheck()">Check against my plan's target</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
@@ -4132,9 +4148,13 @@
       deleteScenario,
       updateScenarioTools,
       seedStressFromDecision,
-      seedDecisionFromStress, chargesPatchOnUnlock
+      seedDecisionFromStress, unlockPatchesOf
     } from './src/storage/ScenarioRepository.js';
-    import { chargesFieldState, chargesForSave, paintChargesField, chargesUnlockNoteHtml, accumulationChargesNoteHtml, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
+    import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
+    import { isaGrowthFieldState, isaGrowthForSave, readIsaGrowthChoice, paintIsaGrowthField, unlockNotesHtml, isaAssumptionsRow, drawdownIsaNoteHtml } from './src/ui/isaGrowthSetting.js';   // how the ISA and savings grow (6.22.0)
+    import { ON_COURSE_SHARE, ON_COURSE_PCT, ON_COURSE_SEARCHING, onCourseBasisHtml, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
+    import { accumulationTableHtml, onCourseCheckHtml } from './src/ui/accumulationProjection.js';
+    import { savingPathForLock } from './src/ui/savingPathForLock.js';   // a saver's lock draws its path on V7's saving-years engine (6.22.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
     // no tool reaches around the interface). The optimiser runs the plan's own strategy.
@@ -4152,7 +4172,7 @@
 
     // Import constants for optimization
     import { installInlineHandlers } from './src/ui/inlineHandlers.js';
-    import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from './src/constants.js';
+    import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from './src/constants.js';
     import { amountAtAge } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age
     import { animateIncomeShape } from './src/ui/incomeShapeGraphic.js';
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
@@ -4168,7 +4188,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices } from './src/services/PlanTiming.js';
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
-    import { buildPlanDocument, whereAmI } from './src/services/PlanDocument.js';
+    import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
@@ -6029,11 +6049,11 @@
           const doc = await getActivePlanDocument();
           const hist = await getHistoryAsync({ limit: 1 }).catch(() => []);
           if (doc && (!hist || hist.length === 0)) {
-            const a = arrivalCheck(stage, doc, { sipp: equity + bond + cash });
+            const a = arrivalCheck(stage, doc, { sipp: equity + bond + cash, isa: document.getElementById('entryIsa')?.value }, { at: dateStr });   // the reading's own measure; a blank ISA box is no figure (6.22.0)
             if (a && !a.within) {
               const go = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Your plan has started — arrival check</h3><p style="font-size:14px;">' + budEsc(a.message) + '</p>' }, { okLabel: 'Run the locked plan on what I have', cancelLabel: 'Stop — I will unlock and re-plan' });
               if (!go) return;
-              try { const j = await getActiveJourney(); await saveActiveJourney([...j, { stage: stage.key, label: 'Arrival check', at: new Date().toISOString(), note: 'pot ' + Math.round(a.actual) + ' vs ' + Math.round(a.expected) + ' priced; ran as locked' }]); } catch (e) { /* journey optional */ }
+              try { const j = await getActiveJourney(); await saveActiveJourney([...j, { stage: stage.key, label: 'Arrival check', at: new Date().toISOString(), note: 'pot ' + Math.round(a.compared ?? a.actual) + ' vs ' + Math.round(a.expected) + ' expected at the stop, same measure; ran as locked' }]); } catch (e) { /* journey optional */ }
             }
             window._arrivalChecked = true;
           }
@@ -8472,7 +8492,7 @@
       let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
       let accumulation = null; try { accumulation = await getActiveAccumulation(); } catch (e) { accumulation = null; }
       let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; }
-      const doc = buildPlanDocument({ planName: name, holdings, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation });
+      const doc = buildPlanDocument({ planName: name, holdings, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation, savingPath: await savingPathForLock({ settings, accumulation, holdings }) });   // 6.22.0: a saver's path drawn on V7's saving-years engine
       if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
       await saveActivePlanDocument(doc);
       window._planDocLast = doc;
@@ -8585,7 +8605,7 @@
     window.runRetireSweep = async function () {
       const box = document.getElementById('acSweepResult'); if (!box) return;
       const incomeOverride = +document.getElementById('acSweepIncome')?.value || null;
-      const target = +document.getElementById('acSweepTarget')?.value || 90;
+      const target = +document.getElementById('acSweepTarget')?.value || ON_COURSE_PCT;
       box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning the ages…</div>';
       try {
         const settings = await getStressSettingsAsync();
@@ -8783,7 +8803,7 @@
         const hist = await getActiveAccumulationHistory();
         const m = document.getElementById('acRecMonth'); if (m && !m.value) m.value = getCurrentMonth();
         el.innerHTML = hist.length ? '<div class="table-scroll-container"><table><thead><tr><th>Month</th><th>Pension pot</th><th>ISA</th><th>Taxable / other</th><th>Total</th><th></th></tr></thead><tbody>'
-          + hist.slice().reverse().slice(0, 36).map((r) => '<tr><td>' + budEsc(r.date) + '</td><td>' + gbp(r.sipp || 0) + '</td><td>' + gbp(r.isa || 0) + '</td><td>' + gbp(r.gia || 0) + '</td><td><strong>' + gbp(r.total || 0) + '</strong></td><td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="deleteAccumulationRecord(\'' + budEsc(r.date) + '\')">&times;</button></td></tr>').join('')
+          + hist.slice().reverse().slice(0, 36).map((r) => '<tr><td>' + budEsc(r.date) + '</td><td>' + gbp(r.sipp || 0) + '</td><td>' + (recordIsaOf(r) == null ? '—' : gbp(r.isa)) + '</td><td>' + gbp(r.gia || 0) + '</td><td><strong>' + gbp(r.total || 0) + '</strong></td><td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="deleteAccumulationRecord(\'' + budEsc(r.date) + '\')">&times;</button></td></tr>').join('')
           + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
         if (strip) {
           const doc = await getActivePlanDocument();
@@ -8796,13 +8816,13 @@
       if (!isLoggedIn()) { showToast('Please sign in to record', 'error'); return; }
       const g = (id) => document.getElementById(id);
       const date = g('acRecMonth')?.value; if (!date) { showToast('Pick the month first', 'error'); return; }
-      const sipp = +g('acRecSipp')?.value || 0, isa = +g('acRecIsa')?.value || 0, gia = +g('acRecGia')?.value || 0;
-      if (!(sipp > 0) && !(isa > 0) && !(gia > 0)) { showToast('Enter at least the pension pot', 'error'); return; }
+      const rec = potRecordOf({ date, sipp: g('acRecSipp')?.value, isa: g('acRecIsa')?.value, gia: g('acRecGia')?.value });   // a blank ISA box is no figure, not £0 (6.22.0)
+      if (!rec) { showToast('Enter at least the pension pot', 'error'); return; }
       try {
         const hist = (await getActiveAccumulationHistory()).filter((r) => r.date !== date);
-        hist.push({ date, sipp, isa, gia, total: sipp + isa + gia, recordedAt: new Date().toISOString() });
+        hist.push(rec);
         await saveActiveAccumulationHistory(hist);
-        showToast('Recorded ' + date + ': ' + gbp(sipp + isa + gia), 'success');
+        showToast('Recorded ' + date + ': ' + gbp(rec.total), 'success');
         await renderAccumulationRecords();
       } catch (e) { showToast('Could not record: ' + e.message, 'error'); }
     };
@@ -9985,7 +10005,7 @@
       h += '<details><summary>4 · Bonds, cash and the ISA (Pots &amp; Valves)</summary>' + table([
         row('"Bonds" pot', 'A blended sleeve: 15% index-linked, 30% nominal gilts, 20% property, 10% commodities, 10% cash, 15% equity beta; shifts toward linkers when last year\'s inflation > 4.5%', 'A model of a diversified "steadier" fund, not a gilt index. Nominal gilts lose when inflation exceeds 4%; the equity–bond correlation turns positive in inflation shocks (2022).'),
         row('Cash', 'Nominal return = max(0, last year\'s inflation − 1%)', 'Cash lags inflation and never goes negative in nominal terms — FCA-style real return of about −1%.'),
-        row('ISA', 'Money-market growth ' + pc(ISA_DEFAULTS.RETURN, 1) + ' nominal before charges; drawn per the ISA policy (bridge / longevity / <em>hold</em>)', '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs. The plan\'s fund and platform charge comes off it every month.'),
+        row(...isaAssumptionsRow()),   // how the ISA grows: the plan's setting (6.22.0, src/ui/isaGrowthSetting.js)
         row('Protection mode', 'Draw × ' + SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER + ' after ' + DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT + ' months in a row with shares + bonds + diversifiers below their glidepaths; exits after a ' + gbp(DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) + ' recovery buffer', 'Comparisons default to cuts OFF (level footing) so no strategy is flattered by quietly paying you less.')
       ]) + '</details>';
 
@@ -10715,13 +10735,7 @@
 
         // ---- The verdict, in plain words ----
         let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-        const cls = r.jointSuccess >= 0.85 ? 'alert-success' : r.jointSuccess >= 0.7 ? 'alert-warning' : 'alert-danger';
-        const headline = r.jointSuccess >= 0.85
-          ? 'Looking solid: in ' + pctFmt(r.jointSuccess) + ' of 1,000 possible market futures, the money lasted the whole way for <strong>both</strong> of you.'
-          : r.jointSuccess >= 0.7
-            ? 'Borderline: the money lasted for both of you in only ' + pctFmt(r.jointSuccess) + ' of 1,000 possible market futures.'
-            : 'At risk: the money lasted for both of you in just ' + pctFmt(r.jointSuccess) + ' of 1,000 possible market futures.';
-        html += '<div class="alert ' + cls + '" style="font-size:15px;">' + headline + '</div>';
+        html += '<div class="alert ' + onCourseAlertClass(r.jointSuccess) + '" style="font-size:15px;">' + jointVerdictHtml(r.jointSuccess) + '</div>';   // on course = 9 in 10 (6.22.0; it was called solid from 85%)
         html += '<table><tbody>'
           + '<tr><td>' + ownName + ' on their own</td><td><strong>' + pctFmt(r.successA) + '</strong></td></tr>'
           + '<tr><td>' + pName + ' on their own</td><td><strong>' + pctFmt(r.successB) + '</strong></td></tr>'
@@ -10763,7 +10777,7 @@
           + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">"Poor" = worse than 9 in 10 simulated futures; "strong" = better than 9 in 10.</p></div>';
 
         // ---- What to do about it ----
-        if (r.jointSuccess < 0.85) {
+        if (!isOnCourse(r.jointSuccess)) {
           const weakName = r.successA <= r.successB ? ownName : pName;
           const weakPct = Math.min(r.successA, r.successB);
           html += '<div class="settings-section"><div class="section-title">What to do about it</div>'
@@ -10828,7 +10842,7 @@
         let r;
         try { r = await runInWorker('survivor', survArgs); }
         catch (e) { console.warn('engine worker unavailable, running inline', e); r = runSurvivorCheck(survArgs); }
-        const cls = r.survivorSuccess >= 0.85 ? 'alert-success' : r.survivorSuccess >= 0.7 ? 'alert-warning' : 'alert-danger';
+        const cls = onCourseAlertClass(r.survivorSuccess);   // green from 9 in 10 (6.22.0)
         box.innerHTML = '<div class="alert ' + cls + '">If ' + surv.dName + ' dies in year ' + deathYear + ': <strong>' + surv.name
           + '\'s plan still works in ' + (r.survivorSuccess * 100).toFixed(0) + '%</strong> of 500 futures — inheriting about '
           + gbp(Math.round(r.inheritedPots + r.inheritedIsa)) + ' (median remaining pots), spending '
@@ -10855,7 +10869,7 @@
         try { r = await runInWorker('care', careArgs); }
         catch (e) { console.warn('engine worker unavailable, running inline', e); r = runCareCheck(careArgs); }
         const name = who === 'A' ? L.ownName : L.pName;
-        const cls = r.careJoint >= 0.85 ? 'alert-success' : r.careJoint >= 0.7 ? 'alert-warning' : 'alert-danger';
+        const cls = onCourseAlertClass(r.careJoint);   // green from 9 in 10 (6.22.0)
         box.innerHTML = '<div class="alert ' + cls + '">With ' + name + ' needing care from year ' + startYear + ' for ' + years
           + ' years (' + gbp(r.totalCareCost) + ' total in today\'s money): the money lasts for both of you in <strong>'
           + (r.careJoint * 100).toFixed(0) + '%</strong> of 500 futures — versus ' + (r.baselineJoint * 100).toFixed(0) + '% without care.</div>'
@@ -10904,7 +10918,8 @@
         netMonthly: +document.getElementById('acNetMonthly').value || 0,
         schemeType: document.getElementById('acScheme').value || 'ras',
         employerMonthly: +document.getElementById('acEmployerMonthly').value || 0,
-        escalationPct: +document.getElementById('acEscalation').value || 0
+        escalationPct: +document.getElementById('acEscalation').value || 0,
+        isaMonthly: +document.getElementById('acIsaMonthly')?.value || 0   // into ISAs and savings, £ a month (6.22.0)
       };
     }
 
@@ -10920,7 +10935,7 @@
         set('acNetMonthly', saved.netMonthly);
         if (saved.schemeType) document.getElementById('acScheme').value = saved.schemeType;
         set('acEmployerMonthly', saved.employerMonthly);
-        if (saved.escalationPct) document.getElementById('acEscalation').value = saved.escalationPct;
+        if (saved.escalationPct) document.getElementById('acEscalation').value = saved.escalationPct; set('acIsaMonthly', saved.isaMonthly);
         await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
         recalcAccumulation();
         renderAccumulationRecords().catch(() => {});
@@ -10968,7 +10983,7 @@
       let mixRealReturn = null;
       try { const hp = holdingsProportions(await getActiveHoldings()); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
       window._acMixOn = Number.isFinite(mixRealReturn);
-      let acCharges = 0; try { acCharges = chargesPctOf(await getStressSettingsAsync()); } catch (e) { /* none */ } const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn, chargesPct: acCharges, mixOcf: window._acHoldingsProps ? window._acHoldingsProps.weightedOcf : null });   // 6.19.0: the plan's charge on every line; on the mix line in place of the funds' own (mixOcf)
+      let acStress = {}; try { acStress = await getStressSettingsAsync(); } catch (e) { /* none */ } const acCharges = chargesPctOf(acStress); const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn, chargesPct: acCharges, mixOcf: window._acHoldingsProps ? window._acHoldingsProps.weightedOcf : null });   // 6.19.0: the plan's charge on every line; on the mix line in place of the funds' own (mixOcf)
       const last = rows[rows.length - 1];
       const warns = contributionWarnings({
         annualGrossTotal: b.totalMonthly * 12, salary: a.salary, mpaaTriggered,
@@ -10976,51 +10991,22 @@
       });
       warnEl.innerHTML = warns.map((w) => '<div class="alert alert-' + (w.severity === 'danger' ? 'danger' : w.severity === 'warning' ? 'warning' : 'info') + '">' + w.message + '</div>').join('');
 
-      let html = '<table><thead><tr><th>Age</th><th>Cautious (2%)</th><th>Middle (5%)</th>' + (window._acMixOn ? '<th>Your mix <span class="hint" title="Your holdings\' expected real return after costs, at long-run assumptions">(' + ((mixRealReturn + 0.025) * 100).toFixed(1) + '%)</span></th>' : '') + '<th>Strong (8%)</th><th>Paid in</th></tr></thead><tbody>';
-      const step = rows.length > 12 ? 5 : 1;
-      for (let i = 0; i < rows.length; i += (i === 0 || i >= rows.length - step ? 1 : step)) {
-        const r = rows[i];
-        html += '<tr' + (i === rows.length - 1 ? ' style="font-weight:600;"' : '') + '><td>' + r.age + '</td><td>' + gbp(Math.round(r.potLow)) + '</td><td>' + gbp(Math.round(r.potMid)) + '</td><td>' + (window._acMixOn ? gbp(Math.round(r.potMix || 0)) + '</td><td>' : '') + gbp(Math.round(r.potHigh)) + '</td><td>' + gbp(Math.round(r.contributedToDate)) + '</td></tr>';
-      }
-      html += '</tbody></table>' + accumulationChargesNoteHtml(acCharges, window._acMixOn);
-      projEl.innerHTML = html;
+      projEl.innerHTML = accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges, stress: acStress, inputs: a });   // + the ISA and savings line (6.22.0, src/ui/accumulationProjection.js)
       window._acProjection = { rows, breakdown: b };
     };
 
+    // "Am I on course?" (6.22.0: the one bar — the pot that lasts in 9 futures out of 10, src/services/OnCourse.js)
     window.runOnTrackCheck = async function () {
       const el = document.getElementById('acOnTrack');
-      const a = readAccumulationInputs();
       if (!window._acProjection) { showToast('Enter your details first', 'warning'); return; }
-      el.innerHTML = '<p style="font-size:13px;">Searching for the pot that gives 85% success against your plan… (a few seconds)</p>';
+      el.innerHTML = '<p style="font-size:13px;">' + ON_COURSE_SEARCHING + '</p>';
       await new Promise((r) => setTimeout(r, 30)); // let the message paint
       try {
         const sSet = await getStressSettingsAsync();
         const stratId = sSet.strategyId || 'pots-and-valves';
-        let requiredPot, basisNote;
-        if (stratId === 'pots-and-valves') {
-          const baseConfig = createSimulationConfigFromSettings({}, sSet);
-          ({ requiredPot } = requiredPotForSuccess(baseConfig, 0.85, 300));
-          basisNote = 'for 85% Monte-Carlo success with <strong>Pots &amp; Valves</strong> (this plan\'s strategy) against your budget-derived target';
-        } else {
-          ({ requiredPot } = requiredPotForStrategy(stratId, strategyPlanFor(sSet), 0.85));
-          const contract = stratId === 'full-il-gilt' || stratId === 'floor-the-schedule';
-          basisNote = contract ? 'to buy every year of your income shape by contract with <strong>' + budEsc(STRATEGY_NAMES[stratId]) + '</strong> (this plan\'s strategy) — no growth assumed after retirement, today\'s prices'
-            : 'for 85% success with <strong>' + budEsc(STRATEGY_NAMES[stratId]) + '</strong> (this plan\'s strategy) against your income shape';
-        }
+        const { requiredPot } = stratId === 'pots-and-valves' ? requiredPotForSuccess(createSimulationConfigFromSettings({}, sSet), ON_COURSE_SHARE, 300) : requiredPotForStrategy(stratId, strategyPlanFor(sSet), ON_COURSE_SHARE);
         if (!Number.isFinite(requiredPot)) { el.innerHTML = '<div class="alert alert-warning">No pot in the search range passes with ' + budEsc(STRATEGY_NAMES[stratId] || stratId) + ' — check the plan\'s income shape and duration.</div>'; return; }
-        const rows = window._acProjection.rows;
-        const last = rows[rows.length - 1];
-        const verdict = (pot) => pot >= requiredPot
-          ? '<span style="color:var(--success,#22c55e);font-weight:600;">on track ✓</span>'
-          : '<span style="color:var(--danger,#ef4444);font-weight:600;">short by ' + gbp(Math.round(requiredPot - pot)) + '</span>';
-        el.innerHTML = '<div class="alert alert-info">Your plan needs about <strong>' + gbp(Math.round(requiredPot))
-          + '</strong> at retirement (today\'s money) ' + basisNote + '.</div>'
-          + '<table><tbody>'
-          + '<tr><td>Cautious growth (2%)</td><td>' + gbp(Math.round(last.potLow)) + '</td><td>' + verdict(last.potLow) + '</td></tr>'
-          + '<tr><td>Middle growth (5%)</td><td>' + gbp(Math.round(last.potMid)) + '</td><td>' + verdict(last.potMid) + '</td></tr>'
-          + '<tr><td>Strong growth (8%)</td><td>' + gbp(Math.round(last.potHigh)) + '</td><td>' + verdict(last.potHigh) + '</td></tr>'
-          + '</tbody></table>'
-          + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Uses your current Stress-Tester settings (target, allocation, State Pension, access method) with the pot scaled. Set your budget and stress settings first for a meaningful answer.</p>';
+        el.innerHTML = onCourseCheckHtml({ requiredPot, basis: onCourseBasisHtml({ strategyId: stratId, name: budEsc(STRATEGY_NAMES[stratId] || stratId) }), rows: window._acProjection.rows });
       } catch (e) {
         console.error('On-track check error:', e);
         el.innerHTML = '<div class="alert alert-warning">Could not run the check: ' + e.message + '</div>';
@@ -11188,7 +11174,7 @@
       netSpendChanged(p, monthly);
     };
 
-    async function renderChargesField() { let st = {}, locked = false, ocf = 0; try { st = await getStressSettingsAsync(); locked = await planIsLocked(); ocf = holdingsProportions(await getActiveHoldings()).weightedOcf; } catch (e) { /* paint what is known */ } paintChargesField(document, chargesFieldState(st, { locked }), ocf); }   // fund and platform charges (6.19.0, src/ui/chargesSetting.js): the box — or, on a plan locked before charges were added (it runs at 0%), the words in its place
+    async function renderChargesField() { let st = {}, locked = false, ocf = 0; try { st = await getStressSettingsAsync(); locked = await planIsLocked(); ocf = holdingsProportions(await getActiveHoldings()).weightedOcf; } catch (e) { /* paint what is known */ } paintChargesField(document, chargesFieldState(st, { locked }), ocf); paintIsaGrowthField(document, isaGrowthFieldState(st, { locked })); }   // fund and platform charges (6.19.0, src/ui/chargesSetting.js) and how the ISA grows (6.22.0, src/ui/isaGrowthSetting.js): the box and the choice — or, on a plan locked before each was added, the words in its place
     async function loadStressSettings() {
       showLoading('Loading settings...');
       try {
@@ -11359,7 +11345,7 @@
           hodlValue: +document.getElementById('ssHodlValue').value,
           isaBalance: +document.getElementById('ssIsaBalance').value || 0,
           isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
-          ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own. Never reached when locked (refused above)
+          ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS), isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own; the ISA choice (6.22.0). Never reached when locked (refused above)
           spendingProfile: 'flat',   // the taper lives on the income steps now
           equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
           // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
@@ -13076,14 +13062,14 @@
       if (dep.taxYearsSetUp.length) li.push('<li><strong>Tax year' + (dep.taxYearsSetUp.length === 1 ? ' ' : 's ') + dep.taxYearsSetUp.join(', ') + '</strong> ' + (dep.taxYearsSetUp.length === 1 ? 'was' : 'were') + ' set up with this plan\'s spending figure. They stay as they are; if you change the spending target or State Pension, re-run <em>Set up tax year</em> so the monthly expectations match.</li>');
       li.push('<li><strong>Plan vs actual</strong> restarts: the projection frozen ' + (dep.planOfRecordAt ? 'on ' + new Date(dep.planOfRecordAt).toLocaleDateString('en-GB') : 'at lock time') + ' is archived, and a new one is frozen when you next save. Months before that are no longer measured against the old yardstick.</li>');
       if (dep.entriesUnderPrevious) li.push('<li>' + dep.entriesUnderPrevious + ' older entr' + (dep.entriesUnderPrevious === 1 ? 'y is' : 'ies are') + ' already marked as recorded under previous settings (this plan has been unlocked before).</li>');
-      li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>'); let chargesPatch = null; try { chargesPatch = chargesPatchOnUnlock(await getStressSettingsAsync()); } catch (e) { /* none */ } if (chargesPatch) li.push(chargesUnlockNoteHtml(chargesPatch.chargesPct));   // D2 (6.19.0): locked before charges were added → the default once unlocked
+      li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>'); let unlockPatch = null; try { unlockPatch = unlockPatchesOf(await getStressSettingsAsync()); } catch (e) { /* none */ } li.push(...unlockNotesHtml(unlockPatch));   // locked before charges (6.19.0, D2) or the ISA choice (6.22.0, D4) were added → the defaults once unlocked
       li.push('<li><strong>Not affected:</strong> your Budget, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
       li.push('<li>The plan locks itself again the moment a new entry is recorded. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
       const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Unlock this plan?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>' }, { okLabel: 'Unlock — I understand', cancelLabel: 'Keep locked', danger: true });
       if (!ok) return;
       showLoading('Unlocking…');
       try {
-        await unlockPlan(); if (chargesPatch) { try { await saveStressSettings(chargesPatch); } catch (e) { console.warn('Could not write the default charge on unlock:', e); } }
+        await unlockPlan(); if (unlockPatch) { try { await saveStressSettings(unlockPatch); } catch (e) { console.warn('Could not write the defaults on unlock:', e); } }
         await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
         refreshStressLock().catch(() => {});   // the Stress settings page unlocks with it (6.5.0)
         refreshLifeStage().then(() => updatePlanLockChip()).catch(() => {});   // stage moves back to draft (6.6.0)
@@ -13244,7 +13230,7 @@
         const schedule = generateDrawdownSchedule(settings, duration, inflation);
 
         let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA bridge)</h2>';
-        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years (the bridge to the State Pension). Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results.</div>';
+        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years (the bridge to the State Pension). Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
         html += '<div style="overflow-x: auto;"><table>';
         html += '<thead><tr><th>Year</th><th>SIPP Draw</th><th>State</th><th>Tax</th><th>Net (SIPP+SP)</th><th>ISA Top-up</th><th>Spendable</th><th>ISA Left</th></tr></thead>';
         html += '<tbody>';

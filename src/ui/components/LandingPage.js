@@ -74,7 +74,7 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
           <p>The <strong>Accumulation Planner</strong> works the same net-first way for the years
           before retirement: say what you can spare from take-home pay, and it works out the gross
           pension purchase under your scheme's tax relief, projects your pot, and checks whether
-          you're on track for your own budget-derived target — not a rule of thumb.</p>
+          you're on course for your own budget-derived target — not a rule of thumb.</p>
         </div>
 
         <!-- Why use this -->

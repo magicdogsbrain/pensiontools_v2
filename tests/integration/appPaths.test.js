@@ -67,7 +67,13 @@ const SETTINGS = {
 // charges does (it runs at 0%). Both are live paths, so both are pinned, the uncharged ones unchanged.
 const CHARGED_PCT = 0.5;
 const CHARGED = Object.fromEntries(Object.entries(SETTINGS).map(([name, s]) => [name + ' · charges 0.5%', { ...s, chargesPct: CHARGED_PCT }]));
-const ALL = { ...SETTINGS, ...CHARGED };
+// How ISAs and savings grow (6.22.0, services/IsaGrowth.js): a new plan, or an unlocked plan after the schema-3 migration,
+// carries the choice — "Mostly cash" by default, or "Invested like my pension". Both are live paths, so both are pinned,
+// each beside its charged sibling (the same settings with the choice and nothing else). Every entry above carries no
+// choice, as a plan locked before it does (its ISA grows at the fixed 3%), and does not move.
+const ISA_CASH = Object.fromEntries(Object.entries(SETTINGS).map(([name, s]) => [name + ' · charges 0.5% · ISA mostly cash', { ...s, chargesPct: CHARGED_PCT, isaGrowth: 'cash' }]));
+const ISA_INVESTED = Object.fromEntries(Object.entries(SETTINGS).map(([name, s]) => [name + ' · charges 0.5% · ISA invested', { ...s, chargesPct: CHARGED_PCT, isaGrowth: 'invested' }]));
+const ALL = { ...SETTINGS, ...CHARGED, ...ISA_CASH, ...ISA_INVESTED };
 
 const RUNS = 25;
 const PIN_FILE = path.join(__dirname, 'fixtures', 'appPaths.pin.json');
@@ -152,6 +158,35 @@ describe('Phase B gate: app-path golden vectors', () => {
       // Not run by run: a charged run can fall below its glidepaths sooner, pay less in protection and so keep a little
       // more in the pension (ufpls-phased-recycle runs 1, 15 and 24 — each with less in the ISA and in total).
     }
+  });
+
+  // How ISAs and savings grow (6.22.0): the choice reaches the engine through the one config builder — only when the plan
+  // has one (a plan without it keeps the fixed rate, its `isaReturn` untouched) and never with a mix of its own (the engine
+  // reads the run's pots, so the optimiser and the pots-at-retirement scaling carry the ISA with them).
+  it('a plan\'s ISA choice reaches the engine: the config carries it (and only then), isaReturn is untouched, and the ISA moves', () => {
+    const pinned = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8'));
+    const median = (v) => { const s = [...v].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    for (const [name, settings] of Object.entries(SETTINGS)) {
+      const sibling = name + ' · charges 0.5%';
+      const plainCfg = createSimulationConfigFromSettings({}, CHARGED[sibling]);
+      expect('isaGrowth' in plainCfg, name).toBe(false);
+      for (const [twins, kind] of [[ISA_CASH, 'cash'], [ISA_INVESTED, 'invested']]) {
+        const twin = name + (kind === 'cash' ? ' · charges 0.5% · ISA mostly cash' : ' · charges 0.5% · ISA invested');
+        const cfg = createSimulationConfigFromSettings({}, twins[twin]);
+        expect(cfg.isaGrowth, twin).toBe(kind);
+        expect('isaGrowthMix' in cfg, twin).toBe(false);
+        expect(cfg.isaReturn, twin).toBe(plainCfg.isaReturn);
+        const { isaGrowth, ...rest } = cfg;
+        void isaGrowth;
+        expect(rest, twin).toEqual(plainCfg);
+        expect(pinned[twin], twin).toHaveLength(RUNS);
+        expect(JSON.stringify(pinned[twin].map((r) => r.isaByYear)), twin).not.toBe(JSON.stringify(pinned[sibling].map((r) => r.isaByYear)));
+      }
+      // shares and bonds beat cash on these futures: the ISA typically ends higher "invested" than "Mostly cash"
+      const endIsa = (rs) => median(rs.map((r) => r.finalIsa));
+      expect(endIsa(pinned[name + ' · charges 0.5% · ISA invested']), name).toBeGreaterThanOrEqual(endIsa(pinned[name + ' · charges 0.5% · ISA mostly cash']));
+    }
+    for (const v of [null, 'Cash', 0.03]) expect('isaGrowth' in createSimulationConfigFromSettings({}, { ...SETTINGS['risk-balanced-isa'], isaGrowth: v }), String(v)).toBe(false);
   });
 
   it('the comparison is exact where a branch shows and tolerant only of last-bit drift', () => {

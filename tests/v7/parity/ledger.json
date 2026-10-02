@@ -1457,20 +1457,27 @@
       "id": "pots.isa-growth",
       "area": "pots",
       "kind": "setting",
-      "name": "How the ISA grows, and its floor",
-      "what": "The ISA's steady growth rate (3% a year) and the floor it is drawn down towards.",
-      "whereV6": "Settings defaults (constants.js ISA_DEFAULTS; design/settings-model.md)",
+      "name": "How the ISA and savings grow, and the ISA's floor",
+      "what": "One choice per plan: \"Mostly cash\" (the default; like the pension's cash, last year's rise in prices less 1%, never below nothing) or \"Invested like my pension\" (the pension's mix of shares, bonds and cash, in the same futures). A plan locked before the choice keeps a fixed 3% a year (isaReturn) until it is unlocked. Also the floor the ISA is drawn down towards (isaMin).",
+      "whereV6": "Stress tester → Settings → How your ISA and savings grow (index.html #ssIsaGrowthGroup; src/ui/isaGrowthSetting.js, src/services/IsaGrowth.js); the floor in the settings defaults (constants.js ISA_DEFAULTS)",
       "who": "Everyone",
       "keys": [
+        "stress.isaGrowth",
         "stress.isaReturn",
         "stress.isaMin",
         "decision.isaReturn",
         "decision.isaMin"
       ],
-      "status": "designed",
-      "doc": "research/v7/answer-D.md §2.2",
-      "step": "s7-d",
-      "note": "One choice under the savings box: \"Mostly cash\" (prices less 1%) or \"Invested like my pension\"."
+      "status": "built",
+      "files": [
+        "src/services/IsaGrowth.js",
+        "src/answers/shared/schemaParts.js",
+        "src/answers/shared/saving.js",
+        "src/answers/shared/toEngine.js",
+        "src/answers/shared/savingsGrowth.js"
+      ],
+      "step": "done",
+      "note": "One choice under the savings box in C, A and B (\"Mostly cash\" or \"Invested like my pension\"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes \"Mostly cash\" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing."
     },
     {
       "id": "pots.taxable",
@@ -2318,7 +2325,7 @@
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The \"Your plan\" station reads the document only, never live settings."
+      "note": "The \"Your plan\" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines."
     },
     {
       "id": "lock.ladder-card",
@@ -2375,7 +2382,7 @@
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "P.arrived."
+      "note": "P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0."
     },
     {
       "id": "lock.newer",
@@ -2565,6 +2572,24 @@
       "note": "One figure that lands in the pension, or split into your part and your employer's."
     },
     {
+      "id": "save.isa-pay-in",
+      "area": "saving",
+      "kind": "setting",
+      "name": "What goes into ISAs and savings each month",
+      "what": "A monthly amount into ISAs and other savings, from take-home pay (no tax relief), raised each year like the pension payments; it counts in the pots at retirement, the age spin and a plan locked while saving.",
+      "whereV6": "Accumulation → Contributions → Into ISAs and savings (index.html #acIsaMonthly, 6.22.0)",
+      "who": "Savers",
+      "keys": [
+        "accumulation.isaMonthly"
+      ],
+      "status": "built",
+      "files": [
+        "src/answers/shared/schemaParts.js"
+      ],
+      "step": "done",
+      "note": "V7 asked for it first (\"savingsIn\"); a plan made from an answer now keeps it in the planner's box."
+    },
+    {
       "id": "save.relief",
       "area": "saving",
       "kind": "option",
@@ -2689,9 +2714,9 @@
       "id": "save.on-track",
       "area": "saving",
       "kind": "option",
-      "name": "Am I on track?",
+      "name": "Am I on course?",
       "what": "The pot needed for the plan's target and whether the saving gets there.",
-      "whereV6": "Accumulation → Am I on track? (index.html:3741-3750)",
+      "whereV6": "Accumulation → Am I on course? (index.html \"Am I on course?\"; src/services/OnCourse.js, src/ui/accumulationProjection.js)",
       "who": "Savers",
       "keys": [],
       "status": "built",
@@ -2701,7 +2726,7 @@
         "src/v7/screens/b/ChoicesScreen.jsx"
       ],
       "step": "done",
-      "note": "B, with the monthly amount that gets there and the options if it does not fit. Owner's decision pending: one bar, 9 in 10, everywhere."
+      "note": "B, with the monthly amount that gets there and the options if it does not fit. One bar everywhere from 6.22.0: on course = lasts in 9 futures out of 10 (OnCourse.ON_COURSE_SHARE = V7's BAND.careful)."
     },
     {
       "id": "save.warnings",
@@ -2733,7 +2758,7 @@
       ],
       "status": "planned",
       "step": "s4-open-plan",
-      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4); the reading is fixed first (item 2)."
+      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js)."
     },
     {
       "id": "hold.record",

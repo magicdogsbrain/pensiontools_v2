@@ -80,7 +80,10 @@ describe('parseDraft — text as typed', () => {
 
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
     expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'endAge']);
+    // (savings typed: how they grow is then asked, and "Mostly cash" is its default — 6.22.0)
     expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', take: '1500' }).usedDefault)
+      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'isaGrowth']);
+    expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', isaGrowth: 'invested', take: '1500' }).usedDefault)
       .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has']);
     expect(parse({ take: '1,500' }).inputs.take).toBe(1500);
     expect(parse().inputs.take).toBeNull();

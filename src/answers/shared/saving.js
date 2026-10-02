@@ -35,6 +35,14 @@
  * OWN stop (`people[].until`, from the household: stopYearsFor), their pay-ins going in and the charge coming off until
  * then; someone who has stopped (until 0) holds the pots given. One growth pass per distinct stop, each with its own
  * slide to the drawing mix — two passes when apart, one otherwise (a same-year plan is today's, figure for figure).
+ *
+ * How ISAs and savings grow (6.22.0; services/IsaGrowth.js; research/saver-lock-and-savings-growth.md 3.6): the household's
+ * one choice, `household.isaGrowth`, read here for the saving years as the drawing runs read it (toEngine.js).
+ *   - 'invested' ("Invested like my pension"), and no choice at all: the savings grow by the pension's own f, as they
+ *     always have here — the same kernel, bit for bit;
+ *   - 'cash' ("Mostly cash"): the savings grow by the month's cash factor, g_s(m) = monthly(cash(y)), and the charge:
+ *     a kernel of their own (savingKernel(…, 'savings')), from the same lives and prices. The pension never depends on it.
+ * The cash pass reads no bond stream and is not counted in kernelPasses (the work bound counts the mix passes).
  */
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { SAVING } from './rules.js';
@@ -42,6 +50,7 @@ import { mixOf } from './toEngine.js';
 import { bandIndexes } from './band.js';
 import { monthly, cashNominalReturn } from './fastEngine.js';
 import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
+import { isaGrowthOf, isIsaGrowthMix } from '../../services/IsaGrowth.js';
 import { stopsOf } from './household.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -138,6 +147,7 @@ export function savingPlan(household, stopAge, env = {}) {
   const { saving, drawing, savingLevel } = mixesOf(household, env);
   const { charge, chargesPct, chargeM } = chargeOf(household);
   const mixByYear = mixByYearOf(S, saving, drawing);
+  const isaGrowth = isaGrowthOf(household);
   return {
     S, stopAge,
     people: household.people.map((p, index) => ({
@@ -148,6 +158,9 @@ export function savingPlan(household, stopAge, env = {}) {
       until: stops.own[index]
     })),
     mixByYear, charge, chargesPct, chargeM,
+    // how the savings grow (6.22.0): 'cash' gives them a kernel of their own; 'invested', the pension's. Only when the
+    // household says: without a choice the plan is today's, key for key (and the savings follow the pension, as always).
+    ...(isaGrowth ? { isaGrowth } : {}),
     mixes: { saving, drawing }, savingLevel,
     slideYears: sameMix(saving, drawing) ? 0 : Math.min(SAVING.slideYears, S)
   };
@@ -178,6 +191,26 @@ function growthOf(plan, life, out, S = plan.S, mixByYear = plan.mixByYear) {
 }
 
 /**
+ * "Mostly cash" savings (6.22.0): the growth factors of the saving months without the charge, g_s(m) = monthly(cash(y)) —
+ * the very cash factor growthOf weighs by w.cash, so a pension held all in cash and these savings grow alike.
+ */
+function cashGrowthOf(life, out, S) {
+  const r = life.returns;
+  for (let y = 0; y < S; y++) {
+    const prev = y > 0 ? infOf(r, y - 1) : infOf(r, 0);
+    const mCash = monthly(cashNominalReturn(prev));
+    for (let m = 0; m < 12; m++) out[12 * y + m] = mCash;
+  }
+  return out;
+}
+
+/** The growth factors of one pot's saving months: 'cash' (savings held mostly in cash) or the plan's mix (the pension's). */
+const growthFor = (plan, life, out, S, kind, mixByYear) => (kind === 'cash' ? cashGrowthOf(life, out, S) : growthOf(plan, life, out, S, mixByYear));
+
+/** Which growth a person's pot follows: the savings of a "Mostly cash" household their own; everything else the mix. */
+const kindOf = (plan, which) => (which === 'savings' && plan.isaGrowth === 'cash' ? 'cash' : 'mix');
+
+/**
  * The growth of the saving years over the lives, shared by every person and both pots who stop at the same time (one
  * mix, one charge): F_i = F(0 → 12S) / P(S), b_{i,y}, B_i, P_i(S). One pass per stop, kept per (plan, S, lives): one
  * per stop age when the people stop together, one per person's own stop when they stop apart.
@@ -188,15 +221,16 @@ const PASSES = new WeakMap();
 export function kernelPasses(plan) {
   return PASSES.get(plan) || 0;
 }
-function unitKernel(plan, lives, S = plan.S) {
+function unitKernel(plan, lives, S = plan.S, kind = 'mix') {
   let byS = UNITS.get(plan);
   if (!byS) { byS = new Map(); UNITS.set(plan, byS); }
-  let byLives = byS.get(S);
-  if (!byLives) { byLives = new WeakMap(); byS.set(S, byLives); }
+  const key = kind === 'cash' ? `cash:${S}` : S;                  // "Mostly cash" savings: a pass of their own (6.22.0)
+  let byLives = byS.get(key);
+  if (!byLives) { byLives = new WeakMap(); byS.set(key, byLives); }
   let u = byLives.get(lives);
   if (u) return u;
   const n = lives.length;
-  const mixByYear = mixesTo(plan, S);
+  const mixByYear = kind === 'cash' ? null : mixesTo(plan, S);
   const F = new Float64Array(n);
   const b = new Float64Array(n * S);
   const B = new Float64Array(n);
@@ -206,7 +240,7 @@ function unitKernel(plan, lives, S = plan.S) {
     const life = lives[i];
     if (S > 0 && !(life.stream && life.stream.length >= 12 * S && life.years > S)) throw new Error('saving: the lives are shorter than the saving years');
     const P = priceLevels(life.returns, S);
-    growthOf(plan, life, g, S, mixByYear);
+    growthFor(plan, life, g, S, kind, mixByYear);
     let G = 1;                                             // F(m → 12S), built from the stop backwards
     for (let m = 12 * S - 1; m >= 0; m--) {
       G *= g[m] * plan.chargeM;
@@ -222,7 +256,7 @@ function unitKernel(plan, lives, S = plan.S) {
   }
   u = { F, b, B, priceAtStop, n, S };
   byLives.set(lives, u);
-  PASSES.set(plan, (PASSES.get(plan) || 0) + 1);
+  if (kind !== 'cash') PASSES.set(plan, (PASSES.get(plan) || 0) + 1);
   return u;
 }
 
@@ -232,13 +266,14 @@ const personOf = (plan, person) => (typeof person === 'number' ? plan.people[per
 /**
  * The kernel of one person's pot at their stop, over the lives (4.3): pot_i(c) = A_i + c × B_i at today's prices for
  * c a month at today's prices. With S = 0 it is { A: the pot, b: [], B: 0, priceAtStop: 1 } in every life. The stop is
- * the person's own (`until`: the plan's S when the people stop together).
+ * the person's own (`until`: the plan's S when the people stop together). The savings of a "Mostly cash" household
+ * (plan.isaGrowth 'cash', 6.22.0) have a kernel of their own on the cash factors; otherwise they share the pension's.
  * @param {'pension' | 'savings'} [which]
  */
 export function savingKernel(plan, person, lives, which = 'pension') {
   const p = personOf(plan, person);
   const S = p.until;
-  const u = unitKernel(plan, lives, S);
+  const u = unitKernel(plan, lives, S, kindOf(plan, which));
   const start = which === 'savings' ? p.savings : p.pot;
   const A = new Float64Array(u.n);
   for (let i = 0; i < u.n; i++) A[i] = S === 0 ? start : start * u.F[i];
@@ -258,6 +293,63 @@ export function potsByPerson(plan, lives) {
     }
     return { who: p.who, pension, savings };
   });
+}
+
+/**
+ * One person's saving years year by year in every life (6.22.0; research/saver-lock-and-savings-growth.md 4.2 — the
+ * primitive a saver's locked path is drawn from): the same monthly factors as the kernels (the mix's for the pension, and
+ * for the savings unless they are "Mostly cash", when they take the cash factors), run forward month by month — each
+ * month's payment in at its start, the month's growth, then the charge — with the start of each year recorded.
+ *
+ * Payments: absent `escalation`, the pay-ins are at today's prices and rise with prices (P(y), V7's rule), so at the stop
+ * pension / P(S) and savings / P(S) are potsByPerson's to rounding. With `escalation` (a share a year, 0.02 = 2%) they are
+ * pounds of the day raised by that share once a year (today's planner's "Raise contributions by").
+ *
+ * `savingsMix` ({ equity, bond, cash }, today's planner only — review of 6.22.0): the savings grow at that one mix every
+ * year, on the same factors as the pension (the life's own shares, bond stream and cash: no new draw), whatever the plan's
+ * choice says — an ISA made of the ISA funds in the planner's list of funds to test, which its runs follow. Absent: as above.
+ *
+ * @param {{ escalation?: number, savingsMix?: { equity: number, bond: number, cash: number } }} [opts]
+ * @returns {{ S: number, n: number, pension: Float64Array, savings: Float64Array, price: Float64Array, paidIn: Float64Array }}
+ *   each n × (S + 1), by life then year: [i × (S + 1) + y] is at the start of year y (y = S: the stop), pounds of the day;
+ *   price is the life's price level P(y) (1 today); paidIn is what had gone in by then (pension and savings, pounds of the day).
+ *   Plain numbers only: no function or life is kept.
+ */
+export function savingYearsByLife(plan, person, lives, opts = {}) {
+  const p = personOf(plan, person);
+  const S = p.until;
+  const n = lives.length;
+  const W = S + 1;
+  const esc = Number.isFinite(opts.escalation) ? opts.escalation : null;
+  const own = isIsaGrowthMix(opts.savingsMix) ? plainMix(opts.savingsMix) : null;   // the ISA funds' own mix (see above)
+  const cash = !own && kindOf(plan, 'savings') === 'cash';
+  const mixByYear = mixesTo(plan, S);
+  const ownByYear = own ? Array.from({ length: S }, () => own) : null;
+  const g = new Float64Array(12 * S);
+  const gs = cash || own ? new Float64Array(12 * S) : g;
+  const out = { S, n, pension: new Float64Array(n * W), savings: new Float64Array(n * W), price: new Float64Array(n * W), paidIn: new Float64Array(n * W) };
+  for (let i = 0; i < n; i++) {
+    const life = lives[i];
+    if (S > 0 && !(life.stream && life.stream.length >= 12 * S && life.years > S)) throw new Error('saving: the lives are shorter than the saving years');
+    const P = priceLevels(life.returns, S);
+    growthOf(plan, life, g, S, mixByYear);
+    if (cash) cashGrowthOf(life, gs, S);
+    else if (own) growthOf(plan, life, gs, S, ownByYear);
+    let pot = p.pot, sav = p.savings, paid = 0;
+    const at = i * W;
+    out.pension[at] = pot; out.savings[at] = sav; out.price[at] = P[0]; out.paidIn[at] = 0;
+    for (let y = 0; y < S; y++) {
+      const f = esc === null ? P[y] : Math.pow(1 + esc, y);
+      const payP = p.payIn.total * f, payS = p.payIn.savings * f;
+      for (let m = 12 * y; m < 12 * y + 12; m++) {
+        pot = (pot + payP) * g[m] * plan.chargeM;
+        sav = (sav + payS) * gs[m] * plan.chargeM;
+        paid += payP + payS;
+      }
+      out.pension[at + y + 1] = pot; out.savings[at + y + 1] = sav; out.price[at + y + 1] = P[y + 1]; out.paidIn[at + y + 1] = paid;
+    }
+  }
+  return out;
 }
 
 /** careful / middling / good of a list (bandIndexes positions of the sorted values), whole pounds. */
@@ -334,6 +426,8 @@ export function savingRows(plan, person, life) {
   const S = p.until;
   const P = priceLevels(life.returns, S);
   const g = growthOf(plan, life, new Float64Array(12 * S), S, mixesTo(plan, S));
+  // the savings' own factors: the pension's, or the cash factors of a "Mostly cash" household (6.22.0)
+  const gs = kindOf(plan, 'savings') === 'cash' ? cashGrowthOf(life, new Float64Array(12 * S), S) : g;
   const rows = [];
   let pot = p.pot;
   let sav = p.savings;
@@ -344,7 +438,7 @@ export function savingRows(plan, person, life) {
     const grown = (pot + paid) * g[m];
     const charge = grown * (1 - plan.chargeM);
     const potEnd = grown - charge;
-    const savEnd = (sav + paidS) * g[m] * plan.chargeM;
+    const savEnd = (sav + paidS) * gs[m] * plan.chargeM;
     rows.push({
       who: p.who, m, age: p.ageToday + y,
       potStart: pot, paidIn: { total: paid, savings: paidS }, growth: grown - (pot + paid), charge, potEnd,

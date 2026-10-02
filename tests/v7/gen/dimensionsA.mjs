@@ -44,6 +44,8 @@ export const DIMENSIONS_A = [
   { name: 'savingRisk', values: ['cautious', 'balanced', 'adventurous'].map((r) => v(`save${r}`, (c) => setPath(c, 'savingRisk', r))) },
   { name: 'risk', values: ['cautious', 'balanced', 'adventurous'].map((r) => v(`draw${r}`, (c) => setPath(c, 'risk', r))) },
   { name: 'charge', values: [v('chargeDefault', () => {}), v('charge0', (c) => setPath(c, 'charge', 0)), v('charge1', (c) => setPath(c, 'charge', 1))] },
+  // how the savings grow (6.22.0): "Mostly cash" (the default, once there are savings) or "Invested like my pension"
+  { name: 'isaGrowth', values: [v('isaGrowthDefault', () => {}), v('invested', (c) => setPath(c, 'isaGrowth', 'invested'))] },
   { name: 'statePension', values: [
     v('spNone', (c) => setPath(c, 'you.statePension.kind', 'none')),
     v('spFull', () => {}),

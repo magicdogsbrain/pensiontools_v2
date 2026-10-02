@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.21.0",
+    "appVersion": "6.22.0",
     "historyEnd": null
   },
   "session": {
@@ -58,7 +58,7 @@
     },
     "b": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":20000,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":48,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":1400},\"pot\":350000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.21.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":20000,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":48,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":1400},\"pot\":350000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.22.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -91,6 +91,7 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
+          "isaGrowth": "cash",
           "confidence": "nineInTen"
         },
         "whose": "you",
@@ -137,14 +138,14 @@
                 "good": 1037407
               },
               "savings": {
-                "careful": 18388,
-                "middling": 28054,
-                "good": 41981
+                "careful": 16282,
+                "middling": 19684,
+                "good": 26481
               },
               "total": {
-                "careful": 526943,
-                "middling": 754378,
-                "good": 1079202
+                "careful": 528382,
+                "middling": 745792,
+                "good": 1063167
               }
             },
             "paidIn": {
@@ -159,13 +160,13 @@
           }
         ],
         "number": {
-          "careful": 520000,
-          "middling": 355000,
-          "good": 271000,
+          "careful": 527000,
+          "middling": 362000,
+          "good": 278000,
           "byPerson": [
             {
               "who": "you",
-              "pot": 520000
+              "pot": 527000
             }
           ]
         },
@@ -189,7 +190,7 @@
           "confidence": "nineInTen",
           "at": {
             "nineInTen": 710,
-            "threeInFour": 40
+            "threeInFour": 60
           },
           "outside": null,
           "savingsNow": 0
@@ -206,8 +207,8 @@
             "good": 888273
           }
         },
-        "short": 12463,
-        "monthlyIfShort": 2260,
+        "short": 19463,
+        "monthlyIfShort": 2240,
         "wholeLife": {
           "lasted": 0.964,
           "outOfTen": {
@@ -225,15 +226,15 @@
           "moreRisk": null,
           "accept": {
             "lasted": 0.964,
-            "short": 12463,
-            "monthlyIfShort": 2260
+            "short": 19463,
+            "monthlyIfShort": 2240
           }
         },
         "grid": {
           "ages": [
             {
               "age": 58,
-              "number": 556000,
+              "number": 559000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -247,7 +248,7 @@
                 },
                 {
                   "payIn": 1500,
-                  "lasted": 0.928,
+                  "lasted": 0.926,
                   "outOfTen": {
                     "words": "in 9 futures out of 10",
                     "only": false,
@@ -277,7 +278,7 @@
                 },
                 {
                   "payIn": 1800,
-                  "lasted": 0.943,
+                  "lasted": 0.945,
                   "outOfTen": {
                     "words": "in 9 futures out of 10",
                     "only": false,
@@ -289,11 +290,11 @@
             },
             {
               "age": 59,
-              "number": 535000,
+              "number": 540000,
               "cells": [
                 {
                   "payIn": 1400,
-                  "lasted": 0.943,
+                  "lasted": 0.945,
                   "outOfTen": {
                     "words": "in 9 futures out of 10",
                     "only": false,
@@ -313,7 +314,7 @@
                 },
                 {
                   "payIn": 1600,
-                  "lasted": 0.956,
+                  "lasted": 0.958,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -323,7 +324,7 @@
                 },
                 {
                   "payIn": 1700,
-                  "lasted": 0.96,
+                  "lasted": 0.963,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -333,7 +334,7 @@
                 },
                 {
                   "payIn": 1800,
-                  "lasted": 0.966,
+                  "lasted": 0.967,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -345,7 +346,7 @@
             },
             {
               "age": 60,
-              "number": 520000,
+              "number": 527000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -369,7 +370,7 @@
                 },
                 {
                   "payIn": 1600,
-                  "lasted": 0.972,
+                  "lasted": 0.973,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -379,7 +380,7 @@
                 },
                 {
                   "payIn": 1700,
-                  "lasted": 0.978,
+                  "lasted": 0.98,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -401,7 +402,7 @@
             },
             {
               "age": 61,
-              "number": 497000,
+              "number": 499000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -415,7 +416,7 @@
                 },
                 {
                   "payIn": 1500,
-                  "lasted": 0.981,
+                  "lasted": 0.982,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -425,7 +426,7 @@
                 },
                 {
                   "payIn": 1600,
-                  "lasted": 0.984,
+                  "lasted": 0.983,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -435,7 +436,7 @@
                 },
                 {
                   "payIn": 1700,
-                  "lasted": 0.986,
+                  "lasted": 0.987,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -457,11 +458,11 @@
             },
             {
               "age": 62,
-              "number": 469000,
+              "number": 473000,
               "cells": [
                 {
                   "payIn": 1400,
-                  "lasted": 0.986,
+                  "lasted": 0.987,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -481,7 +482,7 @@
                 },
                 {
                   "payIn": 1600,
-                  "lasted": 0.99,
+                  "lasted": 0.991,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -501,7 +502,7 @@
                 },
                 {
                   "payIn": 1800,
-                  "lasted": 0.992,
+                  "lasted": 0.993,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -513,11 +514,11 @@
             },
             {
               "age": 63,
-              "number": 437000,
+              "number": 444000,
               "cells": [
                 {
                   "payIn": 1400,
-                  "lasted": 0.992,
+                  "lasted": 0.991,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -537,7 +538,7 @@
                 },
                 {
                   "payIn": 1600,
-                  "lasted": 0.992,
+                  "lasted": 0.993,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -547,7 +548,7 @@
                 },
                 {
                   "payIn": 1700,
-                  "lasted": 0.993,
+                  "lasted": 0.995,
                   "outOfTen": {
                     "words": "in more than 9 futures out of 10",
                     "only": false,
@@ -569,7 +570,7 @@
             },
             {
               "age": 64,
-              "number": 418000,
+              "number": 424000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -625,7 +626,7 @@
             },
             {
               "age": 65,
-              "number": 395000,
+              "number": 403000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -1033,17 +1034,22 @@
             ]
           },
           {
-            "id": "isa-fixed-growth",
-            "field": null,
-            "source": "rule",
-            "value": 3,
-            "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.",
+            "id": "savings-growth",
+            "field": "isaGrowth",
+            "source": "default",
+            "value": "cash",
+            "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
             "parts": [
-              "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+              "Your savings are treated as ISA money: tax-free to take. ",
+              "They grow like cash: by last year's rise in prices less ",
               {
-                "fixed": "3"
+                "fixed": "1"
               },
-              "% a year before rising prices, so they lose ground whenever prices rise faster than that."
+              "%, or not at all if prices rose by less than ",
+              {
+                "fixed": "1"
+              },
+              "%."
             ]
           },
           {
@@ -1138,7 +1144,7 @@
           },
           "line": {
             "id": "b.line",
-            "text": "To spend £2,000 a month from 60, you would want a pot of about £520,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
+            "text": "To spend £2,000 a month from 60, you would want a pot of about £527,000 by then: with exactly that at 60, the money lasted in 9 futures out of 10.",
             "parts": [
               "To spend ",
               {
@@ -1319,7 +1325,7 @@
           "lever": {
             "accept": {
               "id": "b.lever.accept",
-              "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,260 a month from 60 lasted in 9 futures out of 10.",
+              "text": "Keep paying in £1,400 a month as now: your money lasted in more than 9 futures out of 10. About £2,240 a month from 60 lasted in 9 futures out of 10.",
               "parts": [
                 "Keep paying in ",
                 {
@@ -1415,7 +1421,7 @@
           "failuresAllowed": 100,
           "closeAllowed": 250,
           "historyEnd": "2023-06",
-          "engineVersion": "6.21.0",
+          "engineVersion": "6.22.0",
           "endAge": 95,
           "detail": "grid",
           "lifeYears": 47,

@@ -15,11 +15,13 @@
  * `appVersion` are provenance.
  *
  * Versions: 1 (6.15.0) the version stamp and the shapes written once; 2 (6.19.0) fund and platform charges written
- * into every unlocked plan (a locked plan is not touched and runs without them until it is unlocked).
+ * into every unlocked plan (a locked plan is not touched and runs without them until it is unlocked); 3 (6.22.0) how the
+ * ISA and savings grow — "Mostly cash" written into every unlocked plan (a locked plan is not touched and keeps its ISA
+ * at a fixed 3% a year until it is unlocked).
  *
  * Pure: no storage, no DOM, no clock.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** A plan's stored version: a whole number ≥ 0; anything else (absent, a string, garbage) reads as 0. */
 export function schemaVersionOf(scenario) {

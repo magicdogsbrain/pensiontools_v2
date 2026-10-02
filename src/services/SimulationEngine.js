@@ -14,6 +14,7 @@ import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
 import { planDrawdown } from './DrawdownStrategy.js';
 import { applyIsaGrowthMonthly } from './IsaDrawdown.js';
+import { isaGrowthWeights, glidedIsaWeights, investedIsaFactor } from './IsaGrowth.js';
 import { assessProtection, growthVsGlide, diversifierGlidepath, isBelow, PROTECTION_DEFAULTS, protectionMultForStreak } from './ProtectionStrategy.js';
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
@@ -59,6 +60,12 @@ export function simulate(config, returns, seed = 0) {
   // every charged pot straight after the month's growth. A config without `chargesPct` (a plan locked before charges,
   // every golden and pin) gets exactly 1 and the charge block below is skipped — the run it always was.
   const chargeM = monthlyChargeFactor(config.chargesPct);
+  // How the ISA grows (6.22.0, services/IsaGrowth.js): 'cash' — by the month's cash factor, the pension's own; 'invested'
+  // — by the pension's three factors weighted by its mix (worked out once here). A config without the choice (a plan
+  // locked before it, every golden and pin) grows the ISA at the fixed `isaReturn` below — the run it always was. The
+  // tagged ISA funds (config.isaMix) still win.
+  const isaGrowthKind = config.isaMix ? null : (config.isaGrowth === 'cash' || config.isaGrowth === 'invested' ? config.isaGrowth : null);
+  const isaW = isaGrowthKind === 'invested' ? isaGrowthWeights(config) : null;
 
   // Initialize fund values
   let equity = config.equityStart;
@@ -391,7 +398,8 @@ export function simulate(config, returns, seed = 0) {
       consecBelowGlideBefore: belowGlideRunBefore,   // the unbroken run of below-glide months before this one
       planInputs,                     // exact planDrawdown inputs used this month
       charge: 0,                      // fund and platform charges taken this month, every charged pot (set after the growth below)
-      chargeIsa: 0                    // the ISA's part of `charge`
+      chargeIsa: 0,                   // the ISA's part of `charge`
+      isaFactor: 1                    // the factor the ISA grew by this month, before the charge (1 when it was empty); set below
     } : null;
     if (traceRow) trace.push(traceRow);
 
@@ -415,9 +423,13 @@ export function simulate(config, returns, seed = 0) {
     const annualCashReturn = cashNominalReturn(prevInf);
     const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 
-    equity *= monthly(eqReturn);
-    bond *= monthly(annualBondReturn);
-    cash *= monthly(annualCashReturn);
+    // The month's three pension factors, worked out once: the pots below, and an ISA "invested like my pension", read them.
+    const fE = monthly(eqReturn);
+    const fB = monthly(annualBondReturn);
+    const fC = monthly(annualCashReturn);
+    equity *= fE;
+    bond *= fB;
+    cash *= fC;
     // The taxable sleeve grows at ITS OWN mix — a GIA gilt ladder and a GIA equity portfolio
     // behave completely differently, which is the whole reason this is modelled rather than
     // haircut. (Income tax and any bed-and-ISA transfer are applied annually, above.)
@@ -439,9 +451,29 @@ export function simulate(config, returns, seed = 0) {
       if (m.diversifiers) {
         isaAnnual += m.diversifiers * diversifierBucketReturn({ inf, eqReturn }, rng, trendSignal, m.diversifierWeights);
       }
-      isa *= monthly(isaAnnual);
+      const isaF = monthly(isaAnnual);
+      isa *= isaF;
+      if (traceRow) traceRow.isaFactor = isaF;
+    } else if (isaGrowthKind === 'cash') {
+      // "Mostly cash" (6.22.0): the very factor the pension's cash grew by this month — last year's rise in prices less 1%,
+      // never below nothing. No random draw.
+      if (isa > 0) {
+        isa = isa * fC;
+        if (traceRow) traceRow.isaFactor = fC;
+      }
+    } else if (isaGrowthKind === 'invested') {
+      // "Invested like my pension" (6.22.0): the pension's three factors this month, weighted by its mix (the bond tent
+      // re-splits shares and bonds as it does the pension's). No random draw: fB is the one the pension's bonds drew.
+      if (isa > 0) {
+        const isaF = investedIsaFactor(glideShare != null ? glidedIsaWeights(isaW, glideShare) : isaW, fE, fB, fC);
+        isa = isa * isaF;
+        if (traceRow) traceRow.isaFactor = isaF;
+      }
     } else {
-      isa = applyIsaGrowthMonthly(isa, config.isaReturn ?? ISA_DEFAULTS.RETURN); // ?? not ||: an explicit 0% must mean 0% (caught by the conservation test)
+      // No choice on the plan (a plan locked before 6.22.0, every golden and pin): the fixed rate, as always.
+      const rate = config.isaReturn ?? ISA_DEFAULTS.RETURN;   // ?? not ||: an explicit 0% must mean 0% (caught by the conservation test)
+      if (traceRow && isa > 0) traceRow.isaFactor = Math.pow(1 + rate, 1 / 12);
+      isa = applyIsaGrowthMonthly(isa, rate);
     }
 
     // HODL fund return (Ruffer-style absolute return)

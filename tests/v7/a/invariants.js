@@ -110,6 +110,8 @@ const ASSUMED_FIELD = {
   risk: ['risk-drawing', (a) => a.shown.potAtStop.good > 0],
   // 6.19.0: the one charge, said whenever money is held in funds or cash at some time — saving or drawing
   charge: ['charges', (a) => potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0],
+  // 6.22.0: how the savings grow, said whenever there is money in savings (the only time the form has the choice)
+  isaGrowth: ['savings-growth', (a) => a.inputs.savings > 0 || a.inputs.savingsIn > 0],
   endAge: ['plan-to', () => true],
   'partTime.has': ['no-part-time', () => true]
 };
@@ -420,7 +422,12 @@ export function checkAnswerA(answer, given, env) {
   else for (const id of ['work-tax', 'no-part-time']) if (ids.includes(id)) fail('A-I11', `${id} with no part-time question (you have stopped)`);
   if (inputs.spend.kind === 'level') always.push('spend-level');
   if (answer.shown.gapYears > 0 && !ids.some((id) => id.startsWith('pension-closed-until'))) fail('A-I11', 'a pension closed at the stop but no pension-closed-until line');
-  if ((inputs.savings > 0 || inputs.savingsIn > 0)) always.push('isa-fixed-growth');
+  // how the savings grow (6.22.0): said whenever there is money in savings, with its field and the choice in the inputs
+  if ((inputs.savings > 0 || inputs.savingsIn > 0)) always.push('savings-growth');
+  const sg = answer.assumed.find((a) => a.id === 'savings-growth');
+  if (sg && (sg.field !== 'isaGrowth' || sg.value !== inputs.isaGrowth)) fail('A-I11', `savings-growth: field ${sg.field}, value ${sg.value} (input ${inputs.isaGrowth})`);
+  if ((inputs.savings > 0 || inputs.savingsIn > 0) !== ('isaGrowth' in inputs) && given && given.isaGrowth === undefined) fail('A-I11', `isaGrowth in the inputs ${'isaGrowth' in inputs}, money in savings ${inputs.savings > 0 || inputs.savingsIn > 0}`);
+  for (const id of ['isa-fixed-growth', 'savings-fixed-growth']) if (ids.includes(id)) fail('A-I11', `the line ${id} went in 6.22.0`);
   if (inputs.savingRisk !== inputs.risk && shownOwn.last > 0 && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) always.push('slide');
   for (const id of always) if (!ids.includes(id)) fail('A-I11', `assumed lacks ${id}`);
   if (inputs.savingRisk === inputs.risk && ids.includes('slide')) fail('A-I11', 'a slide line with the two levels the same');

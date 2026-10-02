@@ -16,6 +16,7 @@ import { planDrawdown } from './DrawdownStrategy.js';
 import { spSimConfigFromSettings, spTaxYearConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
+import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 
 /**
  * Generates a drawdown schedule for planning
@@ -34,7 +35,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // split matches them exactly. baseSalary is a GROSS target: SIPP fills the basic-rate band, then the
   // ISA tops the NET take-home up to the take-home of that gross salary. The remaining ISA rolls up at
   // the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal). Deterministic projection.
-  let isaBalance = settings.isaBalance || 0;
+  let isaBalance = isaTodayOrAtRetirement(settings);   // none today, retiring later: the ISA at retirement (review of 6.22.0)
   const isaReturn = Math.max(0, assumedInflation - 0.01);
   // Fund and platform charges (6.19.0): the plan's percent a year (the Stress settings' chargesPct; absent = none), off
   // the ISA each year after its growth. opts.chargesPct, when given, wins — the Decision tool's plan of record passes 0.

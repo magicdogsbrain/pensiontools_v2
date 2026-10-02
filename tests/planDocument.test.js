@@ -180,7 +180,7 @@ describe('holdingsAtLock — what you HELD, apart from what the strategy was tes
   ] };
   const doc = buildPlanDocument({ planName: 'Chris Real', settings, p, r, holdings, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW });
   it('every strategy carries the snapshot, normalised; the document version moved', () => {
-    expect(doc.version).toBe(2);
+    expect(doc.version).toBeGreaterThanOrEqual(2);   // 2 from 6.13.0 (this snapshot); 3 from 6.22.0 (the ISA choice, the saving path)
     expect(doc.holdingsAtLock.updatedAt).toBe('2026-09-09');
     expect(doc.holdingsAtLock.source).toBe('paste');
     expect(doc.holdingsAtLock.lines.length).toBe(2);

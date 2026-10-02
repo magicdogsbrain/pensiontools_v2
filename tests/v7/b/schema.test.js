@@ -78,13 +78,16 @@ describe('SCHEMA_B — the declaration', () => {
   it('a default is an allowed value; an age is never assumed', () => {
     for (const f of SCHEMA_B.fields.filter((x) => 'default' in x)) {
       const d = f.default;
+      // a default by rule (6.22.0: how the savings grow, only once there is money in savings) names a rule of the list
+      if (d && typeof d === 'object') { expect(typeof SCHEMA_B.defaultRules[d.rule], f.path).toBe('function'); continue; }
       if (f.type === 'choice') expect(f.options).toContain(d);
       else if (f.type === 'yesNo') expect(typeof d).toBe('boolean');
       else if (d !== null) { expect(d).toBeGreaterThanOrEqual(f.min); expect(d).toBeLessThanOrEqual(f.max); }
     }
     expect(byPath.get('you.age').default).toBeUndefined();
     expect(byPath.get('stop.age').default).toBeUndefined();
-    expect(SCHEMA_B.defaultRules).toBeUndefined();
+    // the one rule of B's list (6.22.0): "Mostly cash" once there is money in savings, nothing otherwise
+    expect(Object.keys(SCHEMA_B.defaultRules)).toEqual(['isaGrowth']);
   });
 
   it('the groups are the blocks of the form; savings and confidence are under more detail', () => {
@@ -92,6 +95,7 @@ describe('SCHEMA_B — the declaration', () => {
     // the spending shape is its own block on the spend step (spending-shape.md 4.1)
     expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'shape', 'partner']);
     expect(byPath.get('savings').group).toBe('more');
+    expect(byPath.get('isaGrowth').group).toBe('more');                 // how the savings grow, with them (6.22.0)
     expect(byPath.get('confidence')).toEqual({ path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' });
     expect(byPath.get('stop.kind')).toEqual({ path: 'stop.kind', type: 'choice', options: ['age', 'already'], group: 'stop' });   // no "show me ages", no default
     expect(byPath.has('partTime.has')).toBe(false);
@@ -148,8 +152,10 @@ describe('SCHEMA_B — the declaration', () => {
     expect(validate(SCHEMA_B, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_B, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);
     // every field that applies is in the checked inputs, but a question with no default that was not answered (B's stop
-    // question: not answered is an age)
-    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_B, r.values).filter((f) => f.required || 'default' in f).map((f) => f.path).sort());
+    // question: not answered is an age), and how the savings grow while there are none (its default rule gives nothing)
+    expect('isaGrowth' in r.inputs).toBe(false);
+    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_B, r.values).filter((f) => (f.required || 'default' in f) && f.path !== 'isaGrowth').map((f) => f.path).sort());
+    expect(parse({ savings: '40000' }).inputs.isaGrowth).toBe('cash');
     expect(r.usedDefault).toEqual(['household', 'you.statePension.kind', 'you.finalSalary.has', 'you.payIn.kind', 'you.alreadyDrawing', 'spend.kind',
       'savings', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
   });

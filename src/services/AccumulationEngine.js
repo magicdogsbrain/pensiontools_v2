@@ -21,6 +21,7 @@
  *   exceeds £1,073,100.
  */
 
+import { ON_COURSE_SHARE } from './OnCourse.js';
 import { getStrategy } from '../strategies/registry.js';
 import { monthlyChargeFactor, isChargesPct } from './Charges.js';
 
@@ -134,14 +135,19 @@ export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTri
  * taken off; with a plan charge the plan's ONE setting replaces them — pass that OCF as `mixOcf` and the line grows at
  * mixRealReturn + mixOcf before the plan charge, so fund costs are never counted twice. Without a plan charge `mixOcf`
  * is ignored (the OCF stays taken off, as before).
+ *
+ * The cash line (6.22.0, services/IsaGrowth.js): `fixedNominal`, a nominal rate a year, grows EVERY line at that one rate
+ * — a twelfth root of (1 + rate) a month, the engine's convention — with no mix line. It is for an ISA held "Mostly cash"
+ * (IsaGrowth.cashProjectionRate: the cash rule at the assumed rise in prices). Absent (or not a number): the lines above.
  * @returns {Array<{age, year, potLow, potMid, potHigh, contributedToDate}>} one row per year
  */
-export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null, chargesPct = 0, mixOcf = null }) {
+export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null, chargesPct = 0, mixOcf = null, fixedNominal = null }) {
   const years = Math.max(0, Math.round(retirementAge - currentAge));
   const rows = [];
   const pots = { low: potNow, mid: potNow, high: potNow };
   const pct = isChargesPct(chargesPct) ? chargesPct : 0;
   const chargeM = monthlyChargeFactor(pct);
+  if (typeof fixedNominal === 'number' && Number.isFinite(fixedNominal)) return projectFixed({ currentAge, years, potNow, totalMonthly, escalationPct, assumedCpi, chargeM, rate: fixedNominal });
   // 6.7.0: a fourth line at the holder's OWN mix — its expected real return net of costs (Holdings.proportions),
   // stated nominally here so the same deflator applies. Null when no holdings are tagged.
   const hasMix = Number.isFinite(mixRealReturn);
@@ -174,6 +180,28 @@ export function projectAccumulation({ currentAge, retirementAge, potNow = 0, tot
   return rows;
 }
 
+/**
+ * projectAccumulation's cash line (6.22.0): every line at one nominal rate a year — pot × (1 + rate)^(1/12) × the charge
+ * factor + the month's payment, the payment rising once a year by escalationPct — deflated at assumedCpi. No mix line.
+ */
+function projectFixed({ currentAge, years, potNow, totalMonthly, escalationPct, assumedCpi, chargeM, rate }) {
+  const q = Math.pow(1 + Math.max(-0.99, rate), 1 / 12);
+  const rows = [{ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, contributedToDate: 0 }];
+  let pot = potNow;
+  let monthly = totalMonthly;
+  let contributed = 0;
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      pot = chargeM === 1 ? pot * q + monthly : pot * q * chargeM + monthly;
+      contributed += monthly;
+    }
+    monthly *= 1 + (escalationPct || 0) / 100;
+    const real = pot / Math.pow(1 + assumedCpi, y);
+    rows.push({ age: currentAge + y, year: y, potLow: real, potMid: real, potHigh: real, contributedToDate: contributed });
+  }
+  return rows;
+}
+
 /** The projected pot at a point between the yearly rows (today's money), for "where am I" against the path. */
 export function potOnPath(rows, yearsElapsed, key = 'potMid') {
   if (!Array.isArray(rows) || !rows.length) return null;
@@ -190,11 +218,11 @@ export function potOnPath(rows, yearsElapsed, key = 'potMid') {
  * plan (the budget-derived target, duration, allocation shape, SP, access method — everything the
  * user already configured). Binary search, scaling the three pots proportionally.
  * @param {object} baseConfig - createSimulationConfigFromSettings() output
- * @param {number} successTarget - e.g. 0.85
+ * @param {number} successTarget - the share of futures the pot must last in: "on course", 9 in 10 (OnCourse.js, 6.22.0)
  * @param {number} runs - MC runs per probe (300 keeps the search fast)
  * @returns {{requiredPot: number, successAtRequired: number}}
  */
-export function requiredPotForSuccess(baseConfig, successTarget = 0.85, runs = 300) {
+export function requiredPotForSuccess(baseConfig, successTarget = ON_COURSE_SHARE, runs = 300) {
   const basePot = (baseConfig.equityStart || 0) + (baseConfig.bondStart || 0) + (baseConfig.cashStart || 0);
   const shape = basePot > 0
     ? { e: baseConfig.equityStart / basePot, b: baseConfig.bondStart / basePot, c: baseConfig.cashStart / basePot }

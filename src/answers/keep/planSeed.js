@@ -359,7 +359,9 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
     name: { suggested, chosen: checked.name },
     // the answer's checked inputs — among them `charge`, the household's one fund and platform charge (percent a year,
     // 6.19.0), which today's planner makes the new plan's Stress setting (src/services/PlanSeed.js; no seed version change:
-    // a seed without one gives the planner's default, 0.5)
+    // a seed without one gives the planner's default, 0.5); and `isaGrowth` (6.22.0), how the savings grow — 'cash'
+    // ("Mostly cash") or 'invested' ("Invested like my pension") — there whenever the answer has money in savings, which
+    // the planner makes the plan's Stress setting the same way (no seed version change: a seed without one, "Mostly cash")
     inputs: copy(inputs),
     household: couple ? 'couple' : 'single',
     stop: { kind: stop.kind, yearsFromNow: stop.yearsFromNow },

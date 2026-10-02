@@ -37,6 +37,45 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.20.2', date: '2026-10-02', engineVersion: '6.19.0',
+    title: 'A locked plan stays as you locked it',
+    summary: 'Once a plan is locked, its Stress tester and Decision tool settings are meant to stay as they were. Only the two Settings forms checked that. The Budget, the optimiser, a few other buttons, and a browser tab opened before the plan was locked could still change them. Now every save checks first. On a locked plan, a button that would change the settings says "This plan is locked: unlock it in Stress tester → Settings to change it" and does nothing else. If you are still saving, you are asked before a Decision tool month locks your plan. The banner at the top suggests a next step that fits where you are, and the welcome tour now says correctly when a plan locks.',
+    changes: [
+      'If you are still saving and your plan is not locked, the Decision tool asks before a month locks it. It explains that locking freezes the plan, and that savers record their pot each month on the Accumulation tab, which locks nothing. Plans for people who have already retired work as before.',
+      'The banner at the top of the planner suggests a next step that fits where you are. If you are saving, it points you to the Accumulation planner, not the Decision tool. For a plan made from an answer on the preview pages, the budget is offered as a guide beside the amount you chose, never as "Start here".',
+      'Transition is in the phone\'s More menu.',
+      'The welcome tour says when a plan locks, what freezes, what still works, and how to undo it.'
+    ],
+    corrections: [
+      'On a locked plan, the Budget\'s "Use as the start of my income shape" and the walk-through\'s "Set as my plan\'s target" changed the Stress tester settings. The optimiser\'s "Apply this split", "Copy from Decision", the add-a-tool wizard and the Decision tool\'s "Reset" could change them too. Each is now refused, and the plan is left exactly as it was.',
+      'On a locked plan, the Monthly Entry\'s "how often" choice (monthly, quarterly, a year at a time) changed the plan\'s settings. On a plan that had been unlocked before, that marked every month you had already recorded as "recorded under previous settings". The choice is now refused on a locked plan, and the picker goes back to what is saved.',
+      'A browser tab or device that opened a plan before it was locked somewhere else, for example the first month recorded on your phone with a desktop tab left open, could still change the plan\'s settings and strategy. Saving a tax year from it could even unlock the plan. Each save now checks the plan as stored, just before it is written.',
+      'Trying the app without signing in: the age on your Budget could be copied into a locked plan\'s Stress tester settings by an unrelated save, and carried into your account when you signed in. It now stays on the Budget.',
+      'The welcome tour said "the Budget and Stress Tester never lock". That has been wrong since 6.5.0, when the Stress tester\'s settings began to lock with the plan.'
+    ],
+    effects: {
+      budget: ['On a locked plan, "Use as the start of my income shape" and "Set as my plan\'s target" now say the plan is locked and change nothing. The budget itself still saves as you type.'],
+      stress: ['On a locked plan, "Apply this split", "Copy from Decision" and adding a tool now say the plan is locked and change nothing. "Try a strategy" what-ifs still run.'],
+      strategies: ['A locked plan\'s strategy cannot be switched from any tab, including a tab opened before the plan was locked.'],
+      decision: [
+        'On a locked plan, "how often" months are recorded can no longer be changed. To change it, unlock the plan in Stress tester → Settings.',
+        'If you are still saving and your plan is not locked, recording a month or setting up its tax year asks first.'
+      ],
+      accumulation: [],
+      household: []
+    },
+    actions: [
+      'To change a locked plan, unlock it in Stress tester → Settings (you are shown first what unlocking changes), or duplicate it.',
+      'If you use the app on more than one device and are told a plan is locked when you did not expect it, it was locked on another device. Reload the page to see it as it is.'
+    ],
+    notes: [
+      'This release changes nothing that is already saved. Locked plans, their checksums, plan documents and monthly records stay exactly as they were.',
+      'A locked plan can still change: its start date, which is saved the first time it is worked out; the unlock; its monthly records and tax years; its plan document; what you hold; your pot record; and your Budget.',
+      'Limit: if you tried the app without signing in before this release and signed in with a locked plan, its Stress tester settings may carry the age from your Budget rather than the age it was locked with. That is the age you gave. Nothing in this release changes it.',
+      'Engine version 6.19.0: the engine and strategies are unchanged.'
+    ]
+  },
+  {
     version: '6.20.1', date: '2026-10-02', engineVersion: '6.19.0',
     title: 'Where you are: your pot is now set against the plan\'s band like with like',
     summary: 'On a locked plan, the "Where you are" line set your pension pot alone, in today\'s pounds, against the plan\'s band, which also counts your ISA and taxable account and is in prices at the start of the plan. So someone with an ISA could be told in bold "below the plan\'s 1-in-10 bad line" when they were not, and a few years of rising prices could make a pot look further ahead than it was. The pot is now made of the same accounts as the band, put into the plan\'s prices, and read at its own month. When a figure the band needs is missing, nothing is compared and the line says what to add. A full gilt ladder, or a ladder with rotation, now shows the figures without a verdict.',

@@ -177,5 +177,9 @@ doing the building that should compress, but it is a large job and the estimate 
   plan") into a NEW plan in today's planner; the budget step (owner: a guide only, skippable with one figure and
   told so; the figure in the box is always the person's own); five corrections; netToGross 3–4x faster, bit-identical.
   CI: browser tests in three shards, answer-time budgets scaled by the runner's measured speed.
-- Open with the owner: charges once drawing (recommended 0.5% a year throughout, both apps); couples who stop in
-  different years (his own household) — recommended next; then D.
+- 1–2 Oct 2026: 6.19.0 charges as a per-plan setting (owner: 0.5% a year, a config parameter; locked plans before it
+  stay at 0%); 6.20.0 couples who stop in different years (owner: yes; built on the three recommended answers — the
+  worker's pay covers half by default, makes up any gap, and A/B answer about the partner after "I've already
+  stopped"). CI: the test job 30 minutes; wall-clock timing checks run alone in the night job.
+- Open with the owner: the 2028 drawdown note for singles and same-year couples (today only for a couple apart).
+  Next: D (retired re-plan), then E and holdings, then month-by-month carry-over and cutover.

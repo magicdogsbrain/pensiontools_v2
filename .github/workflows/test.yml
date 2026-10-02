@@ -19,7 +19,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30   # the whole suite, slow tier included, passed 15 minutes on a 2-core runner at 6.20.0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

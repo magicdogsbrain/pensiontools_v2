@@ -17,6 +17,7 @@ import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
+import { savingsGrowthParts } from '../shared/savingsGrowth.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -617,7 +618,9 @@ export function assumedFor(result, facts) {
       if (facts.savings > 0) line('savings-split', 'savings', 'rule', facts.savings / 2, ['Your savings are split evenly between you.']);
     }
   }
-  if (facts.savings > 0) line('savings-as-isa', 'savings', 'rule', facts.savings, ['Your savings are treated as ISA money: tax-free to take, growing at a fixed ', F(Math.round(RULES.savingsGrowth * 100)), '% a year.']);
+  // how the savings grow (6.22.0), with Change: "Mostly cash" or "Invested like my pension" — while the money waits to be
+  // taken (on the lives) and while it is drawn
+  if (facts.savings > 0) line('savings-growth', 'isaGrowth', src('isaGrowth'), inputs.isaGrowth, savingsGrowthParts(inputs.isaGrowth));
   if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if (facts.anyPots && !facts.madeUpFutures) {

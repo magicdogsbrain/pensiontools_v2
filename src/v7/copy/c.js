@@ -307,6 +307,15 @@ export const C = {
       help: 'ISAs, cash, investments.',
       errors: { notANumber: 'We could not read that as an amount. Use figures only, for example 20,000.' }
     },
+    /**
+     * How the savings grow (6.22.0; the same words in C, A and B): asked once there is money in savings, straight under
+     * the savings box. "Mostly cash" is the pension's own cash rule; "Invested like my pension" follows the pension's mix.
+     */
+    isaGrowth: {
+      label: 'How your savings grow',
+      options: { cash: 'Mostly cash', invested: 'Invested like my pension' },
+      optionHelp: { cash: 'they grow by about last year\'s rise in prices, less 1%', invested: 'the same mix as your pension, in the same futures' }
+    },
     risk: {
       label: 'Risk level',
       options: { cautious: 'Cautious', balanced: 'Balanced', adventurous: 'Adventurous' },

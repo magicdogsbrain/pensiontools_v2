@@ -205,12 +205,14 @@ describe('B — the number of nought, and the notes that must not over-reach (th
     expect(ids({ you: { age: 50, pot: 200000, payIn: { total: 800 } }, stop: { age: 60 }, spend: { amount: 1500 } })).not.toContain('access-age-rises');
   });
 
-  it('the pots at the stop say the savings are on top; savings that are most of the money get an important note', () => {
+  it('the pots at the stop say the savings are on top; savings that are most of the money, held mostly as cash, get a note (6.22.0)', () => {
     const given = { you: { age: 47, pot: 60000, payIn: { total: 500 } }, savings: 360000, stop: { age: 57 }, spend: { amount: 2000 } };
     const a = ok(answerB(given, ENV), given);
     expect(a.sentences.potsNow.text).toContain('(your savings are on top)');
-    expect(a.warnings.find((w) => w.id === 'savings-fixed-growth')).toMatchObject({ severity: 'important' });
-    expect(a.assumed.find((x) => x.id === 'isa-fixed-growth').text).toContain('before rising prices');
+    expect(a.warnings.find((w) => w.id === 'savings-mostly-cash')).toMatchObject({ severity: 'note' });
+    expect(a.warnings.map((w) => w.id)).not.toContain('savings-fixed-growth');
+    expect(a.assumed.find((x) => x.id === 'savings-growth')).toMatchObject({ field: 'isaGrowth', value: 'cash' });
+    expect(a.assumed.find((x) => x.id === 'savings-growth').text).toContain('They grow like cash');
   });
 
   it('the grid is built around the answer: the stop-later age is a row, the pay-in that gets there a column; a sentence when no cell reaches 9 in 10', () => {

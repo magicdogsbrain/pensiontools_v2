@@ -432,9 +432,18 @@ describe('the cases (C.3)', () => {
   it('nothing paid in: no saving section', () => {
     const none = seedA(); none.people[0].payIn = null;
     expect(make(none).yours.accumulationTool).toBeUndefined();
-    const zero = seedA(); zero.people[0].payIn = { kind: 'split', total: 0, own: 0, employer: 0, savingsIn: 250 };
+    const zero = seedA(); zero.people[0].payIn = { kind: 'split', total: 0, own: 0, employer: 0, savingsIn: 0 };
     expect(make(zero).yours.accumulationTool).toBeUndefined();
-    expect(make(zero).yours.fromAnswer.people[0].payIn.savingsIn).toBe(250);   // kept in the record only (Q10)
+  });
+  it('only savings going in (6.22.0): the saving section is written, with the savings in "Into ISAs and savings" (isaMonthly)', () => {
+    // Until 6.22.0 the planner had nowhere to keep it, so it was kept in the record only (Q10).
+    const zero = seedA(); zero.people[0].payIn = { kind: 'split', total: 0, own: 0, employer: 0, savingsIn: 250 };
+    const acc = make(zero).yours.accumulationTool.settings;
+    expect(acc).toMatchObject({ netMonthly: 0, employerMonthly: 0, isaMonthly: 250, escalationPct: 0 });
+    expect(make(zero).yours.fromAnswer.people[0].payIn.savingsIn).toBe(250);   // and still in the record
+    const both = seedA(); both.people[0].payIn = { ...both.people[0].payIn, savingsIn: 300 };
+    expect(make(both).yours.accumulationTool.settings.isaMonthly).toBe(300);
+    expect('isaMonthly' in make(seedA()).yours.accumulationTool.settings).toBe(false);   // none going in: no key (the 6.19.0 plan, byte for byte)
   });
 
   it('a pay-in given as one total: all of it is the person\'s own, nothing from an employer', () => {

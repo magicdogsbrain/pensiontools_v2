@@ -371,6 +371,8 @@ export function defaults(schema, values, env) {
   for (const field of schema.fields) {
     if (!applies(field, seen) || !('default' in field)) continue;
     const d = defaultOf(schema, field, seen, env);
+    // a default by rule that gives none (how the savings grow with nothing in savings, 6.22.0) leaves no key, as walk does
+    if (d === undefined) continue;
     out[field.path] = d;
     if (isBlank(seen[field.path])) seen[field.path] = d;
   }

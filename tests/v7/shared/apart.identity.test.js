@@ -72,13 +72,20 @@ const saverArb = fc.record({
   return saver({ age: k.age, pot: k.pot, isa: k.isa, payIn: k.payIn, savingsIn: k.savingsIn, stopAge, risk: k.risk, savingRisk: k.savingRisk, charge: k.charge, work: k.work, finalSalary: k.fs, partner: k.partner, endAge: k.endAge });
 });
 
+/**
+ * A household without how its savings grow (6.22.0): every form's household says it ("Mostly cash" unless chosen), which
+ * 6.19.0 never read — a change of its own, tested in isaGrowth.test.js and isaGrowthSetting.test.js. The identity here
+ * is the code of stopping apart, so it compares the household without the choice (the engines' fixed rate, as 6.19.0).
+ */
+const noChoice = (h) => { const { isaGrowth, ...rest } = h; void isaGrowth; return rest; };
+
 /** Same-year households made by A's and B's own mappings from random inputs (the new questions answered or not). */
 function questionHouseholds(count) {
   const out = [];
   for (const [schema, map] of [[SCHEMA_A, toHouseholdA], [SCHEMA_B, toHouseholdB]]) {
     for (const inputs of fc.sample(arbitraryInputs(schema, TEST_ENV), { seed: SEED, numRuns: count })) {
       let h;
-      try { h = map(inputs, TEST_ENV).household; } catch { continue; }
+      try { h = noChoice(map(inputs, TEST_ENV).household); } catch { continue; }
       if (sameYear(h) && live.validateHousehold(h, TODAY).length === 0) out.push(h);
     }
   }
@@ -179,7 +186,7 @@ describe('I4 and I9: a same-year household through the new code is 6.19.0\'s, bi
     for (const inputs of fc.sample(arbitraryInputs(SCHEMA_C, env), { seed: SEED, numRuns: 50 })) {
       const checked = checkInputs(SCHEMA_C, inputs, env);
       if (!checked.ok) continue;
-      const { household } = toHouseholdC(checked.inputs, env);
+      const household = noChoice(toHouseholdC(checked.inputs, env).household);
       if (!sameYear(household)) continue;
       const a = live.enginePlan(household, env);
       const b = frozenEngine.enginePlan(household, env);

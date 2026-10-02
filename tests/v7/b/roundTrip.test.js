@@ -7,7 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 import fc from 'fast-check';
 import { renderScreen, readForm, SCHEMA_B } from './_b.js';
 import { initialState, emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';
-import { checkScreen } from '../render/checkScreen.js';
+import { checkScreen, savingsGrowthDrawn } from '../render/checkScreen.js';
 import { applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { isRetired } from '../../../src/v7/state/select.js';
 import { money } from '../../../src/answers/shared/format.js';
@@ -72,6 +72,8 @@ function roundTripSuite(q, schema, read) {
           // the spending is the spend step's (the budget step), never on this one
           if (f.group === 'spend') { expect(back[f.path], `${f.path} is on the numbers step`).toBe(undefined); continue; }
           if (!applies(f, values)) { expect(back[f.path], `${f.path} is drawn but does not apply`).toBe(undefined); continue; }
+          // how the savings grow (6.22.0): drawn once there is money in savings, "Mostly cash" unless chosen
+          if (f.path === 'isaGrowth') { expect(back[f.path], f.path).toBe(savingsGrowthDrawn(state, q) ? (values[f.path] ?? 'cash') : undefined); continue; }
           if (values[f.path] !== undefined) expect(back[f.path], f.path).toBe(values[f.path]);
           else if (['money', 'age', 'percent', 'count'].includes(f.type)) expect(back[f.path], f.path).toBe('');
           else expect(back[f.path], f.path).toBe(f.default);

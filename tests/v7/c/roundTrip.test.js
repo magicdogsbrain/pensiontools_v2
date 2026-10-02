@@ -8,7 +8,7 @@ import fc from 'fast-check';
 import { renderScreen, readForm, SCHEMA_C } from './_c.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { checkScreen } from '../render/checkScreen.js';
+import { checkScreen, savingsGrowthDrawn } from '../render/checkScreen.js';
 import { applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { money } from '../../../src/answers/shared/format.js';
 
@@ -63,6 +63,8 @@ describe('the numbers step: typed → state → drawn → read back', () => {
       for (const f of FIELDS) {
         if (f.path === 'household') { expect(back.household).toBe(v.household || 'single'); continue; }
         if (!applies(f, v)) { expect(back[f.path], `${f.path} is drawn but does not apply`).toBe(undefined); continue; }
+        // how the savings grow (6.22.0): drawn once the savings box is above £0, "Mostly cash" unless chosen
+        if (f.path === 'isaGrowth') { expect(back[f.path], f.path).toBe(savingsGrowthDrawn(state, 'c') ? (v[f.path] ?? 'cash') : undefined); continue; }
         if (v[f.path] !== undefined) expect(back[f.path], f.path).toBe(v[f.path]);
         else if (f.type === 'money' || f.type === 'age' || f.type === 'percent') expect(back[f.path], f.path).toBe('');
         else expect(back[f.path], f.path).toBe(f.default);

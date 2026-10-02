@@ -3,6 +3,7 @@
  * tests/v7/c/schema.test.js asserts the figures shared with today's engine are equal to the engine's own.
  */
 import { DEFAULT_CHARGES_PCT } from '../../services/Charges.js';
+import { DEFAULT_ISA_GROWTH } from '../../services/IsaGrowth.js';
 
 export const RULES = {
   taxYear: '2026/27',
@@ -14,7 +15,10 @@ export const RULES = {
   taxFreeLimit: 268275,                // = LUMP_SUM_ALLOWANCE in PensionAccess.js
   personalAllowance: 12570, basicRateLimit: 50270, higherRateLimit: 125140,   // = TAX_DEFAULTS
   taperFrom: 100000,                   // = TAX_DEFAULTS.PA_TAPER_THRESHOLD: the engine keeps this point fixed while the bands rise with prices
-  savingsGrowth: 0.03,                 // = ISA_DEFAULTS.RETURN: savings (ISA money) grow at this fixed rate a year in the engine
+  savingsGrowth: 0.03,                 // = ISA_DEFAULTS.RETURN: the fixed rate a year savings (ISA money) grow at in a run with no choice
+                                       // (a household made by hand); every household the model makes has one (isaGrowthDefault)
+  // How savings grow when the answer does not say (6.22.0): today's planner's one default, "Mostly cash" (services/IsaGrowth.js)
+  isaGrowthDefault: DEFAULT_ISA_GROWTH,
   maxYears: 45,
   smallPot: 30000,
 

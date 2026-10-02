@@ -36,6 +36,12 @@
  * off the pension's sleeves and the ISA every month straight after the month's growth — while drawing and while a
  * pension is closed — by the same factor and in the same order as `simulate`. fastEligible takes a valid charge only.
  *
+ * How the ISA grows (6.22.0, services/IsaGrowth.js): config.isaGrowth — absent: the fixed `isaReturn` (3%), as before;
+ * 'cash': the month's cash factor (mCash, the pension cash's own); 'invested': the pension's three factors that month
+ * weighted by `config.isaGrowthMix` (investedIsaFactor, the same function `simulate` calls, so the figure is the same to
+ * the bit). fastEligible takes 'invested' only with a valid mix — `simulate` would otherwise read the run's pots, and a
+ * savings-only run has none — and refuses any other value.
+ *
  * Couples who stop work in different years (research/v7/couples-different-years.md 4.3 e, f), each a no-op when not
  * asked for — a same-year household never asks, so its runs are today's, bit for bit:
  *   - cover months (config.coverMonths): the first stopper's months before the second stop, while the other's pay covers
@@ -65,6 +71,7 @@ import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { SOURCING_DEFAULTS } from '../../services/WithdrawalSourcing.js';
 import { spendingSmileFactor } from '../../services/SpendingModel.js';
 import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
+import { isIsaGrowthMix, isaGrowthWeights, investedIsaFactor } from '../../services/IsaGrowth.js';
 import { ISA_DEFAULTS } from '../../constants.js';
 
 const CASH_REAL_SPREAD = -0.01;           // SimulationEngine.CASH_REAL_SPREAD
@@ -212,6 +219,8 @@ export function fastEligible(c) {
     && c.equityGlide === undefined && c.sourcingMode === undefined
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
     && (c.chargesPct === undefined || isChargesPct(c.chargesPct))   // 6.19.0: a charge the engine takes as given, or none
+    // 6.22.0: how the ISA grows — none (the fixed rate), "Mostly cash", or "invested" at an explicit mix
+    && (c.isaGrowth === undefined || c.isaGrowth === 'cash' || (c.isaGrowth === 'invested' && isIsaGrowthMix(c.isaGrowthMix)))
     // couples apart: the months the other's pay covers a shortfall, a whole number of the run's months
     && (c.coverMonths === undefined || (Number.isInteger(c.coverMonths) && c.coverMonths >= 0 && c.coverMonths <= 12 * c.years))
     && c.trace !== true;
@@ -359,6 +368,10 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
   let schedule = Array.isArray(config.targetSchedule) ? config.targetSchedule : null;
   const ufpls = config.accessMethod === 'ufpls';
   const isaFactor = Math.pow(1 + (config.isaReturn ?? ISA_DEFAULTS.RETURN), 1 / 12);
+  // How the ISA grows (6.22.0): 0 the fixed rate (no choice), 1 "Mostly cash", 2 "invested" at the run's mix (worked out
+  // once, as `simulate` works it out).
+  const isaKind = config.isaGrowth === 'cash' ? 1 : config.isaGrowth === 'invested' ? 2 : 0;
+  const isaW = isaKind === 2 ? isaGrowthWeights(config) : null;
   // SimulationEngine's charge factor, worked out the same way (services/Charges.js): 1 without a charge, and then the
   // charge blocks below are skipped, so an uncharged run is the run it always was.
   const chargeM = monthlyChargeFactor(config.chargesPct);
@@ -447,7 +460,7 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
       equity *= pf.mEq[year];
       bond *= pf.mBond[month];
       cash *= pf.mCash[year];
-      if (isa > 0) isa = isa * isaFactor;
+      if (isa > 0) isa = isaKind === 0 ? isa * isaFactor : isaKind === 1 ? isa * pf.mCash[year] : isa * investedIsaFactor(isaW, pf.mEq[year], pf.mBond[month], pf.mCash[year]);
       // the month's charges, as `simulate` takes them (a closed pension is still held in funds, so it is charged)
       if (chargeM !== 1) {
         equity *= chargeM;
@@ -510,7 +523,8 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
     equity *= pf.mEq[year];
     bond *= pf.mBond[month];
     cash *= pf.mCash[year];
-    if (isa > 0) isa = isa * isaFactor;
+    // the ISA, as `simulate` grows it (6.22.0): the fixed rate, the cash factor, or the pension's three at its mix
+    if (isa > 0) isa = isaKind === 0 ? isa * isaFactor : isaKind === 1 ? isa * pf.mCash[year] : isa * investedIsaFactor(isaW, pf.mEq[year], pf.mBond[month], pf.mCash[year]);
     // SimulationEngine's charge block, at the same point and in the same order: (x × growth) × charge, never
     // x × (growth × charge), so the two engines stay equal to the bit at every charge.
     if (chargeM !== 1) {

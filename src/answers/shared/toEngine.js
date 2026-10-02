@@ -27,7 +27,8 @@
  * Today's engine runs one person at a time and never edits itself here: it gets a flat config in the shape
  * createSimulationConfigFromSettings builds, with the default way of taking the money fixed: pots-and-valves
  * with its automatic cut switched off, a quarter of each pension withdrawal tax-free, tax bands rising with prices.
- * The household's fund and platform charge (household.chargesPct, percent a year; 6.19.0) rides on every run's config.
+ * The household's fund and platform charge (household.chargesPct, percent a year; 6.19.0) rides on every run's config,
+ * and so does how its ISAs and savings grow (household.isaGrowth, 6.22.0: 'cash', or 'invested' with the drawing mix).
  *
  * COUPLES WHO STOP WORK IN DIFFERENT YEARS (research/v7/couples-different-years.md 4.3; asGiven only). With every stop in
  * one year nothing below applies and every plan, config and breakdown is today's, key for key. Otherwise (`plan.apart`):
@@ -62,6 +63,7 @@ import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { isChargesPct } from '../../services/Charges.js';
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { RULES, addYears } from './rules.js';
 import { startWhenPensionsOpen, startAsGiven, stopsOf, APART, PAY_COVERS } from './household.js';
 import { ratiosOf, startFactor } from './shape.js';
@@ -299,6 +301,15 @@ export function enginePlan(household, env, opts = {}) {
   // incomesByMonth), so a capped pension is seen to fall behind in such a future, and the trace check allows for
   // it (tests/v7/c/exceptions.md).
   const ind = () => 'cpi';
+  // How ISAs and savings grow (6.22.0, services/IsaGrowth.js): the household's one choice on every run — "cash", or
+  // "invested" with the household's drawing mix (a savings-only run has no pension pots to read a mix from, so the mix is
+  // always handed over). Only a valid choice is handed on: without one the config is exactly what it was (the engine then
+  // grows the ISA at its fixed rate; the household model gives 'cash'). A test's fixed rate (env.savingsGrowth, asGiven)
+  // still wins: it sets isaReturn and the choice is left out.
+  const fixedIsaRate = asGiven && Number.isFinite(env.savingsGrowth);
+  const isaGrowthKeys = !fixedIsaRate && isIsaGrowth(household.isaGrowth)
+    ? { isaGrowth: household.isaGrowth, ...(household.isaGrowth === 'invested' ? { isaGrowthMix: { equity: mix.equity, bond: mix.bond, cash: mix.cash } } : {}) }
+    : {};
   for (const run of runs) {
     const p = people[run.index];
     const [fs0, ...fsMore] = p.finalSalary.filter((f) => f.amount > 0);
@@ -345,6 +356,8 @@ export function enginePlan(household, env, opts = {}) {
       // sleeves and the ISA, while drawing and while a pension is closed. Only a valid charge is handed on: without one
       // the config is exactly what it was (the engine reads a missing charge as 0; the household model gives 0.5).
       ...(isChargesPct(household.chargesPct) ? { chargesPct: household.chargesPct } : {}),
+      // How the ISA grows (6.22.0): see isaGrowthKeys above (each run gets its own copy of the mix)
+      ...(isaGrowthKeys.isaGrowthMix ? { ...isaGrowthKeys, isaGrowthMix: { ...isaGrowthKeys.isaGrowthMix } } : isaGrowthKeys),
       // Couples apart: the first stopper's months before the second stop, when the worker's pay makes up a shortfall
       ...(apart && g === 0 && coversGap ? { coverMonths: 12 * G } : {})
     };

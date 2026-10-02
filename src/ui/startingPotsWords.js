@@ -8,23 +8,30 @@
  *                                                Timing block's pots at retirement — potScaleOf, as
  *                                                createSimulationConfigFromSettings does); it said today's. On a plan
  *                                                made from a V7 answer it also gives the quick answer's own figure.
- *                                                It ends with the fund and platform charge the runs take (6.19.0).
+ *                                                It ends with the fund and platform charge the runs take (6.19.0)
+ *                                                and, for a plan with an ISA, how the ISA grows (6.22.0).
  *   potsAtRetirementLine(projection, override)    the Timing block's line. With pots at retirement typed in the boxes
  *                                                (or put there by a V7 answer) those are what every strategy is priced
  *                                                on, and the planner's own projection is for comparison; it said the
  *                                                projection was.
  */
-import { potScaleOf, sippTodayOf } from '../services/PlanTiming.js';
+import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
 import { answerLastedWords } from '../services/PlanSeed.js';
 import { chargesRunLine } from './chargesSetting.js';
+import { isaGrowthRunLine } from './isaGrowthSetting.js';
 
 const fmt = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
 
-/** True when the runs start from scaled pots (retiring later, with pots at retirement set). */
+/** The ISA the runs start from when there is none today but one at retirement (money going into it), else 0 (review of 6.22.0). */
+function isaFromNothing(s) {
+  return (+s.isaBalance || 0) > 0 ? 0 : isaAtRetirementOf(s);
+}
+
+/** True when the runs start from scaled pots (retiring later, with pots at retirement set), or from an ISA at retirement with none today. */
 export function startsScaled(settings) {
   const s = settings || {};
   const k = potScaleOf(s);
-  return s.retired === false && (k.sipp !== 1 || k.isa !== 1);
+  return s.retired === false && (k.sipp !== 1 || k.isa !== 1 || isaFromNothing(s) > 0);
 }
 
 export function startSummaryHtml(settings, { fromAnswer = null, locked = null } = {}) {
@@ -37,10 +44,12 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
   const div = (+s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart * k.sipp)}` : '';
   let text;
   if (startsScaled(s)) {
-    const sipp = sippTodayOf(s) * k.sipp, isa = (+s.isaBalance || 0) * k.isa;
+    const sipp = sippTodayOf(s) * k.sipp, isa = isaAtRetirementOf(s);
+    const fromNothing = isaFromNothing(s) > 0;
     text = `Starting balances at retirement (age ${+s.shapeAgeNow || s.retireAge}), as every run uses them: `
       + `Equity ${fmt(s.equityMin * k.sipp)} · Bond ${fmt(s.bondMin * k.sipp)}${div} · Cash ${fmt(s.cashTarget * k.sipp)} (pension ${fmt(sipp)}) · ISA ${fmt(isa)}. `
-      + `These are your <strong>Settings</strong> pots today (pension ${fmt(sippTodayOf(s))}, ISA ${fmt(s.isaBalance)}) scaled to the pots at retirement in the Timing block. Edit them in the Settings tab.`;
+      + `These are your <strong>Settings</strong> pots today (pension ${fmt(sippTodayOf(s))}, ISA ${fmt(s.isaBalance)}${fromNothing ? ' today' : ''}) scaled to the pots at retirement in the Timing block`
+      + `${fromNothing ? ', with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale)' : ''}. Edit them in the Settings tab.`;
   } else {
     text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): '
       + `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. Edit them in the Settings tab.`;
@@ -49,6 +58,9 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
   // before charges say why it has none.
   const charges = chargesRunLine(s, { locked });
   if (charges) text += ' ' + charges;
+  // How the ISA grows (6.22.0): "Mostly cash", "Invested like my pension", the ISA funds, or a locked plan's fixed 3%.
+  const isaLine = isaGrowthRunLine(s, { locked });
+  if (isaLine) text += ' ' + isaLine;
   const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
   if (lasted) {
     text += ` <span class="hint">This plan was made from a quick answer, where ${lasted}. ${fromAnswer.stop && fromAnswer.stop.kind === 'later'

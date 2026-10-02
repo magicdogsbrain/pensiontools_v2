@@ -66,6 +66,23 @@ You 54 with £1,073,100 and no State Pension, a partner of 57 with £15 and the 
 couples at 0, 0.5 and 1%, and every seeded run), and the relations hold to one step there as before. A model limit (the
 need is shared by pots, not by what each person's draws cost in tax), not a fault of the charge; for the owner.
 
+### Savings held as cash beside a closed pension: more savings can lower the middle and good amounts (6.22.0)
+
+Found when savings started to grow as the household chooses (6.22.0, the owner's decision of 2 Oct 2026: "Mostly cash"
+unless chosen — last year's rise in prices less 1%, never below nothing). A couple where one partner's pension cannot be
+touched yet runs that partner as two (review test 2): their savings for the WHOLE plan, in a run of their own, and their
+pension from the day it opens. The household's need is shared between the runs by their money (engine behaviour 4), so
+the savings run carries its share of the spending for every year of the plan. Held as cash it falls about 1% a year
+behind prices, so in the good futures (low prices, strong shares) that run binds before the pensions would, and adding
+savings can lower the middle and good amounts. Counterexample (tests/v7/c/review.test.js 2, 40 futures): you 60 with
+£250,000, your partner 50 with £100,000, from now — careful / middling / good £1,800 / £2,150 / £2,330 with no savings;
+£1,870 / £2,050 / £2,210 with £20,000 of savings as "Mostly cash"; £2,030 / £2,160 / £2,310 with £60,000. The careful
+amount (the headline) still rises. "Invested like my pension" lowers none of the three (£1,890 / £2,240 / £2,410 with
+£20,000), and one person, or a couple whose pensions are both open, showed no fall (savings £0 / £20,000 / £60,000 as
+cash: £1,420 / £1,460 / £1,530 careful for one person, every amount rising). Before 6.22.0 the savings grew at a fixed 3%
+a year, which kept up with prices in most futures and hid it. A model limit (the need is shared by money at the start,
+not by what each run can keep paying), not a fault of the choice; for the owner, with the charge's limit above.
+
 ### Narrowed: what the relations claim was not what they drew (test faults, found by NIGHTLY=1 runs, 1 Oct 2026)
 
 - **M1 for a couple, and M1b: a pot that is there already** (as A's PA2). A first pound in a pot adds a pension run to the

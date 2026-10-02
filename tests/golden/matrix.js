@@ -440,3 +440,17 @@ export const stressConfigs = [
 // stressConfigs[0] and every lookup by name elsewhere (crossval, DiversifierSleeveTarget) still find the uncharged one.
 export const CHARGED_PCT = 0.5;
 export const chargedStressConfigs = stressConfigs.map((c) => ({ name: c.name + ' · charges 0.5%', config: { ...c.config, chargesPct: CHARGED_PCT } }));
+
+// ---- the same configs at the new default for how the ISA grows (6.22.0, src/services/IsaGrowth.js) ---------------
+// A new plan, and every unlocked plan after the schema-3 migration, carries both settings: charges of 0.5% and an ISA that
+// is "Mostly cash" (or, when the person says so, "Invested like my pension"). A plan locked before the choice carries no
+// `isaGrowth` and runs as the configs above (its ISA at the fixed 3%). All are live, so all are pinned: each twin is its
+// charged sibling with the choice and nothing else. A config with no ISA is the same run under either choice (pinned so).
+export const ISA_GROWTH_TWINS = Object.freeze([
+  { isaGrowth: 'cash', suffix: ' · charges 0.5% · ISA mostly cash' },
+  { isaGrowth: 'invested', suffix: ' · charges 0.5% · ISA invested' }
+]);
+export const isaGrowthStressConfigs = ISA_GROWTH_TWINS.flatMap((t) => stressConfigs.map((c) => ({
+  name: c.name + t.suffix, sibling: c.name + ' · charges 0.5%', isaGrowth: t.isaGrowth,
+  config: { ...c.config, chargesPct: CHARGED_PCT, isaGrowth: t.isaGrowth }
+})));

@@ -20,6 +20,7 @@ import { getStrategy } from '../strategies/registry.js';
 const eng = () => getStrategy('pots-and-valves').engine;
 import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
+import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
 import { defaultSpYear, scheduleFromSteps } from '../services/IncomeSchedule.js';
 
@@ -260,7 +261,7 @@ export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner', now
       pa: set.pa ?? 12570,
       brl: set.brl ?? 50270,
       hrl: set.hrl ?? 125140,
-      isaBalance: set.isaBalance || 0,
+      isaBalance: isaTodayOrAtRetirement(set),   // none today, retiring later: the ISA at retirement (review of 6.22.0)
       strategy: set.isaDrawdownStrategy,
       yearsUntilSp: 0,
       taxFreeFraction: f

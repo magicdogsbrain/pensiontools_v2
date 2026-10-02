@@ -76,11 +76,11 @@ export function formView(state, q = 'c') {
   const byPathQ = BY_PATH[q];
   /** The options a choice draws, and whether it is asked at all (select.js). */
   const offered = (path) => offeredOptions(q, byPathQ.get(path), live);
-  const isAsked = (path) => choiceAsked(q, byPathQ.get(path), live);
+  const isAsked = (path) => choiceAsked(q, byPathQ.get(path), live, parsed.values);
   /** Question C: your age when the first of the household's pensions can be touched (the start-not-before-access words). */
-  const earliestStart = () => (schema.defaultRules ? earliestStartC(parsed.values, state.env) : null);
+  const earliestStart = () => (q === 'c' ? earliestStartC(parsed.values, state.env) : null);
   /** Question C: the start age the form puts in when none is typed, by the input list's own rule. */
-  const defaultStart = () => (schema.defaultRules ? schema.defaultRules.startAge(parsed.values, state.env) : null);
+  const defaultStart = () => (schema.defaultRules && schema.defaultRules.startAge ? schema.defaultRules.startAge(parsed.values, state.env) : null);
   return { q, schema, fields, byPath: byPathQ, copy: COPY_OF[q], carriedFrom: d.carriedFrom || null,
     draft, parsed, errors, shown, applies, moreOpen, couple, env: state.env, earliestStart, defaultStart,
     offered, isAsked, apart: stopsApart(live), asked: askedAboutValues(live), payLine: payLineOf(state, q, live) };

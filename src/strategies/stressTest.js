@@ -11,6 +11,7 @@
  *   plus a strategy-specific `signature` and the derived config used.
  */
 
+import { ON_COURSE_SHARE } from '../services/OnCourse.js';   // "on course" = lasts in 9 futures out of 10, everywhere (6.22.0)
 import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYieldPricer } from './ladderEngine.js';
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
@@ -18,7 +19,7 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge } from './GiltRotation.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
-import { deriveTiming } from '../services/PlanTiming.js';
+import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
@@ -124,7 +125,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   // The strategy settings can pin the SIPP/ISA totals fed to the ladder; otherwise the plan's pots.
   // A pinned total is today's money too, so it is projected to retirement like the pots (cfg already is).
   const pot = params.sippTotal > 0 ? params.sippTotal * timing.potScale.sipp : alloc;
-  const isa = params.sippTotal > 0 ? (params.isaTotal || 0) * timing.potScale.isa : (cfg.isaBalance || 0);
+  // With no ISA total pinned and no ISA today, the ISA at retirement (money going into one): PlanTiming.isaAtRetirementOf.
+  const isa = params.sippTotal > 0 ? ((+params.isaTotal || 0) > 0 ? params.isaTotal * timing.potScale.isa : isaAtRetirementOf(settings, 0)) : (cfg.isaBalance || 0);
   const target = settings.baseSalary || 0;
   const spWeekly = cfg.spWeeklyAmount || settings.spWeeklyAmount || 0;
   const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
@@ -636,11 +638,11 @@ function rotationTest(p, configs) {
 
 /**
  * The pot a given strategy needs at retirement for the plan to pass, today's money — the
- * accumulation "am I on track?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
+ * accumulation "am I on course?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
  * pass when affordable; market strategies when Monte-Carlo ruin ≤ (1 − successTarget). Bisects the
  * SIPP pot with the plan's ISA left as configured. Fewer runs than the compare (speed).
  */
-export function requiredPotForStrategy(strategyId, p, successTarget = 0.85, opts = {}) {
+export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_SHARE, opts = {}) {
   const runs = opts.mcRuns || 200, stride = opts.stride || 6;
   const passes = (pot) => {
     const q = { ...p, pot, mcRuns: runs, stride };

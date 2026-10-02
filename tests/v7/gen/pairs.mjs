@@ -41,6 +41,8 @@ export const DIMENSIONS = [
   { name: 'savings', values: [v('savings0', (c) => {}), v('savings150k', (c) => setPath(c, 'savings', 150_000))] },
   // the one fund and platform charge (6.19.0): left at 0.5%, none, or 1.5% a year
   { name: 'charge', values: [v('chargeDefault', (c) => {}), v('charge0', (c) => setPath(c, 'charge', 0)), v('charge1.5', (c) => setPath(c, 'charge', 1.5))] },
+  // how the savings grow (6.22.0): "Mostly cash" (the default, once there are savings) or "Invested like my pension"
+  { name: 'isaGrowth', values: [v('isaGrowthDefault', () => {}), v('invested', (c) => setPath(c, 'isaGrowth', 'invested'))] },
   // "later" starts at 60, or now for anyone already past 60 (the rules refuse a start before today's age).
   { name: 'start', values: [v('startDefault', (c) => {}), v('startLater', (c) => { setPath(c, 'start.kind', 'age'); setPath(c, 'start.age', Math.max(60, c.you.age)); })] },
   partnerDim('partnerAge', [54, 62, 70].map((a) => v(`partnerAge${a}`, (c) => setPath(c, 'partner.age', a)))),

@@ -14,7 +14,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault } from '../shared/schemaParts.js';
 
 const STOP_KIND = stopKindField('b');
 
@@ -46,6 +46,9 @@ export const SCHEMA_B = {
     ...taxFreeFields('b'),
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 60_000, 150_000, 10_000_000] },
     ...moreFields(),
+    // How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension", under more detail with the savings box
+    // and drawn straight under it; declared after what its default reads (the savings, and what goes into them each month).
+    isaGrowthField('more'),
     { path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' }
   ],
 
@@ -63,6 +66,9 @@ export const SCHEMA_B = {
       { id: 'partner-stop-fits', fields: ['partner.stop.kind'] }                        // you have stopped: the partner gives an age
     ] : [])
   ],
+
+  /** Defaults that depend on other values (validate.js): how the savings grow, only once there is money in savings. */
+  defaultRules: { isaGrowth: savingsGrowthDefault },
 
   agesToShow: null,
   /** The rows (stop ages) and columns (pay-in totals) of the choices step (conflict 37): a rule of the list. */

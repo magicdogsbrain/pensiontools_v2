@@ -18,6 +18,11 @@
  * 6.19.0 nobody here had it. The cases that gain it are listed below (GAINS_2028, by index); for those the test takes that
  * one warning (`drawdown-2028`) out and the rest must hash as 6.19.0 did. answers.flat.test.js holds who it names.
  *
+ * The SECOND change allowed (6.22.0, the owner, 2 Oct 2026): how savings grow. A case with money in savings (or B's
+ * savings set aside for the years before a pension opens) moves — its savings grow as "Mostly cash" unless chosen, where
+ * 6.19.0 grew them at a fixed 3% a year, and its words say so; it is listed in answers.savingsGrowth.json with the hash it
+ * gives now (savingsGrowthMoves.mjs). Every other case hashes as 6.19.0 did.
+ *
  * Delete one release after 6.20.0, with sameYear.v1/.
  */
 import { describe, it, expect } from 'vitest';
@@ -28,6 +33,7 @@ import { answerA } from '../a/_a.js';
 import { answerB } from '../b/_b.js';
 import { answerC } from '../c/_c.js';
 import { VERSION } from '../../../src/constants.js';
+import { movesOf, holdsSavings, PIN_SAVINGS } from './savingsGrowthMoves.mjs';
 
 const CASES = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/shared/answers.sameYear.json'), 'utf8'));
 const ANSWER = { a: answerA, b: answerB, c: answerC };
@@ -57,20 +63,32 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
     }
   });
 
+  const MOVES = movesOf('sameYear');
   for (const q of ['a', 'b', 'c']) {
-    it(`question ${q.toUpperCase()}: every case hashes as it did in 6.19.0, the 2028 note aside on the listed cases`, () => {
+    it(`question ${q.toUpperCase()}: every case hashes as it did in 6.19.0, the 2028 note aside on the listed cases, and how savings grow on the cases with savings`, () => {
       const moved = [];
       const gained = [];
+      const savings = [];
       CASES.forEach((x, k) => {
         if (x.q !== q) return;
         const r = ANSWER[q](x.inputs, x.env);
         const gains = (r.warnings || []).some((w) => w.id === 'drawdown-2028');
         if (gains) gained.push(k);
         const got = hash(gains ? without2028(r) : r);
-        if (got !== wanted(x)) moved.push(`case ${k}: ${JSON.stringify(x.inputs)}`);
+        if (holdsSavings(q, r) && got !== wanted(x)) {
+          // how savings grow (6.22.0): money in savings, so the answer moved — away from 6.19.0, to its new pin
+          savings.push(k);
+          if (PIN_SAVINGS) MOVES.record(k, got);
+          if (!MOVES.has(k) || got !== MOVES.wanted(k)) moved.push(`case ${k} (savings): ${JSON.stringify(x.inputs)}`);
+        } else if (got !== wanted(x)) moved.push(`case ${k}: ${JSON.stringify(x.inputs)}`);
+        else if (MOVES.has(k)) moved.push(`case ${k} is listed as moved, and hashes as 6.19.0 did`);
       });
+      if (PIN_SAVINGS) MOVES.save();
       expect(moved).toEqual([]);
       expect(gained).toEqual(GAINS_2028.filter((k) => CASES[k].q === q));
+      // every case listed as moved for this question holds savings
+      for (const k of MOVES.keys().filter((i) => CASES[i] && CASES[i].q === q)) expect(savings, `case ${k} is listed as moved without savings`).toContain(k);
+      expect(savings.length, q).toBeGreaterThan(0);
     }, 120_000);
   }
 });

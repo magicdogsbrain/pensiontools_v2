@@ -17,7 +17,7 @@ import { bannedHits } from '../render/checkScreen.js';
 import { COUNTDOWN, scopesForA, allSentences } from './invariants.js';
 
 const STUB = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/a/drawing-result.json'), 'utf8'));
-const CTX = { usedDefault: ['you.statePension.kind', 'you.finalSalary.has', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'partTime.has'], fullStatePensionAYear: 12547.6, historyStartYear: 1871, madeUpFutures: false, capped: false };
+const CTX = { usedDefault: ['you.statePension.kind', 'you.finalSalary.has', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'partTime.has', 'isaGrowth'], fullStatePensionAYear: 12547.6, historyStartYear: 1871, madeUpFutures: false, capped: false };
 
 /** A fresh copy of the stub with its words taken away, changed by `edit`, then given its words again. */
 function made(edit = () => {}, ctx = CTX) {
@@ -70,7 +70,7 @@ describe('A — the words, from a result alone', () => {
     const r = made();
     const ids = r.assumed.map((a) => a.id);
     expect(ids).toEqual(['pay-in', 'pay-in-as-given', 'savings-in', 'risk-saving', 'saving-rebalanced', 'same-futures', 'stop-age', 'spend-steady', 'no-part-time',
-      'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'risk-drawing', 'charges', 'plan-to', 'todays-prices', 'no-final-salary', 'isa-fixed-growth', 'tax-rules', 'futures']);
+      'state-pension-full', 'state-pension-age', 'quarter-tax-free', 'risk-drawing', 'charges', 'plan-to', 'todays-prices', 'no-final-salary', 'savings-growth', 'tax-rules', 'futures']);
     for (const a of r.assumed) if (a.source === 'default') expect(typeof a.field, a.id).toBe('string');
     expect(r.assumed.find((a) => a.id === 'pay-in').text).toBe('£600 a month goes into your pension until you stop at 60, going up with prices.');
     // 6.19.0: the one charge, taken while saving and while drawing, with Change (its field)
@@ -189,12 +189,22 @@ describe('A — the words, from a result alone', () => {
     expect(at(53, 55).warnings.find((w) => w.id === 'access-age-rises').text).toBe('The earliest age you can take money from a pension rises from 55 to 57 on 6 April 2028.');
   });
 
-  it('savings: the 3% is before rising prices; when they are most of the money, an important note says the one figure matters most', () => {
+  it('savings: how they grow, with Change; when they are most of the money and held mostly as cash, a note says how to choose (6.22.0)', () => {
     const r = made((x) => { x.shown.potAtStop = { ...x.shown.potAtStop, byPerson: [{ who: 'you', pension: 100000, savings: 300000 }] }; });
     expect(wordsAreClean(r)).toEqual([]);
-    expect(r.assumed.find((a) => a.id === 'isa-fixed-growth').text).toBe('Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year before rising prices, so they lose ground whenever prices rise faster than that.');
-    expect(r.warnings.find((w) => w.id === 'savings-fixed-growth')).toMatchObject({ severity: 'important' });
-    expect(made().warnings.map((w) => w.id)).not.toContain('savings-fixed-growth');
+    expect(r.assumed.find((a) => a.id === 'savings-growth')).toMatchObject({ field: 'isaGrowth', source: 'default', value: 'cash',
+      text: 'Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year\'s rise in prices less 1%, or not at all if prices rose by less than 1%.' });
+    expect(r.warnings.find((w) => w.id === 'savings-mostly-cash')).toMatchObject({ severity: 'note',
+      text: 'Most of the money when you stop is in savings, treated as mostly cash, which grows a little more slowly than prices rise. If yours are invested, choose "Invested like my pension" under the savings box.' });
+    for (const w of r.warnings) expect(w.id).not.toBe('savings-fixed-growth');
+    expect(made().warnings.map((w) => w.id)).not.toContain('savings-mostly-cash');
+    // invested: the other words, and no note
+    const inv = made((x) => { x.inputs.isaGrowth = 'invested'; x.shown.potAtStop = { ...x.shown.potAtStop, byPerson: [{ who: 'you', pension: 100000, savings: 300000 }] }; },
+      { ...CTX, usedDefault: CTX.usedDefault.filter((p) => p !== 'isaGrowth') });
+    expect(wordsAreClean(inv)).toEqual([]);
+    expect(inv.assumed.find((a) => a.id === 'savings-growth')).toMatchObject({ source: 'entered', value: 'invested',
+      text: 'Your savings are treated as ISA money: tax-free to take. They are invested like your pension: the same mix of shares, bonds and cash, in the same futures.' });
+    expect(inv.warnings.map((w) => w.id)).not.toContain('savings-mostly-cash');
   });
 
   it('the every-age table (detail "all"): a note for the ages before a pension opens and the ages left out; "Now:" names part-time work', () => {

@@ -43,6 +43,11 @@ a real pension the partner's share is larger, their £3,000 runs out in month 17
 the number search raises the pension until the share is small enough — £756,000. At £510 the floor rounds up to £7,000
 and the number is £78,000. One person has one run, so it is a couple's fault only.
 
+Still open in 6.22.0, moved by £10: the savings set aside now grow as "Mostly cash" (how savings grow, the owner's
+decision of 2 Oct 2026), so the floor steps up £10 sooner. At 20 futures the same couple's guide number is £594,000 at
+£490 a month and £75,000 at £500 (the floor £6,000, then £7,000); the same saw-tooth runs up every £1,000 of floor (£2,493,000
+at £580, £112,000 at £590). The pinned failure moved with it (£490 → £500).
+
 Not changed here: it is B's answer and its floor (a design change to B's figures, for the owner and B's author). Until it
 is fixed PB4 and M-B2 leave out a couple whose pensions are both closed at the stop, and the case is pinned as an expected
 failure in tests/v7/b/properties.test.js ("PB4 found", `it.fails`), which goes red the day it is fixed. A likely fix: find

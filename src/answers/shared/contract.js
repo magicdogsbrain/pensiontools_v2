@@ -12,7 +12,8 @@
  * @property {number[]} [ages]              Tests only (A): exactly these stop ages.
  * @property {{ equity: number, bond: number, cash: number }} [mix]         Tests only: an exact drawing mix.
  * @property {{ equity: number, bond: number, cash: number }} [savingMix]   Tests only: an exact saving mix.
- * @property {number} [savingsGrowth]       Tests only: the drawing years' ISA rate (config.isaReturn); default the engine's 3%.
+ * @property {number} [savingsGrowth]       Tests only: a fixed rate a year for the ISA in the drawing years (config.isaReturn,
+ *   asGiven runs), which wins over the household's choice (`isaGrowth`); without either, a run grows it at the engine's 3%.
  * @property {'reference'} [solver]         Tests only: the reference band solver.
  *
  * ---- Couples who stop work in different years (research/v7/couples-different-years.md) — the inputs ----------------
@@ -56,6 +57,17 @@
  *   'drawdown-2028' (severity 'note') — for EVERYONE (owner, 2 Oct 2026) it applies to (anyone 55 or 56 on 6 April 2028 who first
  *   draws before then: one person, a couple together or apart), not only a couple apart (shared/apart.js before2028).
  *   'stop-together' / 'both-stop-together' only when the partner question was not answered.
+ *
+ * ---- How ISAs and savings grow (6.22.0; research/saver-lock-and-savings-growth.md 3.6) ---------------------------------
+ *
+ * @typedef {object} SavingsGrowthInput       C, A and B (schemaParts.js isaGrowthField), straight under the savings box.
+ * @property {'cash' | 'invested'} [isaGrowth]   "Mostly cash" (last year's rise in prices less 1%, never below nothing: the
+ *   pension's own cash) or "Invested like my pension" (the pension's mix, in the same futures), while saving and while
+ *   drawing. Asked, and defaulted to 'cash', only once there is money in savings (the savings box above £0, or — A, B —
+ *   savingsIn above £0); otherwise the checked inputs have no such key (today's, key for key). household.isaGrowth.
+ *   Assumed id: 'savings-growth' (field isaGrowth; it replaced 'isa-fixed-growth' in A and B and 'savings-as-isa' in C).
+ *   Warning id (A, B): 'savings-mostly-cash' (note) — most of the money at the stop is savings held mostly as cash (it
+ *   replaced the important 'savings-fixed-growth').
  *
  * ---- What is spent changing with age (research/v7/spending-shape.md; src/answers/shared/shape.js) ---------------------
  *

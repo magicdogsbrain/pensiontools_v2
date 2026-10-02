@@ -20,6 +20,9 @@
  *                               — or, stopping in different years, split evenly among those still working today
  *   savingRisk                → household.saving = { risk }
  *   charge                    → household.chargesPct, percent a year as typed (6.19.0: the one charge, saving and drawing)
+ *   isaGrowth                 → household.isaGrowth, 'cash' or 'invested' (6.22.0: how the savings grow, saving and drawing;
+ *                               on the form only once there is money in savings; not given, "Mostly cash": every household
+ *                               the form makes says how its savings grow)
  *   partTime.*                → people[0].otherIncome = [{ kind: 'work', amountPerYear: yearly, fromAge: stop, toAge: stop + years }]
  *   spend.*                   → household.spending: { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
  *   spend.then / fallsPct / steps → household.shape (spending-shape.md 3), only when it changes with age: { unit 'perMonth',
@@ -39,8 +42,9 @@
  * @param {number} [stopAge]
  * @returns {{ household: import('../shared/household.js').Household, assumed: { id: string, who?: string }[], fullStatePensionAYear: number, stopAge: number, S: number }}
  */
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { expandHousehold } from '../shared/household.js';
-import { fullStatePensionYearly } from '../shared/rules.js';
+import { fullStatePensionYearly, RULES } from '../shared/rules.js';
 import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf, shapeOfInputs, spendLevelAMonth } from '../shared/schemaParts.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -116,6 +120,9 @@ export function toHousehold(inputs, env, stopAge = namedStopAge(inputs)) {
     spending,
     saving,
     ...(isNum(inputs.charge) ? { chargesPct: inputs.charge } : {}),
+    // how the savings grow (6.22.0): as chosen, else "Mostly cash" — also with no savings today, so any savings the answer
+    // works with (B's set aside for the years before a pension opens) grow as the form would grow them
+    isaGrowth: isIsaGrowth(inputs.isaGrowth) ? inputs.isaGrowth : RULES.isaGrowthDefault,
     ...untilBothStopOf(inputs),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }

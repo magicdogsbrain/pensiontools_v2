@@ -124,7 +124,9 @@ describe('R2 — C from an age before the pension opens', () => {
 });
 
 describe('R3 — a bad case that runs out while the pension is closed', () => {
-  const given = { you: { age: 50, pot: 300000 }, savings: 50000 };
+  // £40,000 of savings (6.22.0: they grow as "Mostly cash" while the money waits to be taken, where they once followed the
+  // pension's mix — with £50,000 they now last to 71 in the middle case; with £40,000 they still run out at 56)
+  const given = { you: { age: 50, pot: 300000 }, savings: 40000 };
 
   it('C: no "After that … State Pension"; the savings-run-short warning says what ran out, and when the pension opens', () => {
     const c = answerC({ ...given, start: { kind: 'age', age: 55 } }, ENV);

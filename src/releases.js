@@ -37,6 +37,83 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.22.0', date: '2026-10-02', engineVersion: '6.22.0',
+    title: 'Choose how your ISA grows; a plan locked while saving reads true; one bar for "on course"',
+    summary: 'Until now every ISA grew at a fixed 3% a year, whatever prices did. Each plan now says how its ISA and savings grow: "Mostly cash" (the default) grows like the cash in your pension, by last year\'s rise in prices less 1%, never below nothing; "Invested like my pension" follows your pension\'s mix of shares, bonds and cash in the same futures. A plan you locked earlier keeps its figures. If you locked your plan while still saving, the monthly reading now compares like with like: your pot is put into the same prices as the locked path and read at the month you recorded it, refreshing the plan document starts its path again, and plans locked from now on count your ISA and what you pay into it. "On course" now means the money lasts in 9 futures out of 10 everywhere.',
+    changes: [
+      'Stress tester → Settings: "How your ISA and savings grow", with two choices. "Mostly cash" suits cash ISAs, savings accounts and money-market funds; "Invested like my pension" suits a stocks and shares ISA held like your pension. Pots & Valves and Buckets in order use it; the other strategies spend the ISA as part of their own pot, so it does not change them. The line above Monte Carlo, History and Scenarios says which it is, and so do Strategies → Background → Assumptions, the Drawdown table (which grows the ISA like cash at your assumed rise in prices, and now says when your runs grow it otherwise) and the plan document.',
+      'Accumulation planner: a new box, "Into ISAs and savings (£/mo)", and an "ISA and savings" column in the projection. Your pots at retirement in the Timing block and the "When could I retire?" spin count it, and so do the runs — even when you have no ISA today.',
+      'The monthly pot record keeps a blank ISA box as "no figure" (shown as a dash), not £0, so the reading asks for your ISA instead of counting it as empty. Type 0 if your ISA really is empty.',
+      'A plan locked from now on while you are still saving draws its saving path on the preview\'s saving-years engine: 1,000 futures, a middle line and the 1-in-10 bad and good lines, counting your pension and your ISA and what goes into each.',
+      '"Am I on track?" is now "Am I on course?", and looks for the pot that lasts in 9 futures out of 10. The "When could I retire?" spin reads "9 in 10 (on course)" first; its other choices are still there.',
+      'Preview at /v7/: the same choice under the savings box in all three questions ("How your savings grow"), carried between them and into a plan you save. It applies while you save and once you stop.'
+    ],
+    corrections: [
+      'ISAs and savings grew at a fixed 3% a year whatever prices did: in a future where prices rose 8% a year, where bad cases are, they lost about 5% a year of buying power; where prices rose 1%, they beat cash. With "Mostly cash" the chance of lasting can go up or down. In our tests, for someone with a £250,000 ISA and a £100,000 pension it went from 85% to 96% with cuts in a slump, and from 45% to 24% with no cuts. The amount typically left usually falls a little. With "Invested like my pension" most figures rise.',
+      'A plan locked while still saving compared your pot, in pounds of the month you recorded it, with a path in the pounds of the day it was locked. After ten years a pot exactly on course read about 28% ahead ("above the strong line"), and the check when you reach your stop could offer to unlock and re-plan. Your pot is now put into the path\'s own prices, the 2.5% a year it was drawn with, and read at the month you recorded it.',
+      'Refreshing the plan document drew a new path from your pot that day, but the reading still counted from the first lock, so you looked behind. It now counts from the document\'s own day.',
+      'With no ISA today, an ISA at retirement in the Timing block (typed in its boxes) was left out of every run: the runs scale today\'s ISA, and £0 scales to £0. It now counts. In our tests, for someone retiring at 60 with £49,000 in an ISA at retirement and nothing in it today, the chance of lasting at £36,000 a year went from 47% to 69%.',
+      '"On track" meant lasting in 85% of futures on the Accumulation planner and in the couples, survivor and care checks, but 90% in the age spin, while the preview used 9 in 10. All now use 9 in 10, so "Am I on course?" asks for a bigger pot than before: about 4% to 14% bigger on our test plans.'
+    ],
+    effects: {
+      budget: [],
+      stress: [
+        'Unlocked plans: the ISA grows like cash unless you choose "Invested like my pension". The chance of lasting may rise or fall, and the amount left usually falls a little (on our test plans the chance of running out moved by 0.3 points or less, and the typical amount left fell by about 2% at most).',
+        'Plans already locked: unchanged. The setting reads "A fixed 3% a year (this plan was locked before this choice was added; unlock to change)".'
+      ],
+      strategies: ['Pots & Valves and Buckets in order move with the ISA. The ladder, rotation and floor strategies are unchanged: they spend the ISA as part of their own pot.'],
+      decision: [
+        'Months already recorded do not change.',
+        'If you locked while still saving, the first month after you stop compares your pot with the locked path in the same pounds, and counts your ISA on plans locked from 6.22.0. Leave the ISA box blank (or at £0) and your pension is compared with the path\'s own pension line instead.'
+      ],
+      accumulation: [
+        '"Am I on course?" looks for the pot that lasts in 9 futures out of 10 (it used 85%), so it may now say you are short.',
+        'The monthly reading against a locked path is in the same prices as the path, and is read at the month you recorded.',
+        'A month recorded before 6.22.0 with ISA £0 is read as "no ISA figure" (the old form saved a blank box as £0): if the path counts your ISA, the strip asks you to add it.',
+        'Pots at retirement saved in the Timing block change only when you next save the Timing block.'
+      ],
+      household: ['The couples, survivor and care checks call a plan on course from 9 futures in 10 (it was 85%). Each partner\'s plan uses its own ISA setting.']
+    },
+    actions: [
+      'Check "How your ISA and savings grow" in Stress tester → Settings: choose "Invested like my pension" if your ISA is invested.',
+      'If you are still saving, enter what you pay into ISAs each month on the Accumulation planner, and save the Timing block.',
+      'If you locked your plan while saving and want the new path, which counts your ISA, refresh the plan document. The old one is kept under previous versions.'
+    ],
+    notes: [
+      '"Mostly cash" is the same rule as the cash in your pension: last year\'s rise in prices less 1%, never below nothing. "Invested like my pension" uses your pension\'s shares, bonds and cash in the same futures, with no separate draw of its own; your diversifiers and reserve are not part of it.',
+      'An ISA made of the ISA funds in your list of funds to test still follows those funds in the runs. The Timing block, the Accumulation planner and the spin project it as they did before (the middle rate), adding what you pay in; a saver\'s locked path grows it at those funds\' own mix.',
+      'Plans made from a quick answer (preview) with no savings today now keep £0 as the ISA today, and the savings at the stop as the ISA at retirement; until now the savings at the stop stood in for both, so the new projections would have counted what you pay in twice. A plan saved that way before is put right when first opened (unlocked plans only); its runs start from the same ISA as before.',
+      'The plan\'s fund and platform charge still comes off the ISA either way.',
+      'Preview: anyone with savings sees new figures. For example, stopping at 55 with £95,000 of savings and £800 a month going in: the careful amount moves from £2,090 to £2,130 a month and the middle savings at the stop from £217,518 to £164,124. A couple living on savings until 57 sees the bridge years run short more often.',
+      'Saved plans: schema version 3. Every unlocked plan is given "Mostly cash"; a locked plan is not touched and keeps a fixed 3% until it is unlocked. Plan documents: version 3 for plans locked from now on; earlier documents are never rewritten.',
+      'Engine version 6.22.0: how the ISA grows changed (it changes a result only when the plan has the setting).'
+    ],
+    affects: (scenario) => {
+      const s = scenario && typeof scenario === 'object' ? scenario : {};
+      const st = s.stressTool && typeof s.stressTool === 'object' && s.stressTool.settings && typeof s.stressTool.settings === 'object' ? s.stressTool.settings : null;
+      const out = [];
+      const locked = !!(s.decisionTool && s.decisionTool.settings && s.decisionTool.settings.locked);
+      const par = st && st.potAtRetirement && typeof st.potAtRetirement === 'object' ? st.potAtRetirement : null;
+      const isaLater = st && st.retired === false && par && (+par.isa || 0) > 0 ? +par.isa : 0;
+      if (st && ((+st.isaBalance || 0) > 0 || isaLater > 0)) {
+        const which = (+st.isaBalance || 0) > 0 ? 'Your ISA of ' + gbp(st.isaBalance) : 'Your ISA at retirement of ' + gbp(isaLater);
+        if (st.isaGrowth === 'cash') out.push(which + ' now grows like cash ("Mostly cash"). If it is invested, choose "Invested like my pension" in Stress tester → Settings.');
+        else if (st.isaGrowth === 'invested') out.push('Your ISA follows your pension\'s mix ("Invested like my pension").');
+        else if (locked) out.push('This plan is locked, so its ISA keeps growing at a fixed 3% a year and its figures do not move. Unlock it and it grows like cash from then on.');
+      }
+      // A plan made from a quick answer before 6.22.0 with money going into savings: the planner did not keep that figure.
+      const fa = s.fromAnswer && typeof s.fromAnswer === 'object' && Array.isArray(s.fromAnswer.people) ? s.fromAnswer.people[0] : null;
+      const savingsIn = fa && fa.payIn && +fa.payIn.savingsIn > 0 ? +fa.payIn.savingsIn : 0;
+      const accS = s.accumulationTool && s.accumulationTool.settings && typeof s.accumulationTool.settings === 'object' ? s.accumulationTool.settings : null;
+      if (!locked && savingsIn > 0 && !(accS && +accS.isaMonthly > 0)) out.push('This plan was made from a quick answer with ' + gbp(savingsIn) + ' a month going into savings. Enter it in "Into ISAs and savings" on the Accumulation planner so the Timing block and the spin count it.');
+      const doc = s.planDocument && typeof s.planDocument === 'object' ? s.planDocument : null;
+      if (locked && doc && doc.accumulation && typeof doc.accumulation === 'object' && doc.accumulation.version !== 3) {
+        out.push('This plan was locked while you were saving: its monthly reading now puts your pot into the path\'s own prices and reads it at the month you recorded it. Refresh the plan document for a path that counts your ISA.');
+      }
+      return out;
+    }
+  },
+  {
     version: '6.21.0', date: '2026-10-02', engineVersion: '6.19.0',
     title: 'Spending that changes with age in the preview questions, and the 2028 drawdown note for everyone it applies to',
     summary: 'In the preview questions (pensiontools.uk/v7/) you can now say how your spending changes as you get older, with as many steps and tapers as Stress tester → Your income shape: any number of steps by age, each staying level, falling by a percentage a year, or moving evenly to the next step, and "Suggest go-go, go-slow and no-go years". Answers say what you could spend at the start and at each step, and a chart shows every year. A plan saved from such an answer arrives in this planner with the same steps. The note about moving pension money into drawdown before 6 April 2028 now shows for everyone it applies to. Nothing in your existing plans changes.',

@@ -82,6 +82,26 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
       if (!then[k]) { expect(now[k]).toBeNull(); continue; }
       const { fromAnswer: a, ...restNow } = now[k];
       const { fromAnswer: b, ...restThen } = then[k];
+      // 6.22.0 adds one thing: what goes into savings each month, in the planner's own box (isaMonthly), where 6.19.0 kept
+      // it in the record only. It is the seed's own figure; with it taken away the plan is 6.19.0's, byte for byte.
+      const acc = restNow.accumulationTool && restNow.accumulationTool.settings;
+      if (acc && 'isaMonthly' in acc) {
+        expect(acc.isaMonthly, k).toBe(a.people[0].payIn.savingsIn);
+        expect(acc.isaMonthly, k).toBeGreaterThan(0);
+        delete acc.isaMonthly;
+      }
+      // The review of 6.22.0 changes one more, for someone with no savings today but savings at the stop: today's £0 is
+      // written as it is, where 6.19.0 wrote the savings at the stop in its place (the new readers that add what goes in
+      // each month counted it twice). The savings at the stop are still the ISA at retirement, and the runs start from the
+      // very same ISA (PlanTiming.isaAtRetirementOf). With that put back the plan is 6.19.0's, byte for byte.
+      const Sn = restNow.stressTool.settings, St = restThen.stressTool.settings;
+      if (Sn.isaBalance !== St.isaBalance) {
+        expect([Sn.isaBalance, a.people[0].savings.today], k).toEqual([0, 0]);
+        expect(St.isaBalance, k).toBe(Sn.potAtRetirement.isa);
+        expect(St.isaBalance, k).toBeGreaterThan(0);
+        expect(createSimulationConfigFromSettings({}, Sn).isaBalance, k).toBe(createSimulationConfigFromSettings({}, St).isaBalance);
+        Sn.isaBalance = St.isaBalance;
+      }
       expect(JSON.stringify(restNow), k).toBe(JSON.stringify(restThen));
       // the record differs only by the version 2 keys
       const strip = (x) => { const c = JSON.parse(JSON.stringify(x)); c.seedVersion = 1; delete c.untilBothStop; for (const p of c.people) { delete p.stop; delete p.years; } return c; };

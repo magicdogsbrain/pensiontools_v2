@@ -51,10 +51,11 @@ describe('the schema contract', () => {
       expect(typeof m.up, 'entry ' + i + ' up').toBe('function');
     });
   });
-  it('this release is schema version 2', () => {
+  it('this release is schema version 3', () => {
     // Moving this number is a deliberate act: add the next MIGRATIONS entry and a fixture of the old shape
     // (RELEASING.md, "Saved-plan schema version"), then change it here. 6.19.0: step 2, fund and platform charges.
-    expect(SCHEMA_VERSION).toBe(2);
+    // 6.22.0: step 3, how the ISA and savings grow (tests/isaGrowth.storage.test.js).
+    expect(SCHEMA_VERSION).toBe(3);
   });
   it('a plan with no version, or a version that is not a whole number, reads as 0', () => {
     for (const v of [undefined, null, '1', 1.5, -1, NaN, {}]) expect(schemaVersionOf({ schemaVersion: v })).toBe(0);

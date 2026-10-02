@@ -54,6 +54,8 @@ export const DIMENSIONS_B = [
   ] },
   { name: 'endAge', values: [v('to95', () => {}), v('to100', (c) => setPath(c, 'endAge', 100))] },
   { name: 'charge', values: [v('chargeDefault', () => {}), v('charge0', (c) => setPath(c, 'charge', 0)), v('charge1.5', (c) => setPath(c, 'charge', 1.5))] },
+  // how the savings grow (6.22.0): "Mostly cash" (the default, once there are savings) or "Invested like my pension"
+  { name: 'isaGrowth', values: [v('isaGrowthDefault', () => {}), v('invested', (c) => setPath(c, 'isaGrowth', 'invested'))] },
   { name: 'confidence', values: [v('nineInTen', () => {}), v('threeInFour', (c) => setPath(c, 'confidence', 'threeInFour'))] },
   partnerDim('partnerAge', [53, 58, 62].map((a) => v(`partnerAge${a}`, (c) => setPath(c, 'partner.age', a)))),
   partnerDim('partnerPot', [0, 150_000].map((p) => v(`partnerPot${p}`, (c) => setPath(c, 'partner.pot', p)))),

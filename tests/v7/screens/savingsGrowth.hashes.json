@@ -1,0 +1,23 @@
+{
+ "why": "6.22.0, how savings grow: every answer grew savings at a fixed 3% a year; they now grow as the household chooses, \"Mostly cash\" unless chosen (the owner, 2 Oct 2026). These named states hold savings (or, in B, set savings aside for the years before a pension opens), so their figures and words moved (the named states' moved-by table is in the 6.22.0 report); each draws what 6.22.0 draws. Every other state is still 6.19.0's (today.hashes.json). V7_PIN_SCREENS=1 re-pins these, and only these.",
+ "hashes": {
+  "a/ages-A1": "13ee5f60d0ca5c0508f541a26564a134",
+  "a/answer-A1": "7beb140d4fafe51909009681c70a8826",
+  "a/answer-A2-couple": "4cbeaac68a89b5203bbdc65e94633c01",
+  "a/answer-A3-part-time": "06cae825d0ac3c482c98a1e24e45d016",
+  "a/answer-A4": "d297bbc97e8e406b9dbc8bc78c5100f6",
+  "a/answer-ages": "9e7d6f161d2a85461ef15e612e299308",
+  "a/answer-ages-none": "a2501988222087ab908d5867d8925330",
+  "a/answer-first": "dbd862812e4715c02881033a6ddfa46f",
+  "a/answer-no": "61e35145552f24e2d36e2b7ece51fd8b",
+  "a/answer-partial": "7198ed5ca3b08e6ea1708adce9e55204",
+  "a/answer-stop-now": "c1c7fcd22ba1562a79b13099f6e8a616",
+  "a/answer-updating": "d2908171720fb3f5a56abafa31b53e8a",
+  "a/answer-yes": "093b83c59eaf2a4df0fba8a18128d046",
+  "b/answer-B2-on-course": "75a4868ff84cc598a174a9ae3abbaa62",
+  "b/answer-B4-before-57": "955fb2854bf2d64d1838a18464e3d7aa",
+  "b/answer-out-of-reach": "27a9282cd6315d6f5817ba5ebad69150",
+  "b/choices-on-course": "f7c2e6387aed04ba5dfa947be36db26b",
+  "c/answer-closed-years": "324ad73da01c7d58421d3cf7f2bb1855"
+ }
+}

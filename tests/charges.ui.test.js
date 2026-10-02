@@ -20,6 +20,7 @@ import {
   holdingsChargesHint, hasStoredCharges, paintChargesField, chargesHintText, chargesUnlockNoteHtml, accumulationChargesNoteHtml
 } from '../src/ui/chargesSetting.js';
 import { startSummaryHtml } from '../src/ui/startingPotsWords.js';
+import { unlockNotesHtml } from '../src/ui/isaGrowthSetting.js';
 import { planDocumentHtml } from '../src/ui/components/PlanDocumentView.js';
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
@@ -142,16 +143,21 @@ describe('index.html: the box in Stress tester → Settings', () => {
     const acc = fnBody('window.recalcAccumulation = async function', 6500);
     expect(acc).toMatch(/projectAccumulation\(\{[^}]*chargesPct/);
     expect(acc).toContain('mixOcf');
-    expect(acc).toContain('accumulationChargesNoteHtml(acCharges');
+    // 6.22.0: the table (and its charges note) moved into src/ui/accumulationProjection.js, which is handed the charge
+    expect(acc).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges');
+    expect(readFileSync(resolve(process.cwd(), 'src/ui/accumulationProjection.js'), 'utf8')).toContain('accumulationChargesNoteHtml(chargesPct, mixOn)');
     expect(plain(accumulationChargesNoteHtml(0.5, true))).toBe('After fund and platform charges of 0.5% a year (your plan\'s setting in Stress tester → Settings); the "your mix" line takes this in place of your funds\' own charges.');
     expect(plain(accumulationChargesNoteHtml(0))).toBe('No fund or platform charges taken off (see Stress tester → Settings).');
   });
   it('unlocking a plan locked before charges writes the default and says so first (D2)', () => {
     const u = fnBody('window.unlockDecisionSettings = async function', 7000);
-    expect(u).toContain('chargesPatchOnUnlock(');
-    expect(u).toContain('li.push(chargesUnlockNoteHtml(');
-    expect(u.indexOf('saveStressSettings(chargesPatch)')).toBeGreaterThan(u.indexOf('await unlockPlan()'));
-    expect(u.indexOf('chargesUnlockNoteHtml(')).toBeLessThan(u.indexOf('appConfirm('));   // said before the person agrees
+    // 6.22.0: one patch for everything unlocking writes (the charge and the ISA choice), its bullets from one function
+    expect(u).toContain('unlockPatchesOf(');
+    expect(u).toContain('li.push(...unlockNotesHtml(unlockPatch))');
+    expect(u.indexOf('saveStressSettings(unlockPatch)')).toBeGreaterThan(u.indexOf('await unlockPlan()'));
+    expect(u.indexOf('unlockNotesHtml(')).toBeLessThan(u.indexOf('appConfirm('));   // said before the person agrees
+    expect(unlockNotesHtml({ chargesPct: 0.5 })).toEqual([chargesUnlockNoteHtml(0.5)]);
+    expect(unlockNotesHtml(null)).toEqual([]);
     expect(plain(chargesUnlockNoteHtml(0.5))).toBe('Fund and platform charges: this plan was locked before charges were added, so its figures have been worked out without them. Once it is unlocked, 0.5% a year is taken off its projections — its chance of lasting and the amount left go down. Change it in Stress tester → Settings.');
   });
   it('Reset to defaults is refused on a locked plan', () => {

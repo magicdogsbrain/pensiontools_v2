@@ -151,6 +151,8 @@ export function saverInputsOf(inputs, stopAge = inputs.start.kind === 'age' ? in
     spend: { kind: 'amount', amount: isNum(inputs.take) && inputs.take >= 1 ? inputs.take : 1 },
     partTime: { has: false },
     savingsIn: 0, savingRisk: inputs.risk, risk: inputs.risk, charge: isNum(inputs.charge) ? inputs.charge : SAVING.chargesPct, endAge: inputs.endAge,
+    // how the savings grow (6.22.0): C's choice, which C's inputs hold once the savings box is above £0 (as A's would)
+    ...(inputs.isaGrowth !== undefined ? { isaGrowth: inputs.isaGrowth } : {}),
     ...(couple && inputs.untilBothStop ? { untilBothStop: inputs.untilBothStop } : {})
   };
 }

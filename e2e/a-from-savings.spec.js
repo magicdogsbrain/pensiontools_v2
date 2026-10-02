@@ -78,4 +78,50 @@ test.describe('J7 — stopping at 55 from savings (question A)', () => {
       await words();
     });
   });
+
+  test('how the savings grow (6.22.0): under the savings box once there are savings, "Mostly cash" unless chosen; what was assumed says it, with Change; "Invested like my pension" gives Node\'s figures', async ({ page }) => {
+    test.setTimeout(240_000);
+    const typing = fixtureTyping('A4');
+    const app = v7(page, 'test', 'a');
+    await app.open('#/a/numbers');
+    await app.ready();
+    // nothing in savings: the choice is not asked
+    await expect(app.id('a.isaGrowth.cash')).toHaveCount(0);
+    await app.fill(typing);
+    await app.toSpend('a');
+    await app.rail('numbers');
+    await app.at('a.numbers');
+    // straight under the savings box, "Mostly cash" ticked
+    await expect(app.id('a.isaGrowth.cash')).toBeChecked();
+    await expect(app.id('a.isaGrowth.invested')).not.toBeChecked();
+    const order = await page.$$eval('#app [data-field]', (els) => els.map((el) => el.getAttribute('data-field')));
+    expect(order.indexOf('isaGrowth'), 'drawn straight after the savings box').toBe(order.indexOf('savings') + 1);
+    await expect(page.locator('#app fieldset[data-field="isaGrowth"] legend')).toHaveText('How your savings grow');
+
+    await app.click('a.action.show');
+    await app.at('a.answer');
+    await app.ready(120_000);
+    const cash = app.engine(CHART);
+    expect(cash.inputs.isaGrowth).toBe('cash');
+    await expectHeadlineA(page, cash);
+    const line = page.locator('#app [data-assumed-id="savings-growth"]');
+    expect(await line.textContent()).toContain(cash.assumed.find((x) => x.id === 'savings-growth').text);
+    await expect(line).toContainText('They grow like cash');
+    const change = line.locator('a[data-testid="assumed.savings-growth.change"]');
+    await expect(change).toHaveAttribute('href', '#/a/numbers?focus=isaGrowth');
+    // "Change" puts the cursor on the choice (on a phone the block opens first)
+    if (!(await change.isVisible())) await app.click('a.toggle.assumed');
+    await change.click();
+    await app.at('a.numbers');
+    await expect(app.id('a.isaGrowth.cash')).toBeFocused();
+    await app.set('isaGrowth', 'invested');
+    await app.click('a.action.show');
+    await app.at('a.answer');
+    await app.ready(120_000);
+    const invested = app.engine(CHART);
+    expect(invested.inputs.isaGrowth).toBe('invested');
+    await expectHeadlineA(page, invested);
+    expect(await page.locator('#app [data-assumed-id="savings-growth"]').textContent()).toContain('They are invested like your pension');
+    expect(invested.shown.potAtStop.middling, 'invested savings end higher in the middle case here').not.toBe(cash.shown.potAtStop.middling);
+  });
 });

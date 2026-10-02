@@ -42,10 +42,12 @@ const APART_PATHS = ['partner.stop.kind', 'partner.stop.age', 'untilBothStop', '
 const same = (paths) => paths.map((p) => [p, p]);
 
 /**
- * The person block C, A and B all have — and the settings all three ask: the risk level, the one fund and platform
- * charge (6.19.0: C asks it too, so it is carried every way and a hand-over shows the same figure), the end age.
+ * The person block C, A and B all have — and the settings all three ask: how the savings grow (6.22.0: "Mostly cash" or
+ * "Invested like my pension", as chosen; not chosen, nothing is carried and the default stands), the risk level, the one
+ * fund and platform charge (6.19.0: C asks it too, so it is carried every way and a hand-over shows the same figure), the
+ * end age.
  */
-const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, ...APART_PATHS, 'savings', 'risk', 'charge', 'endAge']);
+const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, ...APART_PATHS, 'savings', 'isaGrowth', 'risk', 'charge', 'endAge']);
 
 /** What A and B share beyond the person block: the spending, the pay-ins, the saving settings (the stop age apart). */
 const SAVER_FIELDS = [

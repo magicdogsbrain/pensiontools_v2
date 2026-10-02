@@ -30,6 +30,7 @@ import { defaultBudget } from '../services/BudgetModel.js';
 import { deriveTiming } from '../services/PlanTiming.js';
 import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
+import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
@@ -325,7 +326,9 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
     stressTool: {
       // Fund and platform charges (6.19.0): every new plan — "+ New plan", the setup wizard, a partner plan, a demo or
       // guest plan, a plan made from a V7 answer — starts at the default, 0.5% a year. A Stress setting only.
-      settings: { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT }
+      // How the ISA and savings grow (6.22.0): every new plan starts "Mostly cash". A Stress setting only — never in
+      // getDefaultStressSettings, which is merged under stored plans and would hand it to a locked one.
+      settings: { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT, isaGrowth: DEFAULT_ISA_GROWTH }
     },
     budgetTool: {
       settings: getDefaultBudget()
@@ -342,6 +345,17 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
  */
 export function chargesPatchOnUnlock(stressSettings) {
   return isChargesPct(stressSettings && stressSettings.chargesPct) ? null : { chargesPct: DEFAULT_CHARGES_PCT };
+}
+
+/**
+ * Everything unlocking writes into a plan locked before a setting existed (6.22.0): the default charge (6.19.0, D2) and
+ * "Mostly cash" for a plan with no choice of how its ISA grows (owner D4) — the defaults every unlocked plan has. One
+ * Stress-settings patch, or null when the plan already carries both. Pure.
+ * @returns {{ chargesPct?: number, isaGrowth?: string }|null}
+ */
+export function unlockPatchesOf(stressSettings) {
+  const patch = { ...(chargesPatchOnUnlock(stressSettings) || {}), ...(isIsaGrowth(stressSettings && stressSettings.isaGrowth) ? {} : { isaGrowth: DEFAULT_ISA_GROWTH }) };
+  return Object.keys(patch).length ? patch : null;
 }
 
 /**
@@ -539,10 +553,13 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
   }
   // Fund and platform charges (6.19.0, D7): an UNLOCKED copy of a plan with no setting (one locked before charges) gets
   // the original's effective value written, 0 — the copy reproduces the original's figures, and the 0 is visible and
-  // changeable in Settings. A copy that is locked (it carries records) is left as the original was.
+  // changeable in Settings. How the ISA grows (6.22.0, owner D3): such a copy is a new plan, so it starts "Mostly cash" —
+  // the original's fixed 3% is not one of the two choices. A copy that is locked (it carries records) is left as the
+  // original was.
   const copySt = data.stressTool && typeof data.stressTool === 'object' && data.stressTool.settings && typeof data.stressTool.settings === 'object' ? data.stressTool.settings : null;
-  if (copySt && !isChargesPct(copySt.chargesPct) && !isLockedScenario(data)) {
-    data.stressTool = { ...data.stressTool, settings: { ...copySt, chargesPct: chargesForCopy(copySt) } };
+  if (copySt && !isLockedScenario(data)) {
+    const patch = { ...(isChargesPct(copySt.chargesPct) ? {} : { chargesPct: chargesForCopy(copySt) }), ...(isIsaGrowth(copySt.isaGrowth) ? {} : { isaGrowth: DEFAULT_ISA_GROWTH }) };
+    if (Object.keys(patch).length) data.stressTool = { ...data.stressTool, settings: { ...copySt, ...patch } };
   }
 
   const newId = await createScenario(data);
@@ -635,9 +652,9 @@ export async function deleteScenario(scenarioId) {
 export async function getActiveStressSettings() {
   const scenario = await getActiveScenarioAsync();
   if (scenario?.stressTool?.settings) return scenario.stressTool.settings;
-  // No Stress settings saved yet: the defaults — with the default fund and platform charge only when the plan is not
-  // locked (6.19.0); a locked plan without settings keeps running without charges.
-  return scenario && !isLockedScenario(scenario) ? { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT } : getDefaultStressSettings();
+  // No Stress settings saved yet: the defaults — with the default fund and platform charge and "Mostly cash" only when
+  // the plan is not locked (6.19.0, 6.22.0); a locked plan without settings keeps running without charges, its ISA at 3%.
+  return scenario && !isLockedScenario(scenario) ? { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT, isaGrowth: DEFAULT_ISA_GROWTH } : getDefaultStressSettings();
 }
 
 /**

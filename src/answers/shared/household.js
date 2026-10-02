@@ -40,6 +40,13 @@
  *   a year (0.5 = 0.5%), 0 to 3 — taken monthly from what is held in funds and cash, while saving (saving.js) AND while
  *   drawing (toEngine.js hands it to every run); never from the State Pension or a final-salary pension. 0.5 unless given.
  *   (Before 6.19.0 a saver household carried `saving.charge`, a share a year, for the saving years only.)
+ * @property {'cash'|'invested'} [isaGrowth]    every question (6.22.0; services/IsaGrowth.js): how the ISAs and savings grow,
+ *   while saving (saving.js) AND while drawing (toEngine.js hands it to every run) — 'cash' ("Mostly cash": last year's
+ *   rise in prices less 1%, never below nothing, as the pension's own cash grows) or 'invested' ("Invested like my
+ *   pension": the pension's mix, in the same futures). Kept as given, and never added here: every household the forms
+ *   make has one ("Mostly cash" unless chosen — a/b/c toHousehold.js), so any savings it holds, or that an answer works
+ *   with, grow as the form says. Absent (a household made by hand), the engines grow savings at their fixed rate, as
+ *   before 6.22.0.
  * @property {number} planToAge                 for a couple: until the YOUNGER person is this age
  * @property {{ kind: 'risk', level: 'cautious'|'balanced'|'adventurous' } | { kind: 'mix', equity: number, bond: number, cash: number }} portfolio
  * @property {{ id: string }} strategy
@@ -57,6 +64,7 @@
  */
 import { fullStatePensionYearly, addYears, accessAgeOn, RULES } from './rules.js';
 import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS, isChargesPct } from '../../services/Charges.js';
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { SHAPE_LIMITS, THEN } from './shape.js';
 
 /**
@@ -291,6 +299,9 @@ export function startAsGiven(household, now) {
  * and given the owner's default (APART.payCoversDefault: half) when it is not → 'stop-apart'. A partner whose stop is not
  * given stops when the first person does → 'both-stop-together' (only then: a stop given is not an assumption).
  *
+ * How the ISAs and savings grow (6.22.0): `isaGrowth` is kept as given ('cash' | 'invested'), only when there is one — the
+ * forms always give one ("Mostly cash" unless chosen), so it is never an assumption made here.
+ *
  * @returns {{ household: Household, assumed: { id: string, who?: string }[] }}
  */
 export function expandHousehold(short, now) {
@@ -394,6 +405,9 @@ export function expandHousehold(short, now) {
   if (people.length > 1) note('both-alive');
 
   const household = { inputVersion: 1, people, spending: src.spending || null, planToAge, portfolio, strategy, chargesPct };
+  // How the ISAs and savings grow (6.22.0): carried as given, only when there is one (every form gives one; a household
+  // made by hand without one is today's, key for key)
+  if (isIsaGrowth(src.isaGrowth)) household.isaGrowth = src.isaGrowth;
   if (saver) {
     const sv = typeof src.saving === 'object' ? src.saving : {};
     const level = portfolio.kind === 'risk' ? portfolio.level : 'balanced';
@@ -458,6 +472,9 @@ export function validateHousehold(household, now) {
   if (h.saving && !RISK_LEVELS.includes(h.saving.risk)) bad('saving.risk', 'notAnOption');
   // the one charge, when the household carries it (every household the model makes does; absent = none, as the engine reads it)
   if (h.chargesPct !== undefined) range('chargesPct', h.chargesPct, HOUSEHOLD_LIMITS.chargesPct);
+  // how the savings grow (6.22.0), when the household carries it (every household the forms make does; absent = the
+  // engines' fixed rate, as they read it)
+  if (h.isaGrowth !== undefined && !isIsaGrowth(h.isaGrowth)) bad('isaGrowth', 'notAnOption');
 
   const planOk = range('planToAge', h.planToAge, HOUSEHOLD_LIMITS.planToAge);
   const pf = h.portfolio || {};

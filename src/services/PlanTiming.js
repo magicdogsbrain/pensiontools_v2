@@ -19,6 +19,10 @@
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { chargesPctOf } from './Charges.js';
+import { isaGrowthOf, cashProjectionRate } from './IsaGrowth.js';
+import { isaFundsDecide } from './IsaFunds.js';
+import { potScaleOf, sippTodayOf } from './PotsAtRetirement.js';
+import { INFLATION_DEFAULTS } from '../constants.js';
 
 const MS_PER_DAY = 24 * 3600 * 1000;
 
@@ -238,33 +242,54 @@ export function deriveTiming(settings, now = new Date()) {
     yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now) };
 }
 
-/** Today's SIPP-side pot as the settings describe it (the allocation pots + diversifiers). */
-export function sippTodayOf(settings) {
-  const s = settings || {};
-  return (+s.equityMin || 0) + (+s.bondMin || 0) + (+s.cashTarget || 0) + (+s.diversifierStart || 0);
+// Today's SIPP-side pot, the pots-at-retirement scale and the ISA a run starts from live in ./PotsAtRetirement.js (a light
+// module the Drawdown table and the household checks can import without this one's engines); kept here by name.
+export { sippTodayOf, potScaleOf, isaAtRetirementOf } from './PotsAtRetirement.js';
+
+/**
+ * How the projections to retirement grow the ISA (the Timing block, the Accumulation planner's column, the age spin):
+ *   { kind, payIns, fromFunds } — `kind` the growth line ('cash' | 'invested', or null: the line used before the choice);
+ *   `payIns` whether what goes into ISAs and savings each month is paid in.
+ *  - no choice (a plan locked before it): the line used before, nothing paid in;
+ *  - the ISA funds in the list of funds to test decide (the runs follow them, and the choice is hidden behind their line):
+ *    the line used before the choice too — never the hidden choice (review of 6.22.0: a shares ISA was projected as cash)
+ *    — with the pay-ins;
+ *  - otherwise the plan's choice, with the pay-ins.
+ */
+export function isaProjectionOf(settings) {
+  const kind = isaGrowthOf(settings);
+  const fromFunds = isaFundsDecide(settings);
+  return { kind: fromFunds ? null : kind, payIns: !!kind, fromFunds };
 }
 
 /**
- * Scale factors that turn today's pots into the pots at retirement (future mode only). Read from the
- * saved `potAtRetirement` — the UI writes the projection (or the user's override) there at save time,
- * so the engines never need the Accumulation inputs. 1 when nothing is set.
+ * The ISA year by year to retirement (today's money; projectAccumulation's rows) by how the plan's ISA grows (6.22.0,
+ * services/IsaGrowth.js; isaProjectionOf):
+ *   - no choice (a plan locked before it): the FCA middle band less charges, nothing paid in — as before the choice;
+ *   - the ISA funds in the list of funds to test decide: the same middle band (6.21.0's figure), with the pay-ins;
+ *   - 'cash' ("Mostly cash"): the cash rule at the planner's 2.5% prices, 1.5% a year, less charges;
+ *   - 'invested' ("Invested like my pension"): the pension's middle band, less charges.
+ * With a choice, what goes into ISAs and savings each month (accumulation.isaMonthly) is paid in, rising with the
+ * planner's "Raise contributions by" as the pension's payments do. The Timing block's ISA at retirement is the last row;
+ * the Accumulation planner's "ISA and savings" line shows them all (src/ui/accumulationProjection.js), so the two agree.
  */
-export function potScaleOf(settings) {
-  const s = settings || {};
-  const p = s.potAtRetirement;
-  const out = { sipp: 1, isa: 1 };
-  if (!p || s.retired !== false) return out;
-  const sippToday = sippTodayOf(s), isaToday = +s.isaBalance || 0;
-  if (+p.sipp > 0 && sippToday > 0) out.sipp = +p.sipp / sippToday;
-  if (+p.isa > 0 && isaToday > 0) out.isa = +p.isa / isaToday;
-  return out;
+export function projectedIsaRows(stress, accumulation, years, isaToday, chargesPct = chargesPctOf(stress)) {
+  const a = accumulation || {};
+  const how = isaProjectionOf(stress);
+  const isaMonthly = how.payIns && Number.isFinite(+a.isaMonthly) && +a.isaMonthly > 0 ? +a.isaMonthly : 0;
+  return projectAccumulation({ currentAge: 0, retirementAge: years, potNow: isaToday, totalMonthly: isaMonthly, escalationPct: +a.escalationPct || 0, chargesPct,
+    ...(how.kind === 'cash' ? { fixedNominal: cashProjectionRate(INFLATION_DEFAULTS.ASSUMED_CPI) } : {}) });
+}
+function projectedIsa(stress, a, years, isaToday, chargesPct) {
+  const rows = projectedIsaRows(stress, a, years, isaToday, chargesPct);
+  return rows[rows.length - 1];
 }
 
 /**
  * Projected pots at retirement in TODAY'S money, from the Accumulation planner's saved inputs
  * (contributions, escalation) at the FCA middle band, less the plan's fund and platform charges (stress.chargesPct,
  * 6.19.0; none on a plan without the setting). With no contributions saved the pots simply
- * grow at the middle band — the UI says so.
+ * grow at the middle band — the UI says so. The ISA follows the plan's ISA choice (6.22.0; projectedIsa).
  */
 export function projectedPotAtRetirement(stress, accumulation, now = new Date()) {
   const t = deriveTiming(stress, now);
@@ -279,8 +304,7 @@ export function projectedPotAtRetirement(stress, accumulation, now = new Date())
   const chargesPct = chargesPctOf(stress);   // the plan's fund and platform charges come off the saving years too (6.19.0)
   const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: sippToday, totalMonthly, escalationPct: +a.escalationPct || 0, chargesPct });
   const last = rows[rows.length - 1];
-  const isaRows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow: isaToday, totalMonthly: 0, chargesPct });
-  const isaLast = isaRows[isaRows.length - 1];
+  const isaLast = projectedIsa(stress, a, years, isaToday, chargesPct);
   return { sipp: Math.round(last.potMid), isa: Math.round(isaLast.potMid), low: Math.round(last.potLow), high: Math.round(last.potHigh), years, source: 'accumulation', hasContributions: totalMonthly > 0 };
 }
 

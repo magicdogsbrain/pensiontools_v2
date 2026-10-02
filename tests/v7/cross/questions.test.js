@@ -78,6 +78,8 @@ function aAtStopNow(c, spend, { payIn = 0, partnerPayIn = 0, savingRisk = 'balan
     household: c.household,
     you: { ...personOf(c.you), payIn: { kind: 'total', total: payIn } },
     savings: c.savings || 0,
+    // how the savings grow (6.22.0): C's choice, which A asks as well
+    ...(c.isaGrowth !== undefined ? { isaGrowth: c.isaGrowth } : {}),
     stop: { kind: 'age', age: c.you.age },
     spend: { kind: 'amount', amount: spend },
     partTime: { has: false },

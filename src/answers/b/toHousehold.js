@@ -20,6 +20,9 @@
  *   savingRisk            → household.saving { risk }
  *   charge                → household.chargesPct, percent a year as typed (6.19.0: the one charge, saving and drawing;
  *                           0.05 stays 0.05 — no rounding to tenths)
+ *   isaGrowth             → household.isaGrowth, 'cash' or 'invested' (6.22.0: how the savings grow, saving and drawing;
+ *                           on the form only once there is money in savings; not given, "Mostly cash": every household
+ *                           the form makes says how its savings grow)
  *
  * `env.mix` (tests only) holds the drawing years in an exact mix, as C; `env.savingMix` is read by the saving years.
  *
@@ -32,8 +35,9 @@
  *
  * @returns {{ household: import('../shared/household.js').Household, assumed: { id: string, who?: string }[], fullStatePensionAYear: number, S: number }}
  */
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { expandHousehold } from '../shared/household.js';
-import { fullStatePensionYearly } from '../shared/rules.js';
+import { fullStatePensionYearly, RULES } from '../shared/rules.js';
 import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf, shapeOfInputs, spendLevelAMonth } from '../shared/schemaParts.js';
 
 /** What lands in `who`'s pension each month, as given. */
@@ -77,6 +81,9 @@ export function toHousehold(inputs, env, stopAge) {
     spending,
     saving,
     ...(typeof inputs.charge === 'number' && Number.isFinite(inputs.charge) ? { chargesPct: inputs.charge } : {}),
+    // how the savings grow (6.22.0): as chosen, else "Mostly cash" — also with no savings today, so any savings the answer
+    // works with (B's set aside for the years before a pension opens) grow as the form would grow them
+    isaGrowth: isIsaGrowth(inputs.isaGrowth) ? inputs.isaGrowth : RULES.isaGrowthDefault,
     ...untilBothStopOf(inputs),
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }

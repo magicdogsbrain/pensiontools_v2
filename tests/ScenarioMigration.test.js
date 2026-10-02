@@ -348,7 +348,7 @@ describe('a plan is created in today\'s shape — new, duplicated or handed over
     const u = upgradeScenario({ id: 'x', name: 'Legacy', decisionSettings: { equityMin: 3 }, stressSettings: { pacwMin: 4 } }, { now: new Date('2026-09-30T08:00:00Z') });
     expect(u.write).toBe(true); expect(u.from).toBe(0); expect(u.to).toBe(SCHEMA_VERSION); expect(u.error).toBeNull(); expect(u.newer).toBe(false);
     expect(u.scenario.planDetails.name).toBe('Legacy');
-    expect(u.scenario.stressTool.settings).toEqual({ pacwMin: 4, equityMin: 4, chargesPct: 0.5 });   // 6.19.0: unlocked → the default charge
+    expect(u.scenario.stressTool.settings).toEqual({ pacwMin: 4, equityMin: 4, chargesPct: 0.5, isaGrowth: 'cash' });   // 6.19.0: unlocked → the default charge; 6.22.0: "Mostly cash"
     expect(u.scenario.decisionTool.settings).toEqual({ equityMin: 3 });
     expect(u.scenario.schemaVersion).toBe(SCHEMA_VERSION);
   });

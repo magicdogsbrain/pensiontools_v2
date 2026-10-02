@@ -3,6 +3,7 @@
  * index.html (the strategy card, the staircase SVG) are injected so this module stays testable.
  */
 import { esc } from './ReleaseNotesView.js';
+import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -145,6 +146,7 @@ export function planDocumentHtml(doc, r = {}) {
     ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · SIPP cash to the first April ' + gbp(A.bridgeCash) : '')]] : []),
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(A.giltPricesAsOf)]] : []),
     ['Fund and platform charges', chargesAssumptionText(A)],
+    ['How the ISA and savings grow', esc(isaGrowthAssumptionText(A))],
     ['Engine', 'v' + esc(d.engineVersion || '') + ' (app v' + esc(d.appVersion || '') + ')']
   ]);
   as += '<div class="section-title" style="font-size:13px;margin-top:10px;">How the Decision tool runs this plan</div><ul>'
@@ -159,6 +161,8 @@ export function planDocumentHtml(doc, r = {}) {
   if (d.accumulation && d.accumulation.potNow == null) {
     // Locked with no pot on record (6.13.0): the path could not be drawn — say what to do, never invent one.
     h += section('4b. Getting there — the locked accumulation path', '<p>The plan was locked without a pension pot on record' + (d.accumulation.totalMonthly ? ' (' + gbp(d.accumulation.totalMonthly) + ' a month going in)' : '') + '. Record what you hold on the Transition tab (or the pot today on the Accumulation planner) and refresh the plan document; the path from today to age ' + esc(String(d.accumulation.retireAge || '')) + ' is then drawn from your own pot, not from the pots the strategy was tested on.</p>');
+  } else if (d.accumulation && d.accumulation.version === 3 && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
+    h += section('4b. Getting there — the locked saving path', savingPathV3Html(d));
   } else if (d.accumulation && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
     const A = d.accumulation; const hasMix = A.path[0].potMix != null;
     let gt = '<p>Pension pot ' + gbp(A.potNow) + ' today' + (A.potSource === 'holdings' ? ' (from what you hold)' : A.potSource === 'accumulation' ? ' (the pot today on the Accumulation planner)' : '') + (A.totalMonthly ? ', ' + gbp(A.totalMonthly) + ' a month going in' : '') + (A.mixText ? ', held as ' + esc(A.mixText) : '') + '. In today\'s money:</p>'
@@ -173,6 +177,38 @@ export function planDocumentHtml(doc, r = {}) {
   }
   h += '<p class="hint" style="margin-top:12px;">Illustration, not advice. This document records the plan as it was when it was locked; it does not change when markets or the app move. Compare it with the live Decision tool each month.</p>';
   h += '</div>';
+  return h;
+}
+
+/** { equity, bond, cash } shares of 1 → '100% shares · 0% bonds · 0% cash'. */
+const mixWords = (m) => Math.round((+m.equity || 0) * 100) + '% shares · ' + Math.round((+m.bond || 0) * 100) + '% bonds · ' + Math.round((+m.cash || 0) * 100) + '% cash';
+const ISA_GROWS = { cash: 'grows mostly as cash (last year\'s rise in prices, less 1% a year)', invested: 'is invested like your pension' };
+/**
+ * Section 4b for a saving path drawn on V7's saving-years engine (6.22.0, plan document version 3; SavingPath.js): the
+ * pension and the ISA with what goes into each, 1,000 futures, the middle line and the 1-in-10 bad and good lines.
+ */
+export function savingPathV3Html(d) {
+  const A = d.accumulation;
+  const when = whenText(A.asOf);
+  const step = A.path.length > 13 ? 5 : 1;
+  const rows = A.path.filter((r, i) => i === 0 || i === A.path.length - 1 || i % step === 0);
+  const isa = (+A.isaNow || 0) > 0 || (+A.isaMonthly || 0) > 0;
+  let h = '<p>Pension pot ' + gbp(A.potNow) + (A.potSource === 'holdings' ? ' (from what you hold)' : A.potSource === 'accumulation' ? ' (the pot today on the Accumulation planner)' : '')
+    + (isa ? ' and ISA and savings ' + gbp(A.isaNow) : '') + (when ? ' in ' + esc(when) : '')
+    + (A.totalMonthly ? '; ' + gbp(A.totalMonthly) + ' a month going into the pension' : '') + (A.isaMonthly ? (A.totalMonthly ? ' and ' : '; ') + gbp(A.isaMonthly) + ' a month into ISAs and savings' : '')
+    + ((A.totalMonthly || A.isaMonthly) && A.escalationPct ? ', raised by ' + esc(fmtPct(A.escalationPct)) + '% a year' : '')
+    + (A.mixText ? '; the pension held as ' + esc(A.mixText) : '') + '.'
+    + (isa ? ' The ISA ' + (A.isaFromFunds ? 'follows the ISA funds in your list of funds to test' + (A.isaMix ? ' (' + mixWords(A.isaMix) + ')' : '') : ISA_GROWS[A.isaGrowth] || 'grows at a fixed ' + esc(fmtPct((+A.isaReturn || 0.03) * 100)) + '% a year') + '.' : '')
+    + ' Drawn on ' + Math.round(+A.lives || 0).toLocaleString('en-GB') + ' possible futures, one per life (the same lives as the preview\'s saving-years engine). In the prices of ' + esc(when || 'the day it was drawn') + ':</p>';
+  h += table(['Age', '1-in-10 bad', 'Middle', '1-in-10 good', ...(isa ? ['Pension (middle)', 'ISA (middle)'] : []), 'Paid in (pounds of the day)'],
+    rows.map((r) => [String(Math.round(r.age)), gbp(r.real.careful), gbp(r.real.middling), gbp(r.real.good), ...(isa ? [gbp(r.pension.real), gbp(r.isa.real)] : []), gbp(r.paidIn)]));
+  const par = d.pots && d.pots.potAtRetirement;
+  const last = A.path[A.path.length - 1];
+  if (par && (+par.sipp > 0 || +par.isa > 0)) {
+    h += '<p class="hint">The plan was priced on pots at ' + esc(String(A.retireAge)) + ' of ' + gbp(par.sipp) + (+par.isa > 0 ? ' and ISA ' + gbp(par.isa) : '') + ' (the Timing block, in today\'s money). On the futures this path was drawn on, the middle pot at ' + esc(String(A.retireAge)) + ' is ' + gbp(last.real.middling) + ' (pension ' + gbp(last.pension.real) + (isa ? ', ISA ' + gbp(last.isa.real) : '') + ').</p>';
+  }
+  if (+A.chargesPct > 0) h += '<p class="hint">After fund and platform charges of ' + esc(fmtPct(A.chargesPct)) + '% a year, taken off every month.</p>';
+  h += '<p class="hint">Record your pot each month on the Accumulation planner' + (isa ? ' — your pension and your ISA' : '') + '; the "where you are" strip reads it against these lines in pounds of the day (each future carries its own prices, so no rise in prices has to be assumed). When the plan starts, the first Decision entry checks the pot you arrive with against the middle line at the stop.</p>';
   return h;
 }
 
@@ -262,18 +298,53 @@ export function whereAmIPotText(pot) {
   return s + leftOut + staleText(P.stale);
 }
 
+const SAVER_V3_BAND = {
+  'below p10': (s) => '<strong>below the locked path\'s 1-in-10 bad line</strong> (' + gbp(s.low) + ')',
+  'p10–p50': (s) => 'between the 1-in-10 bad line (' + gbp(s.low) + ') and the middle (' + gbp(s.expected) + ')',
+  'p50–p90': (s) => 'between the middle (' + gbp(s.expected) + ') and the 1-in-10 good line (' + gbp(s.high) + ')',
+  'above p90': (s) => '<strong>above the locked path\'s 1-in-10 good line</strong> (' + gbp(s.high) + ')'
+};
+/** 'YYYY-MM' → 'July 2026' (no day). */
+const monthText = (k) => whenText(String(k || '').slice(0, 7));
+/**
+ * The saver's sentence of the strip (6.22.0; services/SaverReading.js): the recorded pot against the locked saving path,
+ * like with like. A path drawn before 6.22.0 is the pension only, in the prices of the day it was drawn: the pot is put
+ * into those prices (2.5% a year, as the path was drawn) and the words say so. A path drawn from 6.22.0 counts the ISA
+ * too and is in pounds of the day: no price assumption. A figure the path needs that is missing → nothing compared, and
+ * what to add.
+ */
+export function saverReadingText(s) {
+  if (!s) return '';
+  const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(s.recordedAt) : s.actualSource === 'holdings' ? 'from what you hold' : '';
+  const from = src ? ' (' + src + ')' : '';
+  if (s.pathMissing) return 'The plan was locked without a pension pot on record, so there is no locked path to read against' + (s.actual != null ? ' — your pot today is ' + gbp(s.actual) + (s.actualSource === 'holdings' ? ' from what you hold' : '') : '') + '. Record what you hold and refresh the plan document.';
+  const missing = Array.isArray(s.missing) ? s.missing : [];
+  if (missing.includes('pension') || (s.actual == null && !missing.length)) return s.expected != null ? 'The locked path expects about ' + gbp(s.expected) + (s.version === 3 ? (s.isaCounted ? ' in your pension and ISA now, in pounds of the day' : ' in the pension pot now, in pounds of the day') : ' in the pension pot now') + '. Record this month\'s pot on the Accumulation planner to compare.' : '';
+  if (missing.includes('isa')) return 'Pension pot ' + gbp(s.pension) + from + '. The locked path counts your ISA as well, and there is no ISA figure with it, so the pot is not set against the path. Add your ISA to the monthly record on the Accumulation tab to compare.';
+  if (s.version === 3) {
+    const what = s.isaCounted ? 'Pension and ISA ' + gbp(s.actual) + ' (' + (src ? src + ': ' : '') + 'pension ' + gbp(s.pension) + ', ISA ' + gbp(s.isa) + ')' : 'Pension pot ' + gbp(s.actual) + from;
+    if (s.band === 'start') return what + ', in pounds of the day, against ' + gbp(s.expected) + ' the locked path starts from; its lines open as the months go on.';
+    const band = SAVER_V3_BAND[s.band];
+    return what + ', in pounds of the day, against ' + gbp(s.expected) + ', the middle of the locked path for then' + (band ? ' — ' + band(s) : '') + '.';
+  }
+  const pr = s.prices;
+  const prices = pr && pr.factor && Math.abs(pr.factor - 1) >= 0.0005 && s.compared != null
+    ? ', which is ' + gbp(s.compared) + ' in the prices of ' + esc(monthText(pr.start)) + ', when this path was drawn (prices assumed to rise ' + ((pr.cpi || 0.025) * 100).toFixed(1) + '% a year, as the path does)'
+    : '';
+  return 'Pension pot ' + gbp(s.actual) + from + prices + ', against ' + gbp(s.expected) + ' on the locked path for then — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '. This path was drawn before ISAs were counted: it follows your pension only.';
+}
+
 /** The "where you are" strip. */
 export function whereAmIHtml(w) {
   if (!w) return '';
   const parts = [];
   if (w.saving && w.bridge) {
-    // Still saving for a plan locked in advance (6.7.0)
+    // Still saving for a plan locked in advance (6.7.0; read like with like from 6.22.0 — saverReadingText)
     const s = w.saving;
     parts.push('<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong> — the plan starts in ' + esc(w.planStart) + '.');
-    if (s.pathMissing) parts.push('The plan was locked without a pension pot on record, so there is no locked path to read against' + (s.actual != null ? ' — your pot today is ' + gbp(s.actual) + (s.actualSource === 'holdings' ? ' from what you hold' : '') : '') + '. Record what you hold and refresh the plan document.');
-    else if (s.actual != null && s.expected != null) parts.push('Pension pot ' + gbp(s.actual) + (s.recordedAt ? ' (' + (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(s.recordedAt) + ')' : s.actualSource === 'holdings' ? ' (from what you hold)' : '') + ' against ' + gbp(s.expected) + ' on the locked path — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '.');
-    else if (s.expected != null) parts.push('The locked path expects about ' + gbp(s.expected) + ' in the pension pot now. Record this month\'s pot on the Accumulation planner to compare.');
-    if (s.contributions > 0) parts.push('Contributions on the locked plan: ' + gbp(s.contributions) + ' a month gross.');
+    const text = saverReadingText(s);
+    if (text) parts.push(text);
+    if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');
   }
   else if (w.bridge) parts.push('<strong>Run-up month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan\'s year 0, ' + esc(w.planStart) + '. Drawn from your SIPP cash; the ladder\'s rungs begin at year 0.');
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');

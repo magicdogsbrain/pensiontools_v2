@@ -16,7 +16,7 @@
    "firstTaxYear": 2027,
    "startAge": 57,
    "decisionChecksum": "5f2f727e",
-   "stressChecksum": "-5ae263b",
+   "stressChecksum": "-64a0e9a6",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -92,7 +92,7 @@
    "firstTaxYear": 2027,
    "startAge": 63,
    "decisionChecksum": "7df0297a",
-   "stressChecksum": "c2b7fe0",
+   "stressChecksum": "-15b52fc1",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -109,13 +109,13 @@
    "headline": {
     "affordable": true,
     "ruinHist": 0,
-    "ruinMc": 2,
-    "coverage": 99.68,
+    "ruinMc": 1.9,
+    "coverage": 99.74,
     "worst12Min": 23664,
     "worst12Median": 26173,
-    "terminalP10": 148285,
-    "terminalP50": 689919,
-    "terminalP90": 2863998,
+    "terminalP10": 151745,
+    "terminalP50": 679233,
+    "terminalP90": 2839263,
     "spentMedian": 1086169,
     "guaranteedToAge": "State Pension only (from age 67)",
     "cone": {
@@ -128,24 +128,24 @@
      ],
      "wealthP10": [
       745000,
-      484322,
-      416869,
-      302559,
-      150624
+      483928,
+      416663,
+      305048,
+      155235
      ],
      "wealthP50": [
       745000,
-      684611,
-      659912,
-      632128,
-      691818
+      682757,
+      657147,
+      625901,
+      682992
      ],
      "wealthP90": [
       745000,
-      920941,
-      1101973,
-      1578602,
-      2843719
+      923276,
+      1101438,
+      1572659,
+      2807794
      ],
      "incomeP50": [
       38000,
@@ -508,7 +508,7 @@
    "firstTaxYear": 2027,
    "startAge": 59,
    "decisionChecksum": "abeecf5",
-   "stressChecksum": "-19b0de84",
+   "stressChecksum": "1d66439f",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -584,7 +584,7 @@
    "firstTaxYear": 2027,
    "startAge": 64,
    "decisionChecksum": "-7f36d59f",
-   "stressChecksum": "38e7f55e",
+   "stressChecksum": "9183fd",
    "historyMonths": 2,
    "taxYearsSetUp": [
     "26/27"
@@ -603,13 +603,13 @@
    "headline": {
     "affordable": true,
     "ruinHist": 0,
-    "ruinMc": 1.1,
-    "coverage": 99.92,
+    "ruinMc": 1,
+    "coverage": 99.94,
     "worst12Min": 22000,
     "worst12Median": 24979,
-    "terminalP10": 94367,
-    "terminalP50": 376892,
-    "terminalP90": 1315838,
+    "terminalP10": 97025,
+    "terminalP50": 371522,
+    "terminalP90": 1313119,
     "spentMedian": 794846,
     "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
     "cone": {
@@ -622,24 +622,24 @@
      ],
      "wealthP10": [
       518000,
-      361020,
-      313857,
-      205027,
-      96776
+      361695,
+      313165,
+      206437,
+      99480
      ],
      "wealthP50": [
       518000,
-      482594,
-      468339,
-      419782,
-      379250
+      482138,
+      468369,
+      420362,
+      376394
      ],
      "wealthP90": [
       518000,
-      622678,
-      719564,
-      960281,
-      1337699
+      620477,
+      717804,
+      959038,
+      1321860
      ],
      "incomeP50": [
       27500,
@@ -662,7 +662,7 @@
    "firstTaxYear": 2027,
    "startAge": 66,
    "decisionChecksum": "-3465e953",
-   "stressChecksum": "35cf1a91",
+   "stressChecksum": "-2610ec52",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -678,14 +678,14 @@
    "where": null,
    "headline": {
     "affordable": true,
-    "ruinHist": 5.58,
-    "ruinMc": 5.6,
-    "coverage": 99.27,
+    "ruinHist": 5.31,
+    "ruinMc": 5.3,
+    "coverage": 99.36,
     "worst12Min": 0,
     "worst12Median": 21394,
-    "terminalP10": 23537,
-    "terminalP50": 235131,
-    "terminalP90": 1150313,
+    "terminalP10": 25811,
+    "terminalP50": 230256,
+    "terminalP90": 1129823,
     "spentMedian": 741982,
     "guaranteedToAge": "State Pension only (from age 67)",
     "cone": {
@@ -698,24 +698,24 @@
      ],
      "wealthP10": [
       372000,
-      250537,
-      215204,
-      125810,
-      23972
+      250231,
+      215910,
+      127390,
+      25314
      ],
      "wealthP50": [
       372000,
-      353426,
-      340277,
-      293921,
-      240120
+      352974,
+      339070,
+      290141,
+      237206
      ],
      "wealthP90": [
       372000,
-      473687,
-      566696,
-      772034,
-      1159146
+      472956,
+      564778,
+      765388,
+      1160083
      ],
      "incomeP50": [
       24000,
@@ -738,7 +738,7 @@
    "firstTaxYear": 2029,
    "startAge": 62,
    "decisionChecksum": "68ca8666",
-   "stressChecksum": "-6e2b4dd2",
+   "stressChecksum": "63cfe107",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -755,13 +755,13 @@
    "headline": {
     "affordable": true,
     "ruinHist": 0,
-    "ruinMc": 1.1,
-    "coverage": 99.89,
+    "ruinMc": 1,
+    "coverage": 99.91,
     "worst12Min": 14400,
     "worst12Median": 15216,
-    "terminalP10": 85223,
-    "terminalP50": 360692,
-    "terminalP90": 1390363,
+    "terminalP10": 85119,
+    "terminalP50": 359500,
+    "terminalP90": 1388156,
     "spentMedian": 589500,
     "guaranteedToAge": "State Pension only (from age 67)",
     "cone": {
@@ -774,24 +774,24 @@
      ],
      "wealthP10": [
       288497,
-      170550,
-      153822,
-      129788,
-      86506
+      169861,
+      154696,
+      130461,
+      87610
      ],
      "wealthP50": [
       288497,
-      256882,
-      263791,
-      291794,
-      368099
+      256443,
+      262933,
+      290305,
+      361662
      ],
      "wealthP90": [
       288497,
-      358086,
-      454684,
-      729863,
-      1427790
+      357887,
+      457008,
+      727325,
+      1428521
      ],
      "incomeP50": [
       18000,
@@ -814,7 +814,7 @@
    "firstTaxYear": 2027,
    "startAge": 57,
    "decisionChecksum": "5f2f727e",
-   "stressChecksum": "5bd567dc",
+   "stressChecksum": "-425ffd1f",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -890,7 +890,7 @@
    "firstTaxYear": 2027,
    "startAge": 60,
    "decisionChecksum": "1034a7a6",
-   "stressChecksum": "-7c76a4bb",
+   "stressChecksum": "-76a966ae",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -907,13 +907,13 @@
    "headline": {
     "affordable": true,
     "ruinHist": 0,
-    "ruinMc": 0.2,
-    "coverage": 99.99,
+    "ruinMc": 0,
+    "coverage": 100,
     "worst12Min": 30694,
     "worst12Median": 34000,
-    "terminalP10": 243009,
-    "terminalP50": 778084,
-    "terminalP90": 2630645,
+    "terminalP10": 252383,
+    "terminalP50": 765131,
+    "terminalP90": 2554408,
     "spentMedian": 1379434,
     "guaranteedToAge": "State Pension only (from age 67)",
     "cone": {
@@ -926,24 +926,24 @@
      ],
      "wealthP10": [
       585000,
-      476863,
-      441302,
-      374402,
-      245863
+      476366,
+      443806,
+      388472,
+      256641
      ],
      "wealthP50": [
       585000,
-      639045,
-      653418,
-      714002,
-      795395
+      635595,
+      645249,
+      701074,
+      775162
      ],
      "wealthP90": [
       585000,
-      815946,
-      988012,
-      1479654,
-      2652718
+      814592,
+      971390,
+      1453049,
+      2634893
      ],
      "incomeP50": [
       48000,

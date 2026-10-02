@@ -33,7 +33,8 @@
     "savingRisk": "balanced",
     "risk": "balanced",
     "charge": 0.5,
-    "endAge": 95
+    "endAge": 95,
+    "isaGrowth": "cash"
   },
   "whose": "you",
   "spend": {
@@ -1003,17 +1004,22 @@
       ]
     },
     {
-      "id": "isa-fixed-growth",
-      "field": null,
-      "source": "rule",
-      "value": 3,
-      "text": "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed 3% a year.",
+      "id": "savings-growth",
+      "field": "isaGrowth",
+      "source": "default",
+      "value": "cash",
+      "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
       "parts": [
-        "Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ",
+        "Your savings are treated as ISA money: tax-free to take. ",
+        "They grow like cash: by last year's rise in prices less ",
         {
-          "fixed": "3"
+          "fixed": "1"
         },
-        "% a year."
+        "%, or not at all if prices rose by less than ",
+        {
+          "fixed": "1"
+        },
+        "%."
       ]
     }
   ],

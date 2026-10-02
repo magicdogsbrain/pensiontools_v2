@@ -37,6 +37,10 @@ jobs:
       - run: npm ci
       - run: npm run e2e:build
       - run: npx vitest run tests/v7
+      # The wall-clock timing checks, alone (skipped inside the suite in CI: side by side they are noise).
+      - run: npx vitest run tests/v7/shared/speed.apart.slow.test.js
+        env:
+          TIMING_CHECKS: '1'
       - run: npx playwright test --project='sameness-*' --project='nightly-*'
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

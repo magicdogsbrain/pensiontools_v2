@@ -85,7 +85,13 @@ const B = (h, a, spend, lives) => {
   live.bandAt(sp, runner);
 };
 
-describe('the timing check at 1,000 lives', () => {
+// Wall-clock ratios mean something only on a machine running this file on its own. In CI the suite runs files side by
+// side on two shared cores and these ratios wandered from 1.11 to 1.53 on unchanged code (2 Oct 2026), so the
+// per-push run skips them; the night run runs this file alone (TIMING_CHECKS=1, .github/workflows/nightly.yml).
+// That the engine does the same work apart and together is held exactly, by count, in apart.identity.test.js.
+const TIMED = !process.env.CI || process.env.TIMING_CHECKS === '1';
+
+describe.skipIf(!TIMED)('the timing check at 1,000 lives', () => {
   const couples = [
     { name: 'stops next summer', you: { age: 55, pot: 260_000, isa: 15_000, payIn: 650 }, partner: { age: 61, pot: 320_000, isa: 45_000 }, a: 56, spend: 34_000 },
     { name: 'stops in six years', you: { age: 52, pot: 180_000, isa: 20_000, payIn: 900 }, partner: { age: 60, pot: 380_000, isa: 30_000 }, a: 58, spend: 32_000 }
@@ -124,11 +130,6 @@ describe('the timing check at 1,000 lives', () => {
       B: medianPair(() => B(make(a, false), a, 30_000, lives), () => B(make(a, true), a, 30_000, lives), 5)
     };
     for (const [step, [x, t]] of Object.entries(steps)) console.log(`a partner with nothing — ${step}: apart ${Math.round(x)} ms, together ${Math.round(t)} ms, ratio ${(x / t).toFixed(3)}`);
-    // 1.10 is the design's limit, held on a machine running this file on its own. On a 2-core CI runner the suite runs
-    // test files side by side and a wall-clock ratio there is noise (2 Oct 2026: B 1.110, then A's chart 1.313, against
-    // 1.01–1.02 here), so CI holds the same 1.5 guard as the cases above and prints the ratio. That the engine does the
-    // same work apart and together is held exactly, by count, in apart.identity.test.js.
-    const limit = process.env.CI ? 1.5 : 1.10;
-    for (const [step, [x, t]] of Object.entries(steps)) expect(x / t, step).toBeLessThanOrEqual(limit);
+    for (const [step, [x, t]] of Object.entries(steps)) expect(x / t, step).toBeLessThanOrEqual(1.10);
   }, LONG);
 });

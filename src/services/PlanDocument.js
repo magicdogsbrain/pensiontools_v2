@@ -10,7 +10,7 @@
  *
  * Pure module: no DOM, no storage.
  */
-import { deriveTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf } from './PlanTiming.js';
+import { deriveTiming, describeTiming, taxYearLabel, taxYearKey, planYearOf, taxYearStartOf } from './PlanTiming.js';
 import { cleanSteps, amountAtAge } from './IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
@@ -18,8 +18,9 @@ import { targetMixForYear, equityGlideFromRisk } from './GlidepathService.js';
 import { projectAccumulation, potOnPath, contributionBreakdown } from './AccumulationEngine.js';
 import { chargesPctOf } from './Charges.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
-import { holdingsLines, normaliseHoldings } from './HoldingsRecord.js';
+import { holdingsLines, normaliseHoldings, normaliseWrapper, numOrNull } from './HoldingsRecord.js';
 import { cleanParams } from './StrategyState.js';
+import { GIA_DEFAULTS } from './TaxableSleeve.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
 
@@ -227,12 +228,304 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
   });
 }
 
+/** The strategies whose band is "all pots": the Pots & Valves engine's SIPP + ISA + taxable account (stressTest pnvRun). */
+export const POT_STRATEGIES = ['pots-and-valves', 'buckets-in-order'];
 /**
- * Where the user stands today against the document. Pure.
- * `holdings` is today's holdings record (or its lines): when no month has been recorded and no pot is passed
- * in, its SIPP total stands in as the pot — never the pots the strategy was tested on (6.13.0).
+ * The strategies whose band holds the gilts at what they COST (stressTest fullGiltTest / rotationTest: unpaid rungs at
+ * cost, the rotation block at its accreted value), where the Decision record holds their market value. The two are not
+ * the same measure, so the strip gives no verdict on these (6.20.1). The other ladder strategies value the unpaid rungs
+ * on the plan's own yield curve at each year (ladderPvAt), next to a market sleeve whose spread dominates the band.
  */
-export function whereAmI(doc, { today = new Date(), history = [], potsToday = null, ladderPos = null, accHistory = [], holdings = null } = {}) {
+export const RUNGS_AT_COST = ['full-il-gilt', 'gilt-rotation'];
+
+/**
+ * Which accounts the plan's wealth band counts at a plan year (6.20.1). Read from the stored document only.
+ *  - Pots & Valves / Buckets: SIPP + ISA + taxable account (`potByYear + isaByYear`; a held ISA still sits in it).
+ *  - Every bought strategy: the growth part + the unpaid rungs, bought from SIPP + ISA — the ISA only when it is not
+ *    held aside (`availablePot`) — plus any lump sum not yet spent (`windfallCarryByYear`, the taxable account too).
+ *  - The diversifier sleeve is in a Pots & Valves band; the Decision record does not keep its value.
+ * An account counts when the plan was priced with money in it, or a lump sum it routes there has arrived by `planYear`
+ * (a cash lump: the first £20,000 to an ISA not held aside, the rest to the taxable account — routeWindfall).
+ * Not visible from the document: an ISA built only by band-fill recycling or a PCLS switch (both opt-in).
+ * @returns {{ strategyId, potsStrategy, isa: boolean, gia: boolean, diversifiers: boolean, isaLeftOut: boolean }}
+ */
+export function bandMeasure(doc, { planYear = 0 } = {}) {
+  const d = doc || {};
+  const strategyId = d.strategy?.id || 'pots-and-valves';
+  const potsStrategy = POT_STRATEGIES.includes(strategyId);
+  const P = d.pots || {};
+  const held = P.isaPolicy === 'hold';
+  const isaInBand = potsStrategy || !held;
+  const arrived = (Array.isArray(d.timeline) ? d.timeline : []).filter((r) => r && +r.y <= planYear).flatMap((r) => (Array.isArray(r.lumpIn) ? r.lumpIn : []));
+  let isaLump = false, giaLump = false;
+  for (const l of arrived) {
+    const w = String(l.wrapper || 'cash').toLowerCase(), amt = +l.amount || 0;
+    if (w === 'pension' || w === 'sipp' || !(amt > 0)) continue;
+    if (w === 'isa') isaLump = true;
+    else if (w === 'gia') giaLump = true;
+    else if (held) giaLump = true;
+    else { isaLump = true; if (amt > GIA_DEFAULTS.ISA_ALLOWANCE) giaLump = true; }
+  }
+  const isaPriced = (+P.isa || 0) > 0;
+  return {
+    strategyId, potsStrategy,
+    isa: isaInBand && (isaPriced || isaLump),
+    gia: (+P.gia || 0) > 0 || giaLump,
+    diversifiers: potsStrategy && (+P.allocation?.diversifierStart || 0) > 0,
+    isaLeftOut: !isaInBand && isaPriced   // a bought plan with its ISA held aside: neither side counts it
+  };
+}
+
+/** 'YYYY-MM' / 'YYYY-MM-DD' / a Date / { y, m } → { y, m } (m 1-based), or null. */
+function monthOf(x) {
+  if (x instanceof Date) return Number.isFinite(x.getTime()) ? { y: x.getFullYear(), m: x.getMonth() + 1 } : null;
+  if (x && typeof x === 'object') return Number.isInteger(x.y) && x.m >= 1 && x.m <= 12 ? { y: x.y, m: x.m } : null;
+  const mm = /^(\d{4})-(\d{2})/.exec(String(x == null ? '' : x));
+  return mm ? { y: +mm[1], m: +mm[2] } : null;
+}
+const monthsBetween = (a, b) => (b.y * 12 + b.m) - (a.y * 12 + a.m);
+/** Plan year of a month (April opens the tax year — as planYearOf reads a 'YYYY-MM' record), and months into it. */
+const planYearAt = (at, fty) => (at.m >= 4 ? at.y : at.y - 1) - fty;
+const monthsIntoTaxYear = (at) => (at.m + 8) % 12;   // April 0 … March 11: the months already paid before a record's own
+
+/**
+ * How far prices have moved from the start of the plan to month `at` (6.20.1): the factor that turns a pot in that
+ * month's pounds into the plan's own pounds. Every band the engines draw is in prices at the start of the plan
+ * ("today's money": SimulationEngine divides potByYear and isaByYear by cumInf; the ladder bands are real), while a
+ * pot read off a platform is in the pounds of its month.
+ * The chain is the Decision tool's own (legacyDecision glidepathsForYear), so the strip and the monthly figures agree:
+ * plan year y is in prices Π (1 + CPI of tax year firstTaxYear + i) for i < y — the CPI entered for that tax year in
+ * the Decision tool, else the plan's assumption (`assumptions.cpiDecision`, 4%); a blank or 0 reads as not entered,
+ * as it does there. Within a year, the year's CPI for the months gone. The run-up before year 0 is at the starting
+ * prices (factor 1), as the Decision tool and the engines treat it.
+ * @param {object} taxYears  the Decision tool's tax-year set-ups ({ 'YY/YY': { cpi } }), or null
+ * @returns {{ factor, assumed, years: [{ taxYear, cpi, entered, share }] }}
+ */
+export function pricesSinceStart(doc, at, taxYears = null) {
+  const assumed = +doc?.assumptions?.cpiDecision > 0 ? +doc.assumptions.cpiDecision : DECISION_ASSUMED_CPI_FOR_RECORD;
+  const fty = +doc?.timing?.firstTaxYear;
+  const m = monthOf(at);
+  const out = { factor: 1, assumed, years: [] };
+  if (!m || !Number.isFinite(fty)) return out;
+  const pY = planYearAt(m, fty);
+  const frac = monthsIntoTaxYear(m) / 12;
+  const T = taxYears && typeof taxYears === 'object' ? taxYears : {};
+  for (let i = 0; i <= pY; i++) {
+    const share = i < pY ? 1 : frac;
+    if (!(share > 0)) break;
+    const key = taxYearKey(fty + i);
+    const entered = +(T[key] && T[key].cpi) || 0;
+    const cpi = entered || assumed;
+    out.factor *= Math.pow(1 + cpi, share);
+    out.years.push({ taxYear: key, cpi, entered: !!entered, share });
+  }
+  return out;
+}
+
+/**
+ * The record the pot comes from, and the month it was entered. A batch (quarterly or annual cadence) saves the same
+ * values under each month it covers — some of them still ahead — so the values date from the batch's FIRST month:
+ * walk back over consecutive months holding the same pots.
+ */
+function potRecordOf(history) {
+  const recs = (history || []).filter((h) => h && monthOf(h.date)).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!recs.length) return null;
+  const same = (a, b) => ['equity', 'bond', 'cash'].every((k) => Math.abs((+a[k] || 0) - (+b[k] || 0)) < 0.5);
+  let i = recs.length - 1;
+  while (i > 0 && same(recs[i - 1], recs[i]) && monthsBetween(monthOf(recs[i - 1].date), monthOf(recs[i].date)) === 1) i--;
+  return { rec: recs[i], idx: i, recs };
+}
+
+/** Sum of the holdings lines in one wrapper with a value, and the date they stand at (the record's, else the latest line's). */
+function wrapperFigure(holdings, wrapper) {
+  const lines = holdingsLines(holdings).filter((l) => l && normaliseWrapper(l.wrapper) === wrapper && numOrNull(l.value) != null);
+  if (!lines.length) return null;
+  const asOf = (holdings && !Array.isArray(holdings) && holdings.updatedAt) || lines.map((l) => l.asOf).filter(Boolean).sort().pop() || null;
+  return { value: lines.reduce((t, l) => t + numOrNull(l.value), 0), asOf: asOf ? String(asOf).slice(0, 10) : null };
+}
+
+/** The diversifiers among the SIPP lines under What you hold (the tagger's bucket), and their date; null with no SIPP lines. */
+function diversifierFigure(holdings) {
+  const sipp = wrapperFigure(holdings, 'SIPP');
+  if (!sipp) return null;
+  const lines = holdingsLines(holdings).filter((l) => l && normaliseWrapper(l.wrapper) === 'SIPP' && numOrNull(l.value) != null).map((l) => ({ ...l, value: numOrNull(l.value) }));
+  return { value: holdingsProportions(lines).bucketValues.diversifiers || 0, asOf: sipp.asOf };
+}
+
+/**
+ * The pot to set against the band (6.20.1): the same accounts the band counts, at a known date.
+ * Pension: `potsToday` (a figure the caller has already made like the band, in today's pounds — taken as given), else
+ * the latest Decision record's equity + bond + cash (on a ladder plan: the growth part, the gilts still to pay and the
+ * cash), else the SIPP lines under What you hold. A Pots & Valves plan holding diversifiers: the record does not keep
+ * them, so the newer source is used — What you hold whole when its SIPP figure is as new as the record (same month or
+ * later), else the record plus the diversifier lines under What you hold, with their own date. ISA: What you hold.
+ * Taxable account: the record's start-of-month balance, else What you hold. A figure the band needs and nobody has
+ * given is listed in `missing`; nothing is then compared.
+ */
+function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
+  const measureAt = (at) => bandMeasure(doc, { planYear: planYearAt(at, +doc.timing.firstTaxYear) });
+  if (potsToday != null) {
+    const t = today.toISOString().slice(0, 10), at = monthOf(today);
+    return { source: 'today', asOf: t, at, pension: Math.round(+potsToday), parts: [{ key: 'all', value: +potsToday, source: 'today', asOf: t }], missing: [], measure: measureAt(at), runUpMonthly: 0 };
+  }
+  const found = potRecordOf(history);
+  const sipp = wrapperFigure(holdings, 'SIPP');
+  const diversifiers = bandMeasure(doc).diversifiers;   // a property of the plan, not of the year
+  const missing = [], extra = [];
+  let source = null, pension = null, asOf = null, rec = null;
+  const sippMonth = sipp && sipp.value > 0 ? monthOf(sipp.asOf) : null;
+  const holdingsWhole = diversifiers && sipp && sipp.value > 0 && (!found || (sippMonth != null && monthsBetween(monthOf(found.rec.date), sippMonth) >= 0));
+  if (found && !holdingsWhole) {
+    source = 'record'; rec = found.rec; asOf = String(rec.date).slice(0, 7);
+    pension = (+rec.equity || 0) + (+rec.bond || 0) + (+rec.cash || 0);
+    if (diversifiers) {
+      const div = diversifierFigure(holdings);
+      if (!div) missing.push('diversifiers');
+      else if (div.value > 0) extra.push({ key: 'diversifiers', value: div.value, source: 'holdings', asOf: div.asOf });
+    }
+  } else if (sipp && sipp.value > 0) { source = 'holdings'; pension = sipp.value; asOf = sipp.asOf; }
+  const at = monthOf(asOf) || monthOf(today);
+  const measure = measureAt(at);
+  if (source == null) return { source: null, asOf: null, at, pension: null, parts: [], missing: ['pension'], measure, runUpMonthly: 0 };
+  const parts = [{ key: 'pension', value: pension, source, asOf }, ...extra];
+  if (measure.isa) {
+    const isa = wrapperFigure(holdings, 'ISA');
+    if (isa) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
+    else missing.push('isa');
+  }
+  if (measure.gia) {
+    let gia = null;
+    if (rec && numOrNull(rec.gia) != null) gia = { value: +rec.gia, source: 'record', asOf };
+    else if (rec) {
+      // Drawn to nothing as planned: the Decision tool pre-fills each month's balance from the last one's after-draw
+      // figure, and a £0 balance is not written to the record — the last record that carried it says so.
+      const prev = found.recs.slice(0, found.idx).reverse().find((h) => numOrNull(h.gia) != null);
+      if (prev && numOrNull(prev.giaBalanceAfter) != null && +prev.giaBalanceAfter <= 1) gia = { value: 0, source: 'record', asOf };
+    }
+    if (!gia) { const g = wrapperFigure(holdings, 'GIA'); if (g) gia = { value: g.value, source: 'holdings', asOf: g.asOf }; }
+    if (gia) parts.push({ key: 'gia', ...gia });
+    else missing.push('gia');
+  }
+  return { source, asOf, at, pension: Math.round(pension), parts, missing, measure, runUpMonthly: rec ? (+rec.sipp || 0) : 0 };
+}
+
+/**
+ * The plan's band at a point in plan year `yi`, `frac` of the way through it. Plan year y's figure is its START
+ * (stressTest: every engine records its wealth when the year opens), so within a year the median moves on a straight
+ * line towards the next year's start as the year's income is paid out. The spread either side does not: market spread
+ * grows roughly with the square root of time, so the distance of each line from the median is drawn on a square-root
+ * time scale between the two years — in year 0, where every line starts at the same figure, the distance is next
+ * year's times √frac (a straight line there made the first months' band far too narrow and read a normal two-month
+ * dip as "below the 1-in-10 bad line").
+ */
+export function bandAt(wc, yi, frac = 0) {
+  const at = (arr, i) => (Array.isArray(arr) && i < arr.length && Number.isFinite(+arr[i]) ? +arr[i] : null);
+  const n = Array.isArray(wc?.p50) ? wc.p50.length : 0;
+  if (!n) return { p10: null, p50: null, p90: null };
+  const i = Math.min(Math.max(0, yi), n - 1);
+  const a50 = at(wc.p50, i), b50 = at(wc.p50, i + 1);
+  if (a50 == null) return { p10: null, p50: null, p90: null };
+  const go = frac > 0 && b50 != null;
+  const p50 = go ? a50 + frac * (b50 - a50) : a50;
+  const s = go ? (Math.sqrt(i + frac) - Math.sqrt(i)) / (Math.sqrt(i + 1) - Math.sqrt(i)) : 0;
+  const line = (arr) => {
+    const a = at(arr, i);
+    if (a == null) return null;
+    const b = at(arr, i + 1);
+    if (!go || b == null) return a + (p50 - a50);
+    const dA = a - a50, dB = b - b50;
+    return p50 + dA + s * (dB - dA);
+  };
+  return { p10: line(wc.p10), p50, p90: line(wc.p90) };
+}
+
+/**
+ * The pot against the plan's band, like with like (6.20.1). Null for a saver before the plan starts: the band begins
+ * at retirement, on the pots grown to it, and the saving line reads today's pot against the locked path instead.
+ *  - The same accounts (potLikeTheBand), at the same point in the plan: the band is read at the pot's month (bandAt).
+ *  - The same pounds: the band is in prices at the start of the plan, so the pot is turned into those prices
+ *    (pricesSinceStart) before it is compared; `actual` stays the pot as recorded, `real` is what is compared.
+ *  - Before year 0 of a gilt ladder that set run-up cash aside (`assumptions.bridgeCash`), the ladder's year 0 does
+ *    not hold that cash but the pot does: the part of it the plan has not yet spent — spread evenly over the run-up
+ *    months it was priced with, the pot's own month still to pay — is added to the band.
+ * A verdict (`band`) is given only when the two are the same measure and the band has opened:
+ *  - `verdict: 'gilts-at-cost'` — Full ladder / Ladder + rotation: the band holds the gilts at what they cost, the
+ *    record at today's market prices (RUNGS_AT_COST). No verdict; the ladder line says whether the rungs are on track.
+ *  - `verdict: 'start'` — the run-up, or April of year 0: every line is still the starting figure.
+ *  - `verdict: 'not-open'` — the 1-in-10 bad line is still the median (nothing to be below).
+ *  - `verdict: 'band'` — `band` is set.
+ * Stale figures (more than three months older than today) are listed in `stale`.
+ */
+function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) {
+  const fty = +doc.timing.firstTaxYear;
+  const P = potLikeTheBand(doc, { today, history, potsToday, holdings });
+  const pY = planYearAt(P.at, fty);
+  if (doc.timing.mode === 'future' && pY < 0) return null;
+  const yi = Math.max(0, pY);
+  const frac = pY >= 0 ? monthsIntoTaxYear(P.at) / 12 : 0;
+  let { p10, p50, p90 } = bandAt(wc, yi, frac);
+  const startP50 = p50;
+  let runUp = null;
+  const bridgeCash = Math.max(0, +doc.assumptions?.bridgeCash || 0);
+  if (pY < 0 && bridgeCash > 0) {
+    // Months of the run-up still to pay at the pot's month, that month included (a record is entered before its draw).
+    const months = Math.max(0, (fty * 12 + 4) - (P.at.y * 12 + P.at.m));
+    // The plan was priced with `bridgeCash` set aside for the run-up months it had when it was locked (`bridgeMonths`):
+    // that cash spends down month by month, and by 6 April of year 0 it is gone — the ladder's year 0 never held it.
+    // A run-up dearer than the cash set aside comes out of the spare money year 0 does hold: the pot falls short of it.
+    const of = Math.round(+doc.timing?.bridgeMonths || +doc.assumptions?.bridgeMonths || 0);
+    let value, monthly;
+    if (of > 0) { value = bridgeCash * Math.min(1, months / of); monthly = bridgeCash / of; }
+    else {
+      // A document without its run-up length: the draw the record shows, else the plan's year-0 draw, capped at the cash.
+      const t0 = Array.isArray(doc.timeline) ? doc.timeline[0] : null;
+      monthly = P.runUpMonthly > 0 ? P.runUpMonthly : (t0 ? Math.max(0, ((+t0.gross || 0) - (+t0.sp || 0) - (+t0.other || 0)) / 12) : 0);
+      value = Math.min(bridgeCash, monthly * months);
+    }
+    if (value > 0) {
+      runUp = { months, of: of > 0 ? of : null, monthly: Math.round(monthly), value: Math.round(value) };
+      [p10, p50, p90] = [p10, p50, p90].map((v) => (v == null ? null : v + value));
+    }
+  }
+  const actual = P.missing.length ? null : P.parts.reduce((t, x) => t + x.value, 0);
+  const prices = pricesSinceStart(doc, P.at, taxYears);
+  const real = actual == null ? null : actual / prices.factor;
+  // "Bought by contract" only when the cone is flat over the WHOLE run — every cone is flat at year 0 (6.10.4). Only a
+  // ladder held at cost draws one (fullGiltTest), so a document without its strategy id is read as one too.
+  const flatAll = Array.isArray(wc.p10) && Array.isArray(wc.p90) && wc.p10.length > 1 && wc.p10.every((v, i) => Math.abs((wc.p90[i] ?? v) - v) < 1);
+  const atCost = RUNGS_AT_COST.includes(P.measure.strategyId) || flatAll;
+  let verdict = null, band = null;
+  if (real != null && p50 != null) {
+    if (atCost) verdict = 'gilts-at-cost';
+    else if (p10 == null || p90 == null || Math.abs(p50 - p10) < 1) {
+      const closed = p10 == null || p90 == null || Math.abs(p90 - p10) < 1;
+      verdict = closed && (pY < 0 || (pY === 0 && frac === 0)) ? 'start' : 'not-open';
+    }
+    else { verdict = 'band'; band = real < p10 ? 'below p10' : real < p50 ? 'p10–p50' : real <= p90 ? 'p50–p90' : 'above p90'; }
+  }
+  const todayM = monthOf(today);
+  const stale = P.parts.filter((x) => x.source !== 'today' && monthOf(x.asOf) && todayM && monthsBetween(monthOf(x.asOf), todayM) > 3).map((x) => ({ key: x.key, source: x.source, asOf: x.asOf }));
+  const r0 = (v) => (v == null ? null : Math.round(v));
+  return {
+    actual: r0(actual), real: r0(real), pension: P.pension, parts: P.parts.map((x) => ({ ...x, value: Math.round(x.value) })), missing: P.missing,
+    source: P.source, asOf: P.asOf, planYear: pY, monthsIn: Math.round(frac * 12),
+    prices: { factor: prices.factor, assumed: prices.assumed, years: prices.years.length, entered: prices.years.filter((x) => x.entered).length },
+    p10: r0(p10), p50: r0(p50), p90: r0(p90), startP50: runUp ? r0(startP50) : null, runUp,
+    verdict, band, flat: flatAll, isaLeftOut: P.measure.isaLeftOut, stale
+  };
+}
+
+/**
+ * Where the user stands today against the document. Pure; the document is only read.
+ * `holdings` is today's holdings record (or its lines): when no month has been recorded and no pot is passed
+ * in, its SIPP total stands in as the pension — never the pots the strategy was tested on (6.13.0).
+ * The pot set against the band counts what the band counts (6.20.1; see `bandMeasure`, `potLikeTheBand`), in the
+ * band's pounds (`taxYears`: the Decision tool's tax-year set-ups, for the CPI entered each year — see
+ * `pricesSinceStart`), and the band is read at the pot's own month (`bandAt`); in the run-up of a gilt ladder that
+ * set cash aside for it, the cash still to pay is added (year 0 of the ladder's band does not hold it). A figure the
+ * band needs that is missing → `pot.missing`, no reading; a band that is not the same measure → no verdict.
+ */
+export function whereAmI(doc, { today = new Date(), history = [], potsToday = null, ladderPos = null, accHistory = [], holdings = null, taxYears = null } = {}) {
   if (!doc || !doc.timing) return null;
   const ledgerPot = pensionPotFromHoldings(holdingsLines(holdings));
   const ledgerAsOf = holdings && !Array.isArray(holdings) && holdings.updatedAt ? holdings.updatedAt : null;
@@ -270,19 +563,9 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   const key = String(taxYearStartOf(today) % 100).padStart(2, '0') + '/' + String((taxYearStartOf(today) + 1) % 100).padStart(2, '0');
   const recs = (history || []).filter((h) => h && h.taxYear === key);
   const drawn = recs.reduce((t, h) => t + (+h.sipp || 0) + (+h.other || 0) + (+h.state || 0), 0);
-  const last = (history || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).pop() || null;
-  // Pot today: what was passed in, else the latest Decision record's pots, else the holdings record's SIPP total.
-  const potActual = potsToday != null ? +potsToday : (last ? (+last.equity || 0) + (+last.bond || 0) + (+last.cash || 0) : (ledgerPot > 0 ? ledgerPot : null));
+  // The pot against the band (6.20.1): the same accounts, read at the same point in the plan — see potReading.
   const wc = doc.strategy?.r?.cones?.wealth || null;
-  let pot = null;
-  if (wc && potActual != null) {
-    const at = (arr) => (Array.isArray(arr) && arr.length ? arr[Math.min(yi, arr.length - 1)] : null);
-    const p10 = at(wc.p10), p50 = at(wc.p50), p90 = at(wc.p90);
-    const band = p10 == null ? null : potActual < p10 ? 'below p10' : potActual < p50 ? 'p10–p50' : potActual <= p90 ? 'p50–p90' : 'above p90';
-    // "Bought by contract" only when the cone is flat over the WHOLE run — every cone is flat at year 0 (6.10.4).
-    const flatAll = Array.isArray(wc.p10) && Array.isArray(wc.p90) && wc.p10.length > 1 && wc.p10.every((v, i) => Math.abs((wc.p90[i] ?? v) - v) < 1);
-    pot = { actual: Math.round(potActual), p10: p10 == null ? null : Math.round(p10), p50: p50 == null ? null : Math.round(p50), p90: p90 == null ? null : Math.round(p90), band, flat: flatAll };
-  }
+  const pot = wc ? potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) : null;
   return {
     today: today.toISOString().slice(0, 10), planYear: y, planYears: N, bridge, taxYear, age,
     planStart: taxYearLabel(fty),

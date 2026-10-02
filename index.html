@@ -8563,8 +8563,8 @@
       let ladderPos = null;
       try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
       let accHistory = []; try { if (doc.accumulation) accHistory = await getActiveAccumulationHistory(); } catch (e) { accHistory = []; }
-      let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; }
-      return whereAmI(doc, { today: new Date(), history, ladderPos, accHistory, holdings });
+      let holdings = null, taxYears = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } try { taxYears = await getAllTaxYearsAsync(); } catch (e) { taxYears = null; }   // taxYears: the CPI entered each year, to put the pot in the plan's prices (6.20.1)
+      return whereAmI(doc, { today: new Date(), history, ladderPos, accHistory, holdings, taxYears });
     }
     window.renderPlanDocumentPage = async function () {
       const box = document.getElementById('planDocumentPage'); if (!box) return;

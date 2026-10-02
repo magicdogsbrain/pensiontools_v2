@@ -256,7 +256,7 @@ export async function evaluatePlan(raw, { name = null } = {}) {
   let where = null;
   if (raw.planDocument) {
     try {
-      const w = whereAmI(raw.planDocument, { today: new Date(), history, accHistory: active?.accumulationTool?.history || [], holdings: active?.holdings || null });
+      const w = whereAmI(raw.planDocument, { today: new Date(), history, accHistory: active?.accumulationTool?.history || [], holdings: active?.holdings || null, taxYears: db.taxYears || null });
       where = w ? { planYear: w.planYear, bridge: w.bridge, taxYear: w.taxYear, age: w.age, stepAmount: w.step ? r0(w.step.amount) : null, recorded: w.incomeThisYear.recorded, drawn: w.incomeThisYear.drawn, potBand: w.pot ? w.pot.band : null, savingBand: w.saving ? w.saving.band : null } : null;
       for (const b of badValues(where, 'whereAmI')) note(b);
     } catch (e) { note('whereAmI threw: ' + e.message); }

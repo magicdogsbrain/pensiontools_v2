@@ -176,6 +176,92 @@ export function planDocumentHtml(doc, r = {}) {
   return h;
 }
 
+/** 'YYYY-MM' → 'September 2026'; 'YYYY-MM-DD' → '5 January 2027'; anything else ''. */
+function whenText(s) {
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(s || ''));
+  if (!m) return '';
+  const d = new Date(+m[1], +m[2] - 1, m[3] ? +m[3] : 1);
+  return m[3] ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+const PART_NAME = { pension: 'pension', isa: 'ISA', gia: 'taxable account', diversifiers: 'diversifiers' };
+const ADD_NAME = { isa: 'your ISA', gia: 'your taxable account (GIA)' };
+/** Where a figure came from, in words: "recorded September 2026" / "from What you hold as of 5 January 2027". */
+function sourceText(x) {
+  const when = whenText(x.asOf);
+  if (x.source === 'record') return 'recorded ' + (when || 'in the Decision tool');
+  if (x.source === 'holdings') return 'from What you hold' + (when ? ' as of ' + when : '');
+  return when;
+}
+const pctText = (v) => (Math.round(v * 1000) / 10).toLocaleString('en-GB', { maximumFractionDigits: 1 }) + '%';
+/**
+ * ", which is £Y in prices at the start of the plan, the prices its figures are in (prices up Z% since: …)" — the plan's
+ * figures are in prices at its start; the pot is in the pounds of its month (6.20.1). '' when prices have not moved.
+ */
+function pricesText(P) {
+  const pr = P.prices;
+  if (!pr || P.real == null || !(Math.abs(pr.factor - 1) >= 0.0005)) return '';
+  const a = pctText(pr.assumed || 0.04) + ' a year';
+  const basis = !pr.entered ? a + ' assumed' : pr.entered >= pr.years ? 'the CPI entered in the Decision tool' : 'the CPI entered in the Decision tool, ' + a + ' where none was entered';
+  return ', which is ' + gbp(P.real) + ' in prices at the start of the plan, the prices its figures are in (prices ' + (pr.factor >= 1 ? 'up ' : 'down ') + pctText(Math.abs(pr.factor - 1)) + ' since: ' + basis + ')';
+}
+/** "Your pension figure is from April 2028: enter this month's values in the Decision tool for a closer reading." */
+function staleText(stale) {
+  if (!Array.isArray(stale) || !stale.length) return '';
+  const items = stale.map((x, i) => (i === 0 ? 'Your ' : 'your ') + (PART_NAME[x.key] || 'pot') + ' figure ' + (i === 0 ? 'is ' : '') + 'from ' + esc(whenText(x.asOf)));
+  const fromRecord = stale.some((x) => x.source === 'record'), fromHoldings = stale.some((x) => x.source === 'holdings');
+  const todo = [fromRecord ? 'enter this month\'s values in the Decision tool' : '', fromHoldings ? (fromRecord || stale.length > 1 ? 'update What you hold' : 'update it under What you hold') : ''].filter(Boolean).join(' and ');
+  return ' ' + items.join(' and ') + ': ' + todo + ' for a closer reading.';
+}
+const VERDICT = {
+  'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(P.p10) + ')',
+  'p10–p50': (P) => 'between the 1-in-10 bad line (' + gbp(P.p10) + ') and the median (' + gbp(P.p50) + ')',
+  'p50–p90': (P) => 'between the median (' + gbp(P.p50) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
+  'above p90': (P) => 'above the plan\'s 1-in-10 good line (' + gbp(P.p90) + ')'
+};
+/**
+ * The pot sentence of the strip (6.20.1): the pot is made of what the plan's band counts, each part with where and
+ * when it came from, put into the plan's prices; a figure the band needs that is missing → nothing compared, and what
+ * to add. A verdict only when the two are the same measure and the band has opened (`pot.verdict`, potReading).
+ */
+export function whereAmIPotText(pot) {
+  if (!pot) return '';
+  const P = pot;
+  const missing = Array.isArray(P.missing) ? P.missing : [];
+  const parts = Array.isArray(P.parts) ? P.parts : [];
+  const pension = parts.find((x) => x.key === 'pension');
+  const leftOut = P.isaLeftOut ? ' Your ISA is held aside, outside this plan, so neither the pot nor the plan\'s band counts it.' : '';
+  if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record what you hold on the Transition tab, to compare.';
+  if (missing.length) {
+    const head = pension ? 'Pension pot ' + gbp(pension.value) + ' (' + esc(sourceText(pension)) + '). ' : '';
+    if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. Record what you hold, diversifiers included, under What you hold on the Transition tab to compare.';
+    const names = missing.filter((k) => ADD_NAME[k]);
+    return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, on the Transition tab, to compare.';
+  }
+  if (P.actual == null || P.p50 == null) return '';
+  // "Pot £X (recorded September 2026)", or with more than one account
+  // "Pot £X (pension £A recorded September 2026; ISA £B from What you hold as of 5 January 2027)".
+  let pt = 'Pot ' + gbp(P.actual);
+  if (parts.length > 1) pt += ' (' + parts.map((x) => PART_NAME[x.key] + ' ' + gbp(x.value) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ') + ')';
+  else if (parts[0] && parts[0].source !== 'today' && sourceText(parts[0])) pt += ' (' + esc(sourceText(parts[0])) + ')';
+  pt += pricesText(P);
+  const expects = ' against ' + gbp(P.p50) + ' the plan expects by then' + (P.runUp ? ' (' + gbp(P.startP50) + ' at the start of the plan + ' + gbp(P.runUp.value) + ' of run-up cash for the ' + P.runUp.months + ' month' + (P.runUp.months === 1 ? '' : 's') + ' still to pay)' : '');
+  const verdict = P.verdict || (P.band ? 'band' : null);
+  let s;
+  if (verdict === 'gilts-at-cost') {
+    // The band holds the gilts at what they cost, the record at their market value: no verdict (RUNGS_AT_COST).
+    s = pt + expects + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts at what they cost and your figure is at today\'s market prices, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
+  } else if (verdict === 'start') {
+    s = P.planYear < 0
+      ? pt + ' against ' + gbp(P.p50) + ' the plan starts from; the band opens once the plan has started.'
+      : pt + ' at the start of the plan, priced on ' + gbp(P.p50) + '; the band opens as the year goes on.';
+  } else if (verdict === 'not-open') {
+    s = pt + expects + '; the plan\'s band has not opened yet.';
+  } else if (verdict === 'band' && VERDICT[P.band]) {
+    s = pt + ' — ' + VERDICT[P.band](P) + '.';
+  } else return '';
+  return s + leftOut + staleText(P.stale);
+}
+
 /** The "where you are" strip. */
 export function whereAmIHtml(w) {
   if (!w) return '';
@@ -193,11 +279,8 @@ export function whereAmIHtml(w) {
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
   if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
   if (w.incomeThisYear && w.incomeThisYear.recorded) parts.push(w.incomeThisYear.recorded + ' month' + (w.incomeThisYear.recorded === 1 ? '' : 's') + ' recorded this tax year: ' + gbp(w.incomeThisYear.drawn) + ' gross so far' + (w.incomeThisYear.perMonth ? ' against ' + gbp(w.incomeThisYear.perMonth) + ' a month planned' : '') + '.');
-  if (w.pot && w.pot.actual != null) {
-    if (w.pot.flat) parts.push('Pot ' + gbp(w.pot.actual) + '; the plan\'s path is bought by contract (' + gbp(w.pot.p50) + ' expected this year).');
-    else if (w.pot.p10 != null && w.pot.p90 != null && Math.abs(w.pot.p90 - w.pot.p10) < 1) parts.push('Pot ' + gbp(w.pot.actual) + ' at the start of the plan, priced on ' + gbp(w.pot.p50) + '; the cone opens from next year.');
-    else if (w.pot.band) parts.push('Pot ' + gbp(w.pot.actual) + ' — ' + (w.pot.band === 'below p10' ? '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(w.pot.p10) + ')' : w.pot.band === 'p10–p50' ? 'between the 1-in-10 bad line (' + gbp(w.pot.p10) + ') and the median (' + gbp(w.pot.p50) + ')' : w.pot.band === 'p50–p90' ? 'between the median (' + gbp(w.pot.p50) + ') and the 1-in-10 good line (' + gbp(w.pot.p90) + ')' : 'above the plan\'s 1-in-10 good line (' + gbp(w.pot.p90) + ')') + '.');
-  }
+  const potText = whereAmIPotText(w.pot);
+  if (potText) parts.push(potText);
   if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
   return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
 }

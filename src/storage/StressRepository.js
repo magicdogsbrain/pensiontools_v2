@@ -21,7 +21,9 @@ export { scheduleFromSteps, defaultSpYear };
 import {
   getActiveStressSettings,
   saveActiveStressSettings,
-  invalidateScenarioCache, getActiveBudget } from './ScenarioRepository.js';
+  invalidateScenarioCache, getActiveBudget, activePlanLocked, storedActiveSettings, getDefaultStressSettings } from './ScenarioRepository.js';
+import { onPlanCopyStale } from './planCopies.js';
+import { isPlanLockedError } from '../services/LockedPlanGuard.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -93,6 +95,8 @@ function isFirebaseAvailable() {
 export function invalidateStressCache() {
   cachedStressDB = null;
 }
+// The plan was locked after this tab loaded it (the store refused a write, 6.20.2): this copy goes with the others.
+onPlanCopyStale(invalidateStressCache);
 
 /**
  * Loads stress database - returns defaults if not logged in
@@ -131,7 +135,9 @@ export async function loadStressDBAsync() {
       // but only an age a person gave: a Budget nobody has opened carries 45 / 60 placeholders, and folding
       // those in made every plan with no age of its own a 45-year-old's (budgetAgesKnown, 6.13.5).
       let budget = null;
-      const stored = { ...stressSettings };   // as saved, before the Budget's age is folded in below (the timing pin is written onto THIS)
+      // As saved, before the Budget's age is folded in below (the timing pin is written onto THIS): the stored copy itself
+      // when there is one (6.20.2) — the cached plan object may already carry the Budget's age from an earlier load.
+      const stored = (await storedActiveSettings('stress')) || { ...stressSettings };
       try {
         const b = await getActiveBudget();
         if (b && budgetAgesKnown(b) && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
@@ -184,10 +190,10 @@ export async function saveStressDB(db) {
     // Update cache
     cachedStressDB = db;
   } catch (error) {
-    console.error('Error saving stress data:', error);
-    // A plan saved by a newer version of the app (a tab left open across a release): pass the refusal on as it
-    // is, so the screen can say "reload the page" instead of a generic failure (6.15.0).
-    if (error && error.code === 'plan-newer-than-app') throw error;
+    if (!isPlanLockedError(error)) console.error('Error saving stress data:', error);   // a refusal is not a fault
+    // A plan saved by a newer version of the app (a tab left open across a release), or a locked plan (6.20.2): pass the
+    // refusal on as it is, so the screen can say why in plain words instead of a generic failure.
+    if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
     throw new Error('Failed to save stress data');
   }
 }
@@ -282,8 +288,22 @@ export async function getStressSettingsAsync() {
  */
 export async function saveStressSettings(settings) {
   const db = await loadStressDBAsync();
-  db.settings = { ...db.settings, ...settings };
-  await saveStressDB(db);
+  // The copy in memory changes only once the write has gone through: a refused or failed save leaves it as it was.
+  const next = { ...db, settings: { ...db.settings, ...settings } };
+  if (!(await activePlanLocked())) { await saveStressDB(next); return; }
+  // A locked plan (6.20.2, services/LockedPlanGuard.js): only the change asked for is written, onto the settings as
+  // stored — never the defaults and derived fields this loaded copy carries — and ScenarioRepository lets through only
+  // a named bookkeeping key. Anything else is refused with PlanLockedError and nothing is written.
+  try {
+    await saveActiveStressSettings({ ...((await storedActiveSettings('stress')) || getDefaultStressSettings()), ...settings });
+  } catch (error) {
+    if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
+    console.error('Error saving stress data:', error);
+    throw new Error('Failed to save stress data');
+  }
+  next.lastModified = new Date().toISOString();
+  next.checksum = generateStressChecksum(next);
+  cachedStressDB = next;
 }
 
 /**
@@ -293,9 +313,7 @@ export async function saveStressSettings(settings) {
  * @returns {Promise<void>}
  */
 export async function updateStressSetting(key, value) {
-  const db = await loadStressDBAsync();
-  db.settings[key] = value;
-  await saveStressDB(db);
+  await saveStressSettings({ [key]: value });
 }
 
 /**

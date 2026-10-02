@@ -19,6 +19,7 @@ import {
 } from '../../firebase/index.js';
 import { wipeAllDecisionData } from '../../storage/DecisionRepository.js';
 import { resetStressSettings } from '../../storage/StressRepository.js';
+import { isPlanLockedError } from '../../services/LockedPlanGuard.js';
 import { wipeAllUserData } from '../../firebase/FirestoreService.js';
 
 // Auth state
@@ -363,8 +364,9 @@ async function handleWipeData() {
     // Wipe from Firebase (requires login)
     if (isLoggedIn()) {
       await wipeAllUserData();
-      await wipeAllDecisionData();
-      await resetStressSettings();
+      // Every plan has just been deleted. The two resets below are for the open plan's settings; a locked plan's settings
+      // refuse every write (6.20.2), and with the plan gone that refusal is not a failure of the reset.
+      try { await wipeAllDecisionData(); await resetStressSettings(); } catch (e) { if (!isPlanLockedError(e)) throw e; }
     }
 
     if (typeof window.showToast === 'function') {

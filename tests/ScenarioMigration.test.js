@@ -284,12 +284,13 @@ describe('a plan newer than this code is never written to (6.15.0)', () => {
   });
 
   it('a tab left open across a deploy: the plan was current when loaded, was upgraded elsewhere, and the save is refused', async () => {
-    put('s', { ...fullPlan(), schemaVersion: SCHEMA_VERSION });
+    // A draft: since 6.20.2 the store also refuses a change to a LOCKED plan's settings (tests/lockedPlanStore.test.js).
+    put('s', { ...fullPlan(), schemaVersion: SCHEMA_VERSION, decisionTool: { ...fullPlan().decisionTool, settings: { equityMin: 1 } } });
     await loadScenario('s');
     expect(isScenarioNewerThanApp('s')).toBe(false);
     await saveScenario('s', { 'stressTool.settings': { equityMin: 5 } });        // an ordinary save goes through
     expect(stored('s').stressTool.settings).toEqual({ equityMin: 5 });
-    expect(stored('s').decisionTool.settings.locked).toBe(true);                   // a dotted key is a nested path
+    expect(stored('s').decisionTool.settings).toEqual({ equityMin: 1 });           // a dotted key is a nested path
     const newer = { ...stored('s'), schemaVersion: SCHEMA_VERSION + 1, stressTool: { settings: { movedKey: 1 } } };
     put('s', newer);                                                               // the new version, in another tab
     fs.state.calls.length = 0;

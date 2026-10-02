@@ -15,7 +15,10 @@ import { resolve } from 'node:path';
 // src/ui/components/NewPlanFromSeed.js and src/services/PlanSeed.js. Its review (1 Oct 2026) moved the Stress tester's
 // "starting balances" and pots-at-retirement words and the Budget page's target words out to modules
 // (src/ui/startingPotsWords.js, PlanSeed.budgetSummaryWords), so the script ends 2 lines SHORTER than it started: 10,583.
-const MAX_LINES = 10583;
+// 6.20.2's safety fixes (research/v7/square-one-audit.md §5 item 1) put their logic in modules — the lock guard in the
+// repositories, the next-step banner (src/services/NextStep.js), the phone's More sheet (src/ui/mobileMenu.js), the
+// Budget's income-shape arithmetic (src/services/BudgetToPlan.js) — and the script ends 52 lines shorter: 10,531.
+const MAX_LINES = 10531;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

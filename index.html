@@ -4173,6 +4173,11 @@
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
+    import { askBeforeMonthLocks } from './src/ui/decisionLockAsk.js';   // a saver's unlocked plan asks before a Decision month locks it (6.20.2)
+    import { refusedWhenLocked, sayIfLocked } from './src/ui/lockedPlan.js';   // a locked plan's settings: refused in the save functions, said plainly here (6.20.2)
+    import { budgetIncomeShapePatch } from './src/services/BudgetToPlan.js';
+    import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
+    import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
@@ -5579,9 +5584,10 @@
             document.getElementById('mainApp').style.display = 'none';
 
             const onWizardComplete = async (wizardData) => {
-              hideSetupWizard();
+              hideSetupWizard(); let refused = false;
 
-              // Save the wizard data for the new tools to the active scenario
+              // Save the wizard data for the new tools to the active scenario. A locked plan refuses both (6.20.2): its
+              // settings stay as they are, and the person is told so in plain words.
               try {
                 if (newTools.includes('stress')) {
                   await saveStressSettings({
@@ -5597,9 +5603,7 @@
                   });
                   invalidateStressCache();
                 }
-                if (newTools.includes('decision') && (await planIsLocked())) {
-                  showToast('Decision settings left unchanged — this plan is locked (entries are recorded against it). Unlock it in Decision → Settings to change them.', 'warning', 5000);
-                } else if (newTools.includes('decision')) {
+                if (newTools.includes('decision')) {
                   await saveDecisionSettings({
                     equityMin: wizardData.decisionEquity,
                     bondMin: wizardData.decisionBond,
@@ -5614,11 +5618,11 @@
                   invalidateCache();
                 }
               } catch (e) {
-                console.error('Error saving new tool settings:', e);
+                if (!(refused = sayIfLocked(e))) console.error('Error saving new tool settings:', e);
               }
 
               await showMainApp();
-              showToast('New tool configured successfully', 'success');
+              if (!refused) showToast('New tool configured successfully', 'success');
             };
             initToolWizard(wizardEl, newTools, onWizardComplete, existingSettings);
           } else {
@@ -5961,7 +5965,7 @@
     // the same recommendation sold at once and parked as SIPP cash, and N history records. ----
     function cadenceMonths(c) { return c === 'annual' ? 12 : c === 'quarterly' ? 3 : 1; }
     window.setCadence = async function (v) {
-      try { await saveDecisionSettings({ cadence: v }); } catch (e) { showToast('Could not save: ' + e.message, 'error'); return; }
+      try { await saveDecisionSettings({ cadence: v }); } catch (e) { if (!sayIfLocked(e)) showToast('Could not save: ' + e.message, 'error'); loadCadenceUI(); return; }   // a locked plan: said plainly, the picker back as saved (6.20.2)
       const n = document.getElementById('entryCadenceNote');
       if (n) n.textContent = v === 'monthly' ? '' : 'Enter this month\'s values; the recommendation covers the next ' + cadenceMonths(v) + ' months and Save records them all.';
       if (currentDecision) { currentDecision.cadenceMonths = cadenceMonths(v); renderDecisionPanel(currentDecision, document.getElementById('decisionOutput')); }
@@ -6020,6 +6024,7 @@
         const stage = window._lifeStage || await refreshLifeStage();
         const gate = decisionEntryAllowed(stage, dateStr);
         if (!gate.ok) { showToast(gate.reason, 'info', 8000); return; }
+        if (!(await askBeforeMonthLocks(stage))) return;   // still saving, plan unlocked: this month (or its tax-year set-up) would lock it — ask first (6.20.2)
         if (stage && stage.timingMode === 'future' && !stage.beforeStart && !window._arrivalChecked) {
           const doc = await getActivePlanDocument();
           const hist = await getHistoryAsync({ limit: 1 }).catch(() => []);
@@ -6117,6 +6122,7 @@
         showToast('Please sign in to save decisions', 'error');
         return;
       }
+      try { if (!(await askBeforeMonthLocks(window._lifeStage || await refreshLifeStage()))) return; } catch (e) { /* stage optional */ }   // the first record locks the plan: a saver is asked first (once; 6.20.2)
 
       // Show spinner
       btn.classList.add('loading');
@@ -6907,7 +6913,7 @@
 
     // Apply optimised allocation to settings
     window.applyOptimisedAllocationUI = async function(equity, bond, cash) {
-      // Update stress settings (Pot + allocation sliders)
+      if (await refusedWhenLocked()) return;   // a locked plan's split is frozen: said plainly, the form untouched (6.20.2)
       writeAlloc('ss', equity, bond, cash);
 
       // Update decision settings
@@ -6928,7 +6934,7 @@
             cashTarget: cash
           });
         } catch (e) {
-          console.error('Error saving optimised settings:', e);
+          if (sayIfLocked(e)) return; console.error('Error saving optimised settings:', e);
         }
       }
 
@@ -8125,8 +8131,8 @@
     }
 
     // ---- Next-step guide rail ---------------------------------------------------------------
-    // One sentence + one button, computed from actual plan state. Disappears once the journey
-    // (budget → target → stress → decision) is complete, and can be dismissed per plan.
+    // One sentence + one button, computed from actual plan state (src/services/NextStep.js): budget → target → stress →
+    // the life stage's own sentence. Disappears when there is nothing to say, and can be dismissed per plan.
     // ---- A plan saved by a NEWER version of the app than this tab is running (6.15.0) ----
     // A tab left open across a release must not save over a plan the newer version has already upgraded:
     // every save of it is refused (FirestoreService.saveScenario). This banner says so, once, in plain words.
@@ -8148,49 +8154,17 @@
         const scenarioId = await getActiveScenarioId();
         // The life stage is worked out here on every load — BEFORE the dismissed-banner early return, or a
         // plan with the banner dismissed never got a stage (tabs not hidden, chip without it — Chris, 10 Sep).
-        try { await refreshLifeStage(); } catch (e) { /* stage optional */ }
-        if (!scenarioId || localStorage.getItem('nextStepDismissed:' + scenarioId)) { banner.style.display = 'none'; return; }
-        const [budget, stress, decision] = await Promise.all([
-          getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync()
-        ]);
-        const budgetDone = (budget.lines || []).some((l) => +l.annual > 0);
-        const targetApplied = (stress.baseSalary || 0) > 0;
-        const decisionDone = !!decision.configured;
-        let text = null, btn = null, act = null;
-        if (!budgetDone) {
-          text = 'Start here: walk through what retirement will actually cost — about 10 minutes, with typical UK figures when you\'re unsure.';
-          btn = 'Start the budget walk-through';
-          act = () => { switchToTab('budget'); setTimeout(() => openBudgetWizard(), 400); };
-        } else if (!targetApplied) {
-          const m = budget.derived?.allInComfortableMonthly;
-          text = 'Your budget adds up' + (m ? ' to about ' + gbp(Math.round(m)) + '/mo take-home' : '') + '. That is today\'s spending — use it as the first step of your income shape, then draw the later years and see if the pension can pay for them.';
-          btn = 'Use it as the start of my income shape';
-          act = async () => { await applyBudgetToPlan(); updateNextStepBanner(); };
-        } else if (!stress.configured) {
-          text = 'Target set. Now the big question: can your pension actually pay for it? Open the Stress Tester settings, tell it what you have, and run the simulation.';
-          btn = 'Open Stress Tester settings';
-          act = () => { switchToTab('stress'); setTimeout(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click(), 400); window.scrollTo({ top: 0 }); };
-        } else if (!decisionDone) {
-          text = 'Your target is set and the Stress Tester is ready — when the long-term picture looks right, set up the monthly Decision Tool (it tells you what to draw, from where, each month).';
-          btn = 'Open the Decision Tool';
-          act = () => switchToTab('decision');
-        }
-        // Life stage (6.6.0): once the onboarding chain has nothing to say, the stage speaks — and a locked
-        // plan's stage always wins over the chain (its settings are frozen; "open Settings" would mislead).
         let stage = null; try { stage = await refreshLifeStage(); } catch (e) { stage = null; }
-        if (stage && (stage.locked || !text) && stage.banner) {
-          text = stage.banner.text;
-          btn = stage.banner.btn;
-          const tb = stage.banner;
-          act = () => { switchToTab(tb.tab); if (tb.sub) setTimeout(() => document.querySelector('.sub-tab[data-decisiontab="' + tb.sub + '"]')?.click(), 400); };
-        } else if (stage && stage.locked && !stage.banner) {
-          text = null;   // a running plan is past onboarding: the where-am-I strip speaks, not "start the budget" (6.10.4)
-        }
-        if (!text) { banner.style.display = 'none'; return; }
-        document.getElementById('nextStepText').innerHTML = text;
+        if (!scenarioId || localStorage.getItem('nextStepDismissed:' + scenarioId)) { banner.style.display = 'none'; return; }
+        const [budget, stress, decision, fromAnswer] = await Promise.all([getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync(), planFromAnswer()]);
+        // One sentence + one button (src/services/NextStep.js): the onboarding chain, then the life stage's own sentence —
+        // never "set up the Decision tool" for a saver; a locked plan's stage wins; a V7 plan's budget is a guide (6.20.2).
+        const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer });
+        if (!step) { banner.style.display = 'none'; return; }
+        document.getElementById('nextStepText').innerHTML = step.html;
         const b = document.getElementById('nextStepBtn');
-        b.textContent = btn;
-        b.onclick = act;
+        b.textContent = step.btn;
+        b.onclick = nextStepAction(step.action, window);
         banner.style.display = 'flex';
       } catch (e) { banner.style.display = 'none'; }
     };
@@ -8276,12 +8250,9 @@
     window.mobileGo = function (name) { document.querySelector('.tab[data-tab="' + name + '"]')?.click(); closeMobileSheet(); window.scrollTo({ top: 0 }); };
     window.closeMobileSheet = function () { const sh = document.getElementById('mobileSheet'); if (sh) sh.classList.remove('open'); };
     function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
-    window.openMobileMore = function () {
+    window.openMobileMore = function () {   // the sheet's buttons (src/ui/mobileMenu.js), Transition among them (6.20.2)
       const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
-      openSheet('<button type="button" data-on-click="closeMobileSheet(); openWhatsNew();">&#127381; What\'s new (v' + VERSION + ')</button>'
-        + '<button type="button" data-on-click="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
-        + (vis('household') ? '<button type="button" data-on-click="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
-        + '<button type="button" data-on-click="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>');
+      openSheet(moreSheetHtml({ version: VERSION, householdVisible: vis('household') }));
     };
     window.openMobileMenu = function () {
       const email = document.getElementById('userEmail')?.textContent || '';
@@ -8298,7 +8269,7 @@
     };
     // keep the bottom bar's active state in step with the real tabs; bring the active sub-tab into view
     (function () {
-      const sync = () => { const act = document.querySelector('.tab.active')?.dataset.tab; document.querySelectorAll('#mobileTabBar button').forEach((b) => b.classList.toggle('active', b.dataset.mtab === act || (b.dataset.mtab === 'more' && (act === 'accumulation' || act === 'household')))); };
+      const sync = () => { const act = document.querySelector('.tab.active')?.dataset.tab; document.querySelectorAll('#mobileTabBar button').forEach((b) => b.classList.toggle('active', b.dataset.mtab === act || (b.dataset.mtab === 'more' && MORE_TABS.includes(act)))); };
       const nav = document.querySelector('.tabs'); if (nav) new MutationObserver(sync).observe(nav, { attributes: true, subtree: true, attributeFilter: ['class'] });
       document.addEventListener('click', (e) => { const st = e.target.closest('.sub-tab'); if (st && window.innerWidth <= 700) setTimeout(() => st.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }), 50); });
       setTimeout(sync, 500);
@@ -11449,7 +11420,7 @@
         showToast('Please sign in first', 'error');
         return;
       }
-      if (!await appConfirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
+      if (await refusedWhenLocked()) return; if (!await appConfirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
       showLoading('Copying from Decision...');
       try {
         const decision = await getDecisionSettingsAsync();
@@ -12199,55 +12170,31 @@
     };
 
     window.applyBudgetToPlan = async function () {
+      // A locked plan's settings are frozen, Stress settings included (6.20.2): say so plainly and change nothing.
+      if (await refusedWhenLocked()) return;
       const s = summariseBudget(window._budget);
       const headM = +window._budget.targetHeadroomMonthly || 0;
       const gross = Math.round(grossUpAnnual(s.allInComfortableAnnual + headM * 12));
       if (!gross) { showToast('Add some spending first', 'warning'); return; }
       showLoading('Applying to plan…');
       try {
-        // Stress settings are a sandbox (never plan-locked); the Decision target is part of the
-        // locked plan definition, so it only updates when the plan is unlocked.
-        // Per-year schedule: dated budget lines + one-offs, grossed up per year — the stress
-        // engine follows the shape (car lease ends, roof lands in its year) instead of a flat
-        // average. baseSalary stays as the year-0 anchor for display and the Decision tool.
-        // The budget is TODAY'S spending: it seeds the FIRST step of the income shape only. The
-        // go-slow / no-go steps are the user's to draw (Stress Settings → Your income shape); the
-        // budget's age bands and one-offs are not turned into a schedule any more.
-        const stressNow = await getStressSettingsAsync();
-        // Income starts at retirement — or NOW if already retired (year 0 is today for a retiree).
-        const ageNow = stressNow.shapeAgeNow || Math.max(budgetRetirementAge(window._budget) || 0, budgetAgeToday(window._budget) || 0) || 57;   // placeholders are not an age (6.13.5)
-        const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? JSON.parse(JSON.stringify(stressNow.incomeSteps)) : [];
-        if (steps.length) steps[0] = { fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
-        const dur = stressNow.duration || 35;
-        const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => Math.round(amountAtAge(steps, ageNow + y, gross)));   // slope-aware (IncomeSchedule)
-        const essentialsGross = Math.round(grossUpAnnual(s.essentialAnnualNet || 0));
-        // essentialsAnnual is a Floor & Flex dial: it goes into THAT strategy's put-away inputs (6.13.0), and into the
-        // live params only when Floor & Flex is the plan's strategy — no stray key for the others.
-        const stState = JSON.parse(JSON.stringify(stressNow.strategyState || {}));
-        if (essentialsGross) { const ff = stState['floor-and-flex'] || (stState['floor-and-flex'] = { strategyParams: {}, allocMode: 'risk', taggedFunds: [], savedAt: todayIso() }); if (!ff.strategyParams.essentialsAnnual) ff.strategyParams.essentialsAnnual = essentialsGross; }
-        const prm = { ...(stressNow.strategyParams || {}) }; if (stressNow.strategyId === 'floor-and-flex' && !prm.essentialsAnnual && essentialsGross) prm.essentialsAnnual = essentialsGross;
-        await saveStressSettings({ baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule, strategyParams: prm, strategyState: stState });
-        window._ssStrategyState = JSON.parse(JSON.stringify(stState));
-        // Double-count caution: this budget already shapes spending by age AND the profile
-        // is 'Declining' — the generic drift would cut the late years twice.
-        const b = window._budget;
-        const ageShaped = (b.lines || []).some((l) => (l.fromAge != null && l.fromAge !== '' && +l.fromAge !== +b.retirementAge) || (l.toAge != null && l.toAge !== '' && +l.toAge !== +b.endAge))
-          || (b.oneOffs || []).length > 0 || (Array.isArray(b.splitPhases) && b.splitPhases.length > 0);
+        // The budget is TODAY'S spending: it seeds the FIRST step of the income shape only (src/services/BudgetToPlan.js).
+        // baseSalary stays as the year-0 anchor for display and the Decision tool.
+        const { patch, strategyState } = budgetIncomeShapePatch(window._budget, await getStressSettingsAsync(), gross, todayIso());
+        await saveStressSettings(patch);
+        window._ssStrategyState = JSON.parse(JSON.stringify(strategyState));
         updateScheduleSpendNotes();
         if (window._budGuide) { window._budGuide = await planTargetGuide(); updateBudgetSummary(); }   // the target the page names has just moved
-        const locked = await planIsLocked();
-        if (!locked) await saveDecisionSettings({ baseSalary: gross });
+        await saveDecisionSettings({ baseSalary: gross });
         // The stress settings screen shows the net-first field — refresh if it's loaded.
         const ssGross = document.getElementById('ssBaseSalary');
         if (ssGross) { ssGross.value = gross; syncNetFromGross('ss'); }
         const dsGross = document.getElementById('dsBaseSalary');
-        if (dsGross && !locked) { dsGross.value = gross; syncNetFromGross('ds'); }
+        if (dsGross) { dsGross.value = gross; syncNetFromGross('ds'); }
         updateNextStepBanner();
-        showToast('Income shape started from your budget: ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home as the first step' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + '. Draw the later steps in Stress Settings → Your income shape' + ' — ' + gbp(gross) + '/yr gross' +
-          (locked ? '. Stress only; the Decision plan is locked' : ''), 'success', 5000);
+        showToast('Income shape started from your budget: ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home as the first step' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + '. Draw the later steps in Stress Settings → Your income shape' + ' — ' + gbp(gross) + '/yr gross', 'success', 5000);
       } catch (e) {
-        console.error('Apply-to-plan error:', e);
-        showToast('Could not apply: ' + e.message, 'error');
+        if (!sayIfLocked(e)) { console.error('Apply-to-plan error:', e); showToast('Could not apply: ' + e.message, 'error'); }
       } finally {
         hideLoading();
       }
@@ -12656,6 +12603,7 @@
 
     // ---- save / finish ----
     window.budWizSave = async function (alsoApply) {
+      if (alsoApply && await refusedWhenLocked()) return;   // "Set as my plan's target" on a locked plan: said plainly, nothing else (6.20.2)
       await saveBudgetUI();
       if (alsoApply) await applyBudgetToPlan();
       closeBudgetWizard();
@@ -13240,7 +13188,7 @@
 
     // Reset decision settings
     window.resetDecisionSettingsUI = async function() {
-      if (!await appConfirm('Reset all decision settings to defaults?')) return;
+      if (await refusedWhenLocked()) return; if (!await appConfirm('Reset all decision settings to defaults?')) return;
 
       showLoading('Resetting settings...');
       try {

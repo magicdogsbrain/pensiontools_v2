@@ -165,7 +165,7 @@ function renderOnboardingPage(userName, onStartWizard, opts = {}) {
             <h2>Everything lives in a "plan" &nbsp;&#x1F4C4;&#x1F512;</h2>
           </div>
           <p>A <strong>plan</strong> holds one set of assumptions — your pots, spending target, State Pension — plus everything you record against them. You can keep several (say, "Retire at 60" vs "Retire at 62") and switch or duplicate them from the dropdown at the top.</p>
-          <p>Once you commit a plan's Decision settings and start recording monthly entries, the plan <strong>locks &#x1F512;</strong> — its settings freeze so your history stays meaningful. Want to try different assumptions later? Duplicate into a new plan. The Budget and Stress Tester never lock: the budget saves as you type, and Stress is a free sandbox for what-ifs. The &#x1F512;/&#x270F;&#xFE0F; chip next to the plan name always shows where you stand.</p>
+          <p>A plan <strong>locks &#x1F512;</strong> when you record your first monthly entry or set up a tax year in the Decision Tool, or when you lock it yourself from Stress Tester → Settings (that also writes the plan document, the record of what you committed to). Once it is locked, its Stress Tester and Decision Tool settings freeze, so your records stay meaningful; "Try a strategy" what-ifs still run. You can unlock it — you're shown exactly what that changes first — or duplicate it to try different assumptions. Your Budget never locks: it saves as you type. Still saving? Record your pot each month on the Accumulation tab; it doesn't lock anything. The &#x1F512;/&#x270F;&#xFE0F; chip next to the plan name always shows where you stand.</p>
         </div>
 
         <!-- Reassurance -->

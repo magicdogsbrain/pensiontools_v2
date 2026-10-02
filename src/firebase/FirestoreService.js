@@ -18,6 +18,8 @@ import { db, isFirebaseConfigured } from './config.js';
 import { getCurrentUser , isGuest } from './AuthService.js';
 import { normalizeScenario, upgradeScenario } from './scenarioMigration.js';
 import { isNewerSchema, PlanNewerThanAppError, PLAN_NEWER_EVENT } from '../storage/schema.js';
+import { PlanLockedError, isPlanLockedError, writeTouchesLockedParts, lockedPlanWriteRefusal } from '../services/LockedPlanGuard.js';
+import { getDefaultStressSettings } from '../storage/stressDefaults.js';
 
 /**
  * Get current user's document path
@@ -126,6 +128,20 @@ function guestUpgraded() {
 }
 
 /**
+ * The lock, against the plan AS STORED (6.20.2). The repositories check this tab's copy of the plan; a tab or device
+ * that loaded it before it was locked elsewhere (the first month recorded on a phone, a desktop tab left open) still
+ * thinks it is a draft. So the plan as stored, read just before the write, is read as a load reads it (normalised and
+ * upgraded) and the same rules applied (services/LockedPlanGuard.js): a write that would change a locked plan's Stress
+ * or Decision settings, beyond the named bookkeeping, or its strategy, is refused with PlanLockedError (fromStore) and
+ * nothing is written. Writes that touch none of those are not checked (no extra work for records, the journey, …).
+ */
+function refuseIfStoredLocked(storedRaw, data) {
+  if (!storedRaw || !writeTouchesLockedParts(data)) return;
+  const keys = lockedPlanWriteRefusal(upgradeScenario(storedRaw).scenario, data, getDefaultStressSettings());
+  if (keys) throw new PlanLockedError(keys, { fromStore: true });
+}
+
+/**
  * A plan about to be CREATED (a new plan, a duplicate, a guest plan handed into an account, a demo import)
  * is written in today's shape: a hand-off stash has no expiry, so a plan stashed under an old version can
  * arrive here long after. If it cannot be upgraded it is created as it is and upgraded on a later load.
@@ -141,19 +157,27 @@ function readyToCreate(data) {
  */
 
 // ---- Guest store: scenarios for a guest session live in sessionStorage (this tab only) ----
+// Kept as TEXT, never as objects the app holds (6.20.2): every read parses a fresh copy and every save stores one, as a
+// signed-in read from Firestore always did. Until then the store handed out its own objects (a shallow copy of each
+// plan), so a change made to a loaded plan in memory — the Budget's age folded into the Stress copy on load — became the
+// stored plan's, was written by the next unrelated save, and was carried into the account by the sign-in hand-off.
 const GUEST_KEY = 'pt_guest_scenarios';
-function guestRead() { try { return JSON.parse(sessionStorage.getItem(GUEST_KEY) || '[]'); } catch (e) { return []; } }
-function guestWrite(list) { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify(list)); } catch (e) { /* quota / private mode: keep in memory only */ guestMem = list; } }
-let guestMem = null;
-function guestList() { return guestMem || guestRead(); }
-function guestSave(list) { guestMem = list; guestWrite(list); }
-export function clearGuestData() { guestMem = null; try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { /* ignore */ } }
+let guestText = null;   // the store as last saved by this tab; sessionStorage holds the same (unless it refused it)
+function parseList(text) { try { const v = JSON.parse(text || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+function guestRead() { try { return parseList(sessionStorage.getItem(GUEST_KEY)); } catch (e) { return []; } }
+function guestList() { return guestText != null ? parseList(guestText) : guestRead(); }
+function guestSave(list) {
+  const text = JSON.stringify(list);
+  guestText = text;
+  try { sessionStorage.setItem(GUEST_KEY, text); } catch (e) { /* quota / private mode: kept in memory only */ }
+}
+export function clearGuestData() { guestText = null; try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { /* ignore */ } }
 export function guestHasData() { return guestList().length > 0; }
-/** A deep copy of the guest's plans — for the hand-off into an account when they sign in. */
-export function guestSnapshot() { try { return JSON.parse(JSON.stringify(guestList())); } catch (e) { return []; } }
+/** A copy of the guest's plans — for the hand-off into an account when they sign in. */
+export function guestSnapshot() { return guestList(); }
 
 export async function loadAllScenarios() {
-  if (isGuest()) return guestUpgraded().map((x) => ({ ...x }));
+  if (isGuest()) return guestUpgraded();   // fresh copies: the store is text
   if (!isFirebaseConfigured()) return [];
 
   const collRef = getUserCollection('scenarios');
@@ -179,7 +203,7 @@ export async function loadAllScenarios() {
  * @returns {Promise<object|null>}
  */
 export async function loadScenario(scenarioId) {
-  if (isGuest()) { const x = guestUpgraded().find((y) => y.id === scenarioId); return x ? { ...x } : null; }
+  if (isGuest()) return guestUpgraded().find((y) => y.id === scenarioId) || null;
   if (!isFirebaseConfigured()) return null;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -213,6 +237,10 @@ export async function loadScenario(scenarioId) {
  * on, and the window event 'pt:plan-newer-than-app' fires once). The one exception is a write of the
  * `isActive` flag alone, so the person can still switch to another plan.
  *
+ * Locked-plan guard (6.20.2): the same read refuses a write that would change a LOCKED plan's settings or strategy
+ * (refuseIfStoredLocked: PlanLockedError, code 'plan-locked', nothing written, never retried). A failed read lets the
+ * write go ahead as before; the repositories' own check, against the plan as this tab loaded it, has already passed.
+ *
  * @param {string} scenarioId - Scenario document ID
  * @param {object} data - Scenario data (may use dot-notation keys for nested updates)
  * @returns {Promise<void>}
@@ -222,7 +250,7 @@ export async function saveScenario(scenarioId, data) {
   if (guarded && newerPlanIds.has(scenarioId)) throw new PlanNewerThanAppError(scenarioId);
   // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
   // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -236,13 +264,14 @@ export async function saveScenario(scenarioId, data) {
       // let the write go ahead as it did before 6.15.0. Only a plan actually seen to be newer is refused.
       let stored = null; try { stored = await getDoc(docRef); } catch (e) { stored = null; }
       if (stored && stored.exists() && isNewerSchema(stored.data())) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); }
+      if (stored && stored.exists()) refuseIfStoredLocked(stored.data(), data);
     }
     return updateDoc(docRef, { ...data, lastModified: new Date().toISOString() });
   };
   try {
     await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long');
   } catch (first) {
-    if (first instanceof PlanNewerThanAppError) throw first;   // not a connection problem: never retried
+    if (first instanceof PlanNewerThanAppError || isPlanLockedError(first)) throw first;   // not a connection problem: never retried
     console.error('Error saving scenario (first attempt):', first);
     try { await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long'); }
     catch (error) { console.error('Error saving scenario:', error); throw error; }

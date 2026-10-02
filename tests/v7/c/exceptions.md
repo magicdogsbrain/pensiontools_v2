@@ -122,7 +122,12 @@ a candidate engine fix outside this slice.
    then stops, so the sum over a plan can pass the limit by up to one month's quarter. The oracle allows one month.
 4. **A couple's pots drain in a fixed ratio.** The household is short the moment one person's pot cannot pay,
    whatever the other still holds; the run-out month is that month, and the other person's months after it are not
-   shown.
+   shown. This stays so for a couple who stop in the same year (their answers are 6.19.0's, figure for figure). A
+   couple who stop in different years (6.20.0) is not held to it after the second stop: when one person's money runs
+   out, the other's pays all of what the pots pay from that month, and the household runs out only when both have
+   (`toEngine.js` passOnAt, `stopAt.js` runApart; the engine's call of 2 Oct 2026). Without it, a first stopper who came
+   to the second stop with a few hundred pounds of savings — the case of one spending cash down before a later income —
+   sank the household decades early, and more money could give less (couples-different-years.md 4.3 f).
 6. **"Lasts at an amount" is not always monotone at £10 steps** (found by the nightly run of
    `tests/v7/cross/questions.test.js` X1 on 1 Oct 2026, seed 2127017665). For one person of 71 with £2,327,718, £150,000
    of savings and a £200,000-a-year final-salary pension from 75 (40 futures), future 8 runs out at £14,020 a month,

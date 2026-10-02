@@ -83,14 +83,21 @@ function aAtStopNow(c, spend, { payIn = 0, partnerPayIn = 0, savingRisk = 'balan
     partTime: { has: false },
     savingRisk, risk: c.risk, charge, endAge: c.endAge
   };
-  if (c.household === 'couple') a.partner = { ...personOf(c.partner), payIn: { kind: 'total', total: partnerPayIn } };
+  if (c.household === 'couple') {
+    a.partner = { ...personOf(c.partner), payIn: { kind: 'total', total: partnerPayIn } };
+    // a partner who "already has" stopped, with you from now, is the same year (couples-different-years.md 9.1 I3)
+    if (c.partner.stop && c.partner.stop.kind === 'already') {
+      a.partner.stop = { kind: 'already' };
+      if (c.partner.taxFreeTaken !== undefined) a.partner.taxFreeTaken = c.partner.taxFreeTaken;
+    }
+  }
   return a;
 }
 
 /** B's checked inputs as A's, stopping at the same age (B has no part-time and no choice of ages; A no confidence). */
 function aFromB(b) {
   const { confidence, stop, ...rest } = copy(b);
-  return { ...rest, stop: { kind: 'age', age: stop.age }, partTime: { has: false } };
+  return { ...rest, stop: stop.kind === 'already' ? { kind: 'already' } : { kind: 'age', age: stop.age }, partTime: { has: false } };
 }
 
 /**
@@ -179,6 +186,9 @@ function x1(cRaw, extra = {}) {
   const c0 = answerC({ ...copy(cRaw), charge, start: { kind: 'now' }, take: null }, ENV);
   if (c0.status === 'invalid') return 'skipped';
   const cIn = c0.inputs;
+  // each on their own date is XA1's (tests/v7/cross/apart.test.js); the tax-free part had by you from now is asked of A
+  // only with "I've already stopped", which A answers about your partner
+  if (c0.apart || cIn.you.taxFreeTaken === true) return 'skipped';
   if (cIn.you.age > SCHEMA_A.fields.find((f) => f.path === 'stop.age').max) return 'skipped';
   if (c0.status === 'ok' && c0.basis.start !== MONTH) return 'moved';      // C moved the start: a different question
   // M-A1 is for a household whose pensions are open today. With one closed, A runs it locked inside its holder's run
@@ -355,11 +365,12 @@ function x3(bIn) {
   const b = answerB(bIn, B_ENV);
   if (b.status === 'invalid') return false;
   const aIn = aFromB(b.inputs);
-  const a = answerA(aIn, A_ENV(b.inputs.stop.age));
+  const asked = b.stop.age;                     // the stop asked about: yours, or your partner's after "I've already stopped"
+  const a = answerA(aIn, A_ENV(asked));
   const where = JSON.stringify(b.inputs);
   expect(a.status, where).not.toBe('invalid');
   if (!b.wholeLife || a.status !== 'ok') return false;
-  expect(a.shown.age, where).toBe(b.inputs.stop.age);
+  expect(a.shown.age, where).toBe(asked);
   expect(b.wholeLife.lasted, where).toBe(a.shown.lasted);
   expect(b.wholeLife.runOutAge, where).toBe(a.shown.runOutAge);
   expect(b.wholeLife.outOfTen.words, where).toBe(a.shown.outOfTen.words);

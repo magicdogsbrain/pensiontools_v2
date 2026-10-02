@@ -6,12 +6,19 @@
  */
 import { saverNumbers } from '../a/NumbersScreen.jsx';
 
-/** The top-level fields of B's numbers step, in the order drawn. Each one's dependants are drawn inside it. */
+/**
+ * The top-level fields of B's numbers step, in the order drawn. Each one's dependants are drawn inside it. A couple's
+ * stop is a choice — an age, or "I've already stopped" (couples-different-years.md 2.2) — with the age box inside "At an
+ * age" (`inside`); one person is asked the age alone, as before (select.js choiceAsked).
+ */
 export const LAYOUT_B = {
-  you: ['you.age', 'you.pot', 'you.payIn.kind', 'stop.age', 'you.statePension.kind', 'you.finalSalary.has'],
-  partner: ['partner.age', 'partner.pot', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
+  you: ['you.age', 'you.pot', 'you.payIn.kind', 'stop.kind', 'stop.age', 'you.statePension.kind', 'you.finalSalary.has'],
+  partner: ['partner.age', 'partner.pot', 'partner.stop.kind', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
   more: ['savings', 'you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence'],
-  spend: ['spend.kind']
+  spend: ['spend.kind'],
+  /** Drawn first under more detail, each only while it applies (someone who has stopped). */
+  taxFree: ['you.taxFreeTaken', 'partner.taxFreeTaken'],
+  inside: { 'stop.kind': { age: ['stop.age'] } }
 };
 
 export const NumbersScreen = saverNumbers('b', LAYOUT_B);

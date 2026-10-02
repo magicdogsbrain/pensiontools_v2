@@ -22,7 +22,9 @@ const NAMES = [
   'answer-take', 'answer-small-pot', 'answer-pensions-only', 'answer-pensions-only-later', 'answer-nothing', 'answer-assumed-open', 'answer-failed',
   'soon-d', 'not-built-ways', 'not-found',
   // still paying in (the owner's 55-year-old, 1 Oct 2026); the same with the start left alone; the closed years
-  'numbers-paying-in', 'answer-paying-in', 'answer-paying-in-default', 'answer-closed-years'
+  'numbers-paying-in', 'answer-paying-in', 'answer-paying-in-default', 'answer-closed-years',
+  // a couple who stop work in different years: one stopped, from now; the other stopping next year (6.20.0, B1)
+  'numbers-apart', 'answer-apart'
 ];
 const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
 const MADE = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states/made-with.json'), 'utf8'));

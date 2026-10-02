@@ -31,18 +31,23 @@
  * The budget step and "Save this as a plan" (research/v7/budget-step.md, save-as-plan.md) add boxes that are not
  * fields of any input list — the spending choice, the budget sheet's boxes, the plan's name. extraBoxes(state) says
  * which a state draws and what each holds; R7 checks them against the state as it checks the fields.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1–3.2): whether a field applies
+ * is the one exported rule (validate.js applies: `when` lists, `whenNot`); which options a choice offers, whether a
+ * choice is asked at all, and whether the pay line is open are the screen's rules, written again here (optionsDrawn,
+ * choiceDrawn, payLineOpen) so a screen that draws more or fewer goes red.
  */
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
-import { parseDraft } from '../../../src/answers/shared/validate.js';
+import { parseDraft, applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { money, ageText, pot, outOfTen, get } from '../../../src/answers/shared/format.js';
 import { parse, format, screenName } from '../../../src/v7/router/routes.js';
 import { BUILT } from '../../../src/v7/rail/questions.js';
 import { railFor } from '../../../src/v7/rail/index.js';
-import { isRetired, budgetView, keepView } from '../../../src/v7/state/select.js';
+import { isRetired, budgetView, keepView, askedAboutValues } from '../../../src/v7/state/select.js';
 import { BANNED, QUESTION_EXEMPT } from '../../../src/v7/copy/banned.js';
 import { ADVICE_SHORT, ADVICE_FULL } from '../../../src/v7/copy/common.js';
 import { A } from '../../../src/v7/copy/a.js';
@@ -117,12 +122,76 @@ export const SCHEMA_OF = { a: SCHEMA_A, b: SCHEMA_B, c: SCHEMA_C };
 const SAVER = ['a', 'b'];
 export const questionOf = (state) => (state.route.screen === 'step' && SCHEMA_OF[state.route.q] && state.draft[state.route.q] ? state.route.q : 'c');
 
-/** A or B with the stop at today's age or before (stopping now), or the retired view: the `retired` rules apply too. */
+/**
+ * A or B with the stop at today's age or before (stopping now), "I've already stopped" (the person at the keyboard has
+ * stopped, whoever the answer is about), or the retired view: the `retired` rules apply too.
+ */
 export function stopsNow(state, q) {
   if (!SAVER.includes(q) || !state.draft[q]) return false;
   if (isRetired(state, q)) return true;
   const v = parseDraft(SCHEMA_OF[q], state.draft[q].values, state.env).values;
+  if (v['stop.kind'] === 'already' || state.draft[q].values['stop.kind'] === 'already') return true;
   return typeof v['stop.age'] === 'number' && typeof v['you.age'] === 'number' && v['stop.age'] <= v['you.age'] && v['stop.kind'] !== 'ages';
+}
+
+/**
+ * The options a choice draws (couples-different-years.md 3.1 — the screen's rule, written again): yes/no both; A's and
+ * B's stop question offers "I've already stopped" to a couple only; the partner's question offers, while you are still
+ * working, "when you do", "they already have" and an age, and once you have stopped, an age (and "show me ages" in A).
+ * Whatever is chosen is always drawn, so the form never hides what it holds. In the list's order.
+ */
+export function optionsDrawn(q, f, shown) {
+  if (f.type === 'yesNo') return ['no', 'yes'];
+  const couple = shown.household === 'couple';
+  const youStopped = shown['stop.kind'] === 'already';
+  let fit = f.options;
+  if (f.path === 'stop.kind' && SAVER.includes(q) && !couple) fit = f.options.filter((o) => o !== 'already');
+  if (f.path === 'partner.stop.kind') fit = SAVER.includes(q) && youStopped ? f.options.filter((o) => o === 'age' || o === 'ages') : f.options.filter((o) => o !== 'ages');
+  return f.options.filter((o) => fit.includes(o) || o === shown[f.path]);
+}
+
+/** What not answering a choice with no default means (the same rule, written again). */
+const NOT_ANSWERED = { 'stop.kind': 'age', 'partner.stop.kind': 'same' };
+
+/**
+ * A choice is drawn unless the one option it offers is what not answering it means and nothing is chosen: B's stop for
+ * one person, where only an age fits (the box is drawn on its own, as before). Every other field that applies is drawn.
+ */
+export function choiceDrawn(q, f, shown) {
+  if (f.type !== 'choice') return true;
+  const options = optionsDrawn(q, f, shown);
+  return !(options.length === 1 && options[0] === NOT_ANSWERED[f.path] && blank(shown[f.path]));
+}
+
+/**
+ * The pay line (couples-different-years.md 2.1): until it is answered it is one line with "Change"; its three options are
+ * drawn once it is answered, or once "Change" (or a "Change" under what was assumed) has put ?focus=untilBothStop in the
+ * address.
+ */
+export function payLineOpen(state, q) {
+  return !blank(state.draft[q] && state.draft[q].values.untilBothStop) || state.route.focus === 'untilBothStop';
+}
+
+/**
+ * The fields that apply, as the checks walk the list: a field's rule over what the fields before it show, counting only
+ * those that apply themselves (a field hidden by a stop takes what hangs on it away too). → { paths, values }.
+ */
+export function liveValues(schema, shown) {
+  const values = {};
+  const paths = new Set();
+  for (const f of schema.fields) {
+    if (!appliesTo(f, values)) continue;
+    paths.add(f.path);
+    if (shown[f.path] !== undefined) values[f.path] = shown[f.path];
+  }
+  return { paths, values };
+}
+
+/** A field that applies and is drawn on a form of question q (the pay line only when open; a choice only when asked). */
+function drawnField(state, q, f, live) {
+  if (!live.paths.has(f.path)) return false;
+  if (f.path === 'untilBothStop' && !payLineOpen(state, q)) return false;
+  return choiceDrawn(q, f, live.values);
 }
 
 /**
@@ -176,11 +245,11 @@ export function saverKind(state, q) {
   return 'answer';
 }
 
-const idsOf = (q, fields) => {
+/** The test ids of these fields' boxes: a radio for each option the choice draws (optionsDrawn), else one box. */
+const idsOf = (q, fields, shown = {}) => {
   const ids = [];
   for (const f of fields) {
-    if (f.type === 'choice') for (const o of f.options) ids.push(`${q}.${f.path}.${o}`);
-    else if (f.type === 'yesNo') ids.push(`${q}.${f.path}.no`, `${q}.${f.path}.yes`);
+    if (f.type === 'choice' || f.type === 'yesNo') for (const o of optionsDrawn(q, f, shown)) ids.push(`${q}.${f.path}.${o}`);
     else ids.push(`${q}.${f.path}`);
   }
   return ids;
@@ -194,11 +263,12 @@ export function expectedInputs(state) {
   if (SAVER.includes(q) && state.draft[q]) return expectedSaverInputs(state, q, name);
   if (name === 'c.keep') return [...extraBoxes(state).keys()];
   if (name !== 'c.numbers' && name !== 'c.answer') return [];
-  const { parsed, shown } = shownValues(state);
-  const applies = (f) => Object.entries(f.when || {}).every(([p, want]) => shown[p] === want);
+  const { parsed, shown: typed } = shownValues(state);
+  const live = liveValues(SCHEMA_C, typed);
+  const shown = live.values;
   let fields;
   if (name === 'c.numbers') {
-    fields = SCHEMA_C.fields.filter((f) => f.path !== 'household' && f.group !== 'try' && applies(f) && (f.group !== 'more' || moreIsOpen(state)));
+    fields = SCHEMA_C.fields.filter((f) => f.path !== 'household' && f.group !== 'try' && drawnField(state, 'c', f, live) && (f.group !== 'more' || moreIsOpen(state)));
   } else {
     const wrong = Object.keys(parsed.errors).filter((p) => p !== 'take');
     const a = state.answers.c;
@@ -210,29 +280,34 @@ export function expectedInputs(state) {
       fields = SCHEMA_C.fields.filter((f) => f.path === 'take');
     } else fields = [];
   }
-  return [...idsOf('c', fields), ...(name === 'c.answer' ? extraBoxes(state).keys() : [])];
+  return [...idsOf('c', fields, shown), ...(name === 'c.answer' ? extraBoxes(state).keys() : [])];
 }
 
 function expectedSaverInputs(state, q, name) {
   if (name === 'notBuilt' || isRetired(state, q)) return [];
   const schema = SCHEMA_OF[q];
-  const { parsed, shown } = shownValues(state, q);
-  const applies = (f) => Object.entries(f.when || {}).every(([p, want]) => shown[p] === want);
+  const { parsed, shown: typed } = shownValues(state, q);
+  const live = liveValues(schema, typed);
+  const shown = live.values;
+  const applies = (f) => live.paths.has(f.path);
   const extra = [...extraBoxes(state).keys()];
   // The numbers step holds every field that applies but the spending; the spend step, the spending and its own boxes.
   if (name === `${q}.numbers`) {
     const open = moreIsOpen(state, q);
-    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && applies(f) && (f.group !== 'more' || open)));
+    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
   }
-  if (name === `${q}.spend`) return [...idsOf(q, schema.fields.filter((f) => f.group === 'spend' && applies(f))), ...extra];
+  if (name === `${q}.spend`) return [...idsOf(q, schema.fields.filter((f) => f.group === 'spend' && applies(f)), shown), ...extra];
   if (name === `${q}.keep`) return extra;
   const kind = saverKind(state, q);
   if (kind === 'short') {
+    // the short form's own fields, what applies inside them (never a "more detail" question: that is drawn under more
+    // detail only), and every field with a problem
     const top = SHORT[q];
-    const inside = (f) => Object.keys(f.when || {}).some((p) => top.includes(p));
-    return idsOf(q, schema.fields.filter((f) => applies(f) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])));
+    const inside = (f) => f.group !== 'more' && Object.keys(f.when || {}).some((p) => top.includes(p));
+    return idsOf(q, schema.fields.filter((f) => applies(f) && choiceDrawn(q, f, shown) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])), shown);
   }
-  if (kind === 'answer' && name === 'a.answer') return ['a.try.partTime.yearly', ...extra];
+  // part-time work under "Try a change" is yours: not offered once you have stopped and the answer is your partner's
+  if (kind === 'answer' && name === 'a.answer') return [...(askedAboutValues(live.values) === 'partner' ? [] : ['a.try.partTime.yearly']), ...extra];
   return extra;
 }
 
@@ -474,7 +549,8 @@ export function checkScreen(root, state) {
       const label = root.querySelector(`label[for="${id}"]`) || el.closest('label');
       if (!label || !label.textContent.trim()) say('R7', `${id} has no label`);
       if (el.getAttribute('name') !== `${fq}.${path}`) say('R7', `${id}: the radio's name is ${el.getAttribute('name')}`);
-      const want = f && f.type === 'yesNo' ? (shown[path] === true ? 'yes' : 'no') : shown[path];
+      // a yes/no with no default and nothing chosen ticks neither ("Already had the tax-free part?": not answered is no)
+      const want = f && f.type === 'yesNo' ? (shown[path] === true ? 'yes' : shown[path] === false ? 'no' : undefined) : shown[path];
       if (el.checked !== (option === want)) say('R7', `${id}: ${el.checked ? 'ticked' : 'not ticked'}, the state says ${JSON.stringify(shown[path])}`);
     } else {
       const label = root.querySelector(`label[for="${id}"]`);
@@ -495,9 +571,8 @@ export function checkScreen(root, state) {
       if (path === 'household') { if (name === `${fq}.numbers` && v !== (shown.household || 'single')) say('R8', `household reads back as ${v}`); continue; }
       const f = byPath.get(path);
       const numberBox = ['money', 'age', 'percent', 'count'].includes(f.type);
-      // a yes/no with no default and nothing chosen shows "No" (C's "still paying in?": not answered is no)
-      const nothing = f.type === 'yesNo' && shown[path] === undefined ? false : shown[path];
-      const want = blank(draft[path]) ? (numberBox ? '' : nothing) : draft[path];
+      // (a yes/no or a choice with nothing chosen ticks nothing, so it is never read back)
+      const want = blank(draft[path]) ? (numberBox ? '' : shown[path]) : draft[path];
       if (v !== want) say('R8', `${path} reads back as ${JSON.stringify(v)}, the state holds ${JSON.stringify(want)}`);
     }
   }

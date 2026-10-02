@@ -187,6 +187,35 @@ describe.each([
   });
 });
 
+describe('couples who stop work in different years: one set of words in all three questions (couples-different-years.md 2)', () => {
+  const straight = (v) => JSON.parse(JSON.stringify(v).replace(/’/g, "'"));
+  it('the pay line, its three settings and the tax-free questions read the same in C, A and B', () => {
+    for (const path of ['untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken']) {
+      expect(straight(A.fields[path]), path).toEqual(straight(C.fields[path]));
+      expect(straight(B.fields[path]), path).toEqual(straight(C.fields[path]));
+    }
+  });
+  it('"When does your partner stop work?" is the same question in all three; only C says "when you start taking money"', () => {
+    for (const words of [A, B, C]) expect(words.fields['partner.stop.kind'].label).toBe('When does your partner stop work?');
+    expect(C.fields['partner.stop.kind'].options.same).toBe('When you start taking money');
+    expect(A.fields['partner.stop.kind'].options.same).toBe('When you do');
+    expect(B.fields['partner.stop.kind'].options.same).toBe('When you do');
+  });
+  it('every new error sentence names what to do, in the guide\'s words, and none is a slot the screen cannot fill', () => {
+    const ids = ['partner-stop-not-before-now', 'partner-stop-fits', 'partner-ages-one-at-a-time', 'partner-stop-ages-past-75', 'partner-stop-after-now',
+      'already-needs-partner', 'end-after-stop-apart', 'end-after-start-apart'];
+    const found = [];
+    for (const words of [A, B, C]) {
+      for (const [where, s] of strings(words.fields)) if (ids.some((id) => where.endsWith(`errors.${id}`))) found.push([where, s]);
+    }
+    expect(found.length).toBe(13);                      // A 6, B 5, C 2
+    for (const [where, s] of found) {
+      expect(s, where).toMatch(/\b(choose|type|give|ask|if you have stopped)\b/i);
+      expect(s, where).not.toMatch(/\{/);
+    }
+  });
+});
+
 describe('every drawn state', () => {
   const names = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(ROOT, 'tests/v7/states', q)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => `${q}/${f.slice(0, -5)}`));
   const load = (name) => JSON.parse(readFileSync(join(ROOT, 'tests/v7/states', `${name}.json`), 'utf8'));

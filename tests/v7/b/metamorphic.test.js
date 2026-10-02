@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling } from './invariants.js';
+import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { fullStatePensionYearly } from '../../../src/answers/shared/rules.js';
 import { STEP, oneLife, largeHousehold } from '../oracles/oneStep.mjs';
@@ -20,7 +20,7 @@ const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const THREE = ['careful', 'middling', 'good'];
 const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary && p.finalSalary.has && p.finalSalary.yearly >= 85000));
-const singles = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter((i) => i.household === 'single' && belowTaper(i));
+const singles = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB).filter((i) => i.household === 'single' && belowTaper(i));
 /**
  * Whether b needs no more than a (sign -1: the number and pay-ins no higher) or no less (sign +1), to one step — for
  * the findings over £10,000 a month (tests/v7/oracles/oneStep.mjs).
@@ -33,6 +33,23 @@ function withinAStepB(a, b, sign) {
 const report = (name, findings) => {
   if (findings.length) console.log(`${name}: a household spending £10,000 a month or more moved by more than a step in ${findings.length} case(s) — a finding (tests/v7/b/exceptions.md)`, JSON.stringify(findings[0]));
 };
+/**
+ * The two people swapped, each keeping their own stop (couples-different-years.md 9.3 P2). One stop for both: the stop age
+ * moves to the other's age at it, as before. Each on their own date the stops go with the people: a partner who "already
+ * has" stopped (or stops now) becomes "I've already stopped", and B is then about the partner (the person who was "you").
+ */
+function swappedB(inputs) {
+  const other = JSON.parse(JSON.stringify(inputs));
+  [other.you, other.partner] = [other.partner, other.you];
+  const theirs = inputs.partner.stop;
+  delete other.you.stop;
+  delete other.partner.stop;
+  if (!theirs || theirs.kind === 'same') other.stop = { ...inputs.stop, age: inputs.stop.age - inputs.you.age + inputs.partner.age };
+  else if (theirs.kind === 'already' || theirs.age === inputs.partner.age) { other.stop = { kind: 'already' }; other.partner.stop = { kind: 'age', age: inputs.stop.age }; }
+  else { other.stop = { kind: 'age', age: theirs.age }; other.partner.stop = { kind: 'age', age: inputs.stop.age }; }
+  return other;
+}
+
 /** The household figures: what does not depend on whose name a thing is in. */
 const household = (a) => ({ status: a.status, number: a.number && { careful: a.number.careful, middling: a.number.middling, good: a.number.good },
   chance: a.chance, onCourse: a.onCourse, payIn: { now: a.payIn.now, at: a.payIn.at, needed: a.payIn.needed, outside: a.payIn.outside },
@@ -76,7 +93,7 @@ describe('B — metamorphic relations', () => {
 
   it('M-B2 / M-B5 a lower spend never needs more: the number and the pay-ins no higher — to one step', () => {
     const findings = [];
-    fc.assert(fc.property(arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(belowTaper), fc.integer({ min: 10, max: 1000 }), (inputs, less) => {
+    fc.assert(fc.property(arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB).filter(belowTaper), fc.integer({ min: 10, max: 1000 }), (inputs, less) => {
       fc.pre(inputs.spend.kind === 'amount' && inputs.spend.amount - less >= 1);
       const a = ok(answerB(inputs, ENV), inputs);
       const lower = { ...inputs, spend: { kind: 'amount', amount: inputs.spend.amount - less } };
@@ -96,7 +113,7 @@ describe('B — metamorphic relations', () => {
   });
 
   it('M-B4 and M-B6: 3 in 4 never needs more than 9 in 10; more pay-in never reaches the number in fewer lives (the grid, row by row)', () => {
-    fc.assert(fc.property(arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling), (inputs) => {
+    fc.assert(fc.property(arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB), (inputs) => {
       const a = ok(answerB(inputs, { ...ENV, detail: 'grid' }), inputs);
       if (a.payIn.at.nineInTen !== null) expect(a.payIn.at.threeInFour).toBeLessThanOrEqual(a.payIn.at.nineInTen);
       for (const row of a.grid.ages) row.cells.forEach((c, j) => { if (j) expect(c.lasted).toBeGreaterThanOrEqual(row.cells[j - 1].lasted); });
@@ -114,20 +131,35 @@ describe('B — metamorphic relations', () => {
     }), opts());
   });
 
-  it('M-B11 swapping "you" and "partner" (the stop in the same year) leaves every household figure the same', () => {
-    const couples = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter((i) => i.household === 'couple' && belowTaper(i));
+  it('M-B11 swapping "you" and "partner" (each keeping their own stop) leaves every household figure the same', () => {
+    const couples = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB).filter((i) => i.household === 'couple' && belowTaper(i) && i.stop.kind !== 'already');
     fc.assert(fc.property(couples, (inputs) => {
-      const other = JSON.parse(JSON.stringify(inputs));
-      [other.you, other.partner] = [other.partner, other.you];
-      other.stop.age = inputs.stop.age - inputs.you.age + inputs.partner.age;
-      fc.pre(other.stop.age > other.you.age && other.stop.age <= 75);
+      const other = swappedB(inputs);
+      fc.pre(other.stop.kind === 'already' || (other.stop.age > other.you.age && other.stop.age <= 75));
       const a = ok(answerB(inputs, ENV), inputs);
       const b = answerB(other, ENV);
       fc.pre(b.status !== 'invalid');
       ok(b, other);
-      // stop later is searched to 75 by the first person's age, so it is the one figure the order of the two can move
-      const strip = (h) => ({ ...h, levers: { ...h.levers, stopLater: null } });
+      // stop later is searched to 75 by the asked person's age, so it is the one figure the order of the two can move — and,
+      // each on their own date, the years until the stop asked about (it moves with "you" to the other person)
+      const strip = (h) => ({ ...h, levers: { ...h.levers, stopLater: null }, ...(a.apart ? { years: { ...h.years, saving: null } } : {}) });
       expect(strip(household(b))).toEqual(strip(household(a)));
+      expect(b.number && b.number.byPerson.map((x) => x.pot).reverse()).toEqual(a.number && a.number.byPerson.map((x) => x.pot));
+    }), opts());
+  });
+
+  // couples-different-years.md 9.3 P2: "I've already stopped", with your partner at 58, is your partner already stopped
+  // with you at 58 — the same household from the other chair: the number, the pay-in that gets there, the count
+  it('M-B11b (P2) "I\'ve already stopped" with your partner at an age equals your partner already stopped with you at that age', () => {
+    const apart = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB)
+      .filter((i) => i.household === 'couple' && belowTaper(i) && i.stop.kind !== 'already' && i.partner.stop && i.partner.stop.kind === 'already');
+    fc.assert(fc.property(apart, (inputs) => {
+      const other = swappedB(inputs);
+      expect(other.stop.kind).toBe('already');
+      const a = ok(answerB(inputs, ENV), inputs);
+      const b = ok(answerB(other, ENV), other);
+      expect(b.askedAbout).toBe('partner');
+      expect(household(b)).toEqual(household(a));
       expect(b.number && b.number.byPerson.map((x) => x.pot).reverse()).toEqual(a.number && a.number.byPerson.map((x) => x.pot));
     }), opts());
   });

@@ -2,7 +2,8 @@
  * Question B, step 3 — "What if I stop later, or pay in more, or both?" (screens-A-B.md 4.3; step 4 brief 4.11,
  * 4.13, conflict 37). The grid of stop age against pay-in, each cell the count out of 10 of futures that reached the
  * pot that stop age needs. It needs one more pass of the answer at more detail ('grid'); until it lands the step
- * says it is working them out (the page is marked partial by the shell). On course, it says so first.
+ * says it is working them out (the page is marked partial by the shell). On course, it says so first. A couple who stop in
+ * different years (the answer's `apart`) spend that amount "once you have both stopped" (couples-different-years.md 2.4).
  */
 import { Money, Sentence, Grid, gridReaches, Working, Problem, Retired, isRetired, withFixedCounts, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';
@@ -10,7 +11,7 @@ import { B } from '../../copy/b.js';
 import { saverFrame, ShortForm, AnswerRegion } from '../a/AnswerScreen.jsx';
 
 export function ChoicesScreen(state, dispatch) {
-  if (isRetired(state, 'b')) return { question: 'b', rail: true, full: false, view: 'retired', content: <Retired q="b" dispatch={dispatch} /> };
+  if (isRetired(state, 'b')) return { question: 'b', rail: true, full: false, view: 'retired', content: <Retired q="b" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'b');
   const t = B.choices;
   let body;
@@ -24,7 +25,7 @@ export function ChoicesScreen(state, dispatch) {
     body = (
       <AnswerRegion words={B} stale={stale} first={first}>
         {result.onCourse === true && <p class="on-course" data-testid="b.choices.onCourse">{t.onCourse}</p>}
-        <p class="lead">{t.spending} <Money source={result} k="spend.perMonth" /> {couple ? t.spendingEndCouple : t.spendingEnd} <Money source={result} k="basis.endAge" kind="age" />.</p>
+        <p class="lead">{t.spending} <Money source={result} k="spend.perMonth" /> {couple ? (result.apart ? t.spendingEndApart : t.spendingEndCouple) : t.spendingEnd} <Money source={result} k="basis.endAge" kind="age" />.</p>
         {ready
           ? (
             <>

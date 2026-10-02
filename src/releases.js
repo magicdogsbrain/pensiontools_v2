@@ -37,6 +37,42 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.20.0', date: '2026-10-02', engineVersion: '6.19.0',
+    title: 'Couples who stop work in different years: each of you at your own stop',
+    summary: 'The three preview questions (pensiontools.uk/v7/) used to take a couple as stopping work in the same year, and said so. Now each of you can stop on your own date: "When does your partner stop work?" — when you do, they already have, or at an age. Until you have both stopped, the one still working covers half of what you spend from their pay (or all of it, or none of it: one tap away) and keeps paying in; if the money of the one who has stopped cannot pay its part, their pay covers the rest, and the answer says from what age that happens in a bad case. If you have already stopped, "When can I afford to stop work?" and "Am I saving enough?" answer about your partner. An answer saved as a plan makes two linked plans, each beginning at its own person\'s stop. A couple who stop in the same year, and one person on their own, get exactly the answers they got before.',
+    changes: [
+      'Preview, all three questions: "When does your partner stop work?" in the partner block, with "They already have" (their pay-in is then not asked) and "At an age". Either shows one line — "Until you\'ve both stopped, the one still working covers half of what you spend from their pay, and keeps paying in" — with Change for "All of it" or "None of it".',
+      'Preview, "When can I afford to stop work?" and "Am I saving enough?": "I\'ve already stopped" for a couple. The answer is then about your partner ("Yes — your partner could stop at 56"), and "you" stays you, so a plan saved from it has the right names. If you have both stopped, they point to "What is that a month?".',
+      'Preview, More detail: "Already had the tax-free part of your pension?" for someone who has stopped. Yes means everything taken out is taxed.',
+      'Preview, what the answer is made of: the years apart have a line of their own, for example "Until you are 57, while your partner is still working: £1,810 from your money + £1,810 from your partner\'s pay."',
+      'Preview: savings between you go with whoever stops first, so they can be drawn on from then; money put into ISAs each month is split between those of you still working, each until their own stop.',
+      'Preview: the links between the three questions carry your partner\'s stop, the pay line and the tax-free answers. "What is that a month?" from now, with your partner stopping later, opens the other two as "I\'ve already stopped".',
+      'Preview, a couple who stop in different years: when a pension first opens before 6 April 2028 at 55 or 56, a note says to move into drawdown what will be needed before 57 by 5 April 2028.',
+      '"Save this as a plan" from such an answer: two linked plans, each beginning at its own person\'s stop and both ending in the same tax year; the savings between you are in the plan of whoever stops first. Household tab: a line says when one plan begins later than the other, and what is counted until then.'
+    ],
+    corrections: [
+      'Preview: for a couple where one of you has already stopped, every answer took you as stopping in the same year, so the money of the one who had stopped sat untouched until the other stopped, what it is paying for today was left out, and their half of what you put into savings each month never went in. Answers now take each of you at your own stop. For example, you 56, stopped, with £500,000; your partner 55 with £450,000, paying in £850 a month and stopping next year: the careful amount, once you have both stopped, is about £3,620 a month (it was £3,540 with the two of you taken to stop now).'
+    ],
+    effects: {
+      budget: [],
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      household: ['Linked plans that begin in different tax years now carry a line on the Household tab saying when the later one begins, and that until then its person\'s pay covers their part. The check itself is unchanged; plans that begin in the same tax year say nothing.']
+    },
+    actions: [
+      'If one of you has already stopped, or you will stop in different years, ask "What is that a month?" again with "When does your partner stop work?" answered.'
+    ],
+    notes: [
+      'The money rules: until you have both stopped, the money of the one who has stopped pays its part (half unless you change it), and whatever it cannot pay is covered by the other\'s pay — that is not counted as running out. From the second stop the usual rules apply, on what each of you has then; if one of your pots runs out after that, the other pays all of it, so the money has run out only when both have. A couple who stop in the same year keep the rules they had.',
+      'Stops are in whole years: next June counts as next year. A State Pension or final-salary pension paid to the one still working goes with their pay until they stop.',
+      'The 2028 note shows only for a couple who stop in different years. Someone of 55 or 56 stopping now on their own, or a couple stopping together, does not see it yet, although the rule applies to them too.',
+      'Saved plans are unchanged. A preview page opened before this release still saves its answer as it did (the old form of the hand-over is still read).',
+      'Engine version 6.19.0: the planner\'s engine and strategies are unchanged.'
+    ]
+  },
+  {
     version: '6.19.0', date: '2026-10-01', engineVersion: '6.19.0',
     title: 'Fund and platform charges are now taken off: 0.5% a year unless you change it',
     summary: 'Until now no charges were taken off once money was being drawn, which made every plan look better than it is likely to be. Each plan now has one setting, "Charges (funds and platform), % a year", starting at 0.5%. It comes off every month, while you save and while you draw, from the money held in funds and cash in your pension, ISA and taxable account. It does not come off gilts you hold directly, annuities, final-salary or State Pensions. A plan that was already locked keeps its figures: it runs without charges until you unlock it.',

@@ -28,7 +28,7 @@ import { resolve } from 'node:path';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 
 import {
-  SEED_KEY, SEED_VERSION, SEED_MAX_AGE_MS, SEED_WORDS, NEW_PLAN_HASH,
+  SEED_KEY, SEED_VERSION, SEED_VERSIONS, SEED_MAX_AGE_MS, SEED_WORDS, NEW_PLAN_HASH, householdStartWords,
   checkSeed, readSeed, clearSeed, takeSeedEntry, seedToScenario, cleanPlanName, checkPlanName, uniqueName,
   createPlansFromSeed, confirmAndCreate, seedSummary, seedConfirmText, seedSavedNote, questionHref, localDate, targetAtAge,
   RECEIPT_KEY, writeReceipt, dropSeed, seedStillWaiting, answerLastedWords, budgetSummaryWords
@@ -49,6 +49,7 @@ import {
   TODAY, CREATED_AT, NOW_MS, BUDGET_SHEET, ALL_SEEDS, memoryStorage,
   seedA, seedCNow, seedBCouple, seedEarly, seedZeroPot, seedCoupleZeroLater, seedPartTime
 } from './integration/fixtures/planSeeds.js';
+import * as frozen from './v7/keep/seed.v1/plannerSeed.js';
 
 const SAVED_ON = new Date(2026, 9, 2, 9, 30);   // the plan is made the day after the answer (Q20: dates come from seed.today)
 const T = localDate(TODAY);
@@ -91,13 +92,16 @@ describe('reading the seed (C.2): one day, one version, never a bad one kept', (
     expect(readSeed(s, created - 6 * 60 * 1000)).toEqual({ problem: 'future', createdAt: CREATED_AT });
     expect(s.has(SEED_KEY)).toBe(false);
   });
-  it('a version this code does not know is deleted (old or new)', () => {
-    for (const v of [0, 2, '1', undefined]) {
+  it('a version this code does not know is deleted (old or new); 1 and 2 are read', () => {
+    for (const v of [0, 3, '1', '2', 1.5, undefined]) {
       const s = stored({ ...seedA(), seedVersion: v });
       expect(readSeed(s, NOW_MS).problem).toBe('version');
       expect(s.has(SEED_KEY)).toBe(false);
     }
-    expect(SEED_VERSION).toBe(1);
+    expect(SEED_VERSION).toBe(2);
+    expect(SEED_VERSIONS).toEqual([1, 2]);
+    expect(readSeed(stored(seedA()), NOW_MS).seed.seedVersion).toBe(1);
+    expect(readSeed(stored(seedApart()), NOW_MS).seed.seedVersion).toBe(2);
   });
   it('unreadable text, a non-object or a bad date is deleted', () => {
     for (const text of ['{not json', '"a string"', '[1,2]', 'null', JSON.stringify({ ...seedA(), createdAt: 'yesterday' })]) {
@@ -892,5 +896,274 @@ describe('the Budget page\'s words about the target (review, 1 Oct 2026: the bud
     expect(couple.allInCaption).toBe('£34,048/yr — a guide; this plan’s target (your part) is £1,896/mo');
     expect(couple.handoff).toBe('Your share of the budget adds up to <strong>£2,837/mo</strong>. This plan’s target (your part) is <strong>£1,896/mo</strong> take-home to start with, the figure you chose. The budget is a guide to it: it does not change the target.');
     expect(couple.targetLine).toMatch(/^Plan target: <strong>£1,896\/mo take-home<\/strong> to start with /);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Seed version 2: each person at their own stop (research/v7/couples-different-years.md 6, 9.6 K1–K5; package P4).
+
+/** A version 1 seed as version 2 writes the same answer: each person at the household's stop, no pay line. */
+function toV2(seed) {
+  const out = JSON.parse(JSON.stringify(seed));
+  out.seedVersion = 2;
+  const { budget, ...rest } = out;
+  const v2 = {};
+  for (const [k, v] of Object.entries(rest)) { v2[k] = v; if (k === 'years') v2.untilBothStop = null; }
+  v2.budget = budget;
+  for (const p of v2.people) { p.stop = { ...v2.stop }; p.years = v2.years; }
+  return v2;
+}
+
+/**
+ * The generic case of the design (made-up figures): you (58) stopped some time ago and draw now; your partner (55) still
+ * works, stops next year at 56, and until then their pay covers half of what you spend. Seed version 2.
+ */
+function seedApart() {
+  return {
+    seedVersion: 2, createdAt: CREATED_AT, today: TODAY,
+    v7: { appVersion: '6.20.0', engineVersion: '6.19.0', historyEnd: '2023-06' },
+    source: 'a',
+    name: { suggested: 'Partner stops at 56 · £3,200 a month', chosen: 'Us' },
+    inputs: { household: 'couple', you: { age: 58, pot: 180000, taxFreeTaken: true }, stop: { kind: 'already' }, partner: { age: 55, pot: 420000, stop: { kind: 'age', age: 56 } }, savings: 40000, untilBothStop: 'half', charge: 0.5 },
+    household: 'couple',
+    stop: { kind: 'now', yearsFromNow: 0 },
+    endAge: 95,
+    years: 40,
+    untilBothStop: { payCovers: 0.5 },
+    risk: 'balanced',
+    spend: { perMonth: 3200, from: 'typed', level: null, budgetSkipped: true },
+    people: [
+      {
+        who: 'you', ageToday: 58, ageAtStop: 58, pensionOpensAge: 55,
+        pension: { today: 180000, atStop: { careful: 180000, middling: 180000 } },
+        savings: { today: 40000, atStop: { careful: 40000, middling: 40000 } },
+        payIn: null, alreadyDrawing: false,
+        statePension: { yearly: 12547.6, fromAge: 67, fromDate: '2035-10-01' },
+        finalSalary: null, taxFreeQuarter: false, partTime: null,
+        takeHome: [{ fromAge: 58, perMonth: 1600 }, { fromAge: 59, perMonth: 900 }, { fromAge: 67, perMonth: 1200 }, { fromAge: 70, perMonth: 1500 }],
+        stop: { kind: 'now', yearsFromNow: 0 }, years: 40
+      },
+      {
+        who: 'partner', ageToday: 55, ageAtStop: 56, pensionOpensAge: 55,
+        pension: { today: 420000, atStop: { careful: 389555, middling: 441948 } },
+        savings: { today: 0, atStop: { careful: 0, middling: 0 } },
+        payIn: { kind: 'total', total: 600, own: null, employer: null, savingsIn: 0 }, alreadyDrawing: false,
+        statePension: { yearly: 12547.6, fromAge: 67, fromDate: '2038-10-01' },
+        finalSalary: null, taxFreeQuarter: true, partTime: null,
+        takeHome: [{ fromAge: 56, perMonth: 2300 }, { fromAge: 64, perMonth: 2000 }, { fromAge: 67, perMonth: 1700 }],
+        stop: { kind: 'later', yearsFromNow: 1 }, years: 39
+      }
+    ],
+    answer: { monthly: { careful: 3350, middling: 3800, good: 4400 }, lasted: 0.91, runOutAge: 95, verdict: 'yes', potAtStop: null, number: null, payInNeeded: null },
+    budget: null
+  };
+}
+/** The same couple with both still working: you stop in four years at 62, your partner a year later at 60; All of it. */
+function seedBothLater() {
+  const s = seedApart();
+  s.name = { suggested: 'Stop at 62 and 60 · £3,200 a month', chosen: 'Both' };
+  s.stop = { kind: 'later', yearsFromNow: 4 };
+  s.years = 36;
+  s.untilBothStop = { payCovers: 1 };
+  const [you, partner] = s.people;
+  Object.assign(you, { ageAtStop: 62, pension: { today: 180000, atStop: { careful: 170000, middling: 205000 } }, savings: { today: 40000, atStop: { careful: 38000, middling: 44000 } },
+    payIn: { kind: 'total', total: 300, own: null, employer: null, savingsIn: 0 }, taxFreeQuarter: true,
+    takeHome: [{ fromAge: 62, perMonth: 0 }, { fromAge: 63, perMonth: 1400 }, { fromAge: 67, perMonth: 1500 }], stop: { kind: 'later', yearsFromNow: 4 }, years: 36 });
+  Object.assign(partner, { ageAtStop: 60, takeHome: [{ fromAge: 60, perMonth: 1800 }, { fromAge: 64, perMonth: 1700 }], stop: { kind: 'later', yearsFromNow: 5 }, years: 35 });
+  return s;
+}
+
+describe('version 1 is still read, and makes exactly the plans 6.19.0 made (K1; frozen tests/v7/keep/seed.v1/)', () => {
+  const variants = Object.entries(ALL_SEEDS).flatMap(([name, f]) => {
+    const withSheet = f(); withSheet.budget = JSON.parse(JSON.stringify(BUDGET_SHEET));
+    return [[name, f()], [name + ' with a sheet', withSheet]];
+  });
+  it.each(variants)('%s: every plan byte for byte, the words word for word', (name, seed) => {
+    expect(checkSeed(seed, NOW_MS)).toEqual(frozen.checkSeed(seed, NOW_MS));
+    for (const opts of [{}, { name: 'Ours', partnerName: 'Ours · partner (2)' }]) {
+      const now = seedToScenario(seed, SAVED_ON, opts), then = frozen.seedToScenario(seed, SAVED_ON, opts);
+      expect(JSON.stringify(now)).toBe(JSON.stringify(then));
+    }
+    expect(seedSummary(seed)).toBe(frozen.seedSummary(seed));
+    expect(seedConfirmText(seed)).toBe(frozen.seedConfirmText(seed));
+    const made = { yours: { name: 'A' }, partner: seed.household === 'couple' ? { name: 'A · partner' } : null, activeError: null };
+    expect(seedSavedNote(made, seed)).toBe(frozen.seedSavedNote(made, seed));
+    expect(answerLastedWords(seed)).toBe(frozen.answerLastedWords(seed));
+  });
+  it('a misshapen version 1 seed is refused as before, naming the same field', () => {
+    const cases = [
+      (x) => { delete x.people[0].takeHome; }, (x) => { x.people[0].pension.atStop.middling = -1; }, (x) => { x.risk = 'wild'; },
+      (x) => { x.people[0].ageAtStop = 61; x.stop.kind = 'now'; }, (x) => { x.years = 0; }, (x) => { x.household = 'couple'; }
+    ];
+    for (const change of cases) { const seed = seedA(); change(seed); expect(checkSeed(seed, NOW_MS)).toEqual(frozen.checkSeed(seed, NOW_MS)); }
+  });
+  it('the same seed written as version 2 (one stop for both) makes the same plans; only the record of the seed differs', () => {
+    for (const [name, f] of Object.entries(ALL_SEEDS)) {
+      const v1 = f(), v2 = toV2(v1);
+      expect(checkSeed(v2, NOW_MS), name).toEqual({ ok: true });
+      const a = seedToScenario(v1, SAVED_ON), b = seedToScenario(v2, SAVED_ON);
+      for (const k of ['yours', 'partner']) {
+        if (!a[k]) { expect(b[k]).toBeNull(); continue; }
+        const { fromAnswer: fa, ...ra } = a[k];
+        const { fromAnswer: fb, ...rb } = b[k];
+        expect(JSON.stringify(rb), name + ' ' + k).toBe(JSON.stringify(ra));
+        const { budget, people, ...rest } = v2;
+        expect(fb).toEqual({ ...rest, people: [people[k === 'yours' ? 0 : 1]], who: k === 'yours' ? 'you' : 'partner', savedOn: '2026-10-02' });
+      }
+      expect(seedSummary(v2)).toBe(seedSummary(v1));
+      expect(seedConfirmText(v2)).toBe(seedConfirmText(v1));
+    }
+  });
+});
+
+describe('version 2: checking a seed whose people stop on their own dates (K1, K4)', () => {
+  it('the two hand-written couples are good seeds, and plain data', () => {
+    expect(checkSeed(seedApart(), NOW_MS)).toEqual({ ok: true });
+    expect(checkSeed(seedBothLater(), NOW_MS)).toEqual({ ok: true });
+    expect(JSON.parse(JSON.stringify(seedApart()))).toEqual(seedApart());
+  });
+  it('"taking money now" is checked per person: a partner still working may be older at their stop than today (K4)', () => {
+    const s = seedApart();
+    expect(s.stop.kind).toBe('now');
+    expect(s.people[1].ageAtStop).not.toBe(s.people[1].ageToday);
+    expect(checkSeed(s, NOW_MS).ok).toBe(true);
+    const bad = seedApart(); bad.people[0].ageAtStop = 59;
+    expect(checkSeed(bad, NOW_MS)).toMatchObject({ ok: false, problem: 'shape', detail: expect.stringMatching(/^people\.0\.ageAtStop/) });
+  });
+  it('refuses a version 2 seed whose stops, years or pay line do not agree, naming the field', () => {
+    const cases = [
+      [(x) => { delete x.people[1].stop; }, /^people\.1\.stop$/],
+      [(x) => { x.people[1].stop.kind = 'soon'; }, /^people\.1\.stop$/],
+      [(x) => { x.people[1].stop.yearsFromNow = 2; }, /^people\.1\.ageAtStop/],
+      [(x) => { x.people[1].stop = { kind: 'later', yearsFromNow: 0 }; x.people[1].ageAtStop = 55; }, /^people\.1\.stop$/],
+      [(x) => { x.people[1].years = 40; }, /^people\.1\.years/],
+      [(x) => { delete x.people[0].years; }, /^people\.0\.years$/],
+      [(x) => { x.stop = { kind: 'later', yearsFromNow: 1 }; }, /^stop/],
+      [(x) => { x.untilBothStop = null; }, /^untilBothStop$/],
+      [(x) => { x.untilBothStop = { payCovers: 0.25 }; }, /^untilBothStop$/],
+      [(x) => { x.people[1].stop = { kind: 'now', yearsFromNow: 0 }; x.people[1].ageAtStop = 55; x.people[1].years = 40; }, /^untilBothStop$/]   // the same year, with a pay line
+    ];
+    for (const [change, detail] of cases) {
+      const seed = seedApart(); change(seed);
+      const c = checkSeed(seed, NOW_MS);
+      expect(c, JSON.stringify(seed.people[1].stop)).toMatchObject({ ok: false, problem: 'shape' });
+      expect(c.detail).toMatch(detail);
+    }
+  });
+});
+
+describe('version 2: two plans, each starting at its own stop and ending in the same tax year (K2, K3, K5)', () => {
+  const seed = seedApart();
+  const { yours, partner } = make(seed);
+  const S = yours.stressTool.settings, P = partner.stressTool.settings;
+
+  it('you have stopped: taking money from this tax year; your partner\'s plan starts at their own stop, a year on (K2)', () => {
+    expect([S.retired, S.retireAge, S.firstTaxYear, S.duration]).toEqual([true, null, 2026, 40]);
+    expect([P.retired, P.retireAge, P.firstTaxYear, P.duration]).toEqual([false, 56, 2027, 39]);
+    expect(deriveTiming(P, T).firstTaxYear).toBe(2027);
+    expect(S.firstTaxYear + S.duration).toBe(P.firstTaxYear + P.duration);
+    expect([yours.decisionTool.settings.duration, partner.decisionTool.settings.duration]).toEqual([40, 39]);
+    expect([S.shapeAgeNow, P.shapeAgeNow]).toEqual([58, 56]);
+  });
+  it('the one still working gets the middling pots at their own stop and the saving section until then; whoever has stopped, today\'s and none', () => {
+    expect(S.potAtRetirement).toBeNull();
+    expect(yours.accumulationTool).toBeUndefined();
+    expect(P.potAtRetirement).toEqual({ sipp: 441948, isa: null, source: 'override' });
+    expect(partner.accumulationTool.settings).toMatchObject({ currentAge: 55, retirementAge: 56, potNow: 420000, netMonthly: 480 });
+    expect([S.equityMin + S.bondMin + S.cashTarget, P.equityMin + P.bondMin + P.cashTarget]).toEqual([180000, 420000]);
+  });
+  it('the savings between you are in the plan of whoever stopped first; together they are split evenly (K5)', () => {
+    expect([S.isaBalance, P.isaBalance]).toEqual([40000, 0]);
+    const t = make(seedBCouple());
+    expect([t.yours.stressTool.settings.isaBalance, t.partner.stressTool.settings.isaBalance]).toEqual([15000, 15000]);
+  });
+  it('each plan\'s target is its own person\'s rows: the first to stop pays their part of the years apart; the other\'s starts at their stop', () => {
+    expect(S.incomeShape).toBe('phases');
+    expect(S.incomeSteps.map((x) => x.fromAge)).toEqual([58, 59, 67, 70]);
+    expect(Math.abs(grossToNet(targetAtAge(S, 58), 12570, 50270, 125140) / 12 - 1600)).toBeLessThanOrEqual(0.5);
+    expect(P.incomeSteps.map((x) => x.fromAge)).toEqual([56, 64, 67]);
+    expect(Math.abs(grossToNet(targetAtAge(P, 56), 12570, 50270, 125140) / 12 - 2300)).toBeLessThanOrEqual(0.5);
+    // "All of it": no target for the first to stop until the second stop
+    const both = make(seedBothLater()).yours.stressTool.settings;
+    expect(both.baseSalary).toBe(0);
+    expect(scheduleFromSteps(both).slice(0, 2)).toEqual([0, Math.round(grossUpAnnual(1400 * 12))]);
+  });
+  it('the tax-free part: taken → ordinary drawdown for that person only', () => {
+    expect([S.accessMethod, P.accessMethod]).toEqual(['drawdown', 'ufpls']);
+  });
+  it('the budget flags are per person (K3)', () => {
+    const b = yours.budgetTool.settings, pb = partner.budgetTool.settings;
+    expect([b.retired, b.partnerRetired, b.partnerRetirementAge, b.retirementAge]).toEqual([true, false, 56, 58]);
+    expect([pb.retired, pb.partnerRetired, pb.partnerRetirementAge, pb.retirementAge]).toEqual([false, true, 58, 56]);
+  });
+  it('both later on different dates: each from its own tax year, the same last year', () => {
+    const { yours: y, partner: p } = make(seedBothLater());
+    const a = y.stressTool.settings, c = p.stressTool.settings;
+    expect([a.retireAge, a.firstTaxYear, a.duration, c.retireAge, c.firstTaxYear, c.duration]).toEqual([62, 2030, 36, 60, 2031, 35]);
+    expect(a.firstTaxYear + a.duration).toBe(c.firstTaxYear + c.duration);
+    expect([y.budgetTool.settings.partnerRetired, p.budgetTool.settings.partnerRetired]).toEqual([false, false]);
+  });
+  it('the "must hold" rules hold for both plans: no write on first open, the start pots, plain data, nothing locked', () => {
+    for (const [plan, p] of [[yours, seed.people[0]], [partner, seed.people[1]]]) {
+      const st = plan.stressTool.settings;
+      expect(upgradeScenario(plan).write).toBe(false);
+      expect(migrateScenario(plan).changed).toBe(false);
+      expect(timingPinPatch(st, pinTiming(st, plan.budgetTool.settings, T))).toBeNull();
+      const cfg = createSimulationConfigFromSettings({}, st);
+      const later = p.stop.kind === 'later';
+      expect(Math.abs(cfg.equityStart + cfg.bondStart + cfg.cashStart - (later ? p.pension.atStop.middling : p.pension.today))).toBeLessThanOrEqual(3);
+      expect(cfg.years).toBe(p.years);
+      expect(firestoreProblems(plan)).toEqual([]);
+      expect(plan.decisionTool.settings.locked).toBeFalsy();
+    }
+  });
+  it('the record of the seed: the seed less the budget, this person only — their own stop and years among it', () => {
+    const { budget, people, ...rest } = seed;
+    expect(partner.fromAnswer).toEqual({ ...rest, people: [people[1]], who: 'partner', savedOn: '2026-10-02' });
+  });
+});
+
+describe('version 2: the words', () => {
+  it('each plan says when it begins, who pays until then, and where the savings between you are', () => {
+    const [d1, d2, d3] = make(seedApart(), { name: 'Us', partnerName: 'Us · partner' }).yours.planDetails.description.split('\n');
+    expect(d1).toBe("From 'When can I afford to stop work?' on 1 Oct 2026.");
+    expect(d2).toBe('The planner runs its own test, so its figures can differ from the quick answer, where the money lasted until the younger of you was 95 in 9 futures out of 10 (91%).');
+    expect(d3).toBe('This plan holds your part of the £3,200 a month (£1,600 from 58, £900 from 59, £1,200 from 67, £1,500 from 70); your partner\'s part is in ‘Us · partner’. '
+      + 'Until your partner stops at 56, this plan pays half of what you spend and their pay covers the rest. Their plan begins when they stop. '
+      + 'Your savings between you are in this plan, because you stopped first. The Household tab checks the two plans together.');
+    const [p1, p2, p3] = make(seedApart(), { name: 'Us', partnerName: 'Us · partner' }).partner.planDetails.description.split('\n');
+    expect(p1).toBe("From 'When can I afford to stop work?' on 1 Oct 2026: a pension of about £442,000 at 56 in a middling case, £390,000 in a bad case (the worst 1 in 10).");
+    expect(p2).toBe('This plan starts from the middling pot at 56 and does not vary the years before your partner stops, so its tests can differ from the quick answer, where the money lasted until the younger of you was 95 in 9 futures out of 10 (91%).');
+    expect(p3).toBe('This plan holds your partner\'s part of the £3,200 a month (£2,300 from 56, £2,000 from 64, £1,700 from 67); your part is in ‘Us’. '
+      + 'This plan begins when your partner stops at 56. Until then their pay covers half of what you spend and ‘Us’ pays the rest. '
+      + 'Your savings between you are in ‘Us’, because you stopped first. The Household tab checks the two plans together.');
+  });
+  it('All of it and None of it have their own sentences; you as the one still working', () => {
+    const all = make(seedBothLater(), { name: 'B', partnerName: 'B · partner' });
+    expect(all.yours.planDetails.description.split('\n')[2]).toContain('Until your partner stops at 60, their pay covers all of what you spend and this plan\'s money is left alone. Their plan begins when they stop. Your savings between you are in this plan, because you stop first.');
+    expect(all.partner.planDetails.description.split('\n')[2]).toContain('This plan begins when your partner stops at 60. Until then their pay covers all of what you spend.');
+    const none = seedApart(); none.untilBothStop = { payCovers: 0 };
+    const n = make(none, { name: 'N', partnerName: 'N · partner' });
+    expect(n.yours.planDetails.description.split('\n')[2]).toContain('Until your partner stops at 56, this plan pays all of what you spend. Their plan begins when they stop.');
+    expect(n.partner.planDetails.description.split('\n')[2]).toContain('This plan begins when your partner stops at 56. Until then ‘N’ pays all of what you spend.');
+    // the other way round: your partner stopped first, you still work
+    const swapped = seedApart();
+    swapped.people = swapped.people.map((p) => ({ ...p, who: p.who === 'you' ? 'partner' : 'you' })).reverse();
+    expect(checkSeed(swapped, NOW_MS)).toEqual({ ok: true });
+    const w = make(swapped, { name: 'W', partnerName: 'W · partner' });
+    expect(w.yours.planDetails.description.split('\n')[2]).toContain('This plan begins when you stop at 56. Until then your pay covers half of what you spend and ‘W · partner’ pays the rest. Your savings between you are in ‘W · partner’, because your partner stopped first.');
+    expect(w.partner.planDetails.description.split('\n')[2]).toContain('Until you stop at 56, this plan pays half of what you spend and your pay covers the rest. Your plan begins when you stop.');
+    expect(w.yours.planDetails.description.split('\n')[1]).toBe('This plan starts from the middling pot at 56 and does not vary the years before you stop, so its tests can differ from the quick answer, where the money lasted until the younger of you was 95 in 9 futures out of 10 (91%).');
+  });
+  it('the one line on the confirm step names each person\'s own stop, and "once you\'ve both stopped"', () => {
+    expect(seedSummary(seedApart())).toBe('You from now and your partner from 56, £3,200 a month once you\'ve both stopped, paying in £600 a month, your pension £180,000 now and your partner\'s about £442,000 at 56');
+    expect(seedSummary(seedBothLater())).toBe('You stop at 62 and your partner at 60, £3,200 a month once you\'ve both stopped, paying in £900 a month, pensions of about £205,000 at 62 and £442,000 at 60');
+    expect(seedConfirmText(seedApart())).toMatch(/^A new plan from your quick answer: You from now and your partner from 56, .* The planner runs its own test, so its figures can differ from the quick answer, where the money lasted until the younger of you was 95 in 9 futures out of 10 \(91%\)\. Name the plan:$/);
+    const note = seedSavedNote({ yours: { name: 'Us' }, partner: { name: 'Us · partner' }, activeError: null }, seedApart());
+    expect(note).toContain('Until your partner stops at 56, this plan pays half of what you spend and their pay covers the rest.');
+  });
+  it('plain words only, and nothing broken, in every version 2 text', () => {
+    const texts = [seedApart(), seedBothLater()].flatMap((s) => { const { yours, partner } = make(s); return [seedConfirmText(s), yours.planDetails.description, partner.planDetails.description]; });
+    for (const t of texts) expect(t).not.toMatch(/scenario|accumulat|decumulat|\bbridg|\bFIRE\b|\bguest\b|My plan|undefined|NaN|\bnull\b|\bretire\b/i);
   });
 });

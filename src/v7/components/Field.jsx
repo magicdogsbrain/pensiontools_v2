@@ -14,12 +14,18 @@
  * radios inside <fieldset><legend>. Boxes are controlled by the state; nothing reformats what is being typed.
  * Money boxes are type="text" with inputmode="decimal" (type="number" mangles commas and scrolls by accident).
  * Test ids and element ids are "<q>.<path>".
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1–3.2): whether a field applies
+ * is validate.js's one rule (`when` lists, `whenNot`); a choice draws only the options that fit (select.js
+ * offeredOptions); the words have variants — `labelCouple` while a couple stop in the same year, `labelAsked` and
+ * `optionsAsked` when the answer is about the partner ("I've already stopped"), and an error's `-apart` sentence once the
+ * partner's stop is their own. A yes/no with no default and nothing chosen ticks neither.
  */
 import { SCHEMA_C, earliestStart as earliestStartC } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
-import { parsedDraft, errorsToShow, SPEND_PATHS } from '../state/select.js';
+import { parsedDraft, errorsToShow, SPEND_PATHS, offeredOptions, choiceAsked, stopsApart, askedAboutValues, payLineOf, fieldApplies as appliesTo } from '../state/select.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
@@ -52,16 +58,31 @@ export function formView(state, q = 'c') {
     else if (parsed.values[f.path] !== undefined) shown[f.path] = parsed.values[f.path];
     else if (plainDefault(f) !== undefined) shown[f.path] = plainDefault(f);
   }
-  const applies = (f) => Object.entries(f.when || {}).every(([p, want]) => shown[p] === want);
+  // A field applies when its rule holds over what the fields before it show — only those that apply themselves, in the
+  // list's order, as the checks walk it: a field hidden by a stop (part-time work after "I've already stopped") takes
+  // what hangs on it away too.
+  const live = {};
+  const applying = new Set();
+  for (const f of fields) {
+    if (!appliesTo(f, live)) continue;
+    applying.add(f.path);
+    if (shown[f.path] !== undefined) live[f.path] = shown[f.path];
+  }
+  const applies = (f) => applying.has(f.path);
   const more = MORE[q];
   const moreOpen = state.ui.open.includes('more') || more.some((p) => !blank(draft[p])) || more.includes(state.route.focus);
   const couple = shown.household === 'couple';
+  const byPathQ = BY_PATH[q];
+  /** The options a choice draws, and whether it is asked at all (select.js). */
+  const offered = (path) => offeredOptions(q, byPathQ.get(path), live);
+  const isAsked = (path) => choiceAsked(q, byPathQ.get(path), live);
   /** Question C: your age when the first of the household's pensions can be touched (the start-not-before-access words). */
   const earliestStart = () => (schema.defaultRules ? earliestStartC(parsed.values, state.env) : null);
   /** Question C: the start age the form puts in when none is typed, by the input list's own rule. */
   const defaultStart = () => (schema.defaultRules ? schema.defaultRules.startAge(parsed.values, state.env) : null);
-  return { q, schema, fields, byPath: BY_PATH[q], copy: COPY_OF[q], carriedFrom: d.carriedFrom || null,
-    draft, parsed, errors, shown, applies, moreOpen, couple, env: state.env, earliestStart, defaultStart };
+  return { q, schema, fields, byPath: byPathQ, copy: COPY_OF[q], carriedFrom: d.carriedFrom || null,
+    draft, parsed, errors, shown, applies, moreOpen, couple, env: state.env, earliestStart, defaultStart,
+    offered, isAsked, apart: stopsApart(live), asked: askedAboutValues(live), payLine: payLineOf(state, q, live) };
 }
 
 const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in values ? values[k] : m));
@@ -71,8 +92,9 @@ const limit = (f, n) => (f.type === 'money' ? money(n) : f.type === 'percent' ? 
 export function errorText(form, f, messageId) {
   const copy = form.copy || C;
   const words = copy.fields[f.path] || {};
-  // a sentence of its own for two people where there is one (start-not-before-access: the rule is per person)
-  const own = words.errors && ((form.couple && words.errors[`${messageId}-couple`]) || words.errors[messageId]);
+  // a sentence of its own for a couple whose stops are their own (end-after-stop: at the later stop), or for two people
+  // where there is one (start-not-before-access: the rule is per person)
+  const own = words.errors && ((form.apart && words.errors[`${messageId}-apart`]) || (form.couple && words.errors[`${messageId}-couple`]) || words.errors[messageId]);
   const kind = copy.errors[f.type];
   const text = own || (kind && kind[messageId]) || copy.errors.other;
   const values = { min: limit(f, f.min), max: limit(f, f.max) };
@@ -90,6 +112,20 @@ function placeholderOf(form, f) {
 const qOf = (form) => form.q || 'c';
 const set = (form, path, value) => ({ type: 'draft/set', q: qOf(form), path, value });
 const touch = (form, path) => ({ type: 'draft/touch', q: qOf(form), path });
+
+/**
+ * A press on an option of a choice whose own box (an age under "At an age") has the keyboard, empty: the box's blur comes
+ * between the press and its release, and marking the box then drew its sentence — "Type the age you have in mind…" —
+ * which moved the options before the release, so the press landed on nothing and nothing was chosen (the reviewers'
+ * finding, 2 Oct 2026: "I've already stopped" took two clicks). The press marks the group as being chosen in (on the
+ * page itself, not in the state); the box's blur reads it and leaves an empty box unmarked; the click clears it. The
+ * sentence still comes on "Next", or when the box is left any other way. Nothing here changes what is drawn.
+ */
+function choosing(e) {
+  const row = e.target && e.target.closest ? e.target.closest('.option-row') : null;
+  if (row && row.closest('fieldset') === e.currentTarget) e.currentTarget.setAttribute('data-choosing', '1');
+}
+function chosenNow(e) { e.currentTarget.removeAttribute('data-choosing'); }
 
 /**
  * On leaving a money box, whole pounds typed without their commas are written with them ("310000" → "310,000"):
@@ -124,7 +160,9 @@ export function Field({ form, path, dispatch, testid, label, help, placeholder, 
   const q = qOf(form);
   const id = testid || `${q}.${path}`;
   const words = (form.copy || C).fields[path] || {};
-  const text = label || (form.couple && words.labelCouple) || words.label;
+  const aboutPartner = form.asked === 'partner';
+  const text = label || (aboutPartner && words.labelAsked) || (form.couple && !form.apart && words.labelCouple) || words.label;
+  const optionWords = (o) => (aboutPartner && words.optionsAsked && words.optionsAsked[o]) || (words.options ? words.options[o] : o);
   const messageId = showError ? form.errors[path] : undefined;
   const error = messageId ? errorText(form, f, messageId) : null;
   const helpText = help !== undefined ? help : words.help;
@@ -133,11 +171,13 @@ export function Field({ form, path, dispatch, testid, label, help, placeholder, 
   const described = [helpText && !error ? helpId : null, error ? errId : null].filter(Boolean).join(' ') || undefined;
 
   if (f.type === 'choice' || f.type === 'yesNo') {
-    const options = f.type === 'yesNo' ? ['no', 'yes'] : f.options;
+    const options = f.type === 'yesNo' ? ['no', 'yes'] : form.offered ? form.offered(path) : f.options;
     const shown = form.shown[path];
-    const chosen = f.type === 'yesNo' ? (shown === true ? 'yes' : 'no') : shown;
+    // a yes/no with no default and nothing chosen ticks neither ("Already had the tax-free part?": not answered is no)
+    const chosen = f.type === 'yesNo' ? (shown === true ? 'yes' : shown === false ? 'no' : undefined) : shown;
     return (
-      <fieldset class={`field field-choice${error ? ' has-error' : ''}`} data-field={path} aria-describedby={described}>
+      <fieldset class={`field field-choice${error ? ' has-error' : ''}`} data-field={path} aria-describedby={described}
+        onPointerDown={choosing} onMouseDown={choosing} onClick={chosenNow}>
         <legend>{text}</legend>
         {options.map((o) => (
           <div class="option" key={o}>
@@ -153,7 +193,7 @@ export function Field({ form, path, dispatch, testid, label, help, placeholder, 
                 onChange={() => {}}
               />
               <label for={`${id}.${o}`}>
-                {words.options ? words.options[o] : o}
+                {optionWords(o)}
                 {words.optionHelp && words.optionHelp[o] && <span class="option-help">: {words.optionHelp[o]}</span>}
               </label>
             </div>
@@ -187,7 +227,15 @@ export function Field({ form, path, dispatch, testid, label, help, placeholder, 
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={described}
           onInput={(e) => dispatch(set(form, path, e.currentTarget.value))}
-          onBlur={() => { const pretty = tidyMoney(form, f); if (pretty !== null) dispatch(set(form, path, pretty)); dispatch(touch(form, path)); }}
+          onBlur={(e) => {
+            const pretty = tidyMoney(form, f);
+            if (pretty !== null) dispatch(set(form, path, pretty));
+            // left for another option of the question this box sits in (a press on it): an empty box is not marked yet
+            const group = e.currentTarget.closest ? e.currentTarget.closest('fieldset[data-choosing]') : null;
+            if (group) group.removeAttribute('data-choosing');
+            if (group && blank(form.draft[path])) return;
+            dispatch(touch(form, path));
+          }}
         />
         {isPercent && <span class="suffix" aria-hidden="true">%</span>}
       </div>

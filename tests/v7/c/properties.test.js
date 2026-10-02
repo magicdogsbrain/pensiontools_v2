@@ -35,14 +35,15 @@ const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary 
  */
 function noLowerOrFinding(a, b, inputs, findings) {
   let found = false;
-  if (chargedCouple(inputs)) {
-    // a couple with a charge over 1% a year (6.19.0): a fall of more than one step is a finding, printed, not asserted
+  if (chargedCouple(inputs) || taxFreeHadCouple(inputs)) {
+    // a couple with a charge over 1% a year (6.19.0), or with the tax-free part already had by one of them (6.20.0): a fall
+    // of more than one step is a finding, printed, not asserted
     for (const k of THREE) if (b.monthly[k] < a.monthly[k] - STEP.amount) found = true;
   } else {
     amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
   }
   if (found) findings.push({ inputs, from: a.monthly, to: b.monthly });
-  return !largeHousehold(a.monthly.careful) && !chargedCouple(inputs);
+  return !largeHousehold(a.monthly.careful) && !chargedCouple(inputs) && !taxFreeHadCouple(inputs);
 }
 /**
  * A couple with a fund and platform charge over 1% a year (6.19.0; exceptions.md, "A couple's fixed-ratio drain with a
@@ -55,8 +56,18 @@ function noLowerOrFinding(a, b, inputs, findings) {
  * turned up (60 random couples at 0, 0.5 and 1%, and the seeded runs), and the relation is asserted to one step as before.
  */
 const chargedCouple = (inputs) => inputs.household === 'couple' && typeof inputs.charge === 'number' && inputs.charge > 1;
+/**
+ * A couple where one of them has already had the tax-free part of their pension (6.20.0, couples-different-years.md 7):
+ * every pound from that pension is taxed, the other's comes a quarter tax-free, and the two runs still drain in the
+ * fixed ratio of engine behaviour 4 — so more in the fully taxed pot moves more of each year's draw onto it, and the
+ * band can fall by more than a step (a NIGHTLY=1 run, 1 Oct 2026, seed 208766263: you 18 with £1,073,100 from now, your
+ * partner 18, stopped, with £150,000, a £35,476 final-salary pension from 50 and the tax-free part had, £150,000 of
+ * savings, cautious, to 75 — £35,499 more in the partner's pot moved the careful amount from £9,420 to £9,400; the same
+ * household without the tax-free part had: £9,570 to £9,730). A finding, printed, as the charged couple's.
+ */
+const taxFreeHadCouple = (inputs) => inputs.household === 'couple' && [inputs.you, inputs.partner].some((p) => p && p.taxFreeTaken === true);
 const report = (name, findings) => {
-  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1%, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step" and "A couple's fixed-ratio drain with a charge")`, JSON.stringify(findings[0]));
+  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1% or the tax-free part had, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step" and "A couple's fixed-ratio drain with a charge")`, JSON.stringify(findings[0]));
 };
 /**
  * The mirror, "more to cover never pays more" (M3; M4 from the other side), to one step as well: the plan's length is one

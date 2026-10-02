@@ -12,7 +12,7 @@
  * the age typed ("Could I stop at 60?"); and A's "the earliest age that worked is {earliest}" names the answer's age.
  */
 import { railFor } from '../rail/index.js';
-import { errorsToShow, parsedDraft, keepView } from '../state/select.js';
+import { errorsToShow, parsedDraft, keepView, askedAboutOf } from '../state/select.js';
 import { ageText } from '../../answers/shared/format.js';
 import { Sentence } from './Sentence.jsx';
 import { Button, LinkButton } from './Button.jsx';
@@ -33,12 +33,19 @@ export function labelFor(q, labelId) {
 
 /**
  * The label of a step, in the question's words. A's answer step follows what was typed: "Could I stop at 60?" with
- * an age in mind, "Which ages could I stop at?" with "show me ages", "Could I stop?" before either.
+ * an age in mind, "Which ages could I stop at?" with "show me ages", "Could I stop?" before either — and, after "I've
+ * already stopped" (couples-different-years.md 2.2), the same about your partner: "Could your partner stop at 56?".
  */
 export function stepLabel(state, q, step) {
   const words = (COPY[q] || C).steps[step] || {};
   if (q !== 'a' || step !== 'answer') return words.label || '';
   const values = parsedDraft(state, 'a').values;
+  if (askedAboutOf(state, 'a') === 'partner') {
+    const theirs = values['partner.stop.kind'] || (state.draft.a && state.draft.a.values['partner.stop.kind']);
+    if (theirs === 'ages') return words.labelPartnerAges;
+    const age = theirs === 'age' ? values['partner.stop.age'] : undefined;
+    return typeof age === 'number' ? words.labelPartner.replace('{age}', ageText(age)) : words.labelPartnerNone;
+  }
   const kind = values['stop.kind'] || (state.draft.a && state.draft.a.values['stop.kind']);
   if (kind === 'ages') return words.labelAges;
   const age = values['stop.age'];

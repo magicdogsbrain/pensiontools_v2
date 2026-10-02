@@ -3,17 +3,19 @@ import { describe, it, expect } from 'vitest';
 import { SCHEMA_C, TEST_ENV } from '../c/_c.js';
 import { SCHEMA_A } from '../a/_a.js';
 import { SCHEMA_B } from '../b/_b.js';
-import { defaults, fieldsThatApply, parseDraft, validate, checkInputs, flatten, nest } from '../../../src/answers/shared/validate.js';
+import { defaults, fieldsThatApply, parseDraft, validate, checkInputs, flatten, nest, applies } from '../../../src/answers/shared/validate.js';
 import { addYears, accessAgeOn, firstAccessAge } from '../../../src/answers/shared/rules.js';
+import { apartCheckYear, payCoversOf } from '../../../src/answers/shared/schemaParts.js';
+import { APART } from '../../../src/answers/shared/household.js';
 
 const BASE = { 'you.pot': '250000', 'you.age': '58' };
 const parse = (extra = {}, env = TEST_ENV) => parseDraft(SCHEMA_C, { ...BASE, ...extra }, env);
 const LIMIT_ERRORS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
 
-/** A draft in which `field` applies: every `when` it has is switched on. */
+/** A draft in which `field` applies: every `when` it has is switched on (a list: its first value). */
 function draftWhere(field) {
   const d = { ...BASE };
-  for (const [path, want] of Object.entries(field.when || {})) d[path] = want;
+  for (const [path, want] of Object.entries(field.when || {})) d[path] = Array.isArray(want) ? want[0] : want;
   if (d.household === 'couple') d['partner.age'] = '60';
   return d;
 }
@@ -115,10 +117,154 @@ describe('every boundary passes; one below and one above fail', () => {
   });
   function draftTyped(f) {
     const d = { 'you.pot': 250000, 'you.age': 58 };
-    for (const [path, want] of Object.entries(f.when || {})) d[path] = want;
+    for (const [path, want] of Object.entries(f.when || {})) d[path] = Array.isArray(want) ? want[0] : want;
     if (d.household === 'couple') d['partner.age'] = 60;
     return d;
   }
+});
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 3.2): a field's `when` may give a list
+ * ("one of"), and `whenNot` hides a field ("none of"). One rule, exported, so the screen and the screen test use it too.
+ */
+describe('`when` with a list, `whenNot`, and the one exported `applies`', () => {
+  it('a plain value is today\'s rule; a list means "one of"; `whenNot` means "none of", and not answered is none of them', () => {
+    const plain = { path: 'p', when: { k: 'x' } };
+    expect([applies(plain, { k: 'x' }), applies(plain, { k: 'y' }), applies(plain, {})]).toEqual([true, false, false]);
+    const list = { path: 'l', when: { k: ['x', 'y'] } };
+    expect(['x', 'y', 'z', undefined].map((k) => applies(list, { k }))).toEqual([true, true, false, false]);
+    const not = { path: 'n', whenNot: { k: 'x' } };
+    expect(['x', 'y', undefined].map((k) => applies(not, { k }))).toEqual([false, true, true]);
+    const notList = { path: 'm', whenNot: { k: ['x', 'y'] } };
+    expect(['x', 'y', 'z', undefined].map((k) => applies(notList, { k }))).toEqual([false, false, true, true]);
+    const both = { path: 'b', when: { household: 'couple', k: ['x', 'y'] }, whenNot: { j: true } };
+    expect(applies(both, { household: 'couple', k: 'y' })).toBe(true);
+    expect(applies(both, { household: 'couple', k: 'y', j: true })).toBe(false);
+    expect(applies(both, { household: 'single', k: 'y' })).toBe(false);
+    expect(applies({ path: 'free' }, {})).toBe(true);
+    expect(applies(plain, undefined)).toBe(false);
+    expect(applies({ path: 'free' }, undefined)).toBe(true);
+  });
+
+  it('the walk, defaults() and fieldsThatApply all read it', () => {
+    const SCHEMA = { id: 't', rules: [], fields: [
+      { path: 'k', type: 'choice', options: ['x', 'y', 'z'], default: 'x', group: 'g' },
+      { path: 'inList', type: 'age', min: 18, max: 100, default: 50, group: 'g', boundaries: [18, 100], when: { k: ['y', 'z'] } },
+      { path: 'notX', type: 'age', min: 18, max: 100, default: 60, group: 'g', boundaries: [18, 100], whenNot: { k: 'x' } },
+      { path: 'free', type: 'yesNo', group: 'g', whenNot: { k: ['z'] } }
+    ] };
+    expect(parseDraft(SCHEMA, {}, TEST_ENV).inputs).toEqual({ k: 'x' });
+    expect(parseDraft(SCHEMA, { k: 'y', inList: '40', notX: '41', free: 'yes' }, TEST_ENV).inputs).toEqual({ k: 'y', inList: 40, notX: 41, free: true });
+    expect(parseDraft(SCHEMA, { k: 'z', inList: '40', notX: '41', free: 'yes' }, TEST_ENV).inputs).toEqual({ k: 'z', inList: 40, notX: 41 });
+    expect(parseDraft(SCHEMA, { k: 'x', inList: '40', notX: '41', free: 'no' }, TEST_ENV).inputs).toEqual({ k: 'x', free: false });
+    expect(defaults(SCHEMA, { k: 'y' }, TEST_ENV)).toEqual({ k: 'x', inList: 50, notX: 60 });
+    expect(fieldsThatApply(SCHEMA, { k: 'z' }).map((f) => f.path)).toEqual(['k', 'inList', 'notX']);
+    expect(checkInputs(SCHEMA, { k: 'y', inList: 40 }, TEST_ENV).inputs).toEqual({ k: 'y', inList: 40, notX: 60 });
+  });
+});
+
+/*
+ * C with a partner who stops on their own date (couples-different-years.md 3.1, 3.3, 5.1). Not answered is today's meaning:
+ * the partner starts with you, and the checked inputs are today's, key for key.
+ */
+describe('C: the partner\'s own stop, and the rules that read each person\'s stop', () => {
+  const couple = (extra = {}) => parse({ household: 'couple', 'partner.age': '56', 'partner.pot': '100000', ...extra });
+
+  it('not answered leaves today\'s inputs; "when you do" and an age keep their answer; C has no "show me ages"', () => {
+    expect(couple().inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false } });
+    expect('untilBothStop' in couple().inputs).toBe(false);
+    expect(couple({ 'partner.stop.kind': 'same' }).inputs.partner.stop).toEqual({ kind: 'same' });
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '60' }).inputs.partner.stop).toEqual({ kind: 'age', age: 60 });
+    expect(couple({ 'partner.stop.kind': 'age' }).errors).toEqual({ 'partner.stop.age': 'required' });
+    expect(couple({ 'partner.stop.kind': 'ages' }).errors).toEqual({ 'partner.stop.kind': 'notAnOption' });
+    expect(parse({ 'partner.stop.kind': 'already' }).inputs.partner).toBeUndefined();          // one person: nothing of the partner's
+  });
+
+  it('partner-stop-not-before-now: their age today is stopping now; younger is refused; 75 is the ceiling', () => {
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '55' }).errors).toEqual({ 'partner.stop.age': 'partner-stop-not-before-now' });
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '56' }).ok).toBe(true);
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '75' }).ok).toBe(true);
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '76' }).errors).toEqual({ 'partner.stop.age': 'tooHigh' });
+  });
+
+  it('the pay line applies only while one of you is still working, and has no default', () => {
+    expect('untilBothStop' in couple({ untilBothStop: 'all' }).inputs).toBe(false);
+    expect('untilBothStop' in couple({ 'partner.stop.kind': 'same', untilBothStop: 'all' }).inputs).toBe(false);
+    expect(couple({ 'partner.stop.kind': 'already', untilBothStop: 'all' }).inputs.untilBothStop).toBe('all');
+    expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '60', untilBothStop: 'none' }).inputs.untilBothStop).toBe('none');
+    expect('untilBothStop' in couple({ 'partner.stop.kind': 'already' }).inputs).toBe(false);   // not answered: half (the household says so)
+    expect(couple({ 'partner.stop.kind': 'already', untilBothStop: 'most' }).errors).toEqual({ untilBothStop: 'notAnOption' });
+  });
+
+  it('"They already have" hides the partner\'s paying-in block; the tax-free part is asked only of someone who has stopped', () => {
+    const r = couple({ 'partner.stop.kind': 'already', 'partner.payIn.has': 'yes', 'partner.payIn.own': '300', 'partner.payIn.employer': '0', 'partner.taxFreeTaken': 'yes', 'you.taxFreeTaken': 'yes' });
+    expect(r.ok).toBe(true);
+    expect(r.inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false }, stop: { kind: 'already' }, taxFreeTaken: true });
+    expect(r.inputs.you.taxFreeTaken).toBe(true);                                                   // C from now: you have stopped
+    expect('taxFreeTaken' in parse({ 'start.kind': 'age', 'start.age': '60', 'you.taxFreeTaken': 'yes' }).inputs.you).toBe(false);
+    expect('taxFreeTaken' in couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '60', 'partner.taxFreeTaken': 'yes' }).inputs.partner).toBe(false);
+    expect('taxFreeTaken' in parse().inputs.you).toBe(false);                                       // not answered: not taken (today's line)
+  });
+
+  it('end-after-start looks at the later stop, and the later stop must be under 45 years after the first', () => {
+    const at = (youAge, partnerAge, stopAge, endAge) => parse({ 'you.age': String(youAge), household: 'couple', 'partner.age': String(partnerAge),
+      'partner.stop.kind': 'age', 'partner.stop.age': String(stopAge), endAge: String(endAge) }).errors;
+    expect(at(70, 60, 75, 75)).toEqual({ endAge: 'end-after-start' });                  // the younger is 75 when the second stops
+    expect(at(70, 60, 75, 76)).toEqual({});
+    expect(parse({ 'you.age': '70', household: 'couple', 'partner.age': '60', endAge: '75' }).ok).toBe(true);   // not answered: today's rule
+    expect(at(60, 30, 75, 105)).toEqual({ endAge: 'end-after-start' });                 // 45 years apart
+    expect(at(60, 31, 75, 105)).toEqual({});                                            // 44
+  });
+
+  it('start-not-before-access is checked where the pay stops covering: the second stop (half or all), the first under "None of it"', () => {
+    // You stop at 57 next year, when your pension opens; your partner stopped at 50 and theirs is closed until 57. No savings.
+    const base = { 'you.age': '56', 'start.kind': 'age', 'start.age': '57', household: 'couple', 'partner.age': '50', 'partner.pot': '100000', 'partner.stop.kind': 'already' };
+    expect(parse(base).ok).toBe(true);                                                              // half: the pay covers until you stop
+    expect(parse({ ...base, untilBothStop: 'all' }).ok).toBe(true);
+    expect(parse({ ...base, untilBothStop: 'none' }).errors).toEqual({ 'start.age': 'start-not-before-access' });
+    expect(parse({ ...base, untilBothStop: 'none', savings: '5000' }).ok).toBe(true);
+    // every pension still closed at the second stop: refused whatever the pay covers, unless there are savings
+    const closed = { 'you.age': '40', 'start.kind': 'age', 'start.age': '45', household: 'couple', 'partner.age': '40', 'partner.pot': '100000', 'partner.stop.kind': 'already' };
+    expect(parse(closed).errors).toEqual({ 'start.age': 'start-not-before-access' });
+    expect(parse({ ...closed, savings: '1' }).ok).toBe(true);
+  });
+
+  it('where the check is made: the owner\'s switches 1 and 2, one each', () => {
+    expect(payCoversOf(undefined)).toBe(0.5);                                       // switch 1: not answered is half
+    expect([payCoversOf('half'), payCoversOf('all'), payCoversOf('none'), payCoversOf('most')]).toEqual([0.5, 1, 0, 0.5]);
+    const stops = { you: 1, partner: 0 };
+    expect(APART.payCoversGap).toBe(true);
+    expect([0.5, 1, 0].map((c) => apartCheckYear(stops, c))).toEqual([1, 1, 0]);      // switch 2 on: half and all at the second stop
+    expect([0.5, 1, 0].map((c) => apartCheckYear(stops, c, false))).toEqual([0, 1, 0]);   // off: half at the first (all still pays nothing before)
+    expect(apartCheckYear({ you: 3, partner: 3 }, 0)).toBe(3);                       // one year: that year
+    expect(apartCheckYear({ you: 4, partner: null }, 0.5)).toBe(4);
+    expect(apartCheckYear({}, 0.5)).toBeNull();
+  });
+
+  it('pay-in-past-75 is per person, at their own stop', () => {
+    const base = { 'you.age': '60', 'start.kind': 'age', 'start.age': '70', household: 'couple', 'partner.age': '72',
+      'partner.payIn.has': 'yes', 'partner.payIn.own': '200', 'partner.payIn.employer': '0' };
+    expect(parse(base).errors).toEqual({ 'start.age': 'pay-in-past-75-partner' });                       // stopping with you, at 82
+    expect(parse({ ...base, 'partner.stop.kind': 'same' }).errors).toEqual({ 'start.age': 'pay-in-past-75-partner' });
+    expect(parse({ ...base, 'partner.stop.kind': 'age', 'partner.stop.age': '74' }).ok).toBe(true);        // their own stop, at 74
+  });
+
+  it('the same year by any route is today\'s check: "when you do", or their age at your start', () => {
+    const drafts = [
+      { 'you.age': '50', 'start.kind': 'age', 'start.age': '54', household: 'couple', 'partner.age': '52', 'partner.pot': '1' },
+      { 'you.age': '60', 'start.kind': 'age', 'start.age': '70', household: 'couple', 'partner.age': '72', 'partner.payIn.has': 'yes', 'partner.payIn.own': '200', 'partner.payIn.employer': '0' },
+      { 'you.age': '76', household: 'couple', 'partner.age': '75', endAge: '75' },
+      { 'you.age': '40', 'start.kind': 'age', 'start.age': '45', household: 'couple', 'partner.age': '40', endAge: '84' }
+    ];
+    for (const d of drafts) {
+      const S = d['start.kind'] === 'age' ? Number(d['start.age']) - Number(d['you.age']) : 0;
+      const today = parse(d).errors;
+      expect(Object.keys(today).length, JSON.stringify(d)).toBe(1);                       // each draft is refused today, for one reason
+      expect(parse({ ...d, 'partner.stop.kind': 'same' }).errors, JSON.stringify(d)).toEqual(today);
+      const theirs = Number(d['partner.age']) + S;
+      if (theirs <= 75) expect(parse({ ...d, 'partner.stop.kind': 'age', 'partner.stop.age': String(theirs) }).errors, JSON.stringify(d)).toEqual(today);
+    }
+  });
 });
 
 describe('defaults by rule: when the money starts', () => {

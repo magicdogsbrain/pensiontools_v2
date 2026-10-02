@@ -134,6 +134,10 @@ export const C = {
     stopped: 'Already stopped?',
     whenStop: 'When can I afford to stop work?',
     savingEnough: 'Am I saving enough, and what should I pay in?',
+    /** You have stopped and your partner stops later (couples-different-years.md 5.4): the same two questions, about them. */
+    partnerWorking: 'Your partner still working?',
+    whenPartnerStop: 'When could my partner afford to stop?',
+    partnerSavingEnough: 'Is my partner saving enough for this?',
     willItLast: 'Will it last, and could I spend more?',
     keepWhy: 'so you can come back to it and carry on'
   },
@@ -258,6 +262,46 @@ export const C = {
     },
     // ---- end of the "still paying in" block ----------------------------------------------------------------------
 
+    // ---- Couples who stop work in different years (research/v7/couples-different-years.md 2.1, 2.3). C is read by
+    // people who have stopped: "stops", never "stop work at 56"; ages, never waits. ------------------------------------
+    'partner.stop.kind': {
+      label: 'When does your partner stop work?',
+      options: { same: 'When you start taking money', already: 'They already have', age: 'At an age' }
+    },
+    'partner.stop.age': {
+      label: 'Their age when they stop',
+      errors: {
+        required: "Type your partner's age when they stop, for example 56.",
+        notANumber: "Type your partner's age when they stop, for example 56.",
+        tooLow: 'Type an age between 18 and 75.',
+        tooHigh: 'We can work with ages up to 75. Type 75 or less.',
+        'partner-stop-not-before-now': 'That is younger than your partner is now. Type their age now or a later one.'
+      }
+    },
+    /** The pay line: `line` is what is drawn, with Change, until it is answered — by what not answering means. */
+    untilBothStop: {
+      label: "Until you've both stopped, their pay covers:",
+      options: { half: 'Half of what you spend', all: 'All of it', none: 'None of it' },
+      help: "Whatever their pay doesn't cover comes from the money of the one who has stopped.",
+      line: {
+        half: "Until you've both stopped, the one still working covers half of what you spend from their pay, and keeps paying in.",
+        all: "Until you've both stopped, the one still working covers all of what you spend from their pay, and keeps paying in.",
+        none: "Until you've both stopped, the one still working keeps paying in, and the money of the one who has stopped pays all of what you spend."
+      },
+      change: 'Change'
+    },
+    'you.taxFreeTaken': {
+      label: 'Already had the tax-free part of your pension?',
+      options: { no: 'No', yes: 'Yes' },
+      help: 'Usually a quarter of the pot. If it has gone, everything taken out is taxed.'
+    },
+    'partner.taxFreeTaken': {
+      label: "Already had the tax-free part of your partner's pension?",
+      options: { no: 'No', yes: 'Yes' },
+      help: 'Usually a quarter of the pot. If it has gone, everything taken out is taxed.'
+    },
+    // ---- end of the different-years block -------------------------------------------------------------------------
+
     savings: {
       label: 'Other savings you would spend',
       help: 'ISAs, cash, investments.',
@@ -274,7 +318,11 @@ export const C = {
     },
     endAge: {
       label: 'Make it last to age',
-      errors: { 'end-after-start': 'That is not later than the age the money starts. Choose a later age.' }
+      errors: {
+        'end-after-start': 'That is not later than the age the money starts. Choose a later age.',
+        /** The same rule for a couple whose stops are their own: the end comes after both, and the stops less than 45 years apart. */
+        'end-after-start-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
+      }
     },
     take: {
       label: 'Take, a month',

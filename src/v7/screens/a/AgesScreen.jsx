@@ -42,7 +42,7 @@ function From50({ result }) {
 }
 
 export function AgesScreen(state, dispatch) {
-  if (isRetired(state, 'a')) return { question: 'a', rail: true, full: false, view: 'retired', content: <Retired q="a" dispatch={dispatch} /> };
+  if (isRetired(state, 'a')) return { question: 'a', rail: true, full: false, view: 'retired', content: <Retired q="a" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'a');
   const t = A.answer;
   let body;

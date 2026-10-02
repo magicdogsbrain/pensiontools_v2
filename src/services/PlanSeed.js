@@ -6,7 +6,9 @@
  * linked plans for a couple), makes that plan the active one, and deletes the seed. No figure ever travels in an
  * address.
  *
- *   SEED_KEY, SEED_VERSION, SEED_MAX_AGE_MS     where the seed is kept, the one version this code reads, its life
+ *   SEED_KEY, SEED_VERSION, SEED_VERSIONS, SEED_MAX_AGE_MS
+ *                                               where the seed is kept, the version V7 writes now, the versions this code
+ *                                               reads (1 and 2), its life
  *   checkSeed(seed, nowMs)                      → { ok: true } | { ok: false, problem, detail }
  *   readSeed(storage, nowMs)                    → { seed } | { problem, createdAt? }; a seed with any problem is DELETED
  *   clearSeed(storage, createdAt?)              deletes it — only if it is still the seed `createdAt` names, when given
@@ -30,6 +32,16 @@
  *   budgetSummaryWords(figures, guide, money)   the Budget page's three lines about the plan's target: today's words, or
  *                                               — on a plan made from a V7 answer — the budget as a guide beside the
  *                                               target the person chose (owner, 1 Oct 2026)
+ *   householdStartWords(own, partner)           the Household tab's line when one of the two plans begins later than the
+ *                                               other (research/v7/couples-different-years.md 7); '' when they begin together
+ *
+ * Seed version 2 (6.20.0, research/v7/couples-different-years.md 6): a couple may stop work in different years. Each
+ * person carries their own `stop` and `years` (so both plans end in the same tax year) and the seed an `untilBothStop`
+ * ({ payCovers }, or null). Each plan starts at its own person's stop; the savings between them are in the plan of
+ * whoever stops first; the budget's flags are per person. A version 1 seed (a V7 tab opened before 6.20.0) is still read,
+ * as version 2 with each person at the household's stop, and makes exactly the plans 6.19.0 made — its record
+ * (`fromAnswer`) included (tests/planSeed.test.js holds it to the frozen 6.19.0 copy). A planner that reads only version 1
+ * refuses a version 2 seed rather than make wrong plans from it.
  *
  * Pure: no storage, DOM or clock of its own — `storage`, `nowMs`, `today` and the create functions are passed in.
  *
@@ -44,14 +56,17 @@
  *    menu — Contract Q12).
  */
 import { getDefaultScenario, getDefaultDecisionSettings, defaultStrategyBlock } from '../storage/ScenarioRepository.js';
-import { deriveTiming, taxYearStartOf } from './PlanTiming.js';
+import { deriveTiming, taxYearStartOf, taxYearLabel } from './PlanTiming.js';
 import { RISK_PRESETS } from './GlidepathService.js';
 import { grossUpAnnual, defaultBudget, BUDGET_CATEGORIES, SUGGESTED_EXTRAS } from './BudgetModel.js';
 import { amountAtAge } from './IncomeSchedule.js';
 import { isChargesPct, DEFAULT_CHARGES_PCT } from './Charges.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
-export const SEED_VERSION = 1;
+/** The version V7 writes now (src/answers/keep/planSeed.js has the same value). */
+export const SEED_VERSION = 2;
+/** The versions this code makes plans from: 1 (one stop for everyone) and 2 (each person at their own stop). */
+export const SEED_VERSIONS = Object.freeze([1, 2]);
 export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /** A seed dated further ahead than this was not written by this browser's clock in the last day: it is discarded. */
 export const SEED_FUTURE_SLACK_MS = 5 * 60 * 1000;
@@ -162,9 +177,51 @@ function personProblem(p, i, seed) {
     if (!isObj(row) || !isAge(row.fromAge) || !isMoney(row.perMonth)) return at + '.takeHome.' + r;
     if (r > 0 && !(row.fromAge > p.takeHome[r - 1].fromAge)) return at + '.takeHome.' + r + ' is out of order';
   }
-  if (seed.stop.kind === 'now' && p.ageAtStop !== p.ageToday) return at + '.ageAtStop must be today\'s age when taking money now';
+  if (seed.seedVersion === 1 && seed.stop.kind === 'now' && p.ageAtStop !== p.ageToday) return at + '.ageAtStop must be today\'s age when taking money now';
   return null;
 }
+
+const PAY_COVERS = [0, 0.5, 1];
+
+/**
+ * Version 2's own stops (research/v7/couples-different-years.md 6.1): each person's `stop` ({ kind: 'now' | 'later',
+ * yearsFromNow }, 'later' exactly when it is after today) with their age at it, the household's stop the first of them,
+ * each person's `years` ending with the household's, and a pay line (`untilBothStop`) exactly when the stops differ.
+ * "Taking money now" is checked per person (K4): a partner still working is older at their stop than today.
+ */
+function stopsProblem(seed) {
+  const people = seed.people;
+  for (let i = 0; i < people.length; i++) {
+    const p = people[i], at = 'people.' + i, st = p.stop;
+    if (!isObj(st) || (st.kind !== 'now' && st.kind !== 'later') || !Number.isInteger(st.yearsFromNow) || st.yearsFromNow < 0
+      || (st.kind === 'later') !== (st.yearsFromNow > 0)) return at + '.stop';
+    if (p.ageAtStop !== p.ageToday + st.yearsFromNow) {
+      return at + (st.kind === 'now' ? '.ageAtStop must be today\'s age when taking money now' : '.ageAtStop is not their age at their stop');
+    }
+    if (!Number.isInteger(p.years) || p.years < 1 || p.years > 60) return at + '.years';
+  }
+  const first = people.reduce((a, p) => (p.stop.yearsFromNow < a.stop.yearsFromNow ? p : a), people[0]).stop;
+  if (seed.stop.kind !== first.kind || seed.stop.yearsFromNow !== first.yearsFromNow) return 'stop is not the first of the people\'s stops';
+  for (let i = 0; i < people.length; i++) {
+    if (people[i].years !== seed.years - (people[i].stop.yearsFromNow - first.yearsFromNow)) return 'people.' + i + '.years does not end with the plan\'s';
+  }
+  const apart = new Set(people.map((p) => p.stop.yearsFromNow)).size > 1;
+  const u = seed.untilBothStop;
+  if (apart ? !(isObj(u) && PAY_COVERS.includes(u.payCovers)) : u !== null) return 'untilBothStop';
+  return null;
+}
+
+/**
+ * A seed as version 2 reads: a version 1 seed (one stop for everyone) with each person at the household's stop and years,
+ * and no pay line. A version 2 seed as it is.
+ */
+function asVersion2(seed) {
+  if (seed.seedVersion !== 1) return seed;
+  return { ...seed, untilBothStop: null, people: seed.people.map((p) => ({ ...p, stop: { ...seed.stop }, years: seed.years })) };
+}
+
+/** A couple stopping in different years (version 2, with a pay line). */
+const apartOf = (seed) => seed.household === 'couple' && isObj(seed.untilBothStop);
 
 function budgetProblem(b) {
   if (b == null) return null;
@@ -188,7 +245,7 @@ function budgetProblem(b) {
  */
 export function checkSeed(seed, nowMs) {
   if (!isObj(seed)) return { ok: false, problem: 'unreadable' };
-  if (seed.seedVersion !== SEED_VERSION) return { ok: false, problem: 'version', detail: String(seed.seedVersion) };
+  if (!SEED_VERSIONS.includes(seed.seedVersion)) return { ok: false, problem: 'version', detail: String(seed.seedVersion) };
   const created = Date.parse(seed.createdAt);
   if (typeof seed.createdAt !== 'string' || !Number.isFinite(created)) return { ok: false, problem: 'unreadable', detail: 'createdAt' };
   if (nowMs - created > SEED_MAX_AGE_MS) return { ok: false, problem: 'expired' };
@@ -205,6 +262,7 @@ export function checkSeed(seed, nowMs) {
   if (!isObj(seed.spend) || !isMoney(seed.spend.perMonth)) return bad('spend');
   if (!Array.isArray(seed.people) || seed.people.length !== (seed.household === 'couple' ? 2 : 1)) return bad('people');
   for (let i = 0; i < seed.people.length; i++) { const p = personProblem(seed.people[i], i, seed); if (p) return bad(p); }
+  if (seed.seedVersion === 2) { const st = stopsProblem(seed); if (st) return bad(st); }
   const b = budgetProblem(seed.budget); if (b) return bad(b);
   return { ok: true };
 }
@@ -331,19 +389,20 @@ const HINTS = (() => {
 /**
  * The plan's Budget tool (Contract C.5). The sheet's lines are copied as they are, for the person's own judgement;
  * nothing in the plan's figures is taken from them. With no sheet: a blank budget with the ages, and the Budget page
- * adds its starter lines the first time it is opened.
+ * adds its starter lines the first time it is opened. Whether each of you has stopped is each person's own (seed
+ * version 2, K3): `retired` this person's, `partnerRetired` and `partnerRetirementAge` the other's.
  */
 function budgetFor(seed, p, other, endAge) {
   const couple = seed.household === 'couple';
   const b = {
     ...defaultBudget(p.ageToday, p.ageAtStop, endAge),
     currentAgeAsOf: seed.today, agesSetByUser: true,
-    retired: seed.stop.kind === 'now',
+    retired: p.stop.kind === 'now',
     plsaTier: ['minimum', 'moderate', 'comfortable'].includes(seed.spend.level) ? seed.spend.level : 'moderate',
     sharedWithPartner: couple,
     mySharePct: couple && seed.spend.perMonth > 0 ? Math.round(100 * p.takeHome[0].perMonth / seed.spend.perMonth) : 50
   };
-  if (couple) Object.assign(b, { partnerAge: other.ageToday, partnerRetirementAge: other.ageAtStop, partnerRetired: seed.stop.kind === 'now' });
+  if (couple) Object.assign(b, { partnerAge: other.ageToday, partnerRetirementAge: other.ageAtStop, partnerRetired: other.stop.kind === 'now' });
   // One sheet, the household's: it goes on YOUR plan only, so there is one place to change it.
   if (p.who === 'you' && seed.budget) {
     const yearToday = localDate(seed.today).getFullYear();
@@ -377,13 +436,51 @@ export function answerLastedWords(seed) {
   return 'the money lasted ' + to + ' ' + out + ' (' + Math.round(share * 100) + '%)';
 }
 
-/** Why the planner's own test differs from the quick answer, and the quick answer's figure (found 1 Oct 2026: the gaps were not "a little"). */
+/**
+ * Why the planner's own test differs from the quick answer, and the quick answer's figure (found 1 Oct 2026: the gaps were
+ * not "a little"). Per person: `p` at their own stop (a seed read as version 2). A couple apart, the partner's plan says
+ * whose stop: "before your partner stops".
+ */
 function differenceWords(seed, p) {
   const lasted = answerLastedWords(seed);
   const tail = lasted ? ', where ' + lasted + '.' : '.';
-  return seed.stop.kind === 'later'
-    ? `This plan starts from the middling pot at ${p.ageAtStop} and does not vary the years before you stop, so its tests can differ from the quick answer${tail}`
+  const before = apartOf(seed) && p.who === 'partner' ? 'before your partner stops' : 'before you stop';
+  return p.stop.kind === 'later'
+    ? `This plan starts from the middling pot at ${p.ageAtStop} and does not vary the years ${before}, so its tests can differ from the quick answer${tail}`
     : `The planner runs its own test, so its figures can differ from the quick answer${tail}`;
+}
+
+/** "you" / "your partner" and the words that go with each. */
+const WHO = Object.freeze({
+  you: { subject: 'you', stops: 'stop', pay: 'your pay', Plan: 'Your plan', pronoun: 'you' },
+  partner: { subject: 'your partner', stops: 'stops', pay: 'their pay', Plan: 'Their plan', pronoun: 'they' }
+});
+
+/**
+ * A couple apart (research/v7/couples-different-years.md 6.2, "coupleWords"): until the second stop, who pays what — the
+ * one still working covers `payCovers` of what you spend from their pay and the plan of the one who has stopped pays the
+ * rest — and where the savings between you are (with whoever stops first). `p` is this plan's person; `names` the two
+ * plans' final names.
+ */
+function apartWords(seed, p, names) {
+  const first = seed.people.reduce((a, x) => (x.stop.yearsFromNow < a.stop.yearsFromNow ? x : a), seed.people[0]);
+  const joiner = seed.people.find((x) => x !== first);
+  const J = WHO[joiner.who], F = WHO[first.who];
+  const firstName = '‘' + (first.who === 'you' ? names.yours : names.partner) + '’';
+  const until = `Until ${J.subject} ${J.stops} at ${joiner.ageAtStop}, `;
+  const begins = ` ${J.Plan} begins when ${J.pronoun} stop.`;
+  const covers = seed.untilBothStop.payCovers;
+  const paid = p === first
+    ? (covers >= 1 ? until + `${J.pay} covers all of what you spend and this plan's money is left alone.` + begins
+      : covers > 0 ? until + `this plan pays half of what you spend and ${J.pay} covers the rest.` + begins
+        : until + 'this plan pays all of what you spend.' + begins)
+    : `This plan begins when ${J.subject} ${J.stops} at ${joiner.ageAtStop}. Until then `
+      + (covers >= 1 ? `${J.pay} covers all of what you spend.`
+        : covers > 0 ? `${J.pay} covers half of what you spend and ${firstName} pays the rest.`
+          : `${firstName} pays all of what you spend.`);
+  const when = first.stop.kind === 'now' ? 'stopped' : F.stops;
+  const savings = `Your savings between you are in ${p === first ? 'this plan' : firstName}, because ${F.subject} ${when} first.`;
+  return paid + ' ' + savings;
 }
 
 /** "£1,896 from 62, £2,194 from 67, £1,445 from 69" — one person's part of the monthly amount, by stretch of years. */
@@ -399,13 +496,14 @@ function coupleWords(seed, p, names) {
   if (seed.household !== 'couple' || !names) return '';
   const mine = p.who === 'you';
   const other = mine ? names.partner : names.yours;
+  const between = apartOf(seed) ? apartWords(seed, p, names) : 'Savings are split evenly between you.';
   return (mine ? 'This plan holds your part' : 'This plan holds your partner\'s part') + ' of the ' + gbp(seed.spend.perMonth) + ' a month ('
-    + partWords(p) + '); ' + (mine ? 'your partner\'s part' : 'your part') + ' is in ‘' + other + '’. Savings are split evenly between you. The Household tab checks the two plans together.';
+    + partWords(p) + '); ' + (mine ? 'your partner\'s part' : 'your part') + ' is in ‘' + other + '’. ' + between + ' The Household tab checks the two plans together.';
 }
 
 /** The plan's description (Contract C.3): what it came from, why its tests differ (and the answer's own figure), and for a couple whose part it holds. */
 function describe(seed, p, names = null) {
-  const later = seed.stop.kind === 'later';
+  const later = p.stop.kind === 'later';
   const title = QUESTION_TITLES[seed.source];
   const on = dayWords(seed.today);
   let first = `From '${title}' on ${on}.`;
@@ -430,9 +528,13 @@ function describe(seed, p, names = null) {
   return first + '\n' + second + (third ? '\n' + third : '');
 }
 
-/** One person's plan (Contract C.3). `S` = stressTool.settings. */
-function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
-  const later = seed.stop.kind === 'later';
+/**
+ * One person's plan (Contract C.3). `S` = stressTool.settings. `seed` is read as version 2 (asVersion2), so `p` carries
+ * their own stop and years: the plan starts at their stop and ends with the household's plan. `record` is the seed as it
+ * came, and this person in it, for `fromAnswer`.
+ */
+function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
+  const later = p.stop.kind === 'later';
   const T = localDate(seed.today);
   const younger = Math.min(...seed.people.map((x) => x.ageToday));
   const endAge = seed.endAge + (p.ageToday - younger);   // the age THIS person is when the younger reaches the end age
@@ -453,7 +555,7 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
   Object.assign(S, { configured: true, currentAge: p.ageToday, currentAgeAsOf: seed.today, retired: !later, retireAge: later ? p.ageAtStop : null });
   S.firstTaxYear = later ? deriveTiming(S, T).firstTaxYear : taxYearStartOf(T);
   S.shapeAgeNow = deriveTiming(S, T).shapeAgeNow;
-  S.duration = seed.years;
+  S.duration = p.years;
 
   // The pots: the intended mix is the risk level (never holdings). A £0 pot today on a plan stopping later cannot be
   // scaled up, so the middling pot at the stop is written in its place (Q10); the true £0 is kept in fromAnswer.
@@ -469,7 +571,7 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
   });
 
   // The target: the person's own part of the monthly amount they chose, grossed up by today's own sum.
-  Object.assign(S, incomeTarget(p.takeHome, S.shapeAgeNow, seed.years));
+  Object.assign(S, incomeTarget(p.takeHome, S.shapeAgeNow, p.years));
 
   // A final-salary pension and part-time work.
   const fs = p.finalSalary && p.finalSalary.yearly > 0 ? p.finalSalary : null;
@@ -495,7 +597,7 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
   S.chargesPct = isChargesPct(answerCharge) ? answerCharge : DEFAULT_CHARGES_PCT;
 
   // Month by month: the wizard's two fields only — nothing recorded, not locked (Q11).
-  plan.decisionTool = { settings: { ...getDefaultDecisionSettings(), duration: seed.years, firstTaxYear: S.firstTaxYear }, history: [], taxYears: {} };
+  plan.decisionTool = { settings: { ...getDefaultDecisionSettings(), duration: p.years, firstTaxYear: S.firstTaxYear }, history: [], taxYears: {} };
 
   // Money still going in: the saving section. V7's figures are what lands in the pension, the tax added back included;
   // relief at source makes gross = net ÷ 0.8, so the person's own part is entered as × 0.8 and what lands is V7's figure.
@@ -513,9 +615,9 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names = null) {
 
   plan.budgetTool = { settings: budgetFor(seed, p, other, endAge) };
 
-  // The record of where it came from: the seed less the budget, this person only.
-  const { budget, people, ...rest } = seed;
-  plan.fromAnswer = { ...clone(rest), people: [clone(p)], who: p.who, savedOn };
+  // The record of where it came from: the seed as it came, less the budget, this person only.
+  const { budget, people, ...rest } = record.seed;
+  plan.fromAnswer = { ...clone(rest), people: [clone(record.person)], who: p.who, savedOn };
   return clone(plan);
 }
 
@@ -537,11 +639,12 @@ export function seedToScenario(seed, today, opts = {}) {
   const savedOn = localDay(day);
   const lockedAt = today instanceof Date ? today.toISOString() : savedOn + 'T00:00:00.000Z';
   const name = cleanPlanName(opts.name != null ? opts.name : seed.name.chosen);
-  const [you, partner] = seed.people;
+  const read = asVersion2(seed);
+  const [you, partner] = read.people;
   const names = partner ? { yours: name, partner: opts.partnerName != null ? String(opts.partnerName) : name + ' · partner' } : null;
   return {
-    yours: planFor(seed, you, partner || null, name, savedOn, lockedAt, names),
-    partner: partner ? planFor(seed, partner, you, names.partner, savedOn, lockedAt, names) : null
+    yours: planFor(read, you, partner || null, name, savedOn, lockedAt, names, { seed, person: seed.people[0] }),
+    partner: partner ? planFor(read, partner, you, names.partner, savedOn, lockedAt, names, { seed, person: seed.people[1] }) : null
   };
 }
 
@@ -649,6 +752,7 @@ const aboutMonthly = (n) => gbp(n >= 1000 ? Math.round(n / 10) * 10 : Math.round
  * answer worked out when it is more: "paying in £1,050 a month as now (the answer suggested about £4,660)".
  */
 export function seedSummary(seed) {
+  if (apartOf(seed)) return apartSummary(seed);
   const later = seed.stop.kind === 'later';
   const ages = seed.people.map((p) => p.ageAtStop).join(' and ');
   let line = (later ? 'Stop at ' : 'From ') + ages + ', ' + gbp(seed.spend.perMonth) + ' a month';
@@ -667,9 +771,37 @@ export function seedSummary(seed) {
   return line + ', ' + (many ? 'pensions of ' : 'a pension of ') + (later ? 'about ' : '') + figures + (later ? ' then' : '');
 }
 
+/**
+ * seedSummary for a couple who stop in different years: "You stop at 60 and your partner at 62, £3,200 a month once
+ * you've both stopped, …" or "You from now and your partner from 56, …"; the money still going in; each pension at its
+ * holder's own stop ("about" only for what the answer worked out).
+ */
+function apartSummary(seed) {
+  const people = seed.people;
+  const bothLater = people.every((p) => p.stop.kind === 'later');
+  const [you, partner] = people;
+  const when = (p) => (p.stop.kind === 'now' ? 'now' : String(p.ageAtStop));
+  let line = (bothLater ? `You stop at ${you.ageAtStop} and your partner at ${partner.ageAtStop}` : `You from ${when(you)} and your partner from ${when(partner)}`)
+    + ', ' + gbp(seed.spend.perMonth) + ' a month once you\'ve both stopped';
+  const paying = people.reduce((t, p) => t + (p.stop.kind === 'later' && p.payIn && p.payIn.total > 0 ? p.payIn.total : 0), 0);
+  const needed = seed.source === 'b' && seed.answer && isNum(seed.answer.payInNeeded) ? seed.answer.payInNeeded : null;
+  if (paying > 0) {
+    line += ', paying in ' + gbp(paying) + ' a month' + (seed.source === 'b' ? ' as now' : '');
+    if (needed !== null && needed > paying + 0.5) line += ' (the answer suggested about ' + aboutMonthly(needed) + ')';
+  } else if (needed !== null && needed > 0.5) {
+    line += ', paying in nothing now (the answer suggested about ' + aboutMonthly(needed) + ' a month)';
+  }
+  const pension = (p) => (p.stop.kind === 'later' ? p.pension.atStop.middling : p.pension.today);
+  if (!people.some((p) => pension(p) > 0)) return line;
+  if (bothLater) return line + ', pensions of about ' + pot(pension(you)) + ' at ' + you.ageAtStop + ' and ' + pot(pension(partner)) + ' at ' + partner.ageAtStop;
+  const each = (p) => (p.who === 'you' ? 'your pension ' : 'your partner\'s ') + (p.stop.kind === 'later' ? 'about ' + pot(pension(p)) + ' at ' + p.ageAtStop : gbp(pension(p)) + ' now');
+  return line + ', ' + people.map(each).join(' and ');
+}
+
 /** The confirm step's words, above the name box. */
 export function seedConfirmText(seed) {
-  return 'A new plan from your quick answer: ' + seedSummary(seed) + '. ' + differenceWords(seed, seed.people[0]) + ' Name the plan:';
+  const read = asVersion2(seed);
+  return 'A new plan from your quick answer: ' + seedSummary(seed) + '. ' + differenceWords(read, read.people[0]) + ' Name the plan:';
 }
 
 /**
@@ -680,8 +812,9 @@ export function seedSavedNote(made, seed = null) {
   const names = '‘' + made.yours.name + '’' + (made.partner ? ' and ‘' + made.partner.name + '’ for your partner' : '');
   const open = made.activeError ? ' It could not be opened just now: choose it from the plan menu.' : '';
   if (!seed) return 'Made from your quick answer: saved as ' + names + '.' + open + ' The planner runs its own test, so its figures can differ from the quick answer.';
-  const couple = made.partner ? ' ' + coupleWords(seed, seed.people[0], { yours: made.yours.name, partner: made.partner.name }) : '';
-  return 'Made from your quick answer: saved as ' + names + '.' + open + ' ' + differenceWords(seed, seed.people[0]) + couple;
+  const read = asVersion2(seed);
+  const couple = made.partner ? ' ' + coupleWords(read, read.people[0], { yours: made.yours.name, partner: made.partner.name }) : '';
+  return 'Made from your quick answer: saved as ' + names + '.' + open + ' ' + differenceWords(read, read.people[0]) + couple;
 }
 
 /**
@@ -716,6 +849,33 @@ export function budgetSummaryWords(f, guide, money) {
     targetLine: 'Plan target: <strong>' + money(guide.monthly) + '/mo take-home</strong>' + start + ' <span style="color:var(--text-muted);">(≈ '
       + money(guide.grossAnnual) + '/yr before tax) — the figure you chose; it is set in Stress tester → Settings → Your income shape.</span>'
   };
+}
+
+/**
+ * The Household tab's line when one of the two plans begins later than the other (research/v7/couples-different-years.md
+ * 7): a plan made for someone still working starts at their stop, and until then the tab counts nothing from it — their
+ * pay covers their part — and holds their pot at what it is expected to be when they stop. Words only: the joint check
+ * itself already lines the two plans up by their start (HouseholdService startOffset). '' when they begin together.
+ * Which begins later is read from the plans' own first tax years when both have one (deriveTiming): two plans that begin
+ * in the same tax year say nothing, whatever their rounded offsets — currentAgeNow does not follow the birthday, so two
+ * plans whose ages were typed on different dates can round to offsets 2 and 1 in the same tax year (the reviewers'
+ * finding, 2 Oct 2026). Without both years, by the offsets.
+ * @param {{ offset: number, firstTaxYear?: number }} own       this plan (you): years until it begins (startOffset) and its first tax year
+ * @param {{ offset: number, firstTaxYear?: number }} partner   the partner's plan
+ * @returns {string}   plain text (no markup)
+ */
+export function householdStartWords(own, partner) {
+  const ya = +(own && own.firstTaxYear), yb = +(partner && partner.firstTaxYear);
+  const years = Number.isInteger(ya) && ya > 0 && Number.isInteger(yb) && yb > 0;
+  const a = years ? ya : Math.max(0, +(own && own.offset) || 0);
+  const b = years ? yb : Math.max(0, +(partner && partner.offset) || 0);
+  if (a === b) return '';
+  const theirs = b > a;
+  const year = +(theirs ? partner : own).firstTaxYear;
+  const when = Number.isInteger(year) && year > 0 ? ' in ' + taxYearLabel(year) : ' later';
+  return theirs
+    ? `Your partner's plan begins${when}, when they stop work. Until then their pay covers their part, and what they pay in is in that plan's pot at the start. Before then, “What you'd have left” counts their pot as it is expected to be when they stop.`
+    : `This plan begins${when}, when you stop work. Until then your pay covers your part, and what you pay in is in this plan's pot at the start. Before then, “What you'd have left” counts your pot as it is expected to be when you stop.`;
 }
 
 /** The way back to the question the plan came from, relative to the app's root. */

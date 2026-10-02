@@ -73,13 +73,17 @@ export function checkAnswer(answer, given) {
   if (!Array.isArray(ph) || !ph.length) fail('I4', 'no phases');
   else {
     ph.forEach((p, i) => {
-      const sum = p.fromPots + p.statePension + p.finalSalary - p.tax;
-      if (Math.abs(sum - p.takeHome) > 0.03) fail('I4', `phase ${i}: ${p.fromPots} + ${p.statePension} + ${p.finalSalary} − ${p.tax} ≠ ${p.takeHome}`);
+      // (couples apart, before the second stop: plus what the pay of the one still working covers — couples-different-years.md 4.3 j)
+      const pay = p.fromPay || 0;
+      if ((p.fromPay !== undefined) !== Boolean(answer.apart && p.fromAge < answer.basis.startAge + answer.apart.years)) fail('I4', `phase ${i}: fromPay in the wrong years`);
+      const sum = p.fromPots + p.statePension + p.finalSalary + pay - p.tax;
+      if (Math.abs(sum - p.takeHome) > 0.03) fail('I4', `phase ${i}: ${p.fromPots} + ${p.statePension} + ${p.finalSalary} + ${pay} − ${p.tax} ≠ ${p.takeHome}`);
       if (Math.abs(p.fromPension + p.fromSavings - p.fromPots) > 0.02) fail('I4', `phase ${i}: fromPots ≠ fromPension + fromSavings`);
-      const by = p.byPerson.reduce((s, b) => s + b.takeHome, 0);
-      if (Math.abs(by - p.takeHome) > 0.011 * (1 + p.byPerson.length)) fail('I4', `phase ${i}: byPerson take-home ${by} ≠ ${p.takeHome}`);
+      const by = p.byPerson.reduce((s, b) => s + b.takeHome, 0) + pay;
+      if (Math.abs(by - p.takeHome) > 0.011 * (2 + p.byPerson.length)) fail('I4', `phase ${i}: byPerson take-home ${by} ≠ ${p.takeHome}`);
       for (const b of p.byPerson) if (Math.abs(b.statePension + b.finalSalary + b.fromPension + b.fromSavings - b.tax - b.takeHome) > 0.03) fail('I4', `phase ${i} ${b.who}: parts do not add up`);
-      if (p.shown.fromPots + p.shown.statePension + p.shown.finalSalary !== p.shown.takeHome) fail('I4', `phase ${i}: shown figures do not add up`);
+      for (const b of p.byPerson) if (b.working && (b.fromPension || b.fromSavings || b.statePension || b.finalSalary || b.takeHome)) fail('I4', `phase ${i} ${b.who}: still working but draws or is paid`);
+      if (p.shown.fromPots + p.shown.statePension + p.shown.finalSalary + (p.shown.fromPay || 0) !== p.shown.takeHome) fail('I4', `phase ${i}: shown figures do not add up`);
       if (!Number.isInteger(p.fromAge) || !Number.isInteger(p.toAge) || p.toAge <= p.fromAge) fail('I4', `phase ${i}: ages ${p.fromAge}–${p.toAge}`);
       if (i > 0 && p.fromAge !== ph[i - 1].toAge) fail('I4', `phase ${i} does not touch phase ${i - 1}`);
       for (const who of Object.keys(p.ages)) if (p.ages[who].to - p.ages[who].from !== p.toAge - p.fromAge) fail('I4', `phase ${i}: ${who}'s ages span a different length`);
@@ -91,10 +95,20 @@ export function checkAnswer(answer, given) {
   // I5 the headline is the first phase, and no later phase is lower. The one exception: when the pots add nothing to the
   // take-home the household has anyway at the start, the headline is that take-home rounded down to £10 and the first
   // phase shows the take-home itself (less than £10 above it).
-  if (answer.status === 'ok' && ph && ph.length) {
+  // (couples apart: the careful amount is what is spent once you have both stopped — the first phase from the second stop)
+  if (answer.status === 'ok' && ph && ph.length && !answer.apart) {
     const gap = ph[0].takeHome - answer.monthly.careful;
     if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 10 && ph[0].fromPots <= 0.005)) fail('I5', `monthly.careful ${answer.monthly.careful} ≠ phases[0].takeHome ${ph[0].takeHome}`);
     for (let i = 1; i < ph.length; i++) if (ph[i].takeHome < ph[0].takeHome - 0.005) fail('I5', `phase ${i} is lower than the first`);
+  }
+  // couples apart: from the second stop every phase pays at least the careful amount, and more only where the pensions
+  // alone pay more (the years apart can hold the amount down below them — "None of it", nothing to draw on)
+  if (answer.status === 'ok' && ph && ph.length && answer.apart) {
+    const k0 = ph.findIndex((p) => p.fromPay === undefined);
+    for (let i = k0; i < ph.length; i++) {
+      const over = ph[i].takeHome - answer.monthly.careful;
+      if (over < -0.005 || (over > 0.005 && ph[i].fromPots > 0.005 && !(over < 10))) fail('I5', `phase ${i}: take-home ${ph[i].takeHome} against the careful amount ${answer.monthly.careful}`);
+    }
   }
 
   // I6 no pot, nothing from the pot (on the lives — a start at an age — what goes in before then makes a pot too)
@@ -126,6 +140,8 @@ export function checkAnswer(answer, given) {
       const potOf = answer.inputs[who] ? (answer.inputs[who].pot || 0) : 0;
       if (!(potOf > 0)) continue;
       const first = ph[0].byPerson.find((x) => x.who === who);
+      // (couples apart: someone still working at the start draws nothing yet; their pension is closed or not from their own stop)
+      if (first && first.working) continue;
       if (ph[0].ages[who].from < b.accessAge) {
         if (!first || first.locked !== true) fail('I7', `${who} is ${ph[0].ages[who].from} at the start, before ${b.accessAge}, but their pension is not marked closed`);
         // (or, when the years until it opens set the amount, the answer's own words name them: c.none.closed)
@@ -189,8 +205,20 @@ export function checkAnswer(answer, given) {
     }
   }
   const always = ['start', 'plan-to', 'todays-prices', 'tax-rules'];
-  if (answer.status === 'ok' && (answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) always.push('risk', 'quarter-tax-free', 'steady');
+  if (answer.status === 'ok' && (answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) {
+    always.push('risk', 'steady');
+    // the tax-free part (couples-different-years.md 2.3): a quarter of each withdrawal, unless every pot's holder has had it
+    const holders = ['you', 'partner'].filter((w) => answer.inputs[w] && answer.inputs[w].pot > 0);
+    if (holders.some((w) => answer.inputs[w].taxFreeTaken !== true)) always.push('quarter-tax-free');
+    for (const w of holders) if (answer.inputs[w].taxFreeTaken === true) always.push('tax-free-taken' + (w === 'you' ? '' : '-partner'));
+  }
   if (answer.inputs.household === 'couple') always.push('both-alive');
+  // couples apart: the pay line, never "you both start at the same time" (couples-different-years.md 2.4)
+  if (answer.apart) {
+    always.push('stop-apart');
+    if (ids.includes('both-stop-together') || ids.includes('savings-split')) fail('I10', 'a same-year line with the two stops apart');
+    if (Boolean(answer.apart.coverUsed) !== answer.warnings.some((w) => w.id === 'apart-cover-used')) fail('I10', 'apart.coverUsed ⟺ the apart-cover-used warning');
+  } else if (ids.includes('stop-apart')) fail('I10', 'stop-apart with one stop for both');
   // the one charge (6.19.0): said whenever there is money to draw on, with its field; the saving-only line and "not taken
   // off" are gone
   if (answer.status === 'ok') always.push('charges');

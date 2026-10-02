@@ -29,6 +29,7 @@ import { toHousehold } from './toHousehold.js';
 import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warningsFor, finishTexts } from './sentences.js';
 import { usesLives, answerOnLives } from './onLives.js';
 import { payInTotalOf, statePensionAgeOf } from '../shared/schemaParts.js';
+import { before2028, payKeepsPensions } from '../shared/apart.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 
@@ -142,7 +143,9 @@ function factsOf(plan, checked, household, fullSp, env) {
       fsDefault: used.includes(p.who + '.finalSalary.has'), potDefault: used.includes(p.who + '.pot'),
       pensionOverLimit: p.pension > RULES.taxFreeLimit / RULES.taxFreeShare,
       // under the earliest pension age today, with a pension pot: the pension cannot be touched before `accessAge`
-      underAccessAge: p.pension > 0 && p.ageToday < accessAge, accessAge, startsAtAccessAge: p.ageAtStart === accessAge
+      underAccessAge: p.pension > 0 && p.ageToday < accessAge, accessAge, startsAtAccessAge: p.ageAtStart === accessAge,
+      // "Already had the tax-free part?" (couples-different-years.md 2.3: asked only of someone who has stopped)
+      taxFreeTaken: raw.taxFreeTaken === true
     };
   });
   const pensions = plan.people.map((p) => p.pension);
@@ -186,17 +189,31 @@ function finishOnLives(result, plan, checked, household, env, more) {
   const mid = more.middling;
   const inputs = checked.inputs;
   facts.life = true;
-  // the money from today's age (an age that is now): nothing more goes in, as from now
-  facts.payInUnused = result.basis.yearsSaving === 0 && result.payIn.total > 0;
-  facts.payingIn = result.payIn.total > 0;
+  // the money from today's age (an age that is now): nothing more goes in, as from now. Couples apart: someone who has
+  // stopped (you from now) pays nothing more in; the one still working pays in until their own stop
+  facts.payInUnused = plan.apart ? result.saving.some((x) => x.yearsSaving === 0 && x.payIn.total > 0) : result.basis.yearsSaving === 0 && result.payIn.total > 0;
+  facts.payingIn = plan.apart ? result.saving.some((x) => x.yearsSaving > 0 && x.payIn.total > 0) : result.payIn.total > 0;
   const closedAtStart = (who, j) => mid[j].pension > 0 && plan.lockedUntil.some((l) => l.who === who);
   facts.people.forEach((p, j) => {
     p.pensionOverLimit = mid[j].pension > RULES.taxFreeLimit / RULES.taxFreeShare;
+    // couples apart: each opens from their own stop (the age they are then), not the household's start
+    if (plan.apart) p.startsAtAccessAge = plan.people[j].ageAtStop === p.accessAge;
     // "can't take money until …" only for a pension closed at the start, or one whose opening IS the start (the form's
     // default start for someone under the age, or "now" moved to it: the note says why the figures start then) — never
     // for one open well before: a partner of 53 today is 65 when the money starts at 67 (the reviewers' finding, 1 Oct 2026)
     p.underAccessAge = closedAtStart(p.who, j) || (p.underAccessAge && p.startsAtAccessAge);
   });
+  // couples apart (shared/apart.js): who pays in, a pension paid to the one still working, money into drawdown before
+  // 6 April 2028
+  if (plan.apart) {
+    const worker = plan.people.find((p) => p.join > 0);
+    facts.apart = result.apart;
+    facts.apartCtx = {
+      workerPaysIn: result.saving.some((x) => x.who === worker.who && x.payIn.total > 0),
+      keepsPensions: payKeepsPensions(plan),
+      drawdown: before2028(plan.people.map((p) => ({ who: p.who, age: p.ageToday, S: more.own[p.who], pension: p.pension > 0 })), env.today)
+    };
+  }
   // every pension closed at the start: until the first opens only savings pay, so a bad case that runs out before then
   // is the savings running out (in the plan's ages — the younger person's, as the run-out ages are)
   const holders = plan.people.map((p, j) => ({ p, j })).filter((x) => mid[x.j].pension > 0);
@@ -212,8 +229,9 @@ function finishOnLives(result, plan, checked, household, env, more) {
     ...p.finalSalary.filter((f) => f.amount > 0).map((f) => ({ who: p.who, age: f.startAge, at: f.startAge - p.ageAtStart + plan.startAge }))
   ]);
   // a partner past their State Pension age, the money taken later than now: their pot is left alone until then, and
-  // anything they take before then is not counted (both start together — said, not hidden; the reviewers' finding)
-  facts.partnerRetired = Boolean(facts.couple && inputs.partner && result.basis.yearsSaving > 0
+  // anything they take before then is not counted (both start together — said, not hidden; the reviewers' finding).
+  // Not when their own stop was answered: then it is theirs (couples-different-years.md 5.1)
+  facts.partnerRetired = Boolean(facts.couple && inputs.partner && result.basis.yearsSaving > 0 && !inputs.partner.stop
     && inputs.partner.age >= statePensionAgeOf(inputs.partner.age, env.today));
   const totalMid = mid.reduce((s, q) => s + q.pension, 0);
   facts.oneName = plan.people.length === 2 && totalMid > 0 && plan.people.some((p, i) => mid[i].pension / totalMid > ONE_NAME_SHARE

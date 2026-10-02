@@ -4,10 +4,12 @@
  * people; validateHousehold as data.
  */
 import { describe, it, expect } from 'vitest';
+import fc from 'fast-check';
 import {
   statePensionAge, wholeStatePensionAge, pensionAccessAge, bornFromAge, ageOn, householdStart, startWhenPensionsOpen,
-  expandHousehold, validateHousehold, HOUSEHOLD_LIMITS
+  expandHousehold, validateHousehold, HOUSEHOLD_LIMITS, stopsOf, startAsGiven, firstOpenAge, APART, PAY_COVERS
 } from '../../src/answers/shared/household.js';
+import { accessAgeOn } from '../../src/answers/shared/rules.js';
 import { enginePlan, configsAt, breakdownAt, mixOf, savingsTargetFor, BANDS } from '../../src/answers/shared/toEngine.js';
 import { fullStatePensionYearly, RULES } from '../../src/answers/shared/rules.js';
 import { toHousehold } from '../../src/answers/c/toHousehold.js';
@@ -172,6 +174,144 @@ describe('validateHousehold: problems as data, never a throw', () => {
     const h = expandHousehold({ people: [{ age: 80, pots: { pension: 1000 } }], planToAge: 80 }, TODAY).household;
     expect(validateHousehold(h, TODAY)).toEqual([{ field: 'planToAge', problem: 'end-after-start' }]);
     expect(HOUSEHOLD_LIMITS.planToAge).toEqual({ min: 75, max: 105 });
+  });
+});
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 3.4, 4.1, 4.3 g). The household carries
+ * each person's own stop; the same year is today's household, key for key.
+ */
+describe('couples who stop in different years: the household', () => {
+  const ids = (r) => r.assumed.map((a) => a.id);
+  const apartShort = (over = {}) => ({
+    people: [{ age: 56, pots: { pension: 300000 }, stopWork: { kind: 'age', age: 57 } }, { age: 60, pots: { pension: 100000 }, stopWork: { kind: 'already' } }],
+    jointSavings: 40000, ...over
+  });
+
+  it('the owner\'s three answers are one switch each: half by default, the pay makes up a gap, A and B can ask about the partner', () => {
+    expect(APART).toEqual({ payCoversDefault: 'half', payCoversGap: true, askAboutPartner: true });
+    expect(Object.isFrozen(APART)).toBe(true);
+    expect(PAY_COVERS).toEqual({ half: 0.5, all: 1, none: 0 });
+    expect(PAY_COVERS[APART.payCoversDefault]).toBe(0.5);
+  });
+
+  it('stopsOf: each person\'s whole years until they stop, and the year (from the household\'s start) their money joins', () => {
+    const p = (who, age, stopWork) => ({ who, age, stopWork });
+    expect(stopsOf({ people: [p('you', 56, { kind: 'age', age: 57 }), p('partner', 60, { kind: 'already' })] }, TODAY))
+      .toEqual([{ who: 'you', S: 1, join: 1 }, { who: 'partner', S: 0, join: 0 }]);
+    expect(stopsOf({ people: [p('you', 50, { kind: 'age', age: 55 }), p('partner', 54, { kind: 'age', age: 62 })] }, TODAY))
+      .toEqual([{ who: 'you', S: 5, join: 0 }, { who: 'partner', S: 8, join: 3 }]);
+    expect(stopsOf({ people: [p('you', 50, { kind: 'age', age: 55 }), p('partner', 48, { kind: 'age', age: 53 })] }, TODAY))
+      .toEqual([{ who: 'you', S: 5, join: 0 }, { who: 'partner', S: 5, join: 0 }]);
+    expect(stopsOf({ people: [p('you', 50, { kind: 'age', age: 52 })] }, TODAY)).toEqual([{ who: 'you', S: 2, join: 0 }]);
+    expect(stopsOf({ people: [p('you', 50, { kind: 'age', age: 40 })] }, TODAY)).toEqual([{ who: 'you', S: 0, join: 0 }]);
+  });
+
+  it('the same year: today\'s household — no pay line, the savings split evenly, both-stop-together only when the partner\'s stop was not given', () => {
+    const people = [{ age: 59, pots: { pension: 600000 }, stopWork: { kind: 'age', age: 62 } }, { age: 57, stopWork: { kind: 'age', age: 60 } }];
+    const given = expandHousehold({ people, jointSavings: 150000, untilBothStop: { payCovers: 1 } }, TODAY);
+    expect('untilBothStop' in given.household).toBe(false);
+    expect(given.household.people.map((p) => p.pots.isa)).toEqual([75000, 75000]);
+    expect(ids(given)).toContain('savings-split');
+    for (const id of ['savings-first', 'stop-apart', 'both-stop-together']) expect(ids(given)).not.toContain(id);
+    const derived = expandHousehold({ people: [people[0], { age: 57 }], jointSavings: 150000 }, TODAY);
+    expect(derived.household).toEqual(given.household);
+    expect(ids(derived)).toContain('both-stop-together');
+    expect(ids(derived).filter((id) => id !== 'both-stop-together')).toEqual(ids(given));
+  });
+
+  it('apart: the savings between you go to whoever stops first; the pay line is kept as given, or half and said so', () => {
+    const r = expandHousehold(apartShort(), TODAY);
+    expect(r.household.people.map((p) => p.pots.isa)).toEqual([0, 40000]);
+    expect(r.household.untilBothStop).toEqual({ payCovers: 0.5 });
+    expect(ids(r)).toEqual(expect.arrayContaining(['savings-first', 'stop-apart']));
+    for (const id of ['savings-split', 'both-stop-together']) expect(ids(r)).not.toContain(id);
+    expect(validateHousehold(r.household, TODAY)).toEqual([]);
+    for (const payCovers of [0, 0.5, 1]) {
+      const g = expandHousehold(apartShort({ untilBothStop: { payCovers } }), TODAY);
+      expect(g.household.untilBothStop).toEqual({ payCovers });
+      expect(ids(g)).not.toContain('stop-apart');
+    }
+    for (const bad of [0.3, '1', null, {}]) {
+      const g = expandHousehold(apartShort({ untilBothStop: bad && typeof bad === 'object' ? bad : { payCovers: bad } }), TODAY);
+      expect(g.household.untilBothStop, JSON.stringify(bad)).toEqual({ payCovers: 0.5 });
+      expect(ids(g)).toContain('stop-apart');
+    }
+    // the other way round: you stopped first, so the savings are yours
+    const swapped = expandHousehold({ people: [apartShort().people[1], apartShort().people[0]], jointSavings: 40000 }, TODAY);
+    expect(swapped.household.people.map((p) => p.pots.isa)).toEqual([40000, 0]);
+    // one person: all theirs, as today, and nothing about stopping apart
+    const one = expandHousehold({ people: [apartShort().people[0]], jointSavings: 40000, untilBothStop: { payCovers: 1 } }, TODAY);
+    expect(one.household.people[0].pots.isa).toBe(40000);
+    expect('untilBothStop' in one.household).toBe(false);
+  });
+
+  it('the tax-free part already taken is kept, and is not then assumed', () => {
+    const r = expandHousehold({ people: [{ age: 60, pots: { pension: 100000 }, pensionTaxFreeCash: 'alreadyTaken' }] }, TODAY);
+    expect(r.household.people[0].pensionTaxFreeCash).toBe('alreadyTaken');
+    expect(ids(r)).not.toContain('quarter-tax-free');
+  });
+
+  it('validateHousehold: stopping apart needs the pay line (stop-together otherwise); a bad one is named', () => {
+    const h = expandHousehold(apartShort(), TODAY).household;
+    const { untilBothStop, ...without } = h;
+    void untilBothStop;
+    expect(validateHousehold(without, TODAY)).toEqual([{ field: 'people.1.stopWork', problem: 'stop-together' }]);
+    expect(validateHousehold({ ...h, untilBothStop: { payCovers: 0.25 } }, TODAY)).toEqual([{ field: 'untilBothStop.payCovers', problem: 'notAnOption' }]);
+    expect(validateHousehold({ ...h, untilBothStop: null }, TODAY)).toEqual([{ field: 'untilBothStop.payCovers', problem: 'notAnOption' }]);
+    // a saver household too (A and B mark theirs with `saving`)
+    const saver = expandHousehold({ ...apartShort(), saving: {} }, TODAY).household;
+    expect(validateHousehold(saver, TODAY)).toEqual([]);
+  });
+
+  it('validateHousehold: the end must come after the later stop, and the later stop under 45 years after the first', () => {
+    const at = (youAge, youStop, partnerAge, partnerStop, planToAge) => validateHousehold(expandHousehold({
+      people: [{ age: youAge, pots: { pension: 100000 }, stopWork: youStop === null ? { kind: 'already' } : { kind: 'age', age: youStop } },
+        { age: partnerAge, pots: { pension: 100000 }, stopWork: { kind: 'age', age: partnerStop } }], planToAge, saving: {} }, TODAY).household, TODAY);
+    expect(at(70, null, 60, 75, 75)).toEqual([{ field: 'planToAge', problem: 'end-after-start' }]);
+    expect(at(70, null, 60, 75, 76)).toEqual([]);
+    expect(at(60, null, 30, 75, 105)).toEqual([{ field: 'planToAge', problem: 'end-after-start' }]);   // 45 years apart
+    expect(at(60, null, 31, 75, 105)).toEqual([]);
+    expect(at(76, 78, 74, 76, 77)).toEqual([]);                                                          // the same year: today's rule
+    expect(at(76, 78, 74, 76, 76)).toEqual([{ field: 'planToAge', problem: 'end-after-start' }]);
+  });
+
+  it('startAsGiven: a closed pension is measured from its holder\'s own stop, its years counted from the household\'s start', () => {
+    // your partner stopped already (their pension open); you stop at 56 in 2028, after the rise, so yours opens at 57
+    const h = expandHousehold({ people: [{ age: 54, pots: { pension: 200000 }, stopWork: { kind: 'age', age: 56 } }, { age: 60, pots: { pension: 100000 }, stopWork: { kind: 'already' } }], saving: {} }, TODAY).household;
+    expect(firstOpenAge(54, TODAY, 2)).toBe(57);
+    expect(startAsGiven(h, TODAY)).toEqual({ date: TODAY, yearsFromNow: 0, moved: false, movedBy: 0, movedFor: [], locked: ['you'], lockedUntil: [{ who: 'you', untilAge: 57, years: 3 }], accessAge: 55 });
+    // a partner who stopped at 50 waits for 57; you, stopping at 60 in three years, do not
+    const k = expandHousehold({ people: [{ age: 57, pots: { pension: 200000 }, stopWork: { kind: 'age', age: 60 } }, { age: 50, pots: { pension: 100000 }, stopWork: { kind: 'already' } }], saving: {} }, TODAY).household;
+    expect(startAsGiven(k, TODAY).lockedUntil).toEqual([{ who: 'partner', untilAge: 57, years: 7 }]);
+  });
+
+  /** startAsGiven as it was before each person had a stop of their own (6.19.0), frozen here for the same-year check. */
+  function startAsGivenV1(household, now) {
+    const base = householdStart(household, now);
+    const lockedUntil = [];
+    for (const p of household.people) {
+      if (!(p.pots && p.pots.pension > 0)) continue;
+      const first = firstOpenAge(p.age, now, base.yearsFromNow);
+      const opensIn = first - (p.age + base.yearsFromNow);
+      if (opensIn > 0) lockedUntil.push({ who: p.who, untilAge: first, years: opensIn });
+    }
+    return { date: base.date, yearsFromNow: base.yearsFromNow, moved: false, movedBy: 0, movedFor: [], locked: lockedUntil.map((l) => l.who), lockedUntil, accessAge: accessAgeOn(base.date) };
+  }
+
+  it('the same year, by any route: startAsGiven, householdStart and validateHousehold are today\'s, for any household', () => {
+    const today = fc.constantFrom('2026-09-30', '2028-04-05', '2028-04-06', '2030-01-15');
+    fc.assert(fc.property(today, fc.integer({ min: 18, max: 100 }), fc.integer({ min: 18, max: 100 }), fc.integer({ min: 0, max: 30 }),
+      fc.constantFrom(0, 1, 250000), fc.constantFrom(0, 1, 90000), fc.boolean(), fc.integer({ min: 75, max: 105 }), (now, a, b, S, pa, pb, routeB, planToAge) => {
+        const stopB = routeB ? { kind: 'age', age: b + S } : undefined;      // given as their age at your stop, or not given (derived)
+        const short = { people: [{ age: a, pots: { pension: pa }, stopWork: S === 0 ? { kind: 'already' } : { kind: 'age', age: a + S } },
+          { age: b, pots: { pension: pb }, ...(stopB ? { stopWork: stopB } : {}) }], jointSavings: 1000, planToAge, saving: {} };
+        const { household } = expandHousehold(short, now);
+        expect('untilBothStop' in household).toBe(false);
+        expect(household.people.map((p) => p.pots.isa)).toEqual([500, 500]);
+        expect(startAsGiven(household, now)).toEqual(startAsGivenV1(household, now));
+        expect(stopsOf(household, now).map((s) => s.join)).toEqual([0, 0]);
+      }), { numRuns: 400 });
   });
 });
 

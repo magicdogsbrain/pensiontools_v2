@@ -7,14 +7,27 @@
  *   moreFields()                 savingsIn, savingRisk, risk, charge, endAge
  *   chargeField()                the one fund and platform charge, percent a year (6.19.0): in C's "more" too
  *   SPEND_FIELDS                 spend.kind / amount / level — the same paths in A and B
- *   agesToShow(inputs, env, detail, earliestYes)   the stop ages an A result carries (conflict 31)
- *   gridToShow(inputs, env)      the rows and columns of B's choices step (conflict 37)
- *   alreadyStopped(inputs, today)   the retired view's rule (conflict 44)
+ *   agesToShow(inputs, env, detail, earliestYes)   the stop ages an A result carries (conflict 31): the asked person's
+ *   gridToShow(inputs, env)      the rows and columns of B's choices step (conflict 37): the asked person's stop ages
+ *   alreadyStopped(inputs, today)   the retired view's rule (conflict 44): also when a couple have both stopped
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2–3, 5.4):
+ *   stopKindField(question)      A's stop question (an age, ages to look at, or "I've already stopped"); B's (an age or
+ *                                "I've already stopped"; null when the owner's switch 3 is off)
+ *   partnerStopFields(question)  "When does your partner stop work?" — partner.stop.kind and partner.stop.age
+ *   untilBothStopField(question) "Until you've both stopped, their pay covers…" — half, all or none of what you spend
+ *   taxFreeFields(question)      "Already had the tax-free part?" — for someone who has stopped only
+ *   askedAbout(inputs)           who A's and B's answer is about: 'you', or 'partner' when you have already stopped
+ *   stopYearsOf(inputs, askedStop)  each person's whole years until their own stop, from checked inputs of A, B or C
+ *   stopYearsFromValues(values)  the same from flat values, as validate.js reads them
+ *   payCoversOf(answer)          the pay line's answer as a share of what is spent (not answered: the owner's default)
+ *   stopWorkOf, stopWorksOf, savingsInShares, untilBothStopOf   the toHousehold mappings' shared pieces (3.4)
+ *   apartCheckYear(stops, payCovers)   the year C's start rule is checked at: where the pay stops covering
  *
  * Pure: no clock (env.today is the date), no storage, no screen.
  */
-import { RULES, SAVING, accessAgeOn, addYears } from './rules.js';
-import { bornFromAge, wholeStatePensionAge, firstOpenAge } from './household.js';
+import { RULES, SAVING } from './rules.js';
+import { bornFromAge, wholeStatePensionAge, firstOpenAge, APART, PAY_COVERS } from './household.js';
 import { CHARGES_LIMITS } from '../../services/Charges.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
@@ -52,12 +65,26 @@ export function personFields(who) {
 }
 
 /**
+ * The `whenNot` that hides a person's pay-in block once they have stopped (couples-different-years.md 3.1): nothing goes
+ * into a pension after a stop. The partner's: "They already have". Yours (A and B): "I've already stopped" — there only
+ * while the owner's switch 3 offers it, so a list never names a choice it does not have.
+ */
+function stoppedNot(who) {
+  if (who === 'partner') return { 'partner.stop.kind': 'already' };
+  return APART.askAboutPartner ? { 'stop.kind': 'already' } : {};
+}
+/** A field with `whenNot` only when there is something in it. */
+const hidden = (f, whenNot) => (Object.keys(whenNot).length ? { ...f, whenNot } : f);
+
+/**
  * The pay-in block (conflict 11): one short-form figure, what lands in the pension each month (employer's part and the
  * tax top-up inside), or "split it up" into own and employer, whose sum is the total. `alreadyDrawing` feeds the
- * £10,000 warning only. B passes { payInRequired: true }.
+ * £10,000 warning only. B passes { payInRequired: true }. Hidden once the person has stopped (stoppedNot): the list must
+ * declare the stop question first.
  */
 export function saverFields(who, { payInRequired = false } = {}) {
   const w = who === 'partner' ? { household: 'couple' } : {};
+  const not = stoppedNot(who);
   return [
     field({ path: `${who}.payIn.kind`, type: 'choice', options: ['total', 'split'], default: 'total', group: who }, w),
     field({ path: `${who}.payIn.total`, type: 'money', min: 0, max: SAVING.payInCeiling, ...(payInRequired ? { required: true } : { default: 0 }),
@@ -67,7 +94,7 @@ export function saverFields(who, { payInRequired = false } = {}) {
     field({ path: `${who}.payIn.employer`, type: 'money', min: 0, max: SAVING.payInCeiling, required: true, group: who,
       boundaries: [0, 1, 250, 5_000, 10_000] }, { ...w, [`${who}.payIn.kind`]: 'split' }),
     field({ path: `${who}.alreadyDrawing`, type: 'yesNo', default: false, group: 'more' }, w)
-  ];
+  ].map((f) => hidden(f, not));
 }
 
 /**
@@ -84,14 +111,17 @@ export function payingInFields(who) {
   const w = who === 'partner' ? { household: 'couple' } : {};
   const has = { ...w, [`${who}.payIn.has`]: 'yes' };
   const saver = saverFields(who);
-  const at = (path) => { const { when, ...f } = saver.find((x) => x.path === `${who}.payIn.${path}`); void when; return f; };
+  const at = (path) => { const { when, whenNot, ...f } = saver.find((x) => x.path === `${who}.payIn.${path}`); void when; void whenNot; return f; };
+  // The partner's block is hidden when they have already stopped (couples-different-years.md 3.1); yours never is in C
+  // ("you" stop when the money starts, and "still paying in?" says what goes in until then).
+  const not = who === 'partner' ? stoppedNot('partner') : {};
   return [
     field({ path: `${who}.payIn.has`, type: 'choice', options: ['no', 'yes'], group: who }, w),
     field({ ...at('kind'), default: 'split' }, has),
     field({ ...at('total'), required: true, default: undefined }, { ...has, [`${who}.payIn.kind`]: 'total' }),
     field(at('own'), { ...has, [`${who}.payIn.kind`]: 'split' }),
     field(at('employer'), { ...has, [`${who}.payIn.kind`]: 'split' })
-  ].map((f) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined)));
+  ].map((f) => hidden(Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined)), not));
 }
 
 /**
@@ -127,6 +157,71 @@ export function moreFields() {
     chargeField(),                                                                                                                       // a year, saving and drawing
     { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] }
   ];
+}
+
+/*
+ * ---- Couples who stop work in different years (research/v7/couples-different-years.md 2.1–2.3, 3.1) --------------------
+ * None of these questions has a default: not answered is today's meaning (the partner stops when you do, nothing
+ * already taken), so the checked inputs of a form that never answers them are today's, key for key.
+ */
+
+/** The stop ages a partner may be given: the same boundaries as the stop age of A and B. */
+const STOP_AGE_BOUNDARIES = [18, 50, 52, 53, 54, 55, 56, 57, 58, 60, 62, 65, 66, 67, 68, 75];
+
+/**
+ * The stop question. A: an age in mind (the default), "show me ages", or — for a couple, while the owner's switch 3 is on
+ * — "I've already stopped", which turns the answer to the partner. B: an age (not answered) or "I've already stopped";
+ * null when switch 3 is off (B then asks only the age, as before).
+ */
+export function stopKindField(question) {
+  const already = APART.askAboutPartner ? ['already'] : [];
+  if (question === 'a') return { path: 'stop.kind', type: 'choice', options: ['age', 'ages', ...already], default: 'age', group: 'stop' };
+  return already.length ? { path: 'stop.kind', type: 'choice', options: ['age', ...already], group: 'stop' } : null;
+}
+
+/**
+ * What "When does your partner stop work?" offers in each question: when you do (C: when you start taking money), they
+ * already have, at an age — and in A, for the partner of someone who has stopped, "show me ages" (switch 3).
+ */
+export function partnerStopOptions(question) {
+  return ['same', 'already', 'age', ...(question === 'a' && APART.askAboutPartner ? ['ages'] : [])];
+}
+
+/** "When does your partner stop work?" and the age (couples-different-years.md 2.1). In the partner block, after the person. */
+export function partnerStopFields(question) {
+  return [
+    { path: 'partner.stop.kind', type: 'choice', options: partnerStopOptions(question), group: 'partner', when: { household: 'couple' } },
+    { path: 'partner.stop.age', type: 'age', min: 18, max: RULES.stopAgeMax, required: true, group: 'partner', boundaries: STOP_AGE_BOUNDARIES,
+      when: { household: 'couple', 'partner.stop.kind': 'age' } }
+  ];
+}
+
+/**
+ * "Until you've both stopped, their pay covers: half of what you spend / all of it / none of it" — asked only once the
+ * partner's stop is their own. Not answered is the owner's default (household.js APART.payCoversDefault). Its `when`
+ * names the partner's answer first and the household last: the screen draws a field inside the last choice its `when`
+ * names, never inside a list — this line is drawn on its own, under the question, with Change.
+ */
+export function untilBothStopField(question) {
+  return { path: 'untilBothStop', type: 'choice', options: Object.keys(PAY_COVERS), group: 'partner',
+    when: { 'partner.stop.kind': partnerStopOptions(question).filter((o) => o !== 'same'), household: 'couple' } };
+}
+
+/**
+ * "Already had the tax-free part of your pension?" (More detail) — only for someone who has stopped: you in C from now,
+ * you in A and B with "I've already stopped" (switch 3), the partner with "They already have". Not answered: not taken.
+ */
+export function taxFreeFields(question) {
+  const you = question === 'c' ? { 'start.kind': 'now' } : APART.askAboutPartner ? { 'stop.kind': 'already' } : null;
+  return [
+    ...(you ? [{ path: 'you.taxFreeTaken', type: 'yesNo', group: 'more', when: you }] : []),
+    { path: 'partner.taxFreeTaken', type: 'yesNo', group: 'more', when: { household: 'couple', 'partner.stop.kind': 'already' } }
+  ];
+}
+
+/** Part-time work after the stop (A): it belongs to the one stopping, so it is hidden when you have already stopped. */
+export function partTimeHidden() {
+  return stoppedNot('you');
 }
 
 /** What is spent from the stop: an amount a month after tax, or a PLSA level (RULES.plsa ÷ 12 by household). */
@@ -171,12 +266,15 @@ function clipped(list, lo, hi) {
  *   or the first age after the one named that did (an age named that does not last); null when there is none
  */
 export function agesToShow(inputs, env, detail = 'chart', earliestYes = null) {
-  const you = inputs && inputs.you && isNum(inputs.you.age) ? inputs.you.age : null;
+  // the person the answer is about (couples-different-years.md 5.2): you, or your partner when you have already stopped
+  const asked = askedAbout(inputs);
+  const person = inputs && inputs[asked];
+  const you = person && isNum(person.age) ? person.age : null;
   if (you === null) return [];
   const lo = you;
   const hi = RULES.stopAgeMax;
   if (env && Array.isArray(env.ages)) return clipped(env.ages, lo, hi);
-  const stop = inputs.stop || {};
+  const stop = (asked === 'partner' ? person.stop : inputs.stop) || {};
   const yes = isNum(earliestYes) ? [earliestYes] : [];
   if (detail === 'all') {
     const from = Math.max(you, 50);
@@ -210,14 +308,22 @@ function payInNow(person) {
  * @returns {{ ages: number[], payIns: number[] }}
  */
 export function gridToShow(inputs, env, around = {}) {
-  const you = inputs && inputs.you && isNum(inputs.you.age) ? inputs.you.age : null;
-  const stop = inputs && inputs.stop && isNum(inputs.stop.age) ? inputs.stop.age : null;
+  // the rows are the asked person's stop ages (couples-different-years.md 5.3): yours, or your partner's when you have stopped
+  const asked = askedAbout(inputs);
+  const person = inputs && inputs[asked];
+  const you = person && isNum(person.age) ? person.age : null;
+  const own = asked === 'partner' ? (person && person.stop) || {} : (inputs && inputs.stop) || {};
+  const stop = isNum(own.age) ? own.age : null;
   if (you === null || stop === null) return { ages: [], payIns: [] };
   const later = around && isNum(around.stopLater) ? [around.stopLater] : [];
   const ages = clipped([stop - 2, stop - 1, stop, stop + 1, stop + 2, stop + 3, stop + 4, stop + 5, ...later], you + 1, RULES.stopAgeMax);
   const couple = inputs.household === 'couple';
   const now = payInNow(inputs.you) + (couple ? payInNow(inputs.partner) : 0);
-  const ceiling = SAVING.payInCeiling * (couple ? 2 : 1);
+  // £10,000 a month for each person still saving (a stopped person pays nothing in); the same year: each of you
+  const stops = stopYearsOf(inputs);
+  const apart = couple && isNum(stops.partner) && stops.partner !== stops.you;
+  const savers = apart ? [stops.you, stops.partner].filter((S) => S > 0).length : couple ? 2 : 1;
+  const ceiling = SAVING.payInCeiling * Math.max(1, savers);
   const needed = around && isNum(around.needed) ? around.needed : null;
   const payIns = [];
   if (needed !== null && needed > now && needed <= ceiling) {
@@ -235,27 +341,36 @@ export function gridToShow(inputs, env, around = {}) {
  * Whether money first taken at `startAge` (your age) comes before ANY of the household's pensions can be touched, with
  * no savings to live on meanwhile: C's start-not-before-access rule, person by person — the partner's pension too (the
  * reviewers' finding, 1 Oct 2026: "you" with no pot and a partner whose pension was closed got £0 a month) — and A's and
- * B's hand-over to C. `people`: [{ age, pension }] with you first; `pension` is true for a pot, or one being paid into.
- * A pension is closed at the start when its holder is then under the earliest pension age of that day (55 before 6 April
- * 2028, 57 from then). With any pension open at the start, or savings, the start stands.
+ * B's hand-over to C. `people`: [{ age, pension, stop? }] with you first; `pension` is true for a pot, or one being paid
+ * into. A pension opens from its holder's own stop (`stop`, years from today; your start when not given): the earliest
+ * pension age on the day they reach it (55 before 6 April 2028, 57 from then; household.js firstOpenAge), and once open
+ * it stays open. The check is made `at` years from today (default: the start) — for a couple stopping apart, where the
+ * pay of the one still working stops covering (apartCheckYear); a holder who has not stopped by then has nothing open.
+ * With any pension open then, or savings, the start stands. With one stop for everyone this is the check made at the
+ * start, exactly as before.
  */
-export function startBeforeEveryPension(people, savings, startAge, today) {
+export function startBeforeEveryPension(people, savings, startAge, today, at) {
   const you = people && people[0];
   if (!you || !isNum(you.age) || !isNum(startAge) || typeof today !== 'string') return false;
   const holders = people.filter((p) => p && p.pension && isNum(p.age));
   if (!holders.length || savings > 0) return false;
   const S = Math.max(0, startAge - you.age);
-  const opens = accessAgeOn(addYears(today, S));
-  return holders.every((p) => p.age + S < opens);
+  const T = isNum(at) ? at : S;
+  return holders.every((p) => {
+    const own = isNum(p.stop) ? p.stop : S;
+    return own > T || firstOpenAge(p.age, today, own) > p.age + T;
+  });
 }
 
 /**
  * C's people as its start rules read them, from flat values ({ 'you.age': 55, … } — checked or parsed): you first, the
- * partner for a couple; `pension` for a pot or "still paying in" answered yes, `payingIn` for the latter.
+ * partner for a couple; `pension` for a pot or "still paying in" answered yes, `payingIn` for the latter; `stop` the whole
+ * years from today until they stop (stopYearsFromValues; null when their stop age is not yet given).
  */
 export function peopleFromValues(values) {
   const v = values || {};
-  const one = (who) => ({ who, age: v[`${who}.age`], pension: v[`${who}.pot`] > 0 || v[`${who}.payIn.has`] === 'yes', payingIn: v[`${who}.payIn.has`] === 'yes' });
+  const stops = stopYearsFromValues(v);
+  const one = (who) => ({ who, age: v[`${who}.age`], pension: v[`${who}.pot`] > 0 || v[`${who}.payIn.has`] === 'yes', payingIn: v[`${who}.payIn.has`] === 'yes', stop: stops[who] ?? null });
   return v.household === 'couple' && isNum(v['partner.age']) ? [one('you'), one('partner')] : [one('you')];
 }
 
@@ -269,15 +384,16 @@ export function earliestPensionStart(people, today) {
 }
 
 /**
- * Who of the household would still be paying in past 75 at a start (your age `startAge`): the tax the government adds
- * back stops at 75, and A's and B's stop age stops there too (C's pay-in-past-75 rules, the reviewers' finding, 1 Oct
- * 2026). `people`: [{ who, age, payingIn }] with you first. → the `who`s, in order.
+ * Who of the household would still be paying in past 75 at their stop (your start `startAge`, or a person's own `stop`,
+ * years from today): the tax the government adds back stops at 75, and A's and B's stop age stops there too (C's
+ * pay-in-past-75 rules, the reviewers' finding, 1 Oct 2026). `people`: [{ who, age, payingIn, stop? }] with you first.
+ * → the `who`s, in order.
  */
 export function payingInPast75(people, startAge) {
   const you = people && people[0];
   if (!you || !isNum(you.age) || !isNum(startAge)) return [];
   const S = startAge - you.age;
-  return people.filter((p) => p && p.payingIn && isNum(p.age) && p.age + S > RULES.stopAgeMax).map((p) => p.who);
+  return people.filter((p) => p && p.payingIn && isNum(p.age) && p.age + (isNum(p.stop) ? p.stop : S) > RULES.stopAgeMax).map((p) => p.who);
 }
 
 /**
@@ -291,10 +407,18 @@ export function handOverToC(inputs, stopAge, today) {
   const you = inputs && inputs.you;
   if (!you || !isNum(you.age) || !isNum(stopAge)) return { ok: false, same: false };
   const couple = inputs.household === 'couple' && inputs.partner && isNum(inputs.partner.age);
+  // Each person at their own stop, the asked person's at `stopAge` (couples-different-years.md 5.4). "I've already
+  // stopped" carries to C as "from now", which C takes as it is: only the partner's age is checked against today.
+  const asked = askedAbout(inputs);
+  const stops = stopYearsOf(inputs, stopAge);
   const people = (couple ? ['you', 'partner'] : ['you']).map((who) => ({
-    who, age: inputs[who].age, pension: (inputs[who].pot || 0) > 0 || payInTotalOf(inputs, who) > 0, payingIn: payInTotalOf(inputs, who) > 0
+    who, age: inputs[who].age, pension: (inputs[who].pot || 0) > 0 || payInTotalOf(inputs, who) > 0, payingIn: payInTotalOf(inputs, who) > 0, stop: stops[who]
   }));
-  const ok = stopAge >= you.age && !startBeforeEveryPension(people, inputs.savings || 0, stopAge, today) && !payingInPast75(people, stopAge).length;
+  const startAge = you.age + stops.you;
+  const at = apartCheckYear(stops, payCoversOf(inputs.untilBothStop));
+  const ok = asked === 'partner'
+    ? stopAge >= inputs.partner.age
+    : stopAge >= you.age && !startBeforeEveryPension(people, inputs.savings || 0, startAge, today, at) && !payingInPast75(people, startAge).length;
   const same = (inputs.savingRisk || 'balanced') === (inputs.risk || 'balanced')
     && !((inputs.savingsIn || 0) > 0) && !(inputs.partTime && inputs.partTime.has);
   return { ok, same };
@@ -303,11 +427,149 @@ export function handOverToC(inputs, stopAge, today) {
 /**
  * True when the draft describes someone who has stopped: stop.age ≤ you.age and you.age at or past their State Pension
  * age (the birthday taken as today). A and B then show the retired view and no saver word. A draft with no stop age
- * ("show me ages") is never retired.
+ * ("show me ages") is never retired. A couple (couples-different-years.md 2.2): also when you have both stopped ("I've
+ * already stopped" and "They already have"); never while the partner is still working — their own stop age after
+ * today's, or "show me ages" for them — whose answer it then is. "I've already stopped" for one person is not the retired
+ * view: the form says C is their question (already-needs-partner).
  */
 export function alreadyStopped(inputs, today) {
-  const you = inputs && inputs.you && isNum(inputs.you.age) ? inputs.you.age : null;
-  const stop = inputs && inputs.stop && isNum(inputs.stop.age) ? inputs.stop.age : null;
+  const i = inputs || {};
+  const couple = i.household === 'couple' && i.partner && isNum(i.partner.age);
+  const theirs = (couple && i.partner.stop) || {};
+  const partnerWorking = theirs.kind === 'ages' || (theirs.kind === 'age' && isNum(theirs.age) && theirs.age > i.partner.age);
+  if (i.stop && i.stop.kind === 'already') return Boolean(couple) && theirs.kind === 'already';
+  const you = i.you && isNum(i.you.age) ? i.you.age : null;
+  const stop = i.stop && isNum(i.stop.age) ? i.stop.age : null;
   if (you === null || stop === null || typeof today !== 'string') return false;
-  return stop <= you && you >= statePensionAgeOf(you, today);
+  return stop <= you && you >= statePensionAgeOf(you, today) && !partnerWorking;
+}
+
+/**
+ * Who A's and B's answer is about (couples-different-years.md 5.2, owner's switch 3): 'partner' when you have already
+ * stopped and your partner has not, else 'you'. "You" stays the person at the keyboard either way.
+ */
+export function askedAbout(inputs) {
+  const i = inputs || {};
+  return APART.askAboutPartner && i.household === 'couple' && i.partner && i.stop && i.stop.kind === 'already' ? 'partner' : 'you';
+}
+
+/**
+ * Each person's whole years from today until they stop work, from checked inputs of A, B or C (couples-different-years.md
+ * 3.4, 5.2), never below 0:
+ *   you      C: the start (start.age − age), or 0 from now. A and B: 0 with "I've already stopped"; else the stop age
+ *            minus your age — `askedStop` when the answer is about you (A's rows), today's age for "show me ages".
+ *   partner  not answered, or "when you do": yours (one year for both — today's rule). "They already have": 0. An age:
+ *            that age minus theirs. "Show me ages" (A, you stopped): 0, or `askedStop` minus theirs — the asked person's
+ *            stop, as A's rows sweep it.
+ * → { you, partner? } — partner for a couple only.
+ */
+export function stopYearsOf(inputs, askedStop) {
+  const i = inputs || {};
+  const youAge = i.you && isNum(i.you.age) ? i.you.age : null;
+  if (youAge === null) return { you: 0 };
+  const asked = askedAbout(i);
+  const own = (age, stopAge) => Math.max(0, stopAge - age);
+  let you;
+  if (!i.stop && i.start) you = i.start.kind === 'age' && isNum(i.start.age) ? own(youAge, i.start.age) : 0;
+  else if (i.stop && i.stop.kind === 'already') you = 0;
+  else if (asked === 'you' && isNum(askedStop)) you = own(youAge, askedStop);
+  else you = i.stop && isNum(i.stop.age) ? own(youAge, i.stop.age) : 0;
+  const couple = i.household === 'couple' && i.partner && isNum(i.partner.age);
+  if (!couple) return { you };
+  const p = i.partner;
+  const theirs = p.stop || {};
+  let partner;
+  if (asked === 'partner' && isNum(askedStop)) partner = own(p.age, askedStop);
+  else if (theirs.kind === 'already' || theirs.kind === 'ages') partner = 0;
+  else if (theirs.kind === 'age' && isNum(theirs.age)) partner = own(p.age, theirs.age);
+  else partner = you;
+  return { you, partner };
+}
+
+/**
+ * The same from flat values (checked or parsed, as validate.js reads them): { you, partner? }, each whole years or null
+ * while the stop age that decides it is not yet given. C's values carry `start.kind` (always: it has a default rule);
+ * A's and B's carry `stop.*`.
+ */
+export function stopYearsFromValues(values) {
+  const v = values || {};
+  const youAge = v['you.age'];
+  if (!isNum(youAge)) return { you: null };
+  const own = (age, stopAge) => Math.max(0, stopAge - age);
+  let you;
+  if ('start.kind' in v) you = v['start.kind'] === 'age' && isNum(v['start.age']) ? own(youAge, v['start.age']) : 0;
+  else if (v['stop.kind'] === 'already' || v['stop.kind'] === 'ages') you = 0;
+  else you = isNum(v['stop.age']) ? own(youAge, v['stop.age']) : null;
+  const partnerAge = v['partner.age'];
+  if (v.household !== 'couple' || !isNum(partnerAge)) return { you };
+  const kind = v['partner.stop.kind'];
+  let partner;
+  if (kind === 'already' || kind === 'ages') partner = 0;
+  else if (kind === 'age') partner = isNum(v['partner.stop.age']) ? own(partnerAge, v['partner.stop.age']) : null;
+  else partner = you;
+  return { you, partner };
+}
+
+/**
+ * A person's stop in the household model (couples-different-years.md 3.4): "I've already stopped" / "They already have"
+ * → { kind: 'already' }; else their age at their own stop, S whole years from today (stopYearsOf).
+ */
+export const stopWorkOf = (person, already, S) => (already ? { kind: 'already' } : { kind: 'age', age: person.age + S });
+
+/**
+ * A and B: both people's stops in the household model. A partner who stops in your year — however that was said: not
+ * answered, "when you do", their age at your stop, or "they already have" while you stop now — is written as before
+ * (your kind of stop, their age at it), so a same-year household is today's, key for key; a stop of their own is theirs.
+ * → [you, partner?]
+ */
+export function stopWorksOf(inputs, stops) {
+  const youStopped = Boolean(inputs.stop && inputs.stop.kind === 'already');
+  const out = [stopWorkOf(inputs.you, youStopped, stops.you)];
+  if (isNum(stops.partner)) {
+    const theirs = (inputs.partner && inputs.partner.stop) || {};
+    out.push(stopWorkOf(inputs.partner, stops.partner === stops.you ? youStopped : theirs.kind === 'already', stops.partner));
+  }
+  return out;
+}
+
+/**
+ * What goes into ISAs and savings each month, per person (couples-different-years.md 3.4): one person, all of it; a
+ * couple stopping in the same year, half each (as the savings, as before); stopping in different years, split evenly
+ * among those still working today, each until their own stop. `stops`: stopYearsOf. → [you, partner?].
+ */
+export function savingsInShares(savingsIn, stops, couple) {
+  if (!couple) return [savingsIn];
+  const working = [stops.you > 0, stops.partner > 0];
+  if (stops.you === stops.partner || !working.some(Boolean)) return [savingsIn / 2, savingsIn / 2];
+  const count = working.filter(Boolean).length;
+  return working.map((w) => (w ? savingsIn / count : 0));
+}
+
+/** The pay line, answered, as the household's short-form `{ untilBothStop: { payCovers } }`; nothing when not answered. */
+export function untilBothStopOf(inputs) {
+  const answer = inputs && inputs.untilBothStop;
+  return Object.prototype.hasOwnProperty.call(PAY_COVERS, answer) ? { untilBothStop: { payCovers: PAY_COVERS[answer] } } : {};
+}
+
+/**
+ * The pay line's answer ('half' | 'all' | 'none') as the share of what the household spends the pay of the one still
+ * working covers until both have stopped; not answered (or not a known answer) is the owner's default, half
+ * (household.js APART.payCoversDefault).
+ */
+export function payCoversOf(answer) {
+  return Object.prototype.hasOwnProperty.call(PAY_COVERS, answer) ? PAY_COVERS[answer] : PAY_COVERS[APART.payCoversDefault];
+}
+
+/**
+ * The year (whole years from today) at which C's start rule asks whether anything can be lived on
+ * (couples-different-years.md 3.3): the second stop while the pay of the one still working covers what the stopped
+ * person's money cannot — "All of it" always, "Half" while the owner's switch 2 says the pay makes up a gap — else the
+ * first stop ("None of it", or switch 2 off). One stop for everyone: that stop. `stops`: { you, partner? } (nulls skipped).
+ */
+export function apartCheckYear(stops, payCovers, coversGap = APART.payCoversGap) {
+  const known = Object.values(stops || {}).filter(isNum);
+  if (!known.length) return null;
+  const first = Math.min(...known);
+  const second = Math.max(...known);
+  return payCovers >= 1 || (payCovers > 0 && coversGap) ? second : first;
 }

@@ -39,6 +39,26 @@ const household = (a) => {
 };
 const fixtures = FIXTURE_FILES.map((f) => JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/fixtures/a', f), 'utf8')));
 
+/**
+ * The two people swapped, each keeping their own stop (couples-different-years.md 9.3 P2). One stop for both: the stop
+ * age moves to the other's age at it, as before. Each on their own date, the stops go with the people: your stop becomes
+ * the partner's, and the partner's yours — "they already have" becomes "I've already stopped", and the answer is then
+ * about the partner (the person who was "you").
+ */
+function swapped(inputs) {
+  const other = JSON.parse(JSON.stringify(inputs));
+  [other.you, other.partner] = [other.partner, other.you];
+  const theirs = inputs.partner.stop;
+  delete other.you.stop;
+  delete other.partner.stop;
+  if (!theirs || theirs.kind === 'same') other.stop = { kind: 'age', age: inputs.stop.age - inputs.you.age + inputs.partner.age };
+  else if (theirs.kind === 'already') { other.stop = { kind: 'already' }; other.partner.stop = { kind: 'age', age: inputs.stop.age }; }
+  else { other.stop = { kind: 'age', age: theirs.age }; other.partner.stop = { kind: 'age', age: inputs.stop.age }; }
+  return other;
+}
+/** One row: the stop of the person the answer is about (your partner's after "I've already stopped"). */
+const envAsked = (inputs) => ({ ...ENV, ages: [inputs.stop.kind === 'already' ? inputs.partner.stop.age : inputs.stop.age] });
+
 describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
   it('M-A2 more State Pension, more final-salary pension, or the same one from an earlier age: no lower, to one step', () => {
     const findings = [];
@@ -132,21 +152,39 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
 
   it('M-A6 swapping "you" and "partner" leaves every household figure the same; only the labels move', () => {
     fc.assert(fc.property(named.filter((i) => i.household === 'couple' && !i.partTime.has), (inputs) => {
-      const other = JSON.parse(JSON.stringify(inputs));
-      [other.you, other.partner] = [other.partner, other.you];
-      other.stop.age = inputs.stop.age - inputs.you.age + inputs.partner.age;
-      fc.pre(other.stop.age >= other.you.age && other.stop.age <= 75);
+      const other = swapped(inputs);
+      fc.pre(other.stop.kind === 'already' || (other.stop.age >= other.you.age && other.stop.age <= 75));
       const a = run(inputs);
-      const b = run(other);
-      expect(household(b)).toEqual(household(a));
+      const b = run(other, envAsked(other));
+      // (each on their own date, the stop asked about moves with "you" to the other person: the years until it are theirs)
+      const strip = (x) => (a.apart ? { ...household(x), yearsSaving: null } : household(x));
+      expect(strip(b)).toEqual(strip(a));
       expect(b.pensionOpens.you).toBe(a.pensionOpens.partner);
       expect(b.pensionOpens.partner).toBe(a.pensionOpens.you);
       expect(b.shown.gapYears).toBe(a.shown.gapYears);
     }), opts());
   });
 
+  // couples-different-years.md 9.3 P2: "I've already stopped", with your partner at 56, is your partner already stopped with
+  // you at 56 — the same household from the other chair, every household figure the same
+  it('M-A6b (P2) "I\'ve already stopped" with your partner at an age equals your partner already stopped with you at that age', () => {
+    const apartCouples = named.filter((i) => i.household === 'couple' && !i.partTime.has && i.partner.stop && i.partner.stop.kind === 'already');
+    fc.assert(fc.property(apartCouples, (inputs) => {
+      const other = swapped(inputs);
+      expect(other.stop.kind).toBe('already');
+      const a = run(inputs);
+      const b = run(other, envAsked(other));
+      expect(b.askedAbout).toBe('partner');
+      expect(household(b)).toEqual(household(a));
+      expect(b.apart && b.apart.first).toBe(a.apart && (a.apart.first === 'you' ? 'partner' : 'you'));
+      expect(b.headline.verdict).toBe(a.headline.verdict);
+    }), opts());
+  });
+
   it('M-A7 the risk while saving only matters while saving: stopping today, changing it changes no figure', () => {
     fc.assert(fc.property(named, fc.constantFrom('cautious', 'balanced', 'adventurous'), (inputs, level) => {
+      // (not a partner still working after today: their saving years are in the mix while saving)
+      fc.pre(!(inputs.household === 'couple' && inputs.partner.stop && inputs.partner.stop.kind === 'age' && inputs.partner.stop.age > inputs.partner.age));
       const now = { ...inputs, stop: { kind: 'age', age: inputs.you.age } };
       const a = run(now);
       const b = run({ ...now, savingRisk: level });

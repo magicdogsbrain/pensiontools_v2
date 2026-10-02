@@ -1,6 +1,10 @@
 # Couples who stop work in different years (design, 1 Oct 2026)
 
-Nothing here is built. This is the design for the owner's decision of 1 October 2026:
+Status (2 Oct 2026): built for 6.20.0, not yet released, with the owner's three questions taken as recommended below.
+What the reviews changed while building is marked "2 Oct 2026" where it applies: the pass-on after the second stop
+(4.3 f), C's "from now" and the partner's pay-in (5.1), the carry from C and A's links (5.4), I3's one exception and I10
+(9.1), the work bound (10) and where the 2028 line shows (12). This is the design for the owner's decision of 1 October
+2026:
 
 > "Yes couples stopping in different years."
 
@@ -355,6 +359,35 @@ The mechanism:
 - **`simulate` is never handed** a run with cover months or a hook. `createFastRunner.run` refuses, as it already
   refuses a run with a closed pension (`fastEngine.js:533`).
 
+**The pass-on after the second stop (the engine's call, 2 Oct 2026; built).** Shares set again on money alone, and a
+household that runs out the moment either run cannot pay its share, were not enough. The reviewers found that a first
+stopper who comes to the second stop with a small leftover (a few hundred pounds of savings, after the years apart spent
+the cash down: this design's main case) keeps a share of its own, its savings run dry decades early while the other's
+money (90–99.98% of the total) lasts to the end, and the household is counted as run out. So a life lasted at £2,740 a
+month and ran out at £2,700; £5,000 more of savings lowered every amount; and £45,000 of savings between you added £10 to
+the careful amount when the stops differed, against £60 when they did not. The rule now:
+
+- **From the second stop, when one run's money runs out, the other's pays all of what the pots pay from that month.**
+  The household runs out only when both have. (`toEngine.js` `passOnAt`: the survivor's schedules with all of the
+  need, by the same rule for a pension still closed.)
+- The stop runner runs the first stopper (with the hand-over at `12·G`, keeping a record of its state at the top of each
+  month from then), then the joiner — with a hook at the first stopper's run-out month when that came first. When the
+  joiner's money runs out first, the first stopper's run is **resumed from its record** at that month and pays all from
+  then. A resumed run equals the run from the start with the hand-over and the pass-on as two hooks, bit for bit (I10):
+  the record holds everything a month carries into the next, and the plan remembered within a year is planned again at
+  every hook.
+- A couple who stop in the same year keeps today's rule (`tests/v7/c/exceptions.md`, engine behaviour 4): their answers
+  are 6.19.0's, figure for figure.
+- Measured after it (2 Oct 2026): the reviewers' households are monotone over their whole band; £45,000 of savings adds
+  £60–80 apart against £90 together and £100 in a pension (200 lives; before: £20–30); C and A agree to the pound on 236
+  random staggered couples.
+- **Left as it is (cautious, rare):** a run whose pension is still closed after the second stop, and whose own savings run
+  dry before it opens while the other's money is open, stops there, so its pension is not counted afterwards (before the
+  pass-on that was a run-out of the household). Measured at the careful amount on 321 made-up households of that shape
+  (the first stopper 48–54 and closed after the second stop, the other open): 24 had such lives, 91 of 32,100 in all. A
+  rule that kept a closed run's savings back while the other's open money paid was tried and lowered careful amounts by
+  £10–40 (more tax on one pension), so it was not kept. A full answer needs the two runs side by side, month by month.
+
 **(g) Pensions that cannot be touched yet are measured from each person's own stop.**
 
 - `opensAt_j = firstOpenAge(age_j, today, S_j)` (`household.js:165-167`), so the 2028 change applies on each person's
@@ -445,6 +478,12 @@ So every config, plan and result deep-equals today's. Section 9 proves this rath
 
 `usesLives` (`c/onLives.js:45-54`) says yes for that last row. C's start is never moved for a stop the person gave.
 
+**Nor for the partner's pay-in (2 Oct 2026).** "From now" is moved to the day a pension opens when someone still pays in
+and no pension of the household can be touched yet (`movedToAccess`). With the partner's stop their own ("they already
+have", or at an age), only YOUR paying in can move it: their pay-in runs to their own stop. Before this, "you from now"
+with a partner still paying in turned you, who have stopped, into someone working until your pension opens, with "your
+pay" covering half — and the link from A's "I've already stopped" opened C on £2,610 a month against A's £990.
+
 **What it answers.**
 
 - The careful amount is what the household can spend **once you have both stopped**. In the years apart, the pots pay
@@ -517,7 +556,14 @@ stopped". The sweep moves that person's stop only.
 - **`alreadyStopped`** (`:294-299`) is also true when both have stopped (2.2).
 - **Carrying between questions** (`src/v7/state/carry.js`):
   - the new paths go into `HOUSEHOLD`;
-  - A's and B's "I've already stopped" carries to C as `start.kind: 'now'`, a mapped entry.
+  - A's and B's "I've already stopped" carries to C as `start.kind: 'now'`, a mapped entry;
+  - **and back (2 Oct 2026):** C "from now" with the partner stopping at an age carries to A and B as "I've already
+    stopped", the partner at that age with their pay-in, opening on the numbers with no box focused
+    (`CARRY_C_YOU_STOPPED`). C's "What next?" then asks "Your partner still working?" with "When could my partner afford
+    to stop?" and "Is my partner saving enough for this?".
+- **A, about your partner shown stopping now** (their age today, which A accepts: "could my partner stop now
+  instead?"): "Is my partner saving enough for this?" is not offered, because B refuses a stop of today
+  (`partner-stop-after-now`); the C link stays.
 
 ---
 
@@ -617,7 +663,10 @@ special from it:
     therefore changes only R16's test (9.8).
 - **I2.** `partner.stop.kind: 'age'` with `age = partner.age + S` gives the same household, and every figure, as not
   answering. These are two routes to one answer.
-- **I3.** C from now with the partner `already` equals C from now with the question not answered, figure for figure.
+- **I3.** C from now with the partner `already` equals C from now with the question not answered, figure for figure —
+  with one exception (settled 2 Oct 2026): where "from now" is moved to the day a pension opens (you still paying in,
+  every pension closed today), "they already have" means your partner stopped now and you start at that day, so the
+  answer is the apart one (each at their own stop); not answered, both start then.
 - **I4.** Same-year households through the new code give `enginePlan`, `configsAt`, `stopAtPlan` pots and
   `breakdownAt` that deep-equal a frozen copy of today's adapter, over random households.
   - The frozen copy is `tests/v7/shared/sameYear.v1/`, deleted one release later.
@@ -634,6 +683,9 @@ special from it:
   - It is exact with an all-shares mix and the tax-free part already taken, so there is no allowance to carry.
     Otherwise only determinism is asserted.
 - **I9.** One person is untouched.
+- **I10 (2 Oct 2026).** The pass-on: the household runs out at the later of the two run-outs; a run resumed from its
+  record equals the run from the start with the hand-over and the pass-on as two hooks, bit for bit; hooks that change
+  nothing, a record and a resume change nothing. I8 then holds up to the first run-out after the join.
 
 ### 9.2 Exact checks in a flat world
 
@@ -733,7 +785,9 @@ What an apart couple costs, per life and amount, compared with the same couple s
 
 - **A work bound, checked on every push (it does not depend on timing):** engine months per answer for an apart couple
   are no more than for the same couple stopping together. They are counted by the stop runner, as `evaluations` is
-  today.
+  today. With the pass-on (2 Oct 2026) one evaluation is at most `12·(2D − G) + 1` months (the resumed rest of the first
+  stopper's run, from the month the joiner's money ran out, which is counted in both) — still under the same couple's
+  `24D` — and exactly `12·(2D − G)` when neither runs out.
 - **A timing check (`speed.apart.slow.test.js`, nightly):** at 1,000 lives in Node, each answer step for an apart couple
   takes at most 1.10 × the same couple stopping together (the median of three runs).
 - **A's every-age step** for an apart couple is no slower than for the same couple stopping together. A4 (one person,
@@ -825,6 +879,23 @@ The packages are listed in order. **Each file belongs to one package only.** Cha
 - That is a separate piece of work, because it touches people who stop alone too.
 
 The generic case above (stopping next summer at 56) is touched by a few months at most, which whole years do not show.
+
+**Checked 1 Oct 2026** (HMRC pension schemes newsletter, April 2026, as reported by AJ Bell and Royal London): someone
+aged 55 or 56 on 6 April 2028 without a protected pension age who has already moved money into drawdown before that
+day may keep taking income from it. They may NOT crystallise anything new — no more money into drawdown, no tax-free
+cash, no UFPLS, no new annuity or final-salary pension — until 57. This is published guidance on the planned change,
+not yet seen in legislation; re-check before 7.0. For the model: a pension opened before 6 April 2028 stays open for
+the money already in drawdown, so `household.js` `firstOpenAge` (open at the stop, never closed again) is right for a
+plan that moves the whole pot into drawdown at the stop; the answer should add one line when a person's stop falls
+before 6 April 2028 at 55 or 56: "Move into drawdown what you will need before 57 by 5 April 2028: after that, nothing
+new can be taken until you are 57."
+
+**Where the line shows (built, 6.20.0) — an owner's decision left open.** It is one of the warnings of a couple who stop
+in different years (`apart.js` `apartWarnings`), so it shows only when the two stops differ. Someone aged 55 or 56 who
+stops now — one person, a couple stopping together, or "I've already stopped" with the partner stopping now — gets no
+line, although the rule applies to them and bites harder at 55. Adding it there changes today's words, which this
+work's identity rule forbids. Owner: keep it to couples apart (and say so), or ship it for everyone 55 or 56 on 6 April
+2028 as a deliberate, noted change in a release of its own.
 
 ---
 

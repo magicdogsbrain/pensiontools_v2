@@ -18,7 +18,7 @@ import { NEXT_C } from '../../../src/v7/rail/c.js';
 import { parse, format, href, screenName } from '../../../src/v7/router/routes.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { initialState } from '../../../src/v7/state/initial.js';
-import { currentKey, parsedDraft, SCHEMAS } from '../../../src/v7/state/select.js';
+import { currentKey, parsedDraft, SCHEMAS, SPEND_STEP, isSpendPath } from '../../../src/v7/state/select.js';
 import { A, ACTION_TYPES } from '../../../src/v7/state/actions.js';
 import { CARRY } from '../../../src/v7/state/carry.js';
 import { partsText, money, pot } from '../../../src/answers/shared/format.js';
@@ -477,6 +477,10 @@ describe('every generated state, across the three questions', () => {
 });
 
 describe('L7 — random walks that cross questions', () => {
+  // Found by CI's random walk on 2 Oct 2026 (seed -1339068766): from A's spend step with the spending right but a
+  // figure still missing from the numbers, "ask" opens the answer step (rule R3). The walk's model now knows the rule;
+  // this exact walk is kept as a fixed case.
+  const FOUND = [{ move: 'type', q: 'c', path: 'take', value: '60' }, { move: 'carry', from: 'c', to: 'a' }, { move: 'follow', n: 2 }, { move: 'ask', q: 'a' }, { move: 'follow', n: 0 }];
   const move = fc.oneof(
     fc.constantFrom(...ADDRESSES).map((address) => ({ move: 'open', address })),
     fc.nat(20).map((n) => ({ move: 'follow', n })),
@@ -502,7 +506,11 @@ describe('L7 — random walks that cross questions', () => {
           if (format(state.route) !== pile[pile.length - 1]) pile.push(format(state.route));
         } else if (m.move === 'type') state = reduce(state, set(m.q, m.path, m.value));
         else if (m.move === 'ask') {
-          const ok = parsedDraft(state, m.q).ok;
+          // Rule R3 (reduce.js DRAFT_ASK): on A's or B's spend step, a spending with nothing wrong opens the answer step,
+          // which then asks for anything else still missing — never a bounce back to the numbers step.
+          const parsed = parsedDraft(state, m.q);
+          const onSpend = SPEND_STEP[m.q] && state.route.screen === 'step' && state.route.q === m.q && state.route.step === 'spend';
+          const ok = parsed.ok || (onSpend && !Object.keys(parsed.errors).some(isSpendPath));
           state = reduce(state, { type: A.DRAFT_ASK, q: m.q });
           const there = href.step(m.q, 'answer');
           if (ok && pile[pile.length - 1] !== there) pile.push(there);
@@ -518,6 +526,6 @@ describe('L7 — random walks that cross questions', () => {
         expect(SCREENS).toContain(screenName(state.route));
         checkRail(state);
       }
-    }), { numRuns: 500 });
+    }), { numRuns: 500, examples: [[FOUND]] });
   });
 });

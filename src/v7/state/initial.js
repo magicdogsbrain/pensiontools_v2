@@ -22,6 +22,7 @@
 import { VERSION } from '../../constants.js';
 import { OPEN } from '../rail/questions.js';
 import { cleanSheet } from './budget.js';
+import { hasShape, stepsPath, cleanSteps, keptShapeExtras } from './shapeDraft.js';
 
 /** The questions whose draft and answer carry the saving-years fields (carriedFrom; detail, extending). */
 const SAVER = ['a', 'b'];
@@ -73,19 +74,28 @@ export const emptyAnswerFor = (q) => (SAVER.includes(q) ? emptySaverAnswer() : e
 
 const CARRIED = ['c', 'a', 'b'];
 
-/** What draftStore kept for one question, cleaned: only text or yes/no values, string lists, booleans. */
+/** What draftStore kept for one question, cleaned: only text or yes/no values (and the spending shape's list of steps), string lists, booleans. */
 export function keptDraft(kept, q) {
   const d = emptyDraftFor(q);
   const k = kept && typeof kept === 'object' && kept[q] && typeof kept[q] === 'object' ? kept[q] : null;
   if (!k) return d;
   if (k.values && typeof k.values === 'object') {
-    for (const [path, v] of Object.entries(k.values)) if (typeof v === 'string' || typeof v === 'boolean') d.values[path] = v;
+    for (const [path, v] of Object.entries(k.values)) {
+      if (typeof v === 'string' || typeof v === 'boolean') d.values[path] = v;
+      else if (hasShape(q) && path === stepsPath(q)) {
+        // the spending shape's later steps: one list of steps, each its boxes as typed (state/shapeDraft.js)
+        const steps = cleanSteps(q, v);
+        if (steps && steps.length) d.values[path] = steps;
+      }
+    }
   }
   if (Array.isArray(k.touched)) d.touched = k.touched.filter((p) => typeof p === 'string');
   d.asked = k.asked === true;
   if (Array.isArray(k.revealed)) d.revealed = k.revealed.filter((p) => typeof p === 'string');
   if ('carriedFrom' in d) d.carriedFrom = CARRIED.includes(k.carriedFrom) ? k.carriedFrom : null;
   if ('spendHow' in d) { d.spendHow = SPEND_HOW.includes(k.spendHow) ? k.spendHow : null; d.skipNoted = k.skipNoted === true; }
+  // the spending shape's Undo ("Put back my steps by age"), its line and the figure its steps were set against
+  Object.assign(d, keptShapeExtras(q, k));
   return d;
 }
 

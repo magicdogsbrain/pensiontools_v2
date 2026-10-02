@@ -14,6 +14,10 @@
  * differs there carries `byNode["20"]`, taken under Node 20 from the 6.19.0 answers as committed (2 Oct 2026). Each Node
  * is held to 6.19.0 on that Node, byte for byte.
  *
+ * The ONE change allowed since (owner, 2 Oct 2026): the 2028 drawdown note now shows for everyone it applies to, where in
+ * 6.19.0 nobody here had it. The cases that gain it are listed below (GAINS_2028, by index); for those the test takes that
+ * one warning (`drawdown-2028`) out and the rest must hash as 6.19.0 did. answers.flat.test.js holds who it names.
+ *
  * Delete one release after 6.20.0, with sameYear.v1/.
  */
 import { describe, it, expect } from 'vitest';
@@ -35,6 +39,12 @@ const hash = (r) => createHash('sha256').update(stamped(JSON.stringify(r))).dige
 const NODE = process.versions.node.split('.')[0];
 /** The hash 6.19.0 gave for a case on this Node (see the head of this file). */
 const wanted = (x) => (x.byNode && x.byNode[NODE]) || x.hash;
+/**
+ * The cases that gain the 2028 note (people of 54 or 55 today who first draw before 6 April 2028), by index — the same
+ * indices as answers.flat.json's first 171 cases, which are these. Nothing else of theirs may move.
+ */
+const GAINS_2028 = [24, 32, 38, 42, 43, 50, 58, 99, 102, 112, 116, 120, 121, 124, 138, 155, 157, 163];
+const without2028 = (r) => ({ ...r, warnings: r.warnings.filter((w) => w.id !== 'drawdown-2028') });
 
 describe('same-year couples and single people: today\'s answers, byte for byte', () => {
   it('the corpus is what it says: every question, couples and singles, nothing of the new questions answered', () => {
@@ -48,14 +58,19 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
   });
 
   for (const q of ['a', 'b', 'c']) {
-    it(`question ${q.toUpperCase()}: every case hashes as it did in 6.19.0`, () => {
+    it(`question ${q.toUpperCase()}: every case hashes as it did in 6.19.0, the 2028 note aside on the listed cases`, () => {
       const moved = [];
+      const gained = [];
       CASES.forEach((x, k) => {
         if (x.q !== q) return;
-        const got = hash(ANSWER[q](x.inputs, x.env));
+        const r = ANSWER[q](x.inputs, x.env);
+        const gains = (r.warnings || []).some((w) => w.id === 'drawdown-2028');
+        if (gains) gained.push(k);
+        const got = hash(gains ? without2028(r) : r);
         if (got !== wanted(x)) moved.push(`case ${k}: ${JSON.stringify(x.inputs)}`);
       });
       expect(moved).toEqual([]);
+      expect(gained).toEqual(GAINS_2028.filter((k) => CASES[k].q === q));
     }, 120_000);
   }
 });

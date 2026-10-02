@@ -26,6 +26,7 @@ describe('the actions', () => {
   it('every field of A\'s and B\'s lists can be set; one that is not on the list is refused', () => {
     for (const q of ['a', 'b']) {
       for (const f of SCHEMAS[q].fields) {
+        if (f.type === 'steps') continue;                                    // the spending shape's steps: shape/* (below)
         const v = f.type === 'yesNo' ? true : f.type === 'choice' ? f.options[0] : '1';
         expect(reduce(fresh(), set(q, f.path, v)).draft[q].values[f.path]).toBe(v);
       }
@@ -61,7 +62,7 @@ describe('the actions', () => {
 const typed = fc.oneof(fc.constantFrom('', '250,000', '£1', 'abc', '45', '50', '58', '60', '67', '70', '0', '700', '2,000', '0.5%', 'couple', 'single', 'amount', 'level', 'age', 'ages', 'moderate'), fc.boolean());
 const key = fc.constantFrom('K1', 'K2', null, 'NOW');
 const question = fc.constantFrom(...Q);
-const fieldOf = question.chain((q) => fc.constantFrom(...SCHEMAS[q].fields.map((f) => f.path)).map((path) => [q, path]));
+const fieldOf = question.chain((q) => fc.constantFrom(...SCHEMAS[q].fields.filter((f) => f.type !== 'steps').map((f) => f.path)).map((path) => [q, path]));
 const anyRoute = fc.constantFrom(route('front'), route('step', 'a', 'numbers'), route('step', 'a', 'spend'), route('step', 'a', 'answer'), route('step', 'a', 'ages'),
   route('step', 'a', 'keep'), route('step', 'b', 'spend'), route('step', 'b', 'answer'), route('step', 'b', 'choices'), route('step', 'c', 'answer'), route('step', 'c', 'keep'),
   route('soon', 'a'), route('soon', 'd'));
@@ -110,7 +111,22 @@ const anyAction = fc.oneof(
   question.map((q) => ({ type: A.KEEP_SENT, q, name: 'Stop at 60', createdAt: '2026-09-30T08:00:00.000Z' })),
   fc.tuple(question, fc.constantFrom('storage', 'notReady')).map(([q, problem]) => ({ type: A.KEEP_FAILED, q, problem })),
   fc.tuple(question, fc.constantFrom('taken', 'waiting', 'gone', 'declined', 'notMade', 'unknown'), fc.constantFrom(null, 'Stop at 60 (2)'))
-    .map(([q, outcome, name]) => ({ type: A.KEEP_BACK, q, outcome, ...(name ? { name } : {}) }))
+    .map(([q, outcome, name]) => ({ type: A.KEEP_BACK, q, outcome, ...(name ? { name } : {}) })),
+  // the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's more detail; a step index past the
+  // end is a press on a step already gone, and changes nothing
+  fc.tuple(question, fc.integer({ min: 0, max: 3 }), fc.constantFrom('fromAge', 'amount', 'fallsPct', 'then'), fc.constantFrom('', '75', '85', '2,000', '85', '1', '0.25', 'abc'))
+    .map(([q, i, f, value]) => {
+      const field = f === 'amount' ? (q === 'c' ? 'share' : 'perMonth') : f;
+      return { type: A.SHAPE_STEP, q, i, field, value: field === 'then' ? ['level', 'falls', 'glides'][value.length % 3] : value };
+    }),
+  fc.tuple(question, fc.integer({ min: 0, max: 3 }), fc.constantFrom('fromAge', 'fallsPct', 'then')).map(([q, i, field]) => ({ type: A.SHAPE_TOUCH, q, i, field })),
+  question.map((q) => ({ type: A.SHAPE_ADD, q })),
+  fc.tuple(question, fc.integer({ min: 0, max: 3 })).map(([q, i]) => ({ type: A.SHAPE_REMOVE, q, i })),
+  question.map((q) => ({ type: A.SHAPE_SORT, q })),
+  question.map((q) => ({ type: A.SHAPE_SUGGEST, q })),
+  fc.tuple(question, fc.constantFrom('level', 'slowly')).map(([q, id]) => ({ type: A.SHAPE_PRESET, q, id })),
+  question.map((q) => ({ type: A.SHAPE_UNDO, q })),
+  question.map((q) => ({ type: A.SHAPE_RESCALE, q }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

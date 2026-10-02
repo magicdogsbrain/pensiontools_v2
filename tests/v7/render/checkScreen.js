@@ -32,6 +32,10 @@
  * fields of any input list — the spending choice, the budget sheet's boxes, the plan's name. extraBoxes(state) says
  * which a state draws and what each holds; R7 checks them against the state as it checks the fields.
  *
+ * The spending shape (research/v7/spending-shape.md 4): its fields (group 'shape') are never boxes of their own — the
+ * shape's block draws them, on A's and B's spend step, under C's more detail, and on a short form whose problem is in
+ * them; shapeBoxes(state) says which boxes the block draws, open, and what each holds (the screen's rule, written again).
+ *
  * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1–3.2): whether a field applies
  * is the one exported rule (validate.js applies: `when` lists, `whenNot`); which options a choice offers, whether a
  * choice is asked at all, and whether the pay line is open are the screen's rules, written again here (optionsDrawn,
@@ -48,6 +52,7 @@ import { parse, format, screenName } from '../../../src/v7/router/routes.js';
 import { BUILT } from '../../../src/v7/rail/questions.js';
 import { railFor } from '../../../src/v7/rail/index.js';
 import { isRetired, budgetView, keepView, askedAboutValues } from '../../../src/v7/state/select.js';
+import { isShapePath, typedShape, stepsOf as shapeStepsOf, SHAPE_BASE, SHAPE_UNIT } from '../../../src/v7/state/shapeDraft.js';
 import { BANNED, QUESTION_EXEMPT } from '../../../src/v7/copy/banned.js';
 import { ADVICE_SHORT, ADVICE_FULL } from '../../../src/v7/copy/common.js';
 import { A } from '../../../src/v7/copy/a.js';
@@ -228,7 +233,8 @@ export function shownValues(state, q = 'c') {
 export function moreIsOpen(state, q = 'c') {
   const draft = state.draft[q].values;
   const more = moreOf(q);
-  return state.ui.open.includes('more') || more.some((p) => !blank(draft[p])) || more.includes(state.route.focus);
+  // C's spending shape sits under more detail: a shape typed keeps it open
+  return state.ui.open.includes('more') || more.some((p) => !blank(draft[p])) || more.includes(state.route.focus) || (q === 'c' && typedShape('c', draft));
 }
 
 /** The boxes that are not a field's own: test id → the path they write. */
@@ -268,19 +274,19 @@ export function expectedInputs(state) {
   const shown = live.values;
   let fields;
   if (name === 'c.numbers') {
-    fields = SCHEMA_C.fields.filter((f) => f.path !== 'household' && f.group !== 'try' && drawnField(state, 'c', f, live) && (f.group !== 'more' || moreIsOpen(state)));
+    fields = SCHEMA_C.fields.filter((f) => f.path !== 'household' && f.group !== 'try' && f.group !== 'shape' && drawnField(state, 'c', f, live) && (f.group !== 'more' || moreIsOpen(state)));
   } else {
     const wrong = Object.keys(parsed.errors).filter((p) => p !== 'take');
     const a = state.answers.c;
     const usable = !!a.result && a.result.status !== 'invalid' && a.status !== 'failed';
     if (wrong.length || (!parsed.ok && !usable)) {
       const need = new Set(['you.pot', 'you.age', ...Object.keys(parsed.errors)]);
-      fields = SCHEMA_C.fields.filter((f) => need.has(f.path));
+      fields = SCHEMA_C.fields.filter((f) => need.has(f.path) && f.group !== 'shape');
     } else if (usable) {
       fields = SCHEMA_C.fields.filter((f) => f.path === 'take');
     } else fields = [];
   }
-  return [...idsOf('c', fields, shown), ...(name === 'c.answer' ? extraBoxes(state).keys() : [])];
+  return [...idsOf('c', fields, shown), ...extraBoxes(state).keys()].filter((id, i, all) => all.indexOf(id) === i);
 }
 
 function expectedSaverInputs(state, q, name) {
@@ -294,7 +300,7 @@ function expectedSaverInputs(state, q, name) {
   // The numbers step holds every field that applies but the spending; the spend step, the spending and its own boxes.
   if (name === `${q}.numbers`) {
     const open = moreIsOpen(state, q);
-    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
+    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && f.group !== 'shape' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
   }
   if (name === `${q}.spend`) return [...idsOf(q, schema.fields.filter((f) => f.group === 'spend' && applies(f)), shown), ...extra];
   if (name === `${q}.keep`) return extra;
@@ -304,7 +310,7 @@ function expectedSaverInputs(state, q, name) {
     // detail only), and every field with a problem
     const top = SHORT[q];
     const inside = (f) => f.group !== 'more' && Object.keys(f.when || {}).some((p) => top.includes(p));
-    return idsOf(q, schema.fields.filter((f) => applies(f) && choiceDrawn(q, f, shown) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])), shown);
+    return [...idsOf(q, schema.fields.filter((f) => f.group !== 'shape' && applies(f) && choiceDrawn(q, f, shown) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])), shown), ...extra];
   }
   // part-time work under "Try a change" is yours: not offered once you have stopped and the answer is your partner's
   if (kind === 'answer' && name === 'a.answer') return [...(askedAboutValues(live.values) === 'partner' ? [] : ['a.try.partTime.yearly']), ...extra];
@@ -339,10 +345,56 @@ export function extraBoxes(state) {
       for (const o of v.oneOffs) for (const f of ['label', 'amount', 'year', 'everyYears']) out.set(`budget.${o.id}.${f}`, { kind: 'text', value: o[f] });
     }
   }
+  if (shapeDrawnOpen(state, q, name)) shapeBoxes(state, q, out);
   if (name === `${q}.answer` || name === `${q}.keep`) {
     const k = keepView(state, q);
     if (k.can) out.set(`${q}.keep.name`, { kind: 'text', value: k.name });
   }
+  return out;
+}
+
+/** C's answer step draws its short form (the screen's rule, written again). */
+function cShort(state) {
+  const { parsed } = shownValues(state, 'c');
+  const a = state.answers.c;
+  const usable = !!a.result && a.result.status !== 'invalid' && a.status !== 'failed';
+  return Object.keys(parsed.errors).filter((p) => p !== 'take').length > 0 || (!parsed.ok && !usable);
+}
+
+/**
+ * Whether the spending shape's block is drawn OPEN (its boxes on the page): on A's and B's spend step and under C's more
+ * detail once "Change it with age" has opened it; on a short form of A, B or C whose problem is in the shape, always.
+ */
+export function shapeDrawnOpen(state, q, name = screenName(state.route)) {
+  if (!SHAPE_BASE[q] || !state.draft[q] || state.route.screen !== 'step' || state.route.q !== q) return false;
+  if (SAVER.includes(q) && isRetired(state, q)) return false;
+  const opened = state.ui.open.includes('shape');
+  if (name === `${q}.spend` && SAVER.includes(q)) return opened;
+  if (name === 'c.numbers') return opened && moreIsOpen(state, 'c');
+  const answerStep = name === `${q}.answer` || (q === 'a' && name === 'a.ages') || (q === 'b' && name === 'b.choices');
+  if (!answerStep) return false;
+  const { parsed } = shownValues(state, q);
+  const inShape = Object.keys(parsed.errors).some((p) => isShapePath(q, p));
+  if (!inShape) return false;
+  return q === 'c' ? cShort(state) : saverKind(state, q) === 'short';
+}
+
+/** The boxes of the shape's block, open: the first amount's "then" (and its fall), and each later step's four. */
+export function shapeBoxes(state, q, out = new Map()) {
+  const base = SHAPE_BASE[q];
+  const unit = SHAPE_UNIT[q];
+  const v = state.draft[q].values;
+  const thenOf = (t) => (t === 'falls' || t === 'glides' ? t : 'level');
+  const textOf = (t) => (typeof t === 'string' ? t : '');
+  const then = thenOf(v[`${base}.then`]);
+  out.set(`${q}.${base}.then`, { kind: 'select', value: then });
+  if (then === 'falls') out.set(`${q}.${base}.fallsPct`, { kind: 'text', value: textOf(v[`${base}.fallsPct`]) });
+  shapeStepsOf(q, v).forEach((st, i) => {
+    out.set(`${q}.${base}.steps.${i}.fromAge`, { kind: 'text', value: st.fromAge });
+    out.set(`${q}.${base}.steps.${i}.${unit}`, { kind: 'text', value: st[unit] });
+    out.set(`${q}.${base}.steps.${i}.then`, { kind: 'select', value: st.then });
+    if (st.then === 'falls') out.set(`${q}.${base}.steps.${i}.fallsPct`, { kind: 'text', value: st.fallsPct });
+  });
   return out;
 }
 
@@ -570,6 +622,7 @@ export function checkScreen(root, state) {
     for (const [path, v] of Object.entries(back)) {
       if (path === 'household') { if (name === `${fq}.numbers` && v !== (shown.household || 'single')) say('R8', `household reads back as ${v}`); continue; }
       const f = byPath.get(path);
+      if (f.group === 'shape') continue;                       // the shape's boxes are checked as the block's own (shapeBoxes)
       const numberBox = ['money', 'age', 'percent', 'count'].includes(f.type);
       // (a yes/no or a choice with nothing chosen ticks nothing, so it is never read back)
       const want = blank(draft[path]) ? (numberBox ? '' : shown[path]) : draft[path];

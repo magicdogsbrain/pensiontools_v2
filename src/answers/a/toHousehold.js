@@ -22,6 +22,8 @@
  *   charge                    → household.chargesPct, percent a year as typed (6.19.0: the one charge, saving and drawing)
  *   partTime.*                → people[0].otherIncome = [{ kind: 'work', amountPerYear: yearly, fromAge: stop, toAge: stop + years }]
  *   spend.*                   → household.spending: { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
+ *   spend.then / fallsPct / steps → household.shape (spending-shape.md 3), only when it changes with age: { unit 'perMonth',
+ *                               first: the amount (or the level's) a month, start, steps } — ages yours
  *   risk                      → portfolio { kind: 'risk', level }   (env.mix, tests only: an exact mix instead)
  *   endAge                    → planToAge
  *
@@ -39,7 +41,7 @@
  */
 import { expandHousehold } from '../shared/household.js';
 import { fullStatePensionYearly } from '../shared/rules.js';
-import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf } from '../shared/schemaParts.js';
+import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf, shapeOfInputs, spendLevelAMonth } from '../shared/schemaParts.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -118,6 +120,10 @@ export function toHousehold(inputs, env, stopAge = namedStopAge(inputs)) {
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };
+  // what is spent changing with age (spending-shape.md 3): the steps by your age, the first amount the figure spent
+  const first = spend.kind === 'level' ? spendLevelAMonth(inputs.household, spend.level) : spend.amount;
+  const shape = shapeOfInputs(inputs, 'spend', first);
+  if (shape) short.shape = shape;
   const { household, assumed } = expandHousehold(short, env.today);
   // The household model carries what the saving years need (step 4 brief 4.10). Kept here too, so the mapping says
   // the same thing whatever version of expandHousehold reads it.

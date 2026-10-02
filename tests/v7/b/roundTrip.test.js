@@ -42,7 +42,7 @@ function stateWith(q, values, step = 'numbers') {
 }
 
 function roundTripSuite(q, schema, read) {
-  const FIELDS = schema.fields;
+  const FIELDS = schema.fields.filter((f) => f.group !== 'shape');   // the spending shape's block has its own round trip (screens/spendShape.test.js)
   const draftValues = fc.record(Object.fromEntries(FIELDS.map((f) => [f.path, fc.option(typed(f), { freq: 4, nil: undefined })])))
     .map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
   // The one rule (validate.js applies: a `when` list is "one of", `whenNot` hides), over what is typed with each plain

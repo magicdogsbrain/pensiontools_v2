@@ -12,7 +12,7 @@
  *
  * The sheet's boxes carry the test ids "budget.<line id>.<field>" (they are not fields of any question's input list).
  */
-import { budgetView, spendView, budgetAgainstC, newLineId, newOneOffId } from '../state/select.js';
+import { budgetView, spendView, budgetAgainstC, newLineId, newOneOffId, typedShape } from '../state/select.js';
 import { money } from '../../answers/shared/format.js';
 import { href } from '../router/routes.js';
 import { Button, LinkButton } from './Button.jsx';
@@ -200,16 +200,19 @@ export function SpendLine({ state, q, dispatch }) {
   const A = BUDGET.answer;
   const amount = money(v.figure);
   const toSheet = () => dispatch({ type: 'spend/how', q, how: 'lines' });
+  // with steps by age the figure is where the spending begins, not all of it (spending-shape.md 7.2 spendLine.shaped): a
+  // stop past a step starts on the step, so the line never names the figure alone
+  const shaped = !!state.draft[q] && typedShape(q, state.draft[q].values);
   let line;
   let action;
   if (!v.budget) {
-    line = v.kind === 'level' ? fill(A.noBudgetLevel, { amount, level: W.levelWord[v.level] }) : fill(A.noBudget, { amount });
+    line = v.kind === 'level' ? fill(shaped ? A.noBudgetLevelShaped : A.noBudgetLevel, { amount, level: W.levelWord[v.level] }) : fill(shaped ? A.noBudgetShaped : A.noBudget, { amount });
     action = <LinkButton testid={`${q}.spend.workItOut`} kind="quiet" href={href.step(q, 'spend')} onClick={toSheet}>{A.workItOut}</LinkButton>;
   } else if (v.budget.differs) {
     line = fill(BUDGET.spend.budgetNow, { amount: money(v.budget.total), used: amount });
     action = v.canUse && <Button testid={`${q}.spend.use`} onClick={() => dispatch({ type: 'budget/use', q })}>{fill(BUDGET.spend.use, { amount: money(v.budget.total) })}</Button>;
   } else {
-    line = fill(A.fromBudget, { amount });
+    line = fill(shaped ? A.fromBudgetShaped : A.fromBudget, { amount });
     action = <LinkButton testid={`${q}.spend.see`} kind="quiet" href={href.step(q, 'spend')} onClick={toSheet}>{A.changeBudget}</LinkButton>;
   }
   return (

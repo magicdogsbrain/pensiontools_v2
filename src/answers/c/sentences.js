@@ -16,6 +16,7 @@ import { money, outOfTen, partsText, get, lastedText } from '../shared/format.js
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
+import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -177,8 +178,8 @@ function madeOfLines(result, facts) {
       if (phases.length > 1) lines.push(S('c.madeOf.none', [...ageWords(result, facts, i + 1, 'Until '), ': nothing yet.']));
     } else if (!hasIncome) {
       if (phases.length === 1) lines.push(S('c.madeOf.pots', ['All of it comes from ', from, '.']));
-      else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));
-      else lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i, facts.couple ? 'From when ' : 'From '), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
+      else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ...(ph.shapeMoves ? [' a month', firstYear(ph), ', all from '] : [' a month, all from ']), from, '.']));
+      else lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i, facts.couple ? 'From when ' : 'From '), firstYear(ph), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
     } else if (i === 0) {
       const items = [];
       if (ph.statePension > 0) items.push(['Your ', spWord, ' (', M(at + '.shown.statePension'), ' a month)']);
@@ -186,6 +187,9 @@ function madeOfLines(result, facts) {
       if (potsPart) items.push(potsPart);
       const parts = [];
       items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
+      // (a phase the shape moves inside: "In the first year, your State Pension …")
+      if (ph.shapeMoves && typeof parts[0] === 'string') parts[0] = 'In the first year, ' + parts[0].charAt(0).toLowerCase() + parts[0].slice(1);
+      else if (ph.shapeMoves) parts.unshift('In the first year: ');
       lines.push(S('c.madeOf.paid', [...parts, '.']));
     } else {
       const items = [];
@@ -194,7 +198,7 @@ function madeOfLines(result, facts) {
       if (potsPart) items.push(potsPart);
       const parts = [];
       items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
-      const head = facts.couple ? [...ageWords(result, facts, i, 'From when '), ': '] : ['From ', A(at + '.fromAge'), ': '];
+      const head = facts.couple ? [...ageWords(result, facts, i, 'From when '), firstYear(ph), ': '] : ['From ', A(at + '.fromAge'), firstYear(ph), ': '];
       lines.push(S('c.madeOf.mixed', [...head, ...parts, '.']));
     }
     if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
@@ -203,6 +207,9 @@ function madeOfLines(result, facts) {
 }
 
 const yearsWord = (years) => (years === 1 ? ' year' : ' years');
+
+/** " (in its first year)": a phase the spending shape moves inside shows its first year's figures (spending-shape.md 7.2). */
+const firstYear = (ph) => (ph && ph.shapeMoves ? ' (in its first year)' : '');
 
 /**
  * A stretch of years before the second stop (couples-different-years.md 2.4): what the money of the one who has stopped
@@ -427,7 +434,11 @@ export function sentencesFor(result, facts) {
   const bad = S('c.bad', badParts);
   const range = S('c.range', ['You could take: careful ', M('monthly.careful'), ', middling ', M('monthly.middling'), ', good ', M('monthly.good'), ' a month.']);
 
-  const sentences = { head, sub, line, bad, range, madeOf: madeOfLines(result, facts) };
+  // what you could spend changing with age (spending-shape.md 6.2): the figure is the start; the next sentence the steps
+  const shaped = result.shapeAt && result.monthly.careful > 0 && shapeMoves(result.shapeAt.careful);
+  const sentences = shaped
+    ? { head, sub, shape: atTheStart('c.shape', result.shapeAt.careful, 'shapeAt.careful'), line, bad, range, madeOf: madeOfLines(result, facts) }
+    : { head, sub, line, bad, range, madeOf: madeOfLines(result, facts) };
 
   if (result.take) {
     const t = result.take;
@@ -676,9 +687,9 @@ export function warningsFor(result, facts) {
         F(money(RULES.annualAllowance)), ' (less for the highest earners). ', M(`payIn.byPerson.${k}.total`), ' a month is more than that.']);
     }
   });
-  // couples apart: a bad case that leans on the pay of the one still working, and money moved into drawdown before
-  // 6 April 2028 (shared/apart.js, the same words in C, A and B)
-  for (const w of apartWarnings(result, { drawdown: (facts.apartCtx && facts.apartCtx.drawdown) || [] })) warn(w.id, w.severity, w.parts);
+  // couples apart: a bad case that leans on the pay of the one still working; and, for everyone it applies to, money moved
+  // into drawdown before 6 April 2028 (shared/apart.js, the same words in C, A and B)
+  for (const w of apartWarnings(result, { drawdown: facts.drawdown2028 || (facts.apartCtx && facts.apartCtx.drawdown) || [] })) warn(w.id, w.severity, w.parts);
   if (facts.life && facts.partnerRetired) {
     warn('partner-stops-with-you', 'note', ['Your partner is past their State Pension age. These figures leave their pot alone until the money starts when you are ', A('phases.0.ages.you.from'),
       ', and do not count anything they take before then.']);
@@ -690,5 +701,10 @@ export function warningsFor(result, facts) {
   if (facts.people.some((p) => p.sp && p.spDefault)) warn('state-pension-assumed', 'note', ['This assumes the full State Pension. If yours is lower, so is the figure.']);
   if (facts.people.some((p) => p.pensionOverLimit)) warn('tax-free-limit', 'note', ['The tax-free part of a pension is limited to ', F(money(RULES.taxFreeLimit)), ' in total. That limit is included.']);
   if (facts.anyPots && facts.totalPots < RULES.smallPot) warn('small-pot', 'note', ['With a pot this size, many people take it as one or a few lump sums instead of a monthly income.']);
+  // what you could spend changing with age (spending-shape.md 7.4): the incomes you get anyway pay more than the shape
+  for (const w of shapeWarnings(result, { couple: c })) warn(w.id, w.severity, w.parts);
   return out;
 }
+
+/** Whether a shape's list says more than its start: a later step, or a start that falls or moves evenly. */
+const shapeMoves = (list) => Array.isArray(list) && (list.length > 1 || (list[0] && list[0].then !== 'level'));

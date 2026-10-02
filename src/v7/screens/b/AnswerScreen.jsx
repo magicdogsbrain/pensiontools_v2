@@ -7,7 +7,7 @@
  * could be by the stop age, the whole-life line, the ways to make it fit (not when on course), what was assumed; try a
  * change; what next. Computes nothing.
  */
-import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel } from '../../components/index.js';
+import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel, ShapeAnswer } from '../../components/index.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
@@ -47,6 +47,8 @@ function Answer({ state, dispatch, frame }) {
   const sameAsLine = (x) => !!(x && s.line && x.text === s.line.text);
   const onCourse = result.onCourse === true;
   const payIn = !onCourse && s.payInHead && s.payInLine && result.payIn && isNum(result.payIn.needed);
+  // spending that changes with age (spending-shape.md 7.2): said once, after the first headline's sentence that names the spending
+  const shapeLine = s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="b.answer.shape" />;
   // The pay-in is B's answer (one test everywhere): when short, it is the one headline, and the number — a guide, the
   // pot that with exactly that at the stop pays the spending in 9 futures out of 10 — follows in a smaller block of its
   // own, never a second headline card, with the sentence that says why the two are not to be added up (the reviewers'
@@ -71,6 +73,7 @@ function Answer({ state, dispatch, frame }) {
           <Sentence s={s.sub} source={result} class="figure-sub" />
         </div>
         <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? 'number.careful' : undefined} />
+        {shapeLine}
         <Sentence s={s.bad} source={result} class="bad" />
         {hasNumber && s.guide && <Sentence s={s.guide} source={result} class="guide-why" data-testid="b.guide.why" />}
         {s.outside && <Sentence s={s.outside} source={result} class="outside" />}
@@ -85,6 +88,7 @@ function Answer({ state, dispatch, frame }) {
         <Sentence s={s.payInSub} source={result} class="figure-sub" />
       </div>
       <Sentence s={s.payInLine} source={result} class="line" data-sentence="payIn.needed" />
+      {shapeLine}
       <Sentence s={s.payInBad} source={result} class="bad" />
       <p class="advice">{ADVICE_SHORT}</p>
       <Warnings result={result} />
@@ -104,6 +108,7 @@ function Answer({ state, dispatch, frame }) {
         {!onCourse && <Levers result={result} dispatch={dispatch} />}
         {(result.assumed || []).length > 0 && <Assumed q="b" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>
+      <ShapeAnswer state={state} q="b" dispatch={dispatch} />
       <SpendLine state={state} q="b" dispatch={dispatch} />
       <SaverTryAChange q="b" state={state} form={form} result={result} dispatch={dispatch} />
       <WhatNext result={result} dispatch={dispatch} partner={aboutPartner(state, 'b', result)} />
@@ -117,7 +122,7 @@ export function AnswerScreen(state, dispatch) {
   if (isRetired(state, 'b')) return { question: 'b', rail: true, full: false, view: 'retired', content: <Retired q="b" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'b');
   let body;
-  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} />;
+  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} state={state} />;
   else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else body = <Answer state={state} dispatch={dispatch} frame={frame} />;

@@ -11,8 +11,10 @@
  *   - the keyboard: the choice, the sheet's boxes (Enter in one never asks), the box, Enter asks;
  *   - no figure in any address.
  */
-import { test, expect, v7, waitsFor, NEEDS, TEST, FINAL_ENV } from './helpers/app.js';
+import { test, expect, v7, waitsFor, NEEDS, TEST, FINAL_ENV, axeProblems } from './helpers/app.js';
 import { BUDGET } from '../src/v7/copy/budget.js';
+import { yearFigures } from '../src/v7/state/shapeModel.js';
+import { SHAPE } from '../src/v7/copy/shape.js';
 
 const fill = (t, v) => t.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
 const lineId = (page, label) => page.evaluate((l) => window.__pt.getState().budget.lines.find((x) => x.label === l).id, label);
@@ -157,5 +159,117 @@ test.describe('the budget step', () => {
     await page.keyboard.press('Enter');
     await app.at('a.answer');
     expect(new URL(page.url()).origin).toBe(TEST);
+  });
+});
+
+/*
+ * The spending shape on the spend step (research/v7/spending-shape.md 9.7; the owner, 2 Oct 2026: "We MUST offer as many
+ * steps and tapers as V6! … We must have Gogo, goslow and nogo years."), on the test build, at every width this file runs
+ * at — the screen checks (no sideways scroll, every control 44 pixels on a phone, checkScreen, the page's own looking
+ * over) after every step:
+ *   - closed it is one line; "Change it with age" opens it;
+ *   - "Suggest go-go, go-slow and no-go years" fills 75 and 85, then Undo;
+ *   - three steps added by the keyboard alone, each "then" (stays the same, falls by …% a year, moves evenly — never on
+ *     the last), one removed (the keyboard goes on to the next step);
+ *   - the picture's bars are the model's figures to the pound; "Show each year" opens the table;
+ *   - the answer is the engine's for the shape as typed.
+ */
+
+test.describe('the spending shape on the spend step', () => {
+  test('A: open, suggest and undo; three steps by keyboard; each "then"; remove; the picture and every year; the answer', async ({ page }) => {
+    waitsFor(...NEEDS.a);
+    test.setTimeout(240_000);
+    const app = v7(page, 'test', 'a');
+    const state = () => page.evaluate(() => window.__pt.getState().draft.a);
+
+    await app.step('the numbers, then the figure; the shape closed: one line', async () => {
+      await app.open('#/a/numbers');
+      await app.ready();
+      await app.fill({ 'you.age': '55', 'you.pot': '400000', 'stop.age': '62' });
+      await app.toSpend('a');
+      await app.set('spend.amount', '3000');
+      await expect(app.id('a.shape.summary')).toHaveText(SHAPE.closed.level);
+      await expect(app.id('a.shape.open')).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    await app.step('"Change it with age", then "Suggest go-go, go-slow and no-go years": 75 and 85, with the line and Undo', async () => {
+      await app.id('a.shape.open').focus();
+      await page.keyboard.press('Enter');
+      await expect(app.id('a.shape.open')).toHaveAttribute('aria-expanded', 'true');
+      await app.id('a.shape.suggest').focus();
+      await page.keyboard.press('Enter');
+      await expect(app.id('a.spend.steps.0.fromAge')).toHaveValue('75');
+      await expect(app.id('a.spend.steps.0.perMonth')).toHaveValue('2,550');
+      await expect(app.id('a.spend.steps.1.fromAge')).toHaveValue('85');
+      await expect(app.id('a.spend.steps.1.perMonth')).toHaveValue('2,100');
+      await expect(app.id('a.shape.note')).toContainText('Filled in: 15% less from 75 and 30% less from 85.');
+      expect(await axeProblems(page), 'accessibility of the open block (WCAG 2.1 A and AA)').toEqual([]);
+    });
+
+    await app.step('Undo: back as it was', async () => {
+      await app.id('a.shape.undo').focus();
+      await page.keyboard.press('Enter');
+      await expect(app.id('a.spend.steps.0.fromAge')).toHaveCount(0);
+      await expect(app.id('a.shape.note')).toHaveText(SHAPE.undone);
+    });
+
+    await app.step('three steps by the keyboard alone: each new age box takes the keyboard', async () => {
+      for (const [age, amount] of [['70', '2800'], ['78', '2400'], ['86', '2000']]) {
+        await app.id('a.shape.add').focus();
+        await page.keyboard.press('Enter');
+        const i = (await state()).values['spend.steps'].length - 1;
+        await expect(app.id(`a.spend.steps.${i}.fromAge`)).toBeFocused();
+        await page.keyboard.press('ControlOrMeta+a');
+        await page.keyboard.type(age);
+        await page.keyboard.press('Tab');
+        await expect(app.id(`a.spend.steps.${i}.perMonth`)).toBeFocused();
+        await page.keyboard.press('ControlOrMeta+a');
+        await page.keyboard.type(amount);
+        await page.keyboard.press('Tab');
+        await expect(app.id(`a.spend.steps.${i}.then`)).toBeFocused();
+      }
+      expect((await state()).values['spend.steps'].map((x) => x.fromAge)).toEqual(['70', '78', '86']);
+    });
+
+    await app.step('each "then": falls by 2% a year; moves evenly to the next — never offered on the last', async () => {
+      await app.id('a.spend.steps.0.then').selectOption('falls');
+      await app.id('a.spend.steps.0.fallsPct').fill('2');
+      await app.id('a.spend.steps.1.then').selectOption('glides');
+      await expect(app.id('a.spend.steps.2.then').locator('option')).toHaveCount(2);
+      await expect(app.id('a.spend.steps.2.then').locator('option[value="glides"]')).toHaveCount(0);
+    });
+
+    await app.step('remove the middle step: the keyboard goes on to the next step\'s age', async () => {
+      await app.id('a.shape.remove.1').focus();
+      await page.keyboard.press('Enter');
+      await expect(app.id('a.spend.steps.1.fromAge')).toBeFocused();
+      await expect(app.id('a.spend.steps.1.fromAge')).toHaveValue('86');
+    });
+
+    await app.step('the picture is the model\'s, to the pound; "Show each year" opens every year', async () => {
+      const bars = await page.$$eval('[data-testid="a.shape.chart"] g.year', (gs) => gs.map((g) => [Number(g.getAttribute('data-age')), Number(g.getAttribute('data-figure'))]));
+      const model = { unit: 'perMonth', start: { then: 'level' }, steps: [
+        { fromAge: 70, perMonth: 2800, then: 'falls', fallsPct: 2 }, { fromAge: 86, perMonth: 2000, then: 'level' }] };
+      const want = yearFigures(model, 3000, 62, 33);
+      expect(bars.map(([age]) => age)).toEqual(want.map((_, y) => 62 + y));
+      bars.forEach(([, v], y) => expect(Math.abs(v - want[y])).toBeLessThan(0.005));
+      await app.id('a.shape.years').focus();
+      await page.keyboard.press('Enter');
+      await expect(page.locator('table[data-table="shape"] tbody tr')).toHaveCount(33);
+      expect(await axeProblems(page), 'accessibility with steps, falls, moves and the table (WCAG 2.1 A and AA)').toEqual([]);
+    });
+
+    let answer = null;
+    await app.step('the answer is the engine\'s for the shape as typed', async () => {
+      app.typed['spend.steps'] = [{ fromAge: '70', perMonth: '2800', then: 'falls', fallsPct: '2' }, { fromAge: '86', perMonth: '2000', then: 'level', fallsPct: '' }];
+      await app.click('a.action.show');
+      await app.at('a.answer');
+      await app.ready(120_000);
+      answer = app.engine({ ...FINAL_ENV, detail: 'chart' });
+      expect(answer.spendShape.map((x) => x.fromAge)).toEqual([62, 70, 86]);
+      await expect(app.id('a.shape.answer')).toBeVisible();
+      expect(await page.locator('[data-testid="a.shape.answer"] g.year').count()).toBe(answer.byYear.length);
+      expect(await axeProblems(page), 'accessibility of the answer with its picture (WCAG 2.1 A and AA)').toEqual([]);
+    }, { answer: () => answer });
   });
 });

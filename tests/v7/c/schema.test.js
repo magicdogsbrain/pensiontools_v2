@@ -14,7 +14,7 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS } from '../../../src/services/Charges.js';
 import { moreFields, partnerStopFields, untilBothStopField, taxFreeFields, payingInFields, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 
-const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent'];
+const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'steps'];   // steps: the spending shape's later steps (spending-shape.md 3.3)
 const byPath = new Map(SCHEMA_C.fields.map((f) => [f.path, f]));
 const isNumber = (f) => f.type === 'money' || f.type === 'age' || f.type === 'percent';
 
@@ -25,7 +25,7 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'unit'];   // unit: a steps field's (perMonth | share)
     for (const f of SCHEMA_C.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -72,7 +72,8 @@ describe('SCHEMA_C — the declaration', () => {
     // checked inputs as they were before the question existed (C's pinned answers stay byte for byte; step 4 brief J8)
     // …and the questions of a couple who stop in different years (couples-different-years.md 3.1): not answered is today's
     // meaning, the partner starting with you, nothing more said
-    const NO_DEFAULT = ['you.payIn.has', 'partner.payIn.has', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken'];
+    // …and the spending shape's (spending-shape.md 3.2): not answered is the same every year, today's inputs key for key
+    const NO_DEFAULT = ['you.payIn.has', 'partner.payIn.has', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'shape.then', 'shape.steps'];
     for (const f of SCHEMA_C.fields) {
       if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
       expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
@@ -99,7 +100,7 @@ describe('SCHEMA_C — the declaration', () => {
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
     expect(SCHEMA_C.rules.map((r) => r.id)).toEqual(['start-not-before-now', 'start-not-before-access', 'pay-in-past-75', 'pay-in-past-75-partner', 'end-after-start', 'pay-in-over-limit',
-      'partner-stop-not-before-now']);
+      'partner-stop-not-before-now', 'shape-steps']);
     for (const r of SCHEMA_C.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
       for (const p of r.fields) expect(byPath.has(p), `${r.id}: ${p}`).toBe(true);

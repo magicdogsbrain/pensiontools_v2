@@ -49,6 +49,11 @@ import { spendLevelAMonth } from '../../answers/shared/schemaParts.js';
 import { HEADINGS, checkSheet, hasBudget, guideLevels, whereAgainstLevels, figureAgainstBudget, carefulAgainstBudget, nextLineId, nextOneOffId } from '../../answers/keep/budgetSheet.js';
 import { keepable } from '../../answers/keep/planSeed.js';
 import { suggestedPlanName, checkPlanName } from '../../answers/shared/planName.js';
+import { hasShape, SHAPE_BASE, SHAPE_UNIT, thenPath, fallsPath, stepsPath, stepBox, stepsOf, typedShape, isShapePath } from './shapeDraft.js';
+/** The spending shape's draft readers, for the components (which read the state only through this file). */
+export { typedShape, isShapePath, stepsOf as shapeStepsOf } from './shapeDraft.js';
+import { yearFigures, shownShare } from './shapeModel.js';
+import { money } from '../../answers/shared/format.js';
 
 /**
  * Whether C's answer says you have stopped and your partner stops later (state/carry.js): the reading C's "What next?" draws
@@ -329,10 +334,15 @@ export function readyMark(state) {
 
 // ---- the budget step (research/v7/budget-step.md) --------------------------------------------------------------------
 
-/** The questions with a spend step, and the fields it holds (the "What you would spend" box). */
+/**
+ * The questions with a spend step, and the fields it holds (the "What you would spend" box). The spending shape's fields
+ * (spend.then, spend.fallsPct, spend.steps and each step's boxes) are on the spend step too: isSpendPath says so.
+ */
 export const SPEND_STEP = Object.freeze({ a: true, b: true });
 export const SPEND_PATHS = Object.freeze(['spend.kind', 'spend.amount', 'spend.level']);
-const isSpendField = (path) => SPEND_PATHS.includes(path);
+/** A path of A's or B's spend step: the figure, or the spending shape (research/v7/spending-shape.md 4.1). */
+export const isSpendPath = (path) => SPEND_PATHS.includes(path) || isShapePath('a', path);
+const isSpendField = isSpendPath;
 
 /** The paths of the fields of A's or B's numbers step that apply to what is typed: everything but the spending. */
 export function numbersPaths(state, q) {
@@ -366,7 +376,7 @@ export function figureInUse(state, q) {
 export function spendDone(state, q) {
   if (!SPEND_STEP[q] || !state.draft[q]) return false;
   const { errors } = parsedDraft(state, q);
-  return !SPEND_PATHS.some((p) => errors[p]) && figureInUse(state, q) !== null;
+  return !Object.keys(errors).some(isSpendPath) && figureInUse(state, q) !== null;
 }
 
 // The sheet is checked many times per draw with the same objects (the reducer never changes one in place).
@@ -484,4 +494,176 @@ export function keepView(state, q) {
   const name = typeof keep.name === 'string' ? keep.name : suggested;
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     sent: keep.sent || null, back: keep.back || null };
+}
+
+// ---- the spending shape (research/v7/spending-shape.md 3.6, 4.1–4.4) --------------------------------------------------
+
+const numOrNull = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+/** A number as typed in a step's box ("2,130", "£2,130", "85%", "1.5"), or null: the text read, nothing worked out. */
+export function typedNumber(t) {
+  if (typeof t === 'number') return Number.isFinite(t) ? t : null;
+  const s = String(t == null ? '' : t).replace(/[£,%\s]/g, '');
+  return /^\d{1,12}(\.\d{1,2})?$/.test(s) ? Number(s) : null;
+}
+const wholeAge = (t) => {
+  const n = typedNumber(t);
+  return n !== null && Number.isInteger(n) ? n : null;
+};
+
+/**
+ * Where question q's shape stands (spending-shape.md 3.6): your age today, a couple's gap (your age − your partner's),
+ * how much older you are than the younger of you, your age when the household's money starts (the first stop in A and
+ * B — yours, or your partner's when theirs is their own and comes first; "now" for anyone who has stopped; C's start)
+ * and at the end of the plan, the first amount (A and B: the figure in use), and the budget's essentials and whole total a
+ * month (a guide, only when a budget exists). null for a question without a shape.
+ */
+export function shapeContext(state, q) {
+  if (!hasShape(q) || !state.draft[q]) return null;
+  const v = parsedDraft(state, q).values;
+  const youAge = numOrNull(v['you.age']);
+  const couple = v.household === 'couple';
+  const partnerAge = couple ? numOrNull(v['partner.age']) : null;
+  const gap = youAge !== null && partnerAge !== null ? youAge - partnerAge : null;
+  const olderBy = gap !== null && gap > 0 ? gap : 0;
+  let startAge = null;
+  let startKind = 'ages';
+  if (q === 'c') {
+    startKind = 'start';
+    startAge = v['start.kind'] === 'age' ? numOrNull(v['start.age']) : youAge;
+  } else {
+    const kind = v['stop.kind'] || 'age';
+    const yours = kind === 'age' ? numOrNull(v['stop.age']) : kind === 'already' ? youAge : null;
+    const pk = couple ? v['partner.stop.kind'] : null;
+    const theirStop = numOrNull(v['partner.stop.age']);
+    const theirs = pk === 'already' ? youAge : pk === 'age' && youAge !== null && partnerAge !== null && theirStop !== null ? youAge + (theirStop - partnerAge) : null;
+    const known = [yours, theirs].filter((x) => x !== null);
+    startAge = known.length ? Math.min(...known) : null;
+    if (startAge !== null) startKind = youAge !== null && startAge <= youAge ? 'now' : startAge === yours ? 'stop' : 'apart';
+  }
+  const end = numOrNull(v.endAge);
+  const endAge = end !== null ? end + olderBy : null;
+  const first = SPEND_STEP[q] ? figureInUse(state, q) : null;
+  const checked = budgetOf(state, q);
+  const essentials = hasBudget(checked) && checked.totals.essentialMonthly > 0 ? checked.totals.essentialMonthly : null;
+  // the budget's whole total a month (a guide): each later step's share of it, as today's editor shows "% of today's budget"
+  const budgetMonthly = hasBudget(checked) ? checked.totals.monthly : null;
+  return { q, couple, youAge, partnerAge, gap, olderBy, startAge, startKind, endAge, first, essentials, budgetMonthly };
+}
+
+/** The model's shape from what is typed: only the steps whose age and amount can be read (a fall that cannot is 0). */
+function modelShape(q, raw) {
+  const unit = SHAPE_UNIT[q];
+  const then = raw[thenPath(q)];
+  const falls = typedNumber(raw[fallsPath(q)]);
+  const steps = stepsOf(q, raw).map((s) => ({ fromAge: wholeAge(s.fromAge), [unit]: typedNumber(s[unit]), then: s.then, fallsPct: typedNumber(s.fallsPct) || 0 }))
+    .filter((s) => s.fromAge !== null && s[unit] !== null && s[unit] > 0);
+  return { unit, start: { then: then === 'falls' || then === 'glides' ? then : 'level', fallsPct: falls || 0 }, steps };
+}
+
+/**
+ * The shape as typed, as a list a sentence reads (the words are the component's: components/shapeWords.js): the start —
+ * { kind: 'start', perMonth?, share?, age, now } — then each later step that can be read, { fromAge, perMonth | share, then,
+ * fallsPct }. Nothing is worked out: the figures are the ones typed.
+ */
+function typedList(ctx, unit, raw, q, from) {
+  const then = raw[thenPath(q)];
+  const falls = typedNumber(raw[fallsPath(q)]);
+  const head = { fromAge: from, then: then === 'falls' || then === 'glides' ? then : 'level', ...(then === 'falls' && falls !== null ? { fallsPct: falls } : {}),
+    now: ctx.startKind === 'now', ...(unit === 'share' ? { share: 100 } : ctx.first !== null ? { perMonth: ctx.first } : {}) };
+  const later = stepsOf(q, raw).map((s) => ({ fromAge: wholeAge(s.fromAge), [unit]: typedNumber(s[unit]), then: s.then, fallsPct: typedNumber(s.fallsPct) }))
+    .filter((s) => s.fromAge !== null && s[unit] !== null)
+    .map((s) => ({ ...s, ...(s.then === 'falls' && s.fallsPct !== null ? {} : { fallsPct: undefined }) }));
+  return [head, ...later];
+}
+
+/**
+ * Everything the spending shape's block draws (components/StepsField.jsx), or null for a question without one. The
+ * boxes hold the text typed; each row's error is the message id the checks gave for that box, shown once the box has
+ * been left (or the question asked) — errorsToShow's rule. `chart` is each year's figure, worked out by the model
+ * (shapeModel.js: today's planner's own amountAtAge), from the start to the end of the plan.
+ */
+export function shapeView(state, q) {
+  const ctx = shapeContext(state, q);
+  if (!ctx) return null;
+  const d = state.draft[q];
+  const raw = d.values || {};
+  const errors = errorsToShow(state, q);
+  const unit = SHAPE_UNIT[q];
+  const base = SHAPE_BASE[q];
+  const typedThen = raw[thenPath(q)];
+  const then = typedThen === 'falls' || typedThen === 'glides' ? typedThen : 'level';
+  const steps = stepsOf(q, raw).map((s, i) => {
+    const age = wholeAge(s.fromAge);
+    const amount = typedNumber(s[unit]);
+    return {
+      fromAge: s.fromAge, amount: s[unit], then: s.then, fallsPct: s.fallsPct, age,
+      partnerAge: ctx.couple && age !== null && ctx.gap !== null ? age - ctx.gap : null,
+      ofStart: unit === 'perMonth' ? shownShare(amount, ctx.first) : null,
+      ofBudget: unit === 'perMonth' && ctx.budgetMonthly !== null ? shownShare(amount, ctx.budgetMonthly) : null,
+      errors: { fromAge: errors[stepBox(q, i, 'fromAge')], [unit]: errors[stepBox(q, i, unit)], then: errors[stepBox(q, i, 'then')], fallsPct: errors[stepBox(q, i, 'fallsPct')] }
+    };
+  });
+  const shaped = typedShape(q, raw);
+
+  // the picture: from the start (with "show me ages", from today) to the end of the plan
+  let chart = null;
+  let below = null;
+  const from = ctx.startAge !== null ? ctx.startAge : ctx.youAge;
+  const years = from !== null && ctx.endAge !== null ? ctx.endAge - from : 0;
+  const figures = years > 0 ? yearFigures(modelShape(q, raw), ctx.first, from, years) : null;
+  if (figures) {
+    const ess = unit === 'perMonth' ? ctx.essentials : null;
+    const list = figures.map((value, y) => {
+      const age = from + y;
+      return { age, partnerAge: ctx.couple && ctx.gap !== null ? age - ctx.gap : null, value, below: ess !== null && value < ess - 0.005 };
+    });
+    const firstBelow = list.find((y) => y.below);
+    if (firstBelow) below = { age: firstBelow.age, amount: ess };
+    chart = {
+      unit, years: list, essentials: ess, layers: false, couple: ctx.couple, gap: ctx.gap,
+      bands: { goSlow: 75 + ctx.olderBy, noGo: 85 + ctx.olderBy },
+      list: typedList(ctx, unit, raw, q, from)
+    };
+  }
+
+  const firstErrors = { then: errors[thenPath(q)], fallsPct: errors[fallsPath(q)] };
+  const stepsError = errors[stepsPath(q)] || null;
+  return {
+    q, base, unit, open: state.ui.open.includes('shape'), couple: ctx.couple, youAge: ctx.youAge, startAge: ctx.startAge, startKind: ctx.startKind,
+    endAge: ctx.endAge, first: ctx.first, essentials: ctx.essentials, then, fallsPct: typeof raw[fallsPath(q)] === 'string' ? raw[fallsPath(q)] : '',
+    firstErrors, steps, stepsError, shaped, list: typedList(ctx, unit, raw, q, ctx.startAge), note: d.shapeNote || null, canUndo: !!d.shapeUndo,
+    rescaleDue: unit === 'perMonth' && steps.length > 0 && typeof d.shapeBase === 'number' && ctx.first !== null && d.shapeBase !== ctx.first,
+    below, chart
+  };
+}
+
+/**
+ * The picture of every year on an answer whose spending changes with age (spending-shape.md 4.4): the answer's own rows
+ * (result.byYear, at the amount the answer is about — A and B as typed, C the careful amount), each year what the
+ * household has after tax, the part its State Pension and other pensions (and pay, and part-time work) pay, and the part
+ * from the pension and savings. null for a flat answer (no byYear). Nothing is worked out but the split of each bar.
+ */
+export function answerShapeChart(state, q) {
+  const answer = state.answers[q];
+  const r = answer && answer.result;
+  if (!r || !Array.isArray(r.byYear) || !r.byYear.length) return null;
+  const ctx = shapeContext(state, q);
+  const ess = ctx && ctx.essentials !== null ? ctx.essentials : null;
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const years = r.byYear.map((row) => {
+    const value = num(row.takeHome);
+    const anyway = num(row.statePension) + num(row.finalSalary) + num(row.fromWork) + num(row.fromPay);
+    const income = Math.max(0, Math.min(value, anyway));
+    const partner = row.ages && typeof row.ages.partner === 'number' ? row.ages.partner : null;
+    return { age: row.age, partnerAge: partner, value, income, pots: Math.max(0, value - income), below: ess !== null && value < ess - 0.005 };
+  });
+  const first = r.byYear[0];
+  const gap = first.ages && typeof first.ages.you === 'number' && typeof first.ages.partner === 'number' ? first.ages.you - first.ages.partner : null;
+  const olderBy = gap !== null && gap > 0 ? gap : 0;
+  const list = q === 'c' ? r.shapeAt && r.shapeAt.careful : r.spendShape;
+  return {
+    unit: 'perMonth', years, essentials: ess, layers: true, couple: gap !== null, gap,
+    bands: { goSlow: 75 + olderBy, noGo: 85 + olderBy },
+    list: Array.isArray(list) ? list : []
+  };
 }

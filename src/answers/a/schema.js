@@ -16,7 +16,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, agesToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, partTimeHidden } from '../shared/schemaParts.js';
+  taxFreeFields, partTimeHidden, shapeFields } from '../shared/schemaParts.js';
 
 const hiddenWhenStopped = (f) => (Object.keys(partTimeHidden()).length ? { ...f, whenNot: partTimeHidden() } : f);
 
@@ -37,6 +37,8 @@ export const SCHEMA_A = {
     ...saverFields('you'),
 
     ...SPEND_FIELDS,
+    // What is spent changing with age (research/v7/spending-shape.md 3.2): no default — not answered, the same every year
+    ...shapeFields('spend'),
 
     // Part-time work after the stop: the first person only, from the stop age, for a whole number of years. It belongs to
     // the one stopping, so "I've already stopped" hides it.
@@ -64,6 +66,7 @@ export const SCHEMA_A = {
     { id: 'end-after-stop',      fields: ['endAge'] },                 // endAge > the younger person's age at the stop
     { id: 'stop-ages-past-75',   fields: ['stop.kind'] },              // "show me ages" needs an age to show: you.age ≤ RULES.stopAgeMax
     { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] },  // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
+    { id: 'shape-steps', fields: ['spend.steps'] },                    // the steps' ages: after the stop, before the end, rising (each under its box)
     // couples-different-years.md 3.3 (end-after-stop above looks at the LATER stop, under RULES.maxYears after the first)
     { id: 'partner-stop-not-before-now', fields: ['partner.stop.age', 'partner.age'] },  // partner.stop.age ≥ partner.age
     ...(APART.askAboutPartner ? [

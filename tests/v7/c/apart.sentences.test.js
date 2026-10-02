@@ -118,7 +118,10 @@ describe('C — the words of couples who stop in different years', () => {
     expect(c.sentences.sub.id).toBe('c.sub.couple');
     expect(ids(c.assumed)).toEqual(expect.arrayContaining(['both-stop-together', 'savings-split']));
     for (const id of ['stop-apart', 'stop-apart-cover', 'partner-already', 'you-already', 'savings-first']) expect(ids(c.assumed)).not.toContain(id);
-    for (const id of ['apart-cover-used', 'drawdown-2028']) expect(ids(c.warnings)).not.toContain(id);
+    expect(ids(c.warnings)).not.toContain('apart-cover-used');
+    // the 2028 line is for everyone it applies to (owner, 2 Oct 2026): here your partner, 55, drawing from now
+    expect(c.warnings.find((w) => w.id === 'drawdown-2028').text)
+      .toBe('For your partner: move into drawdown what they will need before 57 by 5 April 2028: after that, nothing new can be taken until they are 57.');
     expect(ids(c.sentences.madeOf)).not.toContain('c.madeOf.apart');
   });
 });

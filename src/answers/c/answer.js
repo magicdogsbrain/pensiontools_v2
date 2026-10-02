@@ -21,7 +21,7 @@ import { VERSION } from '../../constants.js';
 import { calculateTax } from '../../services/TaxCalculator.js';
 import { simulate } from '../../services/SimulationEngine.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
-import { enginePlan, configsAt, breakdownAt, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
+import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
 import { createBandSolver, bandIndexes, STEP } from '../shared/band.js';
 import { createReferenceBandSolver } from '../shared/bandReference.js';
@@ -30,6 +30,7 @@ import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warni
 import { usesLives, answerOnLives } from './onLives.js';
 import { payInTotalOf, statePensionAgeOf } from '../shared/schemaParts.js';
 import { before2028, payKeepsPensions } from '../shared/apart.js';
+import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 
@@ -164,6 +165,9 @@ function factsOf(plan, checked, household, fullSp, env) {
     people, savings: inputs.savings || 0, fullStatePensionAYear: fullSp, usedDefault: used,
     anyPension: totalPension > 0, anyPots: plan.totalPots > 0, totalPots: plan.totalPots,
     lockedSavingsMonths: 0, oneName, madeUpFutures: typeof env.futureReturns === 'function', historyStartYear: historyStartYear(),
+    // who moves money into drawdown before 6 April 2028 at 55 or 56: everyone it applies to (shared/apart.js; owner, 2 Oct 2026);
+    // from now everyone starts at the household's start (moved, when it is, to the day a pension opens)
+    drawdown2028: before2028(plan.people.map((p) => ({ who: p.who, age: p.ageToday, S: plan.yearsFromNow, pension: p.pension > 0 })), env.today),
     allStartedAge: Math.max(...plan.people.flatMap((p) => [p.statePension.amount > 0 ? p.statePension.startAge - p.ageAtStart + plan.startAge : 0, ...p.finalSalary.map((f) => (f.amount > 0 ? f.startAge - p.ageAtStart + plan.startAge : 0))]))
   };
 }
@@ -203,6 +207,9 @@ function finishOnLives(result, plan, checked, household, env, more) {
     // for one open well before: a partner of 53 today is 65 when the money starts at 67 (the reviewers' finding, 1 Oct 2026)
     p.underAccessAge = closedAtStart(p.who, j) || (p.underAccessAge && p.startsAtAccessAge);
   });
+  // who moves money into drawdown before 6 April 2028 at 55 or 56, each at their own stop: everyone it applies to
+  // (shared/apart.js; owner, 2 Oct 2026)
+  facts.drawdown2028 = before2028(plan.people.map((p) => ({ who: p.who, age: p.ageToday, S: more.own[p.who], pension: p.pension > 0 })), env.today);
   // couples apart (shared/apart.js): who pays in, a pension paid to the one still working, money into drawdown before
   // 6 April 2028
   if (plan.apart) {
@@ -211,7 +218,7 @@ function finishOnLives(result, plan, checked, household, env, more) {
     facts.apartCtx = {
       workerPaysIn: result.saving.some((x) => x.who === worker.who && x.payIn.total > 0),
       keepsPensions: payKeepsPensions(plan),
-      drawdown: before2028(plan.people.map((p) => ({ who: p.who, age: p.ageToday, S: more.own[p.who], pension: p.pension > 0 })), env.today)
+      drawdown: facts.drawdown2028
     };
   }
   // every pension closed at the start: until the first opens only savings pay, so a bad case that runs out before then
@@ -440,12 +447,18 @@ export function answerCReal(inputs, env) {
     take = { perMonth, lasted: (n - failed) / n, runOutAge: badAge(months), covered: failed <= Math.floor(n / 10) };
   }
 
+  // what you could spend changing with age (spending-shape.md 6.2): the careful, middling and good amounts at the start
+  // with the later steps in proportion, and each year's figures at the careful amount
+  const shaped = household.shape
+    ? shapeOfAnswer({ household, plan, at: monthly, yearly: phasesOf(yearlyPlan(plan), monthly.careful * 12), H0: monthly.careful * 12 }) : null;
   const result = {
     status: 'ok', inputs: checked.inputs,
     monthly, yearly: { careful: round2(monthly.careful * 12), middling: round2(monthly.middling * 12), good: round2(monthly.good * 12) },
+    ...(shaped || {}),
     lasted, runOutAge, whose: plan.whose,
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
-    phases: phasesOf(plan, monthly.careful * 12), take, assumed: [], warnings: [], sentences: {},
+    // (a phase the shape moves inside — a fall, moving evenly — says its figures are its first year's)
+    phases: shaped ? markShapeMoves(phasesOf(plan, monthly.careful * 12), shaped.byYear) : phasesOf(plan, monthly.careful * 12), take, assumed: [], warnings: [], sentences: {},
     basis: basisOf(plan, env, n), units: UNITS
   };
   const typed = payInTyped(checked.inputs);

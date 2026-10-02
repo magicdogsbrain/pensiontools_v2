@@ -21,6 +21,7 @@
  */
 import { SAVING, RULES } from './rules.js';
 import { startBeforeEveryPension, payingInPast75, peopleFromValues, stopYearsFromValues, apartCheckYear, payCoversOf } from './schemaParts.js';
+import { SHAPE_LIMITS, THEN } from './shape.js';
 
 export const MESSAGE_IDS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
 
@@ -115,6 +116,59 @@ function parseMoney(t) {
   return { value };
 }
 
+/**
+ * The spending shape's later steps (type `steps`, research/v7/spending-shape.md 3.3): a list, each item read by its own
+ * rule — `fromAge` a whole age, the amount (`unit`: perMonth, £1 to £50,000 a month as money is typed; share, a percent
+ * 1 to 500 on 0.01) and `then` one of shape.js THEN; `fallsPct` only when it falls, 0.25 to 10 on 0.25. `typed`: real
+ * values (checkInputs) rather than text as typed (parseDraft). An empty list is no list (blank). Each problem is keyed by
+ * the item's own box — '<path>.<i>.<field>' — so the screen puts it under that box: 'required', 'notANumber', 'tooLow',
+ * 'tooHigh', 'notAnOption' for the amount, the age and the choice; 'range' for a fall.
+ * → { value } (each item { fromAge, perMonth | share, then, fallsPct? }) or { errors }
+ */
+function parseSteps(field, raw, typed) {
+  if (!Array.isArray(raw)) return { error: 'notAnOption' };
+  const unit = field.unit === 'share' ? 'share' : 'perMonth';
+  const lim = SHAPE_LIMITS[unit];
+  const errors = {};
+  const value = raw.map((item, i) => {
+    const x = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+    const at = (f) => `${field.path}.${i}.${f}`;
+    const out = {};
+    // the age
+    const age = isBlank(x.fromAge) ? null : typed ? x.fromAge : (/^\d{1,3}$/.test(String(x.fromAge).replace(/\s/g, '')) ? Number(String(x.fromAge).replace(/\s/g, '')) : NaN);
+    if (age === null) errors[at('fromAge')] = 'required';
+    else if (typeof age !== 'number' || !Number.isInteger(age)) errors[at('fromAge')] = 'notANumber';
+    else out.fromAge = age;
+    // the amount: money a month, or a share of the start
+    const rawAmount = x[unit];
+    if (isBlank(rawAmount)) errors[at(unit)] = 'required';
+    else {
+      const got = unit === 'share'
+        ? (typed ? (typeof rawAmount === 'number' && Number.isFinite(rawAmount) && onStep(lim, rawAmount) ? { value: rawAmount } : { error: 'notANumber' })
+          : parseText({ type: 'percent', step: lim.step }, rawAmount))
+        : (typed ? (typeof rawAmount === 'number' && Number.isFinite(rawAmount) ? { value: rawAmount } : { error: 'notANumber' }) : parseMoney(String(rawAmount).replace(/[£,\s]/g, '')));
+      if (got.error) errors[at(unit)] = got.error;
+      else if (got.value < lim.min) errors[at(unit)] = 'tooLow';
+      else if (got.value > lim.max) errors[at(unit)] = 'tooHigh';
+      else out[unit] = got.value;
+    }
+    // what happens from that age (not answered: it stays the same)
+    const then = isBlank(x.then) ? 'level' : x.then;
+    if (!THEN.includes(then)) errors[at('then')] = 'notAnOption';
+    else out.then = then;
+    if (then === 'falls') {
+      const f = SHAPE_LIMITS.fallsPct;
+      const got = isBlank(x.fallsPct) ? { error: 'range' } : typed
+        ? (typeof x.fallsPct === 'number' && Number.isFinite(x.fallsPct) && onStep(f, x.fallsPct) ? { value: x.fallsPct } : { error: 'range' })
+        : parseText({ type: 'percent', step: f.step }, x.fallsPct);
+      if (got.error || got.value < f.min || got.value > f.max) errors[at('fallsPct')] = 'range';
+      else out.fallsPct = got.value;
+    }
+    return out;
+  });
+  return Object.keys(errors).length ? { errors, partial: value } : { value };
+}
+
 /** A real value (from code, not a text box) → the value, or a messageId. */
 function checkTyped(field, raw) {
   if (field.type === 'yesNo') return typeof raw === 'boolean' ? { value: raw } : { error: 'notAnOption' };
@@ -145,7 +199,7 @@ function checkTyped(field, raw) {
  *   A: partner-ages-one-at-a-time ("show me ages" for the partner while you are still working); partner-stop-ages-past-75
  *   B: partner-stop-after-now (you have stopped: partner.stop.age > partner.age, B's stop-after-now for them)
  */
-function checkRules(schema, values, env, errors) {
+function checkRules(schema, values, env, errors, typedSteps = {}) {
   if (schema.rules.some((r) => r.id === 'pay-in-over-limit')) {
     for (const who of ['you', 'partner']) {
       const own = values[`${who}.payIn.own`];
@@ -156,6 +210,8 @@ function checkRules(schema, values, env, errors) {
   }
   const you = values['you.age'];
   if (typeof you !== 'number' || !env || !env.today) return;
+  const shapeRule = schema.rules.find((r) => r.id === 'shape-steps');
+  if (shapeRule) checkShape(shapeRule.fields[0].replace(/\.steps$/, ''), values, errors, typedSteps[shapeRule.fields[0]]);
   const put = (id) => {
     const rule = schema.rules.find((r) => r.id === id);
     if (rule && !errors[rule.fields[0]]) errors[rule.fields[0]] = id;
@@ -223,14 +279,70 @@ function checkRules(schema, values, env, errors) {
   }
 }
 
+/**
+ * The spending shape's steps against the rest of the form (spending-shape.md 3.3, 3.7; the rule 'shape-steps'). `base` is
+ * 'spend' (A, B) or 'shape' (C). Ages are YOURS, whole and strictly rising, each later than your age today ('beforeNow'),
+ * than the household's start ('beforeStop' in A and B — your age at the first stop, yours or your partner's own; C:
+ * 'beforeStart', the money's start) and earlier than your age at the end of the plan ('afterEnd'); each later than the one
+ * before ('order'); "moves evenly" never on the last step, nor on the first amount with no step after it ('glidesLast'); no
+ * more steps than years in the plan ('tooMany', on the list). Each under its own box, never over a problem it has.
+ */
+function checkShape(base, values, errors, typed = null) {
+  // the steps as checked, or — when a box of theirs has a problem of its own — as far as they could be read
+  const steps = Array.isArray(values[`${base}.steps`]) ? values[`${base}.steps`] : Array.isArray(typed) ? typed : [];
+  const then0 = values[`${base}.then`];
+  const box = (i, f) => `${base}.steps.${i}.${f}`;
+  const put = (path, id) => { if (!errors[path]) errors[path] = id; };
+  if (!steps.length) {
+    if (then0 === 'glides') put(`${base}.then`, 'glidesLast');
+    return;
+  }
+  const you = values['you.age'];
+  const partner = values.household === 'couple' && typeof values['partner.age'] === 'number' ? values['partner.age'] : null;
+  const younger = partner === null ? you : Math.min(you, partner);
+  // your age at the household's start: C's start; A and B the first of the stops (one not yet given: today)
+  let startAge = you;
+  let startYears = 0;
+  if (base === 'shape') {
+    if (values['start.kind'] === 'age' && typeof values['start.age'] === 'number') { startAge = values['start.age']; startYears = Math.max(0, startAge - you); }
+  } else {
+    const stops = stopYearsFromValues(values);
+    const known = [stops.you, stops.partner].filter((s) => typeof s === 'number');
+    if (known.length) { startYears = Math.min(...known); startAge = you + startYears; }
+  }
+  const endAge = values.endAge;
+  const yourEnd = typeof endAge === 'number' ? endAge + (you - younger) : null;
+  const years = typeof endAge === 'number' ? endAge - (younger + startYears) : null;
+  steps.forEach((s, i) => {
+    if (typeof s.fromAge !== 'number') return;
+    if (s.fromAge <= you) put(box(i, 'fromAge'), 'beforeNow');
+    else if (s.fromAge <= startAge) put(box(i, 'fromAge'), base === 'shape' ? 'beforeStart' : 'beforeStop');
+    else if (yourEnd !== null && s.fromAge >= yourEnd) put(box(i, 'fromAge'), 'afterEnd');
+    else if (i > 0 && typeof steps[i - 1].fromAge === 'number' && s.fromAge <= steps[i - 1].fromAge) put(box(i, 'fromAge'), 'order');
+  });
+  const last = steps.length - 1;
+  if (steps[last].then === 'glides') put(box(last, 'then'), 'glidesLast');
+  if (years !== null && steps.length > Math.max(1, Math.min(RULES.maxYears, years))) put(`${base}.steps`, 'tooMany');
+}
+
 /** The shared walk: fields in order, each either given, defaulted, or a problem. */
 function walk(schema, flat, env, parse) {
   const values = {};
   const errors = {};
   const usedDefault = [];
+  const typedSteps = {};
   for (const field of schema.fields) {
     if (!applies(field, values)) continue;
     const raw = flat[field.path];
+    if (field.type === 'steps' && !isBlank(raw)) {
+      // the spending shape's later steps: one value, each item's problem under its own box; an empty list is no list
+      if (Array.isArray(raw) && !raw.length) continue;
+      const got = parseSteps(field, raw, parse === checkTyped);
+      if (got.errors) { Object.assign(errors, got.errors); typedSteps[field.path] = got.partial; }
+      else if (got.error) errors[field.path] = got.error;
+      else values[field.path] = got.value;
+      continue;
+    }
     if (isBlank(raw)) {
       if (field.required) { errors[field.path] = 'required'; continue; }
       const d = defaultOf(schema, field, values, env);
@@ -247,7 +359,7 @@ function walk(schema, flat, env, parse) {
     if (typeof field.max === 'number' && got.value > field.max) { errors[field.path] = 'tooHigh'; continue; }
     values[field.path] = got.value;
   }
-  checkRules(schema, values, env, errors);
+  checkRules(schema, values, env, errors, typedSteps);
   const ok = Object.keys(errors).length === 0;
   return { ok, inputs: ok ? nest(values) : null, errors, usedDefault, values };
 }

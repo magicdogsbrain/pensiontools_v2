@@ -189,8 +189,9 @@ function shortForm(q) {
   // B's stop question ("I've already stopped") is asked of a couple only (couples-different-years.md 2.2): one person is
   // asked the age alone, as before.
   const skip = new Set(['household', 'you.payIn.kind', ...(q === 'b' ? ['stop.kind'] : [])]);
-  // the spending is the next step's (the budget step): not on the numbers step
-  return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && f.group !== 'spend' && !f.path.startsWith('partner.') && f.group !== 'try')
+  // the spending is the next step's (the budget step), and so is how it changes with age (the spending shape's block,
+  // research/v7/spending-shape.md 4.1): not on the numbers step
+  return SCHEMAS[q].fields.filter((f) => !skip.has(f.path) && f.group !== 'more' && f.group !== 'spend' && f.group !== 'shape' && !f.path.startsWith('partner.') && f.group !== 'try')
     .filter((f) => !f.when || Object.entries(f.when).every(([p, v]) => { const d = SCHEMAS[q].fields.find((x) => x.path === p); return d && d.default === v; }))
     .map((f) => `${q}.${f.path}`);
 }

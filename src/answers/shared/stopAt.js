@@ -10,7 +10,8 @@
  *   potNeeded(sp, runner, spendAYear, fails, opts?) → the least whole £1,000 household pension at the stop that lasts with
  *                                                   at most `fails` lives failing; null above SAVING.potMax
  *   verdictAtPot(sp, spendAYear, P, opts?)        → verdictAt with every life's pension at P (split by the middling pots)
- *   phasesAt(sp, spendAYear, pots?)               → Phase[] (C's phases, plus fromWork, work, pensionOpen, shown.fromWork)
+ *   phasesAt(sp, spendAYear, pots?, opts?)        → Phase[] (C's phases, plus fromWork, work, pensionOpen, shown.fromWork);
+ *                                                   opts.yearly: one a year (a shaped answer's rows, spending-shape.md 5.6)
  *   monthlyAt(sp, runner, potsFixed, opts?)       → the careful amount with every life's pension at a given household total
  *
  * The drawing years: the start is the stop and never moves; a pension still closed at the stop is closed inside its
@@ -31,7 +32,7 @@
  * the pensions of the people still saving, each at their own stop; the money of someone who has stopped stays as it is.
  * With one stop for everyone every function here is what it was, figure for figure (tests/v7/shared/apart.identity).
  */
-import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf } from './toEngine.js';
+import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf, amountInYear, yearlyPlan } from './toEngine.js';
 import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
@@ -257,6 +258,12 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
 function withoutRuns(plan, H, n) {
   // a couple apart: the pots' share of what is spent, the years the pay makes up gaps not counted (toEngine.js unpaidOf)
   if (plan.apart) return new Array(n).fill(unpaidOf(plan, H).failMonth);
+  if (plan.shape && plan.shape.r) {
+    // a shape: the first YEAR whose take-home the incomes you get anyway fall short of (spending-shape.md 5.3)
+    const per = (y) => plan.periods.find((p) => p.from <= y && y < p.to);
+    for (let y = 0; y < plan.years; y++) if (per(y).netTotal < amountInYear(plan, H, y) - 1e-6) return new Array(n).fill(y * 12);
+    return new Array(n).fill(null);
+  }
   const short = plan.periods.find((per) => per.netTotal < H - 1e-6);
   return new Array(n).fill(short ? short.from * 12 : null);
 }
@@ -631,11 +638,12 @@ function middlingAtJoin(sp, plan, H, q) {
  * and `shown.fromPay`, each person `working`; the years after it are shared on the first stopper's middling money at
  * the join (middlingAtJoin). shown.takeHome = fromPots + statePension + finalSalary + fromWork (+ fromPay).
  */
-export function phasesAt(sp, spendAYear, pots = null) {
+export function phasesAt(sp, spendAYear, pots = null, opts = {}) {
   const q = pots || sp.middling;
   const plan = pots ? sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))) : sp.plan;
-  if (plan.apart) return apartPhases(sp, plan, spendAYear, q);
-  const per = breakdownAt(plan, spendAYear, q);
+  if (plan.apart) return apartPhases(sp, plan, spendAYear, q, opts);
+  // `opts.yearly` (a shaped answer's per-year rows, spending-shape.md 5.6): one phase a year, the same figures year by year
+  const per = breakdownAt(opts.yearly ? yearlyPlan(plan) : plan, spendAYear, q);
   return per.map((p) => {
     const ages = {};
     for (const person of plan.people) ages[person.who] = { from: person.ageAtStart + p.from, to: person.ageAtStart + p.to };
@@ -675,8 +683,8 @@ export function phasesAt(sp, spendAYear, pots = null) {
 }
 
 /** phasesAt for a couple apart: the same phases, plus what the worker's pay covers before the second stop. */
-function apartPhases(sp, plan, spendAYear, q) {
-  const per = breakdownAt(plan, spendAYear, q, middlingAtJoin(sp, plan, spendAYear, q));
+function apartPhases(sp, plan, spendAYear, q, opts = {}) {
+  const per = breakdownAt(opts.yearly ? yearlyPlan(plan) : plan, spendAYear, q, middlingAtJoin(sp, plan, spendAYear, q));
   return per.map((p) => {
     const ages = {};
     for (const person of plan.people) ages[person.who] = { from: person.ageAtStart + p.from, to: person.ageAtStart + p.to };

@@ -20,6 +20,7 @@ import { RULES, verdictOf } from '../../../src/answers/shared/rules.js';
 import { agesToShow, askedAbout, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';
+import { startFactor } from '../../../src/answers/shared/shape.js';
 export { answerA, SCHEMA_A, TEST_ENV } from './_a.js';
 
 /*
@@ -241,7 +242,15 @@ export function checkAnswerA(answer, given, env) {
     if (r.stopYear !== String(Number(b.today.slice(0, 4)) + S)) fail('A-I4', `${at}: stopYear ${r.stopYear}`);
     if (r.ages[ask.asked] !== r.age || r.ages.you !== inputs.you.age + own.you || (couple && r.ages.partner !== inputs.partner.age + own.partner) || (!couple && 'partner' in r.ages)) fail('A-I4', `${at}: ages ${JSON.stringify(r.ages)}`);
 
-    // A-I5 the band: in order, whole £10, and it agrees with the verdict
+    // A-I5a what this row tested (spending-shape.md 6.3): the spending as typed — or, a stop at or after a step, the step in
+    // force from the household's start (your age then: today's + the first stop's years), by today's own amountAtAge. Only
+    // then does the row carry it (spendAtStart), so every other row and every flat answer is as it was.
+    const sh = inputs.spend && Array.isArray(inputs.spend.steps) && inputs.spend.steps.length ? inputs.spend : null;
+    const factor = sh ? startFactor({ unit: 'perMonth', start: { then: sh.then || 'level', fallsPct: sh.fallsPct }, steps: sh.steps }, s.perMonth, inputs.you.age + own.first) : 1;
+    const tested = s.perMonth * factor;
+    if (factor === 1 ? r.spendAtStart !== undefined : Math.abs(r.spendAtStart - tested) > 0.006) fail('A-I5', `${at}: spendAtStart ${r.spendAtStart}, the spending this stop tested is ${tested}`);
+
+    // A-I5 the band: in order, whole £10, and it agrees with the verdict (at the spending this row tested)
     const m = r.monthly;
     if (!(m.careful <= m.middling && m.middling <= m.good)) fail('A-I5', `${at}: band out of order ${JSON.stringify(m)}`);
     for (const k of THREE) {
@@ -253,11 +262,11 @@ export function checkAnswerA(answer, given, env) {
     if (r.potAtStop.good > 0) {
       if (r.lastedAt.careful < 0.9 - 1e-12) fail('A-I5', `${at}: the careful amount lasted in only ${r.lastedAt.careful}`);
       if (r.runOutAgeAt.careful !== endAge) fail('A-I5', `${at}: the careful amount runs out in a bad case`);
-      const floor10 = Math.floor(s.perMonth / 10 + 1e-9) * 10;
-      if (r.verdict === 'yes' && m.careful < floor10) fail('A-I5', `${at}: yes, but the careful amount ${m.careful} is under the spending ${s.perMonth}`);
-      if (m.careful >= Math.ceil(s.perMonth / 10 - 1e-9) * 10 && r.verdict !== 'yes') fail('A-I5', `${at}: careful ${m.careful} ≥ spending ${s.perMonth} but ${r.verdict}`);
+      const floor10 = Math.floor(tested / 10 + 1e-9) * 10;
+      if (r.verdict === 'yes' && m.careful < floor10) fail('A-I5', `${at}: yes, but the careful amount ${m.careful} is under the spending ${tested}`);
+      if (m.careful >= Math.ceil(tested / 10 - 1e-9) * 10 && r.verdict !== 'yes') fail('A-I5', `${at}: careful ${m.careful} ≥ spending ${tested} but ${r.verdict}`);
     }
-    if (Math.abs(r.spare - Math.max(0, m.careful - s.perMonth)) > 0.005) fail('A-I5', `${at}: spare ${r.spare}`);
+    if (Math.abs(r.spare - Math.max(0, m.careful - tested)) > 0.005) fail('A-I5', `${at}: spare ${r.spare}`);
 
     // A-I9 the pots at the stop, and what went in
     const p = r.potAtStop;
@@ -318,7 +327,10 @@ export function checkAnswerA(answer, given, env) {
       // (couples apart: before the second stop, a need the pay does not make up and nobody's money can pay is a run-out —
       // "None of it" with nothing to draw on: the take-home there is what there is)
       const unpaid = q.fromPay !== undefined && !answer.apart.coversGap;
-      if (answer.shown.potAtStop.good > 0 && q.takeHome < s.perMonth - 0.005 && !unpaid) fail('A-I8', `phase ${i}: take-home ${q.takeHome} under the spending ${s.perMonth}`);
+      // (what is spent changing with age, spending-shape.md 6.3: the spending that phase's first year is the shape's — byYear)
+      const yr = Array.isArray(answer.byYear) ? answer.byYear.find((r) => r.age === q.ages.you.from) : null;
+      const spendThen = yr ? yr.spend : s.perMonth;
+      if (answer.shown.potAtStop.good > 0 && q.takeHome < spendThen - 0.01 && !unpaid) fail('A-I8', `phase ${i}: take-home ${q.takeHome} under the spending ${spendThen}`);
     });
     // the start is the stop (couples apart: the first of the two): never moved
     if (ph[0].ages.you.from !== inputs.you.age + shownOwn.first) fail('A-I8', `the first phase starts when you are ${ph[0].ages.you.from}, not at the first stop`);
@@ -328,10 +340,13 @@ export function checkAnswerA(answer, given, env) {
   // savingsNeeded: the closed periods' savings (no pension open, nothing from one), summed — couples apart, from where the
   // pay of the one still working stops covering (before it, the pay makes up what the savings cannot)
   const checkFrom = !answer.apart ? -Infinity : younger + shownOwn.first + (answer.apart.payCovers >= 1 || answer.apart.coversGap ? answer.apart.years : 0);
+  // (what is spent changing with age, spending-shape.md 6.3: summed year by year from byYear, a fall or a rise counted)
   const closed = (ph || []).filter((q) => q.pensionOpen === false && q.fromPension <= 0.005 && q.fromAge >= checkFrom);
   if (!closed.length) { if (answer.savingsNeeded !== null) fail('A-I8', 'savingsNeeded without a closed period'); }
   else {
-    const amount = closed.reduce((t, q) => t + q.fromSavings * 12 * (q.toAge - q.fromAge), 0);
+    const amount = Array.isArray(answer.byYear)
+      ? answer.byYear.filter((y) => y.pensionOpen === false && y.fromPension <= 0.005 && Math.min(...Object.values(y.ages)) >= checkFrom).reduce((t, y) => t + y.fromSavings * 12, 0)
+      : closed.reduce((t, q) => t + q.fromSavings * 12 * (q.toAge - q.fromAge), 0);
     const sn = answer.savingsNeeded;
     if (!sn || Math.abs(sn.amount - amount) > 1 || !Number.isInteger(sn.amount) || sn.untilAge !== closed[closed.length - 1].ages.you.to) fail('A-I8', `savingsNeeded ${JSON.stringify(sn)}, want about ${amount}`);
   }

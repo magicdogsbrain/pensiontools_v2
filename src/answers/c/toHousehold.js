@@ -16,6 +16,8 @@
  *   charge                   → chargesPct, percent a year as typed (6.19.0: the household's one fund and platform charge,
  *                              taken while drawing — and, on the lives, while the money waits to be taken)
  *   endAge                   → planToAge
+ *   shape.then / fallsPct / steps → household.shape (spending-shape.md 3), only when it changes with age: { unit 'share',
+ *                              start, steps } — each later step a share of what you start on, ages yours
  *
  * @param {object} inputs  checked inputs
  * @param {{ today: string, mix?: { equity: number, bond: number, cash: number } }} env
@@ -23,7 +25,7 @@
  */
 import { expandHousehold } from '../shared/household.js';
 import { fullStatePensionYearly } from '../shared/rules.js';
-import { untilBothStopOf, stopYearsOf } from '../shared/schemaParts.js';
+import { untilBothStopOf, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 
 function person(who, p, inputs) {
   const sp = p.statePension || { kind: 'full' };
@@ -67,6 +69,9 @@ export function toHousehold(inputs, env) {
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };
+  // what you could spend changing with age (spending-shape.md 3): later steps as shares of the start, ages yours
+  const shape = shapeOfInputs(inputs, 'shape');
+  if (shape) short.shape = shape;
   const { household, assumed } = expandHousehold(short, env.today);
   // The form asked these, so they are not the household's defaults; what was a default at the form is answer.js's business.
   return { household, assumed, fullStatePensionAYear: fullStatePensionYearly() };

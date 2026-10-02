@@ -43,13 +43,14 @@ import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
 import { bandIndexes } from '../shared/band.js';
 import { outOfTen } from '../shared/format.js';
-import { ONE_NAME_SHARE, BANDS, potsShareOf } from '../shared/toEngine.js';
+import { ONE_NAME_SHARE, BANDS, potsShareOf, potsNeedByYear, amountInYear } from '../shared/toEngine.js';
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, savingsNeeded, potNeededAt, potNeeded,
   lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt } from '../shared/stopAt.js';
 import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } from '../shared/schemaParts.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
+import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
 import { sentencesFor, assumedFor, warningsFor, finishTexts } from './sentences.js';
 
@@ -131,7 +132,7 @@ function outsideOf(plan, H, split, today, sp = null) {
     const shut = holders.map((p) => { const own = p.ageAtStart - p.ageToday + p.join; const open = firstOpenAge(p.ageToday, today, own); return open > p.ageToday + own ? open - p.ageAtStart : 0; });
     if (!shut.every((w) => w > cy)) return null;
     const gap = Math.min(...shut) - cy;
-    const amount = plan.periods.filter((per) => per.to > cy && per.from < cy + gap)
+    const amount = plan.shape && plan.shape.r ? closedNeed(plan, H, cy, cy + gap) : plan.periods.filter((per) => per.to > cy && per.from < cy + gap)
       .reduce((s, per) => s + Math.max(0, H * potsShareOf(per) - per.netTotal) * (Math.min(per.to, cy + gap) - Math.max(per.from, cy)), 0);
     return { amount: Math.round(amount), untilAge: plan.startAge + cy + gap, gap };
   }
@@ -140,8 +141,16 @@ function outsideOf(plan, H, split, today, sp = null) {
   const waits = holders.map((p) => firstOpenAge(p.ageToday, today, p.ageAtStart - p.ageToday) - p.ageAtStart);
   if (!waits.every((w) => w > 0)) return null;
   const gap = Math.min(...waits);
-  const amount = plan.periods.filter((per) => per.from < gap).reduce((s, per) => s + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
+  const amount = plan.shape && plan.shape.r ? closedNeed(plan, H, 0, gap) : plan.periods.filter((per) => per.from < gap).reduce((s, per) => s + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
   return { amount: Math.round(amount), untilAge: plan.startAge + gap, gap };
+}
+
+/** What the pots pay in the years [from, to) at a year-0 amount of H, year by year (a shape: spending-shape.md 5.2). */
+function closedNeed(plan, H, from, to) {
+  const need = potsNeedByYear(plan, H);
+  let sum = 0;
+  for (let y = Math.max(0, from); y < Math.min(to, plan.years); y++) sum += need[y];
+  return sum;
 }
 
 /**
@@ -165,6 +174,10 @@ function createAges(inputs, env, lives, ctx) {
       const sp = stopAtPlan(household, inputs.you.age + own.you, env, lives);
       const runner = createStopRunner(sp);
       row = { stopAge, sp, runner, household, numbers: new Map(), floors: new Map(), whole: null, band: null };
+      // the spend in this stop's first year: a step at or before a later stop is in force from it (spending-shape.md 6.4);
+      // the stop asked about starts before every step, so its amount is the figure as typed
+      const f = sp.plan.shape ? sp.plan.shape.a0 : 1;
+      row.H = (H) => (f === 1 ? H : H * f);
       // what goes in a month, per person: into the pension at a household total `c` (split as now), into savings at a
       // household total `d` (split evenly, as savings are — couples apart: among those still saving); today's figures are
       // the stop plan's own
@@ -175,8 +188,8 @@ function createAges(inputs, env, lives, ctx) {
       // the closed years at a spend: what they draw, and the savings at the stop that carry them in every future tried
       row.outsideAt = (H) => {
         if (!row.floors.has(H)) {
-          const o = outsideOf(sp.plan, H, sp.split, env.today, sp);
-          if (o) o.careful = savingsNeeded(sp, H, CLOSED_YEARS_FAILS, o.amount);
+          const o = outsideOf(sp.plan, row.H(H), sp.split, env.today, sp);
+          if (o) o.careful = savingsNeeded(sp, row.H(H), CLOSED_YEARS_FAILS, o.amount);
           row.floors.set(H, o);
         }
         return row.floors.get(H);
@@ -189,15 +202,15 @@ function createAges(inputs, env, lives, ctx) {
       // the guide number at a spend and a count of lives allowed to fail (`guess` brackets the search: a hint only)
       row.number = (H, allowed, guess, guessSpread) => {
         const k = `${H}:${allowed}`;
-        if (!row.numbers.has(k)) row.numbers.set(k, potNeeded(sp, runner, H, allowed, { ...row.optsAt(H), ...(Number.isFinite(guess) ? { guess, guessSpread } : {}) }));
+        if (!row.numbers.has(k)) row.numbers.set(k, potNeeded(sp, runner, row.H(H), allowed, { ...row.optsAt(H), ...(Number.isFinite(guess) ? { guess, guessSpread } : {}) }));
         return row.numbers.get(k);
       };
       // the household pension at the stop in a bad case (the worst 1 in 10) at today's pay-ins: a guess for the number
       row.carefulPot = () => spread(pensionsAt(sp, row.payInsAt(ctx.now))).careful;
       // the one test at pay-ins (c into the pension, d into savings, household totals)
-      row.lasts = (H, c, d, allowed) => lastsWithin(sp, H, row.payInsAt(c, d), allowed);
-      row.count = (H, c, d) => verdictAtPayIns(sp, H, row.payInsAt(c, d));
-      row.wholeNow = (H) => (row.whole && row.whole.H === H ? row.whole.v : (row.whole = { H, v: verdictAt(sp, runner, H) }).v);
+      row.lasts = (H, c, d, allowed) => lastsWithin(sp, row.H(H), row.payInsAt(c, d), allowed);
+      row.count = (H, c, d) => verdictAtPayIns(sp, row.H(H), row.payInsAt(c, d));
+      row.wholeNow = (H) => (row.whole && row.whole.H === H ? row.whole.v : (row.whole = { H, v: verdictAt(sp, runner, row.H(H)) }).v);
       row.bandNow = () => row.band || (row.band = bandAt(sp, runner));
     }
     cache.set(key, row);
@@ -246,7 +259,7 @@ function payInsThatGetThere(row, H, ctx, least = null, which = ['nineInTen', 'th
   if (o) {
     // the savings a month (household, split evenly) that carry the closed years in every future tried with the pension
     // out of the way (a pension of SAVING.potMax behind them): no less than what goes in now
-    const okSavings = (d) => lastsWithin(row.sp, H, row.payInsAt(ctx.now, d), CLOSED_YEARS_FAILS, { pensionAt: SAVING.potMax });
+    const okSavings = (d) => lastsWithin(row.sp, row.H(H), row.payInsAt(ctx.now, d), CLOSED_YEARS_FAILS, { pensionAt: SAVING.potMax });
     // a bracket: what reaches the closed years' draw in every life, and what reaches the savings set aside for them
     const sp = row.sp;
     const reachAll = (target) => {
@@ -331,9 +344,12 @@ export function answerB(inputs, env) {
   // their share of what is spent)
   // (couples apart: before the check year the pay of the one still working makes up whatever the pots' share is short of,
   // so only the years from there need the State and final-salary pensions to cover it)
-  const guaranteedCovers = plan.apart
-    ? plan.periods.every((per) => per.to <= checkYearOf(plan) || per.netTotal >= H * potsShareOf(per) - 1e-9)
-    : plan.periods.every((per) => per.netTotal >= H - 1e-9);
+  // (a shape: year by year — spending-shape.md 5.2)
+  const guaranteedCovers = plan.shape && plan.shape.r
+    ? plan.periods.every((per) => { for (let y = per.from; y < per.to; y++) if (!((plan.apart && per.to <= checkYearOf(plan)) || per.netTotal >= amountInYear(plan, H, y) * potsShareOf(per) - 1e-9)) return false; return true; })
+    : plan.apart
+      ? plan.periods.every((per) => per.to <= checkYearOf(plan) || per.netTotal >= H * potsShareOf(per) - 1e-9)
+      : plan.periods.every((per) => per.netTotal >= H - 1e-9);
   const opts = base.optsAt(H);
   let least = null;
   const [rc, rm, rg] = potNeededAt(sp, H, [allowed.careful, allowed.middling, allowed.good], { ...opts, onLeast: (l) => { least = l; } });
@@ -394,7 +410,7 @@ export function answerB(inputs, env) {
     for (const a of later) {
       const row = ages(a);
       if (!row) continue;
-      if (!lastsWithin(row.sp, H, row.payInsAt(now), allowed.careful)) continue;
+      if (!lastsWithin(row.sp, row.H(H), row.payInsAt(now), allowed.careful)) continue;
       levers.stopLater = { age: a, lasted: row.wholeNow(H).lasted };
       break;
     }
@@ -431,7 +447,7 @@ export function answerB(inputs, env) {
         const guess = lastNumber !== null ? lastNumber : row ? row.carefulPot() : null;
         const num = row ? row.number(H, allowed.careful, guess, lastNumber !== null ? 0.03 : 0.05) : null;
         if (num !== null && num > 0) lastNumber = num;
-        const counts = row ? countsAtPayIns(row.sp, H, g.payIns.map((p) => row.payInsAt(p, savingsInNow))) : null;
+        const counts = row ? countsAtPayIns(row.sp, row.H(H), g.payIns.map((p) => row.payInsAt(p, savingsInNow))) : null;
         const cells = g.payIns.map((p, j) => {
           const v = counts ? counts[j] : null;
           const l = v ? v.lasted : 0;
@@ -451,9 +467,13 @@ export function answerB(inputs, env) {
   // (no pension needed but savings set aside for the years before one opens: the savings pay, and the phases say so)
   // (couples apart: the number is the pensions of those still saving; one who has stopped keeps their middling money)
   const phasePension = (w, j) => (plan.apart && !savers[j] ? sp.middling[j].pension : phasePot * w);
-  const phases = phasePot > 0 || outside
-    ? phasesAt(sp, H, sp.split.map((w, j) => ({ pension: phasePension(w, j), isa: Math.max(sp.middling[j].isa, outside ? outside.amount * w : 0) })))
-    : phasesAt(sp, H);
+  const phasePots = phasePot > 0 || outside ? sp.split.map((w, j) => ({ pension: phasePension(w, j), isa: Math.max(sp.middling[j].isa, outside ? outside.amount * w : 0) })) : null;
+  const phases = phasePots ? phasesAt(sp, H, phasePots) : phasesAt(sp, H);
+  // what is spent changing with age (spending-shape.md 6.4): the spend as typed and tested, the careful amount at the start
+  // paying in as now (the "spend less" lever) with the later steps in proportion, and each year's figures
+  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: careNow.monthly, asTyped: spendMonth, H0: H,
+    yearly: phasePots ? phasesAt(sp, H, phasePots, { yearly: true }) : phasesAt(sp, H, null, { yearly: true }) }) : null;
+  if (shaped) markShapeMoves(phases, shaped.byYear);
 
   // ---- the saving years, per person (couples apart: each to their own stop) ----------------------------------------------
   const saving = whos.map((who, p) => {
@@ -485,6 +505,7 @@ export function answerB(inputs, env) {
     ...(partnerAsked ? { askedAbout: 'partner' } : {}),
     ...(apart ? { apart } : {}),
     spend: { perMonth: spendMonth, perYear: spendMonth * 12, kind: inp.spend.kind, level: inp.spend.kind === 'level' ? inp.spend.level : null },
+    ...(shaped || {}),
     stop: { age: stopAge, year: String(Number(env.today.slice(0, 4)) + S) },
     ages: Object.fromEntries(whos.map((w) => [w, inp[w].age + own[w]])),
     years: { saving: S, drawing: D },
@@ -533,6 +554,8 @@ export function answerB(inputs, env) {
   const midSavings = sp.middling.reduce((s, q) => s + q.isa, 0);
   // (couples apart: the first stretch once you have both stopped — before it, the one still working takes nothing)
   const bothStopped = plan.apart ? plan.periods.find((per) => per.from >= plan.apart.years) || plan.periods[0] : plan.periods[0];
+  // who moves money into drawdown before 6 April 2028 at 55 or 56 (shared/apart.js: everyone it applies to — owner, 2 Oct 2026)
+  const drawdown2028 = before2028(plan.people.map((q) => ({ who: q.who, age: inp[q.who].age, S: own[q.who], pension: q.pension > 0 })), env.today);
   const facts = {
     couple,
     people: whos.map((who, p) => {
@@ -570,8 +593,9 @@ export function answerB(inputs, env) {
     apart: !apart ? null : {
       workerPaysIn: payIns[whos.indexOf(apart.first === 'you' ? 'partner' : 'you')].total > 0,
       keepsPensions: payKeepsPensions(plan),
-      drawdown: before2028(plan.people.map((q) => ({ who: q.who, age: inp[q.who].age, S: own[q.who], pension: q.pension > 0 })), env.today)
+      drawdown: drawdown2028
     },
+    drawdown2028,
     haveLasted: already && status === 'ok' ? base.count(H, 0, savingsInNow).lasted : null,
     leastNow: onCourse && status === 'ok' ? at.nineInTen : null,
     gridRow: gridOut ? gridOut.ages.findIndex((r) => r.age === stopAge) : null,

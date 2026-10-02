@@ -14,7 +14,7 @@
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
 import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
-  taxFreeFields } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -86,6 +86,9 @@ export const SCHEMA_C = {
     // "Add more detail" — all optional, each with a default that is listed under what was assumed (the tax-free part of
     // someone who has stopped has none: not answered is not taken).
     ...taxFreeFields('c'),
+    // What you could spend changing with age (research/v7/spending-shape.md 3.2): later steps as a share of what you start
+    // on. No default — not answered, the same every year.
+    ...shapeFields('shape'),
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 150_000, 10_000_000] },
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
@@ -106,7 +109,8 @@ export const SCHEMA_C = {
     { id: 'pay-in-past-75-partner',  fields: ['start.age'] },              // …and your partner's, at their own stop
     { id: 'end-after-start',         fields: ['endAge'] },                 // endAge > the younger person's age at the later stop
     { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] },  // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
-    { id: 'partner-stop-not-before-now', fields: ['partner.stop.age', 'partner.age'] }   // partner.stop.age ≥ partner.age (couples-different-years.md 3.3)
+    { id: 'partner-stop-not-before-now', fields: ['partner.stop.age', 'partner.age'] },  // partner.stop.age ≥ partner.age (couples-different-years.md 3.3)
+    { id: 'shape-steps', fields: ['shape.steps'] }                                         // the steps' ages: after the start, before the end, rising (each under its box)
   ],
 
   // Defaults that depend on other values. `values` is { [path]: checked value } for the fields before this one.

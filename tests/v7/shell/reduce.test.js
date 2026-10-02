@@ -60,6 +60,7 @@ describe('draft/*', () => {
   });
   it('every field of the input list can be set', () => {
     for (const f of SCHEMA_C.fields) {
+      if (f.type === 'steps') continue;                                      // the spending shape's steps: shape/* (shape.test.js)
       const v = f.type === 'yesNo' ? true : f.type === 'choice' ? f.options[0] : '1';
       expect(reduce(fresh(), set(f.path, v)).draft.c.values[f.path]).toBe(v);
     }
@@ -198,7 +199,8 @@ describe('ui/*, env/set, state/replace', () => {
 
 // ---- any sequence of actions ------------------------------------------------------------------------------------
 
-const paths = SCHEMA_C.fields.map((f) => f.path);
+// the spending shape's later steps are one list, edited by shape/* (never draft/set): reduce.ab.test.js
+const paths = SCHEMA_C.fields.filter((f) => f.type !== 'steps').map((f) => f.path);
 const text = fc.oneof(fc.constantFrom('', '250,000', '£1', 'abc', '58', '67', '0', '30000', 'couple', 'single', 'forecast', 'age', 'now'), fc.boolean());
 const key = fc.constantFrom('K1', 'K2', null);
 const anyRoute = fc.oneof(
@@ -230,7 +232,8 @@ describe('any sequence of actions', () => {
   it('the generator covers every action type (draft/carry, answer/extend, the budget step and saving: reduce.ab.test.js)', () => {
     const seen = new Set(fc.sample(anyAction, 2000).map((a) => a.type));
     const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND];
-    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend)\//.test(t) || t === A.DRAFT_ONWARD);
+    // the spending shape's actions (shape/*) are A's, B's and C's alike: generated over the three in reduce.ab.test.js
+    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\//.test(t) || t === A.DRAFT_ONWARD);
     expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t)).sort());
   });
   it('the state survives JSON, and plan and session never change', () => {

@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.20.2",
+    "appVersion": "6.21.0",
     "historyEnd": null
   },
   "session": {
@@ -52,7 +52,7 @@
   "answers": {
     "a": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"couple\",\"partTime\":{\"has\":false},\"partner\":{\"age\":53,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":300},\"pot\":180000,\"statePension\":{\"kind\":\"full\"}},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":3592,\"kind\":\"amount\"},\"stop\":{\"age\":56,\"kind\":\"age\"},\"you\":{\"age\":55,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":420000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.20.2",
+      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"couple\",\"partTime\":{\"has\":false},\"partner\":{\"age\":53,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":300},\"pot\":180000,\"statePension\":{\"kind\":\"full\"}},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":3592,\"kind\":\"amount\"},\"stop\":{\"age\":56,\"kind\":\"age\"},\"you\":{\"age\":55,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":420000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.21.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -1736,6 +1736,30 @@
             ]
           },
           {
+            "id": "drawdown-2028",
+            "severity": "note",
+            "text": "Move into drawdown what you will need before 57 by 5 April 2028: after that, nothing new can be taken until you are 57.",
+            "parts": [
+              "Move into drawdown what you will need before ",
+              {
+                "fixed": "57"
+              },
+              " by ",
+              {
+                "fixed": "5"
+              },
+              " April ",
+              {
+                "fixed": "2028"
+              },
+              ": after that, nothing new can be taken until you are ",
+              {
+                "fixed": "57"
+              },
+              "."
+            ]
+          },
+          {
             "id": "access-age-rises",
             "severity": "note",
             "text": "The earliest age you can take money from a pension rises from 55 to 57 on 6 April 2028.",
@@ -2440,7 +2464,7 @@
           "failuresAllowed": 100,
           "closeAllowed": 250,
           "historyEnd": "2023-06",
-          "engineVersion": "6.20.2",
+          "engineVersion": "6.21.0",
           "endAge": 95,
           "detail": "chart",
           "lifeYears": 42,

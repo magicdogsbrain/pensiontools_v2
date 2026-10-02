@@ -33,11 +33,12 @@ import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
 import { bandIndexes, STEP } from '../shared/band.js';
 import { outOfTen } from '../shared/format.js';
-import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } from '../shared/schemaParts.js';
+import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
+import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
 import { textsFor } from './sentences.js';
 
@@ -139,6 +140,12 @@ function opensOf(inputs, today, own) {
   return out;
 }
 
+/**
+ * The household's spending in a stop's first year (spending-shape.md 6.3): the figure as typed, or — a step at or before
+ * the stop is in force from it — that step's (plan.shape.a0, in units of the figure). Without a shape: the figure itself.
+ */
+const startAYear = (spendAYear, plan) => (plan.shape && plan.shape.a0 !== 1 ? spendAYear * plan.shape.a0 : spendAYear);
+
 /** Each person's whole years until their own stop, from a stop plan: { you, partner? }. */
 const ownOf = (sp) => Object.fromEntries(sp.stops.map((s) => [s.who, s.S]));
 
@@ -154,8 +161,10 @@ function stopCase(ctx, age, { partTime = 'asTyped' } = {}) {
   const { household } = toHousehold(ins, ctx.env, age);
   const sp = stopAtPlan(household, stopsAt(ins, age).engineStop, ctx.env, ctx.lives);
   const runner = createStopRunner(sp);
-  const verdict = verdictAt(sp, runner, ctx.spendAYear);
-  const c = { age, S: sp.S, own: ownOf(sp), sp, runner, verdict, band: null, inputs: ins };
+  // the spend as typed, in this row's first year: a step at or before this stop is in force from it (spending-shape.md 6.3)
+  const spendAYear = startAYear(ctx.spendAYear, sp.plan);
+  const verdict = verdictAt(sp, runner, spendAYear);
+  const c = { age, S: sp.S, own: ownOf(sp), sp, runner, verdict, band: null, inputs: ins, spendAYear };
   ctx.cases.set(key, c);
   return c;
 }
@@ -179,7 +188,11 @@ function estimateKey(inputs, env, age) {
   const { spend, stop, ...rest } = inputs;
   // about your partner, the row's age is their stop: the stop they named is not part of the household at that age
   if (askedAbout(inputs) === 'partner') rest.partner = { ...rest.partner, stop: null };
-  return JSON.stringify([rest, age, env.seed ?? 0, typeof env.futureReturns === 'function', env.mix || null, env.savingMix || null, env.savingsGrowth ?? null]);
+  const key = [rest, age, env.seed ?? 0, typeof env.futureReturns === 'function', env.mix || null, env.savingMix || null, env.savingsGrowth ?? null];
+  // what is spent changing with age moves the band (it does not without one): its shape, in units of the first amount
+  const shape = shapeOfInputs(inputs, 'spend', spend.kind === 'level' ? spendLevelAMonth(inputs.household, spend.level) : spend.amount);
+  if (shape) key.push(JSON.stringify(shape.steps.map((s) => [s.fromAge, s.perMonth / shape.first, s.then, s.fallsPct ?? null])), JSON.stringify(shape.start));
+  return JSON.stringify(key);
 }
 /** The amounts of the largest earlier pass over fewer than n lives, or null. */
 function smallerPass(key, n) {
@@ -282,7 +295,10 @@ function rowOf(ctx, c, band) {
     age: c.age, ages, stopYear: addYears(env.today, asked).slice(0, 4), status: 'final',
     verdict: v.verdict, lasted: v.lasted, outOfTen: outOfTen(v.lasted), runOutAge: v.runOutAge,
     monthly: { ...band.monthly }, yearly: { ...band.yearly }, lastedAt: { ...band.lastedAt }, runOutAgeAt: { ...band.runOutAgeAt },
-    spare: round2(Math.max(0, band.monthly.careful - spend)),
+    spare: round2(Math.max(0, band.monthly.careful - (c.spendAYear === ctx.spendAYear ? spend : c.spendAYear / 12))),
+    // a stop at or after a step starts on that step (spending-shape.md 6.3): the figure THIS row tested, a month — only
+    // then, so a row before every step (and every flat answer) is as it was
+    ...(c.spendAYear === ctx.spendAYear ? {} : { spendAtStart: round2(c.spendAYear / 12) }),
     potAtStop,
     paidIn: { total: Math.round(paid.reduce((t, x) => t + x.amount, 0) * 100) / 100, byPerson: paid },
     yearsSaving: asked, gapYears,
@@ -446,11 +462,16 @@ export function answerA(inputs, env) {
   const plan = sc.runner.plan;
   const anyMoney = rows.some((r) => r.potAtStop.good > 0);
   const status = anyMoney ? 'ok' : plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
-  shown.phases = phasesAt(sc.sp, shown.potAtStop.good > 0 ? spend * 12 : 0);
+  shown.phases = phasesAt(sc.sp, shown.potAtStop.good > 0 ? sc.spendAYear : 0);
+  // what is spent changing with age (spending-shape.md 6.3): the spend as typed and tested, the careful amount at the start
+  // with the later steps in proportion, and each year's figures (one phase a year: the same figures, year by year)
+  const yearly = sc.sp.household.shape ? phasesAt(sc.sp, shown.potAtStop.good > 0 ? sc.spendAYear : 0, null, { yearly: true }) : null;
+  const shaped = yearly ? shapeOfAnswer({ household: sc.sp.household, plan, at: status === 'ok' ? shown.monthly : null, asTyped: sc.spendAYear / 12, yearly, H0: sc.spendAYear }) : null;
+  if (shaped) markShapeMoves(shown.phases, shaped.byYear);
 
   // Couples apart at the shown row (couples-different-years.md 2.4): each person's own stop, the pay line, and — in a bad
   // case (the worst 1 in 10) — the age from which the pay of the one still working covers all of what is spent
-  const cover = plan.apart && status === 'ok' && plan.apart.coversGap ? coverAt(sc.sp, sc.runner, spend * 12) : null;
+  const cover = plan.apart && status === 'ok' && plan.apart.coversGap ? coverAt(sc.sp, sc.runner, sc.spendAYear) : null;
   const apart = apartOf(plan, ins, sc.own, cover);
 
   // part-time work: the shown row with the earnings (the row itself), without them, and with one more year of them
@@ -475,6 +496,7 @@ export function answerA(inputs, env) {
     ...(ask.asked === 'partner' ? { askedAbout: 'partner' } : {}),
     ...(apart ? { apart } : {}),
     spend: { perMonth: spend, perYear: round2(spend * 12), kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
+    ...(shaped || {}),
     stop: { kind: ask.kind, age: shownAge },
     headline: {
       kind: status !== 'ok' ? 'nothing' : ask.kind === 'age' ? 'named' : earliest.yes !== null ? 'earliest' : 'noneWorked',
@@ -485,7 +507,8 @@ export function answerA(inputs, env) {
     earliest,
     pensionOpens: opensOf(ins, env.today, sc.own),
     gapYears: shown.gapYears,
-    savingsNeeded: plan.apart ? savingsNeededOf(shown.phases, plan.startAge + checkYearOf(plan)) : savingsNeededOf(shown.phases),
+    // (a shape: year by year, so a fall or a rise inside a stretch is counted as it is)
+    savingsNeeded: plan.apart ? savingsNeededOf(yearly || shown.phases, plan.startAge + checkYearOf(plan)) : savingsNeededOf(yearly || shown.phases),
     partTime,
     saving: savingOf(ctx, sc),
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
@@ -499,16 +522,18 @@ export function answerA(inputs, env) {
     },
     units: UNITS
   };
+  // who moves money into drawdown before 6 April 2028 at 55 or 56 (shared/apart.js: everyone it applies to — owner, 2 Oct 2026)
+  const drawdown2028 = before2028(plan.people.map((p) => ({ who: p.who, age: ins[p.who].age, S: sc.own[p.who], pension: p.pension > 0 })), env.today);
   // couples apart: the facts their lines need beyond the result (shared/apart.js)
   const worker = apart ? (apart.first === 'you' ? 'partner' : 'you') : null;
   const apartCtx = !apart ? null : {
     workerPaysIn: payInOf(ins[worker]).total > 0,
     keepsPensions: payKeepsPensions(plan),
-    drawdown: before2028(plan.people.map((p) => ({ who: p.who, age: ins[p.who].age, S: sc.own[p.who], pension: p.pension > 0 })), env.today)
+    drawdown: drawdown2028
   };
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
-    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped),
+    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), drawdown2028,
     ...(apartCtx ? { apart: apartCtx } : {})
   });
 

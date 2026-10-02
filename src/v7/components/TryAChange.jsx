@@ -13,7 +13,8 @@
  */
 import { SCHEMA_C, earliestStart } from '../../answers/c/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
-import { readyMark } from '../state/select.js';
+import { readyMark, typedShape, shapeStepsOf as stepsOf } from '../state/select.js';
+import { SHAPE } from '../copy/shape.js';
 import { Money } from './Money.jsx';
 import { Sentence } from './Sentence.jsx';
 import { Field, blank } from './Field.jsx';
@@ -138,6 +139,8 @@ export function TryAChange({ state, form, result, dispatch }) {
         {s.take && <Sentence s={s.take} source={result} class="take-line try-take-result" data-testid="c.try.take.result" />}
       </div>
 
+      <ShapeTry q="c" state={state} dispatch={dispatch} />
+
       <div class="try-row try-risk" role="group" aria-labelledby="try-risk">
         <span class="try-label" id="try-risk">{t.tryRisk}</span>
         {SCHEMA_C.fields.find((f) => f.path === 'risk').options.map((level) => (
@@ -161,6 +164,27 @@ export function TryAChange({ state, form, result, dispatch }) {
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * The spending shape in "Try a change" (research/v7/spending-shape.md 6.5; today's planner's "Try a strategy … with a
+ * flat income", T19): while what you spend changes with age, "Try it the same every year" tests the starting amount level
+ * for life — and "Put back my steps by age" puts the steps back as they were (the spend step's Undo). Like every other
+ * control here it edits what is typed, and Before / Now says what changed.
+ */
+export function ShapeTry({ q, state, dispatch }) {
+  const d = state.draft[q];
+  if (!d) return null;
+  const shaped = typedShape(q, d.values);
+  const canPutBack = !shaped && !!d.shapeUndo && d.shapeNote && d.shapeNote.kind === 'level';
+  if (!shaped && !canPutBack) return null;
+  return (
+    <div class="try-row try-shape">
+      {shaped
+        ? <Button testid={`${q}.try.shapeLevel`} onClick={() => dispatch({ type: 'shape/preset', q, id: 'level' })}>{SHAPE.try.level}</Button>
+        : <Button testid={`${q}.try.shapeBack`} onClick={() => dispatch({ type: 'shape/undo', q })}>{SHAPE.try.back}</Button>}
+    </div>
   );
 }
 
@@ -236,7 +260,9 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
 
   // Spending: as typed, else (a level) the monthly figure the answer tested.
   const spend = v['spend.kind'] !== 'level' && isNum(v['spend.amount']) ? v['spend.amount'] : (result.spend && isNum(result.spend.perMonth) ? result.spend.perMonth : null);
-  const spendTo = (n) => [set('spend.amount', pounds(n)), set('spend.kind', 'amount')];
+  // with steps by age, the start moves by £100 and the later steps with it, in proportion (spending-shape.md 6.5)
+  const steps = stepsOf(q, draft).length > 0;
+  const spendTo = (n) => [set('spend.amount', pounds(n)), set('spend.kind', 'amount'), ...(steps && spend !== null ? [{ type: 'shape/rescale', q, from: spend }] : [])];
 
   // "Before": the answer kept from before the last change (the shell keeps its a.change / b.change sentence, and the
   // inputs it was for — from which the line names what was changed).
@@ -309,14 +335,17 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
     }
   }
 
+  // (a stop past a step starts on the step, so the figure typed is not this answer's start: spending-shape.md 6.3)
+  const spendLabel = !typedShape(q, draft) ? t.trySpend : result.shapeNotes && result.shapeNotes.inForce ? SHAPE.try.spendTyped : SHAPE.try.spendStart;
   rows.push(
-    <Stepper key="spend" q={q} id="spend" label={t.trySpend} typed="spend.amount" busy={busy}
+    <Stepper key="spend" q={q} id="spend" label={spendLabel} typed="spend.amount" busy={busy}
       value={spend === null ? '' : money(spend)}
       down={spend !== null && spend > 100 ? () => send(spendTo(spend - 100)) : null}
       up={spend !== null ? () => send(spendTo(spend + 100)) : null}
       downLabel={t.trySpendDown.replace('{amount}', money(100))} upLabel={t.trySpendUp.replace('{amount}', money(100))}
       downText={`− ${money(100)}`} upText={`+ ${money(100)}`} />
   );
+  rows.push(<ShapeTry key="shape" q={q} state={state} dispatch={dispatch} />);
 
   // part-time work after the stop is yours (couples-different-years.md 3.4): once you have stopped it is not asked, so not tried
   if (q === 'a' && !aboutPartner) {
@@ -397,6 +426,9 @@ function changeItems(words) {
     { id: 'partnerPayIn', read: (i) => (i.partner ? payInOf(i.partner) : undefined), text: (v) => money(v) },
     { id: 'spend', read: (i) => (i.spend && i.spend.kind === 'level' ? `level:${i.spend.level}` : i.spend && i.spend.amount),
       text: (v) => (typeof v === 'string' && v.startsWith('level:') ? level('spend.level')(v.slice(6)) : money(v)) },
+    // the spending shape: steps by age, or the same every year (only named when it is what changed)
+    { id: 'shape', read: (i) => (i.spend && ((Array.isArray(i.spend.steps) && i.spend.steps.length > 0) || ['falls', 'glides'].includes(i.spend.then)) ? 'shaped' : 'level'),
+      text: (v) => SHAPE.try.kinds[v] },
     { id: 'partTimeYears', read: (i) => (i.partTime && i.partTime.has ? i.partTime.years : 0), text: (v) => yearsText(t, v) },
     { id: 'partTimeYearly', read: (i) => (i.partTime && i.partTime.has ? i.partTime.yearly : null), text: (v) => money(v), skipWhen: (a, b) => a === null || b === null },
     { id: 'savingRisk', read: (i) => i.savingRisk, text: level('savingRisk') },

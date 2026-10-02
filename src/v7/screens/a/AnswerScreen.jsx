@@ -20,9 +20,10 @@
  */
 import {
   AskForm, FieldGroup, Field, Sentence, Money, Verdict, AgesChart, Pots, MadeOf, Assumed, SaverTryAChange, Working, Problem,
-  Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel
+  Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel, StepsField, ShapeAnswer
 } from '../../components/index.js';
-import { isCurrent, askedAboutOf, partnerStopsNow } from '../../state/select.js';
+import { SHAPE } from '../../copy/shape.js';
+import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { A } from '../../copy/a.js';
@@ -41,8 +42,9 @@ export function shortFormPaths(form) {
   const top = SHORT[form.q];
   const errors = Object.keys(form.parsed.errors);
   const inside = (f) => Object.keys(f.when || {}).some((p) => top.includes(p));
-  const extra = form.fields.filter((f) => errors.includes(f.path) && !top.includes(f.path) && !inside(f)).map((f) => f.path);
-  return { top, extra };
+  // the spending shape's own fields are drawn by its block (StepsField), never as boxes of their own
+  const extra = form.fields.filter((f) => errors.includes(f.path) && !top.includes(f.path) && !inside(f) && f.group !== 'shape').map((f) => f.path);
+  return { top, extra, shape: errors.some((p) => isShapePath(form.q, p)) };
 }
 
 /**
@@ -65,15 +67,17 @@ export function saverFrame(state, q) {
 }
 
 /** The short form: what the step needs, asked on the step itself (rule R3) — never a bounce back to step 1. */
-export function ShortForm({ form, dispatch, need }) {
+export function ShortForm({ form, dispatch, need, state }) {
   const words = form.copy;
-  const { top, extra } = shortFormPaths(form);
+  const { top, extra, shape } = shortFormPaths(form);
   const allMissing = Object.values(form.parsed.errors).every((id) => id === 'required');
   return (
     <AskForm form={form} dispatch={dispatch} data-region="form" class="ask short-form">
       <p class="lead">{allMissing ? need : words.answer.needFix}</p>
       {top.map((p) => <FieldGroup key={p} form={form} path={p} dispatch={dispatch} />)}
       {extra.map((p) => <Field key={p} form={form} path={p} dispatch={dispatch} />)}
+      {/* a problem in the spending shape's steps: its block, open, with the sentence under the box */}
+      {shape && state && <StepsField state={state} q={form.q} dispatch={dispatch} forceOpen />}
       <div class="actions-row">
         <Button testid={`${form.q}.action.show`} kind="primary" type="submit">{words.buttons.show}</Button>
         <LinkButton href={href.step(form.q, 'numbers')}>{words.buttons.otherQuestionsFirst}</LinkButton>
@@ -181,6 +185,16 @@ function WhatNext({ result, dispatch, partner }) {
   );
 }
 
+/**
+ * The words after the spending figure over the ages (the chart and the table of every age): "a month"; with steps by age,
+ * "a month at the start, then as you set it"; and when a stop shown is at or after a step, that it starts on the step
+ * (spending-shape.md 6.3: the row's figure is the step's, spendAtStart).
+ */
+export function spendingWords(result, t) {
+  if (!result.spendShape) return t.aMonth;
+  return (result.ages || []).some((r) => r.spendAtStart !== undefined) ? SHAPE.answer.spendingShapedByAge : SHAPE.answer.spendingShaped;
+}
+
 /** The ages side by side on the answer step: the chart, its key, and the way to every age. */
 function ChartBlock({ result, answer, dispatch }) {
   const t = A.answer;
@@ -191,12 +205,12 @@ function ChartBlock({ result, answer, dispatch }) {
   return (
     <section class="block chart" aria-labelledby="chart-title">
       <h2 id="chart-title">{byAges ? t.chartTitleAges : t.chartTitle}</h2>
-      <p class="note">{t.chartSpending} <Money source={result} k="spend.perMonth" /> {t.aMonth}</p>
+      <p class="note">{t.chartSpending} <Money source={result} k="spend.perMonth" /> {spendingWords(result, t)}</p>
       {ready
         ? (
           <>
             <AgesChart result={result} dispatch={dispatch} />
-            <p class="note chart-key">{withFixedCounts(t.chartKey)}</p>
+            <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : t.chartKey)}</p>
             {byAges && <p class="note">{t.chartPress}</p>}
           </>
         )
@@ -224,6 +238,8 @@ function Answer({ state, dispatch, frame }) {
             <section class="headline" data-headline="verdict" aria-labelledby="answer-figure">
               <Verdict result={result} />
               <SecondLine result={result} />
+              {/* spending that changes with age (spending-shape.md 7.2): the figure in the band is the start; the steps follow */}
+              {s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="a.answer.shape" />}
               <Sentence s={s.line} source={result} class="line" data-sentence="verdict" />
               {s.partTime && <Sentence s={s.partTime} source={result} class="part-time-line" />}
               <Sentence s={s.bad} source={result} class="bad" />
@@ -248,6 +264,7 @@ function Answer({ state, dispatch, frame }) {
         )}
         {(result.assumed || []).length > 0 && <Assumed q="a" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>
+      <ShapeAnswer state={state} q="a" dispatch={dispatch} />
       <SpendLine state={state} q="a" dispatch={dispatch} />
       <SaverTryAChange q="a" state={state} form={form} result={result} dispatch={dispatch} />
       <WhatNext result={result} dispatch={dispatch} partner={aboutPartner(state, 'a', result)} />
@@ -261,7 +278,7 @@ export function AnswerScreen(state, dispatch) {
   if (isRetired(state, 'a')) return { question: 'a', rail: true, full: false, view: 'retired', content: <Retired q="a" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'a');
   let body;
-  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} />;
+  if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} state={state} />;
   else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else body = <Answer state={state} dispatch={dispatch} frame={frame} />;

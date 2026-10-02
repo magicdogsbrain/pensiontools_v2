@@ -10,7 +10,7 @@ import { RULES, SAVING } from '../../../src/answers/shared/rules.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
 import { gridToShow, stopKindField, partnerStopFields, untilBothStopField, taxFreeFields, handOverToC } from '../../../src/answers/shared/schemaParts.js';
 
-const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'count'];
+const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'count', 'steps'];   // steps: the spending shape's later steps (spending-shape.md 3.3)
 const byPath = new Map(SCHEMA_B.fields.map((f) => [f.path, f]));
 const isNumber = (f) => f.type === 'money' || f.type === 'age' || f.type === 'percent' || f.type === 'count';
 const BASE = { 'you.pot': '120000', 'you.age': '50', 'you.payIn.total': '700', 'stop.age': '60', 'spend.amount': '2000' };
@@ -23,7 +23,7 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'unit'];   // unit: a steps field's (perMonth | share)
     for (const f of SCHEMA_B.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -67,7 +67,8 @@ describe('SCHEMA_B — the declaration', () => {
   it('no required field has a default, and no field is both optional and without one — but the questions of stopping apart', () => {
     // couples-different-years.md 3.1: none of the new questions has a default (B's new stop question too: not answered is
     // an age), so the checked inputs of a form that never answers them are today's, key for key
-    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken'];
+    // …and the spending shape's (spending-shape.md 3.2): not answered is the same every year, today's inputs key for key
+    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'spend.then', 'spend.steps'];
     for (const f of SCHEMA_B.fields) {
       if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
       expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
@@ -88,7 +89,8 @@ describe('SCHEMA_B — the declaration', () => {
 
   it('the groups are the blocks of the form; savings and confidence are under more detail', () => {
     // the stop question comes before the pay-in block, which "I've already stopped" hides (couples-different-years.md 3.1)
-    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'partner']);
+    // the spending shape is its own block on the spend step (spending-shape.md 4.1)
+    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'shape', 'partner']);
     expect(byPath.get('savings').group).toBe('more');
     expect(byPath.get('confidence')).toEqual({ path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' });
     expect(byPath.get('stop.kind')).toEqual({ path: 'stop.kind', type: 'choice', options: ['age', 'already'], group: 'stop' });   // no "show me ages", no default
@@ -116,7 +118,7 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
-    expect(SCHEMA_B.rules.map((r) => r.id)).toEqual(['stop-after-now', 'end-after-stop', 'pay-in-over-limit',
+    expect(SCHEMA_B.rules.map((r) => r.id)).toEqual(['stop-after-now', 'end-after-stop', 'pay-in-over-limit', 'shape-steps',
       'partner-stop-after-now', 'partner-stop-not-before-now', 'already-needs-partner', 'partner-stop-fits']);
     for (const r of SCHEMA_B.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
@@ -195,7 +197,7 @@ describe('every boundary passes; one below and one above fail', () => {
       expect(LIMIT_ERRORS, `${f.path} = ${b} gave ${e}`).not.toContain(e);
     }
     const below = parseDraft(SCHEMA_B, { ...draftWhere(f), [f.path]: String(f.min - 1) }, TEST_ENV).errors[f.path];
-    expect(f.min === 0 ? 'notANumber' : 'tooLow').toBe(below);
+    expect(f.min - 1 < 0 ? 'notANumber' : 'tooLow').toBe(below);
     expect(parseDraft(SCHEMA_B, { ...draftWhere(f), [f.path]: String(f.max + 1) }, TEST_ENV).errors[f.path]).toBe('tooHigh');
     const typed = (v) => checkInputs(SCHEMA_B, nestFlat({ ...draftWhere(f, true), [f.path]: v }), TEST_ENV).errors[f.path];
     expect(typed(f.min - 1)).toBe('tooLow');

@@ -96,17 +96,25 @@ export function checkAnswer(answer, given) {
   // take-home the household has anyway at the start, the headline is that take-home rounded down to £10 and the first
   // phase shows the take-home itself (less than £10 above it).
   // (couples apart: the careful amount is what is spent once you have both stopped — the first phase from the second stop)
+  // (what is spent changing with age, spending-shape.md 6.2: no later phase is lower than the SHAPE's figure in its first
+  // year — answer.byYear's `spend` — rather than the first phase)
+  const shapeAt = (q) => { const y = Array.isArray(answer.byYear) ? answer.byYear.find((r) => r.age === q.ages.you.from) : null; return y ? y.spend : null; };
   if (answer.status === 'ok' && ph && ph.length && !answer.apart) {
     const gap = ph[0].takeHome - answer.monthly.careful;
     if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 10 && ph[0].fromPots <= 0.005)) fail('I5', `monthly.careful ${answer.monthly.careful} ≠ phases[0].takeHome ${ph[0].takeHome}`);
-    for (let i = 1; i < ph.length; i++) if (ph[i].takeHome < ph[0].takeHome - 0.005) fail('I5', `phase ${i} is lower than the first`);
+    for (let i = 1; i < ph.length; i++) {
+      const floor = answer.byYear ? shapeAt(ph[i]) : ph[0].takeHome;
+      if (floor === null) fail('I5', `phase ${i} has no year of its own in byYear`);
+      else if (ph[i].takeHome < floor - 0.01) fail('I5', `phase ${i} is lower than the ${answer.byYear ? 'shape' : 'first'}`);
+    }
   }
   // couples apart: from the second stop every phase pays at least the careful amount, and more only where the pensions
   // alone pay more (the years apart can hold the amount down below them — "None of it", nothing to draw on)
   if (answer.status === 'ok' && ph && ph.length && answer.apart) {
     const k0 = ph.findIndex((p) => p.fromPay === undefined);
     for (let i = k0; i < ph.length; i++) {
-      const over = ph[i].takeHome - answer.monthly.careful;
+      const target = answer.byYear ? (shapeAt(ph[i]) ?? answer.monthly.careful) : answer.monthly.careful;
+      const over = ph[i].takeHome - target;
       if (over < -0.005 || (over > 0.005 && ph[i].fromPots > 0.005 && !(over < 10))) fail('I5', `phase ${i}: take-home ${ph[i].takeHome} against the careful amount ${answer.monthly.careful}`);
     }
   }

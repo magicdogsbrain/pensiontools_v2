@@ -353,3 +353,64 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .keep .waiting p { margin: 0; }
 .keep-problem { border-left: 4px solid var(--text-danger); }
 .keep-summary { font-weight: 600; }
+
+/* ---- the spending shape (research/v7/spending-shape.md 4.2, 4.4) ------------------------------------------------- */
+.shape h2, .shape h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.shape-summary { margin: 0 0 8px; }
+.shape-lead { margin: 4px 0 12px; }
+.shape-actions { margin: 0 0 12px; }
+.shape-actions > .btn { width: 100%; }
+.shape-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 8px 0 0; }
+.shape-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0 0 12px; padding: 10px 14px;
+  border-radius: var(--radius-sm); background: var(--surface-raised); }
+.shape-note p { margin: 0; flex: 1 1 16rem; }
+.shape-steps { list-style: none; padding: 0; margin: 0 0 8px; }
+.shape-step { padding: 10px 0; border-top: 1px solid var(--line); }
+.shape-step:first-child { border-top: 0; padding-top: 0; }
+.shape-step .field { margin: 0 0 8px; }
+.step-title { margin: 0 0 8px; }
+.step-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 12px; }
+.step-head .field { margin-bottom: 8px; }
+.step-head .partner-age { color: var(--text-muted); padding-bottom: 18px; }
+.step-foot { display: flex; justify-content: flex-start; margin: 0; }
+.shape-then { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 12px; }
+.shape-then .field-then { flex: 0 1 22rem; }
+.shape-then select { width: 100%; max-width: 22rem; }
+.shape-falls input[type="text"] { max-width: 5rem; }
+.shape-add-row { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 8px; }
+.shape-below { margin: 8px 0; color: var(--text-warning); }
+
+.shape-chart { margin: 12px 0 0; }
+.shape-chart p { max-width: none; }
+.shape-chart-title { font-weight: 600; margin: 0 0 6px; }
+.shape-plot-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 6px; align-items: start; }
+.shape-y { position: relative; width: 4.2em; height: 150px; font-size: 13px; color: var(--text-muted); }
+.shape-tick { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.shape-plot { position: relative; height: 180px; min-width: 0; touch-action: pan-y; cursor: crosshair; }
+.shape-plot svg { display: block; width: 100%; height: 150px; overflow: visible; }
+.shape-plot .grid { stroke: var(--line); stroke-width: 1; }
+.shape-plot .guide { stroke: var(--chart-guide); stroke-width: 2; stroke-dasharray: 6 4; }
+.shape-plot .band-goSlow { fill: var(--chart-band); }
+.shape-plot .band-goGo, .shape-plot .band-noGo { fill: transparent; }
+.shape-plot .part-pots { fill: var(--chart-pots); }
+.shape-plot .part-income { fill: var(--chart-income); }
+.shape-plot .part-below { fill: var(--chart-below); }
+.shape-plot .is-picked rect { stroke: var(--focus); stroke-width: 0.08; }
+.shape-bands { position: absolute; left: 0; right: 0; top: 152px; height: 24px; font-size: 13px; color: var(--text-muted); }
+.shape-band { position: absolute; top: 0; overflow: hidden; white-space: nowrap; text-align: center; border-left: 1px solid var(--line-strong); }
+.shape-band.band-goGo { border-left: 0; }
+.shape-x { position: relative; height: 1.4em; margin-left: calc(4.2em + 6px); font-size: 13px; color: var(--text-muted); }
+.shape-age { position: absolute; transform: translateX(-50%); }
+.shape-axis { margin: 2px 0 6px; text-align: center; }
+.shape-year { margin: 4px 0; font-weight: 600; min-height: 1.5em; }
+.shape-key { margin: 0 0 6px; }
+.shape-table { border-collapse: collapse; width: 100%; font-size: var(--size-small); }
+.shape-table th, .shape-table td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); }
+.shape-table tr.is-below td { color: var(--text-warning); }
+@media (min-width: 700px) {
+  .shape-actions > .btn { width: auto; }
+  .shape-plot { height: 220px; }
+  .shape-plot svg { height: 190px; }
+  .shape-y { height: 190px; }
+  .shape-bands { top: 192px; }
+}

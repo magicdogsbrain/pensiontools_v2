@@ -28,6 +28,8 @@
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { SCHEMA_C } from '../../answers/c/schema.js';
+import { SHAPE_UNIT, thenPath, fallsPath, stepsPath, stepsOf, typedShape, hasShape } from './shapeDraft.js';
+import { shareOf, fromShare, startFactor } from './shapeModel.js';
 
 const YOU = ['you.age', 'you.pot', 'you.statePension.kind', 'you.statePension.yearly', 'you.finalSalary.has', 'you.finalSalary.yearly', 'you.finalSalary.fromAge'];
 const PARTNER = ['partner.age', 'partner.pot', 'partner.statePension.kind', 'partner.statePension.yearly', 'partner.finalSalary.has', 'partner.finalSalary.yearly', 'partner.finalSalary.fromAge'];
@@ -186,3 +188,83 @@ export function carryFor(from, to, values, result = null) {
   }
   return { map: has(CARRY, k) ? CARRY[k] : null, opens: has(CARRY_OPENS, k) ? CARRY_OPENS[k] : null };
 }
+
+// ---- the spending shape (research/v7/spending-shape.md 4.5) ------------------------------------------------------------
+
+const readNumber = (t) => {
+  const s = String(t == null ? '' : t).replace(/[£,%\s]/g, '');
+  return /^\d{1,12}(\.\d{1,2})?$/.test(s) ? Number(s) : null;
+};
+const asBox = (n, unit) => (unit === 'share' ? String(n) : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+
+/**
+ * The spending shape a hand-over carries (spending-shape.md 4.5), as the target's draft values to write — or null to
+ * leave the target's shape as it is. The household's shape goes with its figures every way:
+ *   A ↔ B      the first amount's "then" and fall, and every later step, as typed (the same paths);
+ *   C → A, B   each later step in pounds: `base` (the figure the carry puts in the box — C's amount to take, or else its
+ *              careful start) × the step's share, rounded down to the pound; "then" and falls as typed;
+ *   A, B → C   each later step as a share of the first amount (`base`: the figure A or B uses), to two places.
+ * A source that is the same every year carries "the same every year": the target's own shape is cleared, so both
+ * questions test one shape. A shape that cannot be put in the target's units (no figure to work from) is left out.
+ * @param {string} from
+ * @param {string} to
+ * @param {object} values    the source's draft values
+ * @param {number|null} base the first amount the steps are measured against (see above)
+ * @returns {object|null}    { [path]: value | undefined } — undefined deletes the target's value
+ */
+export function carriedSteps(from, to, values, base) {
+  if (!hasShape(from) || !hasShape(to) || from === to) return null;
+  const clear = { [thenPath(to)]: undefined, [fallsPath(to)]: undefined, [stepsPath(to)]: undefined };
+  if (!typedShape(from, values)) return clear;
+  const fromUnit = SHAPE_UNIT[from];
+  const toUnit = SHAPE_UNIT[to];
+  const out = { ...clear };
+  const then = values[thenPath(from)];
+  if (typeof then === 'string') out[thenPath(to)] = then;
+  if (typeof values[fallsPath(from)] === 'string') out[fallsPath(to)] = values[fallsPath(from)];
+  const steps = stepsOf(from, values);
+  if (!steps.length) return out;
+  if (fromUnit === toUnit) { out[stepsPath(to)] = steps; return out; }
+  if (!(typeof base === 'number' && base > 0)) return null;
+  out[stepsPath(to)] = steps.map((s) => {
+    const n = readNumber(s[fromUnit]);
+    const v = n === null ? null : toUnit === 'share' ? shareOf(n, base) : fromShare(n, base);
+    return { fromAge: s.fromAge, [toUnit]: v === null ? '' : asBox(v, toUnit), then: s.then, fallsPct: s.fallsPct };
+  });
+  return out;
+}
+
+const readAge = (t) => (/^\s*\d{1,3}\s*$/.test(String(t == null ? '' : t)) ? Number(t) : null);
+
+/**
+ * A source whose stop is past one of its steps starts on the step in force there (spending-shape.md 3.5, 6.3): A's "show
+ * me ages" lets a step be anywhere after today, so the stop shown — B's stop and C's start after a hand-over — can be past
+ * it, and carried as typed the steps before the target's start were refused there ("before you stop"). Here: the source's
+ * values with the step in force as the first amount's "then" (its fall counts on from the start exactly as from its own
+ * age; a straight line stays straight), only the later steps, and the figure at the start (the model's startFactor × the
+ * first). null when no step is at or before the start, or a step cannot be read (the form says so): carried as it is.
+ * @param {string} from      the source question (pounds a month: A or B)
+ * @param {object} values    the source's draft values
+ * @param {number} first     the source's first amount, £ a month
+ * @param {number|null} startAge   your age at the target's start
+ * @returns {null | { values: object, first: number }}
+ */
+export function atStartOf(from, values, first, startAge) {
+  if (!hasShape(from) || SHAPE_UNIT[from] !== 'perMonth' || !(typeof first === 'number' && first > 0) || !Number.isInteger(startAge)) return null;
+  const steps = stepsOf(from, values);
+  const read = steps.map((s) => ({ fromAge: readAge(s.fromAge), perMonth: readNumber(s.perMonth), then: s.then === 'falls' || s.then === 'glides' ? s.then : 'level', fallsPct: readNumber(s.fallsPct) || 0 }));
+  if (!read.some((s) => s.fromAge !== null && s.fromAge <= startAge)) return null;
+  if (read.some((s) => s.fromAge === null || s.perMonth === null || !(s.perMonth > 0))) return null;
+  const then = values[thenPath(from)];
+  const model = { unit: 'perMonth', start: { then: then === 'falls' || then === 'glides' ? then : 'level', fallsPct: readNumber(values[fallsPath(from)]) || 0 }, steps: read };
+  const factor = startFactor(model, first, startAge);
+  const k = read.reduce((at, s, i) => (s.fromAge <= startAge ? i : at), -1);
+  const inForce = steps[k];
+  const out = { ...values };
+  if (inForce.then === 'falls' || inForce.then === 'glides') out[thenPath(from)] = inForce.then; else delete out[thenPath(from)];
+  if (inForce.then === 'falls' && typeof inForce.fallsPct === 'string' && inForce.fallsPct !== '') out[fallsPath(from)] = inForce.fallsPct; else delete out[fallsPath(from)];
+  const later = steps.filter((_, i) => read[i].fromAge > startAge);
+  if (later.length) out[stepsPath(from)] = later; else delete out[stepsPath(from)];
+  return { values: out, first: first * factor };
+}
+

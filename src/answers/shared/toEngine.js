@@ -43,6 +43,19 @@
  *     the years apart falls on nobody's money and the pay does not make it up (a run-out in that month);
  *   - after the second stop, when one run's money runs out the other's pays all of what the pots pay (passOnAt): the
  *     household runs out only when both have. (A same-year couple keeps today's rule: the first run to run out ends it.)
+ *
+ * WHAT YOU SPEND CHANGING WITH AGE (research/v7/spending-shape.md 5; household.shape, shared/shape.js). The household's
+ * take-home in year y is H × r(y): H the year-0 amount every search finds and every caller still passes, r the shape's
+ * ratio to year 0 (shape.js ratiosOf, today's IncomeSchedule.amountAtAge underneath). `plan.shape` is
+ * { r, a0, startAgeYou, stepYears } and is there only when the household has a shape that moves in this plan's years or
+ * starts past a step — r null when it is level here, a0 (the figure in force at the start, in units of the first amount)
+ * not 1 when a step is at or before the start. Periods are cut at each step's first year too (the shares of the pots never
+ * depend on H, so a cut that comes from the shape alone leaves them as they are). In year y of a period the pots pay
+ * R_y = max(0, H × r(y) × potsShare − netTotal), shared and grossed up per person exactly as R was; a figure is worked out
+ * again only where r moves. The State Pension and other pensions still come first: where they pay more than H × r(y),
+ * the pots pay nothing that year. Neither engine changes: both read a target for each year.
+ * Without a shape no new key, cut or division is reached: every plan, config and breakdown is today's, byte for byte
+ * (tests/v7/shared/answers.flat.test.js, shape.engine.test.js).
  */
 import { grossToNet, netToGross } from '../../services/TaxCalculator.js';
 import { planDrawdown } from '../../services/DrawdownStrategy.js';
@@ -51,6 +64,7 @@ import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { isChargesPct } from '../../services/Charges.js';
 import { RULES, addYears } from './rules.js';
 import { startWhenPensionsOpen, startAsGiven, stopsOf, APART, PAY_COVERS } from './household.js';
+import { ratiosOf, startFactor } from './shape.js';
 
 /** The tax bands the answers use, at today's prices (they rise with prices inside the engine). */
 export const BANDS = { pa: RULES.personalAllowance, brl: RULES.basicRateLimit, hrl: RULES.higherRateLimit };
@@ -225,6 +239,10 @@ export function enginePlan(household, env, opts = {}) {
     }
   }
 
+  // What is spent changing with age (spending-shape.md 5.1): the shape at YOUR age at the household's start. Present only
+  // when it moves in these years, or a step is in force from before the start; absent, nothing below differs from today.
+  const shape = shapeOfPlan(household.shape, people, years);
+
   // Guaranteed income before tax, per person per year, at today's prices; and the periods it is constant in.
   // A pension that opens part-way through cuts a period too: the shares of the pots change on that day.
   const cuts = new Set([0, years]);
@@ -235,6 +253,7 @@ export function enginePlan(household, env, opts = {}) {
     if (asGiven) for (const w of p.work) for (const y of [w.startYear, w.endYear]) if (y > 0 && y < years) cuts.add(y);
   }
   if (apart) cuts.add(G);                                            // the second stop: the pay stops covering
+  if (shape && shape.r) for (const y of shape.stepYears) cuts.add(y); // each step's first year (the shares do not move)
   const bounds = [...cuts].sort((a, b) => a - b);
   const periods = [];
   for (let i = 0; i + 1 < bounds.length; i++) {
@@ -345,14 +364,85 @@ export function enginePlan(household, env, opts = {}) {
     // guaranteed take-home can fall: the floor is the lowest over the plan. Without work it is the first period's.
     // Couples apart: the lowest, over the periods the pay does not cover, of what the guaranteed incomes pay for when the
     // pots pay only their share (netTotal / potsShare) — every period under "None of it".
-    guaranteedAtStartAYear: apart ? floorApart(periods, G, coversGap) : asGiven ? Math.min(...periods.map((p) => p.netTotal)) : periods[0].netTotal,
+    // With a shape (spending-shape.md 5.3): the largest year-0 amount at which the pots pay nothing in ANY year.
+    guaranteedAtStartAYear: shape && shape.r ? floorShaped(periods, shape.r, G, coversGap)
+      : apart ? floorApart(periods, G, coversGap) : asGiven ? Math.min(...periods.map((p) => p.netTotal)) : periods[0].netTotal,
     endDate: addYears(startDate, years)
   };
   if (apart) {
     const firstIndex = people.findIndex((p) => p.join === 0);
     plan.apart = { first: people[firstIndex].who, firstIndex, years: G, payCovers, coversGap, joins: people.map((p) => p.join) };
   }
+  if (shape) {
+    // the band's ceiling (band.js bandRange): an amount every future fails at — the first year the pots pay any part of what
+    // is spent, read from its own floor, the pots scaled to its share
+    if (shape.r) Object.assign(shape, topOf(periods, shape.r, G, coversGap));
+    plan.shape = shape;
+  }
   return plan;
+}
+
+/**
+ * The shape in a plan's years (spending-shape.md 3.5, 5.1): your age at the household's start, the ratios r(y) to year 0
+ * (null when level here), the figure in force at the start in units of the first amount (a0), and each later step's first
+ * year inside the plan. null when there is no shape, or it neither moves here nor starts past a step: today's plan.
+ * @param {null|{ unit: string, first: number, start: object, steps: object[] }} hs   household.shape
+ */
+function shapeOfPlan(hs, people, years) {
+  if (!hs) return null;
+  const you = people.find((p) => p.who === 'you') || people[0];
+  const startAge = you.ageAtStart;
+  const first = hs.unit === 'share' ? 1 : hs.first;
+  const r = ratiosOf(hs, first, startAge, years);
+  const a0 = startFactor(hs, first, startAge);
+  if (!r && a0 === 1) return null;
+  const stepYears = [...new Set((hs.steps || []).map((s) => s.fromAge - startAge).filter((y) => y > 0 && y < years))].sort((a, b) => a - b);
+  return { r, a0, startAgeYou: startAge, stepYears };
+}
+
+/**
+ * The band's floor with a shape: the least, over the years whose need could be a run-out, of netTotal ÷ (potsShare × r(y))
+ * — the largest year-0 amount at which the pots pay nothing in any year. Couples apart: the years apart do not count when
+ * the pay makes up any gap, nor a year whose pots pay nothing (All of it).
+ */
+function floorShaped(periods, r, G, coversGap) {
+  let least = Infinity;
+  for (const per of periods) {
+    const share = potsShareOf(per);
+    if (!(share > 0) || (per.from < G && coversGap)) continue;
+    for (let y = per.from; y < per.to; y++) least = Math.min(least, per.netTotal / (share * r[y]));
+  }
+  return Number.isFinite(least) ? least : Math.min(...periods.map((p) => p.netTotal));
+}
+
+/**
+ * The band's ceiling with a shape (band.js bandRange): the first year in which the pots pay a part of what is spent that
+ * could run out (not a year the pay makes up, nor one whose pots pay nothing), its own floor netTotal ÷ (potsShare × r)
+ * (`topAYear`), and the share of the year-0 amount the pots pay then (`topShare` = potsShare × r): an amount above
+ * topAYear by more than the pots ÷ topShare in that year's money fails in every future. Without a shape and apart the
+ * first year is year 0, r = 1, share 1: today's ceiling, read from year 0's floor.
+ */
+function topOf(periods, r, G, coversGap) {
+  for (const per of periods) {
+    const share = potsShareOf(per);
+    if (!(share > 0) || (per.from < G && coversGap)) continue;
+    const y = per.from;
+    return { topAYear: per.netTotal / (share * r[y]), topShare: share * r[y] };
+  }
+  return { topAYear: periods[0].netTotal, topShare: 1 };
+}
+
+/** The household's take-home in year y of a plan at a year-0 amount of H: H × r(y) with a shape, H itself without. */
+export const amountInYear = (plan, H, y) => (plan.shape && plan.shape.r ? H * plan.shape.r[y] : H);
+
+/**
+ * What the pots pay in each year of the plan at a year-0 amount of H, today's prices: max(0, H × r(y) × potsShare −
+ * netTotal). Pure; no engine run. (A shaped plan's closed years and floors read it year by year.)
+ */
+export function potsNeedByYear(plan, H) {
+  const out = new Array(plan.years).fill(0);
+  for (const per of plan.periods) for (let y = per.from; y < per.to; y++) out[y] = Math.max(0, amountInYear(plan, H, y) * potsShareOf(per) - per.netTotal);
+  return out;
 }
 
 /**
@@ -371,17 +461,36 @@ function floorApart(periods, G, coversGap) {
   return Number.isFinite(least) ? least : Math.min(...periods.map((p) => p.netTotal));
 }
 
-/** The before-tax target of each run by period at one household take-home a year. A closed pension is given nothing to draw. */
-function targetsAt(plan, H) {
-  return plan.periods.map((per) => {
-    const R = Math.max(0, H - per.netTotal);
-    return plan.runs.map((run, r) => {
-      const b = per.byPerson[run.index];
-      const need = per.shares[r] * R;
-      if (run.role === 'pension') return b.locked ? 0 : gross(b.net + need);
-      if (run.role === 'savings') return savingsTargetFor(need);
-      return 0;
-    });
+/**
+ * The before-tax target of each run by period at one household take-home a year. A closed pension is given nothing to draw.
+ * `Hy` is the household's take-home in the period's years (amountInYear: H without a shape).
+ */
+function targetsIn(plan, per, Hy) {
+  const R = Math.max(0, Hy - per.netTotal);
+  return plan.runs.map((run, r) => {
+    const b = per.byPerson[run.index];
+    const need = per.shares[r] * R;
+    if (run.role === 'pension') return b.locked ? 0 : gross(b.net + need);
+    if (run.role === 'savings') return savingsTargetFor(need);
+    return 0;
+  });
+}
+
+/**
+ * Fills `fill(y, value)` for every year of every period from `from` on, `value` worked out by `at(per, k, Hy)` at the
+ * household's take-home that year — once per period without a shape (today's: one figure for all its years), and again
+ * only where the shape moves r within a period.
+ */
+function eachYear(plan, H, at, fill, from = 0) {
+  plan.periods.forEach((per, k) => {
+    if (per.to <= from) return;
+    let lastH = NaN;
+    let v;
+    for (let y = Math.max(per.from, from); y < per.to; y++) {
+      const Hy = amountInYear(plan, H, y);
+      if (Hy !== lastH) { v = at(per, k, Hy); lastH = Hy; }
+      fill(y, v);
+    }
   });
 }
 
@@ -400,10 +509,10 @@ function targetsAt(plan, H) {
 export function configsAt(plan, H, pots = null) {
   if (plan.apart) return apartConfigsAt(plan, H, pots);
   if (!pots && !plan.asGiven) {
-    const targets = targetsAt(plan, H);
+    const schedules = plan.runs.map(() => new Array(plan.years));
+    eachYear(plan, H, (per, k, Hy) => targetsIn(plan, per, Hy), (y, t) => { for (let r = 0; r < t.length; r++) schedules[r][y] = t[r]; });
     return plan.runs.map((run, r) => {
-      const schedule = new Array(plan.years);
-      plan.periods.forEach((per, k) => { for (let y = per.from; y < per.to; y++) schedule[y] = targets[k][r]; });
+      const schedule = schedules[r];
       return { who: run.who, index: run.index, role: run.role, config: { ...run.base, baseSalary: schedule[0], targetSchedule: schedule } };
     });
   }
@@ -414,14 +523,14 @@ export function configsAt(plan, H, pots = null) {
   return plan.runs.map((run, r) => {
     const schedule = new Array(plan.years);
     const locked = run.locked ? new Array(plan.years).fill(0) : null;
-    plan.periods.forEach((per, k) => {
-      const R = Math.max(0, H - per.netTotal);
+    eachYear(plan, H, (per, k, Hy) => {
+      const R = Math.max(0, Hy - per.netTotal);
       const b = per.byPerson[run.index];
       const need = shares[k][r] * R;
       const t = run.role === 'pension' ? (b.locked ? 0 : gross(b.net + need)) : run.role === 'savings' ? savingsTargetFor(need) : 0;
       const lt = locked && b.locked ? savingsTargetFor(need) : 0;
-      for (let y = per.from; y < per.to; y++) { schedule[y] = t; if (locked) locked[y] = lt; }
-    });
+      return [t, lt];
+    }, (y, v) => { schedule[y] = v[0]; if (locked) locked[y] = v[1]; });
     let base = run.base;
     if (pots) {
       const q = pots[run.index];
@@ -461,15 +570,14 @@ function scheduleOn(plan, H, r, shares, from = 0) {
   const run = plan.runs[r];
   const target = new Array(plan.years).fill(0);
   const locked = run.locked ? new Array(plan.years).fill(0) : null;
-  plan.periods.forEach((per, k) => {
-    if (per.to <= from) return;
-    const R = Math.max(0, H * potsShareOf(per) - per.netTotal);
+  eachYear(plan, H, (per, k, Hy) => {
+    const R = Math.max(0, Hy * potsShareOf(per) - per.netTotal);
     const b = per.byPerson[run.index];
     const need = shares[k][r] * R;
     const t = run.role === 'pension' ? (b.locked ? 0 : gross(b.net + need)) : run.role === 'savings' ? savingsTargetFor(need) : 0;
     const lt = locked && b.locked ? savingsTargetFor(need) : 0;
-    for (let y = Math.max(per.from, from); y < per.to; y++) { target[y] = t; if (locked) locked[y] = lt; }
-  });
+    return [t, lt];
+  }, (y, v) => { target[y] = v[0]; if (locked) locked[y] = v[1]; }, from);
   return { target, locked };
 }
 
@@ -505,9 +613,15 @@ export function unpaidOf(plan, H, pots = null, shares = null) {
   const coversGap = Boolean(plan.apart && plan.apart.coversGap);
   let failMonth = null, coveredFrom = null;
   plan.periods.forEach((per, k) => {
-    const R = Math.max(0, H * potsShareOf(per) - per.netTotal);
-    if (!(R > 1e-6) || s[k].reduce((t, v) => t + v, 0) > 0) return;
-    if (per.from < G && coversGap) { if (coveredFrom === null) coveredFrom = per.from * 12; } else if (failMonth === null) failMonth = per.from * 12;
+    if (s[k].reduce((t, v) => t + v, 0) > 0) return;
+    // the first year of the period whose need falls on nobody's money (with a shape the need can start part-way through)
+    let y = per.from;
+    while (y < per.to && !(Math.max(0, amountInYear(plan, H, y) * potsShareOf(per) - per.netTotal) > 1e-6)) {
+      if (!(plan.shape && plan.shape.r)) { y = per.to; break; }
+      y++;
+    }
+    if (y >= per.to) return;
+    if (per.from < G && coversGap) { if (coveredFrom === null) coveredFrom = y * 12; } else if (failMonth === null) failMonth = y * 12;
   });
   return { failMonth, coveredFrom };
 }
@@ -626,9 +740,11 @@ export function toEngine(household, takeHomeAYear, env) {
  * on `atJoin` — the first stopper's money then ({ pension, isa }, today's prices; phasesAt gives the middling over the
  * lives) — and the periods are today's shape. Without `atJoin` the first stopper's money at the start is used.
  */
-export function breakdownAt(plan, H, pots = null, atJoin = null) {
-  if (plan.apart) return apartBreakdownAt(plan, H, pots, atJoin);
+export function breakdownAt(plan, H0, pots = null, atJoin = null) {
+  if (plan.apart) return apartBreakdownAt(plan, H0, pots, atJoin);
   return plan.periods.map((per) => {
+    // the household's take-home in the period's first year (with a shape, H × r there: periods are cut at each step)
+    const H = amountInYear(plan, H0, per.from);
     const R = Math.max(0, H - per.netTotal);
     const shares = pots ? sharesOf(plan.runs, per.byPerson, (run) => runMoneyFor(plan, run, pots), (run) => pots[run.index].isa, plan.asGiven) : per.shares;
     const byPerson = plan.people.map((p, i) => {
@@ -666,13 +782,26 @@ export function breakdownAt(plan, H, pots = null, atJoin = null) {
   });
 }
 
+/**
+ * The same plan with every period cut into its single years (spending-shape.md 5.6): breakdownAt on it gives breakdownAt's
+ * figures for EVERY year — the shares and incomes of each year's period, the take-home that year. For the chart's table,
+ * the per-year rows of a shaped answer and the seed's rows, exact to the year. Pure; no engine run.
+ */
+export function yearlyPlan(plan) {
+  const periods = [];
+  for (const per of plan.periods) for (let y = per.from; y < per.to; y++) periods.push({ ...per, from: y, to: y + 1 });
+  return { ...plan, periods };
+}
+
 /** breakdownAt for a couple apart (see breakdownAt). Always asGiven. */
-function apartBreakdownAt(plan, H, pots, atJoin) {
+function apartBreakdownAt(plan, H0, pots, atJoin) {
   const G = plan.apart.years;
   const pc = plan.apart.payCovers;
   const q0 = potsOrPlan(plan, pots);
   const q1 = atJoin ? q0.map((x, j) => (j === plan.apart.firstIndex ? atJoin : x)) : q0;
   return plan.periods.map((per) => {
+    // the household's take-home in the period's first year (with a shape, H × r there: periods are cut at each step)
+    const H = amountInYear(plan, H0, per.from);
     const apartYears = per.from < G;
     const q = apartYears ? q0 : q1;
     const share = potsShareOf(per);

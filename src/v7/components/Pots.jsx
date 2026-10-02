@@ -3,7 +3,8 @@
  * answer wrote, pots to the nearest £1,000 (part kind 'pot'); the counts in the keys are the answer's own, marked
  * data-fixed.
  *
- *   A: "What you could spend from 60" — the three amounts (a.range), their key, then the pot at 60 (a.pot).
+ *   A: "What you could spend from 60" — the three amounts (a.range), their key, with a spending shape the careful amount
+ *      at the start and the later steps with it (a.couldSpend.shape), then the pot at 60 (a.pot).
  *   B: "What the pot could be by 60" — at today's pay-in (b.pots.now) and at the pay-in that gets there
  *      (b.pots.needed), with the key for bad and good case.
  */
@@ -24,6 +25,7 @@ export function Pots({ result, q }) {
         <p class="note">{t.rangeNote}</p>
         {s.range && <Sentence s={s.range} source={result} class="range" />}
         {s.range && <p class="note range-key" data-testid="a.pots.key">{withFixedCounts(t.rangeKey)}</p>}
+        {s.couldShape && <Sentence s={s.couldShape} source={result} class="shape-line" data-testid="a.answer.couldShape" />}
         {s.pot && <Sentence s={s.pot} source={result} class="pot-line" />}
       </section>
     );

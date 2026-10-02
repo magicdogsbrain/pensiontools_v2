@@ -37,6 +37,27 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.21.0', date: '2026-10-02', engineVersion: '6.19.0',
+    title: 'Spending that changes with age in the preview questions, and the 2028 drawdown note for everyone it applies to',
+    summary: 'In the preview questions (pensiontools.uk/v7/) you can now say how your spending changes as you get older, with as many steps and tapers as Stress tester → Your income shape: any number of steps by age, each staying level, falling by a percentage a year, or moving evenly to the next step, and "Suggest go-go, go-slow and no-go years". Answers say what you could spend at the start and at each step, and a chart shows every year. A plan saved from such an answer arrives in this planner with the same steps. The note about moving pension money into drawdown before 6 April 2028 now shows for everyone it applies to. Nothing in your existing plans changes.',
+    changes: [
+      'Preview: any number of spending steps by age. After each step, spending stays the same, falls by a percentage a year (up to 10%), or moves evenly to the next step.',
+      'Preview: "Suggest go-go, go-slow and no-go years" fills in 15% less from 75 and 30% less from 85, never below your budget\'s essentials (the same rule as this planner\'s "Suggest go-slow & no-go steps"), with Undo. "Slowly less" is the old "declining with age" setting.',
+      'Preview: each step shows its share of the starting amount and, if you have a budget, of your budget (a guide). The chart fits a phone screen, and "Show each year" opens a table.',
+      'Preview: if the age you look at is at or after one of your steps, the answer, the table of ages, the hand-over to the other questions and a saved plan all start from that step\'s figure.',
+      'Saved as a plan: the steps arrive in Stress tester → Your income shape and give the answer\'s after-tax amount every year. A fall of up to 5% a year (the most this planner\'s slider shows) is one step; a faster fall is saved as one step a year.',
+      'Preview: the note "Move into drawdown what you will need before 57 by 5 April 2028" now shows for anyone aged 55 or 56 on that date who starts drawing before then, not only for couples who stop work in different years.'
+    ],
+    corrections: [],
+    effects: { budget: [], stress: [], strategies: [], decision: [], accumulation: [], household: [] },
+    actions: [],
+    notes: [
+      'Still to come in the preview, all designed: one-off costs by age, lump sums and "Turn a lump sum into income", the State Pension layers and budget mark while you set the steps, and the markers on the chart. Every option of this planner\'s income shape must be in the new version before it replaces this one.',
+      'A checklist of every option and saved setting in this planner now guards the new version: a test fails if any of them has no home there or no recorded decision.',
+      'Engine version unchanged (6.19.0).'
+    ]
+  },
+  {
     version: '6.20.2', date: '2026-10-02', engineVersion: '6.19.0',
     title: 'A locked plan stays as you locked it',
     summary: 'Once a plan is locked, its Stress tester and Decision tool settings are meant to stay as they were. Only the two Settings forms checked that. The Budget, the optimiser, a few other buttons, and a browser tab opened before the plan was locked could still change them. Now every save checks first. On a locked plan, a button that would change the settings says "This plan is locked: unlock it in Stress tester → Settings to change it" and does nothing else. If you are still saving, you are asked before a Decision tool month locks your plan. The banner at the top suggests a next step that fits where you are, and the welcome tour now says correctly when a plan locks.',

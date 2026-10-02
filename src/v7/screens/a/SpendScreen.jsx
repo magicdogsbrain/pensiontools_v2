@@ -9,15 +9,20 @@
  *   [once: "You are skipping the budget …"]
  *   Your budget adds up to £2,340 a month.  [Use £2,340 a month]
  *   The national guide levels …
+ *   Does what you spend change as you get older?  No: the same every year …  [Change it with age]
  *   [ Show if it works ]
  *
  * THE RULE: every answer uses the one figure in the box. The budget is beside it as a guide; "Use £X a month" copies its
  * total in, and nothing else does — editing the budget later never moves the figure. Computes nothing: the box is drawn
  * by Field from the question's input list; every budget figure comes from state/select.js.
  *
+ * The spending shape (research/v7/spending-shape.md 4.1): under the figure and the guide levels, one closed line that
+ * opens — steps by age, each staying the same, falling by a percentage a year or moving evenly to the next, and the go-go,
+ * go-slow and no-go years one tap away (StepsField). Closed, the step is what it was: a first answer still takes one figure.
+ *
  * saverSpend(q, layout) is the spend step of A and B alike.
  */
-import { AskForm, Retired, isRetired, formView, Button, SpendHow, BudgetSheet, SpendBeside } from '../../components/index.js';
+import { AskForm, Retired, isRetired, formView, Button, SpendHow, BudgetSheet, SpendBeside, StepsField } from '../../components/index.js';
 import { skipNoteDue } from '../../state/select.js';
 import { BUDGET } from '../../copy/budget.js';
 import { LayoutField, LAYOUT_A } from './NumbersScreen.jsx';
@@ -42,6 +47,7 @@ export function saverSpend(q, layout) {
             {layout.spend.map((p) => <LayoutField key={p} form={form} path={p} dispatch={dispatch} />)}
             {skipNoteDue(state, q) && <p class="notice skip-note" data-testid={`${q}.spend.skipNote`}>{BUDGET.spend.skipNote}</p>}
             <SpendBeside state={state} q={q} dispatch={dispatch} />
+            <StepsField state={state} q={q} dispatch={dispatch} />
             <div class="submit-row">
               <Button testid={`${q}.action.show`} kind="primary" type="submit">{words.buttons.show}</Button>
             </div>

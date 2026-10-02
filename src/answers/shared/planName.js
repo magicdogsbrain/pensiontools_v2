@@ -104,7 +104,9 @@ function suggestA(inputs, result) {
   const shown = result.shown;
   if (!shown || !isNum(shown.age) || !result.spend || !isNum(result.spend.perMonth)) return '';
   const couple = coupleOf(inputs);
-  const tail = `${PLAN_NAME.sep}${tenner(result.spend.perMonth)} a month`;
+  // a stop at or after a step starts on the step (spending-shape.md 6.3): the figure that stop tested, never the one typed
+  const inForce = result.shapeNotes && result.shapeNotes.inForce && Array.isArray(result.spendShape) && result.spendShape.length;
+  const tail = `${PLAN_NAME.sep}${tenner(inForce ? result.spendShape[0].perMonth : result.spend.perMonth)} a month`;
   // "I've already stopped": the row is your partner's stop
   if (youStopped(inputs)) return `Partner stops at ${whole(shown.age)}${tail}`;
   const shownAges = shown.ages || {};
@@ -151,7 +153,24 @@ export function suggestedPlanName(source, inputs, result) {
   if (!result || result.status !== 'ok' || !SUGGEST[source]) return '';
   const ins = inputs || result.inputs;
   if (!ins || !ins.you || !isNum(ins.you.age)) return '';
-  return SUGGEST[source](ins, result);
+  const name = SUGGEST[source](ins, result);
+  // what is spent changing with age (spending-shape.md 8.3): "Stop at 62 · £2,500 a month, less from 75" — when it fits
+  const tail = shapeTail(source === 'c' ? result.shapeAt && result.shapeAt.careful : result.spendShape);
+  if (!name || !tail) return name;
+  const shaped = name.replace(' a month', ` a month${tail}`);
+  return chars(shaped) > PLAN_NAME.suggestMax ? name : shaped;
+}
+
+/**
+ * ", less from 75" / ", more from 85" — the first later step that differs from the start; ", less each year" for a start
+ * that falls. '' without a shape.
+ */
+function shapeTail(list) {
+  if (!Array.isArray(list) || !list.length) return '';
+  const start = list[0];
+  if (start.then === 'falls') return ', less each year';
+  const next = list.slice(1).find((s) => Math.round(s.perMonth) !== Math.round(start.perMonth));
+  return next ? `, ${next.perMonth < start.perMonth ? 'less' : 'more'} from ${whole(next.fromAge)}` : '';
 }
 
 /**

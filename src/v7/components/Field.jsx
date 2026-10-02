@@ -25,7 +25,7 @@ import { SCHEMA_C, earliestStart as earliestStartC } from '../../answers/c/schem
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
-import { parsedDraft, errorsToShow, SPEND_PATHS, offeredOptions, choiceAsked, stopsApart, askedAboutValues, payLineOf, fieldApplies as appliesTo } from '../state/select.js';
+import { parsedDraft, errorsToShow, isSpendPath, offeredOptions, choiceAsked, stopsApart, askedAboutValues, payLineOf, fieldApplies as appliesTo, typedShape } from '../state/select.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
@@ -70,7 +70,8 @@ export function formView(state, q = 'c') {
   }
   const applies = (f) => applying.has(f.path);
   const more = MORE[q];
-  const moreOpen = state.ui.open.includes('more') || more.some((p) => !blank(draft[p])) || more.includes(state.route.focus);
+  // C's spending shape sits under more detail (research/v7/spending-shape.md 4.1): a shape typed keeps it open, as a figure does
+  const moreOpen = state.ui.open.includes('more') || more.some((p) => !blank(draft[p])) || more.includes(state.route.focus) || (q === 'c' && typedShape('c', draft));
   const couple = shown.household === 'couple';
   const byPathQ = BY_PATH[q];
   /** The options a choice draws, and whether it is asked at all (select.js). */
@@ -282,7 +283,7 @@ export function AskForm({ form, dispatch, action = 'draft/ask', children, ...res
     e.preventDefault();
     const root = e.currentTarget;
     const onward = action === 'draft/onward';
-    const own = (p) => !onward || !SPEND_PATHS.includes(p);
+    const own = (p) => !onward || !isSpendPath(p);
     dispatch({ type: action, q });
     const drawn = [...root.querySelectorAll('[data-field]')].map((el) => el.getAttribute('data-field')).filter(own);
     const first = drawn.find((p) => form.parsed.errors[p]) || (onward ? firstProblemOf(form, own) : firstProblem(form));

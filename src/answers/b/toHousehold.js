@@ -11,6 +11,7 @@
  *   untilBothStop         → household.untilBothStop { payCovers }, kept only when the stops differ
  *   taxFreeTaken          → people[i].pensionTaxFreeCash 'alreadyTaken' when yes
  *   spend.*               → spending { kind: 'amount', perMonthTakeHome } | { kind: 'lifestyle', level }
+ *   spend.then / fallsPct / steps → household.shape (spending-shape.md 3), only when it changes with age (A's rule)
  *   you.payIn.*           → people[i].saving.payIn { total, own, employer }: what lands in the pension each month, today's
  *                           prices (conflict 11); "split it up" keeps own and employer, whose sum is the total
  *   you.alreadyDrawing    → people[i].saving.alreadyDrawing (the £10,000 warning only)
@@ -33,7 +34,7 @@
  */
 import { expandHousehold } from '../shared/household.js';
 import { fullStatePensionYearly } from '../shared/rules.js';
-import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf } from '../shared/schemaParts.js';
+import { askedAbout, stopYearsOf, stopWorksOf, savingsInShares, untilBothStopOf, shapeOfInputs, spendLevelAMonth } from '../shared/schemaParts.js';
 
 /** What lands in `who`'s pension each month, as given. */
 export function payInOf(p) {
@@ -80,6 +81,10 @@ export function toHousehold(inputs, env, stopAge) {
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : { kind: 'risk', level: inputs.risk || 'balanced' },
     strategy: { id: 'steady' }
   };
+  // what is spent changing with age (spending-shape.md 3): the steps by your age, the first amount the figure spent
+  const first = inputs.spend.kind === 'level' ? spendLevelAMonth(inputs.household, inputs.spend.level) : inputs.spend.amount;
+  const shape = shapeOfInputs(inputs, 'spend', first);
+  if (shape) short.shape = shape;
   const { household, assumed } = expandHousehold(short, env.today);
   // The saving years' fields ride on the household whether or not the expansion carries them (it keeps what it knows).
   // Each person keeps their own stop (never one shared stop written over both: couples-different-years.md 3.4).

@@ -26,6 +26,7 @@
  */
 import { simulate } from '../../services/SimulationEngine.js';
 import { configsAt } from './toEngine.js';
+import { bandRange } from './band.js';
 
 
 /** £ a month per step of the search. */
@@ -83,8 +84,8 @@ export function runFutureReference(configs, future, needMonth = false) {
  */
 export function createReferenceBandSolver(plan, futures, opts = {}) {
   const n = futures.length;
-  const kLow = Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);        // lasts in every future: the pots pay nothing
-  const kMax = kLow + Math.ceil(plan.totalPots / STEP) + 12;                     // fails in every future of two months or more
+  // kLow lasts in every future (the pots pay nothing); kMax fails in every future of two months or more (band.js bandRange)
+  const { kLow, kMax } = bandRange(plan);
   const lo = new Int32Array(n).fill(kLow);                                       // known to last
   const hi = new Float64Array(n).fill(Infinity);                                 // known to fail
   const configCache = new Map();                                                 // k → configs
@@ -198,8 +199,8 @@ export function createReferenceBandSolver(plan, futures, opts = {}) {
  * @param {{ kLow?: number, kMax?: number }} [range]
  */
 export function mostPerFutureReference(plan, future, range = {}) {
-  const kLow = range.kLow ?? Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);
-  const kMax = range.kMax ?? kLow + Math.ceil(plan.totalPots / STEP) + 12;
+  const kLow = range.kLow ?? bandRange(plan).kLow;
+  const kMax = range.kMax ?? (range.kLow === undefined ? bandRange(plan).kMax : kLow + Math.ceil(plan.totalPots / STEP) + 12);
   const lasts = (k) => !runFutureReference(configsAt(plan, k * STEP * 12), future).failed;
   if (lasts(kMax)) return kMax * STEP;
   let g = kLow;

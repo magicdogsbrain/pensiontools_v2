@@ -92,8 +92,11 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       potsNoLower(a, b);
       noWorseOrFinding(a, b, inputs, findings);
       expect(b.guaranteed).toEqual(a.guaranteed);
-      if (a.shown.yearsSaving > 0) expect(b.shown.paidIn.total).toBeGreaterThan(a.shown.paidIn.total);
-      else expect(b.shown.paidIn.total).toBe(0);
+      // (couples apart: the years are your own — your partner may keep paying in after you stop now, and what they pay in
+      // is the same in both; a NIGHTLY=1 run, 1 Oct 2026: you 18 stopping now, your partner paying in £1 until 56)
+      const yours = a.apart ? a.apart.stops.you.age - inputs.you.age : a.shown.yearsSaving;
+      if (yours > 0) expect(b.shown.paidIn.total).toBeGreaterThan(a.shown.paidIn.total);
+      else expect(b.shown.paidIn.total).toBe(a.apart ? a.shown.paidIn.total : 0);
     }), opts());
     report('PA1', findings);
   });

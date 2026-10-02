@@ -24,7 +24,7 @@ import { LayoutField, LAYOUT_A } from './NumbersScreen.jsx';
 
 export function saverSpend(q, layout) {
   return function SpendScreen(state, dispatch) {
-    if (isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} /> };
+    if (isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} state={state} /> };
     const form = formView(state, q);
     const words = form.copy;
     const lines = state.draft[q] && state.draft[q].spendHow === 'lines';

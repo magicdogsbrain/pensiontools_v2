@@ -205,6 +205,9 @@ function Choices({ q, id, label, options, words, chosen, onPick }) {
  * B: pay in (£50 steps), stop age, spending, risk while saving, and how often the pay-in should get there. Then
  * "Before / Now": the verdict (A) or the number (B) before the last change, and now (the answer's own a.change /
  * b.change sentence).
+ *
+ * About your partner ("I've already stopped"; couples-different-years.md 5.2, 5.3): the stop that moves is theirs (their
+ * age now the lowest), and nothing of yours that has stopped is offered (B: what you pay in).
  */
 export function SaverTryAChange({ q, state, form, result, dispatch }) {
   const v = form.parsed.values;
@@ -218,14 +221,18 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
   const set = (path, value) => setQ(q, path, value);
   const age = v['you.age'];
 
-  // The stop age: as typed, else the one the answer is for. A stops no earlier than today; B at least a year on.
-  const stop = isNum(v['stop.age']) && v['stop.kind'] !== 'ages' ? v['stop.age'] : (result.stop && isNum(result.stop.age) ? result.stop.age : null);
-  const lowest = isNum(age) ? (q === 'b' ? age + 1 : age) : null;
+  // The stop age: as typed, else the one the answer is for. A stops no earlier than today; B at least a year on. The
+  // stop is the asked person's: yours, or your partner's once you have stopped.
+  const aboutPartner = form.asked === 'partner';
+  const at = aboutPartner ? 'partner.stop' : 'stop';
+  const from = aboutPartner ? v['partner.age'] : age;
+  const stop = isNum(v[`${at}.age`]) && v[`${at}.kind`] !== 'ages' ? v[`${at}.age`] : (result.stop && isNum(result.stop.age) ? result.stop.age : null);
+  const lowest = isNum(from) ? (q === 'b' ? from + 1 : from) : null;
   // Each press sends the figure first and then the choice it belongs to, so no step in between is a draft that does not
   // parse — that would swap the answer for the short form for a moment and take the keyboard's place with it.
-  const stopTo = (n) => (q === 'a' ? [set('stop.age', String(n)), set('stop.kind', 'age')] : [set('stop.age', String(n))]);
-  const byAges = q === 'a' && v['stop.kind'] === 'ages';
-  const oldest = form.byPath.get('stop.age').max;
+  const stopTo = (n) => (q === 'a' || aboutPartner ? [set(`${at}.age`, String(n)), set(`${at}.kind`, 'age')] : [set('stop.age', String(n))]);
+  const byAges = q === 'a' && v[`${at}.kind`] === 'ages';
+  const oldest = form.byPath.get(`${at}.age`).max;
 
   // Spending: as typed, else (a level) the monthly figure the answer tested.
   const spend = v['spend.kind'] !== 'level' && isNum(v['spend.amount']) ? v['spend.amount'] : (result.spend && isNum(result.spend.perMonth) ? result.spend.perMonth : null);
@@ -238,11 +245,11 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
 
   const rows = [];
   rows.push(
-    <Stepper key="stop" q={q} id="stop" label={t.tryStop} typed="stop.age" busy={busy}
+    <Stepper key="stop" q={q} id="stop" label={aboutPartner ? t.tryStopPartner : t.tryStop} typed={`${at}.age`} busy={busy}
       value={byAges ? t.tryStopAges : stop === null ? '' : ageText(stop)}
       down={stop !== null && lowest !== null && stop > lowest ? () => send(stopTo(stop - 1)) : null}
       up={stop !== null && stop < oldest ? () => send(stopTo(stop + 1)) : null}
-      downLabel={t.tryStopDown} upLabel={t.tryStopUp} downText="− 1" upText="+ 1" />
+      downLabel={aboutPartner ? t.tryStopPartnerDown : t.tryStopDown} upLabel={aboutPartner ? t.tryStopPartnerUp : t.tryStopUp} downText="− 1" upText="+ 1" />
   );
 
   if (q === 'a') {
@@ -275,7 +282,8 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
     const payIn = split ? (isNum(v['you.payIn.own']) ? v['you.payIn.own'] : 0) + (isNum(v['you.payIn.employer']) ? v['you.payIn.employer'] : 0)
       : (isNum(v['you.payIn.total']) ? v['you.payIn.total'] : null);
     const payTo = (n) => send([set('you.payIn.total', pounds(n)), set('you.payIn.kind', 'total')]);
-    rows.push(
+    // you have stopped: nothing more goes into your pension, so there is nothing of yours to try
+    if (!aboutPartner) rows.push(
       <Stepper key="payIn" q={q} id="payIn" label={form.couple ? t.tryPayInCouple : t.tryPayIn} typed="you.payIn.total" busy={busy}
         value={payIn === null ? '' : money(payIn)}
         down={payIn !== null && payIn > 0 ? () => payTo(Math.max(0, payIn - 50)) : null}
@@ -310,7 +318,8 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
       downText={`− ${money(100)}`} upText={`+ ${money(100)}`} />
   );
 
-  if (q === 'a') {
+  // part-time work after the stop is yours (couples-different-years.md 3.4): once you have stopped it is not asked, so not tried
+  if (q === 'a' && !aboutPartner) {
     const years = v['partTime.has'] === true && isNum(v['partTime.years']) ? v['partTime.years'] : 0;
     const up = () => send([...(blank(draft['partTime.yearly']) ? [set('partTime.yearly', '12,000')] : []), set('partTime.years', String(years + 1)),
       set('partTime.has', true)]);
@@ -379,6 +388,9 @@ function changeItems(words) {
   const level = (path) => (v) => (f[path] && f[path].options && f[path].options[v] ? f[path].options[v].toLowerCase() : String(v));
   return [
     { id: 'stop', read: (i) => (i.stop && i.stop.kind === 'ages' ? 'ages' : i.stop && i.stop.age), text: (v) => (v === 'ages' ? t.tryStopAges : ageText(v)) },
+    // the partner's own stop (couples-different-years.md): an age, or "show me ages"; not answered, nothing to name
+    { id: 'partnerStop', read: (i) => { const st = i.partner && i.partner.stop; return !st ? undefined : st.kind === 'ages' ? 'ages' : st.age; },
+      text: (v) => (v === 'ages' ? t.tryStopAges : ageText(v)) },
     { id: 'pot', read: (i) => i.you && i.you.pot, text: (v) => money(v) },
     { id: 'payIn', read: (i) => payInOf(i.you), text: (v) => money(v) },
     { id: 'partnerPot', read: (i) => i.partner && i.partner.pot, text: (v) => money(v) },

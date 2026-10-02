@@ -7,6 +7,10 @@
  *   npx -y node@20 tests/v7/states/build-states.mjs --question a     question A (states/a/), with src/answers/a/answer.js
  *   npx -y node@20 tests/v7/states/build-states.mjs --question b     question B
  *   V7_STATES_FUTURES=40 npx -y node@20 tests/v7/states/build-states.mjs
+ *   … --only numbers-apart,answer-apart      writes only the states named (the others, and made-with.json, are left as
+ *                                            they are): a new state is added without touching the pinned ones
+ *   … --out <dir>                            writes the whole set into <dir> instead (to compare a fresh run with the
+ *                                            pinned states, file by file), and nothing in the repo
  *
  * Run it again whenever the answer function, the input list or the shell's inputsKey changes;
  * tests/v7/c/render.test.js fails when a state no longer matches a fresh run.
@@ -41,6 +45,45 @@ const FUTURES = Number(process.env.V7_STATES_FUTURES || 1000);
 const at = process.argv.indexOf('--question');
 const QUESTION = at === -1 ? 'c' : process.argv[at + 1];
 if (!['a', 'b', 'c'].includes(QUESTION)) throw new Error(`--question takes a, b or c, not ${QUESTION}`);
+const argOf = (name) => { const i = process.argv.indexOf(name); return i === -1 ? null : process.argv[i + 1]; };
+const ONLY = argOf('--only') ? argOf('--only').split(',').map((x) => x.trim()).filter(Boolean) : null;
+const OUT = argOf('--out');
+if (ONLY && OUT) throw new Error('--only and --out do not go together');
+
+/**
+ * A state cut to the shape of the states already pinned in `dir` (--only): the same top-level keys and the same keys in
+ * each question's draft. The pinned states were written before the state gained `budget`, `keep` and the drafts'
+ * `spendHow` and `skipNoted` (all empty in a named state, and drawn the same without them); a state added to the set is
+ * written in the set's shape, so the set stays one shape. Nothing else is cut.
+ */
+function inPinnedShape(state, dir) {
+  const ref = readdirSync(dir).filter((f) => f.endsWith('.json') && !f.startsWith('_') && f !== 'made-with.json')
+    .map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8'))).find((x) => x && x.draft && x.route);
+  if (!ref) return state;
+  const out = Object.fromEntries(Object.keys(ref).filter((k) => k in state).map((k) => [k, state[k]]));
+  out.draft = Object.fromEntries(Object.entries(state.draft).map(([q, d]) => [q, ref.draft[q]
+    ? Object.fromEntries(Object.keys(ref.draft[q]).filter((k) => k in d).map((k) => [k, d[k]])) : d]));
+  return out;
+}
+
+/**
+ * Writes the states into `dir` (states/<q>/, or --out): every one, after emptying it — or, with --only, just those named,
+ * in the shape of the states already there, leaving the rest. → whether the whole set was written (made-with is then
+ * written too).
+ */
+function writeStates(states, dir) {
+  const target = OUT ? join(OUT, QUESTION) : dir;
+  mkdirSync(target, { recursive: true });
+  const names = ONLY || Object.keys(states);
+  for (const n of names) if (!states[n]) throw new Error(`--only: there is no state called ${n} in question ${QUESTION}`);
+  if (!ONLY) for (const f of readdirSync(target)) if (f.endsWith('.json')) rmSync(join(target, f));
+  for (const name of names) {
+    const text = JSON.stringify(ONLY ? inPinnedShape(states[name], target) : states[name], null, 2) + '\n';
+    if (/undefined/.test(text)) throw new Error(`${name}: the state does not survive JSON`);
+    writeFileSync(join(target, `${name}.json`), text);
+  }
+  return { target, whole: !ONLY, names };
+}
 
 /** The shell's own key for a set of inputs (package 3). Until that file exists: the brief's definition (4.5). */
 async function keyFunction() {
@@ -286,19 +329,14 @@ function buildSaverStates(q, { today, futures, inputsKey: keyOf }) {
 
 if (QUESTION !== 'c') {
   const { states, patched: made, answer } = buildSaverStates(QUESTION, { today: TODAY, futures: FUTURES, inputsKey });
-  const dir = join(here, QUESTION);
-  mkdirSync(dir, { recursive: true });
-  for (const f of readdirSync(dir)) if (f.endsWith('.json')) rmSync(join(dir, f));
-  for (const [name, state] of Object.entries(states)) {
-    const text = JSON.stringify(state, null, 2) + '\n';
-    if (/undefined/.test(text)) throw new Error(`${name}: the state does not survive JSON`);
-    writeFileSync(join(dir, `${name}.json`), text);
+  const { target, whole, names } = writeStates(states, join(here, QUESTION));
+  if (whole) {
+    writeFileSync(join(target, '_made-with.json'), JSON.stringify({
+      note: 'Written by tests/v7/states/build-states.mjs --question ' + QUESTION + '. Do not edit by hand.',
+      today: TODAY, futures: FUTURES, inputsKeyFrom: keyFrom, answer, patched: made
+    }, null, 2) + '\n');
   }
-  writeFileSync(join(dir, '_made-with.json'), JSON.stringify({
-    note: 'Written by tests/v7/states/build-states.mjs --question ' + QUESTION + '. Do not edit by hand.',
-    today: TODAY, futures: FUTURES, inputsKeyFrom: keyFrom, answer, patched: made
-  }, null, 2) + '\n');
-  console.log(`${Object.keys(states).length} states written to tests/v7/states/${QUESTION}/ (${made.length} with a hand-made result: ${made.join(', ') || 'none'})`);
+  console.log(`${names.length} states written to ${target}/ (${made.length} with a hand-made result: ${made.join(', ') || 'none'})`);
   process.exit(0);
 }
 
@@ -369,6 +407,25 @@ states['answer-pensions-only'] = answered('answer-pensions-only', { 'you.pot': '
 states['answer-pensions-only-later'] = answered('answer-pensions-only-later', { 'you.pot': '0', 'you.age': '58' });
 states['answer-nothing'] = answered('answer-nothing', { 'you.pot': '0', 'you.age': '68', 'you.statePension.kind': 'none' }, { patch: 'nothing' });
 states['answer-assumed-open'] = answered('answer-assumed-open', F1, { open: ['madeOf', 'assumed', 'allAssumed'] });
+/**
+ * A couple who stop work in different years (research/v7/couples-different-years.md 9.7 B1; fixture F5): you 56, stopped
+ * and drawing, so the money is from now; your partner 55, still working and paying in £500 and £350 from the employer,
+ * stops next year at 56; £60,000 of savings between you. Made-up round figures, nobody's own.
+ * tests/v7/states/states.slow.test.js checks the same household with the other of you as "you" gives the same figures.
+ */
+const APART = {
+  household: 'couple', 'you.pot': '500,000', 'you.age': '56', 'start.kind': 'now',
+  'partner.age': '55', 'partner.pot': '450,000', 'partner.stop.kind': 'age', 'partner.stop.age': '56',
+  'partner.payIn.has': 'yes', 'partner.payIn.kind': 'split', 'partner.payIn.own': '500', 'partner.payIn.employer': '350', savings: '60,000'
+};
+states['numbers-apart'] = base('#/c/numbers', APART, { open: ['more'] });
+states['answer-apart'] = answered('answer-apart', APART, { open: ['madeOf'] });
+{
+  const r = states['answer-apart'].answers.c.result;
+  if (!(r.status === 'ok' && r.apart && r.apart.first === 'you' && r.apart.years === 1 && r.payIn && r.payIn.total === 850)) {
+    throw new Error('answer-apart: the inputs no longer give a couple apart, you stopped and your partner a year on — choose new inputs');
+  }
+}
 {
   // the paying-in answer is worked on the lives (step 4 brief J8; fixture F4 is the same household at 40 futures)
   for (const name of ['answer-paying-in', 'answer-paying-in-default']) {
@@ -392,21 +449,16 @@ states['soon-d'] = base('#/soon/d');
 states['not-built-ways'] = base('#/c/ways', F1);
 states['not-found'] = base('#/plan/abc/c/answer');
 
-const out = join(here, 'c');
-mkdirSync(out, { recursive: true });
-for (const f of readdirSync(out)) if (f.endsWith('.json')) rmSync(join(out, f));
-for (const [name, state] of Object.entries(states)) {
-  const text = JSON.stringify(state, null, 2) + '\n';
-  if (/undefined/.test(text)) throw new Error(`${name}: the state does not survive JSON`);
-  writeFileSync(join(out, `${name}.json`), text);
+const { target, whole, names } = writeStates(states, join(here, 'c'));
+if (whole) {
+  const probe = answerC({ household: 'single', you: { pot: 12000, age: 58 } }, { today: TODAY, futures: 10, seed: 0 });
+  writeFileSync(join(OUT ? target : here, 'made-with.json'), JSON.stringify({
+    note: 'Written by tests/v7/states/build-states.mjs. Do not edit by hand.',
+    today: TODAY,
+    futures: FUTURES,
+    inputsKeyFrom: keyFrom,
+    answer: probe.monthly && probe.monthly.careful === 1380 ? 'the STUB of package 1 (figures do not follow the inputs)' : 'src/answers/c/answer.js',
+    patched
+  }, null, 2) + '\n');
 }
-const probe = answerC({ household: 'single', you: { pot: 12000, age: 58 } }, { today: TODAY, futures: 10, seed: 0 });
-writeFileSync(join(here, 'made-with.json'), JSON.stringify({
-  note: 'Written by tests/v7/states/build-states.mjs. Do not edit by hand.',
-  today: TODAY,
-  futures: FUTURES,
-  inputsKeyFrom: keyFrom,
-  answer: probe.monthly && probe.monthly.careful === 1380 ? 'the STUB of package 1 (figures do not follow the inputs)' : 'src/answers/c/answer.js',
-  patched
-}, null, 2) + '\n');
-console.log(`${Object.keys(states).length} states written to tests/v7/states/c/ (${patched.length} with a hand-made result: ${patched.join(', ') || 'none'})`);
+console.log(`${names.length} states written to ${target}/ (${patched.length} with a hand-made result: ${patched.join(', ') || 'none'})`);

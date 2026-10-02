@@ -5,10 +5,17 @@
  *
  * Plain English, in every state: no stop-work words, no length of time to wait, "State Pension" and
  * "final-salary pension" by name. Couples are "you" and "your partner".
+ *
+ * Couples who stop work in different years (result.apart; couples-different-years.md 2.4, 5.1): the careful amount is what
+ * the two of you can spend once you have both stopped — "From when you have both stopped (your partner at 56). Until then,
+ * half of it comes from your money and your partner's pay covers the rest." — and the first "what it is made of" line
+ * says so; what was assumed and the warnings carry the pay line (shared/apart.js, the same words in C, A and B). C is
+ * read by people who have stopped: "stops at 56", never "stop work at 56". With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, get, lastedText } from '../shared/format.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
+import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -111,7 +118,7 @@ function afterPhrase(facts) {
   return parts.join(' and ');
 }
 
-const fromParts = (facts) => (facts.startsNow ? ['from now'] : facts.couple ? ['from when you are ', A('phases.0.ages.you.from')] : ['from age ', A('phases.0.ages.you.from')]);
+const fromParts = (facts) => (facts.apart ? ['from when you have both stopped'] : facts.startsNow ? ['from now'] : facts.couple ? ['from when you are ', A('phases.0.ages.you.from')] : ['from age ', A('phases.0.ages.you.from')]);
 const untilParts = (facts) => (facts.couple ? ['until the younger of you is ', A('basis.endAge')] : ['until you are ', A('basis.endAge')]);
 
 /**
@@ -157,6 +164,11 @@ function madeOfLines(result, facts) {
   const phases = result.phases;
   phases.forEach((ph, i) => {
     const at = 'phases.' + i;
+    if (ph.fromPay !== undefined && facts.apart) {
+      lines.push(apartMadeOf(result, facts, ph, i));
+      if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
+      return;
+    }
     const from = potsPhrase(facts, ph);
     const spWord = ph.byPerson.filter((b) => b.statePension > 0).length === 2 ? 'State Pensions' : 'State Pension';
     const hasIncome = ph.statePension > 0 || ph.finalSalary > 0;
@@ -192,6 +204,36 @@ function madeOfLines(result, facts) {
 
 const yearsWord = (years) => (years === 1 ? ' year' : ' years');
 
+/**
+ * A stretch of years before the second stop (couples-different-years.md 2.4): what the money of the one who has stopped
+ * pays, and what the pay of the one still working covers — "Until you are 63, while your partner is still working: £1,600
+ * a month from your money + £1,600 from your partner's pay."
+ */
+function apartMadeOf(result, facts, ph, i) {
+  const at = 'phases.' + i;
+  const worker = workerOf(facts.apart);
+  const stopped = facts.apart.first;
+  const me = ph.byPerson.find((b) => b.who === stopped);
+  const closedNow = Boolean(me && me.locked);
+  const items = [];
+  const spWord = ph.byPerson.filter((b) => b.statePension > 0).length === 2 ? 'State Pensions' : 'State Pension';
+  if (ph.shown.statePension > 0) items.push([M(at + '.shown.statePension'), ' ', spWord]);
+  if (ph.shown.finalSalary > 0) items.push([M(at + '.shown.finalSalary'), ' final-salary pension']);
+  const money = closedNow ? (stopped === 'you' ? 'your savings' : "your partner's savings") : (stopped === 'you' ? 'your money' : "your partner's money");
+  if (ph.shown.fromPots > 0) items.push([M(at + '.shown.fromPots'), ' from ', money]);
+  const pay = worker === 'partner' ? "your partner's pay" : 'your pay';
+  const parts = [...ageWords(result, facts, i + 1, 'Until '), ', while ', worker === 'partner' ? 'your partner is' : 'you are', ' still working: '];
+  // (nothing from the money of the one who has stopped: all from the pay — or, when the pay does not cover it, nothing)
+  if (!items.length) parts.push(...(ph.shown.fromPay > 0 ? [M(at + '.shown.takeHome'), ' a month, all from ', pay, '.'] : ['nothing yet.']));
+  else {
+    if (ph.shown.fromPay > 0) items.push([M(at + '.shown.fromPay'), ' from ', pay]);
+    items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
+    parts.push('.');
+  }
+  if (closedNow) parts.push(' ', stopped === 'you' ? 'Your pension' : "Your partner's pension", " can't be touched until then.");
+  return S('c.madeOf.apart', parts);
+}
+
 // ---- on the lives: the money first taken at an age, the pot invested and anything paid in going in until then -------
 
 const RISK_SHORT = { cautious: 'Cautious, about a third in shares', balanced: 'Balanced, about half in shares', adventurous: 'Adventurous, about two thirds in shares' };
@@ -216,7 +258,14 @@ function sourcesOnLivesParts(result, facts) {
   if (yp && pp) items.push(['pots of ', M('inputs.you.pot'), ' and ', M('inputs.partner.pot'), ' today']);
   else if (yp) items.push(['a pot of ', M('inputs.you.pot'), ' today']);
   else if (pp) items.push(["your partner's pot of ", M('inputs.partner.pot'), ' today']);
-  if (result.payIn.total > 0 && !facts.startsNow) items.push([M('payIn.total'), ' a month going in ', ...untilStartParts(facts)]);
+  if (facts.apart) {
+    // couples apart: what goes into each pension, until its holder's own stop
+    for (const [k, x] of (result.saving || []).entries()) {
+      if (!(x.yearsSaving > 0 && x.payIn.total > 0)) continue;
+      items.push(x.who === 'you' ? [M(`saving.${k}.payIn.total`), ' a month going into your pension until you stop at ', A('apart.stops.you.age')]
+        : [M(`saving.${k}.payIn.total`), " a month going into your partner's pension until they stop at ", A('apart.stops.partner.age')]);
+    }
+  } else if (result.payIn.total > 0 && !facts.startsNow) items.push([M('payIn.total'), ' a month going in ', ...untilStartParts(facts)]);
   if (facts.savings > 0) items.push(['savings of ', M('inputs.savings')]);
   const sps = facts.people.filter((p) => p.sp);
   if (sps.length === 2) items.push('your State Pensions');
@@ -241,6 +290,30 @@ function payInSentence(result, facts) {
   }
   const plural = /pots|and savings|^the savings$/.test(what);
   return S('c.payIn.none', ['Nothing more paid in; ', what, plural ? ' stay' : ' stays', ' invested at ', risk, ', ', ...untilStartParts(facts), '.']);
+}
+
+/**
+ * Couples apart: what goes in until each still saving stops, and how the money is kept meanwhile ("Paying in £700 a month
+ * into your partner's pension until they stop at 56, rising with prices; the pots invested at …, until then.").
+ */
+function payInSentenceApart(result, facts) {
+  const risk = RISK_SHORT[result.inputs.risk] || RISK_SHORT.balanced;
+  const what = investedWord(facts);
+  const savers = (result.saving || []).map((x, k) => ({ x, k })).filter(({ x }) => x.yearsSaving > 0);
+  const until = savers.length === 2 ? [' until each of you stops'] : savers[0].x.who === 'you' ? [' until you stop at ', A('apart.stops.you.age')] : [' until your partner stops at ', A('apart.stops.partner.age')];
+  const paying = savers.filter(({ x }) => x.payIn.total > 0).map(({ x, k }) => [M(`saving.${k}.payIn.total`), ' a month into ', x.who === 'you' ? 'your pension' : "your partner's pension"]);
+  if (paying.length) return S('c.payIn', ['Paying in ', ...joinAnd(paying), ...until, ', rising with prices; ', what, ' invested at ', risk, ', until then.']);
+  const plural = /pots|and savings|^the savings$/.test(what);
+  return S('c.payIn.none', ['Nothing more paid in; ', what, plural ? ' stay' : ' stays', ' invested at ', risk, ...until, '.']);
+}
+
+/** Couples apart: the money at each person's own stop (one who has already stopped: as they have it today). */
+function potSentenceApart(facts) {
+  const pots = potHolders(facts);
+  const what = (pots > 1 ? 'your pots' : pots ? 'your pot' : '') + (facts.savings > 0 ? (pots ? ' and savings' : 'your savings') : '');
+  const plural = pots > 1 || facts.savings > 0;
+  return S('c.pot', ['Taking each of you at your own stop, ', what || 'your pot', ' could be about ', P('potAtStart.middling'), '. In a bad case (the worst ', F('1'), ' in ', F('10'), ') ',
+    plural ? 'they' : 'it', ' would be ', P('potAtStart.careful'), ', and in a good case (the best ', F('1'), ' in ', F('10'), ') ', P('potAtStart.good'), '.']);
 }
 
 /** "By 67 your pot could be about £420,000. In a bad case (the worst 1 in 10) it would be £330,000, and …". */
@@ -292,10 +365,27 @@ function closedYearsSentence(result, facts) {
   return S('c.none.closed', [...who, ...meanwhile, ...instead]);
 }
 
+/**
+ * The sub-line of a couple who stop in different years (couples-different-years.md 2.4): the amount is from when you have
+ * both stopped; until then, the pots pay their share of it and the pay of the one still working the rest.
+ */
+function apartSub(facts) {
+  const ap = facts.apart;
+  const second = workerOf(ap);
+  const money = ap.first === 'you' ? 'your money' : "your partner's money";
+  const pay = second === 'partner' ? "your partner's pay" : 'your pay';
+  const until = ap.payCovers >= 1 ? [pay, ' covers all of it'] : ap.payCovers > 0 ? ['half of it comes from ', money, ' and ', pay, ' covers the rest'] : ['all of it comes from ', money];
+  return S('c.sub.apart', ['after tax, for the two of you, from when you have both stopped (', ...(second === 'partner' ? ['your partner at ', A('apart.stops.partner.age')] : ['you at ', A('apart.stops.you.age')]),
+    ') ', ...untilParts(facts), ', going up each year with prices. Until then, ', ...until, '.']);
+}
+
 /** The sentences of an answer on the lives (onLives.js): C's, with what goes in and the pot at the start said plainly. */
 export function sentencesOnLives(result, facts) {
   const out = sentencesFor(result, facts);
-  if (!facts.startsNow) {
+  if (facts.apart) {
+    out.payIn = payInSentenceApart(result, facts);
+    out.pot = potSentenceApart(facts);
+  } else if (!facts.startsNow) {
     out.payIn = payInSentence(result, facts);
     out.pot = potSentence(facts);
   }
@@ -314,7 +404,7 @@ export function sentencesFor(result, facts) {
   const lastedParts = wordsParts(result.lasted.careful >= 0.95 - 1e-9 ? outOfTen(result.lasted.careful).words : 'in 9 futures out of 10');
 
   const head = S('c.head', ['About ', M('monthly.careful'), ' a month']);
-  const sub = S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...(facts.life ? [] : ifStaysParts(facts))]);
+  const sub = facts.apart ? apartSub(facts) : S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...(facts.life ? [] : ifStaysParts(facts))]);
   const line = S(c ? 'c.line.couple' : 'c.line', [
     'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', ', c ? 'the two of you' : 'you', ' could have about ', M('monthly.careful'), ' a month after tax, ',
     ...fromParts(facts), ' ', ...untilParts(facts), '. That amount lasted ', ...lastedParts, '.'
@@ -446,7 +536,15 @@ export function assumedFor(result, facts) {
         p.who === 'you' ? ['Your State Pension age of ', F(p.spAge), ' comes from your age.'] : ["Your partner's State Pension age of ", F(p.spAge), ' comes from their age.']);
     }
   }
-  if (facts.anyPension) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
+  // the tax-free part (couples-different-years.md 2.3): asked only of someone who has stopped; already had, everything
+  // taken from that pension is taxed. Not answered: not taken — a quarter of each withdrawal, as before.
+  const taken = facts.people.filter((p) => p.taxFreeTaken && p.pot);
+  for (const p of taken) {
+    line('tax-free-taken' + suffix(p), `${p.who}.taxFreeTaken`, 'entered', true, p.who === 'you'
+      ? ['You have already had the tax-free part of your pension, so everything taken from it is taxed.']
+      : ["Your partner has already had the tax-free part of their pension, so everything taken from it is taxed."]);
+  }
+  if (facts.anyPension && (!taken.length || facts.people.some((p) => p.pot && !p.taxFreeTaken))) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
   if (facts.anyPension) line('risk', 'risk', src('risk'), inputs.risk, [RISK_WORDS[inputs.risk] || RISK_WORDS.balanced]);
   // the one fund and platform charge (6.19.0), with Change: whenever money is held in funds or cash — while it waits to be
   // taken and while it is drawn (it replaces "a charge … until the money is first taken" and "… not taken off")
@@ -457,21 +555,29 @@ export function assumedFor(result, facts) {
   const startsNow = facts.startsNow;
   // a default if either the choice or the age was left to the form (the form's "from age" with no age typed is the earliest pension age)
   const startSource = used.has(startField) || (inputs.start.kind === 'age' && used.has('start.age')) ? 'default' : 'entered';
-  line('start', startField, startSource, result.basis.startAge,
-    startsNow ? ['The money is taken from now, when you are ', A('phases.0.ages.you.from'), '.'] : ['The money is taken from when you are ', A('phases.0.ages.you.from'), '.']);
-  if (facts.life && !startsNow) {
-    // on the lives: what goes in until then, and how the money is kept meanwhile (step 4 brief section 10, J8)
+  const ap = facts.apart || null;
+  if (ap) {
+    // couples apart: your own money from your own start (the household's starts with the first of you to stop)
+    line('start', startField, startSource, result.basis.startAge, ap.stops.you.already ? ['Your money is taken from now.'] : ['Your money is taken from when you are ', A('apart.stops.you.age'), '.']);
+  } else {
+    line('start', startField, startSource, result.basis.startAge,
+      startsNow ? ['The money is taken from now, when you are ', A('phases.0.ages.you.from'), '.'] : ['The money is taken from when you are ', A('phases.0.ages.you.from'), '.']);
+  }
+  if (facts.life && (!startsNow || ap)) {
+    // on the lives: what goes in until then, and how the money is kept meanwhile (step 4 brief section 10, J8) — couples
+    // apart: each still saving until their own stop
     (result.saving || []).forEach((x, k) => {
-      if (!(x.payIn.total > 0)) return;
+      if (!(x.payIn.total > 0) || (ap && !(x.yearsSaving > 0))) return;
+      const until = !ap ? ' until the money is first taken, rising with prices.' : x.who === 'you' ? [' until you stop at ', A('apart.stops.you.age'), ', rising with prices.'] : [' until they stop at ', A('apart.stops.partner.age'), ', rising with prices.'];
       line('pay-in' + (x.who === 'you' ? '' : '-partner'), `${x.who}.payIn.has`, 'entered', 'yes', [M(`saving.${k}.payIn.total`), ' a month goes into ',
-        x.who === 'you' ? 'your pension' : "your partner's pension", ' until the money is first taken, rising with prices.']);
+        x.who === 'you' ? 'your pension' : "your partner's pension", ...(Array.isArray(until) ? until : [until])]);
     });
     if (facts.payingIn) line('pay-in-as-given', null, 'rule', null, ['The figures you gave are what lands in the pension, with the tax the government adds back already inside them.']);
     else {
       const said = inputs.you.payIn && inputs.you.payIn.has === 'no';
-      line('nothing-paid-in', said ? 'you.payIn.has' : null, said ? 'entered' : 'rule', said ? 'no' : null, ['Nothing more goes into a pension before the money is first taken.']);
+      line('nothing-paid-in', said ? 'you.payIn.has' : null, said ? 'entered' : 'rule', said ? 'no' : null, [ap ? 'Nothing more goes into a pension.' : 'Nothing more goes into a pension before the money is first taken.']);
     }
-    line('pot-invested', null, 'rule', null, ['Until then your money stays invested, kept at its mix of shares, bonds and cash every month.']);
+    line('pot-invested', null, 'rule', null, [ap ? 'Until each of you stops, your money stays invested, kept at its mix of shares, bonds and cash every month.' : 'Until then your money stays invested, kept at its mix of shares, bonds and cash every month.']);
     line('same-futures', null, 'rule', null, ['The years before the money is first taken and the years after are one future: the same markets, seen once.']);
   }
   if (!facts.life && !startsNow && facts.anyPots && !facts.startMoved) {
@@ -492,8 +598,13 @@ export function assumedFor(result, facts) {
   if (c) {
     const partner = facts.people[1];
     if (partner.potDefault) line('partner-no-pot', 'partner.pot', 'default', 0, ['Your partner has no pension pot.']);
-    line('both-stop-together', null, 'rule', null, ['You both start taking the money at the same time.']);
-    if (facts.savings > 0) line('savings-split', 'savings', 'rule', facts.savings / 2, ['Your savings are split evenly between you.']);
+    if (ap) {
+      // each of you on your own date: the pay line, and what it means (shared/apart.js, the same words in C, A and B)
+      for (const x of apartAssumed(result, facts.apartCtx || {})) line(x.id, x.field, x.source, x.value, x.parts);
+    } else {
+      line('both-stop-together', null, 'rule', null, ['You both start taking the money at the same time.']);
+      if (facts.savings > 0) line('savings-split', 'savings', 'rule', facts.savings / 2, ['Your savings are split evenly between you.']);
+    }
   }
   if (facts.savings > 0) line('savings-as-isa', 'savings', 'rule', facts.savings, ['Your savings are treated as ISA money: tax-free to take, growing at a fixed ', F(Math.round(RULES.savingsGrowth * 100)), '% a year.']);
   if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
@@ -565,6 +676,9 @@ export function warningsFor(result, facts) {
         F(money(RULES.annualAllowance)), ' (less for the highest earners). ', M(`payIn.byPerson.${k}.total`), ' a month is more than that.']);
     }
   });
+  // couples apart: a bad case that leans on the pay of the one still working, and money moved into drawdown before
+  // 6 April 2028 (shared/apart.js, the same words in C, A and B)
+  for (const w of apartWarnings(result, { drawdown: (facts.apartCtx && facts.apartCtx.drawdown) || [] })) warn(w.id, w.severity, w.parts);
   if (facts.life && facts.partnerRetired) {
     warn('partner-stops-with-you', 'note', ['Your partner is past their State Pension age. These figures leave their pot alone until the money starts when you are ', A('phases.0.ages.you.from'),
       ', and do not count anything they take before then.']);

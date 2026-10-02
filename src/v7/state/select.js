@@ -11,6 +11,7 @@
  *   needsRun(state, q)      → the runner should work out an answer (rules 1 and 2 of brief 4.10; step 4 4.11)
  *   wantedDetail(state, q)  → the detail the runner should ask for (A and B; null for C)
  *   isRetired(state, q)     → the draft of A or B describes someone who has stopped: the retired view
+ *   retiredBoth(state, q)   → that retired view is for a couple who have both stopped (couples-different-years.md 2.2)
  *   readyMark(state)        → { ready: '1' | '0', answer: 'none' | 'first' | 'final' | 'partial' } for #app (brief 4.9, 4.13)
  *
  * The budget step and "Save this as a plan" (research/v7/budget-step.md; save-as-plan.md Contract C.2, C.5):
@@ -24,12 +25,23 @@
  *   spendDone(state, q)     → the spend step has what it needs
  *   budgetAgainstC(state)   → C's line "your budget adds up to … this gives £X a month less", or null
  *   keepView(state, q)      → the "Save this as a plan" panel: whether the answer can be saved, why not, the name
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1), from what each field shows
+ * (flat values: the text typed, else the checked value, else the plain default — formView's `shown`):
+ *   offeredOptions(q, field, values) → the options a choice offers on screen: only those that fit, and whatever is chosen
+ *   choiceAsked(q, field, values)    → false for a choice whose one fitting option is what not answering it means
+ *   stopsApart(values)               → the partner's stop is their own ("They already have", an age, "show me ages")
+ *   askedAboutValues(values)         → who A's and B's answer is about: 'you', or 'partner' after "I've already stopped"
+ *   askedAboutOf(state, q)           → the same, from what is typed in question q
+ *   payLineOf(state, q, values)      → the pay line: null when it does not apply, else { open, covers }
+ *   fieldApplies(field, values)      → validate.js's one rule (a `when` list is "one of"; `whenNot` hides), for the
+ *                                      components, which read rules only through this file
  */
 import { SCHEMA_C } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
-import { parseDraft, fieldsThatApply, nest } from '../../answers/shared/validate.js';
-import { alreadyStopped } from '../../answers/shared/schemaParts.js';
+import { parseDraft, fieldsThatApply, nest, applies } from '../../answers/shared/validate.js';
+import { alreadyStopped, askedAbout, payCoversOf } from '../../answers/shared/schemaParts.js';
 import { inputsKey } from './inputsKey.js';
 import { BUILT } from '../rail/questions.js';
 import { emptyKeep } from './initial.js';
@@ -37,6 +49,12 @@ import { spendLevelAMonth } from '../../answers/shared/schemaParts.js';
 import { HEADINGS, checkSheet, hasBudget, guideLevels, whereAgainstLevels, figureAgainstBudget, carefulAgainstBudget, nextLineId, nextOneOffId } from '../../answers/keep/budgetSheet.js';
 import { keepable } from '../../answers/keep/planSeed.js';
 import { suggestedPlanName, checkPlanName } from '../../answers/shared/planName.js';
+
+/**
+ * Whether C's answer says you have stopped and your partner stops later (state/carry.js): the reading C's "What next?" draws
+ * its words from, the same one the carry picks its map with, so the two cannot disagree.
+ */
+export { cAnswerYouStopped } from './carry.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
 export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B };
@@ -190,6 +208,103 @@ export function isRetired(state, q) {
   const parsed = parsedDraft(state, q);
   const inputs = parsed.ok ? parsed.inputs : nest(parsed.values || {});
   return alreadyStopped(inputs, state.env.today);
+}
+
+/**
+ * The retired view for a couple who have both stopped (couples-different-years.md 2.2): "I've already stopped" and "They
+ * already have". It points to "What is that a month?" rather than to "Will it last?".
+ */
+export function retiredBoth(state, q) {
+  if (!isRetired(state, q)) return false;
+  const v = parsedDraft(state, q).values;
+  return v.household === 'couple' && v['stop.kind'] === 'already' && v['partner.stop.kind'] === 'already';
+}
+
+// ---- couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1) -------------------------
+
+/** Whether a field applies — validate.js's one rule, handed to the components (couples-different-years.md 3.2). */
+export const fieldApplies = applies;
+
+/** What not answering a choice with no default means: the stop in mind is an age; the partner stops when you do. */
+const NOT_ANSWERED = Object.freeze({ 'stop.kind': 'age', 'partner.stop.kind': 'same' });
+const SAVERS = ['a', 'b'];
+const blankValue = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+
+/**
+ * The options a choice offers on screen (couples-different-years.md 3.1), in the input list's order:
+ *  - A's and B's stop question offers "I've already stopped" to a couple only (2.2);
+ *  - "When does your partner stop work?" offers, while you are still working, "when you do", "they already have" and an
+ *    age; once you have stopped (A and B), an age — and "show me ages" in A;
+ *  - every other choice, all its options; a yes/no, both.
+ * Whatever is chosen is always offered, so the form never hides what it holds (its sentence says what is wrong with it).
+ */
+export function offeredOptions(q, field, values) {
+  if (!field) return [];
+  if (field.type === 'yesNo') return ['no', 'yes'];
+  const v = values || {};
+  const options = field.options || [];
+  const saver = SAVERS.includes(q);
+  let fit = options;
+  if (field.path === 'stop.kind' && saver && v.household !== 'couple') fit = options.filter((o) => o !== 'already');
+  else if (field.path === 'partner.stop.kind') {
+    fit = saver && v['stop.kind'] === 'already' ? options.filter((o) => o === 'age' || o === 'ages') : options.filter((o) => o !== 'ages');
+  }
+  return options.filter((o) => fit.includes(o) || o === v[field.path]);
+}
+
+/**
+ * Whether a choice is asked at all: not when the one option it offers is what not answering it means and nothing is
+ * chosen — B's stop for one person, where only an age fits, so the age box stands on its own as it always has.
+ */
+export function choiceAsked(q, field, values) {
+  if (!field || field.type !== 'choice') return true;
+  const offered = offeredOptions(q, field, values);
+  return !(offered.length === 1 && offered[0] === NOT_ANSWERED[field.path] && blankValue((values || {})[field.path]));
+}
+
+/** The partner's stop is their own: a couple, and "When does your partner stop work?" answered other than "when you do". */
+export function stopsApart(values) {
+  const v = values || {};
+  return v.household === 'couple' && ['already', 'age', 'ages'].includes(v['partner.stop.kind']);
+}
+
+/** Who A's and B's answer is about, from flat values (schemaParts.js askedAbout: the one rule, the owner's switch 3). */
+export function askedAboutValues(values) {
+  const inputs = nest(values || {});
+  return askedAbout({ ...inputs, partner: inputs.partner || {} });
+}
+
+/**
+ * Whether A's answer about your partner ("I've already stopped") shows them stopping now: the stop age shown is their age
+ * today. A answers that ("could my partner stop now instead?"), but B — about saving — refuses it (partner-stop-after-now),
+ * so A does not offer B then (the reviewers' finding, 2 Oct 2026). Read from the answer; nothing worked out.
+ */
+export function partnerStopsNow(result) {
+  if (!result || result.askedAbout !== 'partner' || !result.shown || !result.inputs || !result.inputs.partner) return false;
+  return typeof result.inputs.partner.age === 'number' && result.shown.age === result.inputs.partner.age;
+}
+
+/** Who A's and B's answer is about, from what is typed in question q ('you' for C, which has no "I've already stopped"). */
+export function askedAboutOf(state, q) {
+  if (!SAVERS.includes(q) || !state.draft[q]) return 'you';
+  return askedAboutValues({ ...state.draft[q].values, ...parsedDraft(state, q).values });
+}
+
+/**
+ * The pay line (couples-different-years.md 2.1): null when it does not apply (one person, or the partner stops when you
+ * do); else `open` — its three settings are drawn once answered, or once "Change" has put ?focus=untilBothStop in the
+ * address — and `covers`, the setting the line describes: the answer, or what not answering means (the owner's switch,
+ * household.js APART.payCoversDefault, read through schemaParts.js payCoversOf: the option whose share is the default's).
+ */
+export function payLineOf(state, q, values) {
+  const schema = SCHEMAS[q];
+  const field = schema && schema.fields.find((f) => f.path === 'untilBothStop');
+  if (!field || !applies(field, values || {})) return null;
+  const given = state.draft[q] && state.draft[q].values.untilBothStop;
+  const open = !blankValue(given) || (state.route.q === q && state.route.focus === 'untilBothStop');
+  const answer = (values || {}).untilBothStop;
+  const covers = field.options.includes(answer) ? answer : field.options.find((o) => payCoversOf(o) === payCoversOf(undefined));
+  return { open, covers };
 }
 
 /**

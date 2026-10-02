@@ -14,7 +14,7 @@ const LINE = { c: (s) => s.line, a: (s) => s.line, b: (s) => s.payInLine || s.li
 
 export function keepScreen(q) {
   return function KeepScreen(state, dispatch) {
-    if (q !== 'c' && isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} /> };
+    if (q !== 'c' && isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} state={state} /> };
     const v = keepView(state, q);
     const r = state.answers[q] && state.answers[q].result;
     const line = v.can && r && r.sentences ? LINE[q](r.sentences) : null;

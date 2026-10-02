@@ -132,3 +132,139 @@ describe('A → B: the age the answer shows', () => {
     expect(parsedDraft(b, 'b').ok).toBe(true);
   });
 });
+
+/*
+ * "I've already stopped" (couples-different-years.md 2.2, 5.4, 9.4 X4): A's and B's answer is about your partner, and the
+ * hand-overs carry it — into C as "from now" with your partner stopping at the age the answer is about, their pay-in
+ * going on until then, the pay line and the tax-free parts as typed; into the other saver question as "I've already
+ * stopped" again. C then shows the answer's careful figure, and B's whole-life count is A's row. Made-up round figures:
+ * you 56, stopped and drawing; your partner 55, stopping at 56.
+ */
+describe('"I\'ve already stopped": the hand-overs carry it, and C still gives the answer\'s figure', () => {
+  const BASE = {
+    household: 'couple', 'you.age': '56', 'you.pot': '500,000', 'stop.kind': 'already', savings: '60,000', 'spend.amount': '3,500',
+    'partner.age': '55', 'partner.pot': '450,000', 'partner.payIn.kind': 'split', 'partner.payIn.own': '500', 'partner.payIn.employer': '350',
+    'partner.stop.kind': 'age', 'partner.stop.age': '56'
+  };
+  const A_CASES = [
+    ['your partner at 56, the pay line not answered', BASE],
+    ['the pay line "All of it", your tax-free part already had', { ...BASE, untilBothStop: 'all', 'you.taxFreeTaken': true }],
+    ['"show me ages" for your partner: C is asked at the age shown', { ...BASE, 'partner.stop.kind': 'ages', 'partner.stop.age': '' }]
+  ];
+
+  it.each(A_CASES)('A → C: %s', (_n, values) => {
+    const s = answered(typed('a', values), 'a', answerA, 'chart');
+    const a = s.answers.a.result;
+    expect(a.askedAbout).toBe('partner');
+    expect(a.handOver.c).toEqual({ ok: true, same: true });
+    const c = carry(s, 'a', 'c');
+    expect(c.route).toMatchObject({ q: 'c', step: 'answer' });
+    const p = parsedDraft(c, 'c');
+    expect(p.ok, JSON.stringify(p.errors)).toBe(true);
+    expect(p.inputs.start).toEqual({ kind: 'now' });
+    expect(p.inputs.partner.stop).toEqual({ kind: 'age', age: a.shown.age });
+    expect(p.inputs.you.pot).toBe(a.inputs.you.pot);
+    expect(p.inputs.partner.pot).toBe(a.inputs.partner.pot);
+    expect(p.inputs.savings).toBe(a.inputs.savings);
+    if (a.inputs.untilBothStop) expect(p.inputs.untilBothStop).toBe(a.inputs.untilBothStop);
+    if (a.inputs.you.taxFreeTaken) expect(p.inputs.you.taxFreeTaken).toBe(true);
+    const r = answerC(p.inputs, ENV);
+    expect(r.status).toBe('ok');
+    expect(r.payIn.total).toBe(850);
+    expect(r.apart).toEqual(a.apart);
+    expect(r.monthly, 'C\'s band is the band of A\'s row at the age shown').toEqual(a.shown.monthly);
+  });
+
+  it('B → C: from now, your partner at the stop age B was asked about; C gives B\'s careful amount paying in as now', () => {
+    const s = answered(typed('b', { ...BASE, 'partner.payIn.kind': 'total', 'partner.payIn.total': '850', 'you.payIn.total': '0' }), 'b', answerB, 'answer');
+    const b = s.answers.b.result;
+    expect(b.askedAbout).toBe('partner');
+    expect(b.handOver.c).toEqual({ ok: true, same: true });
+    const p = parsedDraft(carry(s, 'b', 'c'), 'c');
+    expect(p.ok, JSON.stringify(p.errors)).toBe(true);
+    expect(p.inputs.start).toEqual({ kind: 'now' });
+    expect(p.inputs.partner.stop).toEqual({ kind: 'age', age: b.stop.age });
+    expect(answerC(p.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+  });
+
+  it('A → B → A: "I\'ve already stopped" both ways, your partner at the age shown; B\'s whole-life count is A\'s row', () => {
+    // (with "show me ages" the age shown may be your partner's age today — stopping now — which B, about saving, refuses as
+    // it refuses your own stop today: partner-stop-after-now; the age named here is a year on)
+    const s = answered(typed('a', BASE), 'a', answerA, 'chart');
+    const a = s.answers.a.result;
+    const toB = carry(s, 'a', 'b');
+    expect(toB.route).toMatchObject({ q: 'b', step: 'numbers' });
+    expect(toB.draft.b.values).toMatchObject({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': String(a.shown.age) });
+    const pb = parsedDraft(toB, 'b');
+    expect(pb.ok, JSON.stringify(pb.errors)).toBe(true);
+    const sb = answered(toB, 'b', answerB, 'answer');
+    const b = sb.answers.b.result;
+    expect(b.askedAbout).toBe('partner');
+    expect(b.stop.age).toBe(a.shown.age);
+    expect(b.wholeLife.lasted).toBe(a.shown.lasted);
+    expect(b.wholeLife.runOutAge).toBe(a.shown.runOutAge);
+    const back = carry(sb, 'b', 'a');
+    expect(back.draft.a.values).toMatchObject({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': String(a.shown.age) });
+    expect(parsedDraft(back, 'a').ok).toBe(true);
+  });
+
+  // X4 where both pensions are closed today (the reviewers' finding, 2 Oct 2026: C from now moved YOUR start to the day your
+  // pension opens because your partner pays in, and the link opened on £2,610 a month against A's £990). Made-up figures:
+  // you 52, stopped, your pension closed until 57; your partner 51, paying in, stopping at 53
+  const CLOSED = {
+    household: 'couple', 'you.age': '52', 'you.pot': '440,000', 'stop.kind': 'already', savings: '50,000', 'spend.amount': '1,000',
+    'partner.age': '51', 'partner.pot': '70,000', 'partner.payIn.total': '1,300', 'partner.stop.kind': 'age', 'partner.stop.age': '53'
+  };
+  it('A → C and B → C with both pensions closed today: C takes you as stopped, from now, and shows the answer\'s figure', () => {
+    const s = answered(typed('a', CLOSED), 'a', answerA, 'chart');
+    const a = s.answers.a.result;
+    expect(a.handOver.c).toEqual({ ok: true, same: true });
+    const p = parsedDraft(carry(s, 'a', 'c'), 'c');
+    expect(p.ok, JSON.stringify(p.errors)).toBe(true);
+    const r = answerC(p.inputs, ENV);
+    expect(r.apart.stops).toEqual({ you: { age: 52, already: true }, partner: { age: 53, already: false } });
+    expect(r.monthly).toEqual(a.shown.monthly);
+    const sb = answered(typed('b', { ...CLOSED, 'you.payIn.total': '0' }), 'b', answerB, 'answer');
+    const b = sb.answers.b.result;
+    expect(b.handOver.c).toEqual({ ok: true, same: true });
+    const pb = parsedDraft(carry(sb, 'b', 'c'), 'c');
+    expect(pb.ok, JSON.stringify(pb.errors)).toBe(true);
+    expect(answerC(pb.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+  });
+
+  // The other way (the reviewers' finding, 2 Oct 2026): C from now with your partner stopping later goes into A and B as
+  // "I've already stopped" — A's row at your partner's stop is C's band, and B's whole-life count is A's row
+  it('C → A and C → B: from now with your partner at 57 is "I\'ve already stopped" with your partner at 57; A shows C\'s band', () => {
+    const values = { household: 'couple', 'you.age': '62', 'you.pot': '400,000', savings: '30,000', take: '2,500', 'partner.age': '55', 'partner.pot': '260,000',
+      'partner.payIn.has': 'yes', 'partner.payIn.kind': 'total', 'partner.payIn.total': '700', 'partner.stop.kind': 'age', 'partner.stop.age': '57' };
+    const s = answered(typed('c', values), 'c', answerC);
+    const c = s.answers.c.result;
+    expect(c.apart.stops).toEqual({ you: { age: 62, already: true }, partner: { age: 57, already: false } });
+    const toA = carry(s, 'c', 'a');
+    expect(toA.route).toMatchObject({ q: 'a', step: 'numbers', focus: null });
+    const pa = parsedDraft(toA, 'a');
+    expect(pa.ok, JSON.stringify(pa.errors)).toBe(true);
+    expect(pa.inputs.stop).toEqual({ kind: 'already' });
+    const a = answerA({ ...pa.inputs, spend: { kind: 'amount', amount: c.monthly.careful } }, { ...ENV, detail: 'chart' });
+    expect(a.askedAbout).toBe('partner');
+    expect(a.shown.age).toBe(57);
+    expect(a.shown.monthly).toEqual(c.monthly);
+    expect(a.shown.verdict).toBe('yes');
+    const toB = carry(s, 'c', 'b');
+    const pb = parsedDraft(toB, 'b');
+    expect(pb.ok, JSON.stringify(pb.errors)).toBe(true);
+    const b = answerB({ ...pb.inputs, spend: { kind: 'amount', amount: c.monthly.careful } }, { ...ENV, detail: 'answer' });
+    expect(b.askedAbout).toBe('partner');
+    expect(b.wholeLife.lasted).toBe(a.shown.lasted);
+  });
+
+  it('the same couple answered about you is carried exactly as before: your stop age is C\'s "from age"', () => {
+    const values = { ...BASE, 'stop.kind': 'age', 'stop.age': '57', 'partner.stop.kind': 'already', 'partner.stop.age': '' };
+    const s = answered(typed('a', values), 'a', answerA, 'chart');
+    const p = parsedDraft(carry(s, 'a', 'c'), 'c');
+    expect(p.ok, JSON.stringify(p.errors)).toBe(true);
+    expect(p.inputs.start).toEqual({ kind: 'age', age: 57 });
+    expect(p.inputs.partner.stop).toEqual({ kind: 'already' });
+    expect(answerC(p.inputs, ENV).monthly).toEqual(s.answers.a.result.shown.monthly);
+  });
+});

@@ -17,10 +17,31 @@ import { resolve } from 'node:path';
 import { get, money, partsText, outOfTen, pot as potText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
 import { RULES, verdictOf } from '../../../src/answers/shared/rules.js';
-import { agesToShow } from '../../../src/answers/shared/schemaParts.js';
+import { agesToShow, askedAbout, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';
 export { answerA, SCHEMA_A, TEST_ENV } from './_a.js';
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 5.2): every rule below reads each
+ * person at their own stop. The rows are the stops of the person the answer is about (askedAbout: you, or your partner
+ * after "I've already stopped"); `ownAt(inputs, a)` gives each person's whole years until their own stop when that person
+ * stops at `a`, and the household's clock starts at the first of them. With one stop for both every rule is as it was.
+ */
+/** The person the answer is about, and their stop as typed: { asked, kind: 'age' | 'ages', named }. */
+export function askedStop(inputs) {
+  const asked = askedAbout(inputs);
+  const own = (asked === 'partner' ? inputs.partner.stop : inputs.stop) || {};
+  return { asked, kind: own.kind === 'ages' ? 'ages' : 'age', named: own.kind === 'age' ? own.age : inputs[asked].age };
+}
+/** Each person's years until their own stop when the asked person stops at `a`: { you, partner?, first, last }. */
+export function ownAt(inputs, a) {
+  const own = stopYearsOf(inputs, a);
+  const list = inputs.household === 'couple' && inputs.partner ? [own.you, own.partner] : [own.you];
+  return { ...own, first: Math.min(...list), last: Math.max(...list) };
+}
+/** Whether a row at `a` can be answered: the end after the later stop, under 45 years after the first. */
+const fitsAt = (inputs, a, younger) => { const o = ownAt(inputs, a); return inputs.endAge > younger + o.last && o.last - o.first < RULES.maxYears; };
 
 const ROOT = process.cwd();
 const P1_FILES = ['lives', 'saving', 'stopAt'].map((f) => resolve(ROOT, `src/answers/shared/${f}.js`));
@@ -36,8 +57,12 @@ const THREE = ['careful', 'middling', 'good'];
 const STATUSES = ['ok', 'invalid', 'guaranteed-only', 'none'];
 /** The one pattern of a wait: never on A (brief 2.4 #47, `countdown-any`). */
 export const COUNTDOWN = /\b\d+ (more )?(years?|months?) (to go|until|till|before|from now)\b/i;
-/** The scopes of the banned list every A string is checked in; 'retired' too when the stop is today (brief 4.9). */
-export const scopesForA = (inputs) => ['all', 'first', 'planner', 'result', 'saver', ...(inputs && inputs.stop && inputs.stop.age === inputs.you.age ? ['retired'] : [])];
+/**
+ * The scopes of the banned list every A string is checked in; 'retired' too when the stop is today (brief 4.9), or when
+ * you have already stopped ("I've already stopped": the answer is about your partner).
+ */
+export const scopesForA = (inputs) => ['all', 'first', 'planner', 'result', 'saver',
+  ...(inputs && inputs.stop && (inputs.stop.age === inputs.you.age || inputs.stop.kind === 'already') ? ['retired'] : [])];
 
 /** True when anything in the value is undefined, a function, a Date, NaN or infinite. */
 export function unsaveable(v, path = '', out = []) {
@@ -77,9 +102,10 @@ const ASSUMED_FIELD = {
   'you.finalSalary.has': ['no-final-salary', () => true],
   'partner.finalSalary.has': ['no-final-salary-partner', () => true],
   'partner.pot': ['partner-no-pot', () => true],
-  'you.payIn.total': ['nothing-paid-in', (a) => a.shown.yearsSaving > 0],
-  savingsIn: ['savings-in', (a) => a.shown.yearsSaving > 0],
-  savingRisk: ['risk-saving', (a) => a.shown.yearsSaving > 0 && (potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0)],
+  // (couples apart: your own saving years; anyone's for the household's lines)
+  'you.payIn.total': ['nothing-paid-in', (a) => ownAt(a.inputs, a.shown.age).you > 0],
+  savingsIn: ['savings-in', (a) => ownAt(a.inputs, a.shown.age).last > 0],
+  savingRisk: ['risk-saving', (a) => ownAt(a.inputs, a.shown.age).last > 0 && (potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0)],
   risk: ['risk-drawing', (a) => a.shown.potAtStop.good > 0],
   // 6.19.0: the one charge, said whenever money is held in funds or cash at some time — saving or drawing
   charge: ['charges', (a) => potsToday(a.inputs) > 0 || householdPayIn(a.inputs) > 0 || a.inputs.savingsIn > 0],
@@ -140,19 +166,24 @@ export function checkAnswerA(answer, given, env) {
     if (s.perMonth !== want || s.level !== inputs.spend.level || s.kind !== 'level') fail('A-I1', `spend by level: ${JSON.stringify(s)}, want ${want}`);
   } else if (s.level !== null || s.kind !== 'amount') fail('A-I1', `spend by amount: ${JSON.stringify(s)}`);
 
+  // the person the answer is about (you, or your partner after "I've already stopped") and their stop as typed
+  const ask = askedStop(inputs);
+  if ((answer.askedAbout || 'you') !== ask.asked) fail('A-I3', `askedAbout ${answer.askedAbout}, the inputs ask about ${ask.asked}`);
+
   // A-I2 the rows: whole ages, in order, no repeats, within today's age and 75; agesToShow's when the env named none
   const rows = answer.ages;
   const ages = rows.map((r) => r.age);
   if (!rows.length) fail('A-I2', 'no rows');
   ages.forEach((a, i) => {
-    if (!Number.isInteger(a) || a < inputs.you.age || a > RULES.stopAgeMax) fail('A-I2', `row ${i}: age ${a}`);
+    if (!Number.isInteger(a) || a < inputs[ask.asked].age || a > RULES.stopAgeMax) fail('A-I2', `row ${i}: age ${a}`);
     if (i > 0 && a <= ages[i - 1]) fail('A-I2', `rows out of order at ${i}: ${ages.join(', ')}`);
   });
   if (env && !Array.isArray(env.ages)) {
-    // agesToShow's, less any age from which the plan would not reach the end age (the end-after-stop rule, row by row)
+    // agesToShow's, less any age from which the plan would not reach the end age (the end-after-stop rule, row by row —
+    // couples apart: after the later stop, under 45 years after the first)
     // (and the earliest age that worked: "show me ages"'s; or, an age named that does not last, the first later age that does)
-    const later = inputs.stop.kind === 'age' && answer.shown.verdict !== 'yes' && answer.earliest.yes !== null && answer.earliest.yes > inputs.stop.age;
-    const want = agesToShow(inputs, env, b.detail, inputs.stop.kind === 'ages' || later ? answer.earliest.yes : null).filter((a) => inputs.endAge > younger + (a - inputs.you.age));
+    const later = ask.kind === 'age' && answer.shown.verdict !== 'yes' && answer.earliest.yes !== null && answer.earliest.yes > ask.named;
+    const want = agesToShow(inputs, env, b.detail, ask.kind === 'ages' || later ? answer.earliest.yes : null).filter((a) => fitsAt(inputs, a, younger));
     if (JSON.stringify(want) !== JSON.stringify(ages)) fail('A-I2', `rows ${ages.join(', ')} ≠ agesToShow ${want.join(', ')}`);
   }
 
@@ -160,37 +191,55 @@ export function checkAnswerA(answer, given, env) {
   const same = rows.find((r) => r.age === answer.shown.age);
   if (!same) fail('A-I3', `shown age ${answer.shown.age} is not among the rows`);
   else if (JSON.stringify(same) !== JSON.stringify(answer.shown)) fail('A-I3', 'shown does not deep-equal its row of ages[]');
-  if (answer.stop.age !== answer.shown.age || answer.stop.kind !== inputs.stop.kind) fail('A-I3', `stop ${JSON.stringify(answer.stop)}`);
+  if (answer.stop.age !== answer.shown.age || answer.stop.kind !== ask.kind) fail('A-I3', `stop ${JSON.stringify(answer.stop)}`);
   const firstYes = rows.find((r) => r.verdict === 'yes');
-  if (inputs.stop.kind === 'age' && answer.shown.age !== inputs.stop.age) fail('A-I3', `shown age ${answer.shown.age} ≠ the age typed ${inputs.stop.age}`);
-  if (inputs.stop.kind === 'ages') {
+  if (ask.kind === 'age' && answer.shown.age !== ask.named) fail('A-I3', `shown age ${answer.shown.age} ≠ the age typed ${ask.named}`);
+  if (ask.kind === 'ages') {
     const want = answer.earliest.yes !== null ? answer.earliest.yes : ages[ages.length - 1];
     if (answer.shown.age !== want) fail('A-I3', `"show me ages": shown ${answer.shown.age}, want ${want}`);
   }
+  // couples apart at the shown row: the block is there exactly when the two stops differ, and says them
+  const shownOwn = ownAt(inputs, answer.shown.age);
+  const apartShown = couple && shownOwn.you !== shownOwn.partner;
+  if (Boolean(answer.apart) !== apartShown) fail('A-I3', `apart ${JSON.stringify(answer.apart)} but the stops at the shown row are ${JSON.stringify(shownOwn)}`);
+  if (answer.apart) {
+    const ap = answer.apart;
+    for (const who of ['you', 'partner']) {
+      if (ap.stops[who].age !== inputs[who].age + shownOwn[who] || ap.stops[who].already !== (shownOwn[who] === 0)) fail('A-I3', `apart.stops.${who} ${JSON.stringify(ap.stops[who])}`);
+    }
+    if (ap.years !== shownOwn.last - shownOwn.first) fail('A-I3', `apart.years ${ap.years}`);
+    if (ap.first !== (shownOwn.you < shownOwn.partner ? 'you' : 'partner')) fail('A-I3', `apart.first ${ap.first}`);
+    if (![0, 0.5, 1].includes(ap.payCovers)) fail('A-I3', `apart.payCovers ${ap.payCovers}`);
+    if (ap.coverUsed !== null && (ap.coverUsed.who !== ap.first || !Number.isInteger(ap.coverUsed.fromAge))) fail('A-I3', `apart.coverUsed ${JSON.stringify(ap.coverUsed)}`);
+    if (Boolean(ap.coverUsed) !== answer.warnings.some((w) => w.id === 'apart-cover-used')) fail('A-I3', 'apart.coverUsed ⟺ the apart-cover-used warning');
+  }
   const h = answer.headline;
-  const wantKind = answer.status === 'none' || answer.status === 'guaranteed-only' ? 'nothing' : inputs.stop.kind === 'age' ? 'named' : answer.earliest.yes !== null ? 'earliest' : 'noneWorked';
+  const wantKind = answer.status === 'none' || answer.status === 'guaranteed-only' ? 'nothing' : ask.kind === 'age' ? 'named' : answer.earliest.yes !== null ? 'earliest' : 'noneWorked';
   if (h.kind !== wantKind) fail('A-I3', `headline.kind ${h.kind}, want ${wantKind}`);
   for (const k of ['verdict', 'lasted', 'runOutAge']) if (h[k] !== answer.shown[k]) fail('A-I3', `headline.${k} ${h[k]} ≠ shown.${k} ${answer.shown[k]}`);
   if (h.age !== answer.shown.age) fail('A-I3', 'headline.age ≠ shown.age');
   if (JSON.stringify(h.outOfTen) !== JSON.stringify(outOfTen(h.lasted))) fail('A-I3', 'headline.outOfTen ≠ outOfTen(lasted)');
 
-  // Every row
-  const payIn = householdPayIn(inputs);
+  // Every row (each person at their own stop: S the asked person's years, S0 the household's start)
+  const one = (p) => (!p || !p.payIn ? 0 : p.payIn.kind === 'split' ? (p.payIn.own || 0) + (p.payIn.employer || 0) : (p.payIn.total || 0));
   rows.forEach((r, i) => {
     const at = `row ${r.age}`;
-    const S = r.age - inputs.you.age;
-    const endAge = Math.min(inputs.endAge, younger + S + RULES.maxYears);
+    const own = ownAt(inputs, r.age);
+    const S = own[ask.asked];
+    const S0 = own.first;
+    const endAge = Math.min(inputs.endAge, younger + S0 + RULES.maxYears);
+    const payInYears = one(inputs.you) * own.you + (couple ? one(inputs.partner) * own.partner : 0);
     // A-I4 the verdict is the count
     const fails = Math.round((1 - r.lasted) * n);
     if (Math.abs((n - fails) / n - r.lasted) > 1e-9) fail('A-I4', `${at}: lasted ${r.lasted} is not a count out of ${n}`);
     if (r.verdict !== verdictOf(fails, n)) fail('A-I4', `${at}: verdict ${r.verdict} but ${fails} of ${n} ran out`);
     if (JSON.stringify(r.outOfTen) !== JSON.stringify(outOfTen(r.lasted))) fail('A-I4', `${at}: outOfTen ≠ outOfTen(lasted)`);
-    if (!Number.isInteger(r.runOutAge) || r.runOutAge > endAge || r.runOutAge < younger + S) fail('A-I4', `${at}: runOutAge ${r.runOutAge}`);
+    if (!Number.isInteger(r.runOutAge) || r.runOutAge > endAge || r.runOutAge < younger + S0) fail('A-I4', `${at}: runOutAge ${r.runOutAge}`);
     if ((r.verdict === 'yes') !== (r.runOutAge === endAge)) fail('A-I4', `${at}: verdict ${r.verdict} but a bad case runs out at ${r.runOutAge} (end ${endAge})`);
     if (r.status !== 'final') fail('A-I4', `${at}: status ${r.status}`);
     if (r.yearsSaving !== S) fail('A-I4', `${at}: yearsSaving ${r.yearsSaving} ≠ ${S}`);
     if (r.stopYear !== String(Number(b.today.slice(0, 4)) + S)) fail('A-I4', `${at}: stopYear ${r.stopYear}`);
-    if (r.ages.you !== r.age || (couple && r.ages.partner !== inputs.partner.age + S) || (!couple && 'partner' in r.ages)) fail('A-I4', `${at}: ages ${JSON.stringify(r.ages)}`);
+    if (r.ages[ask.asked] !== r.age || r.ages.you !== inputs.you.age + own.you || (couple && r.ages.partner !== inputs.partner.age + own.partner) || (!couple && 'partner' in r.ages)) fail('A-I4', `${at}: ages ${JSON.stringify(r.ages)}`);
 
     // A-I5 the band: in order, whole £10, and it agrees with the verdict
     const m = r.monthly;
@@ -214,10 +263,10 @@ export function checkAnswerA(answer, given, env) {
     const p = r.potAtStop;
     if (!(p.careful <= p.middling && p.middling <= p.good)) fail('A-I9', `${at}: pots out of order ${JSON.stringify(p)}`);
     for (const k of THREE) if (!Number.isInteger(p[k])) fail('A-I9', `${at}: potAtStop.${k} is not whole pounds`);
-    if (S === 0) for (const k of THREE) if (Math.abs(p[k] - potsToday(inputs)) > 1) fail('A-I9', `${at}: stopping today, potAtStop.${k} ${p[k]} ≠ the pots typed ${potsToday(inputs)}`);
+    if (own.last === 0) for (const k of THREE) if (Math.abs(p[k] - potsToday(inputs)) > 1) fail('A-I9', `${at}: stopping today, potAtStop.${k} ${p[k]} ≠ the pots typed ${potsToday(inputs)}`);
     const by = p.byPerson.reduce((t, x) => t + x.pension + x.savings, 0);
     if (Math.abs(by - p.middling) > 2) fail('A-I9', `${at}: byPerson adds to ${by}, not the middling pot ${p.middling}`);
-    if (Math.abs(r.paidIn.total - payIn * 12 * S) > 1) fail('A-I9', `${at}: paidIn.total ${r.paidIn.total} ≠ ${payIn} × 12 × ${S}`);
+    if (Math.abs(r.paidIn.total - payInYears * 12) > 1) fail('A-I9', `${at}: paidIn.total ${r.paidIn.total} ≠ what goes in × 12 × each one's own years (${payInYears * 12})`);
     if (Math.abs(r.paidIn.byPerson.reduce((t, x) => t + x.amount, 0) - r.paidIn.total) > 1) fail('A-I9', `${at}: paidIn.byPerson does not add up`);
     if (!Number.isInteger(r.gapYears) || r.gapYears < 0) fail('A-I9', `${at}: gapYears ${r.gapYears}`);
 
@@ -251,26 +300,35 @@ export function checkAnswerA(answer, given, env) {
     ph.forEach((q, i) => {
       // part-time earnings: `work` before tax (taxed with the rest), `fromWork` what they add after tax (the shown split)
       const work = q.work || 0;
-      if (Math.abs(q.fromPots + q.statePension + q.finalSalary + work - q.tax - q.takeHome) > 0.03) fail('A-I8', `phase ${i}: ${q.fromPots} + ${q.statePension} + ${q.finalSalary} + ${work} − ${q.tax} ≠ ${q.takeHome}`);
+      // (couples apart, before the second stop: plus what the pay of the one still working covers)
+      const pay = q.fromPay || 0;
+      if ((q.fromPay !== undefined) !== Boolean(answer.apart && q.fromAge < younger + shownOwn.last)) fail('A-I8', `phase ${i}: fromPay ${q.fromPay} in the wrong years`);
+      if (Math.abs(q.fromPots + q.statePension + q.finalSalary + work + pay - q.tax - q.takeHome) > 0.03) fail('A-I8', `phase ${i}: ${q.fromPots} + ${q.statePension} + ${q.finalSalary} + ${work} + ${pay} − ${q.tax} ≠ ${q.takeHome}`);
       if ((q.fromWork || 0) > work + 0.005) fail('A-I8', `phase ${i}: more from work after tax (${q.fromWork}) than before (${work})`);
       if (Math.abs(q.fromPension + q.fromSavings - q.fromPots) > 0.02) fail('A-I8', `phase ${i}: fromPots ≠ fromPension + fromSavings`);
       const sh = q.shown;
-      if (sh.fromPots + sh.statePension + sh.finalSalary + (sh.fromWork || 0) !== sh.takeHome) fail('A-I8', `phase ${i}: shown figures do not add up`);
+      if (sh.fromPots + sh.statePension + sh.finalSalary + (sh.fromWork || 0) + (sh.fromPay || 0) !== sh.takeHome) fail('A-I8', `phase ${i}: shown figures do not add up`);
+      for (const x of q.byPerson) if (x.working && (x.fromPension || x.fromSavings || x.statePension || x.finalSalary || x.takeHome)) fail('A-I8', `phase ${i}: ${x.who} is still working but draws or is paid`);
       if (!Number.isInteger(q.fromAge) || !Number.isInteger(q.toAge) || q.toAge <= q.fromAge) fail('A-I8', `phase ${i}: ages ${q.fromAge}–${q.toAge}`);
       if (i > 0 && q.fromAge !== ph[i - 1].toAge) fail('A-I8', `phase ${i} does not touch phase ${i - 1}`);
       if (typeof q.pensionOpen !== 'boolean') fail('A-I8', `phase ${i}: pensionOpen is ${q.pensionOpen}`);
       if (q.pensionOpen === false && !q.byPerson.some((x) => x.locked)) fail('A-I8', `phase ${i}: pensionOpen false but nobody's pension is closed`);
       if (q.pensionOpen === true && q.byPerson.some((x) => x.locked)) fail('A-I8', `phase ${i}: pensionOpen true but a pension is closed`);
       for (const x of q.byPerson) if (x.locked && x.fromPension > 0.005) fail('A-I8', `phase ${i}: ${x.who}'s pension is closed but pays ${x.fromPension}`);
-      if (answer.shown.potAtStop.good > 0 && q.takeHome < s.perMonth - 0.005) fail('A-I8', `phase ${i}: take-home ${q.takeHome} under the spending ${s.perMonth}`);
+      // (couples apart: before the second stop, a need the pay does not make up and nobody's money can pay is a run-out —
+      // "None of it" with nothing to draw on: the take-home there is what there is)
+      const unpaid = q.fromPay !== undefined && !answer.apart.coversGap;
+      if (answer.shown.potAtStop.good > 0 && q.takeHome < s.perMonth - 0.005 && !unpaid) fail('A-I8', `phase ${i}: take-home ${q.takeHome} under the spending ${s.perMonth}`);
     });
-    // the start is the stop: never moved
-    if (ph[0].ages.you.from !== answer.shown.age) fail('A-I8', `the first phase starts when you are ${ph[0].ages.you.from}, not at the stop ${answer.shown.age}`);
-    if (ph[0].fromAge !== younger + answer.shown.yearsSaving) fail('A-I8', `the first phase starts at ${ph[0].fromAge}, not the younger's age at the stop`);
+    // the start is the stop (couples apart: the first of the two): never moved
+    if (ph[0].ages.you.from !== inputs.you.age + shownOwn.first) fail('A-I8', `the first phase starts when you are ${ph[0].ages.you.from}, not at the first stop`);
+    if (ph[0].fromAge !== younger + shownOwn.first) fail('A-I8', `the first phase starts at ${ph[0].fromAge}, not the younger's age at the first stop`);
     if (ph[ph.length - 1].toAge !== b.endAge) fail('A-I8', `the last phase ends at ${ph[ph.length - 1].toAge}, not ${b.endAge}`);
   }
-  // savingsNeeded: the closed periods' savings (no pension open, nothing from one), summed
-  const closed = (ph || []).filter((q) => q.pensionOpen === false && q.fromPension <= 0.005);
+  // savingsNeeded: the closed periods' savings (no pension open, nothing from one), summed — couples apart, from where the
+  // pay of the one still working stops covering (before it, the pay makes up what the savings cannot)
+  const checkFrom = !answer.apart ? -Infinity : younger + shownOwn.first + (answer.apart.payCovers >= 1 || answer.apart.coversGap ? answer.apart.years : 0);
+  const closed = (ph || []).filter((q) => q.pensionOpen === false && q.fromPension <= 0.005 && q.fromAge >= checkFrom);
   if (!closed.length) { if (answer.savingsNeeded !== null) fail('A-I8', 'savingsNeeded without a closed period'); }
   else {
     const amount = closed.reduce((t, q) => t + q.fromSavings * 12 * (q.toAge - q.fromAge), 0);
@@ -279,8 +337,8 @@ export function checkAnswerA(answer, given, env) {
   }
   if (answer.gapYears !== answer.shown.gapYears) fail('A-I8', 'gapYears ≠ shown.gapYears');
 
-  // A-I10 part-time never hurts
-  if (inputs.partTime.has) {
+  // A-I10 part-time never hurts (yours: not asked once you have stopped)
+  if (inputs.partTime && inputs.partTime.has) {
     const pt = answer.partTime;
     if (!pt) fail('A-I10', 'part-time asked for but no partTime block');
     else {
@@ -313,7 +371,7 @@ export function checkAnswerA(answer, given, env) {
       const t = x.potAtStop[part];
       if (!(t.careful <= t.middling && t.middling <= t.good)) fail('A-I9', `saving ${x.who} potAtStop.${part} out of order`);
     }
-    if (x.yearsSaving !== answer.shown.yearsSaving) fail('A-I9', `saving ${x.who}: yearsSaving`);
+    if (x.yearsSaving !== shownOwn[x.who] || x.stopAge !== inputs[x.who].age + shownOwn[x.who]) fail('A-I9', `saving ${x.who}: yearsSaving / stopAge (each their own)`);
     if (x.mix.saving !== inputs.savingRisk || x.mix.drawing !== inputs.risk) fail('A-I9', `saving ${x.who}: mix ${JSON.stringify(x.mix)}`);
     if (x.mix.slideYears !== (inputs.savingRisk !== inputs.risk ? 10 : 0)) fail('A-I9', `saving ${x.who}: slideYears ${x.mix.slideYears}`);
     if (Math.abs(x.chargeAYear - inputs.charge / 100) > 1e-12) fail('A-I9', `saving ${x.who}: chargeAYear ${x.chargeAYear}`);
@@ -332,13 +390,23 @@ export function checkAnswerA(answer, given, env) {
   if (!ch && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) fail('A-I11', 'money in funds or cash, and no charges line');
   if (ids.includes('pay-in') && ids.includes('nothing-paid-in')) fail('A-I11', 'pay-in and nothing-paid-in together');
   const always = ['stop-age', 'spend-steady', 'plan-to', 'todays-prices', 'tax-rules'];
-  if (answer.shown.yearsSaving > 0) always.push('same-futures');
-  if (couple) always.push('stop-together', 'both-alive');
-  always.push(inputs.partTime.has ? 'work-tax' : 'no-part-time');
+  if (shownOwn.last > 0) always.push('same-futures');
+  // a couple: one stop for both says so; each on their own date, the pay line (couples-different-years.md 2.4)
+  if (couple) always.push(answer.apart ? 'stop-apart' : 'stop-together', 'both-alive');
+  if (answer.apart) {
+    if (ids.includes('stop-together')) fail('A-I11', 'stop-together with the two stops apart');
+    const line = answer.assumed.find((a) => a.id === 'stop-apart');
+    if (line && (line.field !== 'untilBothStop' || line.source !== (inputs.untilBothStop ? 'entered' : 'default'))) fail('A-I11', `stop-apart ${line.field} ${line.source}`);
+    if (ids.includes('savings-split')) fail('A-I11', 'savings-split with the two stops apart (savings-first)');
+    if (inputs.savings > 0 && !ids.includes('savings-first')) fail('A-I11', 'savings, the stops apart, and no savings-first line');
+    if (inputs.partner.stop && inputs.partner.stop.kind === 'already' && !ids.includes('partner-already')) fail('A-I11', 'the partner has stopped, and no partner-already line');
+  } else if (ids.includes('stop-apart')) fail('A-I11', 'stop-apart with one stop for both');
+  if (inputs.partTime) always.push(inputs.partTime.has ? 'work-tax' : 'no-part-time');
+  else for (const id of ['work-tax', 'no-part-time']) if (ids.includes(id)) fail('A-I11', `${id} with no part-time question (you have stopped)`);
   if (inputs.spend.kind === 'level') always.push('spend-level');
   if (answer.shown.gapYears > 0 && !ids.some((id) => id.startsWith('pension-closed-until'))) fail('A-I11', 'a pension closed at the stop but no pension-closed-until line');
   if ((inputs.savings > 0 || inputs.savingsIn > 0)) always.push('isa-fixed-growth');
-  if (inputs.savingRisk !== inputs.risk && answer.shown.yearsSaving > 0 && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) always.push('slide');
+  if (inputs.savingRisk !== inputs.risk && shownOwn.last > 0 && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) always.push('slide');
   for (const id of always) if (!ids.includes(id)) fail('A-I11', `assumed lacks ${id}`);
   if (inputs.savingRisk === inputs.risk && ids.includes('slide')) fail('A-I11', 'a slide line with the two levels the same');
   if (given) {
@@ -378,9 +446,22 @@ export function checkAnswerA(answer, given, env) {
   if (h.kind === 'named') {
     // a couple's "Yes — you could both stop when you are 60 (your partner 58)", unless the partner is past their State
     // Pension age: then "Yes — you could stop at 60", and a note says their money is left alone until then
+    // Couples apart: "Yes — you could stop at 60" (the screen draws the partner's stop on its own line); about your partner
+    // ("I've already stopped"): "Yes — your partner could stop at 56"
     const retired = couple && answer.warnings.some((w) => w.id === 'partner-stops-with-you');
-    const want = couple && !retired && answer.shown.verdict === 'yes' ? 'a.head.couple' : `a.head.${answer.shown.verdict}`;
+    const want = ask.asked === 'partner' ? `a.head.partner.${answer.shown.verdict}`
+      : couple && !retired && !answer.apart && answer.shown.verdict === 'yes' ? 'a.head.couple' : `a.head.${answer.shown.verdict}`;
     if (answer.sentences.head.id !== want) fail('A-I12', `head ${answer.sentences.head.id}, want ${want}`);
+  }
+  // the words of couples apart: the line names both stops; the years before the second stop are said with the pay
+  if (answer.apart && answer.status === 'ok') {
+    const ap = answer.apart;
+    if (ask.asked === 'you' && h.kind === 'named' && !(answer.sentences.line.text.includes('your partner') && answer.sentences.line.text.includes('the younger of you was'))) fail('A-I12', `line does not name both stops: ${answer.sentences.line.text}`);
+    const apartPays = answer.sentences.pays.filter((x) => x.id === 'a.pays.apart');
+    const apartPhases = (answer.shown.phases || []).filter((q) => q.fromPay !== undefined);
+    if (apartPays.length !== apartPhases.length) fail('A-I12', `${apartPays.length} a.pays.apart lines for ${apartPhases.length} phases before the second stop`);
+    for (const x of apartPays) if (!/still working/.test(x.text)) fail('A-I12', `a.pays.apart does not say who is still working: ${x.text}`);
+    if (ap.payCovers > 0 && apartPhases.some((q) => q.shown.fromPay > 0) && !apartPays.some((x) => /pay\b/.test(x.text))) fail('A-I12', 'the pay of the one still working is not named');
   }
   if (answer.sentences.head && h.kind !== 'noneWorked' && !answer.sentences.head.parts.some((p) => p && p.kind === 'age')) fail('A-I12', 'the headline names no age');
   if (answer.shown.oneMoreYear && answer.status === 'ok' && !answer.sentences.oneMore) fail('A-I12', 'one more year but no sentence');

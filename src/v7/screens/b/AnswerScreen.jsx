@@ -11,24 +11,25 @@ import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Ret
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
-import { saverFrame, ShortForm, Warnings, AnswerRegion, ToC } from '../a/AnswerScreen.jsx';
+import { saverFrame, ShortForm, Warnings, AnswerRegion, ToC, aboutPartner } from '../a/AnswerScreen.jsx';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 /**
  * "What next?" for B: A with the figures carried; C from the stop age (C is asked from what is typed — the pot now,
  * what goes in, the savings — never from a pot worked out here), not before a pension can be touched. "Save this as a
- * plan" follows it, at the foot of the answer.
+ * plan" follows it, at the foot of the answer. An answer about your partner ("I've already stopped") hands over in its
+ * own words: the reducer carries "I've already stopped" with it (state/carry.js carryFor; couples-different-years.md 5.4).
  */
-function WhatNext({ result, dispatch }) {
+function WhatNext({ result, dispatch, partner }) {
   const t = B.answer;
   const carry = (to) => () => dispatch({ type: 'draft/carry', from: 'b', to });
   return (
     <section class="block next" data-region="next" aria-labelledby="next-title">
       <h2 id="next-title">{t.nextTitle}</h2>
       <ul class="next-list">
-        <li><LinkButton testid="b.next.a" href={href.step('a', 'numbers')} onClick={carry('a')}><span>{B.buttons['next.a']}</span></LinkButton></li>
-        <ToC q="b" result={result} k="stop.age" dispatch={dispatch} words={t} />
+        <li><LinkButton testid="b.next.a" href={href.step('a', 'numbers')} onClick={carry('a')}><span>{B.buttons[partner ? 'next.a.partner' : 'next.a']}</span></LinkButton></li>
+        <ToC q="b" result={result} k="stop.age" dispatch={dispatch} words={t} partner={partner} />
       </ul>
     </section>
   );
@@ -105,7 +106,7 @@ function Answer({ state, dispatch, frame }) {
       </AnswerRegion>
       <SpendLine state={state} q="b" dispatch={dispatch} />
       <SaverTryAChange q="b" state={state} form={form} result={result} dispatch={dispatch} />
-      <WhatNext result={result} dispatch={dispatch} />
+      <WhatNext result={result} dispatch={dispatch} partner={aboutPartner(state, 'b', result)} />
       <KeepPanel state={state} q="b" dispatch={dispatch} />
       <p class="full-detail"><LinkButton testid="b.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? B.buttons.fullDetailCouple : B.buttons.fullDetail}</LinkButton></p>
     </>
@@ -113,7 +114,7 @@ function Answer({ state, dispatch, frame }) {
 }
 
 export function AnswerScreen(state, dispatch) {
-  if (isRetired(state, 'b')) return { question: 'b', rail: true, full: false, view: 'retired', content: <Retired q="b" dispatch={dispatch} /> };
+  if (isRetired(state, 'b')) return { question: 'b', rail: true, full: false, view: 'retired', content: <Retired q="b" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'b');
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} />;

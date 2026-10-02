@@ -10,6 +10,13 @@
  * is drawn inside that choice's option (FieldGroup), so the form holds exactly the fields that apply.
  *
  * saverNumbers(q, layout) is the numbers step of A and B alike; B passes its own layout and words.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2.1–2.3): the partner's stop sits
+ * after their age and pot, before their pay-in (which "They already have" hides), with the pay line under it; "I've
+ * already stopped" is one of your stop's options for a couple (hiding your pay-in and part-time work, and turning the
+ * partner's question into the one the answer is about); "Already had the tax-free part?" is asked first under more
+ * detail, for someone who has stopped only (`taxFree`: those fields hang on a stop question, so they are not top-level
+ * fields of the layout). A couple who have both stopped get the retired view.
  */
 import { AskForm, FieldGroup, PayInSplit, Carried, Retired, isRetired, formView, focusField, Button, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';
@@ -20,9 +27,11 @@ import { href } from '../../router/routes.js';
  */
 export const LAYOUT_A = {
   you: ['you.age', 'you.pot', 'you.payIn.kind', 'savings', 'stop.kind', 'partTime.has', 'you.statePension.kind', 'you.finalSalary.has'],
-  partner: ['partner.age', 'partner.pot', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
+  partner: ['partner.age', 'partner.pot', 'partner.stop.kind', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
   more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge'],
-  spend: ['spend.kind']
+  spend: ['spend.kind'],
+  /** Drawn first under more detail, each only while it applies (someone who has stopped). */
+  taxFree: ['you.taxFreeTaken', 'partner.taxFreeTaken']
 };
 
 /** Under the spending choice, once a level is picked: what that level is a month (words, checked against the rule). */
@@ -36,18 +45,36 @@ export function LevelLine({ form }) {
   return <p class="help level-line" data-testid={`${form.q}.spend.levelIs`}>{text}</p>;
 }
 
-/** One top-level field of a saver layout: the pay-in block, the spending choice with its level line, or a FieldGroup. */
-export function LayoutField({ form, path, dispatch }) {
+/**
+ * The choice a field is drawn inside by the layout's `inside` ({ choice: { option: [paths] } }), when that choice is on
+ * the form; else null.
+ */
+function drawnInside(form, layout, path) {
+  for (const [choice, byOption] of Object.entries((layout && layout.inside) || {})) {
+    if (!Object.values(byOption).some((paths) => paths.includes(path))) continue;
+    const f = form.byPath.get(choice);
+    if (f && form.applies(f) && form.isAsked(choice)) return choice;
+  }
+  return null;
+}
+
+/**
+ * One top-level field of a saver layout: the pay-in block, the spending choice with its level line, or a FieldGroup (with
+ * whatever the layout draws inside its options). A field the layout draws inside a choice that is on the form is drawn
+ * there, not again here.
+ */
+export function LayoutField({ form, path, dispatch, layout }) {
   if (path.endsWith('.payIn.kind')) return <PayInSplit who={path.split('.')[0]} form={form} dispatch={dispatch} />;
   if (path === 'spend.kind') return <FieldGroup form={form} path={path} dispatch={dispatch} extra={<LevelLine form={form} />} />;
-  return <FieldGroup form={form} path={path} dispatch={dispatch} />;
+  if (drawnInside(form, layout, path)) return null;
+  return <FieldGroup form={form} path={path} dispatch={dispatch} inside={(layout && layout.inside && layout.inside[path]) || {}} />;
 }
 
 export function saverNumbers(q, layout) {
   return function NumbersScreen(state, dispatch) {
     const form = formView(state, q);
     const words = form.copy;
-    if (isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} /> };
+    if (isRetired(state, q)) return { question: q, rail: true, full: false, view: 'retired', content: <Retired q={q} dispatch={dispatch} state={state} /> };
     const { couple, moreOpen } = form;
     const set = (path, value) => dispatch({ type: 'draft/set', q, path, value });
     const toggleMore = () => dispatch({ type: 'ui/toggle', id: 'more' });
@@ -57,7 +84,7 @@ export function saverNumbers(q, layout) {
       set('household', 'couple');
       if (el) focusField(el, 'partner.age', q);
     };
-    const draw = (paths) => paths.map((p) => <LayoutField key={p} form={form} path={p} dispatch={dispatch} />);
+    const draw = (paths) => paths.map((p) => <LayoutField key={p} form={form} path={p} dispatch={dispatch} layout={layout} />);
     return {
       question: q,
       rail: true,
@@ -77,7 +104,8 @@ export function saverNumbers(q, layout) {
                   <Button testid={`${q}.action.removePartner`} kind="quiet" data-focus-for={`${q}.household`} onClick={() => set('household', 'single')}>{words.buttons.removePartner}</Button>
                 </div>
                 <div class="person person-partner">{draw(layout.partner)}</div>
-                <p class="note">{words.numbers.partnerDone}</p>
+                {/* "You both stop in the same year" only while it is so: not once their stop is their own, nor once you have stopped */}
+                <p class="note">{form.apart || form.asked === 'partner' ? words.numbers.partnerDoneApart : words.numbers.partnerDone}</p>
               </section>
             )}
 
@@ -94,7 +122,7 @@ export function saverNumbers(q, layout) {
                   <h2 id="more-title">{words.numbers.moreTitle}</h2>
                   <Button testid={`${q}.action.closeMore`} kind="quiet" onClick={toggleMore}>{words.buttons.closeMore}</Button>
                 </div>
-                {draw(layout.more)}
+                {draw([...(layout.taxFree || []), ...layout.more])}
               </section>
             )}
 

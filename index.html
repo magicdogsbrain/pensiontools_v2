@@ -4254,7 +4254,7 @@
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
-    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2)
+    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
@@ -10755,7 +10755,7 @@
           + '<tr><td>' + ownName + ' on their own</td><td><strong>' + pctFmt(r.successA) + '</strong></td></tr>'
           + '<tr><td>' + pName + ' on their own</td><td><strong>' + pctFmt(r.successB) + '</strong></td></tr>'
           + '<tr><td>Both together</td><td><strong>' + pctFmt(r.jointSuccess) + '</strong></td></tr>'
-          + '</tbody></table>' + stratNote;
+          + '</tbody></table>' + stratNote + ((note) => (note ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + budEsc(note) + '</p>' : ''))(householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear }));   // one plan begins later than the other (couples-different-years.md 7): say when, and what is counted until then — words only, the check already lines the plans up by their starts
         html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
           + 'The together number can\'t be better than the weaker plan — and both plans face the '
           + '<em>same</em> markets, so a bad decade hits you both at once. That\'s why this check runs '

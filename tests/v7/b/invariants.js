@@ -17,8 +17,26 @@ export { answerB, SCHEMA_B, TEST_ENV } from './_b.js';
 import { get, money, pot as potText, partsText, outOfTen } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
 import { RULES, SAVING } from '../../../src/answers/shared/rules.js';
-import { gridToShow, spendLevelAMonth } from '../../../src/answers/shared/schemaParts.js';
+import { gridToShow, spendLevelAMonth, askedAbout, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 5.3): the answer is about the person
+ * still working — you, or your partner after "I've already stopped" (askedAbout) — and each person is at their own stop.
+ * `stopsOfB(inputs)` gives the asked person, their stop age, each one's years to their own stop, who is still saving, and
+ * the household's start (the first stop). With one stop for both every rule below is as it was.
+ */
+export function stopsOfB(inputs) {
+  const asked = askedAbout(inputs);
+  const stopAge = asked === 'partner' ? inputs.partner.stop.age : inputs.stop.age;
+  const own = stopYearsOf(inputs, stopAge);
+  const couple = inputs.household === 'couple' && inputs.partner;
+  const list = couple ? [own.you, own.partner] : [own.you];
+  const first = Math.min(...list);
+  const apart = couple && own.you !== own.partner;
+  const saves = (who) => !apart || own[who] > 0;
+  return { asked, stopAge, own, first, last: Math.max(...list), apart, saves, S: own[asked] };
+}
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 const THREE = ['careful', 'middling', 'good'];
@@ -64,6 +82,12 @@ export function peopleOf(inputs) {
 
 /** What lands in the pensions each month in all is at most the £10,000 the household takes (a split can add to more). */
 export const withinCeiling = (inputs) => peopleOf(inputs).every((p) => p.payIn.total <= SAVING.payInCeiling);
+
+/**
+ * Whether B has a question for these inputs: not a couple who have both stopped ("I've already stopped" and "They already
+ * have": the screen shows the retired view, and B answers 'invalid' with partner-stop-after-now — couples-different-years.md 2.2).
+ */
+export const asksB = (inputs) => !(inputs.stop && inputs.stop.kind === 'already' && inputs.partner && inputs.partner.stop && inputs.partner.stop.kind === 'already');
 
 /** The spend a month the inputs ask for: the amount, or the level's figure (RULES.plsa ÷ 12 to the pound). */
 export function spendOf(inputs) {
@@ -112,28 +136,39 @@ export function checkAnswerB(answer, given) {
   const inputs = answer.inputs;
   const b = answer.basis;
   const n = b.futures;
-  const people = peopleOf(inputs);
-  const S = inputs.stop.age - inputs.you.age;
+  const st = stopsOfB(inputs);
+  // (someone who has stopped pays nothing in: their pay-in is not the household's)
+  const people = peopleOf(inputs).map((p) => (st.saves(p.who) ? p : { ...p, payIn: { total: 0, own: null, employer: null } }));
+  const savers = people.filter((p) => st.saves(p.who));
+  const S = st.S;
   const allowed = allowedAt(n);
+  if ((answer.askedAbout || 'you') !== st.asked) fail('B2', `askedAbout ${answer.askedAbout}, the inputs ask about ${st.asked}`);
+  if (Boolean(answer.apart) !== st.apart) fail('B2', `apart ${JSON.stringify(answer.apart)}, the stops ${JSON.stringify(st.own)}`);
+  if (answer.apart) {
+    for (const who of ['you', 'partner']) if (answer.apart.stops[who].age !== inputs[who].age + st.own[who]) fail('B2', `apart.stops.${who}.age ${answer.apart.stops[who].age}`);
+    if (answer.apart.years !== st.last - st.first) fail('B2', `apart.years ${answer.apart.years}`);
+    if (Boolean(answer.apart.coverUsed) !== answer.warnings.some((w) => w.id === 'apart-cover-used')) fail('B13', 'apart.coverUsed ⟺ the apart-cover-used warning');
+  }
 
   // B2 the basis and the plain facts of the question
   if (b.failuresAllowed !== Math.floor(n / 10)) fail('B2', 'failuresAllowed ≠ floor(n / 10)');
   if (b.closeAllowed !== Math.floor(n / 4)) fail('B2', 'closeAllowed ≠ floor(n / 4)');
   for (const [k, v] of Object.entries({ bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
-    potStep: SAVING.potStep, potMax: SAVING.potMax, payInCeiling: SAVING.payInCeiling * people.length, laterYears: SAVING.laterYears })) {
+    potStep: SAVING.potStep, potMax: SAVING.potMax, payInCeiling: SAVING.payInCeiling * savers.length, laterYears: SAVING.laterYears })) {
     if (b[k] !== v) fail('B2', `basis.${k} = ${b[k]}, not ${v}`);
   }
   if (!['answer', 'grid'].includes(b.detail)) fail('B2', `basis.detail ${b.detail}`);
   if (!(S >= 1)) fail('B2', `a stop ${S} years on`);
-  if (answer.stop.age !== inputs.stop.age) fail('B2', 'stop.age is not the age asked about');
+  if (answer.stop.age !== st.stopAge) fail('B2', 'stop.age is not the age asked about');
   if (answer.stop.year !== String(Number(b.today.slice(0, 4)) + S)) fail('B2', `stop.year ${answer.stop.year}`);
   if (answer.years.saving !== S) fail('B2', `years.saving ${answer.years.saving} ≠ ${S}`);
-  const youngerAtStop = Math.min(...people.map((p) => p.age)) + S;
+  // the household's start: the first stop (one stop for both: the stop)
+  const youngerAtStop = Math.min(...people.map((p) => p.age)) + st.first;
   const D = Math.min(RULES.maxYears, inputs.endAge - youngerAtStop);
   if (answer.years.drawing !== D) fail('B2', `years.drawing ${answer.years.drawing} ≠ ${D}`);
   if (b.endAge !== youngerAtStop + D) fail('B2', `basis.endAge ${b.endAge} ≠ ${youngerAtStop + D}`);
-  if (b.lifeYears !== S + D) fail('B2', `basis.lifeYears ${b.lifeYears} ≠ ${S + D}`);
-  for (const p of people) if (answer.ages[p.who] !== p.age + S) fail('B2', `ages.${p.who} ${answer.ages[p.who]} ≠ ${p.age + S}`);
+  if (b.lifeYears !== st.first + D) fail('B2', `basis.lifeYears ${b.lifeYears} ≠ ${st.first + D}`);
+  for (const p of people) if (answer.ages[p.who] !== p.age + st.own[p.who]) fail('B2', `ages.${p.who} ${answer.ages[p.who]} ≠ ${p.age + st.own[p.who]}`);
   if (inputs.household !== 'couple' && answer.whose !== 'you') fail('B2', 'single but whose is not you');
   const spend = spendOf(inputs);
   if (answer.spend.perMonth !== spend) fail('B2', `spend.perMonth ${answer.spend.perMonth} ≠ ${spend}`);
@@ -157,7 +192,8 @@ export function checkAnswerB(answer, given) {
     if (answer.status === 'ok' && num.careful === 0 && !(inputs.savings > 0 || inputs.savingsIn > 0) && !answer.outside) fail('B3', 'status ok with a number of nought, and no savings to pay instead');
     if (!Array.isArray(num.byPerson) || num.byPerson.length !== people.length) fail('B3', 'number.byPerson is not one per person');
     else if (num.byPerson.reduce((s, x) => s + x.pot, 0) !== num.careful) fail('B3', 'number.byPerson does not add up to number.careful');
-    const today = people.reduce((s, p) => s + p.pot, 0);
+    // (couples apart: the pensions of those still saving — the number's)
+    const today = savers.reduce((s, p) => s + p.pot, 0);
     if (answer.already !== (today >= num.careful)) fail('B3', `already ${answer.already} but today's pension is ${today} against ${num.careful}`);
   }
 
@@ -235,7 +271,7 @@ export function checkAnswerB(answer, given) {
   }
   if (lv.stopLater) {
     const s = lv.stopLater;
-    if (!(s.age > inputs.stop.age && s.age <= RULES.stopAgeMax)) fail('B8', `stopLater.age ${s.age}`);
+    if (!(s.age > st.stopAge && s.age <= RULES.stopAgeMax)) fail('B8', `stopLater.age ${s.age}`);
     if (s.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `stopLater lasted in only ${s.lasted}`);
   }
   if (lv.spendLess) {
@@ -267,7 +303,7 @@ export function checkAnswerB(answer, given) {
       if (g.reaches !== g.ages.some((r) => r.cells.some((c) => c.verdict === 'yes'))) fail('B9', 'grid.reaches is not "some cell lasted in 9 in 10"');
       if (lv.stopLater && !g.ages.some((r) => r.age === lv.stopLater.age)) fail('B9', 'the grid has no row for the stop-later age');
       if (pi.needed !== null && pi.needed > pi.now && !g.payIns.includes(pi.needed)) fail('B9', 'the grid has no column for the pay-in that gets there');
-      const own = g.ages.find((r) => r.age === inputs.stop.age);
+      const own = g.ages.find((r) => r.age === st.stopAge);
       if (own && num !== null) {
         if (own.number !== num.careful) fail('B9', 'the grid\'s row for the stop age has another number');
         if (g.payIns[0] === pi.now && own.cells[0].lasted !== ch.lasted) fail('B9', 'the grid\'s cell for today is not the chance');
@@ -280,10 +316,12 @@ export function checkAnswerB(answer, given) {
   if (!Array.isArray(ph) || !ph.length) fail('B10', 'no phases');
   else {
     ph.forEach((p, i) => {
-      const sum = p.fromPots + p.statePension + p.finalSalary + p.fromWork - p.tax;
+      // (couples apart, before the second stop: plus what the pay of the one still working covers)
+      const sum = p.fromPots + p.statePension + p.finalSalary + p.fromWork + (p.fromPay || 0) - p.tax;
       if (Math.abs(sum - p.takeHome) > 0.03) fail('B10', `phase ${i}: the parts do not add up to ${p.takeHome}`);
       if (Math.abs(p.fromPension + p.fromSavings - p.fromPots) > 0.02) fail('B10', `phase ${i}: fromPots ≠ fromPension + fromSavings`);
-      if (p.shown.fromPots + p.shown.statePension + p.shown.finalSalary + p.shown.fromWork !== p.shown.takeHome) fail('B10', `phase ${i}: shown figures do not add up`);
+      if (p.shown.fromPots + p.shown.statePension + p.shown.finalSalary + p.shown.fromWork + (p.shown.fromPay || 0) !== p.shown.takeHome) fail('B10', `phase ${i}: shown figures do not add up`);
+      if ((p.fromPay !== undefined) !== Boolean(answer.apart && p.fromAge < youngerAtStop + st.last - st.first)) fail('B10', `phase ${i}: fromPay in the wrong years`);
       if (typeof p.pensionOpen !== 'boolean') fail('B10', `phase ${i}: pensionOpen`);
       for (const who of Object.keys(p.ages)) {
         const me = p.byPerson.find((x) => x.who === who);
@@ -293,15 +331,26 @@ export function checkAnswerB(answer, given) {
     });
     if (ph[0].fromAge !== inputs.stop.age && inputs.household !== 'couple') fail('B10', `the first phase starts at ${ph[0].fromAge}, not the stop age`);
     if (ph[ph.length - 1].toAge !== b.endAge) fail('B10', 'the last phase does not end at the end age');
-    if (answer.status === 'ok' && ph[0].takeHome < spend - 0.01) fail('B10', `the first phase pays ${ph[0].takeHome}, less than the spend`);
+    // (couples apart: a stretch before the second stop that nobody's money pays and the pay does not make up is a run-out)
+    if (answer.status === 'ok' && ph[0].takeHome < spend - 0.01 && !(answer.apart && ph[0].fromPay !== undefined && !answer.apart.coversGap)) fail('B10', `the first phase pays ${ph[0].takeHome}, less than the spend`);
   }
   if (answer.outside) {
     if (!(answer.gapYears > 0)) fail('B10', 'outside without a closed pension at the stop');
     if (answer.outside.untilAge !== inputs.stop.age + answer.gapYears && inputs.household !== 'couple') fail('B10', `outside.untilAge ${answer.outside.untilAge}`);
     // (with no pension in the phases at all — none today, nothing paid in, a number of nought — no year is "closed":
     // the savings pay every year, and there is no closed draw to compare)
-    const closedDraw = ph.filter((p) => !p.pensionOpen && p.toAge <= answer.outside.untilAge).reduce((s, p) => s + p.fromSavings * 12 * (p.toAge - p.fromAge), 0);
-    if (ph.some((p) => !p.pensionOpen) && Math.abs(answer.outside.amount - Math.round(closedDraw)) > 1) fail('B10', `outside.amount ${answer.outside.amount} ≠ the closed years' savings draw ${closedDraw}`);
+    // (couples apart: from where the pay of the one still working stops covering)
+    const checkFrom = !answer.apart ? -Infinity : youngerAtStop + (answer.apart.payCovers >= 1 || answer.apart.coversGap ? answer.apart.years : 0);
+    // (couples apart: each closed phase counted for the years it shares with the closed years — the phases are cut where the
+    // pensions they hold open, and a pension the number leaves at nought cuts none)
+    const closedDraw = answer.apart
+      ? ph.filter((p) => !p.pensionOpen && p.fromAge < answer.outside.untilAge && p.toAge > checkFrom)
+        .reduce((s, p) => s + p.fromSavings * 12 * (Math.min(p.toAge, answer.outside.untilAge) - Math.max(p.fromAge, checkFrom)), 0)
+      : ph.filter((p) => !p.pensionOpen && p.toAge <= answer.outside.untilAge).reduce((s, p) => s + p.fromSavings * 12 * (p.toAge - p.fromAge), 0);
+    // (couples apart under "None of it" with nothing to draw: the stretch before the second stop that nobody's money pays
+    // shows as what it is — short, a run-out — while outside.amount says what savings it would take; nothing to compare)
+    const unpaid = answer.apart && ph.some((p) => p.fromPay !== undefined && p.takeHome < spend - 0.01);
+    if (ph.some((p) => !p.pensionOpen) && !unpaid && Math.abs(answer.outside.amount - Math.round(closedDraw)) > 1) fail('B10', `outside.amount ${answer.outside.amount} ≠ the closed years' savings draw ${closedDraw}`);
   }
 
   // B11 the saving years, one per person
@@ -309,9 +358,10 @@ export function checkAnswerB(answer, given) {
   else {
     answer.saving.forEach((s, i) => {
       const p = people[i];
-      if (s.who !== p.who || s.stopAge !== p.age + S || s.yearsSaving !== S) fail('B11', `saving[${i}] who / stop / years`);
+      const mine = st.own[p.who];
+      if (s.who !== p.who || s.stopAge !== p.age + mine || s.yearsSaving !== mine) fail('B11', `saving[${i}] who / stop / years`);
       if (s.payIn.total !== p.payIn.total) fail('B11', `saving[${i}].payIn.total`);
-      if (Math.abs(s.paidIn.total - p.payIn.total * 12 * S) > 0.005) fail('B11', `saving[${i}].paidIn.total ≠ pay-in × 12 × ${S}`);
+      if (Math.abs(s.paidIn.total - p.payIn.total * 12 * mine) > 0.005) fail('B11', `saving[${i}].paidIn.total ≠ pay-in × 12 × ${mine}`);
       if (s.potToday.pension !== p.pot) fail('B11', `saving[${i}].potToday.pension`);
       for (const part of ['pension', 'savings', 'total']) {
         const t = s.potAtStop[part];
@@ -332,8 +382,14 @@ export function checkAnswerB(answer, given) {
   const always = ['pay-in-as-given', 'risk-saving', 'risk-drawing', 'charges', 'same-futures', 'saving-rebalanced', 'stop-age', 'spend-steady',
     'number-is-careful', 'confidence', 'plan-to', 'todays-prices', 'tax-rules'];
   always.push(nowTotal > 0 ? 'pay-in' : 'nothing-paid-in');
-  if (inputs.household === 'couple') always.push('stop-together', 'both-alive');
-  if (inputs.household === 'couple' && nowTotal > 0) always.push('pay-in-split');
+  // a couple: one stop for both says so; each on their own date, the pay line (couples-different-years.md 2.4)
+  if (inputs.household === 'couple') always.push(answer.apart ? 'stop-apart' : 'stop-together', 'both-alive');
+  if (inputs.household === 'couple' && nowTotal > 0 && savers.length === 2) always.push('pay-in-split');
+  if (answer.apart) {
+    if (ids.includes('stop-together')) fail('B12', 'stop-together with the two stops apart');
+    if (ids.includes('savings-split')) fail('B12', 'savings-split with the two stops apart (savings-first)');
+    if (inputs.savings > 0 && !ids.includes('savings-first')) fail('B12', 'savings, the stops apart, and no savings-first line');
+  } else if (ids.includes('stop-apart')) fail('B12', 'stop-apart with one stop for both');
   if (inputs.spend.kind === 'level') always.push('spend-level');
   if (inputs.savingRisk !== inputs.risk) always.push('slide');
   always.push('savings-in');
@@ -364,8 +420,9 @@ export function checkAnswerB(answer, given) {
   if (new Set(wids).size !== wids.length) fail('B13', 'warning ids repeat');
   for (const w of answer.warnings) if (!['important', 'note'].includes(w.severity)) fail('B13', `${w.id}: severity ${w.severity}`);
   const has = (id) => wids.includes(id);
-  const share = people.length;
-  const neededOf = (p) => (pi.needed === null ? 0 : nowTotal > 0 ? pi.needed * p.payIn.total / nowTotal : pi.needed / share);
+  // (couples apart: the pay-in that gets there is shared among those still saving)
+  const share = savers.length;
+  const neededOf = (p) => (pi.needed === null || !st.saves(p.who) ? 0 : nowTotal > 0 ? pi.needed * p.payIn.total / nowTotal : pi.needed / share);
   const overAA = people.some((p) => p.payIn.total * 12 > RULES.annualAllowance || neededOf(p) * 12 > RULES.annualAllowance + 1e-6);
   if (has('annual-allowance') !== overAA) fail('B13', `annual-allowance ${has('annual-allowance')} but over it: ${overAA}`);
   const overMpaa = people.some((p) => p.alreadyDrawing && (p.payIn.total * 12 > RULES.moneyPurchaseAllowance || neededOf(p) * 12 > RULES.moneyPurchaseAllowance + 1e-6));
@@ -407,7 +464,7 @@ export function checkAnswerB(answer, given) {
   for (const id of ['payInHead', 'payInSub', 'payInLine', 'payInBad']) if (Boolean(S_[id]) !== (two && pi.needed !== null)) fail('B14', `${id} ${S_[id] ? 'present' : 'missing'}`);
   if (Boolean(S_.outside) !== Boolean(answer.outside)) fail('B14', 'outside sentence ⟺ outside');
   if (S_.gridCell && !answer.grid) fail('B14', 'a gridCell sentence without a grid');
-  if (answer.grid && num !== null && answer.grid.payIns.length && answer.grid.ages.some((r) => r.age === inputs.stop.age) && !S_.gridCell) fail('B14', 'a grid with the stop age\'s row and no gridCell sentence');
+  if (answer.grid && num !== null && answer.grid.payIns.length && answer.grid.ages.some((r) => r.age === st.stopAge) && !S_.gridCell) fail('B14', 'a grid with the stop age\'s row and no gridCell sentence');
   // "You already have more than £X" — not of a number of nought (then the savings pay: b.line.zero says so)
   if (Boolean(S_.have) !== Boolean(answer.already && answer.status === 'ok' && num && num.careful > 0)) fail('B14', 'have sentence ⟺ already');
   if (Boolean(S_.nothing) !== (answer.status === 'guaranteed-only')) fail('B14', 'nothing sentence ⟺ guaranteed-only');

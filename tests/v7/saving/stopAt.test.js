@@ -21,6 +21,7 @@ import {
 } from './_saving.js';
 import { saver } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
+import { stopsOf } from '../../../src/answers/shared/household.js';
 
 const SEED = 20261003;
 const SHARES = { equity: 1, bond: 0, cash: 0 };
@@ -89,6 +90,9 @@ describe('X1, the engine half: a stop at today\'s age is question C', () => {
       const { household } = toHouseholdC(checked.inputs, env);
       const plan = enginePlan(household, env);
       if (!(plan.totalPots > 0) || plan.yearsFromNow > 0 || plan.lockedUntil.length) continue;
+      // C from now is today's answer only when both have stopped (couples-different-years.md 5.1): a partner who stops at
+      // an age of their own is answered on the lives, each at their own stop (tests/v7/shared/apart.*)
+      if (new Set(stopsOf(household, env.today).map((x) => x.S)).size > 1) continue;
       const futures = futuresList(env.futures, plan.years, env);
       const solver = createBandSolver(plan, futures);
       const want = solver.solve();
@@ -341,7 +345,7 @@ describe('the household\'s saving fields (step 4 brief 4.10)', () => {
     expect(validateHousehold(split.household, today)).toEqual([]);
   });
 
-  it('validateHousehold: the new ranges, and both people stop in the same year', async () => {
+  it('validateHousehold: the new ranges; people who stop in different years are valid when the household says how the years apart are paid', async () => {
     const { validateHousehold } = await import('./_saving.js');
     const today = TEST_ENV.today;
     const h = saver({ age: 45, pot: 100_000, payIn: 600, stopAge: 60, charge: 0.005, work: { yearly: 20_000, years: 3 }, partner: { age: 44, pot: 50_000 } });
@@ -354,7 +358,43 @@ describe('the household\'s saving fields (step 4 brief 4.10)', () => {
     expect(fields(tooMuch)).toEqual(['people.0.saving.payIn.total:tooHigh']);
     const longWork = { ...h, people: h.people.map((p, j) => (j ? p : { ...p, otherIncome: [{ kind: 'work', amountPerYear: 20_000, fromAge: 60, toAge: 76 }] })) };
     expect(fields(longWork)).toEqual(['people.0.otherIncome.0.years:tooHigh']);
-    const apart = { ...h, people: h.people.map((p, j) => (j ? { ...p, stopWork: { kind: 'age', age: 62 } } : p)) };
-    expect(fields(apart)).toEqual(['people.1.stopWork:stop-together']);
+    // couples-different-years.md 9.5: each stops on their own date, with the pay line (expandHousehold always gives one)
+    const apart = { ...h, people: h.people.map((p, j) => (j ? { ...p, stopWork: { kind: 'age', age: 62 } } : p)), untilBothStop: { payCovers: 0.5 } };
+    expect(fields(apart)).toEqual([]);
+    for (const payCovers of [0, 1]) expect(fields({ ...apart, untilBothStop: { payCovers } })).toEqual([]);
+    expect(fields({ ...apart, untilBothStop: { payCovers: 0.25 } })).toEqual(['untilBothStop.payCovers:notAnOption']);
+    // made by hand without the pay line: household.js still names it (P0 kept 'stop-together' for that case only)
+    const { untilBothStop, ...bare } = apart;
+    void untilBothStop;
+    expect(fields(bare)).toEqual(['people.1.stopWork:stop-together']);
+  });
+
+  it('a stop plan of a couple apart: each saves to their own stop, the drawing years start at the first, the stop asked about must be one of theirs', async () => {
+    const { expandHousehold } = await import('./_saving.js');
+    const short = (partnerStop) => ({
+      people: [
+        { who: 'you', age: 55, pots: { pension: 200_000 }, stopWork: { kind: 'age', age: 60 }, saving: { payIn: { total: 500 }, savingsIn: 0 } },
+        { who: 'partner', age: 58, pots: { pension: 150_000, isa: 20_000 }, stopWork: partnerStop, saving: { payIn: { total: 0 }, savingsIn: 0 } }
+      ],
+      saving: {}, planToAge: 95
+    });
+    const h = expandHousehold(short({ kind: 'already' }), TEST_ENV.today).household;
+    const sp = stopAtPlan(h, 60, { ...TEST_ENV, futures: 4 });
+    expect(sp.S).toBe(0);
+    expect(sp.stops).toEqual([{ who: 'you', S: 5, join: 5 }, { who: 'partner', S: 0, join: 0 }]);
+    expect(sp.saving.people.map((p) => p.until)).toEqual([5, 0]);
+    expect(sp.kernelPasses).toBe(2);                                  // one growth pass per distinct stop
+    expect(sp.stillSaving).toEqual([true, false]);
+    expect(sp.split).toEqual([1, 0]);
+    expect(sp.plan.apart.years).toBe(5);
+    expect(sp.D).toBe(95 - 55);
+    expect(() => stopAtPlan(h, 61, { ...TEST_ENV, futures: 4 })).toThrow(/neither person/);
+    expect(stopAtPlan(h, 58, { ...TEST_ENV, futures: 4 }).S).toBe(0);  // the partner's stop: the same plan
+    // both still working, apart: both save, each to their own stop; both are scaled by the pot needed
+    const both = expandHousehold(short({ kind: 'age', age: 62 }), TEST_ENV.today).household;
+    const sb = stopAtPlan(both, 60, { ...TEST_ENV, futures: 4 });
+    expect(sb.S).toBe(4);
+    expect(sb.stops.map((x) => x.join)).toEqual([1, 0]);
+    expect(sb.stillSaving).toEqual([true, true]);
   });
 });

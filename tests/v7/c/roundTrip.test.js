@@ -9,6 +9,7 @@ import { renderScreen, readForm, SCHEMA_C } from './_c.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { parse } from '../../../src/v7/router/routes.js';
 import { checkScreen } from '../render/checkScreen.js';
+import { applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { money } from '../../../src/answers/shared/format.js';
 
 const FIELDS = SCHEMA_C.fields.filter((f) => f.group !== 'try');
@@ -37,11 +38,19 @@ function stateWith(values, hash = '#/c/numbers') {
   return s;
 }
 
-const applies = (f, values) => Object.entries(f.when || {}).every(([p, want]) => {
-  const dep = SCHEMA_C.fields.find((x) => x.path === p);
-  const v = values[p] === undefined && typeof dep.default !== 'object' ? dep.default : values[p];
-  return v === want;
-});
+// The one rule (validate.js applies: a `when` list is "one of", `whenNot` hides), over what is typed with each plain
+// default filled in where nothing is, walked in the list's order as the checks walk it: a field that does not apply
+// takes what hangs on it away too (couples-different-years.md 3.2).
+const applies = (f, values) => {
+  const live = {};
+  for (const x of SCHEMA_C.fields) {
+    if (!appliesTo(x, live)) continue;
+    if (x === f) return true;
+    const v = values[x.path] === undefined && typeof x.default !== 'object' ? x.default : values[x.path];
+    if (v !== undefined) live[x.path] = v;
+  }
+  return false;
+};
 
 describe('the numbers step: typed → state → drawn → read back', () => {
   it('reads back exactly what the state holds, for anything that can be typed', () => {

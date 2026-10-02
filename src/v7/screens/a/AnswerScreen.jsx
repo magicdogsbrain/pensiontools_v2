@@ -10,12 +10,19 @@
  * Computes nothing: every figure is the answer's, drawn by Money, Sentence and OutOfTenBar.
  *
  * saverFrame() is the part A's and B's steps share: which of short form / failed / working / answer to draw.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2.4, 5.2): under the verdict, on its
+ * own line, the other person's stop — "Your partner stops at 62, as you said." (the age the answer's: apart.stops), "Your
+ * partner has already stopped.", or, when the answer is about your partner, "You have already stopped." An answer about
+ * your partner hands over in its own words ("Is my partner saving enough for this?", "What could we spend a month once
+ * my partner stops at 56?"): the reducer carries "I've already stopped" with it (state/carry.js carryFor), so C is asked
+ * from now, your partner stopping at the age shown.
  */
 import {
   AskForm, FieldGroup, Field, Sentence, Money, Verdict, AgesChart, Pots, MadeOf, Assumed, SaverTryAChange, Working, Problem,
   Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel
 } from '../../components/index.js';
-import { isCurrent } from '../../state/select.js';
+import { isCurrent, askedAboutOf, partnerStopsNow } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { A } from '../../copy/a.js';
@@ -76,6 +83,28 @@ export function ShortForm({ form, dispatch, need }) {
   );
 }
 
+/**
+ * The headline's second line when you stop in different years (couples-different-years.md 2.4): who has already stopped,
+ * or the partner's stop as given. The words are copy/a.js's; the age is the answer's (apart.stops.partner.age), drawn by
+ * Money. Nothing when the stops are the same year (the answer has no `apart`): today's headline, as it was.
+ */
+export function SecondLine({ result }) {
+  const t = A.answer.second;
+  const line = (children) => <p class="line figure-second" data-testid="a.answer.second">{children}</p>;
+  if (result.askedAbout === 'partner') return line(t.youAlready);
+  const partner = get(result, 'apart.stops.partner');
+  if (!partner) return null;
+  if (partner.already === true) return line(t.partnerAlready);
+  if (typeof partner.age !== 'number') return null;
+  return line(<>{t.partnerAt[0]} <Money source={result} k="apart.stops.partner.age" kind="age" />{t.partnerAt[1]}</>);
+}
+
+/**
+ * Whether the answer on screen, or what is typed, is about your partner ("I've already stopped"): the hand-overs to the
+ * other questions then speak of your partner (see the head of this file).
+ */
+export const aboutPartner = (state, q, result) => (result && result.askedAbout === 'partner') || askedAboutOf(state, q) === 'partner';
+
 /** The warnings the answer gave, in its words — less any that `skip` names (one the headline already says). */
 export function Warnings({ result, skip = [] }) {
   const list = ((result && result.warnings) || []).filter((w) => !skip.includes(w.id));
@@ -112,15 +141,16 @@ export function handOverC(result, age) {
 }
 
 /** The link to C, its words one span (a narrow screen wraps them as one line of text, never as columns), and — when C
- * does not ask everything this answer was given — a note that its figure can differ. */
-export function ToC({ q, result, k, dispatch, words }) {
+ * does not ask everything this answer was given — a note that its figure can differ. `partner`: the answer is about your
+ * partner ("I've already stopped"), and C is asked from now with them stopping at that age. */
+export function ToC({ q, result, k, dispatch, words, partner = false }) {
   const age = get(result, k);
   const hand = handOverC(result, age);
   if (!hand.ok) return null;
   return (
     <li>
       <LinkButton testid={`${q}.next.c`} href={href.step('c', 'answer')} onClick={() => dispatch({ type: 'draft/carry', from: q, to: 'c' })}>
-        <span>{words.toCStart} <Money source={result} k={k} kind="age" />{words.toCEnd}</span>
+        <span>{partner ? words.toCPartnerStart : words.toCStart} <Money source={result} k={k} kind="age" />{words.toCEnd}</span>
       </LinkButton>
       {hand.same === false && <p class="note to-c-differs" data-testid={`${q}.next.c.differs`}>{words.toCDiffers}</p>}
     </li>
@@ -133,15 +163,19 @@ export function ToC({ q, result, k, dispatch, words }) {
  * the foot of the answer. Each link's words are one span, so a narrow screen wraps them as one line of text, never as
  * columns.
  */
-function WhatNext({ result, dispatch }) {
+function WhatNext({ result, dispatch, partner }) {
   const t = A.answer;
   const carry = (to) => () => dispatch({ type: 'draft/carry', from: 'a', to });
+  // about your partner, B opens with nothing more it must have (their pay-in has a default); about you, at your pay-in
+  const toB = partner ? href.step('b', 'numbers') : href.step('b', 'numbers', 'you.payIn.total');
+  // your partner shown stopping now: nothing more is saved, so "Is my partner saving enough?" is not offered (B refuses it)
+  const offerB = !partnerStopsNow(result);
   return (
     <section class="block next" data-region="next" aria-labelledby="next-title">
       <h2 id="next-title">{t.nextTitle}</h2>
       <ul class="next-list">
-        <li><LinkButton testid="a.next.b" href={href.step('b', 'numbers', 'you.payIn.total')} onClick={carry('b')}><span>{A.buttons['next.b']}</span></LinkButton></li>
-        <ToC q="a" result={result} k="shown.age" dispatch={dispatch} words={t} />
+        {offerB && <li><LinkButton testid="a.next.b" href={toB} onClick={carry('b')}><span>{A.buttons[partner ? 'next.b.partner' : 'next.b']}</span></LinkButton></li>}
+        <ToC q="a" result={result} k="shown.age" dispatch={dispatch} words={t} partner={partner} />
       </ul>
     </section>
   );
@@ -150,7 +184,9 @@ function WhatNext({ result, dispatch }) {
 /** The ages side by side on the answer step: the chart, its key, and the way to every age. */
 function ChartBlock({ result, answer, dispatch }) {
   const t = A.answer;
-  const byAges = result.inputs && result.inputs.stop && result.inputs.stop.kind === 'ages';
+  // "show me ages" — yours, or your partner's when the answer is about them
+  const stop = result.inputs && (result.askedAbout === 'partner' ? result.inputs.partner && result.inputs.partner.stop : result.inputs.stop);
+  const byAges = !!stop && stop.kind === 'ages';
   const ready = answer.status !== 'first' && Array.isArray(result.ages) && result.ages.length > 0;
   return (
     <section class="block chart" aria-labelledby="chart-title">
@@ -187,6 +223,7 @@ function Answer({ state, dispatch, frame }) {
           ? (
             <section class="headline" data-headline="verdict" aria-labelledby="answer-figure">
               <Verdict result={result} />
+              <SecondLine result={result} />
               <Sentence s={s.line} source={result} class="line" data-sentence="verdict" />
               {s.partTime && <Sentence s={s.partTime} source={result} class="part-time-line" />}
               <Sentence s={s.bad} source={result} class="bad" />
@@ -213,7 +250,7 @@ function Answer({ state, dispatch, frame }) {
       </AnswerRegion>
       <SpendLine state={state} q="a" dispatch={dispatch} />
       <SaverTryAChange q="a" state={state} form={form} result={result} dispatch={dispatch} />
-      <WhatNext result={result} dispatch={dispatch} />
+      <WhatNext result={result} dispatch={dispatch} partner={aboutPartner(state, 'a', result)} />
       <KeepPanel state={state} q="a" dispatch={dispatch} />
       <p class="full-detail"><LinkButton testid="a.action.fullDetail" kind="quiet" href={href.soon('e')}>{form.couple ? A.buttons.fullDetailCouple : A.buttons.fullDetail}</LinkButton></p>
     </>
@@ -221,7 +258,7 @@ function Answer({ state, dispatch, frame }) {
 }
 
 export function AnswerScreen(state, dispatch) {
-  if (isRetired(state, 'a')) return { question: 'a', rail: true, full: false, view: 'retired', content: <Retired q="a" dispatch={dispatch} /> };
+  if (isRetired(state, 'a')) return { question: 'a', rail: true, full: false, view: 'retired', content: <Retired q="a" dispatch={dispatch} state={state} /> };
   const frame = saverFrame(state, 'a');
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} />;

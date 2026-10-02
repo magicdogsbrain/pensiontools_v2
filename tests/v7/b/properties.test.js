@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling } from './invariants.js';
+import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
 import { STEP, oneLife, largeHousehold } from '../oracles/oneStep.mjs';
@@ -21,7 +21,7 @@ const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
-const inputsB = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling);
+const inputsB = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB);
 const singles = inputsB.filter((i) => i.household === 'single');
 /** Below the £100,000 point where the allowance is withdrawn (C's belowTaper): a large final-salary pension is taxed a step differently inside a run. */
 const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary && p.finalSalary.has && p.finalSalary.yearly >= 85000));

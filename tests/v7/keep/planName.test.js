@@ -7,11 +7,114 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readdirSync } from 'node:fs';
 import { suggestedPlanName, checkPlanName, cleanName, withDuplicateSuffix, PLAN_NAME } from '../../../src/answers/shared/planName.js';
+import * as frozen from './seed.v1/planName.js';
+import { aPartnerAlready, aYouAlready, bYouAlready, bBothLater, cYouNow } from './apartAnswers.mjs';
 
 const load = (q, name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${name}.json`), 'utf8')).answers[q].result;
 const name = (q, file) => { const r = load(q, file); return suggestedPlanName(q, r.inputs, r); };
 const copy = (v) => JSON.parse(JSON.stringify(v));
+/**
+ * Every named state of C, A and B that holds an answer for a household stopping in the same year (the states of a couple
+ * stopping apart — C's answer-apart — are named for each person's own stop: see below).
+ */
+const ANSWER_STATES = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(process.cwd(), 'tests/v7/states', q))
+  .filter((f) => f.endsWith('.json') && !f.startsWith('_'))
+  .map((f) => [q, f.slice(0, -5)])
+  .filter(([s, f]) => { const st = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', s, `${f}.json`), 'utf8')); return !!(st.answers && st.answers[s] && st.answers[s].result && !st.answers[s].result.apart); }));
+
+describe('stopping in the same year: every suggestion is 6.19.0\'s, word for word (couples-different-years.md 9.1, frozen seed.v1/)', () => {
+  it('found the named answers', () => {
+    expect(ANSWER_STATES.length).toBeGreaterThan(20);
+  });
+  it.each(ANSWER_STATES)('%s %s', (q, file) => {
+    const r = load(q, file);
+    expect(suggestedPlanName(q, r.inputs, r)).toBe(frozen.suggestedPlanName(q, r.inputs, r));
+    expect(suggestedPlanName(q, undefined, r)).toBe(frozen.suggestedPlanName(q, undefined, r));
+  });
+  it('over random same-year answers (a partner not answered, or "when you do"), as 6.19.0', () => {
+    const base = { a: load('a', 'answer-A2-couple'), b: load('b', 'answer-B5-couple'), c: load('c', 'answer-F2'), a1: load('a', 'answer-A1'), c1: load('c', 'answer-paying-in') };
+    fc.assert(fc.property(
+      fc.constantFrom('a', 'b', 'c', 'a1', 'c1'), fc.integer({ min: 18, max: 100 }), fc.integer({ min: 18, max: 100 }),
+      fc.integer({ min: 0, max: 30 }), fc.integer({ min: 1, max: 50000 }), fc.integer({ min: 0, max: 20000 }), fc.boolean(),
+      (k, you, partner, wait, spend, payIn, said) => {
+        const q = k[0];
+        const r = copy(base[k]);
+        r.inputs.you.age = you;
+        if (r.inputs.partner) { r.inputs.partner.age = partner; if (said) r.inputs.partner.stop = { kind: 'same' }; }
+        if (q === 'a') { r.shown.age = you + wait; r.shown.ages = r.inputs.partner ? { you: you + wait, partner: partner + wait } : { you: you + wait }; r.spend.perMonth = spend; }
+        if (q === 'b') { r.stop.age = you + wait; r.ages = { you: you + wait, partner: partner + wait }; r.spend.perMonth = spend; r.payIn.now = payIn; }
+        if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.monthly.careful = Math.round(spend / 10) * 10; if (r.payIn) r.payIn.total = payIn; }
+        expect(suggestedPlanName(q, r.inputs, r)).toBe(frozen.suggestedPlanName(q, r.inputs, r));
+      }
+    ), { numRuns: 400 });
+  });
+});
+
+describe('stopping in different years (couples-different-years.md 2.4, "Plan name suggested")', () => {
+  it('both still working: each person\'s own stop — "Stop at 60 and 62"', () => {
+    expect(suggestedPlanName('b', null, bBothLater())).toBe('Stop at 60 and 62 · £3,200 a month · paying £1,000');
+    const a = aPartnerAlready();
+    a.inputs.partner = { ...a.inputs.partner, age: 54, stop: { kind: 'age', age: 58 } };
+    delete a.inputs.partner.taxFreeTaken;
+    a.shown.ages = { you: 56, partner: 58 };
+    a.apart = { ...a.apart, first: 'you', years: 3, stops: { you: { age: 56, already: false }, partner: { age: 58, already: false } } };
+    expect(suggestedPlanName('a', null, a)).toBe('Stop at 56 and 58 · £3,200 a month');
+  });
+  it('your partner has stopped: your stop alone — "Stop at 56"', () => {
+    expect(suggestedPlanName('a', null, aPartnerAlready())).toBe('Stop at 56 · £3,200 a month');
+    const b = bBothLater();
+    b.inputs.partner = { ...b.inputs.partner, stop: { kind: 'already' } };
+    delete b.inputs.partner.payIn; delete b.inputs.partner.alreadyDrawing;
+    b.ages = { you: 60, partner: 48 };
+    expect(suggestedPlanName('b', null, b)).toBe('Stop at 60 · £3,200 a month · paying £1,000');
+  });
+  it('you have stopped (A and B: "I\'ve already stopped"; C: from now): the answer is your partner\'s — "Partner stops at 56"', () => {
+    expect(suggestedPlanName('a', null, aYouAlready())).toBe('Partner stops at 56 · £3,200 a month');
+    expect(suggestedPlanName('b', null, bYouAlready())).toBe('Partner stops at 60 · £3,000 a month · paying £700');
+    expect(suggestedPlanName('c', null, cYouNow())).toBe('Partner stops at 63 · £3,500 a month');
+  });
+  it('stopping today at an age is still your own stop — both ages, not "Partner stops at"', () => {
+    const a = aPartnerAlready();
+    a.inputs.partner = { ...a.inputs.partner, age: 54, stop: { kind: 'age', age: 58 } };
+    a.inputs.stop = { kind: 'age', age: 55 };
+    a.shown.age = 55; a.shown.ages = { you: 55, partner: 58 };
+    expect(suggestedPlanName('a', null, a)).toBe('Stop at 55 and 58 · £3,200 a month');
+  });
+  it('C starting later with your partner stopped: "Stop at" with money still going in, "From" without', () => {
+    const c = cYouNow();
+    c.inputs.start = { kind: 'age', age: 64 };
+    c.inputs.partner = { ...c.inputs.partner, stop: { kind: 'already' } };
+    delete c.inputs.partner.payIn;
+    c.whose = 'partner'; c.basis.startAge = 60;
+    c.payIn = { total: 0, byPerson: [] };
+    expect(suggestedPlanName('c', null, c)).toBe('From 64 · £3,500 a month');
+    c.inputs.you.payIn = { has: 'yes', kind: 'total', total: 500 };
+    c.payIn = { total: 500, byPerson: [{ who: 'you', total: 500 }] };
+    expect(suggestedPlanName('c', null, c)).toBe('Stop at 64 · £3,500 a month');
+  });
+  it('C, both starting later on different dates: both ages, each their own', () => {
+    const c = cYouNow();
+    c.inputs.start = { kind: 'age', age: 64 };
+    c.basis.startAge = 62;   // the younger at the household's start, two years from now
+    expect(suggestedPlanName('c', null, c)).toBe('Stop at 64 and 63 · £3,500 a month');
+    c.payIn = { total: 0, byPerson: [] };
+    expect(suggestedPlanName('c', null, c)).toBe('From 64 and 63 · £3,500 a month');
+  });
+  it('a long one loses " · paying …" and stays within 50 characters; every suggestion passes its own check', () => {
+    const b = bYouAlready();
+    b.spend.perMonth = 12345; b.payIn.now = 12000;
+    const s = suggestedPlanName('b', null, b);
+    expect(s).toBe('Partner stops at 60 · £12,350 a month');
+    for (const [q, r] of [['a', aPartnerAlready()], ['a', aYouAlready()], ['b', bYouAlready()], ['b', bBothLater()], ['c', cYouNow()]]) {
+      const n = suggestedPlanName(q, null, r);
+      expect([...n].length).toBeLessThanOrEqual(PLAN_NAME.suggestMax);
+      expect(checkPlanName(n)).toEqual({ ok: true, name: n });
+      expect(n).not.toMatch(/my plan|undefined|NaN|null/i);
+    }
+  });
+});
 
 describe('the suggestion, pattern by pattern (from the pinned answers)', () => {
   it('C, money from now: "From {age} · £{careful} a month"', () => {
@@ -161,5 +264,11 @@ describe('the duplicate suffix', () => {
       const got = withDuplicateSuffix(n, all);
       expect(all.map((t) => cleanName(t).toLowerCase())).not.toContain(got.toLowerCase());
     }), { numRuns: 300 });
+  });
+});
+
+describe('the named state of a couple stopping apart (C\'s answer-apart: you from now, your partner at 56)', () => {
+  it('is named for your partner\'s stop, the answer being from when you have both stopped', () => {
+    expect(name('c', 'answer-apart')).toBe(`Partner stops at 56 · £${load('c', 'answer-apart').monthly.careful.toLocaleString('en-GB')} a month`);
   });
 });

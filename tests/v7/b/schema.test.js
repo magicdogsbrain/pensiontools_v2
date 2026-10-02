@@ -8,6 +8,7 @@ import { defaults, fieldsThatApply, parseDraft, validate, checkInputs, flatten, 
 import { partsText } from '../../../src/answers/shared/format.js';
 import { RULES, SAVING } from '../../../src/answers/shared/rules.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
+import { gridToShow, stopKindField, partnerStopFields, untilBothStopField, taxFreeFields, handOverToC } from '../../../src/answers/shared/schemaParts.js';
 
 const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent', 'count'];
 const byPath = new Map(SCHEMA_B.fields.map((f) => [f.path, f]));
@@ -22,7 +23,7 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options'];
     for (const f of SCHEMA_B.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -42,16 +43,20 @@ describe('SCHEMA_B — the declaration', () => {
     if (f.type === 'choice') { expect(Array.isArray(f.options)).toBe(true); expect(f.options.length).toBeGreaterThan(1); }
   });
 
-  it('every `when` names a field declared earlier, with a value that field can take', () => {
+  it('every `when` and `whenNot` names a field declared earlier, with values that field can take (a list: each of them)', () => {
     SCHEMA_B.fields.forEach((f, i) => {
-      for (const [path, want] of Object.entries(f.when || {})) {
+      for (const [path, given] of [...Object.entries(f.when || {}), ...Object.entries(f.whenNot || {})]) {
         const at = SCHEMA_B.fields.findIndex((x) => x.path === path);
         expect(at, `${f.path} when ${path}`).toBeGreaterThanOrEqual(0);
         expect(at, `${f.path} when ${path} must come first`).toBeLessThan(i);
         const dep = SCHEMA_B.fields[at];
-        if (dep.type === 'choice') expect(dep.options).toContain(want);
-        if (dep.type === 'yesNo') expect(typeof want).toBe('boolean');
+        for (const want of Array.isArray(given) ? given : [given]) {
+          if (dep.type === 'choice') expect(dep.options, `${f.path}: ${path} = ${want}`).toContain(want);
+          if (dep.type === 'yesNo') expect(typeof want).toBe('boolean');
+        }
       }
+      const keys = Object.keys(f.when || {});
+      if (keys.length) expect(Array.isArray(f.when[keys[keys.length - 1]]), f.path).toBe(false);
     });
   });
 
@@ -59,8 +64,14 @@ describe('SCHEMA_B — the declaration', () => {
     for (const f of SCHEMA_B.fields.filter((x) => x.path.startsWith('partner.'))) expect(f.when.household, f.path).toBe('couple');
   });
 
-  it('no required field has a default, and no field is both optional and without one', () => {
-    for (const f of SCHEMA_B.fields) expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
+  it('no required field has a default, and no field is both optional and without one — but the questions of stopping apart', () => {
+    // couples-different-years.md 3.1: none of the new questions has a default (B's new stop question too: not answered is
+    // an age), so the checked inputs of a form that never answers them are today's, key for key
+    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken'];
+    for (const f of SCHEMA_B.fields) {
+      if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
+      expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
+    }
   });
 
   it('a default is an allowed value; an age is never assumed', () => {
@@ -76,10 +87,11 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('the groups are the blocks of the form; savings and confidence are under more detail', () => {
-    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'more', 'stop', 'spend', 'partner']);
+    // the stop question comes before the pay-in block, which "I've already stopped" hides (couples-different-years.md 3.1)
+    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'partner']);
     expect(byPath.get('savings').group).toBe('more');
     expect(byPath.get('confidence')).toEqual({ path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' });
-    expect(byPath.has('stop.kind')).toBe(false);
+    expect(byPath.get('stop.kind')).toEqual({ path: 'stop.kind', type: 'choice', options: ['age', 'already'], group: 'stop' });   // no "show me ages", no default
     expect(byPath.has('partTime.has')).toBe(false);
   });
 
@@ -87,6 +99,7 @@ describe('SCHEMA_B — the declaration', () => {
     for (const a of [53, 54, 55, 56, 57]) expect(byPath.get('stop.age').boundaries).toContain(a);
     expect(byPath.get('stop.age')).toMatchObject({ required: true, min: 18, max: RULES.stopAgeMax, group: 'stop' });
     expect(byPath.get('stop.age').when).toBeUndefined();
+    expect(byPath.get('stop.age').whenNot).toEqual({ 'stop.kind': 'already' });   // asked unless "I've already stopped"
   });
 
   it('the pay-in is required, up to £10,000 a month', () => {
@@ -103,7 +116,8 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
-    expect(SCHEMA_B.rules.map((r) => r.id)).toEqual(['stop-after-now', 'end-after-stop', 'pay-in-over-limit']);
+    expect(SCHEMA_B.rules.map((r) => r.id)).toEqual(['stop-after-now', 'end-after-stop', 'pay-in-over-limit',
+      'partner-stop-after-now', 'partner-stop-not-before-now', 'already-needs-partner', 'partner-stop-fits']);
     for (const r of SCHEMA_B.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
       for (const p of r.fields) expect(byPath.has(p), `${r.id}: ${p}`).toBe(true);
@@ -131,7 +145,9 @@ describe('SCHEMA_B — the declaration', () => {
     });
     expect(validate(SCHEMA_B, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_B, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);
-    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_B, r.values).map((f) => f.path).sort());
+    // every field that applies is in the checked inputs, but a question with no default that was not answered (B's stop
+    // question: not answered is an age)
+    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_B, r.values).filter((f) => f.required || 'default' in f).map((f) => f.path).sort());
     expect(r.usedDefault).toEqual(['household', 'you.statePension.kind', 'you.finalSalary.has', 'you.payIn.kind', 'you.alreadyDrawing', 'spend.kind',
       'savings', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
   });
@@ -161,7 +177,7 @@ describe('every boundary passes; one below and one above fail', () => {
   const LIMIT_ERRORS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
   function draftWhere(f, typed = false) {
     const d = typed ? { 'you.pot': 120000, 'you.age': 50, 'you.payIn.total': 700, 'stop.age': 60, 'spend.amount': 2000 } : { ...BASE };
-    for (const [path, want] of Object.entries(f.when || {})) d[path] = want;
+    for (const [path, want] of Object.entries(f.when || {})) d[path] = Array.isArray(want) ? want[0] : want;
     if (d.household === 'couple') d['partner.age'] = typed ? 48 : '48';
     if (d['you.payIn.kind'] === 'split') { d['you.payIn.own'] ??= typed ? 450 : '450'; d['you.payIn.employer'] ??= typed ? 250 : '250'; }
     if (d['partner.payIn.kind'] === 'split') { d['partner.payIn.own'] ??= typed ? 450 : '450'; d['partner.payIn.employer'] ??= typed ? 250 : '250'; }
@@ -216,6 +232,65 @@ describe('the rules between fields', () => {
     const ids = Object.values(parse({ 'you.age': '60', 'stop.age': '59', endAge: '75' }).errors);
     expect(ids).not.toContain('stop-not-before-now');
     expect(ids).not.toContain('start-not-before-now');
+  });
+});
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2.2, 3.1–3.3, 5.3). Not answered is
+ * today's meaning: B's checked inputs of a form that never answers the new questions are today's, key for key.
+ */
+describe('B: each of a couple stops on their own date', () => {
+  const COUPLE = { household: 'couple', 'partner.age': '48', 'partner.pot': '90000' };
+  const two = (extra = {}) => parse({ ...COUPLE, ...extra });
+
+  it('the new questions, declared once in the shared parts; B\'s partner sweeps no ages', () => {
+    for (const f of [...partnerStopFields('b'), untilBothStopField('b'), ...taxFreeFields('b'), stopKindField('b')]) expect(byPath.get(f.path), f.path).toEqual(f);
+    expect(byPath.get('partner.stop.kind').options).toEqual(['same', 'already', 'age']);
+    expect(byPath.get('untilBothStop').when).toEqual({ 'partner.stop.kind': ['already', 'age'], household: 'couple' });
+    for (const p of ['you.payIn.kind', 'you.payIn.total', 'you.alreadyDrawing']) expect(byPath.get(p).whenNot, p).toEqual({ 'stop.kind': 'already' });
+    for (const p of ['partner.payIn.kind', 'partner.payIn.total', 'partner.alreadyDrawing']) expect(byPath.get(p).whenNot, p).toEqual({ 'partner.stop.kind': 'already' });
+  });
+
+  it('never answered: today\'s inputs, key for key, in today\'s order', () => {
+    const r = two({ 'partner.payIn.total': '300' });
+    expect(r.ok).toBe(true);
+    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'stop', 'spend', 'partner', 'savings', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']));
+    expect(r.inputs.stop).toEqual({ age: 60 });
+    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn', 'alreadyDrawing']);
+  });
+
+  it('"I\'ve already stopped" hides your stop age and your pay-in; the partner must then stop after today', () => {
+    expect(parse({ 'stop.kind': 'already' }).errors).toEqual({ 'stop.kind': 'already-needs-partner' });
+    expect(two({ 'stop.kind': 'already' }).errors).toEqual({ 'partner.stop.kind': 'partner-stop-fits' });
+    expect(two({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': '48' }).errors).toEqual({ 'partner.stop.age': 'partner-stop-after-now' });
+    expect(two({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': '47' }).errors).toEqual({ 'partner.stop.age': 'partner-stop-after-now' });
+    const r = two({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': '56', 'partner.payIn.total': '400' });
+    expect(r.ok).toBe(true);
+    expect(r.inputs.stop).toEqual({ kind: 'already' });
+    expect('payIn' in r.inputs.you).toBe(false);
+    expect(r.inputs.partner.payIn).toEqual({ kind: 'total', total: 400 });
+    // your partner working on while you work: their age is theirs, and may be today's (stopping now)
+    expect(two({ 'partner.stop.kind': 'age', 'partner.stop.age': '48' }).ok).toBe(true);
+    expect(two({ 'partner.stop.kind': 'age', 'partner.stop.age': '47' }).errors).toEqual({ 'partner.stop.age': 'partner-stop-not-before-now' });
+    expect(two({ 'partner.stop.kind': 'ages' }).errors).toEqual({ 'partner.stop.kind': 'notAnOption' });
+  });
+
+  it('gridToShow: the asked person\'s stop ages are the rows; the ceiling counts only the people still saving', () => {
+    const ins = (extra) => checkInputs(SCHEMA_B, { household: 'couple', you: { pot: 120000, age: 50, payIn: { total: 700 } }, partner: { age: 48, payIn: { total: 300 } },
+      stop: { age: 60 }, spend: { amount: 2000 }, ...extra }, TEST_ENV).inputs;
+    expect(gridToShow(ins(), TEST_ENV).payIns[0]).toBe(1000);
+    const stopped = ins({ stop: { kind: 'already' }, partner: { age: 48, payIn: { total: 300 }, stop: { kind: 'age', age: 56 } } });
+    const g = gridToShow(stopped, TEST_ENV, { needed: 15000 });
+    expect(g.ages).toEqual([54, 55, 56, 57, 58, 59, 60, 61]);                          // the partner's, around 56
+    expect(g.payIns[0]).toBe(300);                                                      // what goes in now: theirs
+    expect(g.payIns.at(-1)).toBeLessThan(15000);                                        // one person saving: £10,000 a month at most
+    expect(gridToShow(ins({ partner: { age: 48, stop: { kind: 'already' } } }), TEST_ENV, { needed: 15000 }).payIns).toEqual([700, 800, 900, 1000, 1100]);
+  });
+
+  it('handOverToC: "I\'ve already stopped" carries as C from now, with the partner\'s own stop', () => {
+    const ins = checkInputs(SCHEMA_B, { household: 'couple', you: { pot: 120000, age: 60 }, partner: { age: 48, payIn: { total: 300 }, stop: { kind: 'age', age: 56 } },
+      stop: { kind: 'already' }, spend: { amount: 2000 } }, TEST_ENV).inputs;
+    expect(handOverToC(ins, 56, TEST_ENV.today)).toEqual({ ok: true, same: true });
   });
 });
 

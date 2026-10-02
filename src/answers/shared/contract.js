@@ -15,6 +15,46 @@
  * @property {number} [savingsGrowth]       Tests only: the drawing years' ISA rate (config.isaReturn); default the engine's 3%.
  * @property {'reference'} [solver]         Tests only: the reference band solver.
  *
+ * ---- Couples who stop work in different years (research/v7/couples-different-years.md) — the inputs ----------------
+ *
+ * @typedef {object} ApartInputs              The questions every list gained (src/answers/shared/schemaParts.js). NONE has a
+ *   default: not answered is today's meaning, and a form that never answers them gives today's checked inputs, key for key.
+ * @property {{ kind: 'same' | 'already' | 'age' | 'ages', age?: number }} [partner.stop]   "When does your partner stop work?"
+ *   A, B, C; a couple. Not answered or 'same': when you do (C: when you start taking money). 'already': they have
+ *   stopped (their pay-in block is hidden). 'age': their own stop age (18–75; ≥ their age today — equal is stopping now).
+ *   'ages' (A only): "show me ages" for the partner of someone who has stopped.
+ * @property {'half' | 'all' | 'none'} [untilBothStop]   "Until you've both stopped, their pay covers…" — a couple whose
+ *   partner's stop is their own ('already', 'age', 'ages'). Not answered: household.js APART.payCoversDefault ('half').
+ * @property {{ kind: 'age' | 'ages' | 'already', age?: number }} [stop]   A: stop.kind gains 'already' ("I've already
+ *   stopped", a couple only; owner's switch 3) — your pay-in block and part-time work are then hidden and the answer is
+ *   about the partner. B: stop.kind is new, 'age' (not answered) or 'already'; stop.age is hidden by 'already'.
+ * @property {boolean} [you.taxFreeTaken]     "Already had the tax-free part of your pension?" — asked only of someone who
+ *   has stopped: A and B with "I've already stopped", C from now. Not answered: not taken.
+ * @property {boolean} [partner.taxFreeTaken] The same for a partner who "already has" stopped.
+ *   Rule ids added (validate.js): partner-stop-not-before-now (A, B, C), already-needs-partner, partner-stop-fits (A, B),
+ *   partner-ages-one-at-a-time and partner-stop-ages-past-75 (A), partner-stop-after-now (B). end-after-stop and
+ *   end-after-start now look at the LATER stop, which must be under RULES.maxYears after the first.
+ *   Who the answer is about: schemaParts.js askedAbout(inputs); each person's stop: stopYearsOf(inputs, askedStop).
+ *
+ * @typedef {object} ApartAnswer              On an answer of A, B or C, ONLY when the two stops differ (one stop for
+ *   both — the same year — leaves the key out entirely, never null: today's answer, key for key). Each figure is the
+ *   one the answer was worked out at (A: the shown row).
+ * @property {'you' | 'partner'} first        Who stops first (their money joins at the household's start).
+ * @property {number} years                   Whole years between the two stops (G).
+ * @property {{ you: { age: number, already: boolean }, partner: { age: number, already: boolean } }} stops
+ *   Each person's age at their own stop; `already` when they have stopped ("I've already stopped", "They already have",
+ *   C from now).
+ * @property {0 | 0.5 | 1} payCovers          What the pay of the one still working covers of what is spent until the second stop.
+ * @property {boolean} coversGap              Whether that pay also makes up what the stopped person's money cannot pay
+ *   (household.js APART.payCoversGap, the owner's switch 2); false under "None of it" whatever the switch.
+ * @property {null | { who: 'you' | 'partner', fromAge: number }} coverUsed   In a bad case (the worst 1 in 10), the age of
+ *   the stopped person (`who`) from which their money cannot pay its part, so the other's pay covers all of it until the
+ *   second stop (warning 'apart-cover-used'); null when that never happens before the second stop.
+ *   Assumed ids added: 'stop-apart' (the pay line, field untilBothStop), 'stop-apart-cover' (Half or All, coversGap),
+ *   'partner-already', 'savings-first' (savings with whoever stops first), 'pay-keeps-pensions' (a State Pension or
+ *   final-salary pension paid to the one still working goes with their pay). Warning ids added: 'apart-cover-used'.
+ *   'stop-together' / 'both-stop-together' only when the partner question was not answered.
+ *
  * @typedef {string | { key: string, kind: 'money' | 'age' | 'pot' } | { fixed: string }} Part
  *   `key` is a dotted path into the result ('monthly.careful', 'phases.1.shown.fromPots', 'inputs.you.pot').
  *   `kind: 'pot'` is formatted to the nearest £1,000 (format.pot); 'money' to the pound; 'age' whole years.
@@ -49,6 +89,9 @@
  * @property {number} takeHome
  * @property {boolean} higherRate        Some of what this person draws is taxed at 40% (the higher-rate warning).
  * @property {boolean} locked            Their pension is closed in this phase: they are under the earliest pension age (nothing drawn from it).
+ * @property {boolean} [working]         Couples apart only (absent when the stops are the same year): this person is still
+ *   working in this phase — every figure of theirs is 0 (a State Pension or final-salary pension paid meanwhile goes with
+ *   their pay: 'pay-keeps-pensions'), and their part of what is spent is the household's `fromPay`.
  *
  * @typedef {object} Phase                  For the careful amount; £ a month, today's prices.
  * @property {number} fromAge               Ages of `whose`.
@@ -67,8 +110,12 @@
  * @property {number} [work]                 A and B: the part-time earnings themselves, before tax, £ a month (phases add up with this one).
  * @property {boolean} [pensionOpen]         A and B: false while anyone's pension is closed in this phase (a closed pension pays nothing).
  *   byPerson entries carry their own `fromWork` and `pensionOpen` (and `locked`) on A and B; neutral (0 / true) where nothing applies.
- * @property {{ takeHome: number, fromPots: number, statePension: number, finalSalary: number, fromWork?: number }} shown
- *   Whole pounds for display, which add up exactly: takeHome = fromPots + statePension + finalSalary (+ fromWork on A and B).
+ * @property {number} [fromPay]              Couples apart only, while one of them is still working: what the worker's pay
+ *   covers, £ a month after tax (what is spent × ApartAnswer.payCovers). Left out entirely — not 0 — when the stops are
+ *   the same year (couples-different-years.md 4.3 j).
+ * @property {{ takeHome: number, fromPots: number, statePension: number, finalSalary: number, fromWork?: number, fromPay?: number }} shown
+ *   Whole pounds for display, which add up exactly: takeHome = fromPots + statePension + finalSalary (+ fromWork on A and B)
+ *   (+ fromPay while one of a couple is still working).
  *
  * @typedef {{ careful: number, middling: number, good: number }} Three
  *
@@ -76,8 +123,8 @@
  *
  * @typedef {object} SavingOutcome            One per person, for the shown row (A) or the stop age (B).
  * @property {'you' | 'partner'} who
- * @property {number} stopAge
- * @property {number} yearsSaving             S
+ * @property {number} stopAge                 This person's own (couples apart: each at their own stop).
+ * @property {number} yearsSaving             S, this person's own (0 for someone who has stopped).
  * @property {{ pension: number, savings: number }} potToday
  * @property {{ total: number, own: number|null, employer: number|null, savings: number }} payIn   £ a month, today's prices, as given.
  * @property {{ pension: Three, savings: Three, total: Three }} potAtStop                           At the stop, today's prices, whole £.
@@ -101,8 +148,9 @@
  * @property {number} priceIndex
  *
  * @typedef {object} AgeRow                   One stop age of question A.
- * @property {number} age                     The first person's ("your") age at the stop, as agesToShow and stop.age; run-out ages are the younger person's, as C.
- * @property {{ you: number, partner?: number }} ages
+ * @property {number} age                     The asked person's age at their stop (askedAbout: "you", or your partner when you
+ *   have already stopped), as agesToShow and their stop age; run-out ages are the younger person's, as C.
+ * @property {{ you: number, partner?: number }} ages   Each person's own age at their own stop (couples apart: the other's is fixed, or moves alongside).
  * @property {string} stopYear                'YYYY'
  * @property {'final'} status
  * @property {'yes' | 'close' | 'no'} verdict   At `spend`: yes when fails ≤ floor(n/10), close ≤ floor(n/4), no otherwise.
@@ -127,8 +175,11 @@
  * @property {{ field: string, messageId: string }[]} [problems]   Only when 'invalid'; then nothing below is present.
  * @property {object} [inputs]                As used, defaults filled in.
  * @property {'you' | 'partner'} [whose]
+ * @property {'partner'} [askedAbout]         Only when the answer is about the partner ("I've already stopped"; absent = you,
+ *   as before). "You" stays the person at the keyboard: the words say "your partner could stop at 56".
+ * @property {ApartAnswer} [apart]            Only when the two stops differ at the shown row.
  * @property {{ perMonth: number, perYear: number, kind: 'amount' | 'level', level: null | 'minimum' | 'moderate' | 'comfortable' }} [spend]
- * @property {{ kind: 'age' | 'ages', age: number }} [stop]      age = shown.age
+ * @property {{ kind: 'age' | 'ages', age: number }} [stop]      age = shown.age (the asked person's)
  * @property {{ kind: 'named' | 'earliest' | 'noneWorked' | 'nothing', age: number, verdict: 'yes' | 'close' | 'no', lasted: number,
  *              outOfTen: { words: string, only: boolean, count: number|null }, runOutAge: number }} [headline]
  * @property {AgeRow} [shown]                 Deep-equals the ages[] entry for stop.age.
@@ -166,6 +217,9 @@
  * @property {{ field: string, messageId: string }[]} [problems]
  * @property {object} [inputs]
  * @property {'you' | 'partner'} [whose]
+ * @property {'partner'} [askedAbout]         As A's: only when the answer is about the partner; the stop is then theirs.
+ * @property {ApartAnswer} [apart]            As A's: only when the two stops differ. The number is then the pensions of the
+ *   people still saving, each at their own stop; the pay-in that gets there is shared among them only.
  * @property {{ perMonth: number, perYear: number, kind: 'amount' | 'level', level: null | string }} [spend]
  * @property {{ age: number, year: string }} [stop]
  * @property {{ you: number, partner?: number }} [ages]
@@ -234,6 +288,8 @@
  * @property {Three} [lasted]               Share of futures that lasted to endAge, 0–1.
  * @property {Three} [runOutAge]            In a bad case; whole years; careful = endAge by construction.
  * @property {'you' | 'partner'} [whose]    Whose age the ages refer to (the younger; 'you' when single).
+ * @property {ApartAnswer} [apart]          Only when the two stops differ: the careful amount is what the household can
+ *   spend once you have both stopped; until then the pots pay 1 − payCovers of it.
  * @property {{ monthlyAfterTax: number }} [guaranteed]
  * @property {Phase[]} [phases]
  * @property {null | { perMonth: number, lasted: number, runOutAge: number, covered: boolean }} [take]

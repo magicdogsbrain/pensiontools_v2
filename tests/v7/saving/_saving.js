@@ -5,7 +5,8 @@
  */
 export { livesList, lifeReturns, sliceReturns, bondStream } from '../../../src/answers/shared/lives.js';
 export { savingPlan, savingKernel, potsAtStop, payInFor, reachCount, savingRows, potsByPerson } from '../../../src/answers/shared/saving.js';
-export { stopAtPlan, createStopRunner, verdictAt, verdictAtPot, bandAt, potNeeded, phasesAt, monthlyAt, potNeededAt, potNeededWithin, savingsNeeded } from '../../../src/answers/shared/stopAt.js';
+export { stopAtPlan, createStopRunner, verdictAt, verdictAtPot, bandAt, potNeeded, phasesAt, monthlyAt, potNeededAt, potNeededWithin, savingsNeeded,
+  runnerAtPayIns, lastsWithin, verdictAtPayIns, countsAtPayIns } from '../../../src/answers/shared/stopAt.js';
 
 // The engine seams the identities are asserted against (C's, as step3-build-brief.md has them).
 export { marketSeed, engineSeed, futuresList, futureReturns, priceIndexByYear } from '../../../src/answers/shared/futures.js';

@@ -17,17 +17,40 @@
  *   startAgeOf(inputs, today)       the age the money is first taken on the lives
  *   saverInputsOf(inputs, stopAge)  C's checked inputs as A's (stop at C's start age; the saving risk is C's one risk)
  *   answerOnLives(checked, env, x)  the C result (C's shape, plus `saving`, `potAtStart`, `payIn`, basis.yearsSaving …)
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 5.1): a partner whose own stop is in
+ * another year than your start — they already have, or at an age — is answered here, each at their own stop (A's
+ * household, stopAt.js). The careful amount is what the two of you can spend once you have both stopped; until then the
+ * pots pay their share of it (the pay line, untilBothStop). Either of you can be "you": "you from now, your partner at
+ * 56" and "you at 56, your partner already stopped" are one figure. A partner who stops when you start — not answered,
+ * "when you start", or said another way — is C as before: from now (answer.js) or here, byte for byte.
  */
-import { SAVING, firstAccessAge } from '../shared/rules.js';
-import { payInTotalOf, earliestPensionStart } from '../shared/schemaParts.js';
+import { SAVING, firstAccessAge, RULES } from '../shared/rules.js';
+import { payInTotalOf, earliestPensionStart, stopYearsOf } from '../shared/schemaParts.js';
 import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt } from '../shared/stopAt.js';
+import { potsShareOf } from '../shared/toEngine.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
 import { savingRows } from '../shared/saving.js';
+import { apartOf } from '../shared/apart.js';
 import { toHousehold as toSaverHousehold } from '../a/toHousehold.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Whether the partner's own stop is in another year than your start (couples-different-years.md 5.1): they already have
+ * and you start later, or they stop at an age that is not your start's year. Not answered, or "when you start": never.
+ */
+export function stopsApart(inputs, today) {
+  if (!inputs || inputs.household !== 'couple' || !inputs.partner || !inputs.partner.stop || !inputs.start || !inputs.you) return false;
+  const kind = inputs.partner.stop.kind;
+  if (kind !== 'already' && kind !== 'age') return false;
+  // your start: the age given, or "now" (moved to the day a pension opens when nothing can be touched now: movedToAccess)
+  const start = inputs.start.kind === 'age' || movedToAccess(inputs, today) ? startAgeOf(inputs, today) : inputs.you.age;
+  const own = stopYearsOf({ ...inputs, start: { kind: 'age', age: start } });
+  return isNum(own.partner) && own.partner !== own.you;
+}
 
 /** What lands in `who`'s pension a month, as A takes it: one figure, or own and employer. */
 function payInAsA(person) {
@@ -44,11 +67,14 @@ function payInAsA(person) {
  */
 export function usesLives(inputs, today) {
   if (!inputs || !inputs.start) return false;
-  if (inputs.start.kind === 'now') return movedToAccess(inputs, today);
-  if (inputs.start.kind !== 'age') return false;
   const couple = inputs.household === 'couple' && inputs.partner;
   const pots = (inputs.you.pot || 0) + (couple ? inputs.partner.pot || 0 : 0) + (inputs.savings || 0);
   const going = payInTotalOf(inputs, 'you') + (couple ? payInTotalOf(inputs, 'partner') : 0);
+  // couples who stop in different years: each at their own stop, on the lives (5.1) — with something to draw on, or
+  // going in (with neither, the answer is the pensions alone, from now, as before)
+  if (stopsApart(inputs, today) && (pots > 0 || going > 0)) return true;
+  if (inputs.start.kind === 'now') return movedToAccess(inputs, today);
+  if (inputs.start.kind !== 'age') return false;
   const later = typeof inputs.start.age === 'number' && typeof inputs.you.age === 'number' && inputs.start.age > inputs.you.age;
   return pots > 0 || (going > 0 && later);
 }
@@ -68,17 +94,38 @@ function peopleOf(inputs) {
  * left out seven years of paying in). Person by person, so swapping "you" and "partner" moves the same date. Nobody
  * else's "now" moves here: C from now is unchanged (with a pension open now, what is paid in is not counted, and a
  * note says so).
+ *
+ * A partner with a stop of their own ("they already have", or at an age: couples-different-years.md 5.1) pays in until
+ * THEIR stop, which never moves yours: only your own paying in can. Without this, "you from now" with a partner still
+ * paying in turned you — who have stopped — back into someone working until your pension opens, with "your pay" covering
+ * half of what is spent (the reviewers' finding, 2 Oct 2026: a C link from A's "I've already stopped" opened on £2,610 a
+ * month against A's £990). Your money is then drawn from now, a closed pension in its locked run, as A does.
  */
 export function movedToAccess(inputs, today) {
   if (!inputs || !inputs.start || inputs.start.kind !== 'now' || typeof today !== 'string' || !inputs.you || typeof inputs.you.age !== 'number') return false;
   const people = peopleOf(inputs);
   const holders = people.filter((p) => p.pension);
-  return people.some((p) => p.payingIn) && holders.length > 0 && holders.every((p) => firstAccessAge(p.age, today) > p.age);
+  const payers = ownStopOf(inputs) ? people.filter((p) => p.who === 'you') : people;
+  return payers.some((p) => p.payingIn) && holders.length > 0 && holders.every((p) => firstAccessAge(p.age, today) > p.age);
+}
+
+/** Whether a couple's partner has a stop of their own: "they already have", or at an age (not answered, "when you start": no). */
+function ownStopOf(inputs) {
+  const stop = inputs.household === 'couple' && inputs.partner ? inputs.partner.stop : null;
+  return Boolean(stop && (stop.kind === 'already' || stop.kind === 'age'));
 }
 
 /** The age the money is first taken on the lives: the age given, or — "now", moved — your age when the first pension opens. */
 export function startAgeOf(inputs, today) {
   return inputs.start.kind === 'age' ? inputs.start.age : earliestPensionStart(peopleOf(inputs), today);
+}
+
+/**
+ * Your start on the lives: startAgeOf for an age or a moved "now"; "now" itself (couples apart: a partner who stops in
+ * another year brings "now" here) is your age today.
+ */
+function livesStartAge(inputs, today) {
+  return inputs.start.kind === 'age' || movedToAccess(inputs, today) ? startAgeOf(inputs, today) : inputs.you.age;
 }
 
 /**
@@ -90,30 +137,38 @@ export function startAgeOf(inputs, today) {
  */
 export function saverInputsOf(inputs, stopAge = inputs.start.kind === 'age' ? inputs.start.age : inputs.you.age) {
   const couple = inputs.household === 'couple' && inputs.partner;
-  const person = (p) => ({ age: p.age, pot: p.pot || 0, payIn: payInAsA(p), alreadyDrawing: false, statePension: p.statePension, finalSalary: p.finalSalary });
+  // the new questions of couples-different-years.md 2 ride along only when answered: the tax-free part of someone who has
+  // stopped, the partner's own stop (C's "when you start taking money" is A's "when you do") and the pay line
+  const person = (p, own) => ({ age: p.age, pot: p.pot || 0, payIn: payInAsA(p), alreadyDrawing: false, statePension: p.statePension, finalSalary: p.finalSalary,
+    ...(p.taxFreeTaken === true ? { taxFreeTaken: true } : {}), ...(own && p.stop ? { stop: { ...p.stop } } : {}) });
   return {
     household: couple ? 'couple' : 'single',
-    you: person(inputs.you),
-    ...(couple ? { partner: person(inputs.partner) } : {}),
+    you: person(inputs.you, false),
+    ...(couple ? { partner: person(inputs.partner, true) } : {}),
     savings: inputs.savings || 0,
     stop: { kind: 'age', age: stopAge },
     spend: { kind: 'amount', amount: isNum(inputs.take) && inputs.take >= 1 ? inputs.take : 1 },
     partTime: { has: false },
-    savingsIn: 0, savingRisk: inputs.risk, risk: inputs.risk, charge: isNum(inputs.charge) ? inputs.charge : SAVING.chargesPct, endAge: inputs.endAge
+    savingsIn: 0, savingRisk: inputs.risk, risk: inputs.risk, charge: isNum(inputs.charge) ? inputs.charge : SAVING.chargesPct, endAge: inputs.endAge,
+    ...(couple && inputs.untilBothStop ? { untilBothStop: inputs.untilBothStop } : {})
   };
 }
 
 /** A's phase read as C's: C's fields only (no part-time at C), the shown take-home the same sum. */
 function asCPhase(p) {
-  return {
+  const out = {
     fromAge: p.fromAge, toAge: p.toAge, ages: p.ages,
     takeHome: p.takeHome, fromPension: p.fromPension, fromSavings: p.fromSavings, fromPots: p.fromPots,
     statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax,
     byPerson: p.byPerson.map((b) => ({ who: b.who, statePension: b.statePension, finalSalary: b.finalSalary, fromPension: b.fromPension, fromSavings: b.fromSavings,
-      tax: b.tax, takeHome: b.takeHome, higherRate: b.higherRate, locked: b.locked })),
+      tax: b.tax, takeHome: b.takeHome, higherRate: b.higherRate, locked: b.locked, ...(b.working !== undefined ? { working: b.working } : {}) })),
     beforeStatePension: p.beforeStatePension,
     shown: { takeHome: p.shown.takeHome, fromPots: p.shown.fromPots, statePension: p.shown.statePension, finalSalary: p.shown.finalSalary }
   };
+  // couples apart, before the second stop (contract.js Phase): what the pay of the one still working covers. A's part-time
+  // work is not C's, so nothing from work joins it: the shown figures still add up
+  if (p.fromPay !== undefined) { out.fromPay = p.fromPay; out.shown.fromPay = p.shown.fromPay; }
+  return out;
 }
 
 /** careful / middling / good of a list of figures (bandIndexes positions), whole pounds, and the lives at them. */
@@ -165,6 +220,7 @@ function bandOn(inputs, household, startAge, env, onProgress) {
 function closedYearsOf(inputs, sp, band, env) {
   const plan = sp.plan;
   const mid = sp.middling;
+  if (plan.apart) return closedYearsApart(inputs, sp, band, env);
   const closed = plan.lockedUntil.filter((l) => plan.people.some((p, j) => p.who === l.who && mid[j].pension > 0));
   if (!closed.length) return null;
   const startAge = sp.stopAge;
@@ -191,13 +247,60 @@ function closedYearsOf(inputs, sp, band, env) {
 }
 
 /**
+ * closedYearsOf for a couple who stop in different years (couples-different-years.md 5.1): the same test, from where the
+ * pay of the one still working stops covering (the second stop under Half or All while the pay makes up a gap, else the
+ * first) — each pension measured from its holder's own stop, and nothing of someone still working open before their own
+ * stop; the need there is the pots' share of what is spent. "Starting at X instead" moves your start only: the partner's
+ * own stop stays. null when the pensions open in time, or when a start at X could not be answered (the years apart too
+ * many, or no end after it).
+ */
+function closedYearsApart(inputs, sp, band, env) {
+  const plan = sp.plan;
+  const mid = sp.middling;
+  const G = plan.apart.years;
+  const cy = plan.apart.payCovers >= 1 || plan.apart.coversGap ? G : 0;
+  // closed by the earliest pension age at the holder's own stop (lockedYears, from the household's start); a worker who has
+  // simply not stopped yet is the pay line's business
+  const holders = plan.people.map((p, j) => ({ p, j, shut: p.lockedYears })).filter((x) => mid[x.j].pension > 0);
+  const closed = holders.filter((x) => x.shut > cy);
+  if (!closed.length) return null;
+  const total = holders.reduce((t, x) => t + mid[x.j].pension, 0);
+  const openAt = (t) => total - closed.filter((x) => x.shut > t).reduce((s, x) => s + mid[x.j].pension, 0);
+  if (openAt(cy) >= total / 2) return null;
+  const gap = [...new Set(closed.map((x) => x.shut))].sort((a, b) => a - b).find((y) => openAt(y) >= total / 2);
+  const you = plan.people.find((p) => p.who === 'you');
+  const partner = plan.people.find((p) => p.who === 'partner');
+  const until = you.ageAtStart + gap;
+  // your start moved to `until`, the partner's own stop as it is: the end must still come after the later stop, under
+  // 45 years after the first
+  const own = stopYearsOf({ ...inputs, start: { kind: 'age', age: until } });
+  const younger = Math.min(inputs.you.age, inputs.partner.age);
+  const first = Math.min(own.you, own.partner);
+  const last = Math.max(own.you, own.partner);
+  if (!(until > sp.stopAge && inputs.endAge > younger + last && last - first < RULES.maxYears)) return null;
+  // what can pay from the check: the savings of those who have stopped by then, and every pension open then
+  const reachable = plan.people.reduce((t, p, j) => (p.join > cy ? t : t + mid[j].isa + (closed.some((x) => x.j === j) ? 0 : mid[j].pension)), 0);
+  const later = bandOn(inputs, toSaverHousehold(saverInputsOf(inputs, until), env, until).household, until, env);
+  const H = later.band.monthly.careful * 12;
+  const need = plan.periods.filter((per) => per.to > cy && per.from < gap)
+    .reduce((t, per) => t + Math.max(0, H * potsShareOf(per) - per.netTotal) * (Math.min(per.to, gap) - Math.max(per.from, cy)), 0);
+  if (reachable >= need) return null;
+  return {
+    from: you.ageAtStart + you.join, until, who: closed.filter((x) => x.shut === gap).map((x) => x.p.who), careful: band.monthly.careful,
+    partnerUntil: partner ? partner.ageAtStart + gap : null,
+    reachable: Math.round(reachable), need: Math.round(need),
+    instead: { age: until, monthly: { ...later.band.monthly }, lasted: { ...later.band.lastedAt } }
+  };
+}
+
+/**
  * The answer on the lives. `ctx` carries what answer.js knows: { facts(plan, household) → C's facts, finish(result,
  * facts) → sentences, assumed and warnings filled, units, basisOf(plan, n) }.
  */
 export function answerOnLives(checked, env, ctx) {
   const inputs = checked.inputs;
   const n = env.futures;
-  const startAge = startAgeOf(inputs, env.today);
+  const startAge = livesStartAge(inputs, env.today);
   const { household } = toSaverHousehold(saverInputsOf(inputs, startAge), env, startAge);
   const hp = validateHousehold(household, env.today);
   if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
@@ -215,14 +318,16 @@ export function answerOnLives(checked, env, ctx) {
     byPerson: sp.pots.map((q) => ({ who: q.who, pension: Math.round(q.pension[at.middling]), savings: Math.round(q.savings[at.middling]) }))
   };
   const S = sp.S;
+  // each person's own years until they stop (couples apart; one stop for both: the start)
+  const own = Object.fromEntries(sp.stops.map((x) => [x.who, x.S]));
   const saving = sp.saving.people.map((p, j) => {
     const q = sp.pots[j];
     return {
-      who: p.who, stopAge: p.ageToday + S, yearsSaving: S,
+      who: p.who, stopAge: p.ageToday + own[p.who], yearsSaving: own[p.who],
       potToday: { pension: p.pot, savings: round2(p.savings) },
       payIn: { total: p.payIn.total, own: p.payIn.own, employer: p.payIn.employer, savings: 0 },
       potAtStop: { pension: spreadOf(q.pension), savings: spreadOf(q.savings), total: spreadOf(q.pension.map((v, i) => v + q.savings[i])) },
-      paidIn: { total: Math.round(p.payIn.total * 12 * S * 100) / 100 },
+      paidIn: { total: Math.round(p.payIn.total * 12 * own[p.who] * 100) / 100 },
       mix: { saving: inputs.risk, drawing: inputs.risk, slideYears: 0 },
       chargeAYear: sp.saving.charge
     };
@@ -242,9 +347,14 @@ export function answerOnLives(checked, env, ctx) {
     split: sp.saving.people.map((p, j) => ({ who: p.who, share: midTotal > 0 ? (mid[j].pension + mid[j].isa) / midTotal : 1 / mid.length })),
     yearsSaving: S, lifeYears: sp.T, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly'
   };
+  // couples apart: each person's own stop, the pay line, and — in a bad case (the worst 1 in 10), at the careful amount —
+  // the age from which the pay of the one still working covers all of what is spent
+  const cover = plan.apart && plan.apart.coversGap && band.monthly.careful > 0 ? coverAt(sp, runner, band.monthly.careful * 12) : null;
+  const apart = apartOf(plan, inputs, own, cover);
   const result = {
     status: 'ok', inputs,
     monthly: { ...band.monthly }, yearly: { ...band.yearly }, lasted: { ...band.lastedAt }, runOutAge: { ...band.runOutAgeAt }, whose: plan.whose,
+    ...(apart ? { apart } : {}),
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
     phases: phasesAt(sp, band.monthly.careful * 12).map(asCPhase),
     take,
@@ -255,16 +365,18 @@ export function answerOnLives(checked, env, ctx) {
     assumed: [], warnings: [], sentences: {},
     basis, units: ctx.units
   };
-  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling });
+  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own });
 
   if (env.trace) {
     // the saving months of the life whose pot at the start is the bad case, and every life's most and run-out months
     // (C's own `futures` list: the band read again from them). The drawing months are not traced here: the fast path's
     // run keeps no month-by-month record (A's trace says the same); the drawing years are C's engine at "now" (X1).
     const bad = at.careful;
+    // (couples apart: each person's saving months to their own stop; the price level at your start)
+    const saves = sp.saving.people.some((p) => p.until > 0);
     result.trace = {
-      saving: { atCareful: { futureId: bad, priceAtStop: S > 0 ? sp.kernels[0].pension.priceAtStop[bad] : 1, potAtStart: round2(totals[bad]),
-        rows: S > 0 ? sp.saving.people.flatMap((p) => savingRows(sp.saving, p, sp.lives[bad])) : [] } },
+      saving: { atCareful: { futureId: bad, priceAtStop: sp.saving.people[0].until > 0 ? sp.kernels[0].pension.priceAtStop[bad] : 1, potAtStart: round2(totals[bad]),
+        rows: saves ? sp.saving.people.flatMap((p) => savingRows(sp.saving, p, sp.lives[bad])) : [] } },
       futures: Array.from({ length: n }, (_, i) => ({ id: i, most: band.solver ? band.solver.most(i) * STEP : band.monthly.careful,
         runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i] } })),
       evaluations: band.evaluations

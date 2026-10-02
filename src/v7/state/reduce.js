@@ -13,7 +13,7 @@
 import { A, OPENABLE } from './actions.js';
 import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, SPEND_PATHS, numbersPaths, skipNoteDue, spendView, keepView } from './select.js';
-import { CARRY, CARRY_OPENS, carryKey } from './carry.js';
+import { carryFor } from './carry.js';
 import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
@@ -54,7 +54,8 @@ const get = (obj, key) => String(key).split('.').reduce((o, k) => (o == null ? u
 
 /**
  * draft/carry { from, to }: a new state with draft[to] filled by CARRY[from→to] (state/carry.js) and the route at
- * CARRY_OPENS, or null when there is no such carry. Each entry writes its target field only when it has something:
+ * CARRY_OPENS — or, when the source says "I've already stopped" (a couple), by CARRY_YOU_STOPPED and its own place
+ * (carryFor) — or null when there is no such carry. Each entry writes its target field only when it has something:
  *   a typed field of the source → copied as it is (text, or yes/no), skipped when nothing is typed there;
  *   { result: key }           → the figure at that key of the source's answer — only an answer for what is typed now,
  *                               first or final — written as text ('480,000'); with no such figure the box is emptied,
@@ -64,16 +65,17 @@ const get = (obj, key) => String(key).split('.').reduce((o, k) => (o == null ? u
  * draft and every answer are untouched.
  */
 function carried(state, from, to) {
-  const k = carryKey(from, to);
-  const map = Object.prototype.hasOwnProperty.call(CARRY, k) ? CARRY[k] : null;
   const source = state.draft[from];
   const target = state.draft[to];
+  const answer = state.answers[from];
+  const readable = !!answer && (answer.status === 'first' || answer.status === 'final') && isCurrent(state, from);
+  // the map for what the source says: "I've already stopped" (a couple) has its own, as has C's answer from now with you
+  // stopped and your partner stopping later (carry.js carryFor reads that from the answer, as C's "What next?" does)
+  const { map, opens } = carryFor(from, to, source && source.values, readable ? answer.result : null);
   if (!map || !source || !target || from === to) return null;
   const values = { ...target.values };
   const touched = [...target.touched];
   const mark = (path) => { if (!touched.includes(path)) touched.push(path); };
-  const answer = state.answers[from];
-  const readable = !!answer && (answer.status === 'first' || answer.status === 'final') && isCurrent(state, from);
   for (const [src, toPath] of map) {
     if (!hasField(to, toPath)) return null;
     if (typeof src === 'string') {
@@ -91,7 +93,6 @@ function carried(state, from, to) {
   }
   const draft = { ...target, values, touched };
   if ('carriedFrom' in target) draft.carriedFrom = from;
-  const opens = CARRY_OPENS[k];
   const route = opens ? tidyRoute({ screen: 'step', q: opens.q, step: opens.step, planId: null, focus: opens.focus }) : state.route;
   return { ...withDraft(state, to, draft), route, ui: closeRail(state.ui) };
 }

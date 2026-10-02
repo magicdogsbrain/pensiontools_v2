@@ -6,10 +6,18 @@
  * Plain English, in every state: "pay in", "what goes in each month", "stop at 60", "while you are saving", "on course",
  * "£70,000 short", "a bad case (the worst 1 in 10)". Ages, never a length of time to wait. One "about" a sentence.
  * Couples are "you" and "your partner", "between you", "the two of you".
+ *
+ * Couples who stop work in different years (result.apart; couples-different-years.md 2.4): the number is the pensions of
+ * those still saving, each at their own stop — "You need about £410,000 in pensions between you: yours when you stop at 60
+ * and your partner's when they stop at 62", "… in your pension when you stop at 60, with your partner's money as you gave
+ * it", or, after "I've already stopped" (result.askedAbout), "Your partner needs about £300,000 in their pension when they
+ * stop at 56, with your money as you gave it". What was assumed and the warnings carry the pay line (shared/apart.js, the
+ * same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, partsText, lastedText } from '../shared/format.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, SAVING } from '../shared/rules.js';
+import { apartAssumed, apartWarnings } from '../shared/apart.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -97,9 +105,9 @@ function payersWords(facts) {
 }
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 /** " Paying in as now, about £1,460 a month from 60 lasted in 9 futures out of 10." — or that no amount did. */
-const carefulNowParts = (result) => (result.monthlyIfShort > 0
-  ? [' Paying in as now, about ', M('monthlyIfShort'), ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
-  : [' Paying in as now, no amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']);
+const carefulNowParts = (result, p = false) => (result.monthlyIfShort > 0
+  ? [' Paying in as now, about ', M('monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
+  : [p ? ' Paying in as now, no amount a month from when your partner stops at ' : ' Paying in as now, no amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']);
 
 /**
  * The sentences, from the result only (the facts carry no figure the result does not hold).
@@ -116,63 +124,91 @@ export function sentencesFor(result, facts) {
   const nowIn = result.payIn.now > 0;
   const zero = st === 'ok' && number !== null && number.careful === 0;
   const lastedTo = ['your money lasted ', until(facts), ' '];
+  // couples apart (result.apart) and the answer about your partner (result.askedAbout): whose pensions the number and the
+  // pay-in are — those still saving, each at their own stop
+  const ap = result.apart || null;
+  const p = facts.asked === 'partner';
+  const savers = facts.people.filter((x) => x.saves).map((x) => x.who);
+  const both = Boolean(ap) && savers.length === 2;
+  const pensionsWord = !ap ? (c ? 'your pensions' : 'your pension') : both ? 'your pensions' : savers[0] === 'you' ? 'your pension' : "your partner's pension";
+  /** " by 60", " by the time you have both stopped" (both still saving, apart): when the pensions are counted. */
+  const byStop = both ? [' by the time you have both stopped'] : [' by ', A('stop.age')];
 
   // ---- the first headline -------------------------------------------------------------------------------------------
   if (st === 'guaranteed-only') {
     out.head = S('b.head.nothing', ['No pot is needed for ', M('spend.perMonth'), ' a month']);
-    out.sub = S('b.sub.nothing', [c ? 'your State Pensions' : 'your State Pension', facts.people.some((p) => p.fs) ? ' and final-salary pension' : '', ' cover it after tax from ', A('stop.age'), ' ', until(facts), ', going up each year with prices']);
-    out.nothing = S('b.nothing', [c ? 'Your State Pensions' : 'Your State Pension', facts.people.some((p) => p.fs) ? ' and final-salary pension' : '', ' alone give ', M('guaranteed.monthlyAfterTax'),
+    out.sub = S('b.sub.nothing', [c ? 'your State Pensions' : 'your State Pension', facts.people.some((x) => x.fs) ? ' and final-salary pension' : '', ap ? ' cover it after tax from when you have both stopped' : [p ? ' cover it after tax from when your partner stops at ' : ' cover it after tax from ', A('stop.age')], ' ', until(facts),
+      ', going up each year with prices']);
+    out.nothing = S('b.nothing', [c ? 'Your State Pensions' : 'Your State Pension', facts.people.some((x) => x.fs) ? ' and final-salary pension' : '', ' alone give ', M('guaranteed.monthlyAfterTax'),
       ' a month after tax once started, which covers ', M('spend.perMonth'), '. No pot is needed for that.']);
     out.line = out.nothing;
     out.bad = S('b.bad.nothing', [...BAD, ' makes no difference here: none of this depends on markets.']);
   } else if (number === null) {
-    out.head = S('b.head.none', ['More than ', F(money(SAVING.potMax)), ' by age ', A('stop.age')]);
-    out.sub = S('b.sub', ['to pay ', M('spend.perMonth'), ' a month after tax from ', A('stop.age'), ' ', until(facts), ', going up each year with prices']);
-    out.none = S('b.none.pot', ['No pot up to ', F(money(SAVING.potMax)), ' paid ', M('spend.perMonth'), ' a month from ', A('stop.age'), ' in ', F('9'), ' futures out of ', F('10'),
+    out.head = S('b.head.none', ['More than ', F(money(SAVING.potMax)), p ? ' by the time your partner is ' : ' by age ', A('stop.age')]);
+    out.sub = S('b.sub', ['to pay ', M('spend.perMonth'), p ? ' a month after tax from when your partner stops at ' : ' a month after tax from ', A('stop.age'), ' ', until(facts), ', going up each year with prices']);
+    out.none = S('b.none.pot', ['No pot up to ', F(money(SAVING.potMax)), ' paid ', M('spend.perMonth'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' in ', F('9'), ' futures out of ', F('10'),
       '. Stopping later or spending less changes that: the ways to make it fit are below.']);
     out.line = out.none;
     out.bad = S('b.bad.none', [...BAD, ', ', nowParts(result), ' as now, your money runs out ', c ? ['when the younger of you is ', A('wholeLife.runOutAge')] : ['at ', A('wholeLife.runOutAge')],
-      '.', ...carefulNowParts(result)]);
+      '.', ...carefulNowParts(result, p)]);
   } else if (zero) {
     // no pension pot is needed: the savings (and the State Pension) pay for it
-    out.head = result.onCourse ? S('b.head.onCourse', ['On course for ', A('stop.age')]) : S('b.head.zero', ['No pension pot is needed for ', M('spend.perMonth'), ' a month']);
+    out.head = result.onCourse ? onCourseHead(p) : S('b.head.zero', ['No pension pot is needed for ', M('spend.perMonth'), ' a month']);
     out.sub = result.onCourse
-      ? S('b.sub.onCourse', [nowIn ? ['paying in ', M('payIn.now'), ' a month as you do now, '] : 'paying nothing more in, ', ...lastedTo, countParts(result.chance.lasted)])
-      : S('b.sub.zero', [payersWords(facts), ' pay for it after tax from ', A('stop.age'), ' ', until(facts), ', going up each year with prices']);
-    out.line = S('b.line.zero', [cap(payersWords(facts)), !result.onCourse && result.outside ? [' pay for this once about ', P('outside.careful'), ' is in ISAs or savings by ', A('stop.age')] : ' already pay for this',
-      ': nothing more is needed in your pension.']);
+      ? S('b.sub.onCourse', [nowIn ? (p ? ['with your partner paying in ', M('payIn.now'), ' a month as now, '] : ['paying in ', M('payIn.now'), ' a month as you do now, ']) : 'paying nothing more in, ', ...lastedTo, countParts(result.chance.lasted)])
+      : S('b.sub.zero', [payersWords(facts), p ? ' pay for it after tax from when your partner stops at ' : ' pay for it after tax from ', A('stop.age'), ' ', until(facts), ', going up each year with prices']);
+    out.line = S('b.line.zero', [cap(payersWords(facts)), !result.onCourse && result.outside ? [' pay for this once about ', P('outside.careful'), p ? ' is in ISAs or savings by the time your partner is ' : ' is in ISAs or savings by ', A('stop.age')] : ' already pay for this',
+      ap ? [': nothing more is needed in ', pensionsWord, '.'] : ': nothing more is needed in your pension.']);
     out.bad = result.onCourse
       ? S('b.bad.onCourse', [...BAD, ', ', nowParts(result), ' as now, your money still lasts to ', A('basis.endAge'), '.'])
       : S('b.bad.zero', [...BAD, ', as things are now, your money runs out ', c ? ['when the younger of you is ', A('wholeLife.runOutAge')] : ['at ', A('wholeLife.runOutAge')], '.']);
   } else {
     if (result.onCourse) {
-      out.head = S('b.head.onCourse', ['On course for ', A('stop.age')]);
-      out.sub = S('b.sub.onCourse', [nowIn ? ['paying in ', M('payIn.now'), ' a month as you do now, '] : 'paying nothing more in, ', ...lastedTo, countParts(result.chance.lasted)]);
+      out.head = onCourseHead(p);
+      out.sub = S('b.sub.onCourse', [nowIn ? (p ? ['with your partner paying in ', M('payIn.now'), ' a month as now, '] : ['paying in ', M('payIn.now'), ' a month as you do now, ']) : 'paying nothing more in, ', ...lastedTo, countParts(result.chance.lasted)]);
+    } else if (ap) {
+      // couples apart: the pensions of those still saving, each at their own stop
+      out.head = p ? S('b.head.partner', ['About ', P('number.careful'), ' by the time your partner is ', A('stop.age')])
+        : both ? S('b.head.apart', ['About ', P('number.careful'), ' between you by the time you have both stopped'])
+          : S('b.head', ['About ', P('number.careful'), ' by age ', A('stop.age')]);
+      out.sub = S('b.sub', [p ? ['the pot that, if your partner had exactly that at ', A('stop.age'), ', pays ']
+        : both ? 'the pots that, if you had exactly that between you at your own stops, pay ' : ['the pot that, if you had exactly that at ', A('stop.age'), ', pays '],
+        M('spend.perMonth'), ' a month after tax ', until(facts), ', going up each year with prices, in ', F('9'), ' futures out of ', F('10'), spFromParts(facts)]);
     } else {
       out.head = c ? S('b.head.couple', ['About ', P('number.careful'), ' between you by the time you are ', A('stop.age')]) : S('b.head', ['About ', P('number.careful'), ' by age ', A('stop.age')]);
       out.sub = S('b.sub', ['the pot that, if you had exactly that at ', A('stop.age'), ', pays ', M('spend.perMonth'), ' a month after tax ', until(facts), ', going up each year with prices, in ', F('9'),
         ' futures out of ', F('10'), spFromParts(facts)]);
     }
-    // the guide number, worded as what it is
-    out.line = S(c ? 'b.line.couple' : 'b.line', ['To spend ', M('spend.perMonth'), ' a month from ', A('stop.age'), ', ', c ? 'the two of you would want pots of about ' : 'you would want a pot of about ', P('number.careful'),
-      c ? ' between you by then' : ' by then', ': with exactly that at ', A('stop.age'), ', the money lasted in ', F('9'), ' futures out of ', F('10'), '.']);
+    // the guide number, worded as what it is (couples apart: the design's words, couples-different-years.md 2.4)
+    const exactly = ['. With exactly that, the money lasted in ', F('9'), ' futures out of ', F('10'), '.'];
+    if (p) {
+      out.line = S('b.line.partner', ['Your partner needs about ', P('number.careful'), ' in their pension when they stop at ', A('stop.age'), ', with your money as you gave it', ...exactly]);
+    } else if (both) {
+      out.line = S('b.line.apart', ['You need about ', P('number.careful'), ' in pensions between you: yours when you stop at ', A('apart.stops.you.age'), " and your partner's when they stop at ",
+        A('apart.stops.partner.age'), ...exactly]);
+    } else if (ap) {
+      out.line = S('b.line.apart', ['You need about ', P('number.careful'), ' in your pension when you stop at ', A('stop.age'), ", with your partner's money as you gave it", ...exactly]);
+    } else {
+      out.line = S(c ? 'b.line.couple' : 'b.line', ['To spend ', M('spend.perMonth'), ' a month from ', A('stop.age'), ', ', c ? 'the two of you would want pots of about ' : 'you would want a pot of about ', P('number.careful'),
+        c ? ' between you by then' : ' by then', ': with exactly that at ', A('stop.age'), ', the money lasted in ', F('9'), ' futures out of ', F('10'), '.']);
+    }
     if (result.onCourse) {
       const least = facts.leastNow;
       out.bad = S('b.bad.onCourse', [...BAD, ', ', nowParts(result), ' as now, your money still lasts to ', A('basis.endAge'), '.',
-        least !== null && least > 0 && least < result.payIn.now ? [' You could pay in as little as about ', M('payIn.at.nineInTen'), ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']
-          : least === 0 && nowIn ? [' You could stop paying in and it would still last in ', F('9'), ' futures out of ', F('10'), '.'] : '']);
+        least !== null && least > 0 && least < result.payIn.now ? [p ? ' Your partner could pay in as little as about ' : ' You could pay in as little as about ', M('payIn.at.nineInTen'), ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']
+          : least === 0 && nowIn ? [p ? ' Your partner could stop paying in and it would still last in ' : ' You could stop paying in and it would still last in ', F('9'), ' futures out of ', F('10'), '.'] : '']);
     } else {
       // the bad case of the pension at the stop, said as it is — never measured against the guide number: a bad case
       // while saving and a bad case once stopped are rarely the same future, so "£133,000 short of it" was two cautions
       // added together, and contradicted the pay-in (the reviewers' finding, 1 Oct 2026; the guide sentence below says so)
-      out.bad = S('b.bad', [...BAD, ', ', nowParts(result), ' as now gets ', c ? 'your pensions' : 'your pension', ' to about ', P('potAtStop.now.careful'), ' by ', A('stop.age'), '.',
-        ...carefulNowParts(result)]);
+      out.bad = S('b.bad', [...BAD, ', ', nowParts(result), ' as now gets ', pensionsWord, ' to about ', P('potAtStop.now.careful'), ...byStop, '.',
+        ...carefulNowParts(result, p)]);
     }
     // what the number is, and why the pay-in — not the number — is the answer
     out.guide = S('b.guide', ['The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now ',
       ...until(facts), ', and that is the answer.']);
     if (result.already && st === 'ok') {
-      out.have = S('b.have', ['You already have more than ', P('number.careful'), ' in your pension. Paying in nothing more, ', ...lastedTo, countParts(facts.haveLasted ?? 0), '.']);
+      out.have = S('b.have', [p ? 'Your partner already has more than ' : 'You already have more than ', P('number.careful'), p ? ' in their pension. Paying in nothing more, ' : ap ? [' in ', pensionsWord, '. Paying in nothing more, '] : ' in your pension. Paying in nothing more, ', ...lastedTo, countParts(facts.haveLasted ?? 0), '.']);
     }
   }
 
@@ -181,33 +217,37 @@ export function sentencesFor(result, facts) {
   const two = st === 'ok' && !result.onCourse && number !== null && pi.needed !== null;
   const savingsToo = result.outside && pi.outside !== null && pi.outside > (pi.savingsNow || 0);
   const savingsOnly = two && savingsToo && pi.needed <= pi.now && result.levers.payMore;
+  /** "until you are 60", "until your partner stops at 56", "until each of you stops": how long the pay-in goes in. */
+  const untilStop = !ap ? ['until you are ', A('stop.age')] : both ? ['until each of you stops'] : p ? ['until your partner stops at ', A('stop.age')] : ['until you stop at ', A('stop.age')];
   if (savingsOnly) {
     // what goes into the pension is enough as it is: the savings for the years before it opens are what fall short
     out.payInHead = S('b.payIn.head.savings', ['About ', M('payIn.outside'), ' a month into savings']);
-    out.payInSub = S('b.payIn.sub.savings', ['beside ', M('payIn.now'), ' a month into ', c ? 'your pensions' : 'your pension', ' as now, from now until you are ', A('stop.age'), ', going up each year with prices']);
-    out.payInLine = S('b.payIn.savings', ['Putting about ', M('payIn.outside'), ' a month into savings, with ', M('payIn.now'), ' a month going into ', c ? 'your pensions' : 'your pension', ' as now, ',
+    out.payInSub = S('b.payIn.sub.savings', ['beside ', M('payIn.now'), ' a month into ', pensionsWord, ap ? [' as now, from now ', ...untilStop] : [' as now, from now until you are ', A('stop.age')], ', going up each year with prices']);
+    out.payInLine = S('b.payIn.savings', ['Putting about ', M('payIn.outside'), ' a month into savings, with ', M('payIn.now'), ' a month going into ', pensionsWord, ' as now, ',
       ...lastedTo, countParts(result.levers.payMore.lasted), '.']);
     out.payInBad = S('b.payIn.bad.savings', [...BAD, ', about ', P('outside.careful'), ' in savings by ', A('stop.age'), ' carries the years from ', A('stop.age'), ' to ', A('outside.untilAge'), '.']);
   } else if (two) {
-    const pensions = c ? 'into your pensions between you' : 'into your pension';
+    const pensions = !ap ? (c ? 'into your pensions between you' : 'into your pension') : both ? 'into your pensions between you' : `into ${pensionsWord}`;
     out.payInHead = S('b.payIn.head', ['About ', M('payIn.needed'), ' a month ', pensions, savingsToo ? [', and ', M('payIn.outside'), ' a month into savings'] : '']);
-    out.payInSub = S('b.payIn.sub', [pi.employer > 0 ? ["including your employer's ", M('payIn.employer'), ', '] : '', 'from now until you are ', A('stop.age'), ', going up each year with prices']);
+    out.payInSub = S('b.payIn.sub', [pi.employer > 0 ? ["including your employer's ", M('payIn.employer'), ', '] : '', ap ? ['from now ', ...untilStop] : ['from now until you are ', A('stop.age')], ', going up each year with prices']);
     out.payInLine = pi.needed > pi.now
       ? S('b.payIn.line', ['Paying in about ', M('payIn.needed'), ' a month', savingsToo ? [' (and ', M('payIn.outside'), ' into savings)'] : '', ' and then spending ', M('spend.perMonth'), ' a month, ',
         ...lastedTo, confParts(pi.confidence), '. That is ', M('payIn.extra'), ' a month more than now.'])
       : S('b.payIn.less', ['Paying in ', M('payIn.needed'), ' a month', savingsToo ? [' and about ', M('payIn.outside'), ' into savings'] : '', ' and then spending ', M('spend.perMonth'), ' a month, ',
-        ...lastedTo, confParts(pi.confidence), '. That is no more than goes into your pension now.']);
-    out.payInBad = S('b.payIn.bad', [...BAD, ', ', M('payIn.needed'), ' a month gets ', c ? 'your pensions' : 'your pension', ' to about ', P('potAtStop.needed.careful'), ' by ', A('stop.age'),
+        ...lastedTo, confParts(pi.confidence), ap ? ['. That is no more than goes into ', pensionsWord, ' now.'] : '. That is no more than goes into your pension now.']);
+    out.payInBad = S('b.payIn.bad', [...BAD, ', ', M('payIn.needed'), ' a month gets ', pensionsWord, ' to about ', P('potAtStop.needed.careful'), ...byStop,
       '. In a middling case it reaches ', P('potAtStop.needed.middling'), '.']);
   }
+  const each = ap ? both : c;
   if (st === 'out-of-reach' && number !== null) {
-    out.none = S('b.none', ['No pay-in up to ', F(money(SAVING.payInCeiling)), c ? ' a month each' : ' a month', ' makes ', M('spend.perMonth'), ' a month from ', A('stop.age'), ' last in ', F('9'), ' futures out of ', F('10'),
+    out.none = S('b.none', ['No pay-in up to ', F(money(SAVING.payInCeiling)), each ? ' a month each' : ' a month', ' makes ', M('spend.perMonth'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' last in ', F('9'), ' futures out of ', F('10'),
       '. Try a later age or a lower amount.']);
   }
 
   // ---- the pots at the stop ----------------------------------------------------------------------------------------
   const savingsNote = facts.anySavings ? [' (your savings are on top)'] : '';
-  out.potsNow = S('b.pots.now', [nowIn ? ['Paying in ', M('payIn.now'), ' a month as now, ', c ? 'your pensions' : 'your pension', ' at ', A('stop.age'), savingsNote, ': '] : ['Paying nothing in, as now, ', c ? 'your pensions' : 'your pension', ' at ', A('stop.age'), savingsNote, ': '],
+  const atStop = both ? [' at your own stops'] : [' at ', A('stop.age')];
+  out.potsNow = S('b.pots.now', [nowIn ? ['Paying in ', M('payIn.now'), ' a month as now, ', pensionsWord, ...atStop, savingsNote, ': '] : ['Paying nothing in, as now, ', pensionsWord, ...atStop, savingsNote, ': '],
     P('potAtStop.now.careful'), ' in ', BAD[0].slice(3), BAD.slice(1), ', ', P('potAtStop.now.middling'), ' in a middling case, ', P('potAtStop.now.good'), ' ', GOOD, '.']);
   if (two && result.potAtStop.needed) {
     out.potsNeeded = S('b.pots.needed', ['Paying in ', M('payIn.needed'), ' a month: ', P('potAtStop.needed.careful'), ' in a bad case, ', P('potAtStop.needed.middling'),
@@ -220,7 +260,7 @@ export function sentencesFor(result, facts) {
 
   // ---- stopping before a pension can be touched ----------------------------------------------------------------------
   if (result.outside) {
-    out.outside = S('b.outside', ['Stopping at ', A('stop.age'), ' is before you can take money from a pension (', A('outside.untilAge'), '). Beside the pension, about ',
+    out.outside = S('b.outside', [p ? 'Your partner stopping at ' : 'Stopping at ', A('stop.age'), ' is before you can take money from a pension (', A('outside.untilAge'), '). Beside the pension, about ',
       P('outside.careful'), ' needs to be in ISAs or savings by ', A('stop.age'), ' to pay the years from ', A('stop.age'), ' to ', A('outside.untilAge'), ' in every future we tried.',
       two && !savingsOnly ? ' The pay-in above is into your pension; the savings part is on top of it.' : '']);
   }
@@ -229,10 +269,11 @@ export function sentencesFor(result, facts) {
   const lever = {};
   const lv = result.levers;
   if (lv.stopLater) {
-    lever.stopLater = S('b.lever.stopLater', [c ? ['Both stop when you are ', A('levers.stopLater.age'), ', not ', A('stop.age')] : ['Stop at ', A('levers.stopLater.age'), ', not ', A('stop.age')],
+    lever.stopLater = S('b.lever.stopLater', [p ? ['Your partner stops at ', A('levers.stopLater.age'), ', not ', A('stop.age')]
+      : c && !ap ? ['Both stop when you are ', A('levers.stopLater.age'), ', not ', A('stop.age')] : ['Stop at ', A('levers.stopLater.age'), ', not ', A('stop.age')],
       ': ', nowParts(result), ' as now, your money lasted ', countParts(lv.stopLater.lasted), '.']);
   } else if (st !== 'guaranteed-only' && !result.onCourse && facts.laterTo !== null) {
-    lever.stopLaterNone = S('b.lever.stopLater.none', ['Stopping later alone, even at ', F(facts.laterTo), ', did not make it last in ', F('9'), ' futures out of ', F('10'), ' paying in as now.']);
+    lever.stopLaterNone = S('b.lever.stopLater.none', [p ? 'Your partner stopping later alone, even at ' : 'Stopping later alone, even at ', F(facts.laterTo), ', did not make it last in ', F('9'), ' futures out of ', F('10'), ' paying in as now.']);
   }
   if (lv.payMore) {
     lever.payMore = S('b.lever.payMore', ['Pay in ', M('levers.payMore.payIn'), ' a month', lv.payMore.savingsIn ? [' and put ', M('levers.payMore.savingsIn'), ' a month into savings'] : '',
@@ -243,22 +284,22 @@ export function sentencesFor(result, facts) {
   }
   if (lv.moreRisk) {
     const words = LEVEL_WORDS[lv.moreRisk.level];
-    if (lv.moreRisk.payIn === null) lever.moreRisk = S('b.lever.moreRisk.no', ['More risk while saving, ', words, ': no pay-in up to ', F(money(SAVING.payInCeiling)), c ? ' a month each' : ' a month', ' made it last.']);
+    if (lv.moreRisk.payIn === null) lever.moreRisk = S('b.lever.moreRisk.no', ['More risk while saving, ', words, ': no pay-in up to ', F(money(SAVING.payInCeiling)), each ? ' a month each' : ' a month', ' made it last.']);
     else if (lv.moreRisk.helps) lever.moreRisk = S('b.lever.moreRisk', ['More risk while saving, ', words, ': ', M('levers.moreRisk.payIn'), ' a month made it last ', confParts(pi.confidence), '.']);
     else lever.moreRisk = S('b.lever.moreRisk.no', ['More risk while saving, ', words, ', does not lower what goes in: it would take ', M('levers.moreRisk.payIn'), ' a month.']);
   }
   lever.accept = st === 'guaranteed-only'
     ? S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now.'])
     : S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now: your money lasted ', countParts(lv.accept.lasted), '.',
-      ...(lv.accept.monthlyIfShort > 0 ? [' About ', M('levers.accept.monthlyIfShort'), ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
-        : [' No amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.'])]);
+      ...(lv.accept.monthlyIfShort > 0 ? [' About ', M('levers.accept.monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.']
+        : [p ? ' No amount a month from when your partner stops at ' : ' No amount a month from ', A('stop.age'), ' lasted in ', F('9'), ' futures out of ', F('10'), '.'])]);
   out.lever = lever;
 
   // ---- the grid: the stop age's cell for screen readers, and a sentence when no cell reaches 9 in 10 -------------------
   if (result.grid && facts.gridRow !== null && facts.gridRow !== undefined && result.grid.ages[facts.gridRow] && result.grid.payIns.length) {
     const k = facts.gridRow;
     const cell = result.grid.ages[k].cells[0];
-    out.gridCell = S('b.grid.cell', ['Stopping at ', A(`grid.ages.${k}.age`), ' and paying in ', M(`grid.ages.${k}.cells.0.payIn`), ' a month, your money lasted ', countParts(cell.lasted), '.']);
+    out.gridCell = S('b.grid.cell', [p ? 'Your partner stopping at ' : 'Stopping at ', A(`grid.ages.${k}.age`), ' and paying in ', M(`grid.ages.${k}.cells.0.payIn`), ' a month, your money lasted ', countParts(cell.lasted), '.']);
   }
   if (result.grid && !result.grid.reaches) {
     out.gridNone = S('b.grid.none', ['None of these lasted in ', F('9'), ' futures out of ', F('10'), '. A later age, or a lower amount to spend, is needed as well.']);
@@ -266,12 +307,15 @@ export function sentencesFor(result, facts) {
 
   // ---- "Now:" for the try-a-change row (the screen keeps the one before) -----------------------------------------------
   out.change = st === 'guaranteed-only'
-    ? S('b.change', ['Now: no pot needed by ', A('stop.age'), '.'])
+    ? S('b.change', [p ? 'Now: no pot needed by the time your partner is ' : 'Now: no pot needed by ', A('stop.age'), '.'])
     : number === null
-      ? S('b.change', ['Now: more than ', F(money(SAVING.potMax)), ' by ', A('stop.age'), '.'])
-      : S('b.change', ['Now: ', result.onCourse ? 'on course for ' : 'not on course for ', A('stop.age'), ', lasted ', countParts(result.chance.lasted), '.']);
+      ? S('b.change', ['Now: more than ', F(money(SAVING.potMax)), p ? ' by the time your partner is ' : ' by ', A('stop.age'), '.'])
+      : S('b.change', ['Now: ', result.onCourse ? 'on course for ' : 'not on course for ', p ? ['your partner at ', A('stop.age')] : A('stop.age'), ', lasted ', countParts(result.chance.lasted), '.']);
   return out;
 }
+
+/** "On course for 60" / "Your partner is on course for 56" (couples-different-years.md 2.2). */
+const onCourseHead = (p) => (p ? S('b.head.onCourse', ['Your partner is on course for ', A('stop.age')]) : S('b.head.onCourse', ['On course for ', A('stop.age')]));
 
 /**
  * What was assumed, in a fixed order, only the lines that applied. A line with source 'default' always names its field.
@@ -288,37 +332,57 @@ export function assumedFor(result, facts) {
   const suffix = (p) => (p.who === 'you' ? '' : '-partner');
   const spMonthly = money(facts.fullStatePensionAYear / 12);
 
-  // the saving years
+  // the saving years — couples apart (result.apart): each still saving until their own stop; after "I've already
+  // stopped" (result.askedAbout) what goes in is your partner's
+  const ap = result.apart || null;
+  const pa = facts.asked === 'partner';
+  const savers = facts.people.filter((x) => x.saves).map((x) => x.who);
+  const both = Boolean(ap) && savers.length === 2;
+  const payer = pa ? 'partner' : 'you';
   if (result.payIn.now > 0) {
-    line('pay-in', 'you.payIn.total', 'entered', result.payIn.now, c
-      ? [M('payIn.now'), ' a month goes in between you until you stop at ', A('stop.age'), ', rising with prices.']
-      : [M('payIn.now'), ' a month goes in until you are ', A('stop.age'), ', rising with prices.']);
+    line('pay-in', `${payer}.payIn.total`, 'entered', result.payIn.now, ap
+      ? (both ? [M('payIn.now'), ' a month goes in between you, each until your own stop, rising with prices.']
+        : savers[0] === 'you' ? [M('payIn.now'), ' a month goes into your pension until you stop at ', A('apart.stops.you.age'), ', rising with prices.']
+          : [M('payIn.now'), " a month goes into your partner's pension until they stop at ", A('apart.stops.partner.age'), ', rising with prices.'])
+      : c
+        ? [M('payIn.now'), ' a month goes in between you until you stop at ', A('stop.age'), ', rising with prices.']
+        : [M('payIn.now'), ' a month goes in until you are ', A('stop.age'), ', rising with prices.']);
   } else {
-    line('nothing-paid-in', 'you.payIn.total', 'entered', 0, ['Nothing more goes into your pension before you stop.']);
+    line('nothing-paid-in', `${payer}.payIn.total`, 'entered', 0, [pa ? "Nothing more goes into your partner's pension before they stop." : 'Nothing more goes into your pension before you stop.']);
   }
-  line('pay-in-as-given', 'you.payIn.kind', 'rule', inputs.you.payIn.kind, ['The figure you gave is what lands in the pension, with the tax the government adds back already inside it.']);
-  if (c && result.payIn.now > 0) line('pay-in-split', null, 'rule', null, ['The pay-in that gets there is split between you as it is now.']);
+  line('pay-in-as-given', `${payer}.payIn.kind`, 'rule', inputs[payer].payIn.kind, ['The figure you gave is what lands in the pension, with the tax the government adds back already inside it.']);
+  if (c && result.payIn.now > 0 && (!ap || both)) line('pay-in-split', null, 'rule', null, ['The pay-in that gets there is split between you as it is now.']);
   line('savings-in', 'savingsIn', src('savingsIn'), inputs.savingsIn, inputs.savingsIn > 0
-    ? [M('inputs.savingsIn'), ' a month goes into ISAs or savings until you stop, rising with prices.']
+    ? (ap
+      ? [M('inputs.savingsIn'), ' a month goes into ISAs or savings', both ? ', split between you, each until you stop'
+        : savers[0] === 'you' ? [' until you stop at ', A('apart.stops.you.age')] : [' until your partner stops at ', A('apart.stops.partner.age')], ', rising with prices.']
+      : [M('inputs.savingsIn'), ' a month goes into ISAs or savings until you stop, rising with prices.'])
     : ['Nothing more goes into ISAs or savings each month.']);
   line('risk-saving', 'savingRisk', src('savingRisk'), inputs.savingRisk, ['While saving: ', LEVEL_NAME[inputs.savingRisk], ', ', LEVEL_WORDS[inputs.savingRisk], '.']);
   line('risk-drawing', 'risk', src('risk'), inputs.risk, ['Once stopped: ', LEVEL_NAME[inputs.risk], ', ', LEVEL_WORDS[inputs.risk], '.']);
   if (inputs.savingRisk !== inputs.risk) {
-    line('slide', null, 'rule', SAVING.slideYears, ['Over the ten years before you stop, the mix moves step by step from the one while saving to the one once stopped.']);
+    line('slide', null, 'rule', SAVING.slideYears, [ap ? 'Over the ten years before each of you stops, the mix moves step by step from the one while saving to the one once stopped.'
+      : 'Over the ten years before you stop, the mix moves step by step from the one while saving to the one once stopped.']);
   }
   // the one fund and platform charge (6.19.0), with Change: while saving and once stopped
   line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
   line('saving-rebalanced', null, 'rule', null, ['While you are saving, your pot is kept at its mix each month.']);
   line('same-futures', null, 'rule', null, ['The saving years and the years after are tried against the same futures.']);
-  line('stop-age', 'stop.age', 'entered', inputs.stop.age, ['You stop working at ', A('stop.age'), ', and nothing more goes in from then.']);
-  if (c) line('stop-together', null, 'rule', null, facts.partnerRetired
-    ? ["Your partner's money is left alone until you stop at ", A('stop.age'), ', then drawn on with yours.']
-    : ['Your partner stops working in the same year, at ', A('ages.partner'), '.']);
+  if (pa) line('stop-age', 'partner.stop.age', 'entered', inputs.partner.stop.age, ['Your partner stops working at ', A('stop.age'), ', and nothing more goes into their pension from then.']);
+  else line('stop-age', 'stop.age', 'entered', inputs.stop.age, ['You stop working at ', A('stop.age'), ap ? ', and nothing more goes into your pension from then.' : ', and nothing more goes in from then.']);
+  if (c && ap) {
+    // each of you on your own date: the pay line, and what it means (shared/apart.js, the same words in C, A and B)
+    for (const x of apartAssumed(result, { ...(facts.apart || {}), youAlready: pa })) line(x.id, x.field, x.source, x.value, x.parts);
+  } else if (c) {
+    line('stop-together', null, 'rule', null, facts.partnerRetired
+      ? ["Your partner's money is left alone until you stop at ", A('stop.age'), ', then drawn on with yours.']
+      : ['Your partner stops working in the same year, at ', A('ages.partner'), '.']);
+  }
   if (inputs.spend.kind === 'level') {
     line('spend-level', 'spend.level', 'entered', result.spend.perMonth, [SPEND_LEVEL[inputs.spend.level], ': ', M('spend.perMonth'), c ? ' a month for a couple' : ' a month for one person',
       ', from the Retirement Living Standards.']);
   }
-  line('spend-steady', null, 'rule', null, ['You spend the same each month, going up with prices, from the day you stop.']);
+  line('spend-steady', null, 'rule', null, [ap ? 'You spend the same each month, going up with prices.' : 'You spend the same each month, going up with prices, from the day you stop.']);
   for (const p of facts.people.filter((x) => x.closedUntil !== null)) {
     line('pension-closed-until' + suffix(p), null, 'rule', p.closedUntil, p.who === 'you'
       ? ['Your pension is left alone until you are ', F(p.closedUntil), '; your savings pay until then.']
@@ -341,7 +405,15 @@ export function assumedFor(result, facts) {
         p.who === 'you' ? ['Your State Pension age of ', F(p.spAge), ' comes from your age.'] : ["Your partner's State Pension age of ", F(p.spAge), ' comes from their age.']);
     }
   }
-  if (facts.anyPension) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
+  // the tax-free part (couples-different-years.md 2.3): asked only of someone who has stopped; already had, everything
+  // taken from that pension is taxed. Not answered: not taken — a quarter of each withdrawal, as before.
+  const taken = facts.people.filter((p) => p.taxFreeTaken && p.pension);
+  for (const p of taken) {
+    line('tax-free-taken' + suffix(p), `${p.who}.taxFreeTaken`, 'entered', true, p.who === 'you'
+      ? ['You have already had the tax-free part of your pension, so everything taken from it is taxed.']
+      : ["Your partner has already had the tax-free part of their pension, so everything taken from it is taxed."]);
+  }
+  if (facts.anyPension && (!taken.length || facts.people.some((p) => !p.taxFreeTaken && (p.pension || p.saves)))) line('quarter-tax-free', null, 'rule', RULES.taxFreeShare, ['A quarter of each pension withdrawal is tax-free.']);
   line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
   line('todays-prices', null, 'rule', null, ["All figures are in today's prices."]);
   for (const p of facts.people) {
@@ -353,7 +425,8 @@ export function assumedFor(result, facts) {
   if (c) {
     const partner = facts.people[1];
     if (partner.potDefault) line('partner-no-pot', 'partner.pot', 'default', 0, ['Your partner has no pension pot today.']);
-    if (inputs.savings > 0 || inputs.savingsIn > 0) line('savings-split', 'savings', 'rule', null, ['Your savings, and what goes into them, are split evenly between you.']);
+    // (couples apart: the savings go with the one who stops first — 'savings-first', above)
+    if (!ap && (inputs.savings > 0 || inputs.savingsIn > 0)) line('savings-split', 'savings', 'rule', null, ['Your savings, and what goes into them, are split evenly between you.']);
   }
   if (inputs.savings > 0 || inputs.savingsIn > 0) {
     line('isa-fixed-growth', null, 'rule', Math.round(RULES.savingsGrowth * 100), ['Once you have stopped, your savings are treated as ISA money: tax-free to take, growing at a fixed ',
@@ -378,7 +451,9 @@ export function warningsFor(result, facts) {
       : ["Your partner can't take money from their pension until they are ", F(p.closedUntil), '. Until then the rest of the money pays.']);
   }
   if (result.gapYears > 0) {
-    const open = result.stop.age + result.gapYears;
+    // (couples apart: the closed years are counted from where the pay of the one still working stops covering, in the
+    // younger person's ages, as the run-out age is)
+    const open = result.apart && result.outside ? result.outside.untilAge : result.stop.age + result.gapYears;
     if (result.wholeLife.runOutAge < open) {
       warn('savings-run-short', 'important', [...BAD, ', paying in as now, the savings run out at ', A('wholeLife.runOutAge'), ', before a pension can be touched at ', F(open), '.']);
     }
@@ -386,6 +461,9 @@ export function warningsFor(result, facts) {
       warn('no-savings-for-gap', 'important', ['With no ISA or savings, nothing pays the years before a pension can be touched. The savings part above is what they would need.']);
     }
   }
+  // couples apart: a bad case that leans on the pay of the one still working, and money moved into drawdown before
+  // 6 April 2028 (shared/apart.js, the same words in C, A and B)
+  for (const w of apartWarnings(result, { drawdown: (facts.apart && facts.apart.drawdown) || [] })) warn(w.id, w.severity, w.parts);
   if (facts.partnerRetired) {
     warn('partner-stops-with-you', 'note', ["Your partner is past their State Pension age. These figures leave their money alone until you stop at ", A('stop.age'),
       ', and do not count anything they take before then.']);
@@ -410,7 +488,7 @@ export function warningsFor(result, facts) {
   if (result.status === 'out-of-reach') {
     warn('out-of-reach', 'important', result.number === null
       ? ['No pot up to ', F(money(SAVING.potMax)), ' pays this from ', A('stop.age'), ' in ', F('9'), ' futures out of ', F('10'), '.']
-      : ['No pay-in up to ', F(money(SAVING.payInCeiling)), c ? ' a month each' : ' a month', ' makes the money last from ', A('stop.age'), ' in ', F('9'), ' futures out of ', F('10'), '.']);
+      : ['No pay-in up to ', F(money(SAVING.payInCeiling)), (result.apart ? facts.people.filter((p) => p.saves).length === 2 : c) ? ' a month each' : ' a month', ' makes the money last from ', A('stop.age'), ' in ', F('9'), ' futures out of ', F('10'), '.']);
   }
   if (result.status === 'guaranteed-only') warn('target-below-pensions', 'note', [c ? 'Your State Pensions cover' : 'Your State Pension covers', ' what you want to spend once it starts.']);
   if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);

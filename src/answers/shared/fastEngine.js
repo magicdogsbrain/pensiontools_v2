@@ -35,6 +35,28 @@
  * Fund and platform charges (6.19.0, services/Charges.js): config.chargesPct (percent a year; absent = none) is taken
  * off the pension's sleeves and the ISA every month straight after the month's growth — while drawing and while a
  * pension is closed — by the same factor and in the same order as `simulate`. fastEligible takes a valid charge only.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 4.3 e, f), each a no-op when not
+ * asked for — a same-year household never asks, so its runs are today's, bit for bit:
+ *   - cover months (config.coverMonths): the first stopper's months before the second stop, while the other's pay covers
+ *     what their money cannot. A shortfall in one of them is not a run-out: the pots go to nothing and the run carries
+ *     on (a closed pension still opens, a State Pension still starts). The first such month is returned (`coveredFrom`).
+ *     From the second stop a shortfall is a run-out, as today.
+ *   - the hand-over hook (a runner argument, never part of the config, so fastEligible does not see it):
+ *     { month, retarget(state) → { targetSchedule, lockedSchedule? } }. At the top of `month` it is called once with the
+ *     run's state (its pots and the price level then) and its schedules are read from then on; the config is never
+ *     changed. Everything else carries on: the tax-free allowance used and the floors. A list of hooks (in month order)
+ *     is called one after another — the hand-over at the second stop, then the pass-on when the other's money has run
+ *     out. The drawdown plan remembered within a year is forgotten when a hook is called (a target changed part-way
+ *     through a year must be planned again; at the turn of a year it is planned again anyway).
+ *   - a month limit (`until`): the run stops there and returns its state (what the hook sees at that month).
+ *   - a run that starts at its holder's own stop (plan.runs[r].offset > 0): its own drivers, read from the life at that
+ *     stop, and its own number of years (createFastRunner).
+ *   - a record of the run's state at the top of each month from `record.from` (pots and the tax-free allowance left, five
+ *     figures a month into `record.buf`), and a run resumed from such a state (`resume`: its month, pots, allowance and the
+ *     schedules from then on). A resumed run is the run from the start with a hook at that month, bit for bit: everything
+ *     a month carries into the next is in the record, and the remembered plan is forgotten at a hook anyway.
+ * `simulate` can run none of these: the runner refuses rather than run them differently.
  */
 import { seededRng, gaussianRandom } from '../../utils/MathUtils.js';
 import { simulate } from '../../services/SimulationEngine.js';
@@ -190,6 +212,8 @@ export function fastEligible(c) {
     && c.equityGlide === undefined && c.sourcingMode === undefined
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
     && (c.chargesPct === undefined || isChargesPct(c.chargesPct))   // 6.19.0: a charge the engine takes as given, or none
+    // couples apart: the months the other's pay covers a shortfall, a whole number of the run's months
+    && (c.coverMonths === undefined || (Number.isInteger(c.coverMonths) && c.coverMonths >= 0 && c.coverMonths <= 12 * c.years))
     && c.trace !== true;
 }
 
@@ -320,12 +344,19 @@ function spendingFactorOf(base, year) {
 /**
  * One run: `simulate(config, future.returns, future.seed)` for the covered shape, month by month, stopping the
  * month the pots cannot pay (as the engine stops).
- * @returns {{ failed: boolean, failMonth: number|null, equity: number, bond: number, cash: number, isa: number }}
+ * @param {null | { month: number, retarget: (state: { equity: number, bond: number, cash: number, isa: number, cumInf: number, month: number }) => { targetSchedule: number[], lockedSchedule?: number[] } } | object[]} [hook]
+ *   couples apart: the hand-over at the second stop, or a list of hooks in month order (see the head of this file)
+ * @param {number|null} [until]   stop after this many months (the state then is what a hook at that month would see)
+ * @param {null | { month: number, equity: number, bond: number, cash: number, isa: number, lsa: number, targetSchedule?: number[], lockedSchedule?: number[] }} [resume]
+ *   couples apart: carry on from this state at the top of `month` (a record's), with these schedules from then on
+ * @param {null | { from: number, buf: Float64Array }} [record]   couples apart: the state at the top of each month from `from`
+ * @returns {{ failed: boolean, failMonth: number|null, equity: number, bond: number, cash: number, isa: number, coveredFrom?: number|null }}
+ *   coveredFrom only for a run with cover months: the first of them that was short (null when none was)
  */
-function runFast(config, pf, pr, start = null) {
+function runFast(config, pf, pr, start = null, hook = null, until = null, resume = null, record = null) {
   const years = config.years;
   const months = years * 12;
-  const schedule = Array.isArray(config.targetSchedule) ? config.targetSchedule : null;
+  let schedule = Array.isArray(config.targetSchedule) ? config.targetSchedule : null;
   const ufpls = config.accessMethod === 'ufpls';
   const isaFactor = Math.pow(1 + (config.isaReturn ?? ISA_DEFAULTS.RETURN), 1 / 12);
   // SimulationEngine's charge factor, worked out the same way (services/Charges.js): 1 without a charge, and then the
@@ -343,17 +374,54 @@ function runFast(config, pf, pr, start = null) {
 
   // The locked run (questions A and B): the pension closed for the first `lockedMonths`. 0 = today's run, unchanged.
   const lockedMonths = config.lockedMonths > 0 ? Math.min(config.lockedMonths, months) : 0;
-  const lockedSchedule = lockedMonths > 0 ? config.lockedSchedule : null;
+  let lockedSchedule = lockedMonths > 0 ? config.lockedSchedule : null;
   let lpYear = -1, lpIsa = -1, lp = null;
+
+  // Couples apart: the months the other's pay covers a shortfall, the hooks' months, a month limit, a resumed state and a
+  // record. 0 / −1 / all months / none for every other run, which is then today's run, comparison for comparison.
+  const coverMonths = config.coverMonths > 0 ? Math.min(config.coverMonths, months) : 0;
+  let coveredFrom = null;
+  const hooks = hook ? (Array.isArray(hook) ? hook : [hook]) : null;
+  let hookAt = 0;
+  let hookMonth = hooks && hooks.length ? hooks[0].month : -1;
+  const last = until === null || until === undefined ? months : Math.max(0, Math.min(months, until));
+  let month0 = 0;
+  if (resume) {
+    month0 = resume.month;
+    equity = resume.equity; bond = resume.bond; cash = resume.cash; isa = resume.isa;
+    lsaRemaining = resume.lsa;
+    if (resume.coveredFrom !== undefined) coveredFrom = resume.coveredFrom;      // a cover month before it (kept, not re-run)
+    if (Array.isArray(resume.targetSchedule)) schedule = resume.targetSchedule;
+    if (lockedMonths > 0 && Array.isArray(resume.lockedSchedule)) lockedSchedule = resume.lockedSchedule;
+  }
+  const recBuf = record ? record.buf : null;
+  const recFrom = record ? record.from : months + 1;
 
   // planDrawdown, remembered within a year: with the default ISA strategy (uncapped) its answer depends on the ISA
   // balance only through min(net gap, balance), so a balance at or above the remembered gap gives the same plan.
   let planYear = -1, planF = -1, planIsa = -1, plan = null;
   const sourcing = { fromEquity: 0, fromBond: 0, fromCash: 0, shortfall: 0, replenish: 0 };
 
-  for (let month = 0; month < months; month++) {
+  for (let month = month0; month < last; month++) {
     const year = (month / 12) | 0;
     const cumInf = pf.cumInf[year];
+
+    if (month >= recFrom) {
+      // couples apart: what this month carries in, kept so the run can be resumed here (the pass-on)
+      const o = 5 * (month - recFrom);
+      recBuf[o] = equity; recBuf[o + 1] = bond; recBuf[o + 2] = cash; recBuf[o + 3] = isa; recBuf[o + 4] = lsaRemaining;
+    }
+
+    while (month === hookMonth) {
+      // the hand-over at the second stop (and the pass-on after it): the schedules from here on are set on what the run
+      // holds now, and the plan remembered for this year is planned again on them
+      const s = hooks[hookAt].retarget({ equity, bond, cash, isa, cumInf, month });
+      if (s && Array.isArray(s.targetSchedule)) schedule = s.targetSchedule;
+      if (s && lockedMonths > 0 && Array.isArray(s.lockedSchedule)) lockedSchedule = s.lockedSchedule;
+      planYear = -1; lpYear = -1;
+      hookAt++;
+      hookMonth = hookAt < hooks.length ? hooks[hookAt].month : -1;
+    }
 
     if (month < lockedMonths) {
       // The pension is closed: the run is a savings-only run (C's adapter's, for the holder's share of the need) whose
@@ -397,7 +465,10 @@ function runFast(config, pf, pr, start = null) {
         lockedRescue = Math.min(isa, netShort);
         shortfall = Math.max(0, shortfall - lockedRescue / netFactor);
       }
-      if (shortfall > 1e-6) { failed = true; failMonth = month; }
+      if (shortfall > 1e-6) {
+        // in a cover month the other's pay makes it up: not a run-out (the savings are gone; the run carries on)
+        if (month >= coverMonths) { failed = true; failMonth = month; } else if (coveredFrom === null) coveredFrom = month;
+      }
       isa = Math.max(0, isa - Math.min(Math.max(0, lockedIsa - 0) + lockedRescue, isa)) + 0;
       equity = Math.max(0, equity);
       bond = Math.max(0, bond);
@@ -469,8 +540,11 @@ function runFast(config, pf, pr, start = null) {
       sourcing.shortfall = Math.max(0, sourcing.shortfall - isaRescue / netFactor);
     }
     if (sourcing.shortfall > 1e-6) {
-      failed = true;
-      failMonth = month;
+      // in a cover month the other's pay makes it up: not a run-out (the pots go to nothing; the run carries on)
+      if (month >= coverMonths) {
+        failed = true;
+        failMonth = month;
+      } else if (coveredFrom === null) coveredFrom = month;
     }
     if (sourcing.replenish > 0) {
       const eqS = Math.max(0, equity - eqMin), bdS = Math.max(0, bond - bdMin);
@@ -491,6 +565,7 @@ function runFast(config, pf, pr, start = null) {
 
     if (failed) break;
   }
+  if (coverMonths > 0) return { failed, failMonth, equity, bond, cash, isa, coveredFrom };
   return { failed, failMonth, equity, bond, cash, isa };
 }
 
@@ -502,43 +577,68 @@ function runFast(config, pf, pr, start = null) {
  * @param {object} plan       enginePlan(...)
  * @param {object[]} futures  futuresList(...) (for a stop: each life's drawing years, { returns, seed })
  * @param {{ potsFor?: (r: number, i: number) => { equity: number, bond: number, cash: number, isa: number },
- *           driversFor?: (i: number) => object }} [opts]
+ *           driversFor?: (i: number, offset: number, years: number) => object }} [opts]
  *   potsFor: the start values of run r in future i (the pots differ by future, step 4). The floors and the cash
  *   target are the same values — the adapter holds a pot at its mix, so start and floor are one figure.
- *   driversFor: future i's prepared drivers (prepareFutureFrom), else prepareFuture(futures[i]).
+ *   driversFor: future i's prepared drivers (prepareFutureFrom), else prepareFuture(futures[i]). Couples apart: a run
+ *   that starts at its holder's own stop (plan.runs[r].offset g > 0, years D − g) has drivers of its own, read from the
+ *   life at that stop — driversFor(i, g, D − g); they are kept per (future, offset). Every run of a same-year plan has
+ *   offset 0 and the plan's years: one set of drivers per future, as before.
  */
 export function createFastRunner(plan, futures, opts = {}) {
   const years = plan.years;
   const potsFor = opts.potsFor || null;
   const driversFor = opts.driversFor || null;
   const eligible = plan.runs.map((run) => fastEligible(run.base));
-  const prepared = new Array(futures.length).fill(null);            // per future
+  const offsetOf = plan.runs.map((run) => run.offset || 0);
+  const yearsOf = plan.runs.map((run, r) => (offsetOf[r] > 0 ? run.base.years : years));
+  const prepared = new Array(futures.length).fill(null);            // per future (offset 0)
+  const preparedAt = new Map();                                      // offset > 0 → per future
   const runTables = plan.runs.map(() => new Array(futures.length).fill(null));   // per run, per future
-  const forFuture = (i) => prepared[i] || (prepared[i] = driversFor ? driversFor(i) : prepareFuture(futures[i], years));
+  const forFuture = (i) => prepared[i] || (prepared[i] = driversFor ? driversFor(i, 0, years) : prepareFuture(futures[i], years));
+  const forFutureAt = (i, r) => {
+    const g = offsetOf[r];
+    if (g === 0) return forFuture(i);
+    if (!driversFor) throw new Error('fastEngine: a run that starts at a later stop needs the lives\' drivers (driversFor)');
+    let byI = preparedAt.get(g);
+    if (!byI) { byI = new Array(futures.length).fill(null); preparedAt.set(g, byI); }
+    return byI[i] || (byI[i] = driversFor(i, g, yearsOf[r]));
+  };
   const baseFor = (r, start) => (start ? { ...plan.runs[r].base, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash } : plan.runs[r].base);
   const forRun = (r, i) => {
     let t = runTables[r][i];
     if (!t) {
       const start = potsFor ? potsFor(r, i) : null;
-      t = runTables[r][i] = { pr: prepareRun(baseFor(r, start), forFuture(i), years), start };
+      t = runTables[r][i] = { pr: prepareRun(baseFor(r, start), forFutureAt(i, r), yearsOf[r]), start };
     }
     return t;
   };
   return {
     eligible,
-    /** @returns {{ failed: boolean, failMonth: number|null }} */
-    run(r, i, config) {
-      if (!eligible[r] || config.years !== years || config.trace) {
+    /**
+     * @param {object} [hook]    couples apart: the hand-over at the second stop, or a list of hooks (runFast)
+     * @param {number|null} [until]   stop after this many months
+     * @param {{ resume?: object, record?: object }} [more]   couples apart: a resumed state, a record (runFast)
+     * @returns {{ failed: boolean, failMonth: number|null }}
+     */
+    run(r, i, config, hook = null, until = null, more = null) {
+      if (!eligible[r] || config.years !== yearsOf[r] || config.trace) {
         // `simulate` cannot keep a pension shut: a locked config is never handed to it
         if (config.lockedMonths > 0) throw new Error('fastEngine: a run with a closed pension (lockedMonths) can only be run by the fast path');
+        // …nor cover a shortfall, hand over at a second stop, stop part-way, start at a later stop or resume
+        if (config.coverMonths > 0 || hook || (until !== null && until !== undefined) || offsetOf[r] > 0 || more) {
+          throw new Error('fastEngine: a run with cover months, a hand-over, a month limit, a later start or a resumed state can only be run by the fast path');
+        }
         const start = potsFor ? potsFor(r, i) : null;
         const c = start ? { ...config, equityStart: start.equity, bondStart: start.bond, cashStart: start.cash, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash, isaBalance: start.isa } : config;
         const s = simulate(c, futures[i].returns, futures[i].seed);
         return { failed: s.failed, failMonth: s.failMonth, equity: s.finalEquity, bond: s.finalBond, cash: s.finalCash, isa: s.finalIsa };
       }
       const t = forRun(r, i);
-      return runFast(config, forFuture(i), t.pr, t.start);
-    }
+      return runFast(config, forFutureAt(i, r), t.pr, t.start, hook, until, more ? more.resume || null : null, more ? more.record || null : null);
+    },
+    /** The drivers run r reads in future i (couples apart: the hand-over reads the price level from them). */
+    driversOf: (r, i) => forFutureAt(i, r)
   };
 }
 
@@ -550,9 +650,13 @@ export function simulateFast(config, future) {
   return runFast(config, pf, pr);
 }
 
-/** The same on drivers already prepared (prepareFutureFrom): the run of one config in one life's drawing years. */
-export function simulateFastFrom(config, pf) {
+/**
+ * The same on drivers already prepared (prepareFutureFrom): the run of one config in one life's drawing years.
+ * @param {{ hook?: object|object[], until?: number, resume?: object, record?: object }} [opts]   couples apart (tests): the
+ *   hand-over hook (or a list), a month limit, a resumed state, a record (runFast)
+ */
+export function simulateFastFrom(config, pf, opts = {}) {
   if (!fastEligible(config)) return null;
   const pr = prepareRun(config, pf, config.years);
-  return runFast(config, pf, pr);
+  return runFast(config, pf, pr, null, opts.hook || null, opts.until ?? null, opts.resume || null, opts.record || null);
 }

@@ -9,7 +9,7 @@
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
 import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel } from '../../components/index.js';
-import { isCurrent } from '../../state/select.js';
+import { isCurrent, cAnswerYouStopped } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -23,25 +23,35 @@ export const alreadyStopped = (result) => !!(result && result.inputs && result.i
   && Array.isArray(result.phases) && result.phases[0] && result.phases[0].statePension > 0);
 
 /**
+ * Whether the answer is from now for a couple of whom you have stopped and your partner stops later — read from the
+ * answer's `apart` block, never worked out here, by the same reading the carry picks its map with (state/carry.js
+ * cAnswerYouStopped). "What next?" then asks about your partner, and the links carry "I've already stopped"
+ * (CARRY_C_YOU_STOPPED; couples-different-years.md 5.4).
+ */
+export const partnerStillWorking = cAnswerYouStopped;
+
+/**
  * A "still working?" link to question A or B. Once that question is open (step 4's joining up) it carries C's figures
  * across (draft/carry, src/v7/state/carry.js) and opens its numbers step at the first box left to fill
- * (screens-A-B.md 5; step 4 brief conflict 46); until then it is the honest "not in the preview yet" link.
+ * (screens-A-B.md 5; step 4 brief conflict 46); until then it is the honest "not in the preview yet" link. About your
+ * partner (`partner`), there is no box left to fill: it opens on the numbers as they are.
  */
 const OPENS = { a: () => href.step('a', 'numbers', 'stop.age'), b: () => href.step('b', 'numbers', 'you.payIn.total') };
-function ToSaver({ q, dispatch, children }) {
+function ToSaver({ q, dispatch, partner = false, children }) {
   const open = frontDoor().some((x) => x.id === q && x.built);
   if (!open) return <LinkButton href={href.soon(q)}>{children}</LinkButton>;
-  return <LinkButton testid={`c.next.${q}`} href={OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
+  return <LinkButton testid={`c.next.${q}`} href={partner ? href.step(q, 'numbers') : OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
 }
 
 /** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Save this as a plan" follows. */
 function WhatNext({ result, dispatch }) {
+  const partner = partnerStillWorking(result);
   const working = (
     <div class="next-group" key="working" data-testid="c.next.working">
-      <p class="next-prompt">{C.answer.stillWorking}</p>
+      <p class="next-prompt">{partner ? C.answer.partnerWorking : C.answer.stillWorking}</p>
       <ul class="next-list">
-        <li><ToSaver q="a" dispatch={dispatch}>{C.answer.whenStop}</ToSaver></li>
-        <li><ToSaver q="b" dispatch={dispatch}>{C.answer.savingEnough}</ToSaver></li>
+        <li><ToSaver q="a" partner={partner} dispatch={dispatch}>{partner ? C.answer.whenPartnerStop : C.answer.whenStop}</ToSaver></li>
+        <li><ToSaver q="b" partner={partner} dispatch={dispatch}>{partner ? C.answer.partnerSavingEnough : C.answer.savingEnough}</ToSaver></li>
       </ul>
     </div>
   );

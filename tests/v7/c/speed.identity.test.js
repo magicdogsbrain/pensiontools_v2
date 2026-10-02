@@ -254,3 +254,77 @@ describe('the new shapes of step 4: the replica is today\'s engine', () => {
     }
   }, 60_000);
 });
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 4.3 e, f; 9.1 I6, I7): the replica's
+ * new shapes against today's engine itself, run by run, on C's configs in any mix. Cover months that are never short,
+ * and a hand-over whose schedule is written in beforehand, are `simulate` bit for bit; a run that starts at its holder's
+ * own stop is `simulate` on the life read from that stop (all shares: the bond stream plays no part).
+ */
+import { simulateFastFrom, prepareFuture } from '../../../src/answers/shared/fastEngine.js';
+import { sliceReturns } from '../../../src/answers/shared/lives.js';
+import { apart } from '../shared/apart.mjs';
+
+describe('couples apart: the replica\'s new shapes are today\'s engine', () => {
+  const env = { today: TEST_ENV.today, seed: 0 };
+  const same = (a, b) => a.failed === b.failed && a.failMonth === b.failMonth && a.finalEquity === b.equity && a.finalBond === b.bond && a.finalCash === b.cash && a.finalIsa === b.isa;
+
+  it('cover months none of which is short, and a schedule changed part-way by the hook: simulate, bit for bit (the fixtures and 12 random households)', () => {
+    let covered = 0, hooked = 0;
+    for (const inputs of [...fixtures.map((f) => f.inputs), ...random(12, env)]) {
+      const c = identityCases(inputs, env, 8, [3, 90, 300]);
+      if (!c) continue;
+      for (const configs of c.configsAtK) {
+        for (const { config } of configs) {
+          for (const f of c.futures) {
+            const cov = simulateFast({ ...config, coverMonths: 36 }, f);
+            if (cov.coveredFrom === null) {
+              const s = simulate(config, f.returns, f.seed);
+              if (!same(s, cov)) expect.fail(`cover months: ${JSON.stringify(inputs)} future ${f.id}`);
+              covered++;
+            }
+            // the hook at year 3: a schedule 10% higher from there on, against the same schedule written in beforehand
+            const M = 36;
+            if (config.years <= 3) continue;
+            const changed = config.targetSchedule.map((t, y) => (y >= 3 ? t * 1.1 : t));
+            const pf = prepareFuture(f, config.years);
+            const viaHook = simulateFastFrom(config, pf, { hook: { month: M, retarget: () => ({ targetSchedule: changed }) } });
+            const s = simulate({ ...config, targetSchedule: changed }, f.returns, f.seed);
+            if (!same(s, viaHook)) expect.fail(`hook: ${JSON.stringify(inputs)} future ${f.id}`);
+            hooked++;
+          }
+        }
+      }
+    }
+    expect(covered).toBeGreaterThan(300);
+    expect(hooked).toBeGreaterThan(300);
+  }, 60_000);
+
+  it('a run that starts at its holder\'s own stop is simulate on the life read from there (all shares), its run-out moved onto the household\'s clock', () => {
+    const SHARES = { equity: 1, bond: 0, cash: 0 };
+    const env2 = { ...TEST_ENV, futures: 12, mix: SHARES, savingMix: SHARES };
+    let compared = 0;
+    for (const [h, a] of [
+      [apart({ you: { age: 55, pot: 300_000, isa: 20_000, payIn: 600, stop: 60 }, partner: { age: 61, stop: 'already' }, payCovers: 1, mix: SHARES }), 60],
+      [apart({ you: { age: 63, stop: 'already', sp: 4_000 }, partner: { age: 54, pot: 200_000, isa: 10_000, payIn: 900, stop: 58, finalSalary: { yearly: 7_000, fromAge: 60 } }, payCovers: 1, mix: SHARES }), 58]
+    ]) {
+      const sp = stopAtPlan(h, a, env2);
+      const runner = createStopRunner(sp);
+      const run = sp.plan.runs[0];
+      expect(run.offset).toBeGreaterThan(0);
+      for (const H of [18_000, 30_000, 45_000]) {
+        for (let i = 0; i < sp.n; i++) {
+          const entries = runner.configsAtH(H, i);
+          const got = runner.run(0, i, entries[0].config);
+          const q = sp.potsOf(i)[run.index];
+          const config = { ...entries[0].config, equityStart: q.pension, bondStart: 0, cashStart: 0, equityMin: q.pension, bondMin: 0, cashTarget: 0, isaBalance: q.isa };
+          const s = simulate(config, sliceReturns(sp.lives[i], sp.S + run.offset, sp.D - run.offset), sp.lives[i].seed);
+          expect([got.failed, got.failMonth]).toEqual([s.failed, s.failed ? s.failMonth + 12 * run.offset : null]);
+          if (!s.failed) expect(Math.abs(got.equity - s.finalEquity)).toBeLessThanOrEqual(1e-9 * Math.max(1, s.finalEquity));
+          compared++;
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(50);
+  });
+});

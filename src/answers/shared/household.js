@@ -23,7 +23,8 @@
  * @property {{ label?: string, amountPerYear: number, fromAge: number, toAge: number, kind: 'work'|'other' }[]} otherIncome
  *   kind 'work' (question A's part-time work, before tax, a year, from fromAge until toAge) is honoured by the
  *   adapter under start 'asGiven' (toEngine.js); kind 'other' is not used yet.
- * @property {'notTakenYet'|'alreadyTaken'} pensionTaxFreeCash
+ * @property {'notTakenYet'|'alreadyTaken'} pensionTaxFreeCash   'alreadyTaken' when the form says the tax-free part has gone
+ *   (couples-different-years.md 2.3: asked only of someone who has stopped); then everything taken out is taxed
  * @property {null | { payIn: { total: number, own: number|null, employer: number|null }, savingsIn: number, alreadyDrawing: boolean }} [saving]
  *   Questions A and B (step 4 brief 4.10): what lands in the pension each month (today's prices; own + employer when
  *   split), what goes into ISAs and savings each month, and whether pension income has been taken already (the £10,000
@@ -42,9 +43,31 @@
  * @property {number} planToAge                 for a couple: until the YOUNGER person is this age
  * @property {{ kind: 'risk', level: 'cautious'|'balanced'|'adventurous' } | { kind: 'mix', equity: number, bond: number, cash: number }} portfolio
  * @property {{ id: string }} strategy
+ * @property {{ payCovers: 0 | 0.5 | 1 }} [untilBothStop]   Couples who stop in different years (couples-different-years.md
+ *   3.4): present ONLY when the two people's stops differ (stopsOf: a join after year 0), so a same-year household is
+ *   today's, key for key. Until the second stop, the pay of the one still working covers this share of what the household
+ *   spends (`spending`, or the amount tested) and they keep paying in; the money of the one who has stopped pays the rest.
+ *   Whether the pay also makes up what that money cannot pay is the owner's switch APART.payCoversGap.
  */
-import { fullStatePensionYearly, addYears, accessAgeOn } from './rules.js';
+import { fullStatePensionYearly, addYears, accessAgeOn, RULES } from './rules.js';
 import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS, isChargesPct } from '../../services/Charges.js';
+
+/**
+ * The owner's answers on couples who stop work in different years (research/v7/couples-different-years.md, "Questions
+ * for the owner", taken with the design's recommendations on 1 Oct 2026; the owner may still change them). One switch each:
+ *   payCoversDefault  (1) until you have both stopped, how much of what you spend the pay of the one still working covers
+ *                     when the question is not answered: 'half' (recommended), 'all' or 'none' — a key of PAY_COVERS.
+ *   payCoversGap      (2) whether that pay also makes up what the stopped person's money cannot pay before the other stops
+ *                     (a pension that cannot be touched yet, cash run out): true — it does, and the answer says so with the
+ *                     age it happens in a bad case; false — that counts as running out, as "None of it" always does.
+ *   askAboutPartner   (3) whether A and B offer a couple "I've already stopped" and then answer about the partner ("Yes —
+ *                     your partner could stop at 56"); "you" stays the person at the keyboard either way.
+ */
+export const APART = Object.freeze({ payCoversDefault: 'half', payCoversGap: true, askAboutPartner: true });
+
+/** What each answer to "until you've both stopped, their pay covers…" is, as a share of what the household spends. */
+export const PAY_COVERS = Object.freeze({ half: 0.5, all: 1, none: 0 });
+const PAY_COVERS_VALUES = Object.values(PAY_COVERS);
 
 /** The limits of the model (answer-C-and-household.md 1.8). The only place a household range is written down. */
 export const HOUSEHOLD_LIMITS = {
@@ -160,6 +183,22 @@ export function householdStart(household, now) {
 }
 
 /**
+ * Each person's stop (couples-different-years.md 4.1), in the order of `people`: `S` — whole years from today until they
+ * stop (0 when they already have, or the day has passed: yearsUntilStop), and `join` — the year, counted from the
+ * household's start (householdStart, the earliest stop), when their money joins the household's (0 for the first to stop).
+ * Every join 0 is a same-year household: today's case, bit for bit. Two people at most, so there is at most one join.
+ * @returns {{ who: string, S: number, join: number }[]}
+ */
+export function stopsOf(household, now) {
+  const waits = household.people.map((p) => yearsUntilStop(p, now));
+  const first = Math.max(0, Math.min(...waits));
+  return household.people.map((p, i) => ({ who: p.who, S: waits[i], join: waits[i] - first }));
+}
+
+/** Whether the people of a household stop in different years (any join after year 0). */
+const stopApart = (people, now) => people.length > 1 && new Set(people.map((p) => yearsUntilStop(p, now))).size > 1;
+
+/**
  * The first age, at or after the household's start, at which a person who is `age` today can touch a pension: the
  * earliest pension age on the day they reach it (55 before 6 April 2028, 57 from then — so a person who is 56 on a
  * start date after that day waits until 57, whatever they could have done earlier). The same rule the form checks
@@ -207,9 +246,12 @@ export function startWhenPensionsOpen(household, now) {
 }
 
 /**
- * The start as given, never moved (questions A and B, step 4 brief 4.5): the household's start is the stop, and every
- * pension whose holder is under the earliest pension age on that date is closed until they reach it — the savings pay
- * meanwhile, inside the holder's one run (toEngine.js, the locked run). The same shape as startWhenPensionsOpen.
+ * The start as given, never moved (questions A and B, step 4 brief 4.5): the household's start is the (first) stop, and
+ * every pension whose holder is under the earliest pension age on the day THEY stop is closed until they reach it — the
+ * savings pay meanwhile, inside the holder's one run (toEngine.js, the locked run). Each pension is measured from its
+ * holder's own stop (couples-different-years.md 4.3 g), so the April 2028 rise applies on each person's own date;
+ * `lockedUntil[].years` stays counted from the household's start. With one stop for everyone this is the start's own
+ * check, exactly as before. The same shape as startWhenPensionsOpen.
  */
 export function startAsGiven(household, now) {
   const base = householdStart(household, now);
@@ -218,9 +260,9 @@ export function startAsGiven(household, now) {
     const pots = p.pots || {};
     if (!(pots.pension > 0)) continue;
     const age = ageToday(p, now);
-    const first = firstOpenAge(age, now, base.yearsFromNow);
-    const opensIn = first - (age + base.yearsFromNow);
-    if (opensIn > 0) lockedUntil.push({ who: p.who, untilAge: first, years: opensIn });
+    const own = Math.max(base.yearsFromNow, yearsUntilStop(p, now));
+    const first = firstOpenAge(age, now, own);
+    if (first > age + own) lockedUntil.push({ who: p.who, untilAge: first, years: first - (age + base.yearsFromNow) });
   }
   return {
     date: base.date, yearsFromNow: base.yearsFromNow, moved: false, movedBy: 0, movedFor: [],
@@ -234,7 +276,13 @@ export function startAsGiven(household, now) {
  *
  * Short-form extras accepted here and removed from the result:
  *   person.pots.total         treated as pension money                     → 'all-pension'
- *   household.jointSavings    a couple's savings between them, split evenly → 'savings-split' (one person: all theirs)
+ *   household.jointSavings    a couple's savings between them, split evenly → 'savings-split' (one person: all theirs);
+ *                             a couple who stop in different years: all with whoever stops first → 'savings-first' (they
+ *                             are joint money, reachable from the first stop; couples-different-years.md 3.4)
+ *
+ * Couples who stop in different years: `untilBothStop` ({ payCovers: 0 | 0.5 | 1 }) is kept only when the stops differ,
+ * and given the owner's default (APART.payCoversDefault: half) when it is not → 'stop-apart'. A partner whose stop is not
+ * given stops when the first person does → 'both-stop-together' (only then: a stop given is not an assumption).
  *
  * @returns {{ household: Household, assumed: { id: string, who?: string }[] }}
  */
@@ -311,11 +359,21 @@ export function expandHousehold(short, now) {
     note('both-stop-together');
   }
 
+  const apart = stopApart(people, now);
   const joint = isNum(src.jointSavings) ? src.jointSavings : 0;
   if (joint > 0 && people.length) {
-    for (const p of people) p.pots.isa += joint / people.length;
-    if (people.length > 1) note('savings-split');
+    if (apart) {
+      // all with whoever stops first: split evenly, half of it would wait behind the other's stop
+      const waits = people.map((p) => yearsUntilStop(p, now));
+      people[waits.indexOf(Math.min(...waits))].pots.isa += joint;
+      note('savings-first');
+    } else {
+      for (const p of people) p.pots.isa += joint / people.length;
+      if (people.length > 1) note('savings-split');
+    }
   }
+  const given = src.untilBothStop && typeof src.untilBothStop === 'object' && PAY_COVERS_VALUES.includes(src.untilBothStop.payCovers);
+  if (apart && !given) note('stop-apart');
 
   const planToAge = isNum(src.planToAge) ? src.planToAge : 95;
   if (!isNum(src.planToAge)) note('plan-to');
@@ -335,6 +393,7 @@ export function expandHousehold(short, now) {
     if (!sv.risk) note('risk-saving');
     household.saving = { risk: sv.risk || level };
   }
+  if (apart) household.untilBothStop = { payCovers: given ? src.untilBothStop.payCovers : PAY_COVERS[APART.payCoversDefault] };
   return { household, assumed };
 }
 
@@ -342,6 +401,8 @@ export function expandHousehold(short, now) {
  * Problems with a full household, as data — never throws for a bad value, and is the only place a household
  * range is checked (the form's own limits are checked by validate.js against the input list).
  * @returns {{ field: string, problem: string }[]}   problem: 'required' | 'notANumber' | 'tooLow' | 'tooHigh' | 'notAnOption' | 'end-after-start'
+ *   | 'stop-together' (people who stop in different years with no `untilBothStop` to say how the years apart are paid:
+ *   expandHousehold always gives one, so only a household made by hand can be missing it)
  */
 export function validateHousehold(household, now) {
   const problems = [];
@@ -397,15 +458,21 @@ export function validateHousehold(household, now) {
     if (![pf.equity, pf.bond, pf.cash].every((v) => isNum(v) && v >= 0) || Math.abs(sum - 1) > 1e-9) bad('portfolio', 'notAnOption');
   } else bad('portfolio.kind', 'notAnOption');
 
-  // A saver household: both people stop in the same year (step 4 brief conflict 17).
-  if (h.saving && people.length > 1 && isDate(now) && !problems.length) {
-    const waits = people.map((p) => yearsUntilStop(p, now));
-    if (waits.some((w) => w !== waits[0])) bad('people.1.stopWork', 'stop-together');
+  // The pay line of a couple who stop in different years (couples-different-years.md 3.4): half, all or none.
+  if (h.untilBothStop !== undefined && !(h.untilBothStop && PAY_COVERS_VALUES.includes(h.untilBothStop.payCovers))) bad('untilBothStop.payCovers', 'notAnOption');
+  // People who stop in different years must say how the years apart are paid (step 4 brief conflict 17 asked them to stop
+  // together; from couples-different-years.md each stops on their own date, with `untilBothStop`).
+  if (people.length > 1 && isDate(now) && !problems.length && h.untilBothStop === undefined) {
+    if (stopApart(people, now)) bad('people.1.stopWork', 'stop-together');
   }
+  // The end comes after both stops — the younger person's age at the LATER one — and the later stop is less than the
+  // longest run (RULES.maxYears) after the first. One stop for everyone: the start's own check, as before.
   if (!problems.length && planOk && isDate(now)) {
     const start = h.saving ? startAsGiven(h, now) : startWhenPensionsOpen(h, now);
-    const younger = Math.min(...people.map((p) => p.age)) + start.yearsFromNow;
-    if (h.planToAge <= younger) bad('planToAge', 'end-after-start');
+    const waits = people.map((p) => yearsUntilStop(p, now));
+    const later = Math.max(start.yearsFromNow, ...waits);
+    const younger = Math.min(...people.map((p) => p.age)) + later;
+    if (h.planToAge <= younger || Math.max(...waits) - Math.min(...waits) >= RULES.maxYears) bad('planToAge', 'end-after-start');
   }
   return problems;
 }

@@ -13,16 +13,27 @@
  * "Careful" pot = the 1-in-10 low position of the pots at the stop; "middling" = the middle one. Whole £, today's prices.
  * The seed never reads the budget to decide a figure: `spend.perMonth` is the answer's own (C's careful amount; A's and
  * B's spending as typed or the level picked). The budget rides along as a guide (Contract C.5).
+ *
+ * Seed version 2 (research/v7/couples-different-years.md 6.1): each person carries their OWN stop — `stop` { kind,
+ * yearsFromNow }, `ageAtStop`, and `years`, the seed's years less the years between the household's start and their stop,
+ * so both plans of a couple end in the same tax year — and `taxFreeQuarter` from "already had the tax-free part". The seed
+ * gains `untilBothStop` ({ payCovers } while one of a couple still works after the other has stopped; null otherwise).
+ * `stop` and `years` stay the household's: the first stop, and the years from it. Each person's stop is the household's
+ * own (stopsOf, from the answer's mapping at the stop it shows), never re-derived here. When everyone stops in the same
+ * year the seed is version 1's, key for key, plus those keys (each person's stop and years then the household's, and
+ * `untilBothStop` null): tests/v7/keep/planSeed.test.js holds it to the frozen 6.19.0 builder.
  */
 import { toHousehold as toHouseholdC } from '../c/toHousehold.js';
 import { toHousehold as toHouseholdA } from '../a/toHousehold.js';
 import { toHousehold as toHouseholdB } from '../b/toHousehold.js';
+import { stopsOf } from '../shared/household.js';
 import { firstAccessAge, addYears, verdictOf, RULES } from '../shared/rules.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
 import { checkSheet, sheetForSeed } from './budgetSheet.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
-export const SEED_VERSION = 1;
+/** 2 from 6.20.0: each person at their own stop. Today's planner still reads 1 (src/services/PlanSeed.js). */
+export const SEED_VERSION = 2;
 /** A seed older than this is discarded unread (Contract C.2). */
 export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /**
@@ -58,28 +69,50 @@ export function keepable(source, result) {
   return { ok: true };
 }
 
-/** Whole years from today until the money starts (C), the age shown (A) or the age in mind (B). */
+/** Who A's and B's answer is about: your partner when you have already stopped (result.askedAbout), else you. */
+const askedOf = (result) => (result.askedAbout === 'partner' ? 'partner' : 'you');
+
+/** Whole years from today until the money starts (C), the age shown (A) or the age in mind (B) — the asked person's. */
 function waitOf(source, result) {
   const inputs = result.inputs;
   if (source === 'c') {
     const whose = result.whose === 'partner' ? 'partner' : 'you';
     return Math.max(0, result.basis.startAge - inputs[whose].age);
   }
-  if (source === 'a') return Math.max(0, result.shown.age - inputs.you.age);
-  return Math.max(0, result.stop.age - inputs.you.age);
+  const asked = askedOf(result);
+  if (source === 'a') return Math.max(0, result.shown.age - inputs[asked].age);
+  return Math.max(0, result.stop.age - inputs[asked].age);
+}
+
+/** The stop the answer shows, as its own mapping takes it: A's row and B's age in mind (the asked person's); C's is in its inputs. */
+const shownStopOf = (source, result) => (source === 'a' ? result.shown.age : source === 'b' ? result.stop.age : undefined);
+
+/**
+ * The household the answer was worked out for, at the stop it shows (the answer's own mapping), and each person's whole
+ * years from today until their own stop (household.js stopsOf). `apart`: the two of a couple stop in different years.
+ */
+function householdOf(source, result, today, who) {
+  const household = TO_HOUSEHOLD[source](result.inputs, { today }, shownStopOf(source, result)).household;
+  const S = {};
+  for (const s of stopsOf(household, today)) S[s.who] = s.S;
+  return { household, S, apart: who.length > 1 && new Set(who.map((w) => S[w])).size > 1 };
 }
 
 /** The stretches of years the answer was worked out in, for its careful amount (C, B) or the spending shown (A). */
 const phasesOf = (source, result) => (source === 'a' ? (result.shown && result.shown.phases) : result.phases) || [];
 
-/** A person's part of the spending, after tax, today's prices: one row per stretch, neighbours under £1 apart merged. */
+/**
+ * A person's part of the spending, after tax, today's prices: one row per stretch, neighbours under £1 apart merged.
+ * A stretch in which they are still working (a couple apart: `working`) is not theirs to pay — the pay covers their part —
+ * so the rows of the one still working start at their own stop, and the first to stop has their part of the years apart.
+ */
 function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
   if (!couple) return [{ fromAge: ageAtStop, perMonth: round2(perMonth) }];
   const rows = [];
   for (const ph of phases) {
     const mine = Array.isArray(ph.byPerson) ? ph.byPerson.find((p) => p.who === who) : null;
     const from = ph.ages && ph.ages[who] ? ph.ages[who].from : null;
-    if (!mine || !isNum(mine.takeHome) || !isNum(from)) continue;
+    if (!mine || !isNum(mine.takeHome) || !isNum(from) || mine.working === true) continue;
     const row = { fromAge: from, perMonth: round2(mine.takeHome) };
     const last = rows[rows.length - 1];
     if (last && Math.abs(last.perMonth - row.perMonth) < 1) continue;
@@ -88,8 +121,12 @@ function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
   return rows.length ? rows : [{ fromAge: ageAtStop, perMonth: 0 }];
 }
 
-/** What goes in each month, as the question was given it; null when nothing goes in (or, from now, nothing more will). */
-function payInOf(source, result, who, later, count) {
+/**
+ * What goes in each month, as the question was given it; null when nothing goes in (or, from now, nothing more will).
+ * `savingsInShare`: a couple apart, this person's part of what goes into savings each month as the household has it (those
+ * still working today share it); otherwise (null) an even split, as before.
+ */
+function payInOf(source, result, who, later, count, savingsInShare = null) {
   const inputs = result.inputs;
   const p = (inputs[who] && inputs[who].payIn) || null;
   const saving = (result.saving || []).find((s) => s.who === who);
@@ -101,28 +138,34 @@ function payInOf(source, result, who, later, count) {
     const split = p.kind === 'split';
     return { kind: split ? 'split' : 'total', total, own: split ? p.own : null, employer: split ? p.employer : null, savingsIn: 0 };
   }
-  const savingsIn = round2((isNum(inputs.savingsIn) ? inputs.savingsIn : 0) / count);
+  const savingsIn = savingsInShare !== null ? round2(savingsInShare) : round2((isNum(inputs.savingsIn) ? inputs.savingsIn : 0) / count);
   const split = !!p && p.kind === 'split';
   const total = saving && isNum(saving.payIn.total) ? saving.payIn.total : split ? (p.own || 0) + (p.employer || 0) : (p && isNum(p.total) ? p.total : 0);
   if (!(total > 0) && !(savingsIn > 0)) return null;
   return { kind: split ? 'split' : 'total', total, own: split ? p.own : null, employer: split ? p.employer : null, savingsIn };
 }
 
-/** One person of the seed (Contract C.1, "Person"). */
-function personOf({ source, result, today, who, index, wait, later, household, couple, perMonth }) {
+/**
+ * One person of the seed (Contract C.1, "Person"). `stop` and `years` are this person's own (seed version 2): the
+ * household's when everyone stops in the same year. `apart`: a couple who stop in different years — the savings between
+ * them are with whoever stops first and what goes into savings each month with those still working (the household's own
+ * split, household.js 'savings-first'), and nothing goes in for whoever has stopped.
+ */
+function personOf({ source, result, today, who, index, stop, years, household, couple, perMonth, apart }) {
   const inputs = result.inputs;
   const raw = inputs[who];
   const count = couple ? 2 : 1;
+  const later = stop.kind === 'later';
   const ageToday = raw.age;
-  const ageAtStop = ageToday + wait;
+  const ageAtStop = ageToday + stop.yearsFromNow;
   const saving = (result.saving || []).find((s) => s.who === who);
+  const hp = household.people[index] || {};
   const pensionToday = pounds(raw.pot);
-  const savingsToday = pounds((inputs.savings || 0) / count);
+  const savingsToday = apart ? pounds(hp.pots ? hp.pots.isa : 0) : pounds((inputs.savings || 0) / count);
   const atStop = (part, todayValue) => (later && saving && saving.potAtStop && saving.potAtStop[part]
     ? { careful: pounds(saving.potAtStop[part].careful), middling: pounds(saving.potAtStop[part].middling) }
     : { careful: todayValue, middling: todayValue });
 
-  const hp = household.people[index] || {};
   const sp = hp.statePension || { amountPerYear: 0, startAge: { years: 0, months: 0 } };
   const spAge = sp.startAge.years + (sp.startAge.months > 0 ? 1 : 0);
   const statePension = sp.amountPerYear > 0
@@ -141,13 +184,16 @@ function personOf({ source, result, today, who, index, wait, later, household, c
     pensionOpensAge: opens,
     pension: { today: pensionToday, atStop: atStop('pension', pensionToday) },
     savings: { today: savingsToday, atStop: atStop('savings', savingsToday) },
-    payIn: payInOf(source, result, who, later, count),
+    payIn: apart && !later ? null : payInOf(source, result, who, later, count, apart ? (hp.saving ? hp.saving.savingsIn : 0) : null),
     alreadyDrawing: raw.alreadyDrawing === true,
     statePension,
     finalSalary: fs ? { yearly: fs.yearly, fromAge: fs.fromAge, increases: (fsHousehold && fsHousehold.increases) || 'pricesCapped5' } : null,
-    taxFreeQuarter: true,
+    // "Already had the tax-free part?" (asked of someone who has stopped): yes → everything taken out is taxed
+    taxFreeQuarter: raw.taxFreeTaken !== true,
     partTime: pt ? { yearly: pt.yearly, years: pt.years } : null,
-    takeHome: takeHomeOf(who, couple, ageAtStop, perMonth, phasesOf(source, result))
+    takeHome: takeHomeOf(who, couple, ageAtStop, perMonth, phasesOf(source, result)),
+    stop: { kind: stop.kind, yearsFromNow: stop.yearsFromNow },
+    years
   };
 }
 
@@ -197,13 +243,24 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
   const checked = checkPlanName(typed);
   if (!checked.ok) return null;
 
-  const wait = waitOf(source, result);
-  const later = source === 'b' || wait > 0;
-  const household = TO_HOUSEHOLD[source](inputs, { today }).household;
   const who = couple ? ['you', 'partner'] : ['you'];
+  const { household, S, apart } = householdOf(source, result, today, who);
   const endAge = isNum(inputs.endAge) ? inputs.endAge : result.basis.endAge;
-  const youngestAtStop = Math.min(...who.map((w) => inputs[w].age + wait));
-  const years = Math.min(RULES.maxYears, endAge - youngestAtStop);
+  // The household's stop and years: one stop for everyone, as before (the asked person's wait); stopping in different
+  // years, the first stop, and the years from it until the younger reaches the end age (at most RULES.maxYears).
+  let stop, years;
+  if (apart) {
+    const S0 = Math.min(...who.map((w) => S[w]));
+    stop = { kind: S0 > 0 ? 'later' : 'now', yearsFromNow: S0 };
+    years = Math.min(RULES.maxYears, endAge - (Math.min(...who.map((w) => inputs[w].age)) + S0));
+  } else {
+    const wait = waitOf(source, result);
+    stop = { kind: source === 'b' || wait > 0 ? 'later' : 'now', yearsFromNow: wait };
+    years = Math.min(RULES.maxYears, endAge - Math.min(...who.map((w) => inputs[w].age + wait)));
+  }
+  // Each person's own: the household's in the same year; apart, their own stop and the years from it to the same end.
+  const ownStop = (w) => (apart ? { kind: S[w] > 0 ? 'later' : 'now', yearsFromNow: S[w] } : stop);
+  const ownYears = (w) => (apart ? years - (S[w] - stop.yearsFromNow) : years);
 
   const spend = source === 'c'
     ? { perMonth: result.monthly.careful, from: 'careful', level: null, budgetSkipped: null }
@@ -214,7 +271,7 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
       budgetSkipped: spendHow !== 'lines'
     };
 
-  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, wait, later, household, couple, perMonth: spend.perMonth }));
+  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, stop: ownStop(w), years: ownYears(w), household, couple, perMonth: spend.perMonth, apart }));
   const sheet = budget ? sheetForSeed(checkSheet(budget, { household: couple ? 'couple' : 'single', level: spend.level || 'moderate', today })) : null;
   const basis = result.basis;
 
@@ -230,9 +287,12 @@ export function buildPlanSeed({ source, result, env, name, budget = null, spendH
     // a seed without one gives the planner's default, 0.5)
     inputs: copy(inputs),
     household: couple ? 'couple' : 'single',
-    stop: { kind: later ? 'later' : 'now', yearsFromNow: wait },
+    stop: { kind: stop.kind, yearsFromNow: stop.yearsFromNow },
     endAge,
     years,
+    // until the second stop, the share of what is spent the pay of the one still working covers (the household's own:
+    // the answer's, or the owner's default); null when everyone stops in the same year
+    untilBothStop: apart ? { payCovers: household.untilBothStop.payCovers } : null,
     risk: inputs.risk || 'balanced',
     spend,
     people,

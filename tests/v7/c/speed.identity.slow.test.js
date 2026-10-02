@@ -132,3 +132,55 @@ describe('per-future pots with a charge: the stop runner is today\'s engine, lif
     }
   }, LONG);
 });
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 9.1 I8) at full size: on random apart
+ * households (all shares, the tax-free part already taken, "None of it", every pension open at its holder's stop), every
+ * life's joined run — the first stopper alone, the hand-over at the second stop, the joiner from their own stop — is the
+ * chain of today's engine (tests/v7/saving/chainJoin.mjs): the same run-out month in every life at every amount tried —
+ * up to the first run-out after the second stop, where the pass-on happens (2 Oct 2026: from then the other's money pays
+ * all, and the household runs out only when both have; tests/v7/shared/apart.identity.test.js I10 checks the pass-on).
+ */
+import { chainJoin } from '../saving/chainJoin.mjs';
+import { apart } from '../shared/apart.mjs';
+
+describe('couples apart: a joined run is a chain of today\'s engine — random households', () => {
+  const SHARES = { equity: 1, bond: 0, cash: 0 };
+  const person = fc.record({
+    age: fc.integer({ min: 45, max: 66 }), pot: fc.constantFrom(0, 60_000, 250_000, 900_000), isa: fc.constantFrom(0, 20_000, 80_000),
+    payIn: fc.constantFrom(0, 400, 1200), gap: fc.integer({ min: 0, max: 9 }), sp: fc.constantFrom('full', 'none', 6_000)
+  });
+
+  it('25 random couples at 30 lives, three amounts each: failed and the month equal the chain', () => {
+    let compared = 0;
+    for (const [y, p] of fc.sample(fc.tuple(person, person), { seed: SEED + 6, numRuns: 120 })) {
+      if (compared >= 25 * 30 * 3) break;
+      const stop = (x) => (x.gap === 0 ? 'already' : Math.min(75, x.age + x.gap));
+      const h = apart({ you: { ...y, stop: stop(y) }, partner: { ...p, stop: stop(p) }, payCovers: 0, mix: SHARES, taxFreeTaken: true, endAge: 95 });
+      if (!h.untilBothStop) continue;                                     // the same year: today's, tested elsewhere
+      const a = h.people[0].stopWork.kind === 'age' ? h.people[0].stopWork.age : h.people[0].age;
+      let sp;
+      try { sp = stopAtPlan(h, a, { ...TEST_ENV, futures: 30, mix: SHARES, savingMix: SHARES }); } catch { continue; }
+      if (!sp.plan.apart || sp.plan.lockedUntil.length || sp.plan.runs.length < 2) continue;
+      const runner = createStopRunner(sp);
+      for (const H of [15_000, 30_000, 55_000]) {
+        for (let i = 0; i < sp.n; i++) {
+          const [entry] = runner.configsAtH(H, i);
+          const got = runner.run(0, i, entry.config);
+          const chain = chainJoin(sp, H, i, entry.config);
+          const where = `${JSON.stringify([y, p])} H ${H} life ${i}`;
+          if (!chain.failed || chain.failMonth < 12 * sp.plan.apart.years) {
+            expect([got.failed, got.failMonth], where).toEqual([chain.failed, chain.failMonth]);
+          } else {
+            // after the second stop the chain's first run-out is where the pass-on happens (the chain is today's fixed
+            // shares; from that month the other's money pays all): the household runs out then or later
+            expect(got.parts.passOn, where).toEqual({ to: expect.any(String), month: chain.failMonth });
+            expect(got.failMonth === null || got.failMonth >= chain.failMonth, where).toBe(true);
+          }
+          compared++;
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(1000);
+  }, LONG);
+});

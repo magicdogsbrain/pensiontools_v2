@@ -1,0 +1,92 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "c",
+    "step": "numbers",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.20.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none"
+  },
+  "plan": null,
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null
+    },
+    "c": {
+      "values": {
+        "household": "couple",
+        "you.pot": "500,000",
+        "you.age": "56",
+        "start.kind": "now",
+        "partner.age": "55",
+        "partner.pot": "450,000",
+        "partner.stop.kind": "age",
+        "partner.stop.age": "56",
+        "partner.payIn.has": "yes",
+        "partner.payIn.kind": "split",
+        "partner.payIn.own": "500",
+        "partner.payIn.employer": "350",
+        "savings": "60,000"
+      },
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [
+      "more"
+    ],
+    "online": true
+  }
+}

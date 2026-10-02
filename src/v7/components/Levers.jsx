@@ -29,7 +29,8 @@ export function leverActions(id, result) {
   const couple = !!(result.inputs && result.inputs.household === 'couple');
   const lever = L[id];
   if (!lever) return null;
-  if (id === 'stopLater' && typeof lever.age === 'number') return [set('stop.age', String(lever.age))];
+  // About your partner ("I've already stopped"; couples-different-years.md 5.3) the stop that moves is theirs.
+  if (id === 'stopLater' && typeof lever.age === 'number') return [set(result.askedAbout === 'partner' ? 'partner.stop.age' : 'stop.age', String(lever.age))];
   // The figure first, then the choice it belongs to: no step in between is a draft that does not parse.
   // "Pay in more" may need savings a month too (the years before a pension opens): both go in, so asking again gives
   // the lever's own figures.

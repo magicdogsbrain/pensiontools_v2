@@ -21,12 +21,21 @@
  *
  * Pure: no clock, no storage, no Math.random. The objects here hold typed arrays and functions; nothing of them reaches
  * a result.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 4.3): each person's stop is read from
+ * the household (saving.js stopYearsFor), never overwritten; `stopAge` is the stop the answer is about and must be one
+ * of the two. S is the household's start (the first stop), D and T as before; each person saves to their own stop and
+ * their pots are at it; the drivers are kept per (life, offset). A life is still ONE evaluation: the stop runner runs a
+ * 'joined' entry as the first stopper's run with the hand-over at the second stop, then the joiner's from their stop
+ * (only as far as could still matter), and reports the earlier run-out on the household's clock. The pot needed scales
+ * the pensions of the people still saving, each at their own stop; the money of someone who has stopped stays as it is.
+ * With one stop for everyone every function here is what it was, figure for figure (tests/v7/shared/apart.identity).
  */
-import { enginePlan, configsAt, breakdownAt } from './toEngine.js';
+import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf } from './toEngine.js';
 import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
-import { savingPlan, savingKernel, kernelPasses } from './saving.js';
+import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
 import { RULES, SAVING, verdictOf } from './rules.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -37,15 +46,19 @@ function badCaseOf(ages) {
   return s[Math.floor(s.length / 10)];
 }
 
-/** The engine plan of the drawing years for given per-person pots (the largest over the lives: the band's ceiling). */
-function drawingPlan(household, S, env, maxes) {
+/**
+ * The engine plan of the drawing years for given per-person pots (the largest over the lives: the band's ceiling). Each
+ * person stops `own[j]` years from today (stopYearsFor: everyone at the one stop, or each at their own); only the pots
+ * are put in.
+ */
+function drawingPlan(household, own, env, maxes) {
   const h = {
     ...household,
     portfolio: env && env.mix ? { kind: 'mix', equity: env.mix.equity || 0, bond: env.mix.bond || 0, cash: env.mix.cash || 0 } : household.portfolio,
     people: household.people.map((p, j) => ({
       ...p,
       pots: { ...p.pots, pension: maxes[j].pension, isa: maxes[j].isa },
-      stopWork: { kind: 'age', age: p.age + S }
+      stopWork: { kind: 'age', age: p.age + own[j] }
     }))
   };
   return enginePlan(h, env, { start: 'asGiven', pots: 'perFuture' });
@@ -56,13 +69,18 @@ function drawingPlan(household, S, env, maxes) {
  * age of an answer is a cut of the same lives), the saving years' kernels and each person's pots at the stop in every
  * life, and the drawing years' plan.
  * @param {import('./household.js').Household} household   the full form, ages today (A's / B's toHousehold)
- * @param {number} stopAge   the first person's age at the stop; both people stop in the same year
+ * @param {number} stopAge   the stop the answer is about: the first person's age at it when both stop in the same year
+ *   (everyone moves to it); for a couple apart, the age at their own stop of the person the answer is about
  * @param {object} env       C's env (today, futures, seed, futureReturns, mix) plus savingMix, savingsGrowth (tests)
  * @param {object[]} [lives] livesList(...) at least S + D years long
+ * @returns {object}   sp. Besides today's fields: `stops` ([{ who, S, join }] per person, household order: their own
+ *   years until they stop, and the year their money joins on the household's clock) and `stillSaving` (per person: their
+ *   pension is what the pot needed scales — everyone when they stop together, only those still working when apart).
  */
 export function stopAtPlan(household, stopAge, env, lives = null) {
   const people = household.people;
-  const S = Math.max(0, Math.round(stopAge - people[0].age));
+  const own = stopYearsFor(household, stopAge, env.today);
+  const S = own.S;
   const youngest = Math.min(...people.map((p) => p.age));
   const D = Math.max(1, Math.min(RULES.maxYears, household.planToAge - (youngest + S)));
   const T = S + D;
@@ -85,23 +103,35 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
   const midOf = (a) => { const s = Array.from(a).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
   const maxes = pots.map((q) => ({ pension: maxOf(q.pension), isa: maxOf(q.savings) }));
   const middling = pots.map((q) => ({ pension: midOf(q.pension), isa: midOf(q.savings) }));
-  const midTotal = middling.reduce((s, q) => s + q.pension, 0);
-  const split = middling.map((q) => (midTotal > 0 ? q.pension / midTotal : 1 / middling.length));
+  // The pot needed (4.3 m) scales the pensions of the people still saving, split by their middling pots: everyone when
+  // they stop together (today's arithmetic exactly); a couple apart, only those not yet stopped.
+  const stillSaving = own.apart ? own.own.map((s) => s > 0) : people.map(() => true);
+  const scaled = stillSaving.filter(Boolean).length;
+  const midTotal = middling.reduce((s, q, j) => s + (stillSaving[j] ? q.pension : 0), 0);
+  const split = middling.map((q, j) => (!stillSaving[j] ? 0 : midTotal > 0 ? q.pension / midTotal : 1 / scaled));
 
-  const plan = drawingPlan(household, S, env, maxes);
+  const plan = drawingPlan(household, own.own, env, maxes);
   const years = plan.years;
+  // each life's drivers, read from the stop of the run: the household's (offset 0) and, apart, the joiner's (offset g)
   const drivers = new Array(n).fill(null);
-  const driversFor = (i) => drivers[i] || (drivers[i] = prepareFutureFrom(L[i], 12 * S, years));
+  const driversAt = new Map();
+  const driversFor = (i, offset = 0) => {
+    if (!(offset > 0)) return drivers[i] || (drivers[i] = prepareFutureFrom(L[i], 12 * S, years));
+    let byLife = driversAt.get(offset);
+    if (!byLife) { byLife = new Array(n).fill(null); driversAt.set(offset, byLife); }
+    return byLife[i] || (byLife[i] = prepareFutureFrom(L[i], 12 * (S + offset), years - offset));
+  };
   // `simulate`'s view of each life's drawing years, for a config the fast path does not cover (never one of the adapter's)
   const drawFutures = L.map((life) => ({ id: life.id, seed: life.seed, returns: sliceReturns(life, S, years) }));
 
   return {
     S, D: years, T, stopAge, n, household, env, plan, saving, lives: L, kernels, pots, maxes, middling, split,
     driversFor, drawFutures, kernelPasses: kernelPasses(saving),
+    stops: people.map((p, j) => ({ who: p.who, S: own.own[j], join: own.own[j] - S })), stillSaving,
     /** Life i's pots at the stop, per person in plan order: [{ pension, isa }], today's prices. */
     potsOf: (i) => pots.map((q) => ({ pension: q.pension[i], isa: q.savings[i] })),
     /** The drawing years' plan for other per-person pots (the pot-needed search, a fixed pension). */
-    planFor: (m) => drawingPlan(household, S, env, m)
+    planFor: (m) => drawingPlan(household, own.own, env, m)
   };
 }
 
@@ -109,8 +139,13 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
  * The runner of one stop age: each life's pots (the kernels × what is paid in, or `opts` in their place), the life's
  * drivers from the stop, the fast path. A couple's configs are made per life (their shares follow their pots).
  * @param {object} sp   stopAtPlan(...)
- * @param {{ pensionOf?: (i: number, j: number) => number, savingsOf?: (i: number, j: number) => number }} [opts]
- *   life i's pension / savings of person j (plan order) at the stop, in place of the projected ones.
+ * @param {{ pensionOf?: (i: number, j: number) => number, savingsOf?: (i: number, j: number) => number, parts?: boolean }} [opts]
+ *   life i's pension / savings of person j (plan order) at the stop, in place of the projected ones. `parts` (tests): a
+ *   joined run's result keeps the joiner's config the hand-over made (parts.join.config).
+ * @returns {{ plan, run, potsFor, potsOf, configsFor, configsAtH, fastRun, evaluations, months }}
+ *   run(r, i, config): one configsAt entry's config in life i → { failed, failMonth } on the household's clock (a couple
+ *   apart: a 'joined' entry also gives `parts` — { first, atJoin, shares, join }: each run's result, the first stopper's
+ *   money at the second stop at today's prices, the shares the hand-over set). `months`: engine months run (the work bound).
  */
 export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opts = {}) {
   if (lives !== sp.lives) throw new Error('createStopRunner: the lives are the stop plan\'s');
@@ -141,6 +176,60 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   const byK = new Map();
   const byH = new Map();
   let evaluations = 0;
+  let months = 0;
+  /** One engine run, counted in months (the work bound: couples-different-years.md 10); a resumed run from its month. */
+  const fastRun = (r, i, config, hook = null, until = null, more = null) => {
+    const res = fast.run(r, i, config, hook, until, more);
+    const all = 12 * config.years;
+    const from = more && more.resume ? more.resume.month : 0;
+    months += (res.failed ? res.failMonth + 1 : (until === null ? all : Math.min(until, all))) - from;
+    return res;
+  };
+  // couples apart: the first stopper's state at the top of each month from the second stop (the pass-on resumes it there)
+  const record = plan.apart ? { from: 12 * plan.apart.years, buf: new Float64Array(5 * 12 * plan.years) } : null;
+
+  /**
+   * A couple apart, one entry in life i. 'unpaid': the need falls on nobody's money in a month the pay does not make up.
+   * A plain run: its own clock, so a run-out is moved by its offset onto the household's. 'joined': the first stopper's
+   * run with the hand-over at the second stop, then the joiner's from their stop; a run-out of the first stopper before
+   * the join ends the life there. After the join the household runs out only when both have (the pass-on, toEngine.js
+   * passOnAt): when the first stopper's money runs out first, the joiner's run pays all from that month (a hook); when
+   * the joiner's does, the first stopper's run is resumed at that month from its record and pays all from then.
+   */
+  const runApart = (r, i, config) => {
+    if (config.unpaid) return { failed: config.failMonth !== null, failMonth: config.failMonth };
+    if (!config.joined) {
+      const res = fastRun(r, i, config);
+      const g = plan.runs[r].offset;
+      if (!(g > 0) || !res.failed) return res;
+      return { ...res, failMonth: res.failMonth + 12 * g };
+    }
+    const { first, join, month, H, pots } = config.joined;
+    let hand = null;
+    const hook = { month, retarget: (state) => { hand = joinAt(plan, H, pots, state, config.config); return hand.first; } };
+    const f = fastRun(first, i, config.config, hook, null, { record });
+    if (!hand) return { failed: true, failMonth: f.failMonth, parts: { first: f, atJoin: null, shares: null, join: null, last: null, passOn: null } };
+    const mf = f.failed ? f.failMonth : null;                            // the household's clock (the first stopper's)
+    // the joiner from their stop — paying all from the month the first stopper's money ran out, if it did
+    const passToJoin = mf === null ? null : { month: mf - month, retarget: () => passOnAt(plan, H, join, mf, hand.join.config) };
+    const j = fastRun(join, i, hand.join.config, passToJoin);
+    const mj = j.failed ? j.failMonth + month : null;
+    let failMonth = mj;
+    let last = null;
+    let passOn = mf !== null && (mj === null || mf <= mj) ? { to: 'join', month: mf } : null;
+    if (mj !== null && (mf === null || mj < mf)) {
+      // the joiner's money ran out first: the first stopper's run, resumed at that month, pays all from then
+      const o = 5 * (mj - record.from);
+      const b = record.buf;
+      const resume = { month: mj, equity: b[o], bond: b[o + 1], cash: b[o + 2], isa: b[o + 3], lsa: b[o + 4], ...passOnAt(plan, H, first, mj, hand.first),
+        ...(f.coveredFrom !== undefined ? { coveredFrom: f.coveredFrom } : {}) };
+      last = fastRun(first, i, config.config, null, null, { resume });
+      failMonth = last.failed ? last.failMonth : null;
+      passOn = { to: 'first', month: mj };
+    }
+    const joinPart = opts.parts ? { ...j, config: hand.join.config } : j;
+    return { failed: failMonth !== null, failMonth, parts: { first: f, atJoin: hand.atJoin, shares: hand.shares, join: joinPart, last, passOn } };
+  };
   const configsAtH = (H, i) => {
     if (perLife) return configsAt(plan, H, potsOf(i));
     let c = byH.get(H);
@@ -157,16 +246,50 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     return c[i] || (c[i] = configsAt(plan, k * STEP * 12, potsOf(i)));
   };
   return {
-    plan, potsFor, potsOf, configsFor, configsAtH,
-    run(r, i, config) { evaluations++; return fast.run(r, i, config); },
-    get evaluations() { return evaluations; }
+    plan, potsFor, potsOf, configsFor, configsAtH, fastRun,
+    run(r, i, config) { evaluations++; return plan.apart ? runApart(r, i, config) : fastRun(r, i, config); },
+    get evaluations() { return evaluations; },
+    get months() { return months; }
   };
 }
 
 /** The run-out month of every life at a household take-home of H a year when there is no pot to draw on. */
 function withoutRuns(plan, H, n) {
+  // a couple apart: the pots' share of what is spent, the years the pay makes up gaps not counted (toEngine.js unpaidOf)
+  if (plan.apart) return new Array(n).fill(unpaidOf(plan, H).failMonth);
   const short = plan.periods.find((per) => per.netTotal < H - 1e-6);
   return new Array(n).fill(short ? short.from * 12 : null);
+}
+
+/**
+ * Couples apart: when the pay of the one still working makes up what the stopped person's money cannot pay before the
+ * second stop (the warning 'apart-cover-used'), at a household take-home of H a year. One part-run per life, to the
+ * second stop. → { who, fromAge, months }: the first stopper, the age (theirs) from which it happens in a bad case (the
+ * worst 1 in 10: the floor(n/10)-th earliest over the lives; null when fewer lives than that need it), and each life's
+ * first such month on the household's clock (null when never). null for a plan whose people stop together.
+ */
+export function coverAt(sp, runner, H) {
+  const plan = runner.plan;
+  if (!plan.apart) return null;
+  const G = plan.apart.years;
+  const firstPerson = plan.people[plan.apart.firstIndex];
+  const n = sp.n;
+  const out = new Array(n).fill(null);
+  for (let i = 0; i < n; i++) {
+    const entries = runner.configsAtH(H, i);
+    let m = unpaidOf(plan, H, runner.potsOf(i)).coveredFrom;
+    const joined = entries.find((e) => e.role === 'joined');
+    const r = joined ? joined.config.joined.first : plan.runs.findIndex((run) => run.offset === 0);
+    if (r >= 0 && plan.runs[r].base.coverMonths > 0) {
+      const config = joined ? joined.config.config : entries[r].config;
+      const res = runner.fastRun(r, i, config, null, 12 * G);
+      if (res.coveredFrom !== null && res.coveredFrom !== undefined && (m === null || res.coveredFrom < m)) m = res.coveredFrom;
+    }
+    out[i] = m;
+  }
+  const ages = out.map((m) => (m === null ? Infinity : firstPerson.ageAtStart + Math.floor(m / 12))).sort((a, b) => a - b);
+  const bad = ages[Math.floor(n / 10)];
+  return { who: firstPerson.who, fromAge: Number.isFinite(bad) ? bad : null, months: out };
 }
 
 /**
@@ -241,9 +364,15 @@ function withinFails(sp, runner, spendAYear, allowed) {
   return { ok: fails <= allowed, fails };
 }
 
+/**
+ * Life i's pension of person j with the household's pension at the stop at a total P: P split by the middling pots
+ * between the people still saving (everyone when they stop together); the pension of someone who has stopped as it is.
+ */
+const pensionAtTotal = (sp, P) => (i, j) => (sp.stillSaving[j] ? P * sp.split[j] : sp.pots[j].pension[i]);
+
 /** A runner with every life's pension at a household total P, split between the people by their middling pots. */
 function runnerAtPot(sp, P, opts = {}) {
-  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: (i, j) => P * sp.split[j], savingsOf: opts.savingsOf });
+  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: pensionAtTotal(sp, P), savingsOf: opts.savingsOf });
 }
 
 /** The verdict with every life's pension at a household total of P at the stop (split by the middling pots); savings as projected. */
@@ -383,7 +512,7 @@ export function runnerAtPayIns(sp, payIns, opts = {}) {
   const kp = sp.kernels.map((k) => k.pension);
   const ks = sp.kernels.map((k) => k.savings);
   const pensionOf = opts.pensionAt >= 0
-    ? (i, j) => opts.pensionAt * sp.split[j]
+    ? pensionAtTotal(sp, opts.pensionAt)
     : (i, j) => kp[j].A[i] + payIns[j].pension * kp[j].B[i];
   return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf, savingsOf: (i, j) => ks[j].A[i] + payIns[j].savings * ks[j].B[i] });
 }
@@ -467,14 +596,45 @@ export function monthlyAt(sp, runner, potsFixed, opts = {}) {
 }
 
 /**
+ * Couples apart: the first stopper's money at the second stop, as the phases show it (4.3 j) — their run at H on these
+ * pots for the G years apart, once in every life (one part-run each), its pots at the join at today's prices, and the
+ * middling of them (by the total; the lower life of a tie). null when the first stopper has no run.
+ */
+function middlingAtJoin(sp, plan, H, q) {
+  const r = plan.runs.findIndex((run) => run.offset === 0);
+  if (r < 0) return null;
+  const G = plan.apart.years;
+  const mix = plan.mix;
+  const own = q[plan.runs[r].index];
+  const pension = plan.runs[r].role === 'pension' ? own.pension : 0;
+  const start = { equity: pension * mix.equity, bond: pension * mix.bond, cash: pension * mix.cash, isa: own.isa };
+  const fast = createFastRunner(plan, sp.drawFutures, { potsFor: () => start, driversFor: sp.driversFor });
+  const entries = configsAt(plan, H, q);
+  const joined = entries.find((e) => e.role === 'joined');
+  const config = joined ? joined.config.config : entries[r].config;
+  const at = [];
+  for (let i = 0; i < sp.n; i++) {
+    const res = fast.run(r, i, config, null, 12 * G);
+    const c = sp.driversFor(i, 0).cumInf[G];
+    at.push(res.failed ? { pension: 0, isa: 0 } : { pension: (res.equity + res.bond + res.cash) / c, isa: res.isa / c });
+  }
+  const order = at.map((x, i) => i).sort((a, b) => (at[a].pension + at[a].isa) - (at[b].pension + at[b].isa) || a - b);
+  return at[order[Math.floor(order.length / 2)]];
+}
+
+/**
  * The phases of a spend from the stop (C's phasesOf on breakdownAt), at the middling pots or the pots given (per person,
  * plan order, { pension, isa }): £ a month at today's prices. Added for A and B: `work` (part-time earnings before
  * tax), `fromWork` (what they add after tax), `pensionOpen` (false while a pension is closed: nothing from it), and
  * `shown.fromWork`; shown.takeHome = fromPots + statePension + finalSalary + fromWork, whole pounds.
+ * Couples apart (4.3 j), only then: before the second stop each phase carries `fromPay` (what the worker's pay covers)
+ * and `shown.fromPay`, each person `working`; the years after it are shared on the first stopper's middling money at
+ * the join (middlingAtJoin). shown.takeHome = fromPots + statePension + finalSalary + fromWork (+ fromPay).
  */
 export function phasesAt(sp, spendAYear, pots = null) {
   const q = pots || sp.middling;
   const plan = pots ? sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))) : sp.plan;
+  if (plan.apart) return apartPhases(sp, plan, spendAYear, q);
   const per = breakdownAt(plan, spendAYear, q);
   return per.map((p) => {
     const ages = {};
@@ -511,5 +671,56 @@ export function phasesAt(sp, spendAYear, pots = null) {
       pensionOpen: byPerson.every((b) => b.pensionOpen),
       shown: { takeHome: shownTake, fromPots: shownPots, statePension: shownSp, finalSalary: shownFs, fromWork: shownWork }
     };
+  });
+}
+
+/** phasesAt for a couple apart: the same phases, plus what the worker's pay covers before the second stop. */
+function apartPhases(sp, plan, spendAYear, q) {
+  const per = breakdownAt(plan, spendAYear, q, middlingAtJoin(sp, plan, spendAYear, q));
+  return per.map((p) => {
+    const ages = {};
+    for (const person of plan.people) ages[person.who] = { from: person.ageAtStart + p.from, to: person.ageAtStart + p.to };
+    const raw = p.byPerson.map((b) => ({
+      who: b.who, statePension: b.statePension / 12, finalSalary: b.finalSalary / 12, work: (b.work || 0) / 12, fromWork: (b.workAfterTax || 0) / 12,
+      fromPension: b.fromPension / 12, fromSavings: b.fromSavings / 12, tax: b.tax / 12, takeHome: b.takeHome / 12
+    }));
+    const byPerson = raw.map((b, i) => {
+      const out = {
+        ...Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === 'number' ? round2(v) : v])),
+        higherRate: Boolean(p.byPerson[i].higherRate),
+        locked: Boolean(p.byPerson[i].locked),
+        pensionOpen: p.byPerson[i].pensionOpen !== false
+      };
+      if (p.byPerson[i].working !== undefined) out.working = p.byPerson[i].working;
+      return out;
+    });
+    const sum = (f) => raw.reduce((s, b) => s + b[f], 0);
+    const takeHome = round2(p.takeHome / 12);
+    const statePension = round2(sum('statePension'));
+    const finalSalary = round2(sum('finalSalary'));
+    const fromWork = round2(sum('fromWork'));
+    const paying = p.fromPay !== undefined;
+    const fromPay = paying ? round2(p.fromPay / 12) : 0;
+    const shownTake = Math.round(takeHome);
+    let shownSp = Math.round(statePension);
+    let shownFs = Math.round(finalSalary);
+    let shownWork = Math.round(fromWork);
+    let shownPay = Math.round(fromPay);
+    let shownPots = shownTake - shownSp - shownFs - shownWork - shownPay;
+    if (shownPots < 0) { const cut = Math.min(-shownPots, shownFs); shownFs -= cut; shownPots += cut; }
+    if (shownPots < 0) { const cut = Math.min(-shownPots, shownSp); shownSp -= cut; shownPots += cut; }
+    if (shownPots < 0) { const cut = Math.min(-shownPots, shownWork); shownWork -= cut; shownPots += cut; }
+    if (shownPots < 0) { shownPay += shownPots; shownPots = 0; }
+    const phase = {
+      fromAge: plan.startAge + p.from, toAge: plan.startAge + p.to, ages,
+      takeHome, fromPension: round2(sum('fromPension')), fromSavings: round2(sum('fromSavings')), fromPots: round2(sum('fromPension') + sum('fromSavings')),
+      statePension, finalSalary, tax: round2(sum('tax')), work: round2(sum('work')), fromWork,
+      byPerson,
+      beforeStatePension: p.beforeStatePension,
+      pensionOpen: byPerson.every((b) => b.pensionOpen),
+      shown: { takeHome: shownTake, fromPots: shownPots, statePension: shownSp, finalSalary: shownFs, fromWork: shownWork }
+    };
+    if (paying) { phase.fromPay = fromPay; phase.shown.fromPay = shownPay; }
+    return phase;
   });
 }

@@ -80,6 +80,7 @@ export const B = {
     willItLast: 'Will it last, and could I spend more?',
     imWorking: 'That’s wrong — I’m working',
     'next.a': 'When could I afford to stop?',
+    'next.a.partner': 'When could my partner afford to stop?',
     'next.c': 'What is that a month?'
   },
 
@@ -87,6 +88,8 @@ export const B = {
     intro: 'Rough figures are fine. You can change any of them afterwards.',
     partnerTitle: 'Your partner',
     partnerDone: 'You both stop in the same year. The number and what to pay in are for the two of you together.',
+    /** The same, once the partner's stop is their own (couples-different-years.md 2.1). */
+    partnerDoneApart: 'The number and what to pay in are for the two of you together.',
     moreTitle: 'More detail (all optional)',
     stays: 'Your figures stay in this browser until you choose to save them as a plan.',
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
@@ -110,7 +113,12 @@ export const B = {
   retired: {
     title: 'This question is for people who are still paying in.',
     body: 'Your figures say you have stopped: the money starts now and your State Pension is being paid.',
-    note: '"That’s wrong" sets the money to start from an age you choose, and this question opens as usual.'
+    note: '"That’s wrong" sets the money to start from an age you choose, and this question opens as usual.',
+    /** You have both stopped ("I've already stopped" and "They already have"; couples-different-years.md 2.2). */
+    both: {
+      body: 'You have both stopped. "What is that a month?" answers what your money could pay.',
+      note: '"That’s wrong" says you are still working, and this question opens as usual.'
+    }
   },
 
   answer: {
@@ -162,6 +170,10 @@ export const B = {
     tryStop: 'Stop age',
     tryStopDown: 'Stop 1 year earlier',
     tryStopUp: 'Stop 1 year later',
+    /** About your partner ("I've already stopped"): the stop that moves is theirs. */
+    tryStopPartner: 'Partner’s stop age',
+    tryStopPartnerDown: 'Your partner stops 1 year earlier',
+    tryStopPartnerUp: 'Your partner stops 1 year later',
     trySpend: 'Spending',
     trySpendDown: 'Spending down by {amount}',
     trySpendUp: 'Spending up by {amount}',
@@ -175,6 +187,7 @@ export const B = {
       lead: 'You changed',
       and: 'and',
       stop: ['the stop age from', 'to'],
+      partnerStop: ['your partner’s stop age from', 'to'],
       pot: ['the pot from', 'to'],
       payIn: ['what goes in each month from', 'to'],
       partnerPayIn: ['what goes into your partner’s pension each month from', 'to'],
@@ -188,6 +201,8 @@ export const B = {
     nextTitle: 'What next?',
     /** The hand-over to C: "What could I spend a month from 60?" (the age drawn by Money). */
     toCStart: 'What could I spend a month from',
+    /** The same when the answer is about your partner ("I've already stopped"): C from now, your partner stopping at that age. */
+    toCPartnerStart: 'What could we spend a month once my partner stops at',
     toCEnd: '?',
     /** Under that link when C does not ask everything this answer was given (handOver.c.same false). */
     toCDiffers: '"What is that a month?" does not ask about money going into savings each month, part-time work or a different risk while saving, so its figure can differ from this one.',
@@ -199,6 +214,8 @@ export const B = {
     spending: 'Spending',
     spendingEnd: 'a month after tax from the age you stop, to',
     spendingEndCouple: 'a month after tax from the age you both stop, until the younger of you is',
+    /** A couple who stop in different years (couples-different-years.md 2.4): the pay line covers part of it until then. */
+    spendingEndApart: 'a month after tax once you have both stopped, until the younger of you is',
     stopAt: 'Stop at',
     needs: 'Pot that pays it',
     payIn: 'Pay in a month',
@@ -289,6 +306,12 @@ export const B = {
       help: 'If you have, the most that can go in each year falls to £10,000.'
     },
 
+    /** For a couple only (couples-different-years.md 2.2): the age in mind, or "I've already stopped" (the answer is then about the partner). */
+    'stop.kind': {
+      label: 'When do you stop work?',
+      options: { age: 'At an age', already: 'I’ve already stopped' },
+      errors: { 'already-needs-partner': 'If you have stopped, "What is that a month?" is the question for you.' }
+    },
     'stop.age': {
       label: 'The age you would stop work',
       labelCouple: 'Your age when you both stop work',
@@ -345,6 +368,49 @@ export const B = {
       label: 'The age it starts',
       errors: { required: 'Type the age your partner’s final-salary pension starts. It is on the yearly statement.' }
     },
+    // ---- Couples who stop work in different years (couples-different-years.md 2.1–2.3) ------------------------------
+    'partner.stop.kind': {
+      label: 'When does your partner stop work?',
+      /** "I've already stopped": the question the answer is about. */
+      labelAsked: 'When would your partner like to stop work?',
+      options: { same: 'When you do', already: 'They already have', age: 'At an age' },
+      optionsAsked: { age: 'An age' },
+      errors: { 'partner-stop-fits': 'Choose "An age" and type the age your partner would like to stop work.' }
+    },
+    'partner.stop.age': {
+      label: 'Their age when they stop work',
+      errors: {
+        required: 'Type your partner’s age when they stop work, for example 58.',
+        notANumber: 'Type your partner’s age when they stop work, for example 58.',
+        tooLow: 'Type an age between 18 and 75.',
+        tooHigh: 'We can work with ages up to 75. Type 75 or less.',
+        'partner-stop-not-before-now': 'That is younger than your partner is now. Type their age now or a later one.',
+        'partner-stop-after-now': 'Choose an age later than your partner is now. If you have both stopped, "What is that a month?" is the question for you.'
+      }
+    },
+    /** The pay line: `line` is what is drawn, with Change, until it is answered — by what not answering means. */
+    untilBothStop: {
+      label: 'Until you’ve both stopped, their pay covers:',
+      options: { half: 'Half of what you spend', all: 'All of it', none: 'None of it' },
+      help: 'Whatever their pay doesn’t cover comes from the money of the one who has stopped.',
+      line: {
+        half: 'Until you’ve both stopped, the one still working covers half of what you spend from their pay, and keeps paying in.',
+        all: 'Until you’ve both stopped, the one still working covers all of what you spend from their pay, and keeps paying in.',
+        none: 'Until you’ve both stopped, the one still working keeps paying in, and the money of the one who has stopped pays all of what you spend.'
+      },
+      change: 'Change'
+    },
+    'you.taxFreeTaken': {
+      label: 'Already had the tax-free part of your pension?',
+      options: { no: 'No', yes: 'Yes' },
+      help: 'Usually a quarter of the pot. If it has gone, everything taken out is taxed.'
+    },
+    'partner.taxFreeTaken': {
+      label: 'Already had the tax-free part of your partner’s pension?',
+      options: { no: 'No', yes: 'Yes' },
+      help: 'Usually a quarter of the pot. If it has gone, everything taken out is taxed.'
+    },
+
     'partner.payIn.kind': {
       label: 'Going into your partner’s pension each month',
       options: { total: 'One figure', split: 'Split into their part and their employer’s' }
@@ -394,7 +460,11 @@ export const B = {
     },
     endAge: {
       label: 'Make it last to age',
-      errors: { 'end-after-stop': 'That is not later than the age you stop. Choose a later age.' }
+      errors: {
+        'end-after-stop': 'That is not later than the age you stop. Choose a later age.',
+        /** The same rule for a couple whose stops are their own: the end comes after both, and the stops less than 45 years apart. */
+        'end-after-stop-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
+      }
     },
     confidence: {
       label: 'How often your money should last',

@@ -1,6 +1,8 @@
 /**
  * The one place a limit is checked (V7 build brief 4.1). Pure: no clock, storage or screen. `env.today` is the date.
  *
+ *   applies(field, values)                → whether a field applies, by its `when` and `whenNot` (the one rule: the
+ *                                           screen and the screen test call it too)
  *   defaults(schema, values, env)         → { [path]: value } for every field that applies and has a default
  *   fieldsThatApply(schema, values)       → field[]
  *   parseDraft(schema, draftValues, env)  → { ok, inputs, errors, usedDefault, values }   (text as typed)
@@ -12,9 +14,13 @@
  * Types (step 4 brief, conflict 25): money, age, choice, yesNo, and from step 4 `percent` (a number on the field's
  * `step` — 0.1 when it names none, the charge's 0.05 (6.19.0) — with up to two figures after the point; "%" and spaces
  * accepted) and `count` (a whole number).
+ *
+ * A field applies when every entry of its `when` matches — a value, or a list meaning "one of" — and no entry of its
+ * `whenNot` does (a value or a list; "none of"). A path with no value matches no value: a field hidden by `whenNot`
+ * shows while the question it hangs on is not answered (couples-different-years.md 3.2).
  */
 import { SAVING, RULES } from './rules.js';
-import { startBeforeEveryPension, payingInPast75, peopleFromValues } from './schemaParts.js';
+import { startBeforeEveryPension, payingInPast75, peopleFromValues, stopYearsFromValues, apartCheckYear, payCoversOf } from './schemaParts.js';
 
 export const MESSAGE_IDS = ['required', 'notANumber', 'tooLow', 'tooHigh', 'notAnOption'];
 
@@ -49,9 +55,19 @@ export function nest(flat) {
   return out;
 }
 
-const applies = (field, values) => Object.entries(field.when || {}).every(([path, want]) => values[path] === want);
+const matches = (want, v) => (Array.isArray(want) ? want.includes(v) : v === want);
 
-/** A field applies when every entry of its `when` matches. `values` is flat, { [path]: value }. */
+/**
+ * Whether a field applies, from flat values ({ [path]: value }): every `when` entry matches (a list: one of them) and no
+ * `whenNot` entry does. The one copy of the rule (couples-different-years.md 3.2).
+ */
+export function applies(field, values) {
+  const v = values || {};
+  return Object.entries(field.when || {}).every(([path, want]) => matches(want, v[path]))
+    && Object.entries(field.whenNot || {}).every(([path, not]) => !matches(not, v[path]));
+}
+
+/** The fields that apply (see applies). `values` is flat, { [path]: value }. */
 export function fieldsThatApply(schema, values) {
   return schema.fields.filter((f) => applies(f, values || {}));
 }
@@ -112,13 +128,22 @@ function checkTyped(field, raw) {
 /**
  * The rules between fields, by id. A schema is checked against the rules it lists and no other; the error goes
  * on the first field the rule names, and never over a problem that field already has.
- *   C: start-not-before-now, start-not-before-access (per person: every pension closed at the start and no savings),
- *      pay-in-past-75 and pay-in-past-75-partner (still paying in past 75 at the start), end-after-start
+ *   C: start-not-before-now, start-not-before-access (per person: every pension closed and no savings, where the pay of
+ *      the one still working stops covering — the second stop; the first under "None of it"), pay-in-past-75 and
+ *      pay-in-past-75-partner (still paying in past 75 at their own stop), end-after-start
  *   A: stop-not-before-now (stop.age ≥ you.age), end-after-stop
- *   B: stop-after-now (stop.age > you.age), end-after-stop (endAge > the younger person's age at the stop)
+ *   B: stop-after-now (stop.age > you.age), end-after-stop (endAge > the younger person's age at the later stop)
  *   A, B and C: pay-in-over-limit — a person's two parts together within what one person can pay in a month
  *   (SAVING.payInCeiling, the household check's limit); on the employer's part, the box that takes the sum over
  *   (step 4 brief section 10, J14)
+ * Each of a couple stopping on their own date (couples-different-years.md 3.3):
+ *   A, B and C: partner-stop-not-before-now (partner.stop.age ≥ partner.age: their age today is stopping now);
+ *      end-after-start / end-after-stop at the LATER stop, which must also be under RULES.maxYears after the first
+ *   A and B: already-needs-partner ("I've already stopped" for one person: C is their question); partner-stop-fits (you
+ *      have stopped: the partner's stop must be an age — or "show me ages" in A — or "they already have", which is the
+ *      retired view, not a problem)
+ *   A: partner-ages-one-at-a-time ("show me ages" for the partner while you are still working); partner-stop-ages-past-75
+ *   B: partner-stop-after-now (you have stopped: partner.stop.age > partner.age, B's stop-after-now for them)
  */
 function checkRules(schema, values, env, errors) {
   if (schema.rules.some((r) => r.id === 'pay-in-over-limit')) {
@@ -139,17 +164,26 @@ function checkRules(schema, values, env, errors) {
   const younger = typeof partner === 'number' ? Math.min(you, partner) : you;
   const endAge = values.endAge;
 
+  // Each person's whole years until they stop (C: your start; A and B: your stop), the partner's by their own answer —
+  // not answered, or "when you do", is yours: the same year, today's rules exactly (couples-different-years.md 3.3).
+  const stops = stopYearsFromValues(values);
+  const known = [stops.you, stops.partner].filter((s) => typeof s === 'number');
+  const later = known.length ? Math.max(...known) : 0;
+  const tooFarApart = known.length > 1 && later - Math.min(...known) >= RULES.maxYears;
+
   // C: the money starts now or at an age. A start before ANY of the household's pensions (a pot, or one still being
   // paid into — the partner's too) can be touched is refused with nothing else to live on meanwhile; with savings, or
   // with a pension open at the start, it is the saver's question — a closed pension stays closed until it opens and the
-  // rest pays first (step 4 brief section 10, J8), as A and B work it. Paying in is counted until 75 at most: the tax
-  // the government adds back stops there (A's and B's stop age does too).
+  // rest pays first (step 4 brief section 10, J8), as A and B work it. Each pension opens from its holder's own stop,
+  // and the check is where the pay of the one still working stops covering (apartCheckYear). Paying in is counted until
+  // 75 at most, at each person's own stop: the tax the government adds back stops there (A's and B's stop age does too).
   const startKind = values['start.kind'];
   const startAge = startKind === 'age' ? values['start.age'] : you;
   if (startKind === 'age' && typeof startAge === 'number') {
     const people = peopleFromValues(values);
+    const at = apartCheckYear(stops, payCoversOf(values.untilBothStop));
     if (startAge < you) put('start-not-before-now');
-    else if (startBeforeEveryPension(people, values.savings || 0, startAge, env.today)) put('start-not-before-access');
+    else if (startBeforeEveryPension(people, values.savings || 0, startAge, env.today, at)) put('start-not-before-access');
     else {
       const late = payingInPast75(people, startAge);
       if (late.includes('you')) put('pay-in-past-75');
@@ -157,7 +191,7 @@ function checkRules(schema, values, env, errors) {
     }
   }
   if (typeof endAge === 'number' && typeof startAge === 'number' && startAge >= you) {
-    if (endAge <= younger + (startAge - you)) put('end-after-start');
+    if (endAge <= younger + later || tooFarApart) put('end-after-start');
   }
 
   // A and B: work stops at an age (A's "show me ages" has no stop age: the stop is taken as now for the end rule).
@@ -169,9 +203,23 @@ function checkRules(schema, values, env, errors) {
   // A's "show me ages" lists ages from today's to 75 (RULES.stopAgeMax): past 75 there is none to show. Said on the
   // form, so the answer is never asked (it would return `invalid` with the same id).
   if (values['stop.kind'] === 'ages' && you > RULES.stopAgeMax) put('stop-ages-past-75');
-  const stopIn = typeof stopAge === 'number' ? Math.max(0, stopAge - you) : 0;
-  if (typeof endAge === 'number' && ('stop.age' in values || values['stop.kind'] === 'ages')) {
-    if (endAge <= younger + stopIn) put('end-after-stop');
+  if (typeof endAge === 'number' && typeof stops.you === 'number' && !('start.kind' in values)) {
+    if (endAge <= younger + later || tooFarApart) put('end-after-stop');
+  }
+
+  // The partner's own stop (A, B and C), and "I've already stopped" (A and B).
+  const youStopped = values['stop.kind'] === 'already';
+  if (youStopped && values.household !== 'couple') put('already-needs-partner');
+  if (typeof partner === 'number') {
+    const kind = values['partner.stop.kind'];
+    const theirs = values['partner.stop.age'];
+    if (kind === 'age' && typeof theirs === 'number') {
+      if (youStopped && theirs <= partner) put('partner-stop-after-now');      // B: the answer is about them, still working
+      if (theirs < partner) put('partner-stop-not-before-now');
+    }
+    if (youStopped && !['age', 'ages', 'already'].includes(kind)) put('partner-stop-fits');
+    if (!youStopped && kind === 'ages') put('partner-ages-one-at-a-time');
+    if (youStopped && kind === 'ages' && partner > RULES.stopAgeMax) put('partner-stop-ages-past-75');
   }
 }
 

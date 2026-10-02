@@ -12,7 +12,7 @@ import { TAX_DEFAULTS } from '../../../src/constants.js';
 import { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { DEFAULT_CHARGES_PCT, CHARGES_LIMITS } from '../../../src/services/Charges.js';
-import { moreFields } from '../../../src/answers/shared/schemaParts.js';
+import { moreFields, partnerStopFields, untilBothStopField, taxFreeFields, payingInFields, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 
 const TYPES = ['money', 'age', 'choice', 'yesNo', 'percent'];
 const byPath = new Map(SCHEMA_C.fields.map((f) => [f.path, f]));
@@ -25,7 +25,7 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options'];
     for (const f of SCHEMA_C.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -45,16 +45,21 @@ describe('SCHEMA_C — the declaration', () => {
     if (f.type === 'choice') { expect(Array.isArray(f.options)).toBe(true); expect(f.options.length).toBeGreaterThan(1); }
   });
 
-  it('every `when` names a field declared earlier, with a value that field can take', () => {
+  it('every `when` and `whenNot` names a field declared earlier, with values that field can take (a list: each of them)', () => {
     SCHEMA_C.fields.forEach((f, i) => {
-      for (const [path, want] of Object.entries(f.when || {})) {
+      for (const [path, given] of [...Object.entries(f.when || {}), ...Object.entries(f.whenNot || {})]) {
         const at = SCHEMA_C.fields.findIndex((x) => x.path === path);
         expect(at, `${f.path} when ${path}`).toBeGreaterThanOrEqual(0);
         expect(at, `${f.path} when ${path} must come first`).toBeLessThan(i);
         const dep = SCHEMA_C.fields[at];
-        if (dep.type === 'choice') expect(dep.options).toContain(want);
-        if (dep.type === 'yesNo') expect(typeof want).toBe('boolean');
+        for (const want of Array.isArray(given) ? given : [given]) {
+          if (dep.type === 'choice') expect(dep.options, `${f.path}: ${path} = ${want}`).toContain(want);
+          if (dep.type === 'yesNo') expect(typeof want).toBe('boolean');
+        }
       }
+      // the screen draws a field inside the LAST choice its `when` names (PersonBlock): never a list there
+      const keys = Object.keys(f.when || {});
+      if (keys.length) expect(Array.isArray(f.when[keys[keys.length - 1]]), f.path).toBe(false);
     });
   });
 
@@ -65,7 +70,9 @@ describe('SCHEMA_C — the declaration', () => {
   it('no required field has a default, and no field is both optional and without one — but "still paying in?"', () => {
     // C's "Are you still paying into this pension?" has no default: not answered is "not paying in", and leaves the
     // checked inputs as they were before the question existed (C's pinned answers stay byte for byte; step 4 brief J8)
-    const NO_DEFAULT = ['you.payIn.has', 'partner.payIn.has'];
+    // …and the questions of a couple who stop in different years (couples-different-years.md 3.1): not answered is today's
+    // meaning, the partner starting with you, nothing more said
+    const NO_DEFAULT = ['you.payIn.has', 'partner.payIn.has', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken'];
     for (const f of SCHEMA_C.fields) {
       if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
       expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
@@ -91,7 +98,8 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('every rule has an id and names fields that exist; rule ids do not clash with the other message ids', () => {
-    expect(SCHEMA_C.rules.map((r) => r.id)).toEqual(['start-not-before-now', 'start-not-before-access', 'pay-in-past-75', 'pay-in-past-75-partner', 'end-after-start', 'pay-in-over-limit']);
+    expect(SCHEMA_C.rules.map((r) => r.id)).toEqual(['start-not-before-now', 'start-not-before-access', 'pay-in-past-75', 'pay-in-past-75-partner', 'end-after-start', 'pay-in-over-limit',
+      'partner-stop-not-before-now']);
     for (const r of SCHEMA_C.rules) {
       expect(MESSAGE_IDS).not.toContain(r.id);
       for (const p of r.fields) expect(byPath.has(p), `${r.id}: ${p}`).toBe(true);
@@ -111,7 +119,7 @@ describe('SCHEMA_C — the declaration', () => {
     expect(charge.boundaries).toEqual([0, 0.05, 0.5, 1, 3]);
     // in the more-detail block, between the risk level and the end age (the order A and B keep)
     const more = SCHEMA_C.fields.filter((f) => f.group === 'more').map((f) => f.path);
-    expect(more).toEqual(['savings', 'risk', 'charge', 'endAge']);
+    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'risk', 'charge', 'endAge']);   // the tax-free part: under more detail too
     const at = (path) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', charge: path }, TEST_ENV);
     expect(at('1.35').inputs.charge).toBe(1.35);
     expect(at('0.07').errors).toEqual({ charge: 'notANumber' });
@@ -152,6 +160,41 @@ describe('SCHEMA_C — the declaration', () => {
     expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '55', 'you.payIn.has': 'yes', 'you.payIn.own': '0', 'you.payIn.employer': '0' }, TEST_ENV).inputs.start).toEqual({ kind: 'now' });
     // and past the State Pension age, paying in or not, the money is from now unless an age is chosen
     expect(parseDraft(SCHEMA_C, { 'you.pot': '275,000', 'you.age': '68', 'you.payIn.has': 'yes', 'you.payIn.own': '500', 'you.payIn.employer': '0' }, TEST_ENV).inputs.start).toEqual({ kind: 'now' });
+  });
+});
+
+/*
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2.1, 2.3, 3.1, 5.1): C asks when the
+ * partner stops (in C's words, "when you start taking money"), the pay line, and the tax-free part of someone who has
+ * stopped. Not answered is today's meaning, key for key.
+ */
+describe('C: each of a couple stops on their own date', () => {
+  const two = (extra = {}) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', household: 'couple', 'partner.age': '56', ...extra }, TEST_ENV);
+
+  it('the new questions sit in the partner block, after the person, before paying in; the tax-free part under more detail', () => {
+    const paths = SCHEMA_C.fields.map((f) => f.path);
+    expect(paths.slice(paths.indexOf('partner.finalSalary.fromAge') + 1, paths.indexOf('partner.payIn.has') + 1))
+      .toEqual(['partner.stop.kind', 'partner.stop.age', 'untilBothStop', 'partner.payIn.has']);
+    for (const f of [...partnerStopFields('c'), untilBothStopField('c'), ...taxFreeFields('c'), ...payingInFields('partner')]) expect(byPath.get(f.path), f.path).toEqual(f);
+    expect(byPath.get('partner.stop.kind').options).toEqual(['same', 'already', 'age']);
+    expect(byPath.get('you.taxFreeTaken').when).toEqual({ 'start.kind': 'now' });
+    for (const f of payingInFields('partner')) expect(f.whenNot, f.path).toEqual({ 'partner.stop.kind': 'already' });
+    for (const f of payingInFields('you')) expect(f.whenNot, f.path).toBeUndefined();
+  });
+
+  it('never answered: today\'s inputs, key for key, in today\'s order', () => {
+    const r = two({ 'partner.payIn.has': 'yes', 'partner.payIn.own': '200', 'partner.payIn.employer': '100', 'start.kind': 'age', 'start.age': '60' });
+    expect(r.ok).toBe(true);
+    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'partner', 'savings', 'risk', 'charge', 'endAge', 'take']));
+    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn']);
+    expect(Object.keys(two().inputs.you)).toEqual(['pot', 'age', 'statePension', 'finalSalary']);   // from now: the tax-free question not answered
+  });
+
+  it('stopYearsOf reads C\'s start as your stop', () => {
+    expect(stopYearsOf(two().inputs)).toEqual({ you: 0, partner: 0 });
+    expect(stopYearsOf(two({ 'start.kind': 'age', 'start.age': '60' }).inputs)).toEqual({ you: 2, partner: 2 });
+    expect(stopYearsOf(two({ 'partner.stop.kind': 'age', 'partner.stop.age': '60' }).inputs)).toEqual({ you: 0, partner: 4 });
+    expect(stopYearsOf(two({ 'start.kind': 'age', 'start.age': '60', 'partner.stop.kind': 'already' }).inputs)).toEqual({ you: 2, partner: 0 });
   });
 });
 

@@ -4,11 +4,17 @@
  * No words here. Labels, help and error sentences are in src/v7/copy/c.js, keyed by path.
  * One declaration drives the form, the defaults, the checks and the generated test cases.
  *
- * A field applies when every entry of its `when` matches. Every `when` names a field declared earlier.
- * `boundaries` always includes the field's own `min` and `max`.
+ * A field applies when every entry of its `when` matches (a list: one of them) and no entry of its `whenNot` does. Every
+ * `when` and `whenNot` names a field declared earlier. `boundaries` always includes the field's own `min` and `max`.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 2.1, 2.3, 5.1): when the partner
+ * stops ("when you start taking money" — not answered — they already have, or at an age), the pay line until you have
+ * both stopped, and the tax-free part of someone who has stopped. None has a default: a form that never answers them
+ * gives today's checked inputs, key for key and in today's order.
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
-import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField } from '../shared/schemaParts.js';
+import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
+  taxFreeFields } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -71,9 +77,15 @@ export const SCHEMA_C = {
       when: { household: 'couple', 'partner.finalSalary.has': true }, group: 'partner', boundaries: FINAL_SALARY },
     { path: 'partner.finalSalary.fromAge', type: 'age', min: 50, max: 75, required: true,
       when: { household: 'couple', 'partner.finalSalary.has': true }, group: 'partner', boundaries: FINAL_SALARY_AGE },
+    // When the partner stops: not answered is when you start taking the money, as before; the pay line once it is their
+    // own; their paying in, hidden once they have stopped.
+    ...partnerStopFields('c'),
+    untilBothStopField('c'),
     ...payingInFields('partner'),
 
-    // "Add more detail" — all optional, each with a default that is listed under what was assumed.
+    // "Add more detail" — all optional, each with a default that is listed under what was assumed (the tax-free part of
+    // someone who has stopped has none: not answered is not taken).
+    ...taxFreeFields('c'),
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 150_000, 10_000_000] },
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
@@ -88,11 +100,13 @@ export const SCHEMA_C = {
   // Checked by validate.js after every field has passed its own limits. The error goes on the FIRST field named.
   rules: [
     { id: 'start-not-before-now',    fields: ['start.age', 'you.age'] },   // start.age >= you.age
-    { id: 'start-not-before-access', fields: ['start.age', 'you.age'] },   // not before every pension of the household opens, with no savings (per person)
+    { id: 'start-not-before-access', fields: ['start.age', 'you.age'] },   // not before every pension of the household opens, with no savings (per person, each
+                                                                           // from their own stop, checked where the pay of the one still working stops covering)
     { id: 'pay-in-past-75',          fields: ['start.age'] },              // still paying in: your age at the start ≤ 75
-    { id: 'pay-in-past-75-partner',  fields: ['start.age'] },              // …and your partner's
-    { id: 'end-after-start',         fields: ['endAge'] },                 // endAge > the younger person's age at the start
-    { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] }   // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
+    { id: 'pay-in-past-75-partner',  fields: ['start.age'] },              // …and your partner's, at their own stop
+    { id: 'end-after-start',         fields: ['endAge'] },                 // endAge > the younger person's age at the later stop
+    { id: 'pay-in-over-limit', fields: ['you.payIn.employer', 'partner.payIn.employer'] },  // a person's own + employer's parts ≤ SAVING.payInCeiling (J14)
+    { id: 'partner-stop-not-before-now', fields: ['partner.stop.age', 'partner.age'] }   // partner.stop.age ≥ partner.age (couples-different-years.md 3.3)
   ],
 
   // Defaults that depend on other values. `values` is { [path]: checked value } for the fields before this one.

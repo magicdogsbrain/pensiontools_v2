@@ -30,6 +30,11 @@
  *
  * Pure, clock-free, no Math.random. Inflation of exactly nought is read as the engine reads it (2.5%); made-up
  * futures keep flat prices flat (futures.js).
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 4.2): each person saves until their
+ * OWN stop (`people[].until`, from the household: stopYearsFor), their pay-ins going in and the charge coming off until
+ * then; someone who has stopped (until 0) holds the pots given. One growth pass per distinct stop, each with its own
+ * slide to the drawing mix — two passes when apart, one otherwise (a same-year plan is today's, figure for figure).
  */
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { SAVING } from './rules.js';
@@ -37,6 +42,7 @@ import { mixOf } from './toEngine.js';
 import { bandIndexes } from './band.js';
 import { monthly, cashNominalReturn } from './fastEngine.js';
 import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
+import { stopsOf } from './household.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const infOf = (returns, y) => returns.inflation[y] || 0.025;
@@ -99,14 +105,36 @@ function payInOf(person) {
 }
 
 /**
+ * Each person's whole years from today until they stop, as the saving years and the drawing years read them
+ * (couples-different-years.md 4.2, 4.3 l). One person, or a couple who stop in the same year: everyone stops at the stop
+ * asked about, S = stopAge − your age, as before (the household's own stop is not read: A's rows and the tests move it).
+ * A couple who stop in different years: each at their own (household.js stopsOf), and `stopAge` — the stop the answer is
+ * about — must be one of the two; S is then the household's start, the first stop.
+ * @returns {{ S: number, own: number[], apart: boolean }}   own: per person, in household order
+ */
+export function stopYearsFor(household, stopAge, today) {
+  const people = household.people;
+  const S = Math.max(0, Math.round(stopAge - people[0].age));
+  if (people.length < 2) return { S, own: people.map(() => S), apart: false };
+  const stops = stopsOf(household, today);
+  if (new Set(stops.map((s) => s.S)).size <= 1) return { S, own: people.map(() => S), apart: false };
+  if (!stops.some((s, j) => people[j].age + s.S === stopAge)) {
+    throw new Error(`saving: the stop age ${stopAge} is neither person's own stop (${stops.map((s, j) => people[j].age + s.S).join(', ')})`);
+  }
+  const own = stops.map((s) => s.S);
+  return { S: Math.min(...own), own, apart: true };
+}
+
+/**
  * Everything about the saving years that does not depend on a life.
  * @param {import('./household.js').Household} household   the full form (expandHousehold), ages today
- * @param {number} stopAge   the first person's age at the stop; both stop in the same year (S = stopAge − you.age)
- * @param {{ mix?: object, savingMix?: object }} env
+ * @param {number} stopAge   the stop the answer is about: the first person's age at it when both stop in the same year
+ *   (S = stopAge − you.age); a couple apart each save to their own stop (stopYearsFor), and S is the first stop
+ * @param {{ mix?: object, savingMix?: object, today?: string }} env
  */
 export function savingPlan(household, stopAge, env = {}) {
-  const you = household.people[0];
-  const S = Math.max(0, Math.round(stopAge - you.age));
+  const stops = stopYearsFor(household, stopAge, env.today);
+  const S = stops.S;
   const { saving, drawing, savingLevel } = mixesOf(household, env);
   const { charge, chargesPct, chargeM } = chargeOf(household);
   const mixByYear = mixByYearOf(S, saving, drawing);
@@ -117,7 +145,7 @@ export function savingPlan(household, stopAge, env = {}) {
       pot: (p.pots && p.pots.pension) || 0,
       savings: (p.pots && p.pots.isa) || 0,
       payIn: payInOf(p),
-      until: S
+      until: stops.own[index]
     })),
     mixByYear, charge, chargesPct, chargeM,
     mixes: { saving, drawing }, savingLevel,
@@ -133,12 +161,14 @@ function priceLevels(returns, S) {
   return P;
 }
 
+/** The target mix of each saving year for a person who stops S years from now (the plan's own S: its mixByYear). */
+const mixesTo = (plan, S) => (S === plan.S ? plan.mixByYear : mixByYearOf(S, plan.mixes.saving, plan.mixes.drawing));
+
 /** The growth factors of the saving months of one life, without the charge: g(m) = Σ w × the sleeve's month. */
-function growthOf(plan, life, out) {
-  const S = plan.S;
+function growthOf(plan, life, out, S = plan.S, mixByYear = plan.mixByYear) {
   const r = life.returns;
   for (let y = 0; y < S; y++) {
-    const w = plan.mixByYear[y];
+    const w = mixByYear[y];
     const mEq = monthly(r.equity[y] || 0);
     const prev = y > 0 ? infOf(r, y - 1) : infOf(r, 0);
     const mCash = monthly(cashNominalReturn(prev));
@@ -148,22 +178,25 @@ function growthOf(plan, life, out) {
 }
 
 /**
- * The growth of the saving years over the lives, shared by every person and both pots (one mix, one charge):
- * F_i = F(0 → 12S) / P(S), b_{i,y}, B_i, P_i(S). One pass per stop age, kept per (plan, lives).
+ * The growth of the saving years over the lives, shared by every person and both pots who stop at the same time (one
+ * mix, one charge): F_i = F(0 → 12S) / P(S), b_{i,y}, B_i, P_i(S). One pass per stop, kept per (plan, S, lives): one
+ * per stop age when the people stop together, one per person's own stop when they stop apart.
  */
 const UNITS = new WeakMap();
 const PASSES = new WeakMap();
-/** How many saving passes a plan has made (one per set of lives: the work bound of brief 4.6). */
+/** How many saving passes a plan has made (one per distinct stop and set of lives: the work bound of brief 4.6). */
 export function kernelPasses(plan) {
   return PASSES.get(plan) || 0;
 }
-function unitKernel(plan, lives) {
-  let byLives = UNITS.get(plan);
-  if (!byLives) { byLives = new WeakMap(); UNITS.set(plan, byLives); }
+function unitKernel(plan, lives, S = plan.S) {
+  let byS = UNITS.get(plan);
+  if (!byS) { byS = new Map(); UNITS.set(plan, byS); }
+  let byLives = byS.get(S);
+  if (!byLives) { byLives = new WeakMap(); byS.set(S, byLives); }
   let u = byLives.get(lives);
   if (u) return u;
   const n = lives.length;
-  const S = plan.S;
+  const mixByYear = mixesTo(plan, S);
   const F = new Float64Array(n);
   const b = new Float64Array(n * S);
   const B = new Float64Array(n);
@@ -173,7 +206,7 @@ function unitKernel(plan, lives) {
     const life = lives[i];
     if (S > 0 && !(life.stream && life.stream.length >= 12 * S && life.years > S)) throw new Error('saving: the lives are shorter than the saving years');
     const P = priceLevels(life.returns, S);
-    growthOf(plan, life, g);
+    growthOf(plan, life, g, S, mixByYear);
     let G = 1;                                             // F(m → 12S), built from the stop backwards
     for (let m = 12 * S - 1; m >= 0; m--) {
       G *= g[m] * plan.chargeM;
@@ -197,17 +230,19 @@ const personOf = (plan, person) => (typeof person === 'number' ? plan.people[per
   : typeof person === 'string' ? plan.people.find((p) => p.who === person) : plan.people[person.index]);
 
 /**
- * The kernel of one person's pot at the stop, over the lives (4.3): pot_i(c) = A_i + c × B_i at today's prices for
- * c a month at today's prices. With S = 0 it is { A: the pot, b: [], B: 0, priceAtStop: 1 } in every life.
+ * The kernel of one person's pot at their stop, over the lives (4.3): pot_i(c) = A_i + c × B_i at today's prices for
+ * c a month at today's prices. With S = 0 it is { A: the pot, b: [], B: 0, priceAtStop: 1 } in every life. The stop is
+ * the person's own (`until`: the plan's S when the people stop together).
  * @param {'pension' | 'savings'} [which]
  */
 export function savingKernel(plan, person, lives, which = 'pension') {
   const p = personOf(plan, person);
-  const u = unitKernel(plan, lives);
+  const S = p.until;
+  const u = unitKernel(plan, lives, S);
   const start = which === 'savings' ? p.savings : p.pot;
   const A = new Float64Array(u.n);
-  for (let i = 0; i < u.n; i++) A[i] = plan.S === 0 ? start : start * u.F[i];
-  return { A, b: u.b, B: u.B, priceAtStop: u.priceAtStop, S: plan.S, n: u.n };
+  for (let i = 0; i < u.n; i++) A[i] = S === 0 ? start : start * u.F[i];
+  return { A, b: u.b, B: u.B, priceAtStop: u.priceAtStop, S, n: u.n };
 }
 
 /** Each person's pension and savings at the stop in every life, today's prices, at their pay-ins as given. */
@@ -291,13 +326,14 @@ export function payInFor(kernel, target, share) {
 
 /**
  * The saving months of one person in one life (SaveRow, contract.js): pounds of the month; paid in at the start.
- * potEnd = potStart + paidIn.total + growth − charge.
+ * potEnd = potStart + paidIn.total + growth − charge. Each person's own months, to their own stop (none for someone
+ * who has stopped).
  */
 export function savingRows(plan, person, life) {
   const p = personOf(plan, person);
-  const S = plan.S;
+  const S = p.until;
   const P = priceLevels(life.returns, S);
-  const g = growthOf(plan, life, new Float64Array(12 * S));
+  const g = growthOf(plan, life, new Float64Array(12 * S), S, mixesTo(plan, S));
   const rows = [];
   let pot = p.pot;
   let sav = p.savings;

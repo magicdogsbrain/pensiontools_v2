@@ -19,10 +19,33 @@ const household = (a) => ({ monthly: a.monthly, yearly: a.yearly, lasted: a.last
   phases: a.phases.map((p) => ({ takeHome: p.takeHome, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, shown: p.shown, beforeStatePension: p.beforeStatePension })),
   years: a.basis.years, endAge: a.basis.endAge, failuresAllowed: a.basis.failuresAllowed });
 
-/** The two people swapped, with the start kept on the same date. */
+/**
+ * The two people swapped, with the start kept on the same date. Couples who stop in different years (couples-different-
+ * years.md 5.1, 9.3 P2): each keeps their own stop — your start becomes the partner's stop, and their stop your start
+ * ("you from now, your partner at 56" is "you at 56, your partner already stopped").
+ */
 function swapped(inputs) {
   const out = JSON.parse(JSON.stringify(inputs));
   [out.you, out.partner] = [out.partner, out.you];
+  const theirs = inputs.partner && inputs.partner.stop;
+  delete out.you.stop;
+  if (out.partner) delete out.partner.stop;
+  if (theirs && (theirs.kind === 'already' || theirs.kind === 'age')) {
+    // ("now" while still paying in, with no pension open, is moved to the day one opens: not a stop a partner can be given)
+    if (inputs.start.kind === 'now' && inputs.you.payIn && inputs.you.payIn.has === 'yes') return null;
+    out.start = theirs.kind === 'already' ? { kind: 'now' } : { kind: 'age', age: theirs.age };
+    out.partner.stop = inputs.start.kind === 'now' ? { kind: 'already' } : { kind: 'age', age: inputs.start.age };
+    return out;
+  }
+  if (theirs) out.partner.stop = { ...theirs };
+  // you from now with the tax-free part already had: the partner it moves to has stopped too — "they already have", the
+  // same household as when you both start now (couples-different-years.md 9.1 I3), and the one way C asks it of a partner
+  // — unless someone still pays in: "now" then moves to the day a pension opens, a stop the partner cannot be given with
+  // the tax-free part had (a NIGHTLY=1 run, 1 Oct 2026, seed 906230088: you 18 from now, your partner paying in £500)
+  if (inputs.start.kind === 'now' && inputs.you.taxFreeTaken === true) {
+    if ([inputs.you, inputs.partner].some((p) => p.payIn && p.payIn.has === 'yes')) return null;
+    out.partner.stop = { kind: 'already' };
+  }
   if (out.start.kind === 'age') out.start.age = out.start.age - inputs.you.age + inputs.partner.age;
   return out;
 }
@@ -33,11 +56,15 @@ describe('C — metamorphic relations', () => {
   it('M5 swapping "you" and "partner" leaves every household figure the same; only the labels move', () => {
     fc.assert(fc.property(couples, (inputs) => {
       const other = swapped(inputs);
-      fc.pre(other.start.kind !== 'age' || other.start.age >= other.you.age);
+      fc.pre(other !== null && (other.start.kind !== 'age' || other.start.age >= other.you.age));
       const a = ok(answerC(inputs, ENV), inputs);
       const b = answerC(other, ENV);
       fc.pre(b.status !== 'invalid');
       ok(b, other);
+      // "now" is moved to the day a pension opens where an age is not (household.js startWhenPensionsOpen): a start at
+      // your age today, swapped to "now" for the other, can be moved — another question (a NIGHTLY=1 run, 1 Oct 2026:
+      // you 24 from 24 with nothing, your partner 18, stopped, with £1)
+      fc.pre(b.basis.start === a.basis.start);
       expect(household(b)).toEqual(household(a));
       a.phases.forEach((p, i) => {
         expect(b.phases[i].ages.you).toEqual(p.ages.partner);

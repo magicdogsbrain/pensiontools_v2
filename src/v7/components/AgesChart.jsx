@@ -12,6 +12,11 @@
  * A table, so a screen reader announces each row with its age. At 390 wide it keeps three columns (age, amount,
  * lasted); the verdict and step 3's two extra columns join from 700 up (components.css), so nothing scrolls sideways.
  * With "show me ages", and on step 3, each age is a link that asks for that age in full.
+ *
+ * Couples who stop work in different years (research/v7/couples-different-years.md 5.2): when the answer is about your
+ * partner ("I've already stopped") each row is their stop, and the axis says so ("Your partner's stop age"); when their
+ * stop is their own, each row is yours alone ("Your stop age"). Either way the partner's age in brackets — which says how
+ * old they are when you stop together — is not drawn.
  */
 import { Money } from './Money.jsx';
 import { OutOfTenBar, countText } from './OutOfTenBar.jsx';
@@ -29,20 +34,28 @@ export function AgesChart({ result, dispatch, table = false }) {
   const t = A.answer;
   const shownAge = result.shown && result.shown.age;
   const couple = !!(result.inputs && result.inputs.household === 'couple');
-  const byAges = !!(result.inputs && result.inputs.stop && result.inputs.stop.kind === 'ages');
-  const today = result.inputs && result.inputs.you && result.inputs.you.age;
+  const aboutPartner = result.askedAbout === 'partner';
+  const theirs = result.inputs && result.inputs.partner && result.inputs.partner.stop;
+  const ownStop = couple && !aboutPartner && !!theirs && ['already', 'age', 'ages'].includes(theirs.kind);
+  const together = couple && !aboutPartner && !ownStop;
+  // whose stop each row is: yours, or your partner's when the answer is about them
+  const asked = aboutPartner ? 'partner' : 'you';
+  const stop = (aboutPartner ? theirs : result.inputs && result.inputs.stop) || {};
+  const byAges = stop.kind === 'ages';
+  const today = result.inputs && result.inputs[asked] && result.inputs[asked].age;
   const endAge = result.basis && result.basis.endAge;
   const pickable = table || byAges;
   // The figure first, then the choice it belongs to: no step in between is a draft that does not parse (which would
-  // swap the answer for the short form for a moment).
-  const pick = (age) => { dispatch(set('stop.age', String(age))); dispatch(set('stop.kind', 'age')); };
+  // swap the answer for the short form for a moment). About your partner, it is their stop that is picked.
+  const prefix = aboutPartner ? 'partner.' : '';
+  const pick = (age) => { dispatch(set(`${prefix}stop.age`, String(age))); dispatch(set(`${prefix}stop.kind`, 'age')); };
   const attr = table ? { 'data-table': 'ages' } : { 'data-chart': 'ages' };
 
   return (
     <table class={`ages${table ? ' ages-table' : ' ages-chart'}`} {...attr}>
       <thead>
         <tr>
-          <th scope="col">{couple ? t.chartAgeCouple : t.chartAge}</th>
+          <th scope="col">{aboutPartner ? t.chartAgePartner : ownStop ? t.chartAgeOwn : together ? t.chartAgeCouple : t.chartAge}</th>
           <th scope="col">{t.chartSpend}</th>
           <th scope="col">{t.chartLasted} <Money source={result} k="basis.endAge" kind="age" /></th>
           {table && <th scope="col" class="col-wide">{withFixedCounts(t.tableRunOut)}</th>}
@@ -55,7 +68,7 @@ export function AgesChart({ result, dispatch, table = false }) {
           const age = (
             <>
               <Money source={result} k={`ages.${k}.age`} kind="age" />
-              {couple && row.ages && typeof row.ages.partner === 'number' && <small class="partner-age"> (<Money source={result} k={`ages.${k}.ages.partner`} kind="age" />)</small>}
+              {together && row.ages && typeof row.ages.partner === 'number' && <small class="partner-age"> (<Money source={result} k={`ages.${k}.ages.partner`} kind="age" />)</small>}
               {byAges && row.age === today && <small class="age-now"> {t.chartNow}</small>}
             </>
           );

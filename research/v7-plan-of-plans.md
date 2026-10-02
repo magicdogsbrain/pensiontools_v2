@@ -183,3 +183,21 @@ doing the building that should compress, but it is a large job and the estimate 
   stopped"). CI: the test job 30 minutes; wall-clock timing checks run alone in the night job.
 - Open with the owner: the 2028 drawdown note for singles and same-year couples (today only for a couple apart).
   Next: D (retired re-plan), then E and holdings, then month-by-month carry-over and cutover.
+
+## 10. Owner decisions after the square-one audit (2 Oct 2026)
+
+"Go with recommended on most of these" (research/v7/square-one-audit.md section 6), with one correction:
+
+- **Parity rule (owner):** "We NEED to have the same or better optionally than V6. We MUST offer as many steps and
+  tapers as V6 … In general - optional it must be at least v6. We must have Gogo, goslow and nogo years." Every V6
+  option gets a V7 home at least as full, gated by the parity ledger (tests/v7/parity). The "one optional later amount"
+  recommendation is withdrawn: V7's spending shape matches V6's income shape (any number of steps, % declines, glides,
+  go-go / go-slow / no-go suggestion, essentials floor, chart).
+- Accepted: V7 opens saved plans (plan at the centre, a step list for every life stage) BEFORE question D; all nine
+  strategies give V7-style verdicts; 7.0 may ship with the monthly Decision tool on today's screen; "on course" = 9 in
+  10 everywhere; the 2028 drawdown warning for everyone it applies to; savings growth "Mostly cash" (default) or
+  "Invested like my pension" in both apps; D gives its own verdict plus one line when a locked plan differs, never
+  suggesting unlocking; D includes "shares fall by a fifth"; the Budget button on V7-made plans renamed and lock-guarded;
+  V7 answers stay outside the guest meter's three hours.
+- Order from here: lock-safety fixes (6.20.2) → parity ledger + spending shape + 2028 for all → saver lock made
+  trustworthy, savings growth, one on-course bar → V7 opens saved plans → D → E one section at a time → 7.0.

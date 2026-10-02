@@ -191,7 +191,7 @@
     "stepAmount": 52000,
     "recorded": 3,
     "drawn": 13000,
-    "potBand": "above p90",
+    "potBand": null,
     "savingBand": null
    },
    "headline": {
@@ -279,7 +279,7 @@
     "stepAmount": 30000,
     "recorded": 6,
     "drawn": 15600,
-    "potBand": "below p10",
+    "potBand": "p10–p50",
     "savingBand": null
    },
    "headline": {
@@ -365,7 +365,7 @@
     "stepAmount": 36000,
     "recorded": 0,
     "drawn": 0,
-    "potBand": "below p10",
+    "potBand": null,
     "savingBand": "above the strong line"
    },
    "headline": {

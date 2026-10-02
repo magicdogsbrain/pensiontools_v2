@@ -37,6 +37,43 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.20.1', date: '2026-10-02', engineVersion: '6.19.0',
+    title: 'Where you are: your pot is now set against the plan\'s band like with like',
+    summary: 'On a locked plan, the "Where you are" line set your pension pot alone, in today\'s pounds, against the plan\'s band, which also counts your ISA and taxable account and is in prices at the start of the plan. So someone with an ISA could be told in bold "below the plan\'s 1-in-10 bad line" when they were not, and a few years of rising prices could make a pot look further ahead than it was. The pot is now made of the same accounts as the band, put into the plan\'s prices, and read at its own month. When a figure the band needs is missing, nothing is compared and the line says what to add. A full gilt ladder, or a ladder with rotation, now shows the figures without a verdict.',
+    changes: [
+      'The pot counts what the plan\'s band counts. Pots & Valves and Buckets: your pension, your ISA and your taxable account. A ladder plan: the growth part and the gilts still to pay, plus your ISA unless it is held aside. Each part says where it came from and when.',
+      'The pot is put into prices at the start of the plan, which are the prices the plan\'s figures are in. It uses the CPI you entered for each tax year in the Decision tool, and 4% a year where none was entered. The line shows both figures.',
+      'The band is read at the month of your figure, not at the start of the tax year. In the plan\'s first year it widens the way markets can move, instead of in a straight line.',
+      'When a figure is missing, the line says what to add, for example "Add your ISA under What you hold, on the Transition tab, to compare."',
+      'A figure more than three months old is named, with what to update.'
+    ],
+    corrections: [
+      'The pension pot alone was set against a band of all your pots. With an ISA of £120,000, a pension of £600,000 read "below the plan\'s 1-in-10 bad line" (£650,000), when the £720,000 you have was above the plan\'s 1-in-10 good line.',
+      'The pot was in today\'s pounds and the band in prices at the start of the plan. After three years of prices rising 4% a year, a pot exactly on the plan\'s median read "above the plan\'s 1-in-10 good line".',
+      'Full gilt ladder and Gilt ladder + rotation: the plan counts the gilts at what they cost, and your monthly figure is what they would sell for today. Any dip in gilt prices, even £1, could read in bold as "below the plan\'s 1-in-10 bad line", although every rung still pays. These plans now show the figures without a verdict; the ladder line says whether the rungs are on track.',
+      'Early in a plan\'s first year the band was drawn too narrow, so an ordinary dip of a few per cent in the first months could read "below the plan\'s 1-in-10 bad line".',
+      'Pots & Valves with diversifiers: the pot could be taken from an old What you hold figure when newer monthly figures existed. The newer one is now used, with the diversifiers taken from What you hold.',
+      '"At the start of the plan, priced on …; the cone opens from next year" appeared in later months and years, where it was not true. It now appears only in April of the plan\'s first year.'
+    ],
+    effects: {
+      budget: [],
+      stress: [],
+      strategies: [],
+      decision: ['A locked plan\'s "Where you are" line may now read differently: it counts your ISA and taxable account, puts the pot into the plan\'s prices, and gives no verdict on a full gilt ladder or a ladder with rotation. The plan, its document and your monthly records are unchanged.'],
+      accumulation: [],
+      household: []
+    },
+    actions: [
+      'If the line asks for your ISA or taxable account, add it under What you hold on the Transition tab.',
+      'When you set up each tax year in the Decision tool, enter last year\'s CPI. The pot is then put into the plan\'s prices at the real rate rather than at 4%.'
+    ],
+    notes: [
+      'Nothing saved is changed: not the plan, its checksum, its document or your monthly records. Only the line is worked out differently.',
+      'The other ladder plans (Ladder & ratchet, Floor & flex, Bridge & engine, Floor to an age, Floor the schedule) value the gilts still to pay at the yields the plan was locked on. A move in gilt prices since the lock is not taken out of your figure, so it can move your reading a little.',
+      'Engine version 6.19.0: the engine and strategies are unchanged.'
+    ]
+  },
+  {
     version: '6.20.0', date: '2026-10-02', engineVersion: '6.19.0',
     title: 'Couples who stop work in different years: each of you at your own stop',
     summary: 'The three preview questions (pensiontools.uk/v7/) used to take a couple as stopping work in the same year, and said so. Now each of you can stop on your own date: "When does your partner stop work?" — when you do, they already have, or at an age. Until you have both stopped, the one still working covers half of what you spend from their pay (or all of it, or none of it: one tap away) and keeps paying in; if the money of the one who has stopped cannot pay its part, their pay covers the rest, and the answer says from what age that happens in a bad case. If you have already stopped, "When can I afford to stop work?" and "Am I saving enough?" answer about your partner. An answer saved as a plan makes two linked plans, each beginning at its own person\'s stop. A couple who stop in the same year, and one person on their own, get exactly the answers they got before.',

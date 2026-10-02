@@ -128,6 +128,10 @@ describe('whereAmI', () => {
   it('pot banding against a real cone', () => {
     const d2 = JSON.parse(JSON.stringify(doc));
     d2.strategy.r.cones.wealth = { p10: [100], p50: [200], p90: [300] };
+    // A gilt-rotation band holds the gilts at what they cost, the pot their market value: no verdict (6.20.1) …
+    expect(whereAmI(d2, { today: new Date(2027, 5, 1), potsToday: 50 }).pot).toMatchObject({ band: null, verdict: 'gilts-at-cost' });
+    // … the banding itself, on a market strategy's band
+    d2.strategy.id = 'ladder-and-ratchet';
     expect(whereAmI(d2, { today: new Date(2027, 5, 1), potsToday: 50 }).pot.band).toBe('below p10');
     expect(whereAmI(d2, { today: new Date(2027, 5, 1), potsToday: 150 }).pot.band).toBe('p10–p50');
     expect(whereAmI(d2, { today: new Date(2027, 5, 1), potsToday: 250 }).pot.band).toBe('p50–p90');

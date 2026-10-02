@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "6.20.0",
+    "appVersion": "6.20.1",
     "historyEnd": null
   },
   "session": {
@@ -59,7 +59,7 @@
     },
     "b": {
       "status": "failed",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.20.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":2000,\"kind\":\"amount\"},\"stop\":{\"age\":60},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|6.20.1",
       "result": null,
       "before": null,
       "progress": null,

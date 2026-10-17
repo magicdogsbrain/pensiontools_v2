@@ -38,8 +38,9 @@ const JOURNEYS_KEEP = ['budget-step', 'keep'];
 // B2 (research/v7/couples-different-years.md 9.7): "I've already stopped" in A, saved as two plans, in today's planner — at
 // 1440 (the planner's Household tab is on the wide tab bar).
 const JOURNEYS_APART = ['a-already-stopped'];
-// The saved plans in the preview, without an account (research/v7/your-plan.md 9, T10 and T12 on the guest path): at 390 and 1440.
-const JOURNEYS_PLAN = ['plan'];
+// The saved plans in the preview, without an account (research/v7/your-plan.md 9, T10 and T12 on the guest path), and the first
+// editing step, "About you and when" (research/v7/editing-in-v7.md 5, E8): at 390 and 1440.
+const JOURNEYS_PLAN = ['plan', 'plan-about'];
 const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);

@@ -688,6 +688,29 @@ export function plansView(state) {
 }
 
 /** The "Your plan" screen for the route's plan and step: the source's reading of it, or { found: false } until it is there. */
+/**
+ * "About you and when" (research/v7/editing-in-v7.md 2): the plan source's reading of the step for the route's plan, with
+ * what was typed laid over it (the reading already carries the typed text: planSource.js hands the draft to aboutOf), and
+ * which problems to show — a box's once it has been left, every box's once Save has been pressed. Nothing worked out here.
+ */
+export function aboutView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  const about = page && page.about && r && r.screen === 'plan' && r.step === 'about' && page.forId === r.planId ? page.about : null;
+  if (!about || !about.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  const pd = state.draft.plan && state.draft.plan.id === about.id ? state.draft.plan : { id: about.id, values: {}, touched: [], asked: false };
+  const draftKey = JSON.stringify(pd.values);
+  const show = (path) => pd.asked || pd.touched.includes(path);
+  const fields = about.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null }));
+  const ui = state.ui || {};
+  return {
+    ...about, fields, draft: pd, draftKey, fresh: about.draftKey === draftKey,
+    saving: ui.saving && ui.saving.planId === about.id ? ui.saving : null,
+    problem: ui.saveProblem && ui.saveProblem.planId === about.id ? ui.saveProblem.problem : null,
+    toast: ui.toast && ui.toast.planId === about.id ? ui.toast : null
+  };
+}
 export function planView(state) {
   const plans = state.plans;
   const r = state.route;

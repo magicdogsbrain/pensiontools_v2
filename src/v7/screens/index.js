@@ -19,6 +19,7 @@ import { SpendScreen as SpendB } from './b/SpendScreen.jsx';
 import { keepScreen } from './KeepScreen.jsx';
 import { PlansScreen } from './plan/PlansScreen.jsx';
 import { PlanScreen } from './plan/PlanScreen.jsx';
+import { AboutScreen } from './plan/AboutScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -39,5 +40,7 @@ export const SCREENS = {
   notBuilt: NotBuilt,
   // the saved plans, read-only (research/v7/your-plan.md)
   plans: PlansScreen,
-  plan: PlanScreen
+  plan: PlanScreen,
+  // the first editing step of a saved plan (research/v7/editing-in-v7.md)
+  'plan.about': AboutScreen
 };

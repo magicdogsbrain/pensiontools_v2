@@ -112,12 +112,23 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     session: { kind: 'none', email: null, signingOut: false },   // who is signed in; 'none' until a plan page asks (your-plan.md 4.3)
     plan:    null,                                   // reserved (architecture.md 3.2)
     plans:   null,                                   // the saved plans in page memory only, or null: { status, source, readAt, list }
-    draft:   drafts,
+    draft:   { ...drafts, plan: keptPlanDraft(draft) },   // `plan`: what was typed into a saved plan's editing step (editing-in-v7.md 4)
     answers,
     budget:  cleanSheet(draft && typeof draft === 'object' ? draft.budget : null),
     keep,
-    ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null }
+    ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
+}
+
+/** An empty plan draft: no plan, nothing typed. */
+export const emptyPlanDraft = () => ({ id: null, values: {}, touched: [], asked: false });
+/** The plan draft a tab kept (draftStore cleans it): the plan's id, text or choices by path, the boxes left, asked. */
+export function keptPlanDraft(draft) {
+  const k = draft && typeof draft === 'object' && draft.plan && typeof draft.plan === 'object' ? draft.plan : null;
+  if (!k || typeof k.id !== 'string' || !k.id) return emptyPlanDraft();
+  const values = {};
+  if (k.values && typeof k.values === 'object' && !Array.isArray(k.values)) for (const [p, v] of Object.entries(k.values)) if (typeof v === 'string') values[p] = v;
+  return { id: k.id, values, touched: Array.isArray(k.touched) ? k.touched.filter((p) => typeof p === 'string') : [], asked: k.asked === true };
 }
 
 /** The session states the plan source reports (your-plan.md 1.1 "States"). */

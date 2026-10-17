@@ -559,10 +559,13 @@
       "files": [
         "src/answers/shared/schemaParts.js",
         "src/answers/a/schema.js",
-        "src/answers/b/schema.js"
+        "src/answers/b/schema.js",
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx"
       ],
       "step": "done",
-      "note": "V7 asks the ages once, in each question."
+      "note": "V7 asks the ages once, in each question. On a saved plan, \"About you and when\" keeps the budget's copy in step as the planner's Save does (syncBudgetAgeFromTiming).",
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
       "id": "budget.partner-facts",
@@ -1188,10 +1191,13 @@
       ],
       "status": "built",
       "files": [
-        "src/answers/shared/schemaParts.js"
+        "src/answers/shared/schemaParts.js",
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx"
       ],
       "step": "done",
-      "note": "Asked in every question."
+      "note": "Asked in every question; edited on a saved plan in V7 (\"About you and when\", editing-in-v7.md).",
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
       "id": "timing.stop",
@@ -1210,10 +1216,13 @@
         "src/answers/shared/schemaParts.js",
         "src/answers/a/schema.js",
         "src/answers/b/schema.js",
-        "src/answers/c/schema.js"
+        "src/answers/c/schema.js",
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx"
       ],
       "step": "done",
-      "note": "A and B ask the stop age (or \"I've already stopped\"); C asks when the money starts."
+      "note": "A and B ask the stop age (or \"I've already stopped\"); C asks when the money starts. Edited on a saved plan in V7: stopped, or stopping at an age or a month (\"About you and when\").",
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
       "id": "timing.plan-start",
@@ -1228,9 +1237,14 @@
         "decision.firstTaxYear",
         "stress.legacyFirstTaxYear"
       ],
-      "status": "planned",
+      "status": "built",
       "step": "s8-e",
-      "note": "square-one-audit.md §5: offer \"I've stopped; my plan's income starts next April\" as a plain choice."
+      "note": "In V7, on a saved plan (\"About you and when\", editing-in-v7.md): \"When the plan's income starts: this tax year / next April\" for someone who has stopped; derived from the stop age otherwise, and said so. The Decision copy (decision.firstTaxYear) is kept in step as the planner's Save keeps it.",
+      "files": [
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
       "id": "timing.pots-projected",
@@ -1282,10 +1296,13 @@
       ],
       "status": "built",
       "files": [
-        "src/answers/shared/schemaParts.js"
+        "src/answers/shared/schemaParts.js",
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx"
       ],
       "step": "done",
-      "note": "Asked as the age to plan to (endAge, 75 to 105, 95 by default)."
+      "note": "Asked as the age to plan to (endAge, 75 to 105, 95 by default); edited on a saved plan in V7 as \"Plan to age\" (\"About you and when\").",
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
       "id": "timing.longevity",
@@ -1296,9 +1313,15 @@
       "whereV6": "Stress → Settings → \"Suggest from longevity\" (index.html:3311-3326; LongevityModel.js)",
       "who": "Everyone",
       "keys": [],
-      "status": "planned",
+      "status": "built",
       "step": "s8-e",
-      "gap": true
+      "files": [
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx",
+        "src/services/LongevityModel.js"
+      ],
+      "editV7": "src/v7/screens/plan/AboutScreen.jsx",
+      "note": "In V7 as \"Suggest from how long people live\" on \"About you and when\": a man or a woman, 1 in 10 / 1 in 4 / half live beyond it; the planner's own helper (LongevityModel.longevityAge) fills \"Plan to age\"."
     },
     {
       "id": "timing.stale-draft",

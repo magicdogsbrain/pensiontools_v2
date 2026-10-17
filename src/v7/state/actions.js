@@ -70,7 +70,18 @@ export const A = Object.freeze({
   PLANS_CLEAR:     'plans/clear',      // {}                                 pagehide, sign-out, nobody: the plans leave the page's memory
   PLANS_VIEW:      'plans/view',       // { view }                           the plan source's reading of the plans for the route: { today, rows, page }
   PLAN_CHANGE:     'plan/change',      // { planId, place, back }            "Change this": leaving: the hand-over effect writes the request
-  PLAN_CHANGE_FAILED: 'plan/changeFailed' // {}                             this browser would not pass the request on
+  PLAN_CHANGE_FAILED: 'plan/changeFailed', // {}                            this browser would not pass the request on
+
+  // ---- editing a saved plan in V7: "About you and when" (research/v7/editing-in-v7.md 2, 4) --------------------------
+  PLAN_EDIT:       'plan/edit',        // { planId, path, value }            one typed value of the plan's draft (text or a choice)
+  PLAN_TOUCH:      'plan/touch',       // { planId, path }                   a box has been left
+  PLAN_SAVE:       'plan/save',        // { planId }                         Save pressed: asked; saving: the write effect runs
+  PLAN_SAVED:      'plan/saved',       // { planId, previous, line }         written: the draft goes, the Undo toast shows (previous: the values put back)
+  PLAN_SAVE_FAILED: 'plan/saveFailed', // { planId, problem }                nothing written: locked | notHere | usedUp | nobody | storage | failed | problems
+  PLAN_CANCEL:     'plan/cancel',      // { planId }                         the draft goes
+  PLAN_UNDO:       'plan/undo',        // { planId }                         Undo pressed: the write effect puts the previous values back
+  PLAN_UNDO_DONE:  'plan/undoDone',    // { planId }                         put back; the toast says so
+  PLAN_TOAST_CLOSE: 'plan/toastClose'  // {}                                 the toast goes (its time is up, or Close)
 });
 
 /**

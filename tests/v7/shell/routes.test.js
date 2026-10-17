@@ -162,6 +162,26 @@ describe('the address effect', () => {
     expect(win.location.hash).toBe('#/c/answer');
     expect(win.entries).toEqual(['#/c/numbers', '#/c/answer']);
   });
+  it('a state change that lands before a new address\'s "hashchange" never writes the old route over it (6.27.1)', () => {
+    // A browser fires "hashchange" a moment after the address changes. On a slow runner the crawl saw "#/plans"
+    // become "#/not-found": the person left the not-found page, a state change landed, and the effect wrote the
+    // state's (old) route back. The coming "hashchange" is what reconciles the two.
+    const { store, win } = start('#/no-such-page');
+    expect(win.location.hash).toBe('#/not-found');
+    win.entries.push('#/plans');                     // the address has changed; its "hashchange" has not fired yet
+    store.dispatch({ type: A.UI_ONLINE, online: false });   // any state change in that moment
+    expect(win.location.hash).toBe('#/plans');
+    expect(win.entries).toEqual(['#/not-found', '#/plans']);
+    win.listeners.hashchange.forEach((fn) => fn({ type: 'hashchange' }));   // now it fires
+    expect(store.getState().route.screen).toBe('plans');
+    expect(win.location.hash).toBe('#/plans');
+    // and the app's own moves still write the address
+    win.go('#/c/numbers');
+    store.dispatch(set('you.pot', '250000'));
+    store.dispatch(set('you.age', '58'));
+    store.dispatch({ type: A.DRAFT_ASK, q: 'c' });
+    expect(win.location.hash).toBe('#/c/answer');
+  });
   it('back works', () => {
     const { store, win } = start('#/');
     win.go('#/c/numbers');

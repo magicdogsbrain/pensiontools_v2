@@ -11,6 +11,8 @@
  * importHoldingsFromStress, dismissHoldingsOffer, updHolding, removeHolding, addHoldingLine.
  */
 import { esc } from './ReleaseNotesView.js';
+import { CATEGORY_CHOICES, needsCategory, isGiltCode } from '../../services/HoldingsPaste.js';
+import { SUB_ASSET_PROFILES, FUND_TAG_MAP } from '../../services/SubAssetModel.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const units = (u) => (u == null ? '' : Math.round(u).toLocaleString('en-GB'));
@@ -26,6 +28,21 @@ export const HOLDING_WRAPPERS = ['SIPP', 'ISA', 'GIA', 'CASH'];
 const SOURCE_TEXT = { typed: 'typed in', paste: 'pasted from your platform', imported: 'taken from the Stress tester\'s fund list' };
 const valued = (l) => l && ((+l.value || 0) > 0 || (+l.units || 0) > 0);
 const numAttr = (v) => (v == null || v === '' || !Number.isFinite(+v) ? '' : String(+v));
+
+/** What a placed line is, in a word or two; or the "What is this?" dropdown for a line the tool cannot place (6.23). */
+function whatItIsHtml(i, L) {
+  if (needsCategory(L)) {
+    return '<select data-on-change="updHolding(' + i + ',\'subClass\',this.value)" style="width:auto;" title="What is this?"><option value="" selected>What is this?</option>'
+      + CATEGORY_CHOICES.map((c) => '<option value="' + (c.subClass || '') + '">' + esc(c.label) + '</option>').join('') + '</select>';
+  }
+  if (String(L.wrapper || '').toUpperCase() === 'CASH') return '<span class="hint">Bank cash</span>';
+  if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return '<span class="hint">Gilt</span>';
+  if (L.kind === 'cash' && !L.subClass) return '<span class="hint">Cash</span>';
+  const key = L.subClass || FUND_TAG_MAP[String(L.ticker || '').toUpperCase()];
+  const prof = key ? SUB_ASSET_PROFILES[key] : null;
+  const bucket = prof ? { shares: 'Shares', bonds: 'Bonds', cash: 'Cash', diversifiers: 'Gold and trend' }[prof.bucket] : null;
+  return '<span class="hint">' + esc(bucket || 'Fund') + '</span>';
+}
 
 /** Wrapper <select> for a row (or the add row when `i` is null). */
 function wrapperSelect(i, current) {
@@ -56,12 +73,16 @@ export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
         '<input type="text" value="' + esc(L.name || '') + '" placeholder="Name" style="min-width:160px;" data-on-change="updHolding(' + i + ',\'name\',this.value)">',
         '<input type="number" step="any" value="' + numAttr(L.units) + '" placeholder="units" style="width:110px;" data-on-change="updHolding(' + i + ',\'units\',this.value)">',
         '<input type="number" step="any" value="' + numAttr(L.value) + '" placeholder="£" style="width:120px;" data-on-change="updHolding(' + i + ',\'value\',this.value)">',
+        whatItIsHtml(i, L),
         '<button type="button" class="risk-btn" title="Remove this line" data-on-click="removeHolding(' + i + ')">Remove</button>'
       ];
     });
-    h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', ''], rows);
+    h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ''], rows);
     const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
     h += '<p class="hint" style="margin-top:6px;">Total ' + gbp(Object.values(byW).reduce((t, v) => t + v, 0)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + gbp(byW[w])).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
+    // Every line counts in the total; a line the tool cannot place is said, not dropped from the mix in silence (6.23)
+    const unplaced = lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
+    if (unplaced.length) h += '<p class="hint" style="color:var(--warning);">' + gbp(unplaced.reduce((t, l) => t + (+l.value || 0), 0)) + ' in ' + unplaced.length + ' line' + (unplaced.length === 1 ? '' : 's') + ' is not placed in the mix yet — answer "What is this?" and it counts.</p>';
     // The row inputs fire on CHANGE (commit), never on input: the shell persists each commit without re-rendering on every keystroke.
     h += '<p class="hint">Edits save when you leave the box; Remove and Paste save at once.</p>';
   }

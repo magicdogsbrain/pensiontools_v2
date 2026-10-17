@@ -2308,30 +2308,46 @@
                   </div>
                 </div>
 
-                <h3 style="margin-top: 24px;">This month's fund values</h3>
+                <h3 style="margin-top: 24px;">This month's values — as your platform shows them</h3>
+                <!-- The platform view (6.23, decision 10): pension total, of which cash, of which bond funds or gilts. Drawn by src/ui/monthlyEntry.js. -->
+                <div id="entryPlatform"></div>
+                <p class="hint" id="entryModeNote" style="margin:0 0 8px;"></p>
+                <div id="entryByType" style="display:none;">
                 <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
                   <div class="form-group" id="entryEquityGroup">
-                    <label>Equity Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
+                    <label>Shares <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Share funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryEquity" value="" required>
+                      <input type="number" id="entryEquity" value="">
                     </div>
                   </div>
                   <div class="form-group" id="entryBondGroup">
-                    <label><span id="entryBondLabel">Bond Funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
+                    <label><span id="entryBondLabel">Bond funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryBond" value="" required>
+                      <input type="number" id="entryBond" value="">
                     </div>
                   </div>
                   <div class="form-group">
                     <label>Cash <a href="#" class="itemise-link" data-on-click="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryCash" value="" required>
+                      <input type="number" id="entryCash" value="">
                     </div>
                   </div>
+                  <div class="form-group" id="entryDiversifierGroup">
+                    <label>Gold and trend <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Gold and trend'); return false;">enter per fund ▸</a>
+                      <span class="hlp" tabindex="0" data-tip="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">?</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryDiversifier" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+                </div>
+                <div class="form-grid">
                   <div class="form-group">
                     <label>ISA Balance
                       <span class="hlp" tabindex="0" data-tip="Tax-free pot. When set, the plan draws SIPP up to the basic-rate limit and tops up income from the ISA tax-free (band management). Leave 0 to use the per-tax-year ISA allocation instead.">?</span>
@@ -2339,15 +2355,6 @@
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryIsa" value="0" min="0">
-                    </div>
-                  </div>
-                  <div class="form-group" id="entryDiversifierGroup">
-                    <label>Diversifiers <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
-                      <span class="hlp" tabindex="0" data-tip="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">?</span>
-                    </label>
-                    <div class="input-with-unit">
-                      <span class="unit">£</span>
-                      <input type="number" id="entryDiversifier" value="0" min="0">
                     </div>
                   </div>
                   <div class="form-group" id="entryGiaGroup">
@@ -4201,7 +4208,9 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { parsePaste, matchRows, mergeLedger } from './src/services/HoldingsPaste.js';
+    import { parsePaste, matchRows, mergeLedger, categorise } from './src/services/HoldingsPaste.js';
+    import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
+    import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { rotationStatus } from './src/services/RotationStatus.js';
@@ -4776,12 +4785,8 @@
         updateSetupBanners();
         try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
-        // Monthly Entry captures THIS MONTH's current fund values — NOT the plan's starting minimums.
-        // Leave the bucket boxes blank; the user enters them (per-fund via the popups, "Fill all from my
-        // tagged funds", or by typing). ISA balance is a real running balance, so seed it from settings.
-        document.getElementById('entryEquity').value = '';
-        document.getElementById('entryBond').value = '';
-        document.getElementById('entryCash').value = '';
+        // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
+        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
 
@@ -5995,49 +6000,15 @@
     };
     function addMonths(ym, k) { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
-    // Decision form handler
-    // Soft plausibility guard for fund values. If ALL THREE pots are under £10k the user has
-    // most likely entered values in thousands (e.g. 250 meaning £250,000). Ask before proceeding
-    // — a genuinely small or depleted set of pots can still confirm and continue. Returns true to
-    // proceed, false to cancel. ISA is excluded (it can legitimately be small or zero).
-    async function confirmFundsIfLow(equity, bond, cash) {
-      const LOW = 10000;
-      // Fire only for a probable thousands-typo: all three small but NOT all zero (an all-zero
-      // set is a deliberate empty/depleted pot, never a units mistake, so don't nag about it).
-      if (equity < LOW && bond < LOW && cash < LOW && (equity + bond + cash) > 0) {
-        const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
-        return await appConfirm(
-          `These fund values look low — Equity ${fmt(equity)}, Bond ${fmt(bond)}, Cash ${fmt(cash)}.\n\n` +
-          'Enter absolute amounts in pounds, to the single pound (e.g. 250000, not 250).\n\n' +
-          'Continue anyway?'
-        );
-      }
-      return true;
-    }
-
-    // Pre-fill the taxable account's cost basis from the last saved month (it must persist between
-    // months or CGT cannot be worked out). The balance itself is entered fresh each month.
-    window.prefillGiaBasis = async function () {
-      try {
-        const el = document.getElementById('entryGiaBasis'); if (!el) return;
-        const hist = await getHistoryAsync({ sortDesc: true, limit: 50 });
-        const last = hist.find((h) => h.giaBasisAfter != null);
-        el.value = last ? Math.round(last.giaBasisAfter) : '';
-        const bal = document.getElementById('entryGia');
-        if (bal && last && last.giaBalanceAfter > 0 && (!bal.value || +bal.value === 0)) bal.value = Math.round(last.giaBalanceAfter);
-        // No GIA recorded yet: start from the plan's "taxable investments today" (copied from the
-        // Stress settings), cost unknown so it is left blank (= no gain assumed until you enter it).
-        if (bal && !last && (!bal.value || +bal.value === 0)) { const ds = await getDecisionSettingsAsync(); if (ds && ds.taxableStart > 0) bal.value = Math.round(ds.taxableStart); }
-      } catch (e) { /* not signed in yet */ }
-    };
-
+    // Decision form handler. The plausibility guard (values typed in thousands) and the taxable account's cost
+    // pre-fill live in src/ui/monthlyEntry.js (6.23).
     window.handleDecisionSubmit = async function(event) {
       event.preventDefault();
 
       const dateStr = document.getElementById('entryMonth').value;
-      const equity = parseFloat(document.getElementById('entryEquity').value) || 0;
-      const bond = parseFloat(document.getElementById('entryBond').value) || 0;
-      const cash = parseFloat(document.getElementById('entryCash').value) || 0;
+      // The platform view (pension total, of which cash, of which bonds or gilts) or entry by type: either way the engine gets the per-type figures (6.23)
+      const entry = readMonthlyEntry(); if (entry.problem) { showToast(entry.problem, 'error', 6000); return; }
+      const { equity, bond, cash } = entry;
       // Life stage (6.6.0): a plan locked while still saving takes no months before its start; and the
       // first month after the start compares the real pot with what the plan was priced on.
       try {
@@ -6073,7 +6044,7 @@
       }
 
       // Soft plausibility guard: values probably typed in thousands (250 meaning £250,000).
-      if (!await confirmFundsIfLow(equity, bond, cash)) return;
+      if (!await confirmFundsIfLow(equity, bond, cash, appConfirm)) return;
 
       // Check if this month already has a history entry
       const existingHistory = await getHistoryAsync({ limit: 1000 });
@@ -6104,7 +6075,7 @@
             if (wizardResult && wizardResult.completed) {
               // Re-run the calculation now that tax year is configured
               try {
-                currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash);
+                currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash); currentDecision.entered = entry.entered;   // what was typed, for the record (6.23)
                 const container = document.getElementById('decisionOutput');
                 renderDecisionPanel(currentDecision, container); renderWhereAmILine().catch(() => {});
                 document.getElementById('saveBtn').disabled = false;
@@ -6119,7 +6090,7 @@
         }
 
         // No wizard needed - proceed with calculation
-        currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash);
+        currentDecision = await calcDecisionWithDeps(dateStr, equity, bond, cash); currentDecision.entered = entry.entered;   // what was typed, for the record (6.23)
         const container = document.getElementById('decisionOutput');
         renderDecisionPanel(currentDecision, container); renderWhereAmILine().catch(() => {});
         document.getElementById('saveBtn').disabled = false;
@@ -7935,53 +7906,8 @@
 
     // --- Per-bucket "enter this month's fund values" popup (Decision Monthly Entry) ----------------
     window._fundModal = { fieldId: null, subtotal: 0 };
-    window.openFundBucketModal = function(bucket, fieldId, title) {
-      // 6.13.0: the funds to type values for are what you HOLD (the plan record); the Decision list is the fallback.
-      const srcFunds = window._holdingsLines || [];   // what you HOLD only — a strategy's funds-to-test list is never holdings
-      const bucketFunds = srcFunds.filter(f => {
-        const k = effectiveSubClass(f);
-        return f.ticker && k && SUB_ASSET_PROFILES[k] && SUB_ASSET_PROFILES[k].bucket === bucket;
-      });
-      window._fundModal = { fieldId, subtotal: 0 };
-      document.getElementById('fundModalTitle').textContent = title;
-      const rows = document.getElementById('fundModalRows');
-      if (!bucketFunds.length) {
-        rows.innerHTML = '<p style="color:var(--text-muted);">No ' + title.toLowerCase() + ' recorded yet. Record what you hold on the <strong>Transition</strong> tab, then come back — or just type the total into the box.</p>';
-      } else {
-        rows.innerHTML = bucketFunds.map(f => {
-          const cat = liveCatalogueEntry(f.ticker);
-          const prof = SUB_ASSET_PROFILES[effectiveSubClass(f)];
-          const name = cat ? cat.name : (prof ? prof.label : '');
-          return '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0;">' +
-            '<span><strong>' + f.ticker + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + name + '</span></span>' +
-            '<span style="white-space:nowrap;">£ <input type="number" class="fund-modal-input" data-on-input="updateFundModalSubtotal()" style="width:120px;" placeholder="0"></span>' +
-            '</div>';
-        }).join('');
-      }
-      updateFundModalSubtotal();
-      document.getElementById('fundBucketModal').style.display = 'flex';
-    };
-    window.updateFundModalSubtotal = function() {
-      let sum = 0;
-      document.querySelectorAll('#fundModalRows .fund-modal-input').forEach(inp => { sum += (+inp.value || 0); });
-      window._fundModal.subtotal = sum;
-      document.getElementById('fundModalSubtotal').textContent = 'Total: £' + Math.round(sum).toLocaleString();
-    };
-    window.applyFundBucketModal = function() {
-      const el = document.getElementById(window._fundModal.fieldId);
-      if (el) el.value = Math.round(window._fundModal.subtotal || 0);
-      closeFundBucketModal();
-    };
-    window.closeFundBucketModal = function() { document.getElementById('fundBucketModal').style.display = 'none'; };
-    // Decision requires a tagged portfolio — nudge the user to Settings if they haven't tagged one.
-    window.updateEntryTagPrompt = function() {
-      const el = document.getElementById('entryTagPrompt');
-      if (!el) return;
-      const hasTags = (window._holdingsLines || []).filter(f => f.ticker).length > 0;
-      if (hasTags) { el.style.display = 'none'; el.innerHTML = ''; return; }
-      el.style.display = 'block';
-      el.innerHTML = '<div class="alert alert-info" style="font-size:13px;">Record what you hold on the <strong>Transition</strong> tab (paste it from your platform) and the <em>enter per fund ▸</em> links let you type each fund\'s value here. Or just type the bucket totals.</div>';
-    };
+    // The per-fund popup, the "record what you hold" nudge, the taxable account's cost pre-fill and the entry view switch (src/ui/monthlyEntry.js, 6.23)
+    installMonthlyEntryHandlers({ holdingsLines: () => window._holdingsLines || [], effectiveSubClass, liveCatalogueEntry, SUB_ASSET_PROFILES, getHistoryAsync, getDecisionSettingsAsync });
 
     // Decision tab: fill the monthly fund values from the tagged funds — the Decision plan's own list
     // first, then the Stress list / saved settings as a fallback.
@@ -8664,18 +8590,16 @@
       const parsed = parsePaste(text);
       const matched = matchRows(parsed.rows, { orders: ctx.orders, wrapper });
       ctx.matched = matched; ctx.wrapper = wrapper;
-      const box = document.getElementById('pastePreview'); if (!box) return;
-      if (!matched.length) { box.innerHTML = '<div class="alert alert-warning">' + parsed.warnings.map(budEsc).join('<br>') + '</div>'; return; }
-      const conf = (m) => m.match.kind === 'none' ? '<span style="color:var(--danger,#f87171);">not recognised — pick a category after applying</span>' : budEsc(m.match.kind === 'gilt' ? 'gilt rung (' + m.match.confidence + ')' : m.match.kind === 'cash' ? 'money market / cash' : 'fund (' + m.match.confidence + ')');
-      const ledger = ctx.p === 'hold' ? ((window._holdingsDraft && window._holdingsDraft.lines) || []) : funds(ctx.p);
-      const merged = mergeLedger(ledger, matched, { wrapper });
-      let h = '<div class="table-scroll-container"><table><thead><tr><th>Pasted</th><th>Read as</th><th>Units</th><th>Value</th><th>Match</th></tr></thead><tbody>'
-        + matched.map((m) => '<tr><td>' + budEsc(m.name || m.ticker || m.sedol || '') + '</td><td>' + budEsc(m.match.name || m.match.ticker || '—') + (m.match.ticker ? ' <span class="hint">' + budEsc(m.match.ticker) + '</span>' : '') + '</td><td>' + (m.units != null ? Math.round(m.units).toLocaleString() : '—') + '</td><td>' + (m.value != null ? gbp(m.value) : '—') + '</td><td>' + conf(m) + '</td></tr>').join('')
-        + '</tbody></table></div>';
-      h += '<p class="hint" style="margin-top:6px;">Applying will ' + (merged.updated.length ? 'update ' + merged.updated.length + ' line' + (merged.updated.length === 1 ? '' : 's') + ' you already have' : 'update nothing') + (merged.added.length ? ', add ' + merged.added.length : '') + (merged.unseen.length ? ', and leave ' + merged.unseen.length + ' ' + wrapper + ' line' + (merged.unseen.length === 1 ? '' : 's') + ' not in the paste (' + merged.unseen.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ') — remove them yourself if they were sold' : '') + '.' + (parsed.warnings.length ? ' ' + parsed.warnings.map(budEsc).join(' ') : '') + '</p>';
-      h += '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="applyPasteHoldings()">' + (ctx.p === 'hold' ? 'Apply to what I hold' : 'Apply to the funds to test') + '</button></div>';
-      box.innerHTML = h;
+      ctx.parsed = parsed;
+      paintPastePreview();
     };
+    // Every pasted line counts (6.23): the preview asks "What is this?" for a line it cannot recognise, and says what was left out and why.
+    function paintPastePreview() {
+      const ctx = window._pasteCtx; const box = document.getElementById('pastePreview'); if (!ctx || !box) return;
+      const ledger = ctx.p === 'hold' ? ((window._holdingsDraft && window._holdingsDraft.lines) || []) : funds(ctx.p);
+      box.innerHTML = pastePreviewHtml({ parsed: ctx.parsed, matched: ctx.matched, merged: ctx.matched.length ? mergeLedger(ledger, ctx.matched, { wrapper: ctx.wrapper }) : null, wrapper: ctx.wrapper, target: ctx.p === 'hold' ? 'hold' : 'test' });
+    }
+    window.setPasteCategory = function (i, key) { const ctx = window._pasteCtx; if (!ctx || !ctx.matched || !ctx.matched[i]) return; ctx.matched[i] = key ? categorise(ctx.matched[i], key) : { ...ctx.matched[i], category: null, subClass: null, match: { ...ctx.matched[i].match, kind: 'none', subClass: null } }; paintPastePreview(); };
     window.applyPasteHoldings = async function () {
       const ctx = window._pasteCtx; if (!ctx || !ctx.matched) return;
       if (ctx.p === 'hold') {
@@ -9503,9 +9427,10 @@
       { const el = document.getElementById('entryDiversifierGroup'); if (el) el.style.display = contract ? 'none' : ''; }
       const eq = document.getElementById('entryEquity'), dv = document.getElementById('entryDiversifier');
       if (contract) { if (eq && eq.value === '') eq.value = 0; if (dv && dv.value === '') dv.value = 0; }
-      const bl = document.getElementById('entryBondLabel'); if (bl) bl.textContent = contract ? 'Gilt ladder value (unpaid rungs)' : 'Bond Funds';
+      const bl = document.getElementById('entryBondLabel'); if (bl) bl.textContent = contract ? 'Gilts (what the rungs still held are worth)' : 'Bond funds';
       const bi = document.getElementById('entryBondItemise'); if (bi) bi.style.display = contract ? 'none' : '';
       const bin = document.getElementById('entryBond'); if (bin && contract) bin.title = 'What the remaining gilts are worth today (the holdings page total). Only tracked for the record — the ladder pays by contract whatever this shows.';
+      try { configureMonthlyEntry({ contract }); } catch (e) { /* form not on this tab */ }   // the platform view: a ladder asks total and cash only (6.23)
       return contract;
     }
 
@@ -11475,10 +11400,8 @@
         document.getElementById('dsBandFillRecycle').checked = !!s.bandFillRecycle;
         syncAccessButtons('ds');
 
-        // Monthly Entry captures THIS MONTH's values — leave blank, not the plan's starting minimums.
-        document.getElementById('entryEquity').value = '';
-        document.getElementById('entryBond').value = '';
-        document.getElementById('entryCash').value = '';
+        // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
+        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
 

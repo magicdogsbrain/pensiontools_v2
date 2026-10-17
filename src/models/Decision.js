@@ -135,6 +135,9 @@ export function decisionToHistory(decision) {
       strategyNote: decision.strategyOverlay.note || null
     } : {}),
 
+    // What was typed and the split it became (6.23: the platform view) — only on records made since; older records keep their shape.
+    ...(decision.entered ? { entered: decision.entered } : {}),
+
     // Fund balances at time of decision
     equity: decision.equity,
     bond: decision.bond,

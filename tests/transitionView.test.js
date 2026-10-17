@@ -187,3 +187,24 @@ describe('What you hold — the shell\'s hooks (6.13.0)', () => {
     expect(diff.totals.cashHeld).toBe(0);
   });
 });
+
+describe('What you hold — "What is this?" for lines the tool cannot place (6.23)', () => {
+  const rec = { version: 1, updatedAt: '2026-09-16', source: 'paste', offerDismissed: false, lines: [line({ ticker: 'VWRP', name: 'Vanguard FTSE All-World', value: 52600 }), line({ name: 'Acme Workplace Growth Fund Series 4', value: 120000 }), line({ name: 'Zenith Managed', value: 60250, subClass: 'globalAggHedged' })] };
+  it('only the unplaced line gets the question, saved like any other edit; the others show what they are', () => {
+    const html = holdingsCardHtml({ holdings: rec });
+    expect(html).toContain('data-on-change="updHolding(1,\'subClass\',this.value)"');
+    expect(html).not.toContain('updHolding(0,\'subClass\'');
+    expect(html).not.toContain('updHolding(2,\'subClass\'');
+    expect(html).toContain('What is this?');
+    expect(html).toContain('>Gold and trend<');
+    expect(html).toContain('Shares');
+    expect(html).toContain('Bonds');
+    for (const e of handlers(html)) { expect(e).not.toMatch(/=>|\?\./); expect(() => parse(e)).not.toThrow(); }
+  });
+  it('the total counts every line, and says how much is not placed in the mix yet', () => {
+    const html = holdingsCardHtml({ holdings: rec });
+    expect(html).toContain('Total £232,850');
+    expect(html).toContain('£120,000 in 1 line is not placed in the mix yet — answer "What is this?" and it counts.');
+    expect(holdingsCardHtml({ holdings: { ...rec, lines: rec.lines.slice(0, 1) } })).not.toContain('not placed in the mix');
+  });
+});

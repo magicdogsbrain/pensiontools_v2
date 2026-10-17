@@ -136,3 +136,79 @@ describe('a stray code in the ticker column cannot out-vote the fund\'s own name
     expect(m[2].match.ticker).toBe('CGT');
   });
 });
+
+// Every pasted line counts (research/v7/v6-usability-audit.md §2.9). The audit's case: £282,550 pasted, the pot read
+// £97,300 — the lines the tool could not recognise dropped out of the counts without a word. Now a line it cannot
+// recognise asks "What is this?" and the summary says what was left out and why.
+import { CATEGORY_CHOICES, categorise, needsCategory, pasteSummary } from '../src/services/HoldingsPaste.js';
+
+const AUDIT_PASTE = `Investment,Units,Value
+Vanguard FTSE All-World UCITS ETF,500,£52,600.00
+iShares Core Global Aggregate Bond,1000,£4,950.00
+Lyxor Smart Overnight Return UCITS ETF,394,£39,750.00
+Acme Workplace Growth Fund Series 4,12000,£120,000.00
+Zenith Managed Balanced Portfolio,8000,£60,250.00
+Northstar Cautious Fund,1000,£5,000.00
+Total,,£282,550.00`;
+
+describe('every pasted line counts (6.23)', () => {
+  it('parsePaste lists what it left out and why, not just a warning string', () => {
+    const p = parsePaste(AJBELL_CSV);
+    expect(p.leftOut).toEqual([{ line: 5, text: 'Total', why: 'a total line, not a holding' }]);
+    const q = parsePaste('Investment,Units,Value\nSome fund with nothing else,,\nVanguard FTSE All-World UCITS ETF,500,£52,600.00');
+    expect(q.rows.length).toBe(1);
+    expect(q.leftOut).toEqual([{ line: 1, text: 'Some fund with nothing else', why: 'no units or value found' }]);
+  });
+  it('the five answers to "What is this?"', () => {
+    expect(CATEGORY_CHOICES.map((c) => c.key)).toEqual(['shares', 'bonds', 'cash', 'diversifiers', 'unknown']);
+    expect(CATEGORY_CHOICES.map((c) => c.label)).toEqual(['Shares', 'Bonds', 'Cash', 'Gold and trend', 'Don\'t know']);
+  });
+  it('categorise puts a line in the bucket the person chose; "don\'t know" keeps it on the record, unplaced', () => {
+    expect(categorise({ name: 'Acme Growth' }, 'shares')).toMatchObject({ subClass: 'worldGrowth' });
+    expect(categorise({ name: 'Acme Bond' }, 'bonds')).toMatchObject({ subClass: 'globalAggHedged' });
+    expect(categorise({ name: 'Acme Cash' }, 'cash')).toMatchObject({ subClass: 'moneyMarket', kind: 'cash' });
+    expect(categorise({ name: 'Acme Gold' }, 'diversifiers')).toMatchObject({ subClass: 'gold' });
+    const u = categorise({ name: 'Acme ?', subClass: 'worldGrowth' }, 'unknown');
+    expect(u.subClass).toBeNull();
+    expect(u.name).toBe('Acme ?');
+    for (const v of Object.values(u)) expect(v).not.toBeUndefined();
+  });
+  it('needsCategory: a line the tool cannot place; a catalogue fund, a gilt code, a cash line or a bank wrapper is placed already', () => {
+    expect(needsCategory({ name: 'Acme Workplace Growth Fund', ticker: null, subClass: null, kind: null, wrapper: 'SIPP' })).toBe(true);
+    expect(needsCategory({ ticker: 'VWRP', wrapper: 'SIPP' })).toBe(false);
+    expect(needsCategory({ ticker: 'TR29', wrapper: 'SIPP' })).toBe(false);
+    expect(needsCategory({ name: 'x', kind: 'cash', wrapper: 'SIPP' })).toBe(false);
+    expect(needsCategory({ name: 'Bank savings', wrapper: 'CASH' })).toBe(false);
+    expect(needsCategory({ name: 'x', subClass: 'gold', wrapper: 'SIPP' })).toBe(false);
+  });
+  it('the audit\'s paste: six lines, £282,550; three recognised, £97,300; the other £185,250 is said, not dropped', () => {
+    const parsed = parsePaste(AUDIT_PASTE);
+    const matched = matchRows(parsed.rows, { orders: [], wrapper: 'SIPP' });
+    const s = pasteSummary({ parsed, matched });
+    expect(s.pastedCount).toBe(6);
+    expect(s.pastedTotal).toBe(282550);
+    expect(s.recognisedCount).toBe(3);
+    expect(s.recognisedTotal).toBe(97300);
+    expect(s.unrecognised.map((u) => u.name)).toEqual(['Acme Workplace Growth Fund Series 4', 'Zenith Managed Balanced Portfolio', 'Northstar Cautious Fund']);
+    expect(s.unrecognisedTotal).toBe(185250);
+    expect(s.text).toContain('6 lines read, £282,550 in all.');
+    expect(s.text).toContain('3 lines (£185,250) are not recognised — say what each is under "What is this?" and they count.');
+    expect(s.text).toContain('Left out: line 7 "Total" (a total line, not a holding).');
+  });
+  it('once each line has an answer the summary says so, and the ledger carries the choice', () => {
+    const parsed = parsePaste(AUDIT_PASTE);
+    const matched = matchRows(parsed.rows, { orders: [], wrapper: 'SIPP' });
+    matched[3] = categorise(matched[3], 'shares'); matched[4] = categorise(matched[4], 'bonds'); matched[5] = categorise(matched[5], 'unknown');
+    const s = pasteSummary({ parsed, matched });
+    expect(s.recognisedTotal).toBe(97300 + 120000 + 60250);
+    expect(s.unrecognisedTotal).toBe(0);   // every line has an answer now
+    expect(s.unknownTotal).toBe(5000);
+    expect(s.text).toContain('1 line (£5,000) is marked "don\'t know": it stays on your record and counts in the total, but not in the mix until you say what it is.');
+    const merged = mergeLedger([], matched, { wrapper: 'SIPP' });
+    expect(merged.ledger.length).toBe(6);
+    expect(merged.ledger[3]).toMatchObject({ name: 'Acme Workplace Growth Fund Series 4', subClass: 'worldGrowth', value: 120000 });
+    expect(merged.ledger[4]).toMatchObject({ subClass: 'globalAggHedged' });
+    expect(merged.ledger[5].subClass).toBeNull();
+    for (const l of merged.ledger) for (const [k, v] of Object.entries(l)) expect(v, k).not.toBeUndefined();
+  });
+});

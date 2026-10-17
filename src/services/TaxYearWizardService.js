@@ -402,6 +402,50 @@ export async function getWizardData(selectedMonth) {
   };
 }
 
+// ---- The set-up's screens and words (6.23: collapsed to three screens, plain English; audit §2.7) ----
+
+/** The screens, in order. The same three whether the year starts in April or mid-year: the mid-year questions sit on the first. */
+export function wizardScreens() {
+  return [
+    { key: 'this-year', title: 'This year\'s figures' },
+    { key: 'top-up', title: 'Tax-free top-up' },
+    { key: 'confirm', title: 'Confirm' }
+  ];
+}
+
+const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
+
+/** The tax bands as an assumption the person can change, not a question. */
+export function bandsAssumptionText({ pa, brl, hrl } = {}) {
+  return 'We assume a tax-free allowance of ' + gbp(pa) + ', 20% tax up to ' + gbp(brl) + ' of taxable income and 45% above ' + gbp(hrl) + '.';
+}
+
+/**
+ * The State Pension line for the set-up. Says the right thing when the pension is already in payment, starts
+ * later this year, is years away, or is not in the plan — never "0 years until state pension".
+ * @param {object} sp  getStatePensionForTaxYear's result
+ * @param {string} selectedMonth 'YYYY-MM' the set-up starts from
+ */
+export function statePensionLine(sp, selectedMonth) {
+  const s = sp || {};
+  const amount = +s.amount || 0;
+  const when = s.startDate || s.startYm || null;
+  if (!amount) {
+    return when
+      ? 'Starts ' + when + ' — the amount is not in your plan yet; add your forecast under Settings.'
+      : 'Not in your plan yet — add your State Pension forecast under Settings if you have one.';
+  }
+  const monthly = s.monthlyFull != null ? +s.monthlyFull : (s.monthly != null ? +s.monthly : amount / 12);
+  const startedByStart = s.startYm ? (!selectedMonth || String(s.startYm) <= String(selectedMonth)) : !!s.isReceiving;
+  if (startedByStart) return 'In payment: ' + gbp(monthly) + ' a month (' + gbp(amount) + ' this tax year).';
+  if (s.isReceiving) return 'Starts ' + when + ': ' + gbp(monthly) + ' a month (' + gbp(amount) + ' this tax year).';
+  const y = Math.max(0, +s.yearsUntil || 0), m = Math.max(0, +s.monthsUntil || 0);
+  const parts = [];
+  if (y) parts.push(y + (y === 1 ? ' year' : ' years'));
+  if (m) parts.push(m + (m === 1 ? ' month' : ' months'));
+  return 'Starts ' + when + (parts.length ? ' — ' + parts.join(' ') + ' away.' : '.');
+}
+
 /**
  * Calculates the monthly breakdown for the confirmation step
  *

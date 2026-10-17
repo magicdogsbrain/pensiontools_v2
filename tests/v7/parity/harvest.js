@@ -174,7 +174,7 @@ export function harvestV6Keys() {
     const sr = sourceWith(sdb, 'getDefaultStressDB');
     add('stress', literalKeysAfter(sr.src, sdb), sr.rel + ': getDefaultStressDB()');
     // the load-time migrations: the Stress copy is `ms`, the Decision copy `settingsIn` (the 6.2.1 rewrite)
-    add('stress', assignedProps(inFile('src/storage/StressRepository.js'), 'ms'), 'StressRepository: load-time migration');
+    add('stress', assignedProps(inFile('src/services/PlanReading.js'), 'ms'), 'PlanReading: load-time migration (run by StressRepository on load)');
     add('decision', assignedProps(inFile('src/storage/DecisionRepository.js'), 'settingsIn'), 'DecisionRepository: load-time migration');
     // the renamed keys an old plan still carries beside the new ones (storage/migrations.js toV1)
     const renames = /\[\s*\[\s*'pacwMin'[\s\S]*?\]\s*\]/;

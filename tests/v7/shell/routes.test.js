@@ -29,7 +29,11 @@ const ROWS = [
   ['#/b/answer', r('step', 'b', 'answer'), 'b.answer'],
   ['#/b/choices', r('step', 'b', 'choices'), 'b.choices'],
   ['#/b/keep', r('step', 'b', 'keep'), 'b.keep'],
-  ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
+  ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon']),
+  // the saved plans, read-only (research/v7/your-plan.md 4.2): the list, and one plan on its first step or a named one
+  ['#/plans', { ...r('plans') }, 'plans'],
+  ['#/plan/Kq8LwT2mJv5PzYc9BnRd', { ...r('plan'), planId: 'Kq8LwT2mJv5PzYc9BnRd' }, 'plan'],
+  ['#/plan/guest-k3v9x1qa/month', { ...r('plan', null, 'month'), planId: 'guest-k3v9x1qa' }, 'plan']
 ];
 const FOCUSED = [
   ['#/c/numbers?focus=you.age', r('step', 'c', 'numbers', 'you.age')],
@@ -37,7 +41,7 @@ const FOCUSED = [
   ['#/c/answer?focus=take', r('step', 'c', 'answer', 'take')],
   ['#/?focus=you.pot', r('front', null, null, 'you.pot')]
 ];
-const UNKNOWN = ['#/plan/abc123/c/answer', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense',
+const UNKNOWN = ['#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense',
   '#/c/answer/extra', '#/c/numbers?focus=', '#/c/numbers?focus=you.pot=250000', '#/c/numbers?pot=250000', '#/C/numbers', '#/c/numbers?focus=1'];
 
 describe('parse and format', () => {
@@ -104,6 +108,14 @@ describe('no figure ever appears in an address', () => {
       const address = format(s.route);
       expect(address, address).not.toMatch(/\d/);
       expect(address).not.toMatch(/£|%/);
+    }
+  });
+  it('a plan address carries the plan\'s id and nothing else: no figure, however full the state', () => {
+    for (const step of [null, 'month', 'plan', 'household']) {
+      const s = reduce(full, { type: A.ROUTE_SET, route: { ...r('plan', null, step), planId: 'Kq8LwT2mJv5PzYc9BnRd' } });
+      const address = format(s.route);
+      expect(address).toBe('#/plan/Kq8LwT2mJv5PzYc9BnRd' + (step ? '/' + step : ''));
+      expect(address.replace('Kq8LwT2mJv5PzYc9BnRd', '')).not.toMatch(/\d/);
     }
   });
   it('nor after the button is pressed', () => {

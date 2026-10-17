@@ -7,14 +7,15 @@
  * Requires user to be logged in - no local storage fallback.
  */
 
-import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
+import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { tentGlideForSettings } from '../services/GlidepathService.js';
 import { deriveIsaMix } from '../services/IsaFunds.js';
-import { scheduleFromSteps, defaultSpYear, smileToSteps, compileSteps } from '../services/IncomeSchedule.js';
-import { pinTiming, timingPinPatch, potScaleOf, isaAtRetirementOf } from '../services/PlanTiming.js';
+import { scheduleFromSteps, defaultSpYear } from '../services/IncomeSchedule.js';
+import { getDefaultStressDB as defaultStressDB, migrateStressSettings } from '../services/PlanReading.js';
+import { timingPinPatch, potScaleOf, isaAtRetirementOf } from '../services/PlanTiming.js';
 import { budgetAgesKnown } from '../services/BudgetModel.js';
 import { chargesPctOf, DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 import { isaGrowthOf, DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
@@ -35,53 +36,9 @@ let timingPinWrite = Promise.resolve();
 export function timingPinSettled() { return timingPinWrite; }
 
 /**
- * Default stress database structure.
- * It is merged UNDER every stored plan on load (migrateStressDB), so it never carries the fund and platform charge
- * (6.19.0): a locked plan from before charges must keep reading none, which every engine takes as 0%.
+ * Default stress database structure — the pure one (services/PlanReading.js), merged UNDER every stored plan on load.
  */
-function getDefaultStressDB() {
-  return {
-    settings: {
-      // Fund minimums
-      equityMin: DRAWDOWN_DEFAULTS.EQUITY_MIN,
-      bondMin: DRAWDOWN_DEFAULTS.BOND_MIN,
-      cashTarget: DRAWDOWN_DEFAULTS.CASH_TARGET,
-      duration: DRAWDOWN_DEFAULTS.DURATION_YEARS,
-
-      // Income
-      baseSalary: DRAWDOWN_DEFAULTS.BASE_SALARY,
-      other: 0,
-      statePension: 12000,
-      statePensionYear: 12,
-
-      // Tax
-      pa: TAX_DEFAULTS.PERSONAL_ALLOWANCE,
-      brl: TAX_DEFAULTS.BASIC_RATE_LIMIT,
-      hrl: TAX_DEFAULTS.HIGHER_RATE_LIMIT,
-      taxMode: 'inflates',
-
-      // Protection
-      protectionMult: SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER,
-      consecutiveLimit: DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
-      disableProtection: false,
-
-      // HODL (emergency reserve)
-      hodlEnabled: SIMULATION_DEFAULTS.HODL_ENABLED,
-      hodlValue: SIMULATION_DEFAULTS.HODL_VALUE,
-
-      // Spending profile ('flat' default; 'declining' = spending drifts down with age)
-      spendingProfile: 'flat',
-      // Rising-equity glidepath / bond tent (opt-in)
-      equityGlideEnabled: false,
-      // Diversifiers sleeve (gold + trend/macro), opt-in — 0 = off (legacy 3-bucket)
-      diversifierStart: 0,
-      // Tagged fund holdings (from "Build from my funds"), reused across tabs
-      taggedFunds: []
-    },
-    lastModified: null,
-    checksum: null
-  };
-}
+function getDefaultStressDB() { return defaultStressDB(); }
 
 /**
  * Check if Firebase is available
@@ -209,60 +166,13 @@ export function generateStressChecksum(db) {
 }
 
 /**
- * Migrates old database formats to current version
+ * Migrates old database formats to current version — the pure migration (services/PlanReading.js migrateStressSettings),
+ * which the preview runs in memory too; this load path alone writes the start pin it derives (loadStressDBAsync).
  * @param {object} db - Database to migrate
  * @returns {object} Migrated database
  */
 function migrateStressDB(db) {
-  const migrated = { ...getDefaultStressDB() };
-
-  // Merge settings
-  if (db.settings) {
-    migrated.settings = { ...migrated.settings, ...db.settings };
-
-    // Migrate old field names
-    if (db.settings.pacwMin !== undefined && db.settings.equityMin === undefined) {
-      migrated.settings.equityMin = db.settings.pacwMin;
-    }
-    if (db.settings.cgtMin !== undefined && db.settings.bondMin === undefined) {
-      migrated.settings.bondMin = db.settings.cgtMin;
-    }
-    if (db.settings.csh2Target !== undefined && db.settings.cashTarget === undefined) {
-      migrated.settings.cashTarget = db.settings.csh2Target;
-    }
-
-    // Ensure HODL fields exist
-    if (migrated.settings.hodlEnabled === undefined) {
-      migrated.settings.hodlEnabled = false;
-    }
-    if (migrated.settings.hodlValue === undefined) {
-      migrated.settings.hodlValue = 25000;
-    }
-  }
-
-  // The separate "Declining with age" spending profile (v6.2.0 and earlier) is now expressed on the
-  // income steps themselves (per-step decline / glide). Bake it in once so the compiled schedule is
-  // identical and the plan stops carrying a multiplier nothing shows any more.
-  const ms = migrated.settings;
-  if (ms.spendingProfile === 'declining') {
-    const ageNow = +ms.shapeAgeNow || 57;
-    const steps = (ms.incomeShape === 'phases' && Array.isArray(ms.incomeSteps) && ms.incomeSteps.length) ? ms.incomeSteps : [{ fromAge: ageNow, amount: +ms.baseSalary || 0 }];
-    ms.incomeShape = 'phases';
-    ms.incomeSteps = smileToSteps(steps, ageNow);
-    ms.shapeAgeNow = ageNow;
-    ms.targetSchedule = compileSteps(ms, ageNow);
-    ms.spendingProfile = 'flat';
-    ms.spendingMigratedFrom = 'declining';
-  }
-  // 6.4.0: the plan's start (first tax year, retired / retire-at-age) is saved rather than implied by
-  // today's date. Derived once from the age today + the income shape's start age; written back by the load
-  // path the first time (6.13.5 — see loadStressDBAsync), not "on the next save".
-  migrated.settings = pinTiming(migrated.settings, db.budget || null);
-
-  migrated.lastModified = db.lastModified;
-  migrated.checksum = db.checksum;
-
-  return migrated;
+  return migrateStressSettings(db);
 }
 
 /**

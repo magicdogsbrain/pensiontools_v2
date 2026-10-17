@@ -414,3 +414,32 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
   .shape-y { height: 190px; }
   .shape-bands { top: 192px; }
 }
+
+/* ---- the saved plans, read-only (research/v7/your-plan.md 1.2, 1.3) ------------------------------------------ */
+.top-signout { min-height: var(--target); }
+.plan-head { margin: 0 0 12px; }
+.plan-read-at { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; }
+.plan-kicker { margin: 0; font-size: var(--size-small); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.plan-kicker .plan-name { text-transform: none; letter-spacing: 0; color: var(--text); font-size: 1.05rem; }
+.plan-stage-line { margin: 2px 0 0; font-weight: 600; }
+.plan-group { margin: 0 0 20px; }
+.plan-list, .plan-lines { list-style: none; padding: 0; margin: 0 0 8px; }
+.plan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.plan-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-name { font-weight: 650; }
+.plan-stage { color: var(--text-muted); }
+.plan-panel .line { margin: 0 0 10px; font-weight: 600; }
+.plan-line { padding: 6px 0; border-top: 1px solid var(--line); }
+.plan-label { font-weight: 600; }
+.plan-source { color: var(--text-muted); font-size: var(--size-small); }
+.plan-stale { color: var(--text-warning); font-weight: 600; }
+.plan-section { margin: 14px 0 0; }
+.plan-section h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.plan-fixed { margin: 4px 0 0; }
+.plan-fact { white-space: normal; }
+.plan-actions { margin-top: 10px; }
+.plan-rail .rail-another { margin-top: 10px; }
+.rail-step.is-unlisted .rail-label { font-style: italic; }
+@media (min-width: 1024px) {
+  .plan-rail .rail-steps { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

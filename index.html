@@ -4128,7 +4128,7 @@
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices } from './src/services/PlanTiming.js';
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
-    import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
+    import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
@@ -4600,7 +4600,7 @@
         } catch (e) { console.warn('demo link', e); }
       }
       // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
-      try { const want = sessionStorage.getItem('pt_open_tab'); if (want) { sessionStorage.removeItem('pt_open_tab'); initialTab = want; if (want === 'strategies') setTimeout(() => { try { showStrategyPage('overview'); } catch (e) {} }, 400); } } catch (e) { /* ignore */ }
+      initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));   // the demo link's one-shot tab, and the preview's hand-over: the plan, page and section, with the loader run (src/ui/components/OpenPlace.js)
       // Determine which tab to show
       const targetTab = initialTab || 'decision';
       updateNextStepBanner();
@@ -4871,7 +4871,7 @@
     }
 
     // A plan from a V7 answer (save-as-plan.md C.2): read at every start, offered on /#new-plan only. Steps: NewPlanFromSeed.js.
-    const seedEntry = (() => { try { return startSeedEntry({ showMainApp, maybeAnnounceRelease, startGuestMeter, startGuest }); } catch (e) { console.error('plan seed', e); return { keepIfWaiting: async () => false, clear() {}, tryWithoutAccount: null }; } })();   // never stops the page starting
+    const openPlace = (() => { try { return startOpenPlace(window); } catch (e) { console.error('open place', e); return { atMainApp: (t) => t, showing: () => false, request: null }; } })(); const seedEntry = (() => { try { return startSeedEntry({ showMainApp, maybeAnnounceRelease, startGuestMeter, startGuest }); } catch (e) { console.error('plan seed', e); return { keepIfWaiting: async () => false, clear() {}, tryWithoutAccount: null }; } })();   // never stops the page starting
     /**
      * Initialize auth screen with success callback
      */
@@ -5079,7 +5079,7 @@
       let planNotes = [], otherPlanCount = 0;
       try {
         const scenarios = await listScenariosAsync();
-        const active = scenarios.find((sc) => sc.isActive) || scenarios[0];
+        const activeId = await getActiveScenarioId(), active = scenarios.find((sc) => sc.id === activeId) || scenarios[0];
         if (active) planNotes = [{ name: active.planDetails?.name || active.name || 'Untitled', notes: entries.flatMap((r) => r.affects ? safeAffects(r, active) : []) }];
         otherPlanCount = Math.max(0, scenarios.length - 1);
       } catch (e) { /* render without plan specifics */ }
@@ -5114,14 +5114,14 @@
         const rels = releasesSince(seen);
         refreshVersionChips();
         if (!rels.length) return;
-        const blocked = () => WIZARD_IDS.some((id) => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.offsetParent !== null; }) || !!document.getElementById('planLockExplainer');
+        const blocked = () => WIZARD_IDS.some((id) => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.offsetParent !== null; }) || !!document.getElementById('planLockExplainer') || openPlace.showing();
         setTimeout(() => { if (!blocked()) showWhatsNew(rels); }, 600);
       } catch (e) { console.error('release announce', e); }
     }
 
     async function renderScenarioSelector() {
       const scenarios = await listScenariosAsync();
-      const active = scenarios.find(s => s.isActive);
+      const activeId = await getActiveScenarioId(), active = scenarios.find(s => s.id === activeId);   // the plan open in THIS window (a pinned plan, else isActive)
       window._hasPlans = scenarios.length > 0;   // the setup wizard words itself differently for a second plan
 
       // Update active scenario name in button
@@ -5145,7 +5145,7 @@
         const name = budEsc(s.planDetails?.name || s.name || 'Unnamed Plan');
         const desc = budEsc(s.planDetails?.description || s.description || '');
         return `
-        <div class="scenario-dropdown-item ${s.isActive ? 'active' : ''}" data-scenario-id="${s.id}">
+        <div class="scenario-dropdown-item ${s.id === activeId ? 'active' : ''}" data-scenario-id="${s.id}">
           <div>
             <div class="scenario-item-name">${name}</div>
             ${desc ? `<div class="scenario-item-desc">${desc}</div>` : ''}
@@ -5166,7 +5166,7 @@
           const id = item.dataset.scenarioId;
           if (!id) return;
 
-          const current = scenarios.find(s => s.isActive);
+          const current = scenarios.find(s => s.id === activeId);
           if (current && current.id === id) {
             // Already active, just close dropdown
             document.getElementById('scenarioDropdown').classList.remove('open');

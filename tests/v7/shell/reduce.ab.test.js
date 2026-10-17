@@ -94,6 +94,16 @@ const anyAction = fc.oneof(
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
   fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } })),
+  // the saved plans, read-only (research/v7/your-plan.md): the session, the plans in page memory, the hand-over
+  fc.constantFrom('checking', 'in', 'unverified', 'nobody', 'failed', 'none').map((kind) => ({ type: A.SESSION_SET, session: { kind, email: kind === 'in' ? 'a@b.c' : null } })),
+  fc.constant({ type: A.SESSION_OUT }),
+  fc.constant({ type: A.PLANS_READING }),
+  fc.constantFrom('account', 'window').map((source) => ({ type: A.PLANS_SET, list: [{ plan: { id: 'p1', planDetails: { name: 'One' } }, newer: false, failed: false }, { plan: null }], source, readAt: '14:03' })),
+  fc.constant({ type: A.PLANS_FAILED }),
+  fc.constant({ type: A.PLANS_VIEW, view: { today: '2026-09-30', rows: [], page: null } }),
+  fc.constant({ type: A.PLANS_CLEAR }),
+  fc.constant({ type: A.PLAN_CHANGE, planId: 'p1', place: 'month', back: '#/plan/p1' }),
+  fc.constant({ type: A.PLAN_CHANGE_FAILED }),
   // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
   saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
   fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),
@@ -147,13 +157,15 @@ describe('any sequence of actions over the three questions', () => {
     const seen = new Set(fc.sample(anyAction, 3000).filter((a) => typeof a === 'object').map((a) => a.type));
     expect([...seen].sort()).toEqual([...ACTION_TYPES].sort());
   });
-  it('the state survives JSON; plan and session never change; every answer is in a known state', () => {
+  it('the state survives JSON; plan never changes, the session is a known kind; every answer is in a known state', () => {
     fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {
       let s = fresh();
       for (const a of actions) {
         s = apply(s, a);
         expect(s.plan).toBe(null);
-        expect(s.session).toEqual({ kind: 'none' });
+        expect(['none', 'checking', 'in', 'unverified', 'nobody', 'failed']).toContain(s.session.kind);
+        // the plans never reach the draft store's shape (your-plan.md 3.8): page memory only, under one key
+        if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
       expect(Object.keys(s.draft).sort()).toEqual(Q);

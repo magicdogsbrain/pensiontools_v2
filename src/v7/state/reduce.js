@@ -20,6 +20,7 @@ import { carryFor, carriedSteps, atStartOf } from './carry.js';
 import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
+import { SESSION_KINDS } from './initial.js';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -482,6 +483,46 @@ export function reduce(state, action) {
     case A.UI_ONLINE:
       return state.ui.online === !!action.online ? state : { ...state, ui: { ...state.ui, online: !!action.online } };
 
+    // ---- the saved plans, read-only (research/v7/your-plan.md 3.8, 4.3): page memory only, never the draft ----------
+    case A.SESSION_SET: {
+      const k = action.session && action.session.kind;
+      if (!SESSION_KINDS.includes(k)) return refuse('session/set: not a session');
+      const email = typeof action.session.email === 'string' ? action.session.email : null;
+      const next = { kind: k, email, signingOut: false };
+      if (state.session.kind === k && state.session.email === email && !state.session.signingOut) return state;
+      // becoming nobody clears the plans at once (4.3)
+      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null };
+    }
+    case A.SESSION_OUT:
+      return state.session.kind !== 'in' || state.session.signingOut ? state : { ...state, session: { ...state.session, signingOut: true } };
+    case A.PLANS_READING:
+      return { ...state, plans: { status: 'reading', source: state.plans ? state.plans.source : null, readAt: state.plans ? state.plans.readAt : null, list: state.plans ? state.plans.list : [] } };
+    case A.PLANS_SET: {
+      if (!Array.isArray(action.list)) return refuse('plans/set: the list must be a list');
+      const source = action.source === 'window' ? 'window' : 'account';
+      const list = action.list.filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null).map((e) => ({ plan: e.plan, newer: !!e.newer, failed: !!e.failed }));
+      return { ...state, plans: { status: 'read', source, readAt: typeof action.readAt === 'string' ? action.readAt : null, list, usedUp: action.usedUp === true } };
+    }
+    case A.PLANS_FAILED:
+      return { ...state, plans: { status: 'failed', source: state.plans ? state.plans.source : null, readAt: state.plans ? state.plans.readAt : null, list: [] } };
+    case A.PLANS_VIEW: {
+      // the plan source's reading (src/answers/plan/read.js, loaded with the source on the plan pages only): the list's
+      // rows, and the page for the route's plan and step — data the screens draw; nothing a screen works out
+      const v = action.view;
+      if (!state.plans || state.plans.status !== 'read') return state;
+      if (!v || typeof v !== 'object' || !Array.isArray(v.rows)) return refuse('plans/view: not a view');
+      return { ...state, plans: { ...state.plans, view: { today: String(v.today), rows: v.rows, page: v.page && typeof v.page === 'object' ? v.page : null } } };
+    }
+    case A.PLANS_CLEAR:
+      return state.plans === null && state.session.kind === 'none' ? state : { ...state, plans: null, session: { kind: 'checking', email: null, signingOut: false } };
+    case A.PLAN_CHANGE: {
+      const { planId = null, place, back } = action;
+      if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
+      return { ...state, ui: { ...state.ui, leaving: { planId, place, back }, leaveProblem: null } };
+    }
+    case A.PLAN_CHANGE_FAILED:
+      return { ...state, ui: { ...state.ui, leaving: null, leaveProblem: 'storage' } };
+
     case A.ENV_SET: {
       // Start-up and the test hook only. The date, the last month of market history and the version; never the build.
       const patch = action.patch || {};
@@ -596,13 +637,17 @@ export function reduce(state, action) {
         route: tidyRoute(copy.route),
         env: { today: copy.env.today, build: 'test', appVersion: typeof copy.env.appVersion === 'string' ? copy.env.appVersion : state.env.appVersion,
                historyEnd: typeof copy.env.historyEnd === 'string' ? copy.env.historyEnd : null },
-        session: { kind: 'none' },                   // fixed in this slice, whatever was handed in
-        plan: null,                                  // fixed in this slice
+        session: copy.session && SESSION_KINDS.includes(copy.session.kind) ? { kind: copy.session.kind, email: typeof copy.session.email === 'string' ? copy.session.email : null, signingOut: false } : { kind: 'none', email: null, signingOut: false },
+        plan: null,                                  // reserved
+        // a named plan state holds its plans (page memory, as the source would have handed them in)
+        plans: copy.plans && Array.isArray(copy.plans.list) ? { status: ['reading', 'read', 'failed'].includes(copy.plans.status) ? copy.plans.status : 'read', source: copy.plans.source === 'window' ? 'window' : 'account', readAt: typeof copy.plans.readAt === 'string' ? copy.plans.readAt : null,
+          list: copy.plans.list.filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null).map((e) => ({ plan: e.plan, newer: !!e.newer, failed: !!e.failed })), usedUp: copy.plans.usedUp === true,
+          ...(copy.plans.view && Array.isArray(copy.plans.view.rows) ? { view: { today: String(copy.plans.view.today), rows: copy.plans.view.rows, page: copy.plans.view.page || null } } : {}) } : null,
         draft: drafts,
         answers,
         budget: cleanSheet(copy.budget),
         keep,
-        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false }
+        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null }
       };
     }
 

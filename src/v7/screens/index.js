@@ -17,6 +17,8 @@ import { ChoicesScreen } from './b/ChoicesScreen.jsx';
 import { SpendScreen as SpendA } from './a/SpendScreen.jsx';
 import { SpendScreen as SpendB } from './b/SpendScreen.jsx';
 import { keepScreen } from './KeepScreen.jsx';
+import { PlansScreen } from './plan/PlansScreen.jsx';
+import { PlanScreen } from './plan/PlanScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -34,5 +36,8 @@ export const SCREENS = {
   'b.choices': ChoicesScreen,
   'b.keep': keepScreen('b'),
   soon: Soon,
-  notBuilt: NotBuilt
+  notBuilt: NotBuilt,
+  // the saved plans, read-only (research/v7/your-plan.md)
+  plans: PlansScreen,
+  plan: PlanScreen
 };

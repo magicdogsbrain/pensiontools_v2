@@ -10,7 +10,8 @@
  */
 import { money, ageText, pot, get } from '../../answers/shared/format.js';
 
-const TEXT = { age: ageText, pot, money };
+/** `count` is a whole number (months, gilts, years); `pct` a percentage, as written. */
+const TEXT = { age: ageText, pot, money, count: (v) => String(Math.round(v)), pct: (v) => String(Math.round(v * 100) / 100) + '%' };
 
 export function Money({ source, k, kind = 'money', class: cls }) {
   const v = get(source, k);

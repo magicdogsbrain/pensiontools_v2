@@ -27,7 +27,7 @@ The choice is **B's core with four things taken from A**.
 | Sentences | Built inside the answer function from the same numbers, by templates in `src/answers/c/sentences.js`. `src/answers/` never imports from `src/v7/`. | A |
 | The worker | A **new, separate worker** for V7 (`src/v7/effects/answerWorker.js`). The existing `engineWorker.js` and `engineClient.js` are not edited. | neither — see 3.3 |
 | The old event interpreter (`data-on-*`) | Not used in V7. Events are ordinary Preact handlers that dispatch an action. | both |
-| Firebase, saving, sign-in | **Not in the first slice at all.** No file in `src/v7/` may import `src/storage` or `src/firebase` yet; a test enforces it. | A, made stricter |
+| Firebase, saving, sign-in | **Reading only, from 17 Oct 2026** (research/v7/your-plan.md 4.1): exactly one file, `src/v7/effects/planSource.js`, imports Firebase, read-only names only, loaded on the plan pages alone; nothing V7 can reach can write a plan — a test walks every import. Saving and sign-in stay the planner's. | A, made stricter |
 | Test seams | `window.__pt` in a test build only; `data-key` + `data-value` on every number; `data-ready="1"` on `#app` and a `pt:done` event. | both |
 | Old shell | Frozen to fixes; its inline script may only shrink (a test). Code leaves it by pin → move → point the old shell at it → use from an answer. | A |
 | Cutover | One release (7.0.0) that swaps the two build outputs and changes nothing about saved plans. Rollback is swapping back from the current commit, never redeploying an older build. | B (swap), A (rollback rule) |
@@ -118,6 +118,12 @@ import the code that does.** The import test fails the build if any file under `
 session storage. A browser test puts a locked fixture plan where today's app keeps guest plans, visits every
 V7 address, and checks the stored plan is identical afterwards.
 
+From 17 Oct 2026 ("Your plans" and "Your plan", research/v7/your-plan.md) V7 reads saved plans — not through today's
+repositories, which write on read (the upgrade rewrite, the plan-start pin, a journey entry), but through one read-only
+file and today's pure upgrade, in memory. The rule above becomes "nothing V7 can reach can write a plan" (3.1, rule 3),
+and the browser test now plants two linked plans, opens every step of each, follows "Change this" into the planner and
+back, and checks the stored text byte for byte (e2e/plan.spec.js).
+
 From B: the 7.0.0 release changes which shell is the default and nothing about the shape of saved plans; any
 shape change ships in a 6.x release first, where today's app already understands it. From A: roll back by
 swapping the outputs again from the current commit; never by redeploying an old build, which may not know the
@@ -169,8 +175,19 @@ Rules a test enforces by reading `import` lines (`tests/v7/boundaries.test.js`):
 1. `src/answers/**` never imports `src/v7`, `src/ui`, `src/storage` or `src/firebase`, and contains no
    `Math.random`, `Date.now` or bare `new Date()`.
 2. Screens and components never import an answer function or an engine.
-3. Nothing in `src/v7/` imports `src/storage`, `src/firebase`, `src/workers` or `src/ui/inlineHandlers.js`
-   (first slice; rule 3 is relaxed for one named effects file when saving arrives).
+3. Nothing V7 can reach can write a plan (replaced 17 Oct 2026, research/v7/your-plan.md 4.1; owner question 3):
+   3a. every import reachable from `src/v7/main.jsx` and `src/v7/effects/answerWorker.js` — static, dynamic,
+   `export from`, worker URLs — is walked; no file reached is under `src/storage`, `src/firebase` or `src/workers`, nor
+   is `src/ui/inlineHandlers.js`, with five named pure exceptions (`src/firebase/projectConfig.js`,
+   `src/firebase/scenarioMigration.js`, `src/storage/migrations.js`, `src/storage/schema.js`,
+   `src/storage/stressDefaults.js`), each of which may import only the others, `src/constants.js`, `src/services`,
+   `src/utils`, `src/strategies` and `src/data`; 3b. exactly one V7 file, `src/v7/effects/planSource.js`, imports a
+   `firebase` package — `firebase/app`, `firebase/auth` and `firebase/firestore/lite` only, by read-only names only
+   (`initializeApp`, `getAuth`, `setPersistence`, `browserLocalPersistence`, `onAuthStateChanged`, `signOut`,
+   `getFirestore`, `collection`, `getDocs`); 3c. no file reached contains `setDoc`, `updateDoc`, `addDoc`,
+   `deleteDoc`, `writeBatch` or `runTransaction` outside comments; 3d. only named effects files touch browser storage,
+   each only its own keys, and the window's plans (`pt_guest_scenarios`) are never written. The reading
+   (`src/answers/plan/read.js`, `src/services/PlanReading.js`) loads with the plan source, on the plan pages only.
 4. Only files in `src/v7/effects/` and `src/v7/testing/` use `window`, `location`, `sessionStorage`,
    `Worker` or the clock.
 
@@ -262,7 +279,7 @@ only on the CI machine.
 | Shell: Preact, state, addresses, rail, components, front door, styles | always | 35 KB |
 | Question C: screens and words | when the question opens | 15 KB |
 | The V7 worker: answer functions and engines | started when a question opens | about today's 119 KB, off the page's own thread |
-| Firebase | not in the first slice | — |
+| Firebase, and the plan reading | the plan pages only (`#/plans`, `#/plan/…`), with `import()` | measured 17 Oct 2026: 83 KB compressed in one chunk (Firebase app, sign-in and Firestore Lite with the upgrade, the stage, where-am-I and the move); the shell is unchanged |
 
 First answer, measured in the browser with the processor slowed four times: first figure within 3 seconds of
 asking, final figure within 15 seconds, no pause on the page over 200 ms.

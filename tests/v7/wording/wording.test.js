@@ -19,6 +19,7 @@ import * as common from '../../../src/v7/copy/common.js';
 import { C } from '../../../src/v7/copy/c.js';
 import { A } from '../../../src/v7/copy/a.js';
 import { B } from '../../../src/v7/copy/b.js';
+import { PLAN } from '../../../src/v7/copy/plan.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -106,6 +107,20 @@ describe('the banned list itself', () => {
 
 describe('the words in src/v7/copy/', () => {
   const Q_SCOPES = ['all', 'first', 'planner', 'retired'];
+  it('the saved plans (plan.js): every string passes in every scope a plan page is shown in — records, retired and saver alike', () => {
+    // A plan page is a record screen (banned.js SCOPES.record); a retired person's and a saver's stages are both drawn from it.
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
+    const slot = (s) => s.replace(/\{(month|nextMonth|stop)\}/g, 'April 2027').replace(/\{(date|asOf)\}/g, '1 July 2026').replace(/\{(year|savedYear)\}/g, '2027/28')
+      .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month')
+      .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036');
+    const hits = [];
+    const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
+    // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
+    const skipOn = (where) => (where.startsWith('strategies.') ? ['bridge'] : []);
+    for (const [where, s] of strings(PLAN)) for (const h of bannedHits(slot(s), scopes, { context: all, skip: skipOn(where) })) hits.push(`plan.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(PLAN)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
+  });
   it('question C: every string passes, in every scope question C is shown in — the "retired" rules included', () => {
     const hits = [];
     const whole = strings(C).map(([, s]) => filled(s)).join('\n');

@@ -7,9 +7,11 @@
  *     (step 4) A's and B's once their states, screens and addresses exist. On A and B no state may show a
  *     countdown, and the retired view and the stop-now answer are read under the retired rules too.
  *  3. V7 cannot change a plan: a LOCKED plan from the corpus is put where today's app keeps guest plans,
- *     every V7 address is visited and every link followed, and the stored text is byte-identical afterwards.
- *     The only thing V7 itself may store is its own draft, `pt_v7_draft`, in this tab — also after A and B
- *     have been used and a hand-over made between them.
+ *     every V7 address is visited (the saved plans' pages among them, which read that plan) and every link followed,
+ *     and the stored text is byte-identical afterwards. The only things V7 itself may store are its own draft,
+ *     `pt_v7_draft`, in this tab — also after A and B have been used and a hand-over made between them — and the
+ *     planner's own activity note, `pt_lastActivity`, which V7 records on every page so an idle planner window cannot
+ *     sign out someone reading the preview (research/v7/your-plan.md 4.3).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -133,6 +135,7 @@ test.describe('V7 cannot change a plan', () => {
   const GUEST_KEY = 'pt_guest_scenarios';
   const HANDOFF_KEY = 'pt_guest_handoff';
   const OWN_KEY = 'pt_v7_draft';
+  const ACTIVITY_KEY = 'pt_lastActivity';   // the planner's idle-sign-out note, which V7 keeps up (your-plan.md 4.3)
 
   test('a locked plan in guest storage is byte-identical after every address is visited', async ({ page }) => {
     const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
@@ -201,7 +204,10 @@ test.describe('V7 cannot change a plan', () => {
     // Nothing else appeared or changed, except V7's own draft in this tab.
     const { [OWN_KEY]: own, ...sessionRest } = after.session;
     expect(sessionRest).toEqual(before.session);
-    expect(after.local).toEqual(before.local);
+    const { [ACTIVITY_KEY]: activityAfter, ...localRest } = after.local;
+    const { [ACTIVITY_KEY]: activityBefore, ...localBefore } = before.local;
+    expect(localRest).toEqual(localBefore);
+    expect(activityAfter, 'the activity note is a time').toMatch(/^\d{10,}$/);
     if (BUILT.screens && BUILT.shell) expect(typeof own, 'the draft is kept in this tab').toBe('string');
     // The draft holds what was typed and nothing of the plan.
     if (own) { expect(own).not.toContain('planDocument'); expect(own).not.toContain('decisionTool'); }
@@ -209,7 +215,7 @@ test.describe('V7 cannot change a plan', () => {
     // The test build counts every storage write since load: only V7's own key.
     if (BUILT.hooks) {
       const writes = await page.evaluate(() => window.__pt.writes());
-      expect(Object.keys(writes).filter((k) => k !== OWN_KEY), 'storage keys written by V7').toEqual([]);
+      expect(Object.keys(writes).filter((k) => k !== OWN_KEY && k !== ACTIVITY_KEY), 'storage keys written by V7').toEqual([]);
     }
   });
 });

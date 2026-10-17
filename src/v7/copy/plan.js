@@ -1,0 +1,306 @@
+/**
+ * The words of "Your plans" and "Your plan" (research/v7/your-plan.md 1, 2.3, 2.4, 2.5; rail-screens-language.md 1.3).
+ * Data only — this file imports nothing. Placeholders are written {likeThis} and filled by the screen.
+ *
+ * The figures are never here: they are the plan's own records, drawn by the screen with their source (your-plan.md 3).
+ * Every stage line uses the key and the dates only — never the planner's label, chip or banner (R9).
+ */
+export const PLAN = {
+  /** The header of every V7 page, and the plan pages' own. */
+  header: { plans: 'Your plans', ask: 'Ask a question', signOut: 'Sign out' },
+
+  /** The list (1.2). */
+  list: {
+    title: 'Your plans',
+    readAt: 'Read at {time}',
+    readAgain: 'Read again',
+    opening: 'Opening your plans…',
+    groups: { household: 'Your household', other: 'Other plans', 'window': 'Kept in this window only, without an account' },
+    open: 'Open',
+    lockedOn: 'Locked {date}.',
+    madeOn: 'Made from your answer on {date}.',
+    shownAsSaved: 'Shown as saved.',
+    empty: 'There are no plans in this account yet. Ask a question, then keep the answer as a plan.',
+    emptyWindow: 'There are no plans in this window. Ask a question, then keep the answer as a plan.',
+    /** Nobody signed in (1.1). */
+    signIn: 'Sign in to see your plans.',
+    signInButton: 'Sign in',
+    noAccount: 'No account? Ask a question: an answer needs no account.',
+    /** Email not confirmed. */
+    unverified: 'Your email address is not confirmed yet, so your plans cannot be read. Confirm it from the email we sent, or open the planner to send it again.',
+    openPlanner: 'Open the planner',
+    /** The read failed. */
+    failed: 'Sorry, we could not read your plans. Nothing was changed.',
+    tryAgain: 'Try again',
+    /** The free time without an account is used up (owner question 5). */
+    usedUp: 'Your free time without an account is used up. Sign in or create an account to keep and see this plan.',
+    /** An id that is not in the account. */
+    unknown: 'That plan is not in this account.',
+    toPlans: 'Your plans',
+    /** The browser refused the hand-over's note (1.4). */
+    leaveProblem: 'This browser would not pass the request to the planner. Open the planner from the link at the top of this page.'
+  },
+
+  /** The stage lines (rail-screens-language.md 1.3). {month} is a month in words: "April 2027". */
+  stageLines: {
+    saving: 'Still saving.',
+    approaching: 'Stopping work within five years.',
+    'committed-saving': 'Plan locked. Still working until {month}.',
+    'draft-retired': 'Retired. Plan not locked yet.',
+    'bridge-ladder': 'Retired. Your ladder pays from {month}.',
+    'bridge-plan': 'Retired. Your plan pays from {month}.',
+    running: 'Retired. Living on the plan.'
+  },
+  /** The same about a partner, on the household step ("With ‘…’: …"). */
+  theirLines: {
+    saving: 'still saving.',
+    approaching: 'stopping work within five years.',
+    'committed-saving': 'plan locked. Still working until {month}.',
+    'draft-retired': 'retired. Plan not locked yet.',
+    'bridge-ladder': 'retired. Their ladder pays from {month}.',
+    'bridge-plan': 'retired. Their plan pays from {month}.',
+    running: 'retired. Living on the plan.'
+  },
+
+  /** One plan (1.3). */
+  page: {
+    title: 'Your plan',
+    lockedOn: 'Locked {date}.',
+    shownAsSaved: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
+    railNav: 'The steps of your plan',
+    railTitle: 'Your plan',
+    position: 'Your plan: {step}',
+    optional: 'optional',
+    marks: { current: 'You are here', done: 'Done', open: 'Not done yet' },
+    close: 'Close',
+    notListed: 'This step is not on your plan’s list at the moment. It opens all the same.',
+    source: {
+      record: 'From your record, {date}',
+      recordUndated: 'From your record',
+      hold: 'From What you hold, {date}',
+      holdUndated: 'From What you hold',
+      locked: 'From your plan as locked, {date}',
+      lockedUndated: 'From your plan as locked',
+      saved: 'As saved in the plan',
+      savedOn: 'As saved in the plan, {date}',
+      budget: 'From your budget (a guide)'
+    },
+    stale: 'Check this figure: it is from {date}.',
+    fixed: 'Fixed when you locked the plan on {date}.',
+    prices: 'At the prices of {month}.',
+    pricesToday: 'At today’s prices.',
+    changeThis: 'Change this in the planner',
+    /** The one unlock line (owner question 4), on the "Your plan as locked" step only. */
+    unlock: 'To change a locked plan, the planner unlocks it first. Unlocking keeps this plan document as a past version, and the planner asks before it does it.',
+    pastVersions: 'Past versions: {n}',
+    journeyTitle: 'How this plan got here',
+    journeyArrival: 'Arrival check on {date}',
+    askTitle: 'Ask a question',
+    ask: { a: 'When can I afford to stop work?', b: 'Am I saving enough?', c: 'What is that a month?' },
+    /** Before leaving for the planner without an account (1.4). */
+    windowWarning: 'In the planner, press ‘Just try it — no account’ to carry on with this plan.',
+    leaveProblem: 'This browser would not pass the request to the planner. Open the planner and choose ‘{name}’ from the plan menu.',
+    showAll: 'Show every setting',
+    hideAll: 'Show only what has been changed',
+    noneChanged: 'Nothing has been moved away from the planner’s starting values.'
+  },
+
+  /** The steps, by id: the name on the rail and the short name on a phone. */
+  steps: {
+    month:     { label: 'This month', short: 'This month' },
+    where:     { label: 'Where you are', short: 'Where you are' },
+    plan:      { label: 'Your plan', short: 'Your plan', locked: 'Your plan as locked' },
+    pot:       { label: 'This month’s pot', short: 'This month’s pot' },
+    saving:    { label: 'What you pay in', short: 'Pay in' },
+    budget:    { label: 'What you spend', short: 'Spend' },
+    lock:      { label: 'Lock the plan', short: 'Lock' },
+    hold:      { label: 'What you hold', short: 'What you hold' },
+    move:      { label: 'Moving to your plan’s mix', short: 'Your plan’s mix' },
+    household: { label: 'Your household', short: 'Household' }
+  },
+
+  /** The lines of a step's panel, by id: a label before the figure. {slots} as read.js gives them. */
+  lines: {
+    'month.yearSetUp': 'Tax year {year}: set up.',
+    'month.yearNotSetUp': 'Tax year {year}: not set up yet.',
+    'month.record': '',
+    'where.saverPot': 'Your pot',
+    'where.saverLine': 'The plan’s middle line for then',
+    'where.taken': 'Taken before tax in {year}',
+    'where.planned': 'The plan says, for {year}',
+    'where.step': 'Step {n} of {of} of your plan',
+    'where.pot': 'Your pot',
+    'where.potMid': 'The plan’s middle line',
+    'where.ladderMonthly': 'Your ladder pays',
+    'about.age': 'Age today',
+    'about.stopAt': 'Stopping work at',
+    'about.retired': 'Retired.',
+    'about.firstYear': 'First tax year: {year}.',
+    'about.runs': 'The plan runs',
+    'pays.step': '',
+    'pots.pension': 'Pension pot',
+    'pots.split': 'Split',
+    'pots.isa': 'ISA',
+    'pots.gia': 'Ordinary investment account',
+    'pots.atStop': 'Pots when you stop',
+    'pots.statePension': 'State Pension',
+    'pots.statePensionOld': 'State Pension',
+    'pots.noStatePension': 'No State Pension figure.',
+    'pots.finalSalary': 'Final-salary pension',
+    'pots.other': 'Other income',
+    'way.strategy': 'How the money is taken: {strategy}.',
+    'way.dial': '{dial}',
+    'way.allocMode': 'The mix is set {mode}.',
+    'pot.latest': 'Recorded for {month}',
+    'saving.you': 'From you',
+    'saving.employer': 'From your employer',
+    'saving.isa': 'Into ISAs and savings',
+    'saving.rise': 'Rising by',
+    'budget.totalLine': 'All in',
+    'budget.essentialsLine': 'Essentials',
+    'hold.total': 'In all',
+    'move.held': 'Held',
+    'household.partner': 'With ‘{name}’:'
+  },
+  /** The lines' extra words: the "from" on a State Pension, a final-salary pension, the age's date. */
+  lineAfter: {
+    'about.age': ' (as of {asOf})',
+    'about.stopAt': ', in {month}',
+    'pots.statePension': ' from {from}',
+    'pots.statePensionOld': ' from tax year {year}',
+    'pots.finalSalary': ' from {from}'
+  },
+  /** The strategies in plain names. The one with an ampersand is spelt as the planner spells it. */
+  strategies: {
+    'pots-and-valves': 'Pots and valves',
+    'buckets-in-order': 'Buckets in order',
+    'bridge-and-engine': 'Bridge & engine',
+    'ladder-and-ratchet': 'Ladder and ratchet',
+    'floor-and-flex': 'Floor and flex',
+    'floor-the-schedule': 'Floor the schedule',
+    'floor-to-age': 'Floor to an age',
+    'full-il-gilt': 'Full gilt ladder',
+    'gilt-rotation': 'Gilt ladder with a rotation'
+  },
+  /** The strategies' dials, by key. A key not here is shown as it is named. */
+  dials: {
+    sippTotal: 'Pension pot the plan is built on',
+    isaTotal: 'ISA the plan is built on',
+    cashYears: 'Years held in cash',
+    bridgeCash: 'Cash set aside for the years before the ladder pays',
+    floorYears: 'Years the floor covers',
+    reserveYears: 'Years in the reserve',
+    bridgeAge: 'Age the engine takes over',
+    toAge: 'Age the floor is bought to',
+    growthShare: 'Share left to grow',
+    ratchetStep: 'Ratchet step',
+    trigger: 'Rotation trigger',
+    flexShare: 'Share that flexes'
+  },
+  allocModes: { risk: 'by risk level', custom: 'as a custom split', funds: 'from the funds to test' },
+
+  /** The sections of "Your plan" (2.3). */
+  sections: {
+    about: 'About you',
+    pays: 'What the plan pays',
+    pots: 'Pots and other income',
+    way: 'How the money is taken',
+    else: 'Everything else this plan uses'
+  },
+
+  /** Notes a step shows under its figures, by id. */
+  notes: {
+    'where.ladderNotInDocument': 'The ladder is not in this plan document. The planner shows it at today’s prices.',
+    'saving.notFrozen': 'What you pay in is not frozen by the lock.',
+    'budget.guide': 'A guide beside your plan’s own figure. It changes nothing in the plan.',
+    'lock.what': 'Locking fixes the plan and writes the plan document, so you can follow it month by month.',
+    'lock.saver': 'You can lock it while you are still saving: the plan then follows your pot each month until you stop.',
+    'move.optional': 'Optional. Skipping it means what you hold may not match what the plan was tested on.'
+  },
+
+  /** Buttons (2.3), by id. {month}: a month’s name; {year}: a tax year; {name}: a plan’s name. */
+  buttons: {
+    record: 'Record {month} in the planner',
+    setUpYear: 'Set up {year} in the planner',
+    seeDocument: 'See it on the plan document in the planner',
+    openDocument: 'Open the plan document in the planner',
+    testLocked: 'Test the plan in the planner. Nothing you try there changes your locked plan.',
+    testPlan: 'Test it in the planner',
+    changeThis: 'Change this in the planner',
+    recordPot: 'Record this month’s pot in the planner',
+    changeSaving: 'Change this in the planner',
+    onCourse: 'Am I on course? (in the planner)',
+    changeBudget: 'Change this in the planner',
+    lockIt: 'Lock it in the planner',
+    changeHold: 'Change this in the planner',
+    openMove: 'Open it in the planner',
+    openPartner: 'Open ‘{name}’',
+    checkTogether: 'Check the two plans together in the planner',
+    linkOne: 'Link one in the planner',
+    addAge: 'Add your age in the planner',
+    updateIt: 'Update it in the planner'
+  },
+
+  /** The next sentence (2.4), by id, first match wins. */
+  next: {
+    'P.readonly': 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
+    'P.noAge': 'We cannot tell where you are without your age. Next: add it in the planner.',
+    'P.arrive': 'You stopped work in {stop}. Next: record your first month; the planner then compares your pot with the plan’s.',
+    'P.taxyear': 'Next: set up the {year} tax year.',
+    'P.month': 'Next: record {month}.',
+    'P.idle': '{month} is recorded. Nothing to do until {nextMonth}.',
+    'P.pot': 'Your plan is locked and you stop work in {stop}. Next: record this month’s pot.',
+    'P.working': 'Your plan is locked and you stop work in {stop}. Next: check you are still saving enough.',
+    'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today in the planner, or leave it as it is.',
+    'P.draft': 'Next: test the plan in the planner, and lock it when it is right.',
+    'P.approaching': 'Next: test the plan in the planner, then lock it and move what you hold to its mix.',
+    'P.saving': 'Next: check you are on course in the planner.'
+  },
+
+  /** "Everything else this plan uses" (2.5): each row's name and the label of each fact. */
+  options: {
+    'inc.streams':            { name: 'Income for some years', facts: { annual: 'A year', fromAge: 'From age', years: 'For years' } },
+    'inc.lump-sums':          { name: 'One-off lump sums', facts: { amount: 'Amount', atAge: 'At age' } },
+    'inc.extra-spends':       { name: 'Extra spends', facts: { amount: 'A year', atAge: 'From age', years: 'For years' } },
+    'inc.final-salary-rises': { name: 'How the final-salary pension rises', facts: { rises: 'Rises' } },
+    'inc.state-pension-old':  { name: 'State Pension, the older way (a yearly figure and a year)', facts: { yearly: 'A year', fromYear: 'Years after the first tax year' } },
+    'tax.bands':              { name: 'Tax thresholds', facts: { pa: 'Tax-free allowance', brl: 'Basic rate up to', hrl: 'Higher rate up to' } },
+    'tax.mode':               { name: 'Whether the thresholds rise', facts: { mode: 'Thresholds' } },
+    'tax.tax-free-cash':      { name: 'The tax-free quarter', facts: { how: 'Taken' } },
+    'tax.ufpls-years':        { name: 'Tax-free slices for some years', facts: { years: 'Years', thenRest: 'Then the rest into the ISA' } },
+    'tax.band-fill':          { name: 'Fill the basic-rate band and move the rest into the ISA', facts: { on: 'On' } },
+    'tax.bed-and-isa':        { name: 'Move £20,000 a year into the ISA', facts: { on: 'On' } },
+    'tax.earnings':           { name: 'Earnings that count for pension saving', facts: { yearly: 'A year' } },
+    'prot.cuts':              { name: 'Cuts in a slump', facts: { off: 'Switched off', after: 'After this many draws from cash', cutTo: 'Income cut to', deeperAfter: 'A deeper cut after this many months', buffer: 'Buffer before the cut ends' } },
+    'prot.reserve':           { name: 'Emergency reserve', facts: { on: 'On', amount: 'Amount' } },
+    'pots.diversifiers':      { name: 'Diversifiers (gold and trend funds)', facts: { amount: 'Amount' } },
+    'pots.bond-tent':         { name: 'Bond tent', facts: { on: 'On', endgame: 'At the end' } },
+    'pots.isa-use':           { name: 'How the ISA is used', facts: { use: 'Used' } },
+    'pots.isa-growth':        { name: 'How the ISA and savings grow', facts: { grows: 'Grows', fixedRate: 'Fixed rate', floor: 'ISA floor' } },
+    'pots.charges':           { name: 'Fund and platform charges', facts: { yearly: 'A year' } },
+    'pots.funds-to-test':     { name: 'Funds to test', facts: { name: 'Fund', value: 'Value' } },
+    'draw.cadence':           { name: 'How often you draw', facts: { how: 'Drawn' } },
+    'timing.stale-draft':     { name: '“Leave it” on an out-of-date start year', facts: { year: 'Year left as it was' } },
+    'lock.lock':              { name: 'The lock', facts: { locked: 'Locked', at: 'On', by: 'By' } },
+    'lock.unlock':            { name: 'Unlocks', facts: { times: 'Times unlocked', last: 'Last unlocked' } },
+    'month.seeded':           { name: 'Where a copy came from', facts: { from: 'From' } },
+    'mach.configured':        { name: 'Settings saved at least once', facts: { stress: 'The plan’s settings', decision: 'Month by month settings' } },
+    'mach.declining':         { name: 'The old “declining with age” profile, folded into the steps', facts: { folded: 'Folded in' } },
+    'mach.old-names':         { name: 'Old names of the pot floors', facts: { present: 'Still carried' } },
+    'mach.risk-mode':         { name: 'The example plan’s risk mode', facts: { mode: 'Mode' } },
+    'mach.start-date':        { name: 'The old month-by-month start date', facts: { date: 'Date' } }
+  },
+  /** The plain words for a row's choices, by fact value. */
+  choices: {
+    cpi: 'with prices', lpi5: 'with prices, capped at 5%', level: 'not at all',
+    inflates: 'rise with prices', frozen: 'frozen',
+    drawdown: 'a quarter of each withdrawal tax-free', ufpls: 'in tax-free slices', pcls: 'the quarter up front',
+    minimiseEarlyTax: 'to keep early tax down', maximiseLongevity: 'to make the money last', hold: 'held, never drawn for income',
+    invested: 'as the plan’s mix', cash: 'mostly as cash', fixed: 'at a fixed rate',
+    monthly: 'every month', quarterly: 'every three months', annual: 'once a year',
+    equity: 'in shares', gilt: 'in gilts', bond: 'in bond funds', balanced: 'in a mix', basic: 'at the basic rate', higher: 'at the higher rate',
+    band: 'sells only when well above the glide', glide: 'follows the glide'
+  },
+  yes: 'yes',
+  no: 'no'
+};

@@ -671,3 +671,27 @@ export function answerShapeChart(state, q) {
     list: Array.isArray(list) ? list : []
   };
 }
+
+// ---- the saved plans, read-only (research/v7/your-plan.md 1.2, 1.3) ------------------------------------------------------
+
+/**
+ * The "Your plans" screen: the session's state, and — once the plans are read and the plan source has read them for the
+ * screen (plans.view, from src/answers/plan/read.js) — their rows in groups.
+ * @returns {{ session, status: 'none'|'checking'|'reading'|'read'|'failed', source, readAt, groups, usedUp, count }}
+ */
+export function plansView(state) {
+  const session = state.session || { kind: 'none' };
+  const plans = state.plans;
+  const view = plans && plans.status === 'read' && plans.view && plans.view.today === state.env.today ? plans.view : null;
+  const status = plans ? (plans.status === 'read' && !view ? 'reading' : plans.status) : session.kind === 'none' ? 'none' : 'checking';
+  return { session, status, source: plans ? plans.source : null, readAt: plans ? plans.readAt : null, groups: view ? view.rows : [], usedUp: !!(plans && plans.usedUp), count: plans ? plans.list.length : 0 };
+}
+
+/** The "Your plan" screen for the route's plan and step: the source's reading of it, or { found: false } until it is there. */
+export function planView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  if (!r || r.screen !== 'plan' || !page || page.forId !== r.planId || (page.forStep || null) !== (r.step || null)) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  return { ...page, status: 'read' };
+}

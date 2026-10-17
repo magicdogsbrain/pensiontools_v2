@@ -28,3 +28,6 @@ export { KeepPanel, PLANNER_LINK } from './KeepPanel.jsx';
 // The spending shape (research/v7/spending-shape.md 4)
 export { StepsField, stepErrorText } from './StepsField.jsx';
 export { ShapeChart, ShapeAnswer, scaleTop, yearWords } from './ShapeChart.jsx';
+// The saved plans, read-only (research/v7/your-plan.md)
+export { PlanRail } from './PlanRail.jsx';
+export { PlanLine, PlanSentence, PlanButtons, fill } from './PlanFigures.jsx';

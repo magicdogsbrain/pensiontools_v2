@@ -36,11 +36,25 @@ import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
 import { cadenceOf, normaliseCadence } from '../services/DrawCadence.js';
 import { isExamplePlan } from '../services/GuestPlans.js';
+import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedScenarios = null;
 let cachedActiveScenario = null;
+
+// "Which plan is open in THIS WINDOW" (6.26, research/v7/your-plan.md 5.5): the preview's "Change this" on a plan that is
+// not the account's open plan pins that plan in this window's session storage. Every "which plan is open" read prefers
+// the pin while it names a plan in the list; otherwise `isActive`, as always. Nothing is written to any plan, so other
+// windows and devices stay on the account's open plan. Choosing a plan from the menu, making a new plan the open one, or
+// deleting the pinned plan clears the pin.
+function pinnedPlanId() {
+  try { return typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(OPEN_PLAN_KEY) : null; } catch (e) { return null; }
+}
+export function pinPlanInWindow(scenarioId) {
+  try { if (scenarioId) sessionStorage.setItem(OPEN_PLAN_KEY, String(scenarioId)); else sessionStorage.removeItem(OPEN_PLAN_KEY); } catch (e) { /* storage refused */ }
+}
+export function clearPinnedPlan() { pinPlanInWindow(null); }
 
 // The Stress and Decision settings of every loaded plan AS STORED: the lock guard's yardstick (6.20.2,
 // services/LockedPlanGuard.js). The cached plan objects cannot be it: they are handed out by reference, and some readers
@@ -350,7 +364,8 @@ export async function getActiveScenarioAsync() {
 
   try {
     const scenarios = await listScenariosAsync();
-    const active = scenarios.find(s => s.isActive);
+    const pin = pinnedPlanId();
+    const active = (pin && scenarios.find(s => s.id === pin)) || scenarios.find(s => s.isActive);
 
     if (active) {
       cachedActiveScenario = active;
@@ -416,6 +431,7 @@ export async function createNewScenario(name, description, enabledTools, overrid
   }
 
   scenario.isActive = setActive;
+  if (setActive) clearPinnedPlan();
 
   // If setting as active, deactivate others first
   if (setActive && cachedScenarios) {
@@ -444,6 +460,7 @@ export async function switchScenario(scenarioId) {
     throw new Error('Must be logged in to switch scenarios');
   }
 
+  clearPinnedPlan();
   await setActiveScenarioDoc(scenarioId);
   invalidateScenarioCache();
 }
@@ -557,6 +574,7 @@ export async function deleteScenario(scenarioId) {
     }
   }
 
+  if (pinnedPlanId() === scenarioId) clearPinnedPlan();
   await deleteScenarioDoc(scenarioId);
   invalidateScenarioCache();
 }

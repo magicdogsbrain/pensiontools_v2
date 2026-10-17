@@ -37,6 +37,18 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.27.1', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'Preview: a fast move between pages no longer bounces back',
+    summary: 'In the preview, moving to another page a moment after landing on an unknown address could send you back to the "could not find that page" door on a slow connection. Fixed.',
+    changes: [],
+    corrections: [
+      'The preview\'s address code wrote the page it was leaving back over the page you had just asked for when anything else changed in that moment. It now waits for the browser to confirm the new address first.'
+    ],
+    effects: { stress: [], strategies: [], decision: [], accumulation: [], household: [], budget: [] },
+    actions: [],
+    notes: ['Seen first as a browser test failing on a slow runner (every address visited in turn). No change to any plan or figure.']
+  },
+  {
     version: '6.27.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'The preview can change "About you and when"',
     summary: 'The first part of a plan you can change in the preview (/v7/) instead of the planner: your age, whether you have stopped work or when you will, when the plan\'s income starts, and the age to plan to, with a suggestion from how long people live. Each fact is asked once, by age, in plain English; what it works out to — the stop month, the first tax year, how long the plan runs — is shown, never asked. A save writes the same settings the planner\'s Timing block writes and nothing else, with Undo. A locked plan is never changed. After a change, the plan page says its "will it last" answer is older than its inputs and offers to check it again.',

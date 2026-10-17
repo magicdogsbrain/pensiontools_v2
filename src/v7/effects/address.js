@@ -15,11 +15,13 @@ const same = (hash, wanted) => hash === wanted || ((hash === '' || hash === '#')
 
 export function startAddress(store, win = window) {
   let reading = false;
+  let lastRead = null;   // the address as last read: a state change that lands before a new address's "hashchange" must not write over it
 
   const read = () => {
     reading = true;
-    try { store.dispatch({ type: A.ROUTE_SET, route: parse(win.location.hash) }); } finally { reading = false; }
+    try { lastRead = win.location.hash; store.dispatch({ type: A.ROUTE_SET, route: parse(win.location.hash) }); } finally { reading = false; }
     write(store.getState(), true);
+    lastRead = win.location.hash;
   };
   const write = (state, tidyOnly) => {
     const wanted = format(state.route);
@@ -28,7 +30,10 @@ export function startAddress(store, win = window) {
     else win.location.hash = wanted;
   };
 
-  const stopListening = store.subscribe((state) => { if (!reading) write(state, false); });
+  // A "hashchange" arrives a moment after the address changes. If some other state change lands in that moment, the
+  // state's route is still the old one: writing it would send the person back to the page they just left (seen on a
+  // slow runner as "#/plans" becoming "#/not-found"). The coming "hashchange" reconciles the two, so wait for it.
+  const stopListening = store.subscribe((state) => { if (!reading && win.location.hash === lastRead) write(state, false); });
   win.addEventListener('hashchange', read);
   read();
 

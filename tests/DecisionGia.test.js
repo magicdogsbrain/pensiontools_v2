@@ -11,7 +11,7 @@ vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, 
 import { decisionCases } from './golden/matrix.js';
 import { calcDecisionPWA } from '../src/services/legacyDecision.js';
 import { decisionToHistory } from '../src/models/Decision.js';
-import { seedDecisionFromStress, seedStressFromDecision } from '../src/storage/ScenarioRepository.js';
+import { seedDecisionFromStress } from '../src/storage/ScenarioRepository.js';
 
 const base = decisionCases.find((c) => /ISA pot \(Option A\)/.test(c.name));
 const run = (deps) => calcDecisionPWA(base.input.dateStr, base.input.equity, base.input.bond, base.input.cash, deps);
@@ -115,11 +115,9 @@ describe('Decision tool + taxable sleeve (GIA)', () => {
     expect(apsIsa.windfallAdvice[0]).toMatchObject({ toIsa: 100000, toGia: 0 });   // an inherited ISA is ISA money already
   });
 
-  it('the taxable sleeve and the plan\'s windfalls travel with a copy in both directions (no silent drop)', () => {
+  it('the taxable sleeve and the plan\'s windfalls travel with the lock\'s copy into the Decision tool (no silent drop)', () => {
     const stress = { taxableStart: 50000, taxableMix: 'gilt', giaTaxBand: 'higher', bedAndIsa: false, relevantEarnings: 12000, windfalls: [{ year: 2, amount: 80000 }] };
     const d = seedDecisionFromStress(stress, {});
     expect(d).toMatchObject(stress);
-    const s = seedStressFromDecision(d, {}, '2026-07-09T00:00:00Z');
-    expect(s).toMatchObject(stress);
   });
 });

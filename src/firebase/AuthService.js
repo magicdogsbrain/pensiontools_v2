@@ -86,7 +86,7 @@ export function isLoggedIn() {
  * Firestore rules would reject an unauthenticated write anyway). Listeners are NOT notified: the
  * caller boots the app itself.
  */
-const GUEST_USER = Object.freeze({ uid: 'guest', email: 'Guest — nothing is saved', displayName: 'Guest', isGuest: true, emailVerified: true });
+const GUEST_USER = Object.freeze({ uid: 'guest', email: 'Guest — kept in this window only', displayName: 'Guest', isGuest: true, emailVerified: true });
 export function enterGuestMode() { currentUser = GUEST_USER; return GUEST_USER; }
 export function isGuest() { return !!(currentUser && currentUser.isGuest); }
 export function leaveGuestMode() { if (isGuest()) currentUser = null; }

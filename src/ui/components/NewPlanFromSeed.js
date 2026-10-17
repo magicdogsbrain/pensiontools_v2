@@ -12,7 +12,7 @@
  * address; a good one is offered only on /#new-plan, whose hash is then cleared so a reload does not ask twice.
  *  - No seed on /#new-plan: "There was nothing waiting to be saved…".
  *  - Signed out: "Sign in or make a free account… or carry on without an account". Carrying on starts guest mode and its
- *    meter WITHOUT startGuest (which empties the tab and adds the demo plan), so the tab's plans are kept; if the guest
+ *    meter WITHOUT startGuest (which opens the setup wizard for a plan of one's own), so the tab's plans are kept; if the guest
  *    time is used up the meter's hard stop shows and the seed waits out its day.
  *  - Signed in (index.html's auth callback calls keepIfWaiting after the guest hand-off): the confirm step, then a NEW
  *    plan, the planner open on it at Stress tester → Settings with the one-line note and the way back to the question.
@@ -97,7 +97,7 @@ export function startSeedEntry(shell, win = window) {
     return true;
   }
 
-  /** Without an account: guest mode and its meter — NOT startGuest, which empties the tab and adds the demo plan. */
+  /** Without an account: guest mode and its meter — then the tab's plans, or (an empty tab) startGuest's own-plan door. */
   async function carryOnWithoutAccount() {
     const user = enterGuestMode();
     forgetCaches();
@@ -133,9 +133,9 @@ export function startSeedEntry(shell, win = window) {
 
 /**
  * The landing page's "Just try it — no account": a tab that already holds plans (made from a V7 answer, or earlier in
- * this tab) carries on with them, as "carry on without an account" does; only an empty tab gets the demo plan. Found
- * 1 Oct 2026: startGuest emptied the tab of every plan but one, and left the one it kept pointing at a partner plan
- * that was gone.
+ * this tab) carries on with them, as "carry on without an account" does; only an empty tab goes through startGuest(null),
+ * the setup wizard for a plan of one's own (6.23.0; until then the demo plan). Found 1 Oct 2026: startGuest emptied the
+ * tab of every plan but one, and left the one it kept pointing at a partner plan that was gone.
  */
 async function tryWithoutAccount(shell) {
   const user = enterGuestMode();
@@ -143,7 +143,7 @@ async function tryWithoutAccount(shell) {
   let has = false;
   try { has = await hasCloudData(); } catch (e) { has = false; }
   if (!has) { await shell.startGuest(null); return; }
-  // As startGuest does it, without its demo plan: the planner on the tab's own open plan, then the meter (whose hard
+  // The planner on the tab's own open plan, then the meter (whose hard
   // stop, once the free hours are used up, covers it) and the banner.
   hideLandingPage();
   await shell.showMainApp(user);

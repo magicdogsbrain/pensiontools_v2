@@ -23,7 +23,12 @@ import { resolve } from 'node:path';
 // (src/services/SavingPath.js, loaded by src/ui/savingPathForLock.js), the Accumulation planner's table and "Am I on
 // course?" (src/ui/accumulationProjection.js), the bar and its words (src/services/OnCourse.js) — and the script ends
 // 30 lines shorter: 10,501.
-const MAX_LINES = 10501;
+// 6.23.0 (usability audit decisions 6–9: the budget's one button into the plan, visitors, and five retirements) put its
+// logic in modules — the budget's figure, question and Undo (src/services/BudgetToPlan.js, src/ui/undoToast.js), the
+// guest's three plans and the read-only example (src/services/GuestPlans.js), the guest's words (GuestMeter.js) — and
+// deleted the welcome tour, the Edit Tools modal and its per-tool wizard, the tab-visibility code, the "Copy from
+// Stress / Decision" buttons and the headroom box: the script ends 315 lines shorter: 10,186.
+const MAX_LINES = 10186;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

@@ -304,50 +304,6 @@
       border-color: var(--primary);
     }
 
-    /* Edit Tools Modal */
-    .edit-tools-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1002;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .edit-tools-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
-      max-width: 480px;
-      width: 100%;
-    }
-
-    .edit-tools-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--primary);
-      margin-bottom: 6px;
-    }
-
-    .edit-tools-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    .edit-tools-buttons {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-      justify-content: flex-end;
-    }
-
     .logout-btn {
       padding: 8px 16px;
       background: var(--card-alt);
@@ -2188,7 +2144,6 @@
   <div id="authScreen" style="display: none;"></div>
 
   <!-- Onboarding Page (shown after first login, before wizard) -->
-  <div id="onboardingPage" style="display: none;"></div>
 
   <!-- Setup Wizard Container (shown for new users) -->
   <div id="setupWizard" style="display: none;"></div>
@@ -2242,7 +2197,7 @@
       <div id="mobileSheet" data-on-click="sheetBackdropClick(event, this)"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
-      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
+      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — kept in this browser window until you close it. Make a free account to keep it for good. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
       <div id="seedNote" role="status" style="display:none;margin:8px 0 10px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:rgba(99,102,241,.08);font-size:13px;"><span id="seedNoteText"></span> <a id="seedNoteBack" href="./" style="color:inherit;text-decoration:underline;font-weight:600;">Back to the question</a> to try something else and save that too.</div>
 <div id="planNewerBanner" role="alert" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--danger, #dc2626); border-radius:var(--radius); background:rgba(220,38,38,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span style="flex:1; min-width:220px;">This plan was updated by a newer version of the app — reload the page. Nothing you change here will be saved until you do.</span>
@@ -2643,19 +2598,6 @@
               </div>
             </div>
 
-
-            <div class="settings-section">
-              <div class="section-title">Start from your Stress Tester</div>
-              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                Found a plan that survives the stress tests? Bring it across — either just the income
-                target, or the whole setup (funds, allocation, State Pension, ISA, protection, glide).
-                You still review and Save before anything locks.
-              </p>
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('all')">Use ALL Stress settings</button>
-                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('target')">Copy target amount only</button>
-              </div>
-            </div>
 
             <div class="settings-section" id="dsProtectionSection">
               <div class="section-title">Protection</div>
@@ -3591,12 +3533,6 @@
             </div>
 
             <div class="settings-section">
-              <div class="section-title">Start from your Decision plan</div>
-              <button type="button" class="secondary" data-on-click="copyStressFromDecisionUI()">Copy from Decision Tool</button>
-              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
-            </div>
-
-            <div class="settings-section">
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
@@ -3894,7 +3830,7 @@
                 <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" data-on-click="addSplitPhase()">+ Add a change</button>
                 <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                   Each row: from the age given, your share of "Shared" costs becomes the new percentage.
-                  Before the first row, the percentage above applies. Your plan's per-year target follows this automatically.
+                  Before the first row, the percentage above applies. This changes your share of the budget's total. The budget is a guide. Only ‘Use as my spending’ changes the plan.
                 </p>
               </details>
             </div>
@@ -4124,7 +4060,6 @@
       runSurvivorCheck,
       allowanceNudge,
       runCareCheck,
-      targetScheduleFromBudget,
       typicalSanityFlag,
       breakdownAnnual,
       DEFAULT_TAX_BANDS,
@@ -4140,14 +4075,11 @@
       listScenariosAsync,
       getActiveScenarioId,
       getActiveScenarioAsync,
-      getActiveEnabledTools,
       switchScenario,
       createNewScenario,
       duplicateScenario,
       renameScenario,
       deleteScenario,
-      updateScenarioTools,
-      seedStressFromDecision,
       seedDecisionFromStress, unlockPatchesOf
     } from './src/storage/ScenarioRepository.js';
     import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
@@ -4194,8 +4126,10 @@
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { askBeforeMonthLocks } from './src/ui/decisionLockAsk.js';   // a saver's unlocked plan asks before a Decision month locks it (6.20.2)
-    import { refusedWhenLocked, sayIfLocked } from './src/ui/lockedPlan.js';   // a locked plan's settings: refused in the save functions, said plainly here (6.20.2)
-    import { budgetIncomeShapePatch } from './src/services/BudgetToPlan.js';
+    import { refusedWhenLocked, sayIfLocked } from './src/ui/lockedPlan.js';   // a locked plan's settings, or the example plan: refused in the save functions, said plainly here (6.20.2, 6.23.0)
+    import { budgetSpendingPatch, spendingBefore, plusTenth, useSpendingWords } from './src/services/BudgetToPlan.js';   // the Budget's one button into the plan (6.23.0)
+    import { showUndoToast } from './src/ui/undoToast.js';
+    import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4248,17 +4182,9 @@
       getAuthScreenStyles
     } from './src/ui/components/AuthScreen.js';
 
-    // Import onboarding page
-    import {
-      initOnboardingPage,
-      hideOnboardingPage,
-      getOnboardingPageStyles
-    } from './src/ui/components/OnboardingPage.js';
-
     // Import setup wizard
     import {
       initSetupWizard,
-      initToolWizard,
       hideSetupWizard,
       showSetupWizard,
       getSetupWizardStyles
@@ -4278,10 +4204,10 @@
 
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
-    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc } from './src/firebase/FirestoreService.js';
+    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
-    import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
+    import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
     import { RELEASE_HISTORY } from './src/releases-history.js';
@@ -4352,7 +4278,7 @@
 
     // Inject component styles
     const styleEl = document.createElement('style');
-    styleEl.textContent = getDecisionPanelStyles() + getLandingPageStyles() + getAuthScreenStyles() + getOnboardingPageStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
+    styleEl.textContent = getDecisionPanelStyles() + getLandingPageStyles() + getAuthScreenStyles() + getSetupWizardStyles() + getTaxYearWizardStyles() + getChartStyles();
     document.head.appendChild(styleEl);
 
     // ============================================================
@@ -4630,7 +4556,6 @@
     async function showMainApp(user, initialTab = null) {
       hideLandingPage();
       hideAuthScreen();
-      hideOnboardingPage();
       hideSetupWizard();
       document.getElementById('mainApp').classList.remove('hidden');
 
@@ -4643,15 +4568,12 @@
         if (gear) gear.style.display = isAdminUser() ? 'inline-block' : 'none';
       });
 
-      // Update user info in header
+      // Update user info in header. A guest has no account to delete (6.23.0).
       document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('deleteAccountBtn').style.display = user.isGuest ? 'none' : '';
 
       // Load scenario selector
       await renderScenarioSelector();
-
-      // Apply tab visibility based on enabled tools
-      const enabledTools = await getActiveEnabledTools();
-      applyTabVisibility(enabledTools);
 
       // Load initial data
       await renderHistory();
@@ -4673,7 +4595,7 @@
           const list = await listScenariosAsync();
           let existing = list.find((sc) => sc.planDetails?.name === demo.name);
           if (!existing) {
-            const id = await createNewScenario(demo.name, 'From a shared demo link. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, false);
+            const id = await createNewScenario(demo.name, 'From a shared demo link. Change anything.', ['stress', 'decision'], { stressSettings: demo.stress }, false);
             invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
             existing = { id };
           }
@@ -4688,7 +4610,7 @@
       // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
       try { const want = sessionStorage.getItem('pt_open_tab'); if (want) { sessionStorage.removeItem('pt_open_tab'); initialTab = want; if (want === 'strategies') setTimeout(() => { try { showStrategyPage('overview'); } catch (e) {} }, 400); } } catch (e) { /* ignore */ }
       // Determine which tab to show
-      const targetTab = initialTab || (enabledTools.includes('decision') ? 'decision' : 'stress');
+      const targetTab = initialTab || 'decision';
       updateNextStepBanner();
 
       // Activate the target tab
@@ -4698,38 +4620,6 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       const targetContent = document.getElementById(`${targetTab}-content`);
       if (targetContent) targetContent.classList.add('active');
-    }
-
-    /**
-     * Show/hide tabs based on enabled tools in the active scenario
-     * @param {string[]} enabledTools - Array of enabled tool keys
-     */
-    function applyTabVisibility(enabledTools) {
-      // Map tool keys to tab data-tab values
-      const toolTabMap = {
-        'decision': ['decision'],
-        'stress': ['stress']
-      };
-
-      // Get all tabs
-      const allTabs = document.querySelectorAll('.tab');
-
-      allTabs.forEach(tab => {
-        const tabKey = tab.dataset.tab;
-        // Find which tool this tab belongs to
-        let shouldShow = false;
-        for (const [tool, tabs] of Object.entries(toolTabMap)) {
-          if (tabs.includes(tabKey)) {
-            shouldShow = enabledTools.includes(tool);
-            break;
-          }
-        }
-        // If tab doesn't belong to any tool mapping, always show it
-        if (!Object.values(toolTabMap).flat().includes(tabKey)) {
-          shouldShow = true;
-        }
-        tab.style.display = shouldShow ? '' : 'none';
-      });
     }
 
     /**
@@ -4873,12 +4763,6 @@
         document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
         document.getElementById('ssBandFillRecycle').checked = !!stressSettings.bandFillRecycle;
         syncAccessButtons('ss');
-        const seedNote = document.getElementById('ssSeedNote');
-        if (seedNote) {
-          seedNote.textContent = stressSettings.seededFrom === 'decision' && stressSettings.seededAt
-            ? 'Seeded from Decision Tool ' + new Date(stressSettings.seededAt).toLocaleDateString()
-            : '';
-        }
 
         // Refresh number overlays after all values are set
         refreshNumberOverlays();
@@ -4973,7 +4857,7 @@
     /**
      * Abandon plan creation (wizard Cancel). With existing plans: back to the app on the current
      * plan, with the plan dropdown opened as a quiet "load a different one?" cue. With none
-     * (first run): back to the onboarding tour.
+     * (first run): an empty plan of the person's own, and the app on it.
      */
     async function cancelPlanCreation() {
       hideSetupWizard();
@@ -4984,28 +4868,18 @@
         if (dd) dd.classList.add('open');
         showToast('Plan creation cancelled — you\u2019re back on your current plan.', 'info', 3500);
       } else {
-        showOnboarding(getCurrentUser());
+        try { await createNewScenario('My plan', '', ['stress', 'decision'], {}, true); invalidateScenarioCache(); invalidateCache(); invalidateStressCache(); } catch (e) { console.error('empty plan', e); }
+        await showMainApp(getCurrentUser());
       }
     }
 
-    /**
-     * Show the onboarding page for new users
-     */
-    function showOnboarding(user) {
+    /** The setup wizard, straight away: a new account, "+ New plan", "Just try it" and Reset all start here (the welcome tour is gone, 6.23.0). */
+    function showSetupWizardFor() {
       hideLandingPage();
       hideAuthScreen();
-      const displayName = user.displayName || user.email.split('@')[0];
-      document.getElementById('onboardingPage').style.display = 'block';
-      initOnboardingPage(
-        document.getElementById('onboardingPage'),
-        displayName,
-        () => {
-          // User clicked "Set Up Your First Plan" — launch wizard
-          hideOnboardingPage();
-          document.getElementById('setupWizard').style.display = 'block';
-          initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete, cancelPlanCreation);
-        }
-      );
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('setupWizard').style.display = 'block';
+      initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete, cancelPlanCreation);
     }
 
     // A plan from a V7 answer (save-as-plan.md C.2): read at every start, offered on /#new-plan only. Steps: NewPlanFromSeed.js.
@@ -5032,15 +4906,15 @@
           showMainApp(user);
           maybeAnnounceRelease({ isGuestUser: false, hasData: true });
         } else {
-          // New user - show onboarding page
-          console.log('New user - showing onboarding page');
-          showOnboarding(user);
+          // New user - straight to the setup wizard
+          console.log('New user - showing the setup wizard');
+          showSetupWizardFor();
           maybeAnnounceRelease({ isGuestUser: false, hasData: false });   // sets the seen marker; nothing to announce to a new user
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
-        // Fallback: show onboarding if we can't determine data status
-        showOnboarding(user);
+        // Fallback: the setup wizard if we can't determine data status
+        showSetupWizardFor();
       }
     });
 
@@ -5058,28 +4932,25 @@
         hideLandingPage();
         showAuthScreenWithTab('signin');
       },
-      onTryGuest: () => (seedEntry.tryWithoutAccount ? seedEntry.tryWithoutAccount() : startGuest(null))   // a tab that holds plans carries on with them
+      onTryGuest: () => (seedEntry.tryWithoutAccount ? seedEntry.tryWithoutAccount() : startGuest(null)),   // a window that holds plans carries on with them
+      onLookAround: () => startGuest(EXAMPLE_PLAN_KEY)
     });
-    // Demo plans that can be deep-linked (?demo=1m): the r/FiredUK £1M example — £40k rising with
-    // inflation from 56, 700/200/100 pots for the flexible strategies, a 15-rung ladder with reviews
-    // at 5/10/15 for Ladder & Ratchet, State Pension at 67.
-    const DEMO_PLANS = {
-      '1m': { name: 'r/FiredUK — £1M, £40k rising', tab: 'strategies', page: 'overview',
-        stress: { configured: true, equityMin: 700000, bondMin: 200000, cashTarget: 100000, diversifierStart: 0, isaBalance: 0, isaDrawdownStrategy: 'hold', baseSalary: 40000, duration: 39, shapeAgeNow: 56, currentAge: 56, statePension: 11973, statePensionYear: 11, riskMode: 'risk', strategyId: 'pots-and-valves', strategyParams: {} } },
-    };
-    DEMO_PLANS['default'] = DEMO_PLANS['1m'];   // one guest story: the £1M example, from the landing button too
+    // Guest mode (6.23.0, usability audit decision 7): a synthetic user, plans kept in this browser window only
+    // (sessionStorage), nothing sent anywhere. With no demo key, "Just try it": the person's own empty plan, through the
+    // setup wizard. With one, "Look around an example": the example plan (GuestPlans.DEMO_PLANS), read-only, opened once.
     async function startGuest(demoKey) {
-      // Guest mode: a synthetic user, storage in this tab only (sessionStorage), nothing sent anywhere.
-      const demo = DEMO_PLANS[demoKey] || DEMO_PLANS['default'];
+      const demo = DEMO_PLANS[demoKey] || null;
       try {
         const user = enterGuestMode();
         invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        startGuestMeter();
+        const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
+        if (!demo) { showSetupWizardFor(); return; }
         const list = await listScenariosAsync();
-        const existing = list.find((sc) => sc.planDetails?.name === demo.name);
+        const existing = list.find((sc) => sc.example && sc.planDetails?.name === demo.name);
         if (!existing) {
-          // A guest tab holds one plan: an older guest plan (e.g. the previous seed) makes way for this one — never one made from a V7 answer.
-          for (const sc of list) { if (sc.fromAnswer) continue; try { await deleteScenario(sc.id); } catch (e) { /* ignore */ } }
-          await createNewScenario(demo.name, 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: demo.stress }, true);
+          const made = await createNewScenario(demo.name, EXAMPLE_PLAN_DESCRIPTION, ['stress', 'decision'], { stressSettings: demo.stress }, true);
+          await saveScenarioDoc(made, { example: true });   // read-only from here on: the store refuses every other write
           invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
         } else if (!existing.isActive) {
           await switchScenario(existing.id);
@@ -5088,14 +4959,12 @@
         hideLandingPage();
         await showMainApp(user, demo.tab);
         maybeAnnounceRelease({ isGuestUser: true, hasData: false });
-        startGuestMeter();
-        const b = document.getElementById('guestBanner'); if (b) b.style.display = 'flex';
         if (demo.page) setTimeout(() => { try { showStrategyPage(demo.page); } catch (e) {} }, 300);
-        showToast('Guest mode: everything works, nothing is saved. Create an account when you want to keep it.', 'info', 7000);
+        showToast('An example plan to look around — it cannot be changed. For your own figures, start your own plan from the plan menu.', 'info', 8000);
       } catch (e) { console.error('guest mode', e); showToast('Could not start guest mode: ' + e.message, 'error'); }
     }
     window.startGuest = startGuest;
-    // ?demo=<key>: straight into the demo as a guest (a signed-in visitor gets the demo plan added instead).
+    // ?demo=<key>: straight into the example as a guest (a signed-in visitor gets the demo plan added instead).
     try {
       const demoKey = new URLSearchParams(location.search).get('demo');
       if (demoKey && DEMO_PLANS[demoKey]) {
@@ -5118,7 +4987,6 @@
         invalidateScenarioCache();
         await logOut();
         document.getElementById('mainApp').classList.add('hidden');
-        hideOnboardingPage();
         hideSetupWizard();
         showAuthScreenWithTab('signin');
       } catch (error) {
@@ -5186,7 +5054,7 @@
     // works for guests), and for signed-in users the profile doc too, so it is once across devices.
     const SEEN_KEY = 'pt_lastSeenVersion';
     const ANNOUNCE_TO_FIRST_VISIT_GUESTS = false;   // a first-time visitor has nothing to compare; the chip dot points at What's new
-    const WIZARD_IDS = ["setupWizard", "onboardingPage", "budWizardOverlay"];
+    const WIZARD_IDS = ["setupWizard", "budWizardOverlay"];
     function localSeen() { try { return localStorage.getItem(SEEN_KEY) || ''; } catch (e) { return ''; } }
     function setLocalSeen(v) { try { localStorage.setItem(SEEN_KEY, v); } catch (e) { /* private mode */ } }
     async function effectiveSeen() {
@@ -5220,9 +5088,8 @@
     window.dismissWhatsNew = function () { const el = document.getElementById('whatsNewOverlay'); if (el) el.remove(); markSeen(VERSION); };
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('whatsNewOverlay')) dismissWhatsNew(); });
     window.showWhatsNew = async function (entries) {
-      let planNotes = [], otherPlanCount = 0, enabledTools = null;
+      let planNotes = [], otherPlanCount = 0;
       try {
-        enabledTools = await getActiveEnabledTools();
         const scenarios = await listScenariosAsync();
         const active = scenarios.find((sc) => sc.isActive) || scenarios[0];
         if (active) planNotes = [{ name: active.planDetails?.name || active.name || 'Untitled', notes: entries.flatMap((r) => r.affects ? safeAffects(r, active) : []) }];
@@ -5232,7 +5099,7 @@
       el = document.createElement('div'); el.id = 'whatsNewOverlay';
       el.style.cssText = 'position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:20px;';
       el.innerHTML = '<div role="dialog" aria-modal="true" aria-label="What\'s new" style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:22px 26px; font-size:14px; line-height:1.55;">'
-        + whatsNewHtml(entries, { enabledTools, planNotes, otherPlanCount })
+        + whatsNewHtml(entries, { planNotes, otherPlanCount })
         + '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; position:sticky; bottom:-22px; background:var(--card); padding:10px 0 4px;">'
         + '<button type="button" data-on-click="dismissWhatsNew()">Got it</button>'
         + '<button type="button" class="risk-btn" data-on-click="dismissWhatsNew(); openWhatsNew();">See all versions</button>'
@@ -5241,14 +5108,13 @@
       document.body.appendChild(el);
     };
     async function whatsNewPageHtml() {
-      let plans = [], enabledTools = null;
+      let plans = [];
       try {
-        enabledTools = await getActiveEnabledTools();
         const scenarios = await listScenariosAsync();
         plans = scenarios.map((sc) => ({ name: sc.planDetails?.name || sc.name || 'Untitled', scenario: sc }));
       } catch (e) { /* page still renders */ }
       if (releasesSince(localSeen()).length) markSeen(VERSION);   // reading the page counts as seen
-      return versionsPageHtml(RELEASES, RELEASE_HISTORY, { currentVersion: VERSION, plans, enabledTools });
+      return versionsPageHtml(RELEASES, RELEASE_HISTORY, { currentVersion: VERSION, plans });
     }
     // Called from exactly two boot paths (signed-in success, guest start) — never from showMainApp,
     // which the wizards also call. New users and first-visit guests get the marker set silently.
@@ -5297,7 +5163,6 @@
             ${desc ? `<div class="scenario-item-desc">${desc}</div>` : ''}
           </div>
           <div class="scenario-item-actions">
-            ${s.isActive ? `<button class="scenario-tools-btn" data-id="${s.id}" data-tools="${(s.enabledTools || ['stress','decision']).join(',')}" title="Edit Tools">&#9881;</button>` : ''}
             <button class="scenario-rename-btn" data-id="${s.id}" data-name="${name}" title="Rename">&#9998;</button>
             ${scenarios.length > 1 ? `<button class="scenario-delete-btn" data-id="${s.id}" data-name="${name}" title="Delete">&times;</button>` : ''}
           </div>
@@ -5332,24 +5197,6 @@
             resetStressSubTabs();
             resetDecisionSubTabs();
 
-            // Reload the app with new scenario data
-            const newEnabledTools = await getActiveEnabledTools();
-            applyTabVisibility(newEnabledTools);
-
-            // If current tab is now hidden, switch to first visible tab
-            const activeTabEl = document.querySelector('.tab.active');
-            if (activeTabEl && activeTabEl.style.display === 'none') {
-              const firstVisibleTab = document.querySelector('.tab:not([style*="display: none"])');
-              if (firstVisibleTab) {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                firstVisibleTab.classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                const contentId = firstVisibleTab.dataset.tab + '-content';
-                const contentEl = document.getElementById(contentId);
-                if (contentEl) contentEl.classList.add('active');
-              }
-            }
-
             await renderHistory();
             await renderTaxYears();
             await initializeAllInputsFromSettings();
@@ -5379,17 +5226,6 @@
               showToast('Failed to rename plan: ' + error.message, 'error');
             }
           }
-        });
-      });
-
-      // Edit tools buttons
-      listEl.querySelectorAll('.scenario-tools-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          const currentTools = (btn.dataset.tools || 'stress,decision').split(',');
-          document.getElementById('scenarioDropdown').classList.remove('open');
-          showEditToolsModal(id, currentTools);
         });
       });
 
@@ -5434,35 +5270,17 @@
       }
     });
 
-    // New Plan button - launches the wizard for a new scenario
+    // New Plan button - straight to the setup wizard (the tour is gone, 6.23.0)
     document.getElementById('scenarioNewBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
-      if (guestOnePlanGate()) return;
-
-      // Plan-agnostic onboarding: every new plan starts with the tour (skippable), so the
-      // how-it-works flow is always one click away instead of locked behind an empty account.
-      document.getElementById('mainApp').classList.add('hidden');
-      const startWizard = () => {
-        hideOnboardingPage();
-        document.getElementById('setupWizard').style.display = 'block';
-        initSetupWizard(document.getElementById('setupWizard'), handleWizardComplete, cancelPlanCreation);
-      };
-      const user = getCurrentUser();
-      const displayName = (user && (user.displayName || (user.email || '').split('@')[0])) || 'there';
-      const ob = document.getElementById('onboardingPage');
-      ob.style.display = 'block';
-      initOnboardingPage(ob, displayName, startWizard, {
-        title: 'A new plan — here’s the flow',
-        subtitle: 'A quick refresher on how the pieces fit together before you set it up.',
-        ctaLabel: 'Set up the new plan',
-        onSkip: startWizard
-      });
+      if (await guestPlanGate()) return;
+      showSetupWizardFor();
     });
 
     // Duplicate Plan button
     document.getElementById('scenarioDuplicateBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
-      if (guestOnePlanGate()) return;
+      if (await guestPlanGate()) return;
       const active = await getActiveScenarioAsync();
       if (!active) {
         showToast('No active plan to duplicate.', 'error');
@@ -5492,168 +5310,6 @@
         showToast('Failed to duplicate plan: ' + error.message, 'error');
       }
     });
-
-    // ============================================================
-    // Edit Tools Modal
-    // ============================================================
-
-    /**
-     * Show the edit tools modal for a scenario
-     */
-    function showEditToolsModal(scenarioId, currentTools) {
-      // Remove any existing modal
-      const existing = document.getElementById('editToolsModal');
-      if (existing) existing.remove();
-
-      const hasStress = currentTools.includes('stress');
-      const hasDecision = currentTools.includes('decision');
-
-      const modal = document.createElement('div');
-      modal.id = 'editToolsModal';
-      modal.className = 'edit-tools-overlay';
-      modal.innerHTML = `
-        <div class="edit-tools-box">
-          <div class="edit-tools-title">Edit Enabled Tools</div>
-          <div class="edit-tools-desc">Choose which tools this plan should include. You can change this any time.</div>
-
-          <div class="wizard-tool-choices">
-            <label class="wizard-tool-option">
-              <input type="checkbox" id="editToolStress" ${hasStress ? 'checked' : ''}>
-              <div class="wizard-tool-info">
-                <strong>Stress Tester</strong>
-                <p>Run simulations to test if your pension can sustain your desired income.</p>
-              </div>
-            </label>
-            <label class="wizard-tool-option">
-              <input type="checkbox" id="editToolDecision" ${hasDecision ? 'checked' : ''}>
-              <div class="wizard-tool-info">
-                <strong>Monthly Decision Tool</strong>
-                <p>Get monthly withdrawal recommendations to maximise tax efficiency.</p>
-              </div>
-            </label>
-          </div>
-
-          <div class="edit-tools-buttons">
-            <button class="wizard-btn secondary" id="editToolsCancel">Cancel</button>
-            <button class="wizard-btn primary" id="editToolsSave">Save</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      document.getElementById('editToolsCancel').addEventListener('click', () => modal.remove());
-      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-
-      document.getElementById('editToolsSave').addEventListener('click', async () => {
-        const tools = [];
-        if (document.getElementById('editToolStress').checked) tools.push('stress');
-        if (document.getElementById('editToolDecision').checked) tools.push('decision');
-
-        if (tools.length === 0) {
-          showToast('Please select at least one tool', 'error');
-          return;
-        }
-
-        // Detect newly added tools
-        const newTools = tools.filter(t => !currentTools.includes(t));
-
-        try {
-          await updateScenarioTools(scenarioId, tools);
-
-          // If this is the active scenario, update tab visibility
-          const active = await getActiveScenarioAsync();
-          if (active && active.id === scenarioId) {
-            applyTabVisibility(tools);
-
-            // If current tab is now hidden, switch to first visible tab
-            const activeTabEl = document.querySelector('.tab.active');
-            if (activeTabEl && activeTabEl.style.display === 'none') {
-              const firstVisibleTab = document.querySelector('.tab:not([style*="display: none"])');
-              if (firstVisibleTab) {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                firstVisibleTab.classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                const contentId = firstVisibleTab.dataset.tab + '-content';
-                const contentEl = document.getElementById(contentId);
-                if (contentEl) contentEl.classList.add('active');
-              }
-            }
-          }
-
-          await renderScenarioSelector();
-          modal.remove();
-
-          // If new tools were added, launch the wizard for those tools
-          if (newTools.length > 0) {
-            // Load existing settings from the other tool to pre-fill shared fields
-            let existingSettings = null;
-            try {
-              if (newTools.includes('stress') && currentTools.includes('decision')) {
-                const ds = await getDecisionSettingsAsync();
-                if (ds) existingSettings = { source: 'decision', ...ds };
-              } else if (newTools.includes('decision') && currentTools.includes('stress')) {
-                const ss = await getStressSettingsAsync();
-                if (ss) existingSettings = { source: 'stress', ...ss };
-              }
-            } catch (e) {
-              console.warn('Could not load existing settings for pre-fill:', e);
-            }
-
-            const wizardEl = document.getElementById('setupWizard');
-            wizardEl.style.display = 'block';
-            document.getElementById('mainApp').style.display = 'none';
-
-            const onWizardComplete = async (wizardData) => {
-              hideSetupWizard(); let refused = false;
-
-              // Save the wizard data for the new tools to the active scenario. A locked plan refuses both (6.20.2): its
-              // settings stay as they are, and the person is told so in plain words.
-              try {
-                if (newTools.includes('stress')) {
-                  await saveStressSettings({
-                    equityMin: wizardData.equityMin,
-                    bondMin: wizardData.bondMin,
-                    cashTarget: wizardData.cashTarget,
-                    isaBalance: wizardData.isaBalance || 0,
-                    duration: wizardData.duration,
-                    baseSalary: wizardData.baseSalary,
-                    other: wizardData.otherIncome || 0,
-                    taxMode: wizardData.taxMode || 'inflates',
-                    equityGlideEnabled: wizardData.equityGlideEnabled || false
-                  });
-                  invalidateStressCache();
-                }
-                if (newTools.includes('decision')) {
-                  await saveDecisionSettings({
-                    equityMin: wizardData.decisionEquity,
-                    bondMin: wizardData.decisionBond,
-                    cashTarget: wizardData.decisionCash,
-                    isaBalance: wizardData.decisionIsaBalance || 0,
-                    duration: wizardData.decisionDuration,
-                    baseSalary: wizardData.decisionSalary,
-                    spStartDate: wizardData.spStartDate || null,
-                    spWeeklyAmount: wizardData.spWeeklyAmount || 0,
-                    equityGlideEnabled: wizardData.decisionEquityGlideEnabled || false
-                  });
-                  invalidateCache();
-                }
-              } catch (e) {
-                if (!(refused = sayIfLocked(e))) console.error('Error saving new tool settings:', e);
-              }
-
-              await showMainApp();
-              if (!refused) showToast('New tool configured successfully', 'success');
-            };
-            initToolWizard(wizardEl, newTools, onWizardComplete, existingSettings);
-          } else {
-            showToast('Tools updated', 'success');
-          }
-        } catch (error) {
-          console.error('Error updating scenario tools:', error);
-          showToast('Failed to update tools: ' + error.message, 'error');
-        }
-      });
-    }
 
     // ============================================================
     // Inactivity Timeout - Auto logout after 1 hour of inactivity
@@ -5693,7 +5349,6 @@
         invalidateScenarioCache();
         await logOut();
         document.getElementById('mainApp').classList.add('hidden');
-        hideOnboardingPage();
         hideSetupWizard();
         showAuthScreenWithTab('signin');
       } catch (error) {
@@ -5727,7 +5382,6 @@
       const appVisible = !document.getElementById('mainApp').classList.contains('hidden');
       if (!user && appVisible) {
         document.getElementById('mainApp').classList.add('hidden');
-        hideOnboardingPage();
         hideSetupWizard();
         showAuthScreenWithTab('signin');
         showToast('You’ve been signed out — sign in again to continue. Unsaved changes in open forms were not stored.', 'warning', 8000);
@@ -5768,10 +5422,10 @@
         // Clear local storage too
         localStorage.clear();
 
-        // Hide main app and show onboarding
-        document.getElementById('mainApp').classList.add('hidden');
-        const user = getCurrentUser();
-        showOnboarding(user);
+        // A guest: the window is cleared and the landing page is back (there is no account to set up). An account:
+        // the setup wizard for the first new plan.
+        if (isGuest()) { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname; return; }
+        showSetupWizardFor();
 
         showToast('All data has been deleted. Set up a new plan to start fresh.', 'success', 4000);
       } catch (error) {
@@ -5780,8 +5434,9 @@
       }
     });
 
-    // Delete account handler (GDPR right to erasure): purge Firestore data, then the auth account
+    // Delete account handler (GDPR right to erasure): purge Firestore data, then the auth account. Never for a guest: there is no account.
     document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
+      if (isGuest()) { showToast('You are not signed in, so there is no account to delete. Your plans are kept in this browser window until you close it.', 'info', 6000); return; }
       const confirmed = await appConfirm(
         '⚠️ DELETE YOUR ACCOUNT?\n\n' +
         'This permanently deletes your login AND all saved data:\n\n' +
@@ -8188,11 +7843,13 @@
         banner.style.display = 'flex';
       } catch (e) { banner.style.display = 'none'; }
     };
-    // Guest mode keeps ONE plan (what the landing page promises); more plans need an account.
-    function guestOnePlanGate() {
+    // A guest keeps up to three plans of their own in this window (GuestPlans.js); more need an account.
+    async function guestPlanGate() {
       if (!isGuest()) return false;
-      showToast('Guest mode keeps one plan in this tab. Create a free account to have more than one — it takes a minute and your plan comes with you.', 'info', 7000);
-      return true;
+      let refusal = null;
+      try { refusal = guestPlanRefusal(await listScenariosAsync()); } catch (e) { refusal = null; }
+      if (refusal) showToast(refusal, 'info', 8000);
+      return !!refusal;
     }
     window.leaveGuest = function () { keepGuestWork('signup'); };
     // Guest → account: stash the guest plans in THIS browser (localStorage) so they can be copied into
@@ -8284,7 +7941,7 @@
         + '<button type="button" data-on-click="closeMobileSheet(); exportActivePlan();">&#11015; Download this plan (JSON)</button>'
         + (adminVis ? '<button type="button" data-on-click="closeMobileSheet(); openAdminPanel();">&#9881; Administration</button>' : '')
         + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'resetBtn\').click();">&#9888; Reset all my data</button>'
-        + '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>'
+        + (isGuest() ? '' : '<button type="button" class="danger" data-on-click="closeMobileSheet(); document.getElementById(\'deleteAccountBtn\').click();">&#128465; Delete my account</button>')
         + '<button type="button" data-on-click="closeMobileSheet(); document.getElementById(\'logoutBtn\').click();">&#128682; Sign out</button>');
     };
     // keep the bottom bar's active state in step with the real tabs; bring the active sub-tab into view
@@ -8326,7 +7983,7 @@
     window._shapeRefs = { essentials: 0, budgetGross: 0 };
     async function refreshShapeRefs() {
       window._shapeRefs = { essentials: 0, budgetGross: 0 };   // never carry another plan's budget lines over
-      try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); const headM = +b.targetHeadroomMonthly || 0; window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual((sm.allInComfortableAnnual || 0) + headM * 12)), retireAge: +b.retirementAge || null, budgetWords: (await planFromAnswer()) ? 'your budget (a guide)' : 'today\'s budget' }; } } catch (e) {}   // a plan from a V7 answer: its budget is a guide, not the target
+      try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual(sm.allInComfortableAnnual || 0)), retireAge: +b.retirementAge || null, budgetWords: (await planFromAnswer()) ? 'your budget (a guide)' : 'today\'s budget' }; } } catch (e) {}   // a plan from a V7 answer: its budget is a guide, not the target
     }
     // Settings order: the layers that are NOT the pot (State Pension, other income) come before the
     // income strategy, so the shape below can show what the pot itself has to supply.
@@ -8859,7 +8516,7 @@
         const key = tab.dataset.tab;
         tab.classList.toggle('tab-lead', !!stage && stage.leads.includes(key));
         tab.classList.toggle('tab-muted', !!stage && stage.readOnly.includes(key));
-        // Hidden tools (a retiree has nothing to accumulate). Tool visibility from enabledTools still applies.
+        // Hidden tools (a retiree has nothing to accumulate).
         if (stage && stage.hidden.includes(key)) { tab.dataset.stageHidden = '1'; tab.style.display = 'none'; }
         else if (tab.dataset.stageHidden) { delete tab.dataset.stageHidden; tab.style.display = ''; }
         if (stage && stage.readOnly.includes(key)) tab.title = 'Locked with the plan — read-only until you unlock';
@@ -10879,7 +10536,7 @@
       }
     };
 
-    window.createPartnerPlan = async function (...a) { if (guestOnePlanGate()) return; return createPartnerPlanReal(...a); };
+    window.createPartnerPlan = async function (...a) { if (await guestPlanGate()) return; return createPartnerPlanReal(...a); };
     window.createPartnerPlanReal = async function () {
       const name = (document.getElementById('hhNewPlanName').value || '').trim();
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
@@ -11230,12 +10887,6 @@
         document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
         document.getElementById('ssBandFillRecycle').checked = !!s.bandFillRecycle;
         syncAccessButtons('ss');
-        const seedNote = document.getElementById('ssSeedNote');
-        if (seedNote) {
-          seedNote.textContent = s.seededFrom === 'decision' && s.seededAt
-            ? 'Seeded from Decision Tool ' + new Date(s.seededAt).toLocaleDateString()
-            : '';
-        }
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();
@@ -11366,58 +11017,6 @@
       } catch (error) {
         console.error('Error saving stress settings:', error);
         showToast('Error saving: ' + error.message, 'error');
-      } finally {
-        hideLoading();
-      }
-    };
-
-    // Copy from Decision Tool: seed the Stress sandbox from the committed Decision plan.
-    // Reverse copy: Stress → Decision, either the target alone or the full settings picture.
-    // Blocked on a locked plan (the Decision settings ARE the plan definition).
-    window.copyDecisionFromStressUI = async function(mode) {
-      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
-      if (await planIsLocked()) {
-        showToast('This plan is locked — unlock it (Settings) or create a new plan before copying settings into it.', 'warning', 6000);
-        return;
-      }
-      showLoading('Copying from Stress Tester…');
-      try {
-        const stress = await getStressSettingsAsync();
-        if (mode === 'target') {
-          await saveDecisionSettings({ baseSalary: stress.baseSalary });
-        } else {
-          const decision = await getDecisionSettingsAsync();
-          await saveDecisionSettings(seedDecisionFromStress(stress, decision));
-        }
-        await loadDecisionSettings();
-        showToast(mode === 'target'
-          ? 'Target copied from the Stress Tester (' + gbp(stress.baseSalary || 0) + '/yr gross).'
-          : 'All Stress settings copied — review them and press Save Settings to commit the plan.', 'success', 5000);
-      } catch (e) {
-        console.error('Copy from stress error:', e);
-        showToast('Could not copy: ' + e.message, 'error');
-      } finally {
-        hideLoading();
-      }
-    };
-
-    window.copyStressFromDecisionUI = async function() {
-      if (!isLoggedIn()) {
-        showToast('Please sign in first', 'error');
-        return;
-      }
-      if (await refusedWhenLocked()) return; if (!await appConfirm('Copy your Decision Tool plan basics (funds, income, State Pension, ISA, protection) into the Stress Tester? Your Stress-specific what-ifs (tax mode, HODL) are kept.')) return;
-      showLoading('Copying from Decision...');
-      try {
-        const decision = await getDecisionSettingsAsync();
-        const currentStress = await getStressSettingsAsync();
-        const seeded = seedStressFromDecision(decision, currentStress);
-        await saveStressSettings(seeded);
-        await loadStressSettings();
-        showToast('Stress Tester seeded from your Decision plan', 'success');
-      } catch (error) {
-        console.error('Error copying from decision:', error);
-        showToast('Error copying: ' + error.message, 'error');
       } finally {
         hideLoading();
       }
@@ -11914,13 +11513,17 @@
       const recurring = b.oneOffs.filter((o) => (+o.everyYears || 0) > 0 && (+o.amount || 0) > 0);
       const singles = b.oneOffs.filter((o) => !((+o.everyYears || 0) > 0) && (+o.amount || 0) > 0);
 
-      const plsa = (window._budget && window._budget.sharedWithPartner) ? PLSA_2024.couple : PLSA_2024.single;
-      const allIn = s.allInComfortableAnnual;
-      const tier = allIn >= plsa.comfortable ? 'at/above Comfortable' : allIn >= plsa.moderate ? 'between Moderate and Comfortable' : allIn >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
-
       const shared = s.sharedWithPartner;
-      // The words about the plan's target (PlanSeed.budgetSummaryWords): today's, or on a plan made from a V7 answer the budget as a guide beside the target chosen.
-      const W = budgetSummaryWords({ allInMonthly: s.allInComfortableMonthly, allInAnnual: allIn, periodicMonthly: s.periodicMonthlyAverage, headroomMonthly: +window._budget.targetHeadroomMonthly || 0, targetGrossAnnual: grossUpAnnual(s.allInComfortableAnnual + (+window._budget.targetHeadroomMonthly || 0) * 12), shared }, window._budGuide || null, money);
+      // The couple standard is for the whole household, so a shared budget compares the HOUSEHOLD total with it, not one person's share (6.23.0).
+      const plsa = shared ? PLSA_2024.couple : PLSA_2024.single;
+      const allIn = s.allInComfortableAnnual;
+      const plsaSpend = shared ? s.householdComfortableAnnual : allIn;
+      const tier = plsaSpend >= plsa.comfortable ? 'at/above Comfortable' : plsaSpend >= plsa.moderate ? 'between Moderate and Comfortable' : plsaSpend >= plsa.minimum ? 'between Minimum and Moderate' : 'below the Minimum';
+
+      // The figure the button would use: the budget, or the budget with a tenth on top ("+10%", 6.23.0).
+      const useMonthly = window._budPlusTen ? plusTenth(s.allInComfortableMonthly) : Math.round(s.allInComfortableMonthly);
+      // The words about the plan's target (PlanSeed.budgetSummaryWords): a guide, or on a plan made from a V7 answer the budget as a guide beside the target chosen.
+      const W = budgetSummaryWords({ allInMonthly: s.allInComfortableMonthly, allInAnnual: allIn, periodicMonthly: s.periodicMonthlyAverage, useMonthly, plusTen: !!window._budPlusTen, targetGrossAnnual: grossUpAnnual(useMonthly * 12), shared }, window._budGuide || null, money);
       let html = '';
       // Headline figures
       html += '<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:14px;">';
@@ -11940,7 +11543,7 @@
       html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">= comfortable recurring <strong style="color:var(--text);">' + money(s.comfortableMonthlyNet) + '/mo</strong>' +
         (s.periodicMonthlyAverage > 0 ? ' + periodic set-aside <strong style="color:var(--text);">' + money(s.periodicMonthlyAverage) + '/mo</strong> <span>(averaged from the big periodic costs below)</span>' : '') + '.</div>';
 
-      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (' + (window._budget && window._budget.sharedWithPartner ? 'couple' : 'single') + ', 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. Your all-in spend is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
+      html += '<div class="alert alert-info" style="margin-bottom:12px;"><strong>vs PLSA (' + (shared ? 'couple' : 'single') + ', 2024):</strong> Minimum ' + money(plsa.minimum) + ' · Moderate ' + money(plsa.moderate) + ' · Comfortable ' + money(plsa.comfortable) + ' per year. ' + (shared ? 'Your household\u2019s all-in spend (' + money(plsaSpend) + '/yr, both of you)' : 'Your all-in spend') + ' is <strong>' + tier + '</strong>. <span style="color:var(--text-muted);">(Assumes home owned outright; excludes care costs.)</span></div>';
 
       // Periodic (recurring) one-offs, shown with their averaged cost
       if (recurring.length) {
@@ -11953,7 +11556,7 @@
       }
       // Single one-offs, shown as discrete events
       if (singles.length) {
-        html += '<div style="font-size:13px;margin-bottom:12px;"><strong>One-time costs</strong> (not in the monthly average — planned for the year they fall):<ul style="margin:6px 0 0; padding-left:18px;">';
+        html += '<div style="font-size:13px;margin-bottom:12px;"><strong>One-time costs</strong> (not in the monthly figure, and not sent to the plan — a note for your eye):<ul style="margin:6px 0 0; padding-left:18px;">';
         for (const o of singles) {
           html += '<li>' + budEsc(o.label || 'item') + ': ' + money(o.amount) + (o.atAge ? ' at age ' + (+o.atAge) : '') + '</li>';
         }
@@ -11962,9 +11565,10 @@
 
       html += '<div style="border-top:1px solid var(--border); padding-top:12px;">';
       html += '<div style="font-size:13px; margin-bottom:8px;">' + W.handoff + '</div>';
-      html += '<div style="font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">Optional headroom on top: £<input type="number" min="0" value="' + (window._budget.targetHeadroomMonthly ?? '') + '" placeholder="0" data-on-change="budHeadroomChanged(this.value)" style="width:90px;">/mo <span style="color:var(--text-muted);">— breathing room above the budget, so the plan isn’t cut to the bone.</span></div>';
       html += '<div style="font-size:13px; margin-bottom:8px;">' + W.targetLine + '</div>';
-      html += '<button type="button" data-on-click="applyBudgetToPlan()">Use as the start of my income shape</button><span class="hint" style="margin-left:8px;">This is today’s spending. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</span>';
+      const U = useSpendingWords({ monthly: useMonthly, wasMonthly: null, plusTen: !!window._budPlusTen }, money);
+      html += '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><button type="button" data-on-click="applyBudgetToPlan()">' + budEsc(U.button) + '</button><button type="button" class="risk-btn' + (window._budPlusTen ? ' active' : '') + '" title="Use a tenth more than the budget adds up to, for breathing room" data-on-click="budTogglePlusTen()">' + budEsc(U.plusTen) + '</button></div>';
+      html += '<p class="hint" style="margin:8px 0 0;">The budget is a guide. Only ‘Use as my spending’ changes the plan. It asks first, writes one figure — the plan’s spending, as the first step of your income shape — and can be undone. The go-slow and no-go years are yours to draw in Stress Settings → Your income shape.</p>';
       html += '</div>';
 
       document.getElementById('budSummary').innerHTML = html;
@@ -12002,7 +11606,7 @@
         : null;
       const statusEl = document.getElementById('budSaveStatus');
       if (statusEl && html) statusEl.innerHTML = html;
-      else if (statusEl && !html) budSetStatus('Saved \u2713');
+      else if (statusEl && !html) budSetStatus(savedChipText(isGuest()));
       const wiz = document.getElementById('budWizUndoSlot');
       if (wiz) wiz.innerHTML = html || '';
     }
@@ -12041,8 +11645,9 @@
       if (!isLoggedIn()) { budSetStatus('Sign in to save'); return; }
       try {
         await saveBudget(budCleanForSave());
-        budSetStatus('Saved \u2713');
+        budSetStatus(savedChipText(isGuest()));
       } catch (e) {
+        if (isExamplePlanError(e)) { budSetStatus('The example plan \u2014 it cannot be changed'); return; }   // never retried (6.23.0)
         console.error('Budget autosave error:', e);
         budSetStatus('Not saved \u2014 retrying\u2026');
         clearTimeout(_budSaveTimer);
@@ -12140,7 +11745,7 @@
       try {
         clearTimeout(_budSaveTimer);
         await saveBudget(budCleanForSave());
-        budSetStatus('Saved \u2713');
+        budSetStatus(savedChipText(isGuest()));
         showToast('Budget saved', 'success');
       } catch (e) {
         console.error('Budget save error:', e);
@@ -12150,37 +11755,53 @@
       }
     };
 
-    window.budHeadroomChanged = function (v) {
-      window._budget.targetHeadroomMonthly = v === '' ? null : Math.max(0, +v || 0);
-      updateBudgetSummary(); // re-renders the hand-off block + autosaves via budTouch
-    };
+    // "+10%": the figure the Use button offers, with a tenth on top. A toggle on the page, never saved.
+    window.budTogglePlusTen = function () { window._budPlusTen = !window._budPlusTen; updateBudgetSummary(); };
 
+    /** After the spending figure moves (the button, or its Undo): the forms, the notes and the banner follow. */
+    async function spendingWritten(gross) {
+      updateScheduleSpendNotes();
+      if (window._budGuide) { window._budGuide = await planTargetGuide(); }   // the target the page names has just moved
+      updateBudgetSummary();
+      const ssGross = document.getElementById('ssBaseSalary');
+      if (ssGross) { ssGross.value = gross || ''; syncNetFromGross('ss'); }
+      const dsGross = document.getElementById('dsBaseSalary');
+      if (dsGross) { dsGross.value = gross || ''; syncNetFromGross('ds'); }
+      updateNextStepBanner();
+    }
+
+    // "Use £X a month as my spending" (6.23.0, usability audit decision 6): asks first, writes ONE figure — the plan's
+    // spending (the first step of the income shape, and the target both tools work to) — and offers Undo. Never the
+    // Floor & Flex essentials or any other setting (src/services/BudgetToPlan.js).
     window.applyBudgetToPlan = async function () {
-      // A locked plan's settings are frozen, Stress settings included (6.20.2): say so plainly and change nothing.
+      // A locked plan's settings are frozen, Stress settings included (6.20.2); the example plan cannot change: say so plainly and change nothing.
       if (await refusedWhenLocked()) return;
       const s = summariseBudget(window._budget);
-      const headM = +window._budget.targetHeadroomMonthly || 0;
-      const gross = Math.round(grossUpAnnual(s.allInComfortableAnnual + headM * 12));
+      const monthly = window._budPlusTen ? plusTenth(s.allInComfortableMonthly) : Math.round(s.allInComfortableMonthly);
+      const gross = Math.round(grossUpAnnual(monthly * 12));
       if (!gross) { showToast('Add some spending first', 'warning'); return; }
-      showLoading('Applying to plan…');
+      const stressNow = await getStressSettingsAsync();
+      const decisionNow = await getDecisionSettingsAsync();
+      const wasGross = +(stressNow.baseSalary || 0);
+      const wasMonthly = wasGross > 0 ? Math.round(grossToNet(wasGross, DEFAULT_TAX_BANDS.pa, DEFAULT_TAX_BANDS.brl, DEFAULT_TAX_BANDS.hrl) / 12) : null;
+      const words = useSpendingWords({ monthly, wasMonthly, plusTen: !!window._budPlusTen }, gbp);
+      if (!await appConfirm(words.ask, { okLabel: 'Use it', cancelLabel: 'Keep the plan as it is' })) return;
+      showLoading('Using it…');
       try {
-        // The budget is TODAY'S spending: it seeds the FIRST step of the income shape only (src/services/BudgetToPlan.js).
-        // baseSalary stays as the year-0 anchor for display and the Decision tool.
-        const { patch, strategyState } = budgetIncomeShapePatch(window._budget, await getStressSettingsAsync(), gross, todayIso());
-        await saveStressSettings(patch);
-        window._ssStrategyState = JSON.parse(JSON.stringify(strategyState));
-        updateScheduleSpendNotes();
-        if (window._budGuide) { window._budGuide = await planTargetGuide(); updateBudgetSummary(); }   // the target the page names has just moved
+        const before = spendingBefore(stressNow, decisionNow);
+        await saveStressSettings(budgetSpendingPatch(window._budget, stressNow, gross));
         await saveDecisionSettings({ baseSalary: gross });
-        // The stress settings screen shows the net-first field — refresh if it's loaded.
-        const ssGross = document.getElementById('ssBaseSalary');
-        if (ssGross) { ssGross.value = gross; syncNetFromGross('ss'); }
-        const dsGross = document.getElementById('dsBaseSalary');
-        if (dsGross) { dsGross.value = gross; syncNetFromGross('ds'); }
-        updateNextStepBanner();
-        showToast('Income shape started from your budget: ' + gbp(s.allInComfortableMonthly + headM) + '/mo take-home as the first step' + (headM ? ' (incl. ' + gbp(headM) + '/mo headroom)' : '') + '. Draw the later steps in Stress Settings → Your income shape' + ' — ' + gbp(gross) + '/yr gross', 'success', 5000);
+        await spendingWritten(gross);
+        showUndoToast(words.done, async () => {
+          try {
+            await saveStressSettings(before.stress);
+            await saveDecisionSettings(before.decision);
+            await spendingWritten(before.stress.baseSalary);
+            showToast(words.undone, 'success', 5000);
+          } catch (e) { if (!sayIfLocked(e)) showToast('Could not put it back: ' + e.message, 'error'); }
+        });
       } catch (e) {
-        if (!sayIfLocked(e)) { console.error('Apply-to-plan error:', e); showToast('Could not apply: ' + e.message, 'error'); }
+        if (!sayIfLocked(e)) { console.error('Use as my spending error:', e); showToast('Could not use it: ' + e.message, 'error'); }
       } finally {
         hideLoading();
       }
@@ -12589,7 +12210,7 @@
 
     // ---- save / finish ----
     window.budWizSave = async function (alsoApply) {
-      if (alsoApply && await refusedWhenLocked()) return;   // "Set as my plan's target" on a locked plan: said plainly, nothing else (6.20.2)
+      if (alsoApply && await refusedWhenLocked()) return;   // "Use £X a month as my spending" on a locked plan: said plainly, nothing else (6.20.2)
       await saveBudgetUI();
       if (alsoApply) await applyBudgetToPlan();
       closeBudgetWizard();
@@ -12662,7 +12283,7 @@
         h += '<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">Everything is saved automatically as you type.</div>';
         h += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">' +
           '<button type="button" data-on-click="budWizSave(false)">Done</button>' +
-          '<button type="button" data-on-click="budWizSave(true)">Set as my plan’s target (Stress + Decision) &amp; finish</button>' +
+          '<button type="button" data-on-click="budWizSave(true)">' + budEsc(useSpendingWords({ monthly: window._budPlusTen ? plusTenth(summariseBudget(window._budget).allInComfortableMonthly) : Math.round(summariseBudget(window._budget).allInComfortableMonthly), wasMonthly: null, plusTen: !!window._budPlusTen }, gbp).button) + ' &amp; finish</button>' +
           '</div>';
         return h;
       }

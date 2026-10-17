@@ -23,9 +23,10 @@ test.describe('the current app, beside V7', () => {
 
     // A first-time visitor: the landing page, with the way in that needs no account.
     await expect(page.locator('#landingTryGuest')).toBeVisible();
-    await page.locator('#landingTryGuest').click();
+    await expect(page.locator('#landingLookAround')).toBeVisible();
+    await page.locator('#landingLookAround').click();   // the example plan (6.23.0): "Just try it" now opens the setup wizard for a plan of your own
 
-    // Guest mode has started: the banner says so, and the one guest plan lives in this tab only.
+    // Guest mode has started: the banner says so, and the example plan lives in this window only.
     await expect(page.locator('#guestBanner')).toBeVisible();
     await expect(page.locator('#guestBanner')).toContainText('Guest mode');
     const plans = await page.evaluate(() => JSON.parse(sessionStorage.getItem('pt_guest_scenarios') || '[]').length);

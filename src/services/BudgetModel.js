@@ -305,8 +305,11 @@ export function myShareFactor(item, budget, age = null) {
  */
 export function budgetSharePctAtAge(budget, age = null) {
   const base = Number.isFinite(+budget.mySharePct) ? +budget.mySharePct : 50;
+  // A row counts only when BOTH its boxes are filled in: a blank row ('' / null, which +'' turns into 0) used to count
+  // as "from age 0, my share 0%" and wiped the budget's share (6.23.0).
+  const given = (v) => v !== '' && v != null && Number.isFinite(+v);
   const phases = Array.isArray(budget.splitPhases)
-    ? budget.splitPhases.filter((p) => Number.isFinite(+p.fromAge) && Number.isFinite(+p.mySharePct))
+    ? budget.splitPhases.filter((p) => p && given(p.fromAge) && given(p.mySharePct))
     : [];
   if (age == null || phases.length === 0) return base;
   const applicable = phases.filter((p) => +p.fromAge <= age).sort((a, b) => +a.fromAge - +b.fromAge).pop();
@@ -383,33 +386,6 @@ export function periodicAnnualAverage(budget, mineOnly = false) {
     if (!(every > 0 && amt)) return sum;
     return sum + (amt / every) * (mineOnly ? myShareFactor(o, budget, num(budget.retirementAge)) : 1);
   }, 0);
-}
-
-/**
- * Per-plan-year net spending schedule (today's money), for the owner's share: recurring lines
- * respect their from/to ages, and dated/recurring one-offs land in the exact year they occur —
- * the un-flattened replacement for "evaluate at retirement age and smear the lumps".
- * schedule[y] = net £ the plan must fund in plan year y (age = retirementAge + y).
- * Note: single-shot one-offs (no everyYears) reach the plan ONLY through this schedule — the
- * flat summariseBudget hand-off has always ignored them.
- * @returns {number[]} length duration+1
- */
-export function targetScheduleFromBudget(budget, duration) {
-  const retire = num(budget.retirementAge);
-  const lumps = oneOffSchedule(budget, retire, retire + duration);
-  const schedule = [];
-  for (let y = 0; y <= duration; y++) {
-    const age = retire + y;
-    let net = myAnnualNetAtAge(budget, age, 'all');
-    for (const l of lumps) {
-      if (l.age === age) {
-        const src = (budget.oneOffs || []).find((o) => o.label === l.label) || {};
-        net += l.amount * myShareFactor(src, budget, age);
-      }
-    }
-    schedule.push(net);
-  }
-  return schedule;
 }
 
 /**
@@ -581,7 +557,7 @@ export function markBudgetAgesSet(budget) {
 //   Type, Section, Item, Amount, Period, Paid by, My share %, From age, To age,
 //   At age, Every N years, Notes
 // Row types:
-//   Setting  — ages, sharing, PLSA tier, headroom, split-phase changes
+//   Setting  — ages, sharing, PLSA tier, split-phase changes
 //   Item     — a budget line (Section = Essential/Discretionary; Amount as displayed mo/yr)
 //   Sub-item — a breakdown row belonging to the Item ABOVE it
 //   One-off  — lumpy cost (Amount absolute; At age; Every N years blank = one-time)
@@ -607,7 +583,6 @@ export function budgetToCsv(budget) {
   S('Shared with partner', budget.sharedWithPartner ? 'yes' : 'no');
   S('My share %', budget.mySharePct ?? 50);
   S('PLSA tier', budget.plsaTier || 'moderate');
-  if (budget.targetHeadroomMonthly) S('Headroom £/mo', budget.targetHeadroomMonthly);
   for (const p of budget.splitPhases || []) {
     if (p && p.fromAge !== '' && p.fromAge != null) {
       rows.push(['Setting', '', 'Split change', p.mySharePct ?? '', '', '', '', p.fromAge, '', '', '', 'from this age my share becomes Amount %']);
@@ -709,7 +684,7 @@ export function parseBudgetCsv(text, now = new Date()) {   // `now`: a calendar 
       else if (key === 'sharedwithpartner') settings.sharedWithPartner = /^(y|true|1)/i.test(amountRaw || col(row, 'Notes')) || /^(y|true|1)/i.test(amountRaw);
       else if (key === 'myshare%') settings.mySharePct = amount;
       else if (key === 'plsatier') settings.plsaTier = (amountRaw || '').toLowerCase() || undefined;
-      else if (key === 'headroom£/mo' || key === 'headroommo') settings.targetHeadroomMonthly = amount;
+      else if (key === 'headroom£/mo' || key === 'headroommo') { /* an older export's headroom row: the box is gone (6.23.0), the row is skipped */ }
       else if (key === 'splitchange') {
         const fromAge = launderAge(col(row, 'From age'), settings.currentAge, now);
         if (fromAge != null && amount != null) splitPhases.push({ fromAge, mySharePct: amount });

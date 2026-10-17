@@ -145,17 +145,16 @@ describe('the couples, survivor and care checks', () => {
 });
 
 describe('words elsewhere say "on course", not "on track"', () => {
-  it('the life stage, the next step, the landing page and the tour', () => {
+  it('the life stage, the next step and the landing page (the tour is gone, 6.23.0)', () => {
     expect(STAGES.saving.banner.text).toMatch(/on course/);
     expect(STAGES.saving.banner.text).not.toMatch(/on track/);
     expect(NEXT_STEP_WORDS.savingFromAnswer).toMatch(/on course/);
     expect(NEXT_STEP_WORDS.savingFromAnswer).not.toMatch(/on track/);
-    for (const f of ['src/ui/components/LandingPage.js', 'src/ui/components/OnboardingPage.js']) {
+    for (const f of ['src/ui/components/LandingPage.js']) {
       const t = read(f);
       expect(t, f).not.toMatch(/on track/);
       expect(t, f).not.toMatch(/85% Monte-Carlo/);
     }
-    expect(read('src/ui/components/OnboardingPage.js')).toMatch(/lasts in 9 futures out of 10/);
   });
   it('a quick answer that lasted in 85–90% of futures reads "just under 9 in 10", not "9 in 10"', () => {
     const seed = (lasted) => ({ answer: { lasted }, household: 'single', endAge: 95 });

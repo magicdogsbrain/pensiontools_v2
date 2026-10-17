@@ -2129,7 +2129,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-DRbvQdPe.js"></script>
+  <script type="module" crossorigin src="./assets/main-BLnr7kwY.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2726,8 +2726,8 @@
       <div id="stress-content" class="tab-content">
         <!-- Stress Tester Sub-tabs -->
         <div class="sub-tabs">
-          <button class="sub-tab active" data-stresstab="montecarlo">Monte Carlo</button>
-          <button class="sub-tab" data-stresstab="historical">Historical</button>
+          <button class="sub-tab active" data-stresstab="montecarlo">Will it last?</button>
+          <button class="sub-tab" data-stresstab="historical">History</button>
           <button class="sub-tab" data-stresstab="scenarios">Scenarios</button>
           <button class="sub-tab" data-stresstab="drawdown">Drawdown</button>
           <button class="sub-tab" data-stresstab="glidepath">Glidepath</button>
@@ -2745,24 +2745,17 @@
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
             <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
-            <div id="strategyRunResults"></div>
-            <h2>Monte Carlo Simulation
+            <h2>Will your money last?
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('mc')">What is this doing?</button>
             </h2>
-            <p id="mcBlurb" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">1,000 futures stitched from random 5-year blocks of 1928–2024 history — <strong>world</strong> equity (US history less the 1.5%/yr US-vs-World gap), so a world tracker is not modelled on US returns.</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">One test, the same on every screen: your plan, with your own cuts setting and its full length, run through <strong>every real stretch of markets since 1871 and 1,000 possible futures</strong> stitched from that history — world equity (US history less 1.5% a year), each future carrying its own inflation. The strategy page, the Strategies ranking, Try a strategy, the couples check and the plan document all read this one result.</p>
             <div id="mcStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Simulation Years</label>
-                <input type="number" id="mcYears" value="35">
-              </div>
-            </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button data-on-click="runMonteCarloUI()">Run Monte Carlo (1000 runs)</button>
-              <button id="optimiseBtnMC" data-on-click="runCompareStrategiesUI('MC')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
+              <button data-on-click="runMonteCarloUI()">Run the test</button>
+              <button id="optimiseBtnMC" data-on-click="runCompareStrategiesUI()" class="secondary">Compare allocations (Pots &amp; Valves)</button>
             </div>
           </div>
-          <div id="mcResults"></div>
+          <div id="strategyRunResults"></div>
           <div id="optimiseResultsMC"></div>
           <div class="card" id="tryStrategyCard">
             <h2>Try a strategy <span style="font-weight:normal;color:var(--text-muted);font-size:13px;">— nothing here is saved</span></h2>
@@ -2775,7 +2768,7 @@
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="45"></div>
-              <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
+              <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — paid in full until it runs out</option></select></div>
               <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
               <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
             </div>
@@ -2791,24 +2784,16 @@
         <!-- Historical Sub-tab -->
         <div id="stress-historical" class="stress-subtab hidden">
           <div class="card">
-            <h2>Historical Sequence Analysis
+            <h2>What if you had retired into a bad year?
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('hist')">What is this doing?</button>
             </h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests your strategy against every possible starting year from 1928-2024.</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">The one test's own real histories: every start since 1871, the hardest of them shown as an unfair test, and the famous bad years replayed one at a time. No second figure — the chance of lasting is on the first tab; this page shows where it comes from.</p>
             <div id="histStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Simulation Years</label>
-                <input type="number" id="histYears" value="35">
-              </div>
-            </div>
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button data-on-click="runHistoricalUI()">Run Historical Analysis</button>
-              <button id="optimiseBtnHist" data-on-click="runCompareStrategiesUI('Hist')" class="secondary">Compare allocations (Pots &amp; Valves)</button>
+              <button data-on-click="runHistoricalUI()">Show the history</button>
             </div>
           </div>
           <div id="histResults"></div>
-          <div id="optimiseResultsHist"></div>
         </div>
 
         <!-- Scenarios Sub-tab -->
@@ -2817,10 +2802,10 @@
             <h2>Stress Scenarios
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('scen')">What is this doing?</button>
             </h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Tests against specific historical crises: Great Depression, 1970s Stagflation, 2008 GFC, etc.</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">The named stresses — the Great Depression, the 1970s inflation, the lost decade, 2008 — explained: what each decade did, and what retiring into it would have done to this plan, read from the one test's own history. No second figure.</p>
             <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
-              <button data-on-click="runScenariosUI()">Run All Scenarios</button>
+              <button data-on-click="runScenariosUI()">Show the named stresses</button>
             </div>
           </div>
           <div id="scenResults"></div>

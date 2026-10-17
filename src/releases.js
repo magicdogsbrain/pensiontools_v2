@@ -37,6 +37,47 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.24.0', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'One answer to "will the money last?"',
+    summary: 'Every screen of a plan now shows the same chance of lasting: the one stress test all nine strategies use, run with your own spending-cuts setting and your plan\'s full length. The first tab (now "Will it last?"), the strategy page, the Strategies ranking, Try a strategy, the couples check and the plan document can no longer disagree. The bad case is always the worst 1 in 10. History and Scenarios explain the test instead of giving a second figure. The test itself has not changed: no strategy\'s arithmetic moved; what changed is which test each screen shows.',
+    changes: [
+      'Stress tester → "Will it last?": the chance of lasting over 1,000 possible futures, in plain words ("lasts in 9 futures out of 10"); what is typically left and what is left in a bad case (the worst 1 in 10) and a good case; the income cuts — in how many futures income was cut, by how much a year and for how long. For Pots & Valves and Buckets in order, a line says what the same futures would do without the cuts.',
+      'History ("What if you had retired into a bad year?") replays the one test\'s own real start years: the hardest starts since 1871 as an unfair test, and 1929, 1937, 1966, 1973, 2000 and 2008 one at a time. No second percentage; never "FAILED".',
+      'Scenarios explains the named stresses — what each decade did to shares and prices and what retiring into it would have done to this plan — read from the one test\'s real history.',
+      'The Strategies ranking lists the nine strategies by how many futures out of 10 each lasts, with what is typically left and the bad case beside it. The score, coverage ratio, "spent over the plan" and bumpiness live under "More columns".',
+      '"Compare allocations" runs each split through the same one test. "Am I on course?" searches the one test for every strategy.',
+      'The plan document keeps the figure it was locked with. When today\'s test on the same plan gives a different figure, the document page says so in one line.'
+    ],
+    corrections: [
+      'One plan gave a different chance of lasting on almost every screen: the Monte Carlo tab ran its own futures (5-year blocks of 1928–2024), the Historical tab its own start years from 1928, the Scenarios tab five looped decades, the ranking ran with the cuts switched off, and the couples check ran its own Monte Carlo. The example plan read 90%, 100%, 86%, 93% and 96%. All are retired; every figure is the one test\'s (the example now reads 96% everywhere).',
+      '"The worst case" meant the worst of 1,000 futures on one tab and the worst 1 in 10 elsewhere. It is the worst 1 in 10 everywhere.',
+      'The Historical and Scenarios tabs marked real start years "FAILED", and marked a 1966 start "OK" while 375 of 468 months were cut. A start that ran out now says at what age; a cut says how much and for how long.',
+      'The ranking\'s "level footing" toggle quietly ran Pots & Valves and Buckets without their cuts, against what the plan\'s own page showed. The rows now run the plan\'s own cuts setting and say so.'
+    ],
+    effects: {
+      stress: ['The first tab\'s figure moves to the one test\'s: for a Pots & Valves or Buckets plan with cuts on, usually a point or two higher than the old Monte Carlo tab. The Historical tab\'s 100% is gone (a kinder, separate test). The per-tab "Simulation years" boxes are gone: the plan\'s full length runs everywhere. Nothing in the saved settings changes.'],
+      strategies: ['The ranking\'s Pots & Valves and Buckets rows run with the plan\'s cuts setting, so for a plan with cuts on they read higher than before (the example: 91% → 96%) and the order can change. The score is unchanged in value.'],
+      decision: ['Recorded months do not change. The plan document keeps its stored figure; the page may show the "earlier test" line beside it.'],
+      accumulation: ['"Am I on course?" for a Pots & Valves plan searches the one test (200 futures, every sixth history, as other strategies already did): the pot it names can move by a few thousand pounds.'],
+      household: ['The couples check runs both plans through the one test, paired future for future, whatever the strategies; a partner still working is no longer year-shifted inside the run (the Timing block projects their pots instead).'],
+      budget: []
+    },
+    actions: ['Nothing to enter. Re-run "Will it last?" once to see the one figure. If you used the ranking\'s level-footing view, run Try a strategy with "Spending cuts: Off" for the same what-if.'],
+    notes: [
+      'Every strategy\'s arithmetic, the golden outputs, the plan corpus and the app-paths pin are byte-identical to 6.23.0.',
+      'The quick questions in the preview (/v7/) ask a different question — "from today, over my whole life", with cuts off — and can still differ from the planner\'s figure; "Save this as a plan" states both.',
+      'Deleted: the Monte Carlo tab\'s own run, the Historical tab\'s own run, the looped Scenarios, the allocation optimiser and its "Apply this split", the ranking\'s level-footing toggle and the couples check\'s own Monte Carlo.',
+      'Engine version unchanged (6.22.0).'
+    ],
+    affects: (scenario) => {
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      if (!s) return [];
+      const id = scenario.strategy && scenario.strategy.id;
+      if (id === 'pots-and-valves' || id === 'buckets-in-order' || !id) return ['This plan\'s "Will it last?" figure now comes from the one test with your cuts setting: expect it a point or two different from the old Monte Carlo tab. A locked plan\'s document keeps its figure.'];
+      return [];
+    }
+  },
+  {
     version: '6.23.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'The planner made plainer: no silent locks or overwrites, settings in view, a monthly entry that asks what your platform shows',
     summary: 'The first batch of fixes from a full review of the planner. Nothing locks or rewrites your plan without asking: a first monthly entry asks before it locks the plan and then runs the full lock; the budget\'s button into the plan asks first, changes one thing and offers Undo; writing a new plan document asks first. The seven ladder and floor strategies show the settings their engines use. A final-salary pension start is asked by age, and the plan says when it assumes a State Pension. The monthly entry asks for your pension total, cash and gilts or bond funds, with last month\'s figures filled in, and the tax-year set-up is three screens. Visitors start with a plan of their own and can keep three, and the example plan is read-only. Five things with no modern purpose are retired. Nothing in a locked plan changes.',

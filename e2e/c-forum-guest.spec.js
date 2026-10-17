@@ -162,9 +162,10 @@ test.describe('J1 — the forum guest: one person, 58, about £250,000', () => {
     await app.ready();
     const text = (await page.locator('[data-region="form"], [data-region="rail"], [data-screen="front"]').allInnerTexts()).join('\n').toLowerCase();
     for (const banned of ['sign up', 'create an account', 'log in']) expect(text, banned).not.toContain(banned);
-    // The only storage V7 uses is its own draft in this tab.
+    // The only storage V7 uses is its own draft in this tab — and, since 6.26.0, the planner's idle-sign-out note
+    // (`pt_lastActivity`, a time only, no figures) which V7 keeps up on every page (your-plan.md 4.3).
     const keys = await page.evaluate(() => ({ session: Object.keys(sessionStorage), local: Object.keys(localStorage) }));
-    expect(keys.local).toEqual([]);
+    expect(keys.local.filter((k) => k !== 'pt_lastActivity')).toEqual([]);
     expect(keys.session.filter((k) => k !== 'pt_v7_draft')).toEqual([]);
   });
 });

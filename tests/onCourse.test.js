@@ -136,10 +136,13 @@ describe('the couples, survivor and care checks', () => {
     for (const marker of ['r.jointSuccess', 'r.survivorSuccess', 'r.careJoint']) {
       for (const m of script.matchAll(new RegExp(marker.replace('.', '\\.') + '\\s*(>=|<)\\s*0\\.85', 'g'))) throw new Error('still 85%: ' + m[0]);
     }
-    expect(script).toMatch(/onCourseAlertClass\(r\.jointSuccess\)/);
+    // 6.25.0: the couples verdict is drawn by src/ui/householdView.js (the household's pooled share first), from the same module
+    const view = readFileSync(resolve(process.cwd(), 'src/ui/householdView.js'), 'utf8');
+    expect(view).toMatch(/const share = r\.pooled \? r\.pooled\.success : r\.jointSuccess;\s*\n\s*let html = .*\n.*onCourseAlertClass\(share\)/);
+    expect(view).toMatch(/if \(isOnCourse\(share\)\) return '';/);
+    expect(view).not.toMatch(/0\.85/);
     expect(script).toMatch(/onCourseAlertClass\(r\.survivorSuccess\)/);
     expect(script).toMatch(/onCourseAlertClass\(r\.careJoint\)/);
-    expect(script).toMatch(/!isOnCourse\(r\.jointSuccess\)/);
     expect(SRC).not.toMatch(/Looking solid/);
   });
 });

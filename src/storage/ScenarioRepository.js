@@ -671,7 +671,35 @@ export async function saveActiveDecisionSettings(settings) {
  */
 export async function getActiveBudget() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.budgetTool?.settings || getDefaultBudget();
+  const own = scenario?.budgetTool?.settings || getDefaultBudget();
+  const from = budgetSharedFromOf(scenario);
+  if (!from) return own;
+  // One household budget (6.25.0, usability audit decision 5): this plan reads the budget of the plan it points at,
+  // keeping only its own side of "who pays" and its own ages.
+  let source = null; try { source = await loadScenario(from); } catch (e) { source = null; }
+  const theirs = source?.budgetTool?.settings;
+  return theirs ? sharedBudgetView(theirs, own, from) : own;
+}
+
+/** The plan whose budget this plan reads (budgetTool.sharedFrom), or null. */
+export function budgetSharedFromOf(scenario) {
+  const v = scenario?.budgetTool?.sharedFrom;
+  return typeof v === 'string' && v && v !== scenario?.id ? v : null;
+}
+/** The fields of a budget that stay each plan's own when the budget is shared: who pays, and whose ages. */
+export const BUDGET_OWN_SIDE = Object.freeze(['mySharePct', 'splitPhases', 'currentAge', 'retirementAge', 'retired', 'partnerAge', 'partnerRetirementAge', 'partnerRetired']);
+/** A shared plan's own side of a budget: who pays and whose ages, nothing else (it holds no second copy of the lines). */
+export function ownSideOf(budget) {
+  const out = { sharedWithPartner: true };
+  for (const k of BUDGET_OWN_SIDE) if (budget && budget[k] !== undefined) out[k] = budget[k];
+  return out;
+}
+/** The household's budget as the partner's plan reads it: the lines are theirs, the side of who pays is ours. */
+export function sharedBudgetView(theirs, own, from) {
+  const out = { ...theirs, sharedWithPartner: true, sharedFrom: from };
+  for (const k of BUDGET_OWN_SIDE) if (own && own[k] !== undefined) out[k] = own[k];
+  if ((!own || own.mySharePct === undefined) && Number.isFinite(+theirs.mySharePct)) out.mySharePct = 100 - +theirs.mySharePct;
+  return out;
 }
 
 /**
@@ -683,6 +711,20 @@ export async function saveActiveBudget(budget) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) {
     throw new Error('No active scenario');
+  }
+  const from = budgetSharedFromOf(scenario);
+  if (from && budget) {
+    // A shared budget: the lines go to the household's plan, our side of who pays stays here.
+    const { sharedFrom, ...rest } = budget;
+    const mine = ownSideOf({ ...(scenario.budgetTool?.settings || {}), ...rest });
+    const shared = { ...rest };
+    for (const k of BUDGET_OWN_SIDE) delete shared[k];
+    delete shared.sharedWithPartner;
+    let source = null; try { source = await loadScenario(from); } catch (e) { source = null; }
+    if (source) await saveScenario(from, { 'budgetTool.settings': { ...(source.budgetTool?.settings || {}), ...shared } });
+    await saveScenario(scenario.id, { 'budgetTool.settings': mine });
+    if (cachedActiveScenario) { if (!cachedActiveScenario.budgetTool) cachedActiveScenario.budgetTool = {}; cachedActiveScenario.budgetTool.settings = mine; }
+    return;
   }
 
   await saveScenario(scenario.id, { 'budgetTool.settings': budget });
@@ -871,6 +913,47 @@ export async function getActiveStrategy() {
 export async function getHouseholdPartnerId() {
   const scenario = await getActiveScenarioAsync();
   return scenario?.household?.partnerScenarioId || null;
+}
+
+/**
+ * One budget for the household (6.25.0, decision 5): the partner's plan reads this plan's budget from now on
+ * (budgetTool.sharedFrom on the partner's plan). Its side of who pays starts as the complement of ours.
+ */
+export async function shareBudgetWith(partnerScenarioId) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario || !partnerScenarioId || partnerScenarioId === scenario.id) throw new Error('No partner plan to share with');
+  const partner = await loadScenario(partnerScenarioId);
+  if (!partner) throw new Error('Partner plan not found');
+  const mine = scenario.budgetTool?.settings || {};
+  const theirs = ownSideOf(partner.budgetTool?.settings);
+  if (theirs.mySharePct === undefined && Number.isFinite(+mine.mySharePct)) theirs.mySharePct = 100 - +mine.mySharePct;
+  await saveScenario(partnerScenarioId, { 'budgetTool.sharedFrom': scenario.id, 'budgetTool.settings': theirs });
+  invalidateScenarioCache();
+}
+/** The partner's plan keeps a separate budget again (its own copy of the lines as last read). */
+export async function stopSharingBudget(partnerScenarioId) {
+  const partner = await loadScenario(partnerScenarioId);
+  if (!partner) return;
+  const from = budgetSharedFromOf(partner);
+  let copy = partner.budgetTool?.settings || {};
+  if (from) { const source = await loadScenario(from); if (source?.budgetTool?.settings) { const { sharedFrom, ...view } = sharedBudgetView(source.budgetTool.settings, copy, from); copy = view; } }
+  await saveScenario(partnerScenarioId, { 'budgetTool.sharedFrom': null, 'budgetTool.settings': copy });
+  invalidateScenarioCache();
+}
+
+/** "Keep things as they are" (who draws what, 6.25.0): remembered on this plan for one partner and one state of both plans. */
+export async function getHouseholdSplitDismissed() {
+  const scenario = await getActiveScenarioAsync();
+  return scenario?.household?.splitDismissed || null;
+}
+export async function setHouseholdSplitDismissed(value) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  await saveScenario(scenario.id, { 'household.splitDismissed': value || null });
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.household) cachedActiveScenario.household = {};
+    cachedActiveScenario.household.splitDismissed = value || null;
+  }
 }
 
 /** Persist the partner-plan selection on the active scenario. */

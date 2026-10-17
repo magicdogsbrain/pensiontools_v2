@@ -3758,6 +3758,7 @@
             <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
+          <div id="hhSplit"></div>
           <div id="hhResults">
             <div class="settings-section">
               <div class="section-title">How it works</div>
@@ -3793,6 +3794,7 @@
       <div id="budget-content" class="tab-content">
         <div class="card">
           <h2>Budget — your spending plan</h2>
+          <p class="hint" id="budSharedLine" style="display:none;margin:0 0 6px;"></p>
           <p class="section-hint" style="margin-bottom:4px;">
             Enter what you expect to spend, in <strong>today's money</strong>. We total it into your
             <strong>essential</strong> (the floor that must always be covered) and <strong>comfortable</strong>
@@ -4061,7 +4063,6 @@
       startOffset,
       combineHouseholdStrategies,
       runSurvivorCheck,
-      allowanceNudge,
       runCareCheck,
       typicalSanityFlag,
       breakdownAnnual,
@@ -4140,6 +4141,12 @@
     import { refusedWhenLocked, sayIfLocked } from './src/ui/lockedPlan.js';   // a locked plan's settings, or the example plan: refused in the save functions, said plainly here (6.20.2, 6.23.0)
     import { budgetSpendingPatch, spendingBefore, plusTenth, useSpendingWords } from './src/services/BudgetToPlan.js';   // the Budget's one button into the plan (6.23.0)
     import { showUndoToast } from './src/ui/undoToast.js';
+    // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
+    import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
+    import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
+    import { runHouseholdWays } from './src/services/HouseholdService.js';
+    import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
+    import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
@@ -4215,7 +4222,7 @@
 
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
-    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc } from './src/firebase/FirestoreService.js';
+    import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
@@ -9489,133 +9496,106 @@
     };
 
     window.runHouseholdCheck = async function () {
-      const out = document.getElementById('hhResults');
+      const out = document.getElementById('hhResults'), top = document.getElementById('hhSplit');
       const partnerId = document.getElementById('hhPartnerSelect').value;
       if (!partnerId) { showToast('Choose your partner\'s plan first', 'warning'); return; }
       out.innerHTML = '<p style="font-size:13px;">Running both plans through the same 1,000 possible futures…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const [scenarios, ownSettings] = await Promise.all([listScenariosAsync(), getStressSettingsAsync()]);
-        const partner = scenarios.find((sc) => sc.id === partnerId);
+        const [scenarios, ownSettings, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
+        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
         const partnerSettings = partner?.stressTool?.settings;
         if (!partnerSettings || !partnerSettings.configured) {
           out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — switch to that plan, fill in its settings, then come back here.</div>';
           return;
         }
-        const cfgA = createSimulationConfigFromSettings({}, ownSettings);
-        const cfgB = createSimulationConfigFromSettings({}, partnerSettings);
+        const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
         const offsets = { a: startOffset(ownSettings), b: startOffset(partnerSettings) };
         const idA = ownSettings.strategyId || 'pots-and-valves', idB = partnerSettings.strategyId || 'pots-and-valves';
-        let r, stratNote = '';
-        {
-          // Each partner through the ONE test on their OWN strategy and cuts setting (6.24.0; the Pots & Valves pair had its
-          // own Monte Carlo until then), paired future-for-future on the shared market seed.
-          let res;
-          try { res = await runInWorker('household-strategies', { settingsA: ownSettings, cfgA, settingsB: partnerSettings, cfgB, idA, idB }); }
-          catch (e) {
-            console.warn('engine worker unavailable, running inline', e);
-            const rA = stressTestStrategy(idA, strategyPlanFor(ownSettings)), rB = stressTestStrategy(idB, strategyPlanFor(partnerSettings));
-            res = { combined: combineHouseholdStrategies(rA, rB), rA, rB };
-          }
-          if (!res.rA.affordable || !res.rB.affordable) { out.innerHTML = '<div class="alert alert-warning">One plan\'s strategy is not affordable as configured — ' + budEsc(!res.rA.affordable ? (res.rA.reason || '') : (res.rB.reason || '')) + '. Fix that plan first.</div>'; return; }
-          r = res.combined;
-          stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(document.getElementById('hhOwnPlan').value) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(partner.planDetails?.name || 'Partner') + ' — paired future for future on the same markets' + ((offsets.a || offsets.b) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Survives" means paid in full (for Floor to an age: never cut).</p>';
+        // Who draws what (6.25.0): the split that pays the least tax (HouseholdDraw), then both plans through the ONE test each
+        // way — as they are, and drawing together — paired future for future on the shared market seed, pooled in the combination.
+        const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit: window._hhLimit || null });
+        const cfgOf = (st) => createSimulationConfigFromSettings({}, st);
+        const ways = { own: { settingsA: ownSettings, cfgA: cfgOf(ownSettings), settingsB: partnerSettings, cfgB: cfgOf(partnerSettings) } };
+        if (split.applies) ways.together = { settingsA: split.settings.a, cfgA: cfgOf(split.settings.a), settingsB: split.settings.b, cfgB: cfgOf(split.settings.b) };
+        const dismissed = isSplitDismissed(await getHouseholdSplitDismissed(), partnerId, split.fingerprint);
+        const { mode, locked } = splitWriteMode(own, partner, split.names);
+        top.innerHTML = !split.applies ? '' : dismissed ? splitDismissedHtml() : splitSectionHtml({ split, fig: null, mode, locked, running: true });
+        let res;
+        try { res = await runInWorker('household-ways', { ways, needs: split.needs, idA, idB }); }
+        catch (e) {
+          console.warn('engine worker unavailable, running inline', e);
+          res = runHouseholdWays(ways, split.needs, idA, idB, (st, cfg, id) => { const p = strategyPlanFor(st); return { r: stressTestStrategy(id, p), p }; });
         }
-        const ownName = document.getElementById('hhOwnPlan').value;
-        const pName = partner.planDetails?.name || 'Partner';
+        const bad = [res.own.rA, res.own.rB].find((x) => x && !x.affordable);
+        if (bad) { top.innerHTML = ''; out.innerHTML = '<div class="alert alert-warning">One plan\'s strategy is not affordable as configured — ' + budEsc(bad.reason || '') + '. Fix that plan first.</div>'; return; }
+        const r = res.own.combined;
+        const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
+        window._hhLast = { cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
+        if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
+        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a || offsets.b) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Lasts" means paid in full (for Floor to an age: never cut).</p>';
+        const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
-        const yr = (y) => thisYear + y;
-        const pctFmt = (x) => (x * 100).toFixed(0) + '%';
-
-        // ---- The verdict, in plain words ----
-        let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-        html += '<div class="alert ' + onCourseAlertClass(r.jointSuccess) + '" style="font-size:15px;">' + jointVerdictHtml(r.jointSuccess) + '</div>';   // on course = 9 in 10 (6.22.0; it was called solid from 85%)
-        html += '<table><tbody>'
-          + '<tr><td>' + ownName + ' on their own</td><td><strong>' + pctFmt(r.successA) + '</strong></td></tr>'
-          + '<tr><td>' + pName + ' on their own</td><td><strong>' + pctFmt(r.successB) + '</strong></td></tr>'
-          + '<tr><td>Both together</td><td><strong>' + pctFmt(r.jointSuccess) + '</strong></td></tr>'
-          + '</tbody></table>' + stratNote + ((note) => (note ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + budEsc(note) + '</p>' : ''))(householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear }));   // one plan begins later than the other (couples-different-years.md 7): say when, and what is counted until then — words only, the check already lines the plans up by their starts
-        html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
-          + 'The together number can\'t be better than the weaker plan — and both plans face the '
-          + '<em>same</em> markets, so a bad decade hits you both at once. That\'s why this check runs '
-          + 'you both through identical futures instead of treating your plans as unrelated.</p></div>';
-
-        // ---- Where the money comes from, year by year ----
-        const rows = householdIncomeTimeline(ownSettings, partnerSettings);
-        html += '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
-        const lastBridge = rows.filter((row) => row.bridge).pop();
-        if (lastBridge) {
-          html += '<div class="alert alert-info">Until <strong>' + yr(lastBridge.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked 🌉) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
-        }
-        html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + ownName + ' needs</th><th>' + pName + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
-        const marks = new Set([0]);
-        rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i-1].workingA || row.workingB !== rows[i-1].workingB || row.spA !== rows[i-1].spA || row.spB !== rows[i-1].spB || row.db !== rows[i-1].db || (row.needB === 0 && rows[i-1].needB > 0) || (row.needA === 0 && rows[i-1].needA > 0))) marks.add(i); });
-        for (let y = 0; y < rows.length; y += 5) marks.add(y);
-        [...marks].sort((a, b) => a - b).forEach((i) => {
-          const row = rows[i];
-          if (!row) return;
-          html += '<tr><td>' + yr(row.year) + (row.bridge ? ' 🌉' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(Math.round(row.needA))) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(Math.round(row.needB)))
-            + '</td><td>' + gbp(Math.round(row.spA + row.spB)) + '</td><td>' + gbp(Math.round(row.db + row.other)) + '</td><td><strong>' + gbp(Math.round(row.drawNeed)) + '</strong></td></tr>';
-        });
-        html += '</tbody></table></div>'
-          + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Today\'s money, per year. Rows shown where something changes (a State Pension starts, a plan ends) plus every 5th year. The last column is what your investments must provide after all guaranteed income.</p></div>';
-
-        // ---- What's left over time ----
-        html += '<div class="settings-section"><div class="section-title">What you\'d have left, combined <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(both pots + ISAs, today\'s money)</span></div>';
-        html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>If markets are poor</th><th>Typical</th><th>If markets are strong</th></tr></thead><tbody>';
-        for (let y = 0; y < r.potFan.length; y += 5) {
-          const f = r.potFan[y];
-          html += '<tr><td>' + yr(f.year) + '</td><td>' + gbp(Math.round(f.p10)) + '</td><td>' + gbp(Math.round(f.p50)) + '</td><td>' + gbp(Math.round(f.p90)) + '</td></tr>';
-        }
-        html += '</tbody></table></div>'
-          + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">"Poor" = worse than 9 in 10 simulated futures; "strong" = better than 9 in 10.</p></div>';
-
-        // ---- What to do about it ----
-        if (!isOnCourse(r.jointSuccess)) {
-          const weakName = r.successA <= r.successB ? ownName : pName;
-          const weakPct = Math.min(r.successA, r.successB);
-          html += '<div class="settings-section"><div class="section-title">What to do about it</div>'
-            + '<p style="font-size:13px;">The weaker side is <strong>' + weakName + '</strong> (' + pctFmt(weakPct) + ' on its own). '
-            + 'Open that plan in the Stress Tester and try: a slightly lower spending target, retiring a little later, '
-            + 'the bond tent, or checking whether the budget split between you reflects who can actually fund what. '
-            + 'Then come back and re-run this check.</p></div>';
-        }
-
-        // ---- Allowance-filling nudge (display only — you choose, we model) ----
-        const nudge = allowanceNudge(ownSettings, partnerSettings, ownName, pName);
-        if (nudge.message) {
-          html += '<div class="settings-section"><div class="section-title">A tax thought</div>'
-            + '<div class="alert alert-info">💡 ' + nudge.message + ' You choose who funds what — this tool just shows the sums, assuming each plan\'s ISA bridge and access method as configured. (Adjust the budget\'s who-pays split, then re-run.)</div></div>';
-        }
-
-        // ---- Survivor one-shot stress (opt-in controls) ----
-        html += '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-          + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits the other\'s remaining pots (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending.</p>'
-          + '<div class="row-flex" style="font-size:13px;">'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + ownName + '</option><option value="B">' + pName + '</option></select></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">In year<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Survivor spends (% of joint)<input type="number" id="hhSurvivorPct" value="70" min="40" max="100" style="width:80px;"></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">DB survivor %<input type="number" id="hhDbSurvivorPct" value="50" min="0" max="100" style="width:80px;"></label>'
-          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runSurvivorUI()">Run survivor check</button></div>'
-          + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>';
-
-        // ---- Long-term care one-shot stress ----
-        html += '<div class="settings-section"><div class="section-title">What if one of you needs care?</div>'
-          + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) and re-runs both plans. It models the cost only — never local-authority means-testing.</p>'
-          + '<div class="row-flex" style="font-size:13px;">'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who needs care<select id="hhCareWho" style="min-width:150px;"><option value="A">' + ownName + '</option><option value="B">' + pName + '</option></select></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From year<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="3" min="1" max="15" style="width:80px;"></label>'
-          + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£/yr, today)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
-          + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runCareUI()">Run care check</button></div>'
-          + '<div id="hhCareResult" style="margin-top:8px;"></div></div>';
-
-        window._hhLast = { cfgA, cfgB, ownSettings, partnerSettings, ownName, pName };
-        out.innerHTML = html;
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote })
+          + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings), ownName, pName, thisYear)
+          + wealthSectionHtml(r.potFan, thisYear)
+          + whatToDoHtml(r, ownName, pName)
+          + budgetShareHtml({ ownName, pName, sharedFrom: budgetSharedFromOf(own) === partnerId, sharedTo: budgetSharedFromOf(partner) === activeId })
+          + survivorCareHtml(ownName, pName);
       } catch (e) {
         console.error('Household check error:', e);
         out.innerHTML = '<div class="alert alert-warning">Could not run the household check: ' + e.message + '</div>';
       }
+    };
+    window.rerunHouseholdSplit = function () {
+      const L = window._hhLast;
+      window._hhLimit = limitFrom({ kind: document.getElementById('hhLimitKind')?.value || '', who: L?.split?.smaller || 'b', age: document.getElementById('hhLimitAge')?.value, amount: document.getElementById('hhLimitAmount')?.value });
+      return runHouseholdCheck();
+    };
+    // "Use this split" (household-draw-split.md §5): after a confirm that lists what changes; a locked plan is never written — copies instead.
+    window.useHouseholdSplit = async function () {
+      const L = window._hhLast; if (!L || !L.split) return;
+      const ok = await appConfirm({ html: splitConfirmHtml(splitChanges(L.split, L.own, L.partner), L.mode) }, { okLabel: L.mode === 'copies' ? 'Make the copies' : 'Use this split', danger: false });
+      if (!ok) return;
+      let copyNames = null;
+      if (L.mode === 'copies') {
+        const a = await appPrompt('Name for the copy of ' + L.ownName + ':', L.ownName + ' — drawing together', { okLabel: 'Next' }); if (a == null) return;
+        const b = await appPrompt('Name for the copy of ' + L.pName + ':', L.pName + ' — drawing together', { okLabel: 'Make the copies' }); if (b == null) return;
+        copyNames = { a: a.trim() || undefined, b: b.trim() || undefined };
+      }
+      try {
+        showLoading(L.mode === 'copies' ? 'Making the copies…' : 'Writing the split into both plans…');
+        const done = await applySplit({ own: L.own, partner: L.partner, split: L.split, names: L.split.names, copyNames, repo: { saveScenario: saveScenarioDoc, duplicateScenario, loadScenario: loadScenarioDoc } });
+        invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
+        if (done.mode === 'write') {
+          showUndoToast('Both plans now draw together, tax first: the split is ' + L.ownName + '\'s and ' + L.pName + '\'s income shape.', async () => { await done.undo(); invalidateScenarioCache(); invalidateCache(); invalidateStressCache(); showToast('Both plans are back as they were.', 'success'); await runHouseholdCheck(); });
+          await runHouseholdCheck();
+        } else {
+          showToast('"' + done.names.a + '" and "' + done.names.b + '" created as unlocked drafts, linked to each other. Your plans are untouched — open the copies from the plan menu.', 'success', 8000);
+          await loadHouseholdUI();
+        }
+      } catch (e) { showToast('Could not apply the split: ' + e.message, 'error'); }
+      finally { hideLoading(); }
+    };
+    window.keepHouseholdAsIs = async function () {
+      const L = window._hhLast; if (!L || !L.split) return;
+      try { await setHouseholdSplitDismissed(dismissalFor(L.partner.id, L.split.fingerprint)); document.getElementById('hhSplit').innerHTML = splitDismissedHtml(); }
+      catch (e) { showToast('Could not save that: ' + e.message, 'error'); }
+    };
+    window.showHouseholdSplitAgain = async function () {
+      try { await setHouseholdSplitDismissed(null); } catch (e) { /* shown anyway */ }
+      const L = window._hhLast; if (L && L.split && L.split.applies) document.getElementById('hhSplit').innerHTML = splitSectionHtml({ split: L.split, fig: L.fig, mode: L.mode, locked: L.locked });
+    };
+    // One budget for the household (decision 5): the partner's plan reads this plan's budget; "who pays" stays its own.
+    window.shareHouseholdBudget = async function () {
+      const L = window._hhLast; if (!L) return;
+      try { await shareBudgetWith(L.partner.id); invalidateCache(); showToast(L.pName + '\'s plan now reads this plan\'s budget.', 'success'); await runHouseholdCheck(); }
+      catch (e) { showToast('Could not share the budget: ' + e.message, 'error'); }
+    };
+    window.stopSharingHouseholdBudget = async function (theirs) {
+      const L = window._hhLast; if (!L) return;
+      try { await stopSharingBudget(theirs ? L.partner.id : L.own.id); invalidateCache(); showToast('Each plan has its own budget again.', 'success'); await runHouseholdCheck(); }
+      catch (e) { showToast('Could not change that: ' + e.message, 'error'); }
     };
 
     window.runSurvivorUI = async function () {
@@ -10251,6 +10231,7 @@
         window._budget = normaliseBudget(defaultBudget());
       }
       window._budGuide = await planTargetGuide();   // a plan made from a V7 answer: its own target, which the budget is a guide to (never throws)
+      try { const [scs, aid] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]); const el = document.getElementById('budSharedLine'); el.innerHTML = budgetSharedLineHtml({ sharedFromName: window._budget.sharedFrom ? (scs.find((sc) => sc.id === window._budget.sharedFrom)?.planDetails?.name || 'another plan') : null, sharedToNames: scs.filter((sc) => sc.id !== aid && budgetSharedFromOf(sc) === aid).map((sc) => sc.planDetails?.name || sc.id) }); el.style.display = el.innerHTML ? 'block' : 'none'; } catch (e) { /* no line */ }   // one household budget (6.25.0)
       // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
       if (!window._budget.lines.length) {
         window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));

@@ -39,7 +39,7 @@ import { savingPlan, savingYearsByLife } from '../src/answers/shared/saving.js';
 import { livesList } from '../src/answers/shared/lives.js';
 import { migrateScenario } from '../src/storage/migrations.js';
 import { generateDrawdownSchedule } from '../src/services/DrawdownService.js';
-import { allowanceNudge } from '../src/services/HouseholdService.js';
+import { householdDrawSplit } from '../src/services/HouseholdDraw.js';
 import { isaTodayOrAtRetirement } from '../src/services/PotsAtRetirement.js';
 import * as frozenPlanner from './v7/keep/seed.v1/plannerSeed.js';
 import * as frozenV7 from './v7/keep/seed.v1/v7Seed.js';
@@ -160,7 +160,7 @@ describe('2. a plan made from a V7 answer with no savings today: today\'s £0 is
     const asBefore = { ...S, isaBalance: v7AtStop };   // what the seed wrote until the review of 6.22.0
     expect(isaTodayOrAtRetirement(S)).toBe(v7AtStop);
     expect(generateDrawdownSchedule(S, 12, 0.025, day)).toEqual(generateDrawdownSchedule(asBefore, 12, 0.025, day));
-    expect(allowanceNudge(S, S, 'You', 'Partner', day)).toEqual(allowanceNudge(asBefore, asBefore, 'You', 'Partner', day));
+    expect(householdDrawSplit({ settings: S }, { settings: S }, { now: day }).rows).toEqual(householdDrawSplit({ settings: asBefore }, { settings: asBefore }, { now: day }).rows);
     // an ISA today, or a plan without the ISA choice: today's ISA as it always was
     expect(isaTodayOrAtRetirement({ ...S, isaBalance: 5000 })).toBe(5000);
     const { isaGrowth, ...noChoice } = S;

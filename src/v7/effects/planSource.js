@@ -48,6 +48,7 @@ import { planRows, planPage } from '../../answers/plan/read.js';
 import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
+import { potsOf } from '../../answers/plan/pots.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -88,11 +89,11 @@ export function viewFor(state) {
   if (r && r.screen === 'plan' && r.planId) {
     page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
-    if (r.step === 'about' || r.step === 'income' || r.step === 'spend') {
+    if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
-      // "Money that comes in anyway" (editing-in-v7.md 7) and "What you spend" (8) read the same way
-      const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : spendOf;
+      // "Money that comes in anyway" (editing-in-v7.md 7), "What you spend" (8) and "Your pots and tax" (9) read the same way
+      const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : r.step === 'spend' ? spendOf : potsOf;
       page[r.step] = { ...read(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
     }
   }

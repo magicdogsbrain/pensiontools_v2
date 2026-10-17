@@ -1307,10 +1307,14 @@
         "potAtRetirement.isa",
         "potAtRetirement.source"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it."
+      "status": "built",
+      "step": "done",
+      "note": "A plan made from a V7 answer writes the middling pot here (PlanSeed.js); the plan step lets the person type it. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ]
     },
     {
       "id": "timing.duration",
@@ -1387,10 +1391,13 @@
       "status": "built",
       "files": [
         "src/answers/shared/schemaParts.js",
-        "src/answers/shared/toEngine.js"
+        "src/answers/shared/toEngine.js",
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
       ],
       "step": "done",
-      "note": "V7 asks the pension total; the split follows the risk level."
+      "note": "V7 asks the pension total; the split follows the risk level. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx"
     },
     {
       "id": "pots.risk",
@@ -1500,10 +1507,13 @@
       "files": [
         "src/answers/a/schema.js",
         "src/answers/b/schema.js",
-        "src/answers/c/schema.js"
+        "src/answers/c/schema.js",
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
       ],
       "step": "done",
-      "note": "Asked as savings (ISAs and other savings)."
+      "note": "Asked as savings (ISAs and other savings). Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx"
     },
     {
       "id": "pots.isa-use",
@@ -1517,9 +1527,14 @@
         "stress.isaDrawdownStrategy",
         "decision.isaDrawdownStrategy"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "done",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ],
+      "note": "Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet."
     },
     {
       "id": "pots.isa-growth",
@@ -1542,10 +1557,13 @@
         "src/answers/shared/schemaParts.js",
         "src/answers/shared/saving.js",
         "src/answers/shared/toEngine.js",
-        "src/answers/shared/savingsGrowth.js"
+        "src/answers/shared/savingsGrowth.js",
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
       ],
       "step": "done",
-      "note": "One choice under the savings box in C, A and B (\"Mostly cash\" or \"Invested like my pension\"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes \"Mostly cash\" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing."
+      "note": "One choice under the savings box in C, A and B (\"Mostly cash\" or \"Invested like my pension\"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes \"Mostly cash\" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx"
     },
     {
       "id": "pots.taxable",
@@ -1563,10 +1581,14 @@
         "decision.taxableMix",
         "decision.giaTaxBand"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it."
+      "status": "built",
+      "step": "done",
+      "note": "answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; the plan step asks for it. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ]
     },
     {
       "id": "pots.charges",
@@ -1583,9 +1605,13 @@
       "files": [
         "src/answers/shared/schemaParts.js",
         "src/services/Charges.js",
-        "src/answers/shared/toEngine.js"
+        "src/answers/shared/toEngine.js",
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
       ],
-      "step": "done"
+      "step": "done",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "note": "Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key."
     },
     {
       "id": "inc.state-pension",
@@ -1793,10 +1819,14 @@
         "stress.brl",
         "stress.hrl"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7 uses today's bands (toEngine.js BANDS) and they cannot be changed."
+      "status": "built",
+      "step": "done",
+      "note": "V7's questions use today's bands (toEngine.js BANDS); a saved plan's bands are changed on the plan step. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ]
     },
     {
       "id": "tax.mode",
@@ -1809,9 +1839,14 @@
       "keys": [
         "stress.taxMode"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "done",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ],
+      "note": "Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet."
     },
     {
       "id": "tax.tax-free-cash",
@@ -1828,10 +1863,13 @@
       "status": "built",
       "files": [
         "src/answers/shared/schemaParts.js",
-        "src/answers/shared/toEngine.js"
+        "src/answers/shared/toEngine.js",
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
       ],
       "step": "done",
-      "note": "V7 takes a quarter of each withdrawal tax-free unless you say it is already taken."
+      "note": "V7 takes a quarter of each withdrawal tax-free unless you say it is already taken. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx"
     },
     {
       "id": "tax.ufpls-years",
@@ -1847,10 +1885,14 @@
         "decision.ufplsYears",
         "decision.ufplsThenPcls"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "F's \"tax-free cash and which pot first\" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E."
+      "status": "built",
+      "step": "done",
+      "note": "F's \"tax-free cash and which pot first\" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E. Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ]
     },
     {
       "id": "tax.band-fill",
@@ -1864,10 +1906,14 @@
         "stress.bandFillRecycle",
         "decision.bandFillRecycle"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "No test plan uses it yet (square-one-audit.md §4)."
+      "status": "built",
+      "step": "done",
+      "note": "No test plan uses it yet (square-one-audit.md §4). Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet.",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ]
     },
     {
       "id": "tax.bed-and-isa",
@@ -1881,9 +1927,14 @@
         "stress.bedAndIsa",
         "decision.bedAndIsa"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "done",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ],
+      "note": "Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet."
     },
     {
       "id": "tax.earnings",
@@ -1897,9 +1948,14 @@
         "stress.relevantEarnings",
         "decision.relevantEarnings"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "done",
+      "editV7": "src/v7/screens/plan/PotsScreen.jsx",
+      "files": [
+        "src/answers/plan/pots.js",
+        "src/v7/screens/plan/PotsScreen.jsx"
+      ],
+      "note": "Edited on a saved plan in V7 (\"Your pots and tax\", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet."
     },
     {
       "id": "prot.cuts",

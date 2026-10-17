@@ -315,7 +315,8 @@ function planStep(C) {
     { id: 'about', lines: about, place: 'about', sub: 'about', href: '#/plan/' + plan.id + '/about' },
     // "What you spend" is edited inside V7 too (editing-in-v7.md 8): the shape, the one-off costs, the budget as a guide
     { id: 'pays', lines: pays, place: 'spend', sub: 'spend', href: '#/plan/' + plan.id + '/spend' },
-    { id: 'pots', lines: pots, place: 'pots' },
+    // "Your pots and tax" is edited inside V7 too (editing-in-v7.md 9): the pots, the ISA choices, the ordinary account, charges, tax
+    { id: 'pots', lines: pots, place: 'pots', sub: 'pots', href: '#/plan/' + plan.id + '/pots' },
     // "Money that comes in anyway" is edited inside V7 too (editing-in-v7.md 7)
     { id: 'income', lines: income, place: 'pots', sub: 'income', href: '#/plan/' + plan.id + '/income' },
     { id: 'way', lines: way, place: 'way' }

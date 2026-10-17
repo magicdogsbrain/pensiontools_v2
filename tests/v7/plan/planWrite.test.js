@@ -14,10 +14,11 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES } from '../../../src/answers/plan/schema.js';
+import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES } from '../../../src/answers/plan/schema.js';
 import { applyPatch, boxesOf, checkAbout } from '../../../src/answers/plan/about.js';
 import { checkIncome } from '../../../src/answers/plan/income.js';
 import { checkSpend, savedSpend } from '../../../src/answers/plan/spend.js';
+import { checkPots, savedPots } from '../../../src/answers/plan/pots.js';
 import { KEY_MINUTES } from '../../../src/services/GuestMeter.js';
 import { corpus, entryOf, TODAY, noon } from './_plans.js';
 
@@ -425,6 +426,96 @@ describe('"What you spend" (editing-in-v7.md 8): the same one write, chosen by t
   });
 });
 
+describe('"Your pots and tax" (editing-in-v7.md 9): the same one write, chosen by the step the page is on', () => {
+  const LUMPY = C['12-lumpy-db-gia'];
+  const onPots = (o) => { const id = o.planId || LUMPY.id; const p = page({ ...o, planId: id }); p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/' + id + '/pots') }); for (const [path, value] of Object.entries(o.typed || {})) p.store.dispatch({ type: A.PLAN_EDIT, planId: id, path, value }); p.store.dispatch({ type: A.PLANS_VIEW, view: viewFor(p.store.getState()) }); return p; };
+  it('an account: exactly the changed pots paths plus lastModified (the three pots in the saved proportions, the ISA choice, the charge); the toast line is the step\'s; Undo puts the previous values back', async () => {
+    const p = onPots({ raws: [LUMPY, LOCKED], typed: { pension: '500,000', isaGrowth: 'invested', charges: '0.25' } });
+    p.save(); await tick();
+    expect(p.rereads.length).toBe(1);
+    expect(p.fb.writes.length).toBe(1);
+    expect(p.fb.writes[0].path).toBe('users/u1/scenarios/' + LUMPY.id);
+    const data = p.fb.writes[0].data;
+    expect(data).toEqual({ 'stressTool.settings.equityMin': 318182, 'stressTool.settings.bondMin': 136364, 'stressTool.settings.cashTarget': 45454, 'stressTool.settings.isaGrowth': 'invested', 'stressTool.settings.chargesPct': 0.25, lastModified: STAMP });
+    for (const k of Object.keys(data)) expect(ALL_WRITES).toContain(k);
+    for (const k of Object.keys(data)) if (k !== 'lastModified') expect(POTS_WRITES).toContain(k);
+    const ui = p.store.getState().ui;
+    expect(ui.toast).toMatchObject({ planId: LUMPY.id, kind: 'saved', line: { id: 'pots', slots: { pension: '£500,000', isa: '£60,000', charges: '0.25' } } });
+    expect(ui.toast.previous).toEqual({ 'stressTool.settings.equityMin': 280000, 'stressTool.settings.bondMin': 120000, 'stressTool.settings.cashTarget': 40000, 'stressTool.settings.isaGrowth': 'cash', 'stressTool.settings.chargesPct': 0.5, lastModified: LUMPY.lastModified });
+    expect(p.store.getState().draft.plan.id).toBe(null);
+    const written = applyPatch(entryOf(LUMPY).plan, data);
+    expect(savedPots(written, { today: TODAY }).values).toMatchObject({ pension: 500000, isaGrowth: 'invested', charges: 0.25 });
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.undo(); await tick();
+    expect(p.fb.writes[1].data).toEqual({ ...ui.toast.previous, lastModified: LUMPY.lastModified });
+    expect(p.store.getState().ui.toast).toEqual({ planId: LUMPY.id, kind: 'undone', previous: null, line: null });
+  });
+  it('the window: the plan folded with the same patch, every other byte the same, the other plan byte-identical; Undo byte for byte', async () => {
+    const p = onPots({ raws: [LOCKED, LUMPY], session: 'nobody', typed: { isa: '70,000', taxFree: 'ufpls', ufplsYears: '8', bedAndIsa: 'no', taxMode: 'frozen' } });
+    const before = p.session.raw(GUEST_PLANS_KEY);
+    p.save(); await tick();
+    expect(p.fb.writes).toEqual([]);
+    const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+    expect(JSON.stringify(after[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
+    expect(after[1].stressTool.settings).toMatchObject({ isaBalance: 70000, accessMethod: 'ufpls', ufplsYears: 8, bedAndIsa: false, taxMode: 'frozen' });
+    const stripped = (plan) => { const out = copy(plan); for (const path of ALL_WRITES) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
+    expect(stripped(after[1])).toBe(stripped(JSON.parse(before)[1]));
+    p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
+    p.undo(); await tick();
+    expect(JSON.stringify(JSON.parse(p.session.raw(GUEST_PLANS_KEY))[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
+  });
+  it('a locked plan is refused by the guard on this step too; a box with a problem writes nothing; nothing typed writes nothing', async () => {
+    const locked = onPots({ raws: [LOCKED], planId: LOCKED.id, typed: { pension: '1' } });
+    locked.save(); await tick();
+    expect(locked.fb.writes).toEqual([]);
+    expect(locked.store.getState().ui.saveProblem).toEqual({ planId: LOCKED.id, problem: 'locked' });
+    const bad = onPots({ raws: [LUMPY], typed: { charges: '9' } });
+    bad.save(); await tick();
+    expect(bad.fb.writes).toEqual([]);
+    expect(bad.store.getState().ui.saveProblem).toEqual({ planId: LUMPY.id, problem: 'problems' });
+    const nothing = onPots({ raws: [LUMPY] });
+    nothing.save(); await tick();
+    expect(nothing.fb.writes).toEqual([]);
+    expect(nothing.store.getState().ui.toast.kind).toBe('unchanged');
+  });
+  it('property: whatever is typed on the pots step, every path written is declared and on this step\'s list; the window\'s text differs only there', async () => {
+    const anyTyped = fc.record({
+      pension: fc.oneof(fc.constant(undefined), fc.constantFrom('', '0', '400,000', 'abc')),
+      isa: fc.oneof(fc.constant(undefined), fc.constantFrom('', '0', '25,000')),
+      isaGrowth: fc.oneof(fc.constant(undefined), fc.constantFrom('cash', 'invested', 'x')),
+      isaUse: fc.oneof(fc.constant(undefined), fc.constantFrom('minimiseEarlyTax', 'hold')),
+      taxable: fc.oneof(fc.constant(undefined), fc.constantFrom('', '0', '30,000')),
+      charges: fc.oneof(fc.constant(undefined), fc.constantFrom('', '0', '0.5', '1.2', '4')),
+      pa: fc.oneof(fc.constant(undefined), fc.constantFrom('', '12,570', '10,000')),
+      taxFree: fc.oneof(fc.constant(undefined), fc.constantFrom('drawdown', 'ufpls')),
+      ufplsYears: fc.oneof(fc.constant(undefined), fc.constantFrom('', '5', '70')),
+      bandFill: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'no')),
+      stopSipp: fc.oneof(fc.constant(undefined), fc.constantFrom('', '300,000'))
+    }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {
+      const p = onPots({ raws: [raw, LOCKED], planId: raw.id, session: account ? 'in' : 'nobody', typed });
+      const before = p.session.raw(GUEST_PLANS_KEY);
+      p.save(); await tick();
+      const c = checkPots(entryOf(raw).plan, typed, { today: TODAY });
+      if (account) {
+        for (const w of p.fb.writes) for (const k of Object.keys(w.data)) expect(k === 'lastModified' || POTS_WRITES.includes(k), k).toBe(true);
+        if (!c.ok) expect(p.fb.writes).toEqual([]);
+      } else {
+        expect(p.fb.writes).toEqual([]);
+        const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+        expect(JSON.stringify(after[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
+        if (!c.ok) expect(p.session.raw(GUEST_PLANS_KEY)).toBe(before);
+        else {
+          const stripped = (plan) => { const out = copy(plan); for (const path of POTS_WRITES.concat('lastModified')) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
+          expect(stripped(after[0])).toBe(stripped(JSON.parse(before)[0]));
+        }
+      }
+      p.stop();
+    }), { numRuns: 40 });
+  });
+});
+
 describe('property: whatever is typed, every path written is declared, and the plan written reads back as typed', () => {
   const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && +p.stressTool.settings.currentAge > 0);
   const anyTyped = fc.record({
@@ -466,8 +557,8 @@ describe('property: whatever is typed, every path written is declared, and the p
       p.stop();
     }), { numRuns: 60 });
   });
-  it('the declared list is the three steps\' and the stamp, nothing more', () => {
-    expect(ALL_WRITES.length).toBe(ABOUT_WRITES.length + INCOME_WRITES.length + SPEND_WRITES.length + 1);
+  it('the declared list is the four steps\' and the stamp, nothing more', () => {
+    expect(ALL_WRITES.length).toBe(ABOUT_WRITES.length + INCOME_WRITES.length + SPEND_WRITES.length + POTS_WRITES.length + 1);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
 });

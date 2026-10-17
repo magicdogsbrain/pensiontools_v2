@@ -359,6 +359,16 @@ export function answerAge(plan, settings) {
     const now = Math.round(netOf(firstStepGross(ss), bandsOf(ss)) / 12);
     if (Math.abs(recorded - now) > 1) diffs.push('spend');
   }
+  // "Your pots and tax" (editing-in-v7.md 9.4): the pension pot the seed wrote (today's, or the middling pot at the stop when
+  // today's was £0 on a plan stopping later — PlanSeed's own rule) against the pots the plan draws from, and the savings
+  // today against the ISA, each to the pound
+  if (isObj(p.pension) && num(p.pension.today) != null) {
+    const atStop = isObj(p.pension.atStop) ? num(p.pension.atStop.middling) : null;
+    const seeded = later && !(num(p.pension.today) > 0) && atStop != null ? atStop : num(p.pension.today);
+    const now = (num(ss.equityMin) || 0) + (num(ss.bondMin) || 0) + (num(ss.cashTarget) || 0) + (num(ss.diversifierStart) || 0);
+    if (Math.round(seeded) !== Math.round(now)) diffs.push('pension');
+  }
+  if (isObj(p.savings) && num(p.savings.today) != null && Math.round(num(p.savings.today)) !== Math.round(num(ss.isaBalance) || 0)) diffs.push('isa');
   if (!diffs.length) return null;
   const savedOn = typeof fa.savedOn === 'string' ? fa.savedOn : '';
   const changed = plan.lastModified && String(plan.lastModified) > savedOn ? dayWords(plan.lastModified) : null;

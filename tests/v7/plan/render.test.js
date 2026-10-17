@@ -169,7 +169,7 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     const { root, text, actions } = draw(stateWith(entries, '#/plan/' + b.plan.id + '/plan'));
     expect(root.querySelector('h1').textContent).toBe('Your plan');
     expect(text).toContain('Stopping work at 62, in January 2030');
-    for (const sec of ['pots', 'way']) expect(root.querySelector(`[data-testid="plan.plan.change.${sec}"]`), sec).not.toBe(null);
+    for (const sec of ['way']) expect(root.querySelector(`[data-testid="plan.plan.change.${sec}"]`), sec).not.toBe(null);
     // "About you and when" is edited inside V7 (editing-in-v7.md 2): a link to the step, never the planner
     expect(root.querySelector('[data-testid="plan.plan.change.about"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.plan.edit.about"]').getAttribute('href')).toBe('#/plan/' + b.plan.id + '/about');
@@ -177,8 +177,11 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     // "What the plan pays" is edited inside V7 too (editing-in-v7.md 8): a link to the spend step
     expect(root.querySelector('[data-testid="plan.plan.change.pays"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.plan.edit.pays"]').getAttribute('href')).toBe('#/plan/' + b.plan.id + '/spend');
-    root.querySelector('[data-testid="plan.plan.change.pots"]').click();
-    expect(actions.pop()).toEqual({ type: 'plan/change', planId: b.plan.id, place: 'pots', back: '#/plan/' + b.plan.id + '/plan' });
+    // "Your pots and tax" is edited inside V7 too (editing-in-v7.md 9): a link to the pots step
+    expect(root.querySelector('[data-testid="plan.plan.change.pots"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.plan.edit.pots"]').getAttribute('href')).toBe('#/plan/' + b.plan.id + '/pots');
+    root.querySelector('[data-testid="plan.plan.change.way"]').click();
+    expect(actions.pop()).toEqual({ type: 'plan/change', planId: b.plan.id, place: 'way', back: '#/plan/' + b.plan.id + '/plan' });
     expect(text).not.toContain('Fixed when you locked');
     expect(text).toContain('At today’s prices.');
     expect(root.querySelector('[data-testid="plan.plan.allOptions"]').textContent).toBe('Show every setting');

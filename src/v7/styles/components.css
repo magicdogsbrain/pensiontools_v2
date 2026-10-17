@@ -467,6 +467,13 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .income-card .field-text input[type="text"] { max-width: 100%; }
 .income-card-actions { margin: 4px 0 0; }
 .income-add-row { margin: 6px 0 4px; }
+/* "What you spend" (editing-in-v7.md 8): the first row and the later steps as cards, the "then" box from the spending shape */
+.spend-card .shape-then { margin: 0 0 8px; }
+.spend-card .field-count input[type="text"], .spend-card .field-percent input[type="text"] { max-width: 6rem; }
+.spend-budget { margin-top: 14px; }
+.spend-budget > h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.spend-form .shape-chart { margin-top: 8px; }
+.income-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .income-none { margin: 4px 0 8px; }
 .undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
   max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text);

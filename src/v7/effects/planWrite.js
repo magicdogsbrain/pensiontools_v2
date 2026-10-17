@@ -32,6 +32,7 @@ import { doc, updateDoc } from 'firebase/firestore/lite';
 import { A } from '../state/actions.js';
 import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
+import { spendPatch } from '../../answers/plan/spend.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -108,8 +109,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   /** Which editing step the page is on when Save is pressed (editing-in-v7.md 7): its pure writer and its reading. */
   function stepOf(state) {
     const r = state.route;
-    const step = r && r.screen === 'plan' && r.step === 'income' ? 'income' : 'about';
-    return { step, patchOf: step === 'income' ? incomePatch : aboutPatch };
+    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend') ? r.step : 'about';
+    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : aboutPatch };
   }
 
   async function save(planId) {

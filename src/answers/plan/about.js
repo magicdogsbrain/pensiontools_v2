@@ -21,10 +21,31 @@
 import { deriveTiming, taxYearStartOf, taxYearLabel, ageOnDate } from '../../services/PlanTiming.js';
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { longevityAge } from '../../services/LongevityModel.js';
+import { grossToNet } from '../../services/TaxCalculator.js';
+import { grossUpAnnual, DEFAULT_TAX_BANDS } from '../../services/BudgetModel.js';
+import { cleanSteps } from '../../services/IncomeSchedule.js';
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+// ---- the planner's own tax sum, at the plan's own bands (editing-in-v7.md 8.1; spend.js and the stale rule read these) ----
+/** The plan's tax bands as the engine taxes with them; the planner's defaults where a key is missing. */
+export function bandsOf(ss) {
+  const n = (v, d) => (v == null || v === '' || !Number.isFinite(+v) || +v <= 0 ? d : +v);
+  return { pa: n(ss && ss.pa, DEFAULT_TAX_BANDS.pa), brl: n(ss && ss.brl, DEFAULT_TAX_BANDS.brl), hrl: n(ss && ss.hrl, DEFAULT_TAX_BANDS.hrl) };
+}
+/** A year after tax from a year before tax (TaxCalculator.grossToNet). */
+export const netOf = (gross, b) => grossToNet(Math.max(0, +gross || 0), b.pa, b.brl, b.hrl);
+/** A year before tax from a year after tax (BudgetModel.grossUpAnnual: the planner's own gross-up; exact within the allowance). */
+export const grossOf = (net, b) => grossUpAnnual(Math.max(0, +net || 0), b);
+/** The plan's first figure before tax, as "Your plan" reads it: the first step, else the saved schedule's first year, else the flat target. */
+export function firstStepGross(ss) {
+  const steps = ss && ss.incomeShape === 'phases' ? cleanSteps(ss.incomeSteps) : [];
+  if (steps.length) return +steps[0].amount;
+  if (Array.isArray(ss && ss.targetSchedule) && ss.targetSchedule.length) return +ss.targetSchedule[0] || 0;
+  return +(ss && ss.baseSalary) || 0;
+}
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
@@ -330,6 +351,13 @@ export function answerAge(plan, settings) {
   if (p.finalSalary === null || (isObj(p.finalSalary) && num(p.finalSalary.yearly) != null)) {
     const recorded = p.finalSalary === null ? 0 : Math.round(num(p.finalSalary.yearly));
     if (recorded !== Math.round(num(ss.dbAmount) || 0)) diffs.push('finalSalary');
+  }
+  // "What you spend" (editing-in-v7.md 8.4): the first take-home row a month against the plan's first figure read back
+  // through the planner's own tax sum, within £1 (the seed grossed it up at the planner's default bands)
+  if (Array.isArray(p.takeHome) && isObj(p.takeHome[0]) && num(p.takeHome[0].perMonth) != null) {
+    const recorded = Math.round(num(p.takeHome[0].perMonth));
+    const now = Math.round(netOf(firstStepGross(ss), bandsOf(ss)) / 12);
+    if (Math.abs(recorded - now) > 1) diffs.push('spend');
   }
   if (!diffs.length) return null;
   const savedOn = typeof fa.savedOn === 'string' ? fa.savedOn : '';

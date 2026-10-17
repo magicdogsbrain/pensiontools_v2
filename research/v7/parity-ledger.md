@@ -25,13 +25,13 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 172 | 135 | 17 | 4 | 16 |
 
-Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3**.
+Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 53 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 55 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 8 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -41,7 +41,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3*
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
 | `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 64 |
-| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 26 |
+| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
 
@@ -49,7 +49,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3*
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Landing page, welcome tour and set-up wizard** | Shows a new person what the app does, then asks name, single or couple, ages and retirement age, and where to start: work out my budget, can I afford to retire, this month's withdrawal, or I'm already drawing. | LandingPage.js, OnboardingPage.js, SetupWizard.js:226-270 | New people | **Built**: `src/v7/screens/FrontDoor.jsx`, `src/v7/rail/questions.js`. Replaced by the six questions in the person's own words. The wizard's "I'm already drawing" door is question D (step s7-d). | `done` | — |
+| **Landing page, welcome tour and set-up wizard** | Shows a new person what the app does, then asks name, single or couple, ages and retirement age, and where to start: work out my budget, can I afford to retire, this month's withdrawal, or I'm already drawing. | LandingPage.js, SetupWizard.js:226-270 (the welcome tour, OnboardingPage.js, was retired in 6.23.0) | New people | **Built**: `src/v7/screens/FrontDoor.jsx`, `src/v7/rail/questions.js`. Replaced by the six questions in the person's own words. The wizard's "I'm already drawing" door is question D (step s7-d). | `done` | — |
 | **Try it without an account** | Lets a visitor see answers before signing up. | "Just try it — no account" (index.html:5036-5071) | Visitors | **Built**: `src/v7/effects/draftStore.js`, `src/v7/screens/FrontDoor.jsx`. Better: V7 answers on the visitor's own figures with no account; what was typed stays in the tab. | `done` | — |
 | **A ready-made example plan** | Opens a worked example plan (about £1m, already retired) to look around every tool before typing anything. | Guest example plan and the ?demo=1m link (index.html:5036-5084) | Visitors | **Planned** (no V7 design yet): V7's answers on your own figures are the new way in; an example to look around has no V7 home yet. | `s9-switch` | — |
 | **Guest mode: three active hours, reminders, then hand-over into an account** | A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up. | GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html) | Visitors | **Planned** (no V7 design yet): V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell. | `s9-switch` | `browser.pt_guest_minutes` `browser.pt_guest_nag_level` `browser.pt_guest_handoff` `browser.pt_guest_scenarios` |
@@ -78,7 +78,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **3*
 | **Partner's age, retirement age, retired or not** | The partner's ages, kept on the budget for a couple. | Set-up wizard and Household → Create their plan (index.html:4900-4926, 10877-10887) | Couples | **Built**: `src/answers/shared/schemaParts.js`. V7 asks the partner's age and stop on the first screen (partnerStopFields). | `done` | `budget.partnerAge` `budget.partnerRetirementAge` `budget.partnerRetired` |
 | **Who pays: me, partner or shared, and my share** | For a couple, each line and one-off is paid by me, my partner or shared, with my share as a percentage (budget-wide or per line). | Budget: Sharing with a partner (index.html:3859-3883) | Couples | **Planned** (no V7 design yet): V7's budget is the household's (budget-step.md). | `s8-e` | `budget.sharedWithPartner` `budget.mySharePct` `budget.lines[].paidBy` `budget.lines[].mySharePct` `budget.oneOffs[].paidBy` `budget.oneOffs[].mySharePct` |
 | **Who pays, changing over time** | My share of shared costs can change at an age, e.g. 70% until her pension starts at 63, then 50/50. | Budget: "Change who pays over time" (index.html:3876-3880; BudgetModel.budgetSharePctAtAge) | Couples | **Planned** (no V7 design yet) | `s8-e` | `budget.splitPhases` `budget.splitPhases[].fromAge` `budget.splitPhases[].mySharePct` |
-| **Headroom on top of the budget** | Adds a monthly margin on top of the budget's total when it becomes the plan's target. | Budget: Your spending need (index.html:12167-12170) | Savers, retired | **Retired**: The spending figure is now always your own, with the budget as a guide beside it (owner, 1 Oct 2026), so there is no budget total to add a margin to: type the figure with the margin you want. (Owner: to confirm (follows from the rule of 1 Oct 2026 that the budget is a guide; budget-step.md)) | `s9-switch` | `budget.targetHeadroomMonthly` |
+| **Headroom on top of the budget** | Adds a monthly margin on top of the budget's total when it becomes the plan's target. | Budget: Your spending need (index.html:12167-12170) | Savers, retired | **Retired**: Retired in today's planner too (6.23.0): the box is gone and the saved figure is no longer read; a "+10%" button beside "Use £X a month as my spending" gives the margin instead (usability audit decision 9). (Owner: approved (owner, 17 Oct 2026, usability audit decision 9)) | `done` | — |
 | **Use the budget's total as the spending figure** | Copies the budget's total into the plan's spending figure. | Budget: "Use as the start of my income shape" (index.html:12172-12200; BudgetToPlan.js) | Everyone | **Built**: `src/v7/state/budget.js`, `src/v7/state/reduce.js`, `src/v7/components/Budget.jsx`. Changed on purpose: one tap copies the total into the box and the person can change it; nothing else flows from the budget (owner, 1 Oct 2026). Today's button also writes the essentials into Floor & Flex. | `done` | — |
 | **Export and import the budget as a spreadsheet** | Downloads the whole budget as a CSV that opens in Google Sheets or Excel, and reads an edited one back, with one undo. | Budget: Export CSV / Import CSV (index.html:3912-3913; BudgetModel.budgetToCsv, parseBudgetCsv) | Budget keepers | **Planned** (no V7 design yet) | `s8-e` | — |
 | **Did you miss anything?** | Suggests common costs not yet in the budget, one press to add each. | Budget: "Did you miss anything?" (BudgetModel.missingSuggestions) | Savers, retired | **Planned** (no V7 design yet) | `s8-e` | — |
@@ -237,7 +237,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **History, plan against actual** | Every recorded month by tax year, against the plan; delete a year or everything. | Decision → History (index.html:2707-2740) | Running | **Designed**: research/v7/rail-screens-language.md §1.6. The "Where you are" station. | `s9-switch` | — |
 | **A spreadsheet per tax year, and PDFs** | Downloads each tax year's records and prints the documents. | Decision → History / Tax Years (index.html:2707-2750) | Running | **Planned**: Carried over with Month by month (square-one-audit.md §4). | `s9-switch` | — |
 | **Set up a tax year** | Each April: the bands, last year's price rise, other income, the ISA to use, the tax-efficiency choice, income and tax already this year, the start month and the confirmed target; edit a year or set it up again. | TaxYearSetupWizard.js; Decision → Tax Years (index.html:14420-14470) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6. P.taxyear: "Next: set up the {2027/28} tax year." | `s9-switch` | `plan.decisionTool.taxYears` `taxYear.pa` `taxYear.brl` `taxYear.hrl` `taxYear.cpi` `taxYear.other` `taxYear.cgtExemptionUsed` `taxYear.isaSavingsAllocation` `taxYear.isaSavingsUsed` `taxYear.isTaxEfficient` `taxYear.taxEfficiencyChoice` `taxYear.grossIncomeToDate` `taxYear.taxPaidToDate` `taxYear.startMonth` `taxYear.confirmedSalary` `taxYear.remainingMonths` `taxYear.statePension` `taxYear.expectedMonthly` `taxYear.yearSetupComplete` |
-| **Copy settings between the two tools** | "Copy from Decision Tool" seeds the Stress tester from the committed plan; "Use ALL Stress settings" or "Copy target amount only" goes the other way. | Stress → Settings (index.html:3563-3567); Decision → Settings (index.html:2648-2660) | Approaching, retired | **Retired**: V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between: every figure the copy carried is in the one plan. (Owner: to confirm) | `s9-switch` | — |
+| **Copy settings between the two tools** | "Copy from Decision Tool" seeds the Stress tester from the committed plan; "Use ALL Stress settings" or "Copy target amount only" goes the other way. | Gone from today's planner in 6.23.0 (was Stress → Settings and Decision → Settings); the lock still copies the Stress settings into the Decision tool (seedDecisionFromStress) | Approaching, retired | **Retired**: One plan has one set of settings (usability audit decision 9; retired in today's planner in 6.23.0). V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between. (Owner: approved (owner, 17 Oct 2026, usability audit decision 9)) | `done` | — |
 
 ## Saving years (Accumulation)
 
@@ -293,7 +293,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **The budget's version and stored totals** | A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save. | BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version) | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `budget.version` `budget.derived` |
 | **Whether a line's panels were left open** | Whether a line's age band or breakdown was open on screen when it was saved. | Budget lines (index.html:11660-11670, 12491) | Nobody sees it | **Retired**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost. | `s9-switch` | `budget.lines[]._bandOpen` `budget.lines[].breakdownOpen` |
 | **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Planned**: V7 must read an old plan the same way (fallback only, never asked). | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
-| **Where a copy came from** | Which tool a settings copy came from, when, and a fingerprint of the source (for a "changed since you copied" note). | seedStressFromDecision / seedDecisionFromStress (ScenarioRepository.js) | Nobody sees it directly | **Retired**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched. | `s9-switch` | `stress.seededFrom` `stress.seededAt` `stress.decisionChecksum` `decision.seededFrom` |
+| **Where a copy came from** | Which tool a settings copy came from, when, and a fingerprint of the source (for a "changed since you copied" note). | seedDecisionFromStress (ScenarioRepository.js); the Stress side went with "Copy from Decision" in 6.23.0 | Nobody sees it directly | **Retired**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched. | `s9-switch` | `decision.seededFrom` |
 | **The plan's own fields** | The plan's id, when it was made and last changed. | FirestoreService.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.id` `plan.createdAt` `plan.lastModified` |
 | **The parts a plan is kept in** | The Stress tester's, the Decision tool's and the Budget's parts of a plan. | ScenarioRepository.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.stressTool` `plan.stressTool.settings` `plan.decisionTool` `plan.decisionTool.settings` `plan.budgetTool.settings` |
 | **The plan's strategy block** | Which strategy the plan runs, with its dials, when it was chosen and the engine version. | ScenarioRepository.defaultStrategyBlock / setActiveStrategy | Nobody sees it directly | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.strategy` `strategy.id` `strategy.params` `strategy.lockedAt` `strategy.engineVersion` |
@@ -376,7 +376,6 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.dbAmount` | Final-salary pension: amount and start | Built |
 | `stress.dbIndexation` | How a final-salary pension rises | Planned (no V7 design yet) |
 | `stress.dbStartYear` | Final-salary pension: amount and start | Built |
-| `stress.decisionChecksum` | Where a copy came from | Retired |
 | `stress.disableProtection` | Cuts in a slump | Planned (no V7 design yet) |
 | `stress.diversifierStart` | Diversifiers sleeve: gold and trend/macro | Planned (no V7 design yet) |
 | `stress.duration` | How long the plan runs | Built |
@@ -409,8 +408,6 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.retireAge` | Retired already, or retiring at an age | Built |
 | `stress.retired` | Retired already, or retiring at an age | Built |
 | `stress.riskMode` | riskMode on the example plan | Retired |
-| `stress.seededAt` | Where a copy came from | Retired |
-| `stress.seededFrom` | Where a copy came from | Retired |
 | `stress.shapeAgeNow` | The year-by-year figure every tool reads | Built |
 | `stress.spStartDate` | State Pension start date, typed from the forecast | Planned (no V7 design yet) |
 | `stress.spWeeklyAmount` | State Pension amount | Built |
@@ -561,7 +558,6 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.splitPhases` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].fromAge` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].mySharePct` | Who pays, changing over time | Planned (no V7 design yet) |
-| `budget.targetHeadroomMonthly` | Headroom on top of the budget | Retired |
 | `budget.version` | The budget's version and stored totals | Planned |
 
 ### `accumulation`: accumulationTool.settings (and .history): the Accumulation planner
@@ -823,9 +819,9 @@ stays (or comes back better) unless the owner agrees to retire it.
 
 ## Retired, and why
 
-- **Headroom on top of the budget**: The spending figure is now always your own, with the budget as a guide beside it (owner, 1 Oct 2026), so there is no budget total to add a margin to: type the figure with the margin you want. Owner: to confirm (follows from the rule of 1 Oct 2026 that the budget is a guide; budget-step.md).
+- **Headroom on top of the budget**: Retired in today's planner too (6.23.0): the box is gone and the saved figure is no longer read; a "+10%" button beside "Use £X a month as my spending" gives the margin instead (usability audit decision 9). Owner: approved (owner, 17 Oct 2026, usability audit decision 9).
 - **Whether a line's panels were left open**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost.
-- **Copy settings between the two tools**: V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between: every figure the copy carried is in the one plan. Owner: to confirm.
+- **Copy settings between the two tools**: One plan has one set of settings (usability audit decision 9; retired in today's planner in 6.23.0). V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between. Owner: approved (owner, 17 Oct 2026, usability audit decision 9).
 - **Where a copy came from**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched.
 - **Which tools a plan shows**: V7 has no tool tabs: the rail shows the steps the plan's stage needs, so there is nothing to switch on or off. Owner: to confirm.
 - **The old "Declining with age" spending profile**: Retired in 6.2.1: "Declining with age" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset "Slowly less" (src/answers/shared/shape.js slowlyLess, today's smileToSteps).

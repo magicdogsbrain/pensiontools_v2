@@ -4,7 +4,7 @@
 
 import { calculateTax } from '../src/services/TaxCalculator.js';
 import { describe, it, expect } from 'vitest';
-import { parseBudgetCsv, budgetToCsv, budgetSharePctAtAge, targetScheduleFromBudget,
+import { parseBudgetCsv, budgetToCsv, budgetSharePctAtAge, myAnnualNetAtAge,
   PLSA_2024,
   BUDGET_CATEGORIES,
   starterLines,
@@ -370,39 +370,6 @@ describe('BudgetModel — periodic averaging (recurring lumpy → monthly need)'
   });
 });
 
-describe('targetScheduleFromBudget', () => {
-  const budget = {
-    retirementAge: 60, currentAge: 58, endAge: 95,
-    lines: [
-      { label: 'Groceries', tier: 'essential', annual: 6000 },
-      { label: 'Car lease', tier: 'essential', annual: 3600, fromAge: 60, toAge: 62 }
-    ],
-    oneOffs: [
-      { label: 'New roof', amount: 15000, atAge: 70 },
-      { label: 'Car', amount: 20000, atAge: 65, everyYears: 8 }
-    ]
-  };
-
-  it('temporary lines end when they end; lumps land in their exact year', () => {
-    const sch = targetScheduleFromBudget(budget, 15);
-    expect(sch[0]).toBe(9600);           // groceries + lease at 60
-    expect(sch[2]).toBe(9600);           // lease's last year (toAge 62)
-    expect(sch[3]).toBe(6000);           // lease ended
-    expect(sch[10]).toBe(6000 + 15000);  // roof at age 70 (single-shot, was invisible to the flat hand-off)
-    expect(sch[5]).toBe(6000 + 20000);   // car at 65
-    expect(sch[13]).toBe(6000 + 20000);  // car again at 73 (every 8 years)
-  });
-
-  it('partner sharing applies the owner share to lines and one-offs', () => {
-    const shared = { ...budget, sharedWithPartner: true, mySharePct: 50,
-      lines: [{ label: 'Groceries', tier: 'essential', annual: 6000, paidBy: 'shared' }],
-      oneOffs: [{ label: 'New roof', amount: 15000, atAge: 70, paidBy: 'shared' }] };
-    const sch = targetScheduleFromBudget(shared, 15);
-    expect(sch[0]).toBe(3000);
-    expect(sch[10]).toBe(3000 + 7500);
-  });
-});
-
 describe('splitPhases — time-varying budget split', () => {
   const budget = {
     retirementAge: 60, currentAge: 58, endAge: 95,
@@ -420,18 +387,17 @@ describe('splitPhases — time-varying budget split', () => {
     expect(budgetSharePctAtAge(budget, null)).toBe(70); // no age context = base
   });
 
-  it('flows through the per-year target schedule ("I carry 70% until her pension starts")', () => {
-    const sch = targetScheduleFromBudget(budget, 20);
-    expect(sch[0]).toBe(7000);    // age 60: 70%
-    expect(sch[3]).toBe(5000);    // age 63: 50%
-    expect(sch[15]).toBe(4000);   // age 75: 40%
+  it('flows through what the owner funds at each age ("I carry 70% until her pension starts")', () => {
+    expect(myAnnualNetAtAge(budget, 60)).toBe(7000);    // age 60: 70%
+    expect(myAnnualNetAtAge(budget, 63)).toBe(5000);    // age 63: 50%
+    expect(myAnnualNetAtAge(budget, 75)).toBe(4000);    // age 75: 40%
   });
 
   it('per-item mySharePct still beats the phases; budgets without phases are unchanged', () => {
     const withItemPct = { ...budget, lines: [{ ...budget.lines[0], mySharePct: 100 }] };
-    expect(targetScheduleFromBudget(withItemPct, 5)[4]).toBe(10000);
+    expect(myAnnualNetAtAge(withItemPct, 64)).toBe(10000);
     const noPhases = { ...budget, splitPhases: undefined };
-    expect(targetScheduleFromBudget(noPhases, 5)[4]).toBe(7000);
+    expect(myAnnualNetAtAge(noPhases, 64)).toBe(7000);
   });
 });
 
@@ -439,7 +405,6 @@ describe('budget CSV import/export round-trip', () => {
   const budget = {
     currentAge: 58, retirementAge: 60, endAge: 95,
     sharedWithPartner: true, mySharePct: 70, plsaTier: 'comfortable',
-    targetHeadroomMonthly: 200,
     splitPhases: [{ fromAge: 63, mySharePct: 50 }],
     lines: [
       { label: 'Groceries', tier: 'essential', annual: 6000, period: 'mo', paidBy: 'shared', hint: 'weekly shop' },
@@ -462,7 +427,6 @@ describe('budget CSV import/export round-trip', () => {
     expect(r.settings.sharedWithPartner).toBe(true);
     expect(r.settings.mySharePct).toBe(70);
     expect(r.settings.plsaTier).toBe('comfortable');
-    expect(r.settings.targetHeadroomMonthly).toBe(200);
     expect(r.settings.splitPhases).toEqual([{ fromAge: 63, mySharePct: 50 }]);
     expect(r.lines).toHaveLength(3);
     expect(r.lines[0]).toMatchObject({ label: 'Groceries', tier: 'essential', annual: 6000, period: 'mo', paidBy: 'shared' });

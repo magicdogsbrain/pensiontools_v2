@@ -27,7 +27,7 @@ vi.mock('../../src/storage/ScenarioRepository.js', () => ({
 import { loadStressDBAsync, invalidateStressCache, createSimulationConfigFromSettings } from '../../src/storage/StressRepository.js';
 import { defaultBudget, budgetAgesKnown, budgetAgeToday, budgetRetirementAge, markBudgetAgesSet, DEFAULT_BUDGET_AGES } from '../../src/services/BudgetModel.js';
 import { deriveTiming } from '../../src/services/PlanTiming.js';
-import { budgetIncomeShapePatch } from '../../src/services/BudgetToPlan.js';
+import { budgetSpendingPatch } from '../../src/services/BudgetToPlan.js';
 import { matchRows, mergeLedger, isGiltCode } from '../../src/services/HoldingsPaste.js';
 import { planFromSettings } from '../../src/strategies/stressTest.js';
 import { SEPT_2026, frozenAt } from './_replay.js';
@@ -165,10 +165,10 @@ describe('G2-residual — the app page reads the Budget\'s age only through "did
     // "Send the budget to the plan" moved to src/services/BudgetToPlan.js in 6.20.2 (the inline script may only shrink):
     // the same rule there, and the page hands it the Budget it edits.
     expect(readFileSync(join(process.cwd(), 'src', 'services', 'BudgetToPlan.js'), 'utf8')).toContain('Math.max(budgetRetirementAge(budget) || 0, budgetAgeToday(budget) || 0) || 57');
-    expect(html).toContain('budgetIncomeShapePatch(window._budget, await getStressSettingsAsync(), gross, todayIso())');
+    expect(html).toContain('budgetSpendingPatch(window._budget, stressNow, gross)');
     // …and it does what it says: a Budget nobody gave ages to starts the shape at 57, not at its 60 placeholder.
-    expect(budgetIncomeShapePatch(defaultBudget(), { duration: 30 }, 30000, '2026-10-02').patch.shapeAgeNow).toBe(57);
-    expect(budgetIncomeShapePatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000, '2026-10-02').patch.shapeAgeNow).toBe(62);
+    expect(budgetSpendingPatch(defaultBudget(), { duration: 30 }, 30000).shapeAgeNow).toBe(57);
+    expect(budgetSpendingPatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000).shapeAgeNow).toBe(62);
   });
   it('G2-residual — an age typed on the Budget page, in the setup wizard or for a partner is marked as given', () => {
     expect(html).toContain('if (window._budget.currentAge !== a0 || window._budget.retirementAge !== r0) markBudgetAgesSet(window._budget);');

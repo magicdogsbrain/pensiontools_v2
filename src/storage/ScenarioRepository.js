@@ -34,6 +34,7 @@ import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
+import { isExamplePlan } from '../services/GuestPlans.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -134,76 +135,9 @@ export function getDefaultDecisionSettings() {
 }
 
 /**
- * Seed a Stress Tester settings object from the committed Decision plan ("Copy from
- * Decision"). Copies the shared plan basics (pots, duration, target income, State Pension,
- * ISA) and translates the protection unit (Decision % → Stress multiplier), while
- * preserving the caller's Stress-specific play fields (taxMode, bands, other, HODL,
- * disableProtection). Stamps provenance so the UI can warn if the Decision plan later
- * drifts. Pure — pass `seededAt` for deterministic tests.
- *
- * @param {object} decisionSettings - the committed Decision settings
- * @param {object} [currentStress={}] - existing Stress settings to overlay onto
- * @param {string} [seededAt] - ISO timestamp (injected for testability)
- * @returns {object} new Stress settings
- */
-export function seedStressFromDecision(decisionSettings, currentStress = {}, seededAt = new Date().toISOString()) {
-  const d = decisionSettings || {};
-  return {
-    ...getDefaultStressSettings(),
-    ...currentStress,
-    // shared plan basics from the Decision plan
-    equityMin: d.equityMin,
-    bondMin: d.bondMin,
-    cashTarget: d.cashTarget,
-    duration: d.duration,
-    baseSalary: d.baseSalary,
-    spStartDate: d.spStartDate ?? currentStress.spStartDate ?? null,
-    spWeeklyAmount: d.spWeeklyAmount ?? currentStress.spWeeklyAmount ?? 0,
-    consecutiveLimit: d.consecutiveLimit,
-    recoveryBuffer: d.recoveryBuffer,
-    disableProtection: d.disableProtection ?? currentStress.disableProtection ?? false,
-    // protection unit: Decision percent → Stress multiplier (20 → 0.8)
-    protectionEscalateMonths: d.protectionEscalateMonths ?? currentStress.protectionEscalateMonths ?? 12,
-    protectionMult: d.protectionFactor != null
-      ? 1 - d.protectionFactor / 100
-      : (currentStress.protectionMult ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER),
-    // ISA pot
-    isaBalance: d.isaBalance ?? 0,
-    isaReturn: d.isaReturn ?? ISA_DEFAULTS.RETURN,
-    isaMin: d.isaMin ?? ISA_DEFAULTS.MIN,
-    isaDrawdownStrategy: d.isaDrawdownStrategy ?? ISA_DEFAULTS.DRAWDOWN_STRATEGY,
-    // The full allocation picture — tagged funds ARE the allocation in own-funds mode, and the
-    // glide/spending choices are part of the plan being copied (previously missed: the copy
-    // brought only the headline numbers across).
-    taggedFunds: (d.taggedFunds || []).map((f) => ({ ...f })),
-    allocMode: d.allocMode ?? currentStress.allocMode,
-    subAsset: d.subAsset ?? null,
-    diversifierStart: d.diversifierStart ?? 0,
-    glideEndgame: d.glideEndgame ?? null,
-    equityGlideEnabled: d.equityGlideEnabled ?? false,
-    spendingProfile: d.spendingProfile ?? currentStress.spendingProfile ?? 'flat',
-    accessMethod: d.accessMethod ?? currentStress.accessMethod ?? 'drawdown',
-    ufplsYears: d.ufplsYears ?? currentStress.ufplsYears ?? null,
-    ufplsThenPcls: d.ufplsThenPcls ?? currentStress.ufplsThenPcls ?? false,
-    bandFillRecycle: d.bandFillRecycle ?? currentStress.bandFillRecycle ?? false,
-    // Taxable sleeve + windfalls travel with the plan in both directions.
-    taxableStart: d.taxableStart ?? currentStress.taxableStart ?? 0,
-    taxableMix: d.taxableMix ?? currentStress.taxableMix ?? 'equity',
-    giaTaxBand: d.giaTaxBand ?? currentStress.giaTaxBand ?? 'basic',
-    bedAndIsa: d.bedAndIsa ?? currentStress.bedAndIsa ?? true,
-    relevantEarnings: d.relevantEarnings ?? currentStress.relevantEarnings ?? 0,
-    windfalls: Array.isArray(d.windfalls) ? d.windfalls.map((w) => ({ ...w })) : (currentStress.windfalls || []),
-    // provenance for the drift banner / re-sync
-    seededFrom: 'decision',
-    seededAt,
-    decisionChecksum: simpleHash(d)
-  };
-}
-
-/**
  * Seed DECISION settings from the Stress Tester's current settings — the reverse direction:
  * "I've found a plan that survives the stress tests; run the Decision Tool on these settings."
- * Mirrors seedStressFromDecision, converting the protection unit back (multiplier → percent).
+ * Converts the protection unit (Stress multiplier → Decision percent).
  * Does NOT set `locked` — the user still reviews and saves (which locks as usual).
  * @param {object} stressSettings
  * @param {object} [currentDecision={}] - existing Decision settings to overlay onto
@@ -598,21 +532,6 @@ export async function updateScenarioDescription(scenarioId, description) {
 }
 
 /**
- * Update a scenario's enabled tools
- * @param {string} scenarioId - Scenario to update
- * @param {string[]} enabledTools - New enabled tools array
- * @returns {Promise<void>}
- */
-export async function updateScenarioTools(scenarioId, enabledTools) {
-  if (!isFirebaseAvailable()) {
-    throw new Error('Must be logged in to update scenarios');
-  }
-
-  await saveScenario(scenarioId, { enabledTools });
-  invalidateScenarioCache();
-}
-
-/**
  * Delete a scenario
  * @param {string} scenarioId - Scenario to delete
  * @returns {Promise<void>}
@@ -687,6 +606,11 @@ export async function saveActiveStressSettings(settings) {
 export async function activePlanLocked() {
   const scenario = await getActiveScenarioAsync();
   return !!scenario && isLockedSettings(storedOf(scenario).decision);
+}
+
+/** Is the active plan the read-only example (GuestPlans.js)? False with no plan open. */
+export async function activePlanIsExample() {
+  return isExamplePlan(await getActiveScenarioAsync());
 }
 
 /**
@@ -1006,11 +930,3 @@ export async function saveActiveHistory(history) {
   }
 }
 
-/**
- * Get enabled tools for the active scenario
- * @returns {Promise<string[]>} Enabled tools array
- */
-export async function getActiveEnabledTools() {
-  const scenario = await getActiveScenarioAsync();
-  return scenario?.enabledTools || ['stress', 'decision'];
-}

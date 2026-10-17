@@ -23,7 +23,7 @@ import { enterGuestMode, leaveGuestMode } from '../src/firebase/AuthService.js';
 import { clearGuestData, guestSnapshot } from '../src/firebase/FirestoreService.js';
 import {
   getActiveScenarioAsync, invalidateScenarioCache, saveActiveStressSettings, saveActiveDecisionSettings, setActiveStrategy,
-  seedStressFromDecision, seedDecisionFromStress, getDefaultDecisionSettings, saveActivePlanDocument, archivePlanDocument,
+  seedDecisionFromStress, getDefaultDecisionSettings, saveActivePlanDocument, archivePlanDocument,
   saveActiveHoldings, saveActiveAccumulationHistory, saveActiveJourney, activePlanLocked
 } from '../src/storage/ScenarioRepository.js';
 import {
@@ -35,7 +35,7 @@ import {
   addHistoryRecord, recalculateIsaSavingsUsed, decisionSettingsChecksum, invalidateCache as invalidateDecisionCache
 } from '../src/storage/DecisionRepository.js';
 import { unlockPlan, planDependents } from '../src/services/PlanLock.js';
-import { budgetIncomeShapePatch } from '../src/services/BudgetToPlan.js';
+import { budgetSpendingPatch } from '../src/services/BudgetToPlan.js';
 import { PLAN_LOCKED_CODE, PLAN_LOCKED_MESSAGE } from '../src/services/LockedPlanGuard.js';
 import { defaultBudget } from '../src/services/BudgetModel.js';
 import { TIMING_PIN_KEYS } from '../src/services/PlanTiming.js';
@@ -82,14 +82,14 @@ const BUDGET = { ...defaultBudget(48, 60), lines: [
  * the settings.
  */
 const BUTTONS = {
-  'Budget → "Use as the start of my income shape"': async () => {
+  'Budget → "Use £X a month as my spending"': async () => {
     const st = await getStressSettingsAsync();
-    const { patch } = budgetIncomeShapePatch(BUDGET, st, 39000, '2026-10-02');
+    const patch = budgetSpendingPatch(BUDGET, st, 39000);
     return [() => saveStressSettings(patch), () => saveDecisionSettings({ baseSalary: 39000 })];
   },
-  'Budget walk-through → "Set as my plan\'s target (Stress + Decision) & finish"': async () => {
+  'Budget walk-through → "Use £X a month as my spending & finish"': async () => {
     const st = await getStressSettingsAsync();
-    const { patch } = budgetIncomeShapePatch(BUDGET, st, 41000, '2026-10-02');
+    const patch = budgetSpendingPatch(BUDGET, st, 41000);
     return [() => saveStressSettings(patch), () => saveDecisionSettings({ baseSalary: 41000 })];
   },
   'Optimiser → "Apply this split to your Settings"': async () => [() => saveStressSettings({ equityMin: 111000, bondMin: 99000, cashTarget: 12000 })],
@@ -99,21 +99,13 @@ const BUTTONS = {
     () => saveStressSettings({ configured: true, baseSalary: 45000, equityMin: 1, strategyId: 'floor-and-flex' })
   ],
   'Stress tester → Settings → "Reset to Defaults"': async () => [() => resetStressSettings()],
-  'Stress tester → Settings → "Copy from Decision"': async () => {
-    const d = await getDecisionSettingsAsync(), s = await getStressSettingsAsync();
-    return [() => saveStressSettings(seedStressFromDecision({ ...d, baseSalary: 1 }, s))];
-  },
   'Decision tool → Settings → "Save Settings"': async () => [() => saveDecisionSettings({ configured: true, baseSalary: 46000, locked: true })],
   'Decision tool → Monthly Entry → how often months are recorded (window.setCadence)': async () => [() => saveDecisionSettings({ cadence: 'quarterly' })],
   'Decision tool → Settings → "Reset to Defaults"': async () => [() => saveDecisionSettings({ equityMin: 250000, bondMin: 200000, cashTarget: 50000, duration: 35, baseSalary: 30000, protectionFactor: 20, recoveryBuffer: 15000, consecutiveLimit: 3 })],
-  'Decision tool → Settings → "Copy from Stress tester" (target, then everything)': async () => {
+  'The lock itself seeds the Decision tool from the Stress settings (the "Copy from Stress tester" buttons are gone, 6.23.0)': async () => {
     const s = await getStressSettingsAsync(), d = await getDecisionSettingsAsync();
     return [() => saveDecisionSettings({ baseSalary: s.baseSalary + 1 }), () => saveDecisionSettings(seedDecisionFromStress({ ...s, equityMin: 2 }, d))];
   },
-  'Plan menu → add a tool (its wizard)': async () => [
-    () => saveStressSettings({ equityMin: 3, bondMin: 4, cashTarget: 5, isaBalance: 0, duration: 30, baseSalary: 20000, other: 0, taxMode: 'inflates', equityGlideEnabled: false }),
-    () => saveDecisionSettings({ equityMin: 3, bondMin: 4, cashTarget: 5, duration: 30, baseSalary: 20000 })
-  ],
   'Strategies → "Use this as my plan\'s strategy"': async () => [
     () => setActiveStrategy('full-il-gilt', {}),
     () => saveStressSettings({ strategyId: 'full-il-gilt', strategyParams: { cashYears: 2 } })

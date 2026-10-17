@@ -18,7 +18,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { enterGuestMode, leaveGuestMode } from '../src/firebase/AuthService.js';
 import { clearGuestData, loadScenario } from '../src/firebase/FirestoreService.js';
 import {
-  getDefaultScenario, getDefaultStressSettings, getDefaultDecisionSettings, seedDecisionFromStress, seedStressFromDecision,
+  getDefaultScenario, getDefaultStressSettings, getDefaultDecisionSettings, seedDecisionFromStress,
   createNewScenario, duplicateScenario, getActiveStressSettings, invalidateScenarioCache, chargesPatchOnUnlock, chargesForCopy
 } from '../src/storage/ScenarioRepository.js';
 import { getStressSettingsAsync, loadStressDB, invalidateStressCache, createSimulationConfigFromSettings, saveStressSettings, resetStressSettings } from '../src/storage/StressRepository.js';
@@ -70,11 +70,6 @@ describe('the copies between the two tools', () => {
     expect('chargesPct' in d).toBe(false);
     const base = { equityMin: 1, baseSalary: 2 };
     expect(decisionSettingsChecksum(seedDecisionFromStress({ ...base, chargesPct: 1.25 }, {}))).toBe(decisionSettingsChecksum(seedDecisionFromStress(base, {})));
-  });
-  it('Decision → Stress keeps the plan\'s own charge, and gives none to a plan that had none', () => {
-    expect(seedStressFromDecision({ equityMin: 1 }, { chargesPct: 1.25 }, 't').chargesPct).toBe(1.25);
-    expect(seedStressFromDecision({ equityMin: 1 }, { chargesPct: 0 }, 't').chargesPct).toBe(0);
-    expect('chargesPct' in seedStressFromDecision({ equityMin: 1, chargesPct: 2 }, {}, 't')).toBe(false);
   });
 });
 

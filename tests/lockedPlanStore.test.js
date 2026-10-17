@@ -44,7 +44,7 @@ import { invalidateScenarioCache, getActiveScenarioAsync, activePlanLocked, setA
 import { getStressSettingsAsync, saveStressSettings, invalidateStressCache, timingPinSettled } from '../src/storage/StressRepository.js';
 import { getDecisionSettingsAsync, saveDecisionSettings, saveTaxYearConfig, decisionSettingsChecksum, invalidateCache as invalidateDecisionCache } from '../src/storage/DecisionRepository.js';
 import { unlockPlan } from '../src/services/PlanLock.js';
-import { budgetIncomeShapePatch } from '../src/services/BudgetToPlan.js';
+import { budgetSpendingPatch } from '../src/services/BudgetToPlan.js';
 import { defaultBudget } from '../src/services/BudgetModel.js';
 import { PLAN_LOCKED_CODE, PLAN_LOCKED_MESSAGE } from '../src/services/LockedPlanGuard.js';
 import { TIMING_PIN_KEYS } from '../src/services/PlanTiming.js';
@@ -76,14 +76,14 @@ function lockElsewhere() {
 beforeEach(() => { fs.state.docs = new Map(); fs.state.calls = []; fs.state.failGetDoc = false; fresh(); });
 
 describe('signed in: a tab that loaded the plan before it was locked on another device', () => {
-  it('Budget → "Use as the start of my income shape": refused by the stored plan, no write sent, not retried', async () => {
+  it('Budget → "Use £X a month as my spending": refused by the stored plan, no write sent, not retried', async () => {
     await open(fixture('02-pnv-draft'));
     expect(await activePlanLocked()).toBe(false);
     lockElsewhere();
     const before = frozen();
     const st = await getStressSettingsAsync();
     const budget = { ...defaultBudget(61, 61), lines: [{ id: 'a', label: 'Food', annual: 7200, tier: 'essential' }] };
-    const { patch } = budgetIncomeShapePatch(budget, st, 39000, '2026-10-02');
+    const patch = budgetSpendingPatch(budget, st, 39000);
     await expect(saveStressSettings(patch)).rejects.toMatchObject({ code: PLAN_LOCKED_CODE, message: PLAN_LOCKED_MESSAGE });
     expect(writesTo()).toEqual([]);
     expect(fs.state.calls.filter((c) => c.op === 'getDoc' && c.path === PATH).length).toBe(1);   // a refusal is not a connection problem

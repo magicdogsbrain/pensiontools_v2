@@ -151,7 +151,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **State Pension amount** | The State Pension from the forecast: full, a forecast amount, or none. | Stress and Decision → Settings → State Pension (index.html:3546-3561) | Everyone | **Built**: `src/answers/shared/schemaParts.js` | `done` | `stress.spWeeklyAmount` `decision.spWeeklyAmount` |
 | **State Pension start date, typed from the forecast** | The exact date it starts, as on the forecast (also the birthday the plan reckons ages from). | State Pension: SP Start Date (index.html:3550) | Everyone | **Planned** (no V7 design yet): V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. | `s8-e` | `stress.spStartDate` `decision.spStartDate` |
-| **Final-salary pension: amount and start** | A defined-benefit pension: how much a year, in today's money, and when it starts. | Other income: Defined-Benefit Pension, DB Starts as a plan year (index.html:3508-3534) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/household.js`. Better: V7 asks the start by age, not plan year, for each person. | `done` | `stress.dbAmount` `stress.dbStartYear` |
+| **Final-salary pension: amount and start** | A defined-benefit pension: how much a year, in today's money, and when it starts. | Other income: Defined-Benefit Pension, starts at an age (the plan year is derived and saved beside it; src/ui/dbStartSetting.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/household.js`. Better: V7 asks the start by age, not plan year, for each person. | `done` | `stress.dbAmount` `stress.dbStartYear` `stress.dbStartAge` |
 | **How a final-salary pension rises** | Rises with prices capped at 5%, with full prices, or not at all. | Other income: DB Increases (index.html:3528-3532) | Everyone | **Planned** (no V7 design yet): V7's household takes all three (household.js) but the forms always say prices capped at 5%. | `s8-e` | `stress.dbIndexation` |
 | **Other income or pension** | Another taxable income a year from now, rising with prices capped at 4%. | Other income: Other Income/Pension (index.html:3512) | Everyone | **Planned** (no V7 design yet): D designs income you have bought (answer-D.md §5.2); a general other income has no V7 form. | `s8-e` | `stress.other` |
 | **Part-time work for some years** | Earnings for a number of years after stopping. | Income streams (index.html:3537-3542) | Approaching | **Built**: `src/answers/a/schema.js`, `src/answers/a/answer.js`. A's "Would some part-time work help?"; D designs the same for the retired (answer-D.md §3.6). | `done` | — |
@@ -233,7 +233,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **Record a month** | This month's fund values (by bucket, or fund by fund), the ISA, diversifiers, the taxable account and its cost; "paid this month already". | Decision → Monthly Entry (index.html:2291-2393; DecisionPanel.js) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6. The "This month" station. Owner's decision pending: 7.0 may ship with Month by month on today's screen (square-one-audit.md §6 question 3). | `s9-switch` | `plan.decisionTool.history` |
 | **What to draw and from where** | The month's recommendation: how much, from which pot, what to sell or rebalance, the tax summary. | Decision → Monthly Entry → Calculate (legacyDecision.js) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6 | `s9-switch` | — |
-| **How often you draw** | Monthly, quarterly or a year at a time. | Decision → Monthly Entry: How often you draw (index.html:2301-2310, 5960-5970) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6 | `s9-switch` | `decision.cadence` |
+| **How often you draw** | Monthly, quarterly or a year at a time. | Decision → Monthly Entry: How often you draw (index.html:2301-2310; a preference at decisionTool.cadence, outside the locked settings — services/DrawCadence.js) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6 | `s9-switch` | `plan.decisionTool.cadence` |
 | **History, plan against actual** | Every recorded month by tax year, against the plan; delete a year or everything. | Decision → History (index.html:2707-2740) | Running | **Designed**: research/v7/rail-screens-language.md §1.6. The "Where you are" station. | `s9-switch` | — |
 | **A spreadsheet per tax year, and PDFs** | Downloads each tax year's records and prints the documents. | Decision → History / Tax Years (index.html:2707-2750) | Running | **Planned**: Carried over with Month by month (square-one-audit.md §4). | `s9-switch` | — |
 | **Set up a tax year** | Each April: the bands, last year's price rise, other income, the ISA to use, the tax-efficiency choice, income and tax already this year, the start month and the confirmed target; edit a year or set it up again. | TaxYearSetupWizard.js; Decision → Tax Years (index.html:14420-14470) | Run-up, running | **Designed**: research/v7/rail-screens-language.md §1.6. P.taxyear: "Next: set up the {2027/28} tax year." | `s9-switch` | `plan.decisionTool.taxYears` `taxYear.pa` `taxYear.brl` `taxYear.hrl` `taxYear.cpi` `taxYear.other` `taxYear.cgtExemptionUsed` `taxYear.isaSavingsAllocation` `taxYear.isaSavingsUsed` `taxYear.isTaxEfficient` `taxYear.taxEfficiencyChoice` `taxYear.grossIncomeToDate` `taxYear.taxPaidToDate` `taxYear.startMonth` `taxYear.confirmedSalary` `taxYear.remainingMonths` `taxYear.statePension` `taxYear.expectedMonthly` `taxYear.yearSetupComplete` |
@@ -320,6 +320,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.budgetTool.settings` | The parts a plan is kept in | Planned |
 | `plan.createdAt` | The plan's own fields | Planned |
 | `plan.decisionTool` | The parts a plan is kept in | Planned |
+| `plan.decisionTool.cadence` | How often you draw | Designed |
 | `plan.decisionTool.history` | Record a month | Designed |
 | `plan.decisionTool.planOfRecord` | The plan of record | Planned |
 | `plan.decisionTool.planOfRecordArchive` | Unlock to change the plan | Designed |
@@ -375,6 +376,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.currentAgeAsOf` | Age today | Built |
 | `stress.dbAmount` | Final-salary pension: amount and start | Built |
 | `stress.dbIndexation` | How a final-salary pension rises | Planned (no V7 design yet) |
+| `stress.dbStartAge` | Final-salary pension: amount and start | Built |
 | `stress.dbStartYear` | Final-salary pension: amount and start | Built |
 | `stress.decisionChecksum` | Where a copy came from | Retired |
 | `stress.disableProtection` | Cuts in a slump | Planned (no V7 design yet) |
@@ -442,7 +444,6 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.baseSalary` | The year-by-year figure every tool reads | Built |
 | `decision.bedAndIsa` | Bed-and-ISA £20,000 a year | Planned (no V7 design yet) |
 | `decision.bondMin` | Pension pot, split into shares, bonds and cash | Built |
-| `decision.cadence` | How often you draw | Designed |
 | `decision.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.configured` | Settings have been saved once | Planned |
 | `decision.consecutiveLimit` | Cuts in a slump | Planned (no V7 design yet) |

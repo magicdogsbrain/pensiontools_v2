@@ -27,10 +27,12 @@
  *    - Decision: the one-off rewrite of the old "Declining with age" spending profile (v6.2.1, made on load by
  *      DecisionRepository.loadDecisionDBAsync and saved with the next tax-year save), and only when it is exactly
  *      that rewrite (isDecliningBake).
- *   NOT how often months are recorded (`cadence`, the Monthly Entry's picker). It sits in the Decision settings and so in
- *   the settings checksum: on a plan unlocked before, changing it relabelled every recorded month "recorded under
- *   previous settings". On a locked plan it is refused like any other Decision setting.
+ *   NOT the old `cadence` key inside the Decision settings (a plan saved before 6.23): it is in the settings checksum,
+ *   so on a plan unlocked before, changing it relabelled every recorded month "recorded under previous settings". It
+ *   is never written again; it stays as stored and is refused like any other Decision setting.
  *   Outside the settings (not checked here, because they are not settings):
+ *    - how often you draw (`decisionTool.cadence`, the Monthly Entry's picker; services/DrawCadence.js, v6 usability
+ *      audit decision 4): a preference, changeable on a locked plan, outside the checksum;
  *    - the plan document, its refresh and its archive (planDocument, planDocumentArchive);
  *    - the plan of record and its archive (decisionTool.planOfRecord, decisionTool.planOfRecordArchive);
  *    - Decision records and tax years (decisionTool.history, decisionTool.taxYears). A tax-year save carries the

@@ -79,13 +79,13 @@ describe('(a) a button that would change a locked plan\'s settings: told plainly
       expect(f.indexOf('appConfirm('), name).toBeGreaterThan(check);
     }
   });
-  it('the Monthly Entry\'s "how often" picker on a locked plan: said plainly, and the picker goes back to what is saved', () => {
+  it('the Monthly Entry\'s "how often" picker is a preference (v6 usability audit, decision 4): it writes decisionTool.cadence, never the locked settings, and a failed save puts the picker back', () => {
     const f = handler('setCadence', 400);
-    const save = f.indexOf('await saveDecisionSettings({ cadence: v })');
-    const catchAt = f.indexOf('catch (e) {', save);
+    const save = f.indexOf('await saveActiveDrawCadence(v)');
     expect(save).toBeGreaterThan(0);
+    expect(f).not.toContain('saveDecisionSettings(');
+    const catchAt = f.indexOf('catch (e) {', save);
     const onFail = f.slice(catchAt, f.indexOf('return; }', catchAt));
-    expect(onFail).toContain('if (!sayIfLocked(e)) showToast(');
     expect(onFail).toContain('loadCadenceUI()');
   });
   it('the add-a-tool wizard says it plainly when the save functions refuse', () => {

@@ -26,7 +26,19 @@ export const RETIRED_STAGES = Object.freeze(['draft-retired', 'bridge', 'running
 /** The stages in which someone still working is shown (the saver wording rules apply). */
 export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-saving']);
 
-export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.noAge', 'P.arrive', 'P.taxyear', 'P.month', 'P.idle', 'P.pot', 'P.working', 'P.stale', 'P.draft', 'P.approaching', 'P.saving']);
+export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.noAge', 'P.arrive', 'P.taxyear', 'P.month', 'P.idle', 'P.pot', 'P.working', 'P.recheck', 'P.stale', 'P.draft', 'P.approaching', 'P.saving']);
+
+/**
+ * The editing sub-steps of a step (research/v7/editing-in-v7.md 2): "About you and when" sits under "Your plan" / "Your
+ * plan as locked" (read-only there). A sub-step is an address under the plan (#/plan/<id>/about), not a rail step.
+ */
+export const SUB_STEPS = Object.freeze({ plan: Object.freeze(['about']) });
+export const ALL_SUB_STEPS = Object.freeze(['about']);
+
+/** The sub-steps a plan's page links to: those of every step the stage lists. */
+export function subStepsFor(stageKey, o) {
+  return stepsFor(stageKey, o).flatMap((s) => (SUB_STEPS[s.id] || []).map((id) => ({ id, under: s.id })));
+}
 
 /**
  * The steps a plan shows: the stage's list, less "lock" on a locked plan, less "household" without a link when the

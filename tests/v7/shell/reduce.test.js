@@ -236,7 +236,18 @@ const anyAction = fc.oneof(
   fc.constant({ type: A.PLANS_VIEW, view: { today: '2026-09-30', rows: [], page: null } }),
   fc.constant({ type: A.PLANS_CLEAR }),
   fc.constant({ type: A.PLAN_CHANGE, planId: 'p1', place: 'month', back: '#/plan/p1' }),
-  fc.constant({ type: A.PLAN_CHANGE_FAILED })
+  fc.constant({ type: A.PLAN_CHANGE_FAILED }),
+  // editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 4): the draft of one plan, its save, its undo
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'stopMonth', 'startWhen', 'endAge', 'sex', 'chance'), fc.constantFrom('', '58', 'yes', 'age', 'month', '2030-06', 'april', 'abc', null))
+    .map(([planId, path, value]) => ({ type: A.PLAN_EDIT, planId, path, value })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'endAge')).map(([planId, path]) => ({ type: A.PLAN_TOUCH, planId, path })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, {}, { 'stressTool.settings.duration': 32 })).map(([planId, previous]) => ({ type: A.PLAN_SAVED, planId, previous, line: { id: 'runsTo', slots: { endAge: 93, years: 32 } } })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO_DONE, planId })),
+  fc.constant({ type: A.PLAN_TOAST_CLOSE })
 );
 
 describe('any sequence of actions', () => {

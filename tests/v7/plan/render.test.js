@@ -169,7 +169,11 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     const { root, text, actions } = draw(stateWith(entries, '#/plan/' + b.plan.id + '/plan'));
     expect(root.querySelector('h1').textContent).toBe('Your plan');
     expect(text).toContain('Stopping work at 62, in January 2030');
-    for (const sec of ['about', 'pays', 'pots', 'way']) expect(root.querySelector(`[data-testid="plan.plan.change.${sec}"]`), sec).not.toBe(null);
+    for (const sec of ['pays', 'pots', 'way']) expect(root.querySelector(`[data-testid="plan.plan.change.${sec}"]`), sec).not.toBe(null);
+    // "About you and when" is edited inside V7 (editing-in-v7.md 2): a link to the step, never the planner
+    expect(root.querySelector('[data-testid="plan.plan.change.about"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.plan.edit.about"]').getAttribute('href')).toBe('#/plan/' + b.plan.id + '/about');
+    expect(root.querySelector('[data-testid="plan.plan.edit.about"]').textContent).toBe('Change this here');
     root.querySelector('[data-testid="plan.plan.change.pays"]').click();
     expect(actions.pop()).toEqual({ type: 'plan/change', planId: b.plan.id, place: 'spend', back: '#/plan/' + b.plan.id + '/plan' });
     expect(text).not.toContain('Fixed when you locked');

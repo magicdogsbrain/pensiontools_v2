@@ -258,7 +258,9 @@ describe('the first state and the screen by name', () => {
     // `budget` (the household's budget sheet) and `keep` ("Save this as a plan"): budget-step.md, save-as-plan.md C.2, C.5
     expect(Object.keys(s)).toEqual(['route', 'env', 'session', 'plan', 'plans', 'draft', 'answers', 'budget', 'keep', 'ui']);
     expect(s.budget).toBeNull();
-    expect(Object.keys(s.keep).sort()).toEqual(Object.keys(s.draft).sort());
+    // `draft.plan` is the one plan draft of the editing step (research/v7/editing-in-v7.md 4), not a question: no `keep` for it
+    expect(Object.keys(s.keep).sort()).toEqual(Object.keys(s.draft).filter((k) => k !== 'plan').sort());
+    expect(s.draft.plan).toEqual({ id: null, values: {}, touched: [], asked: false });
     expect(s.env).toMatchObject({ today: '2026-09-30', build: 'test', historyEnd: null });
     expect(s.session).toEqual({ kind: 'none', email: null, signingOut: false });   // who is signed in: asked on the plan pages only (research/v7/your-plan.md 4.3)
     expect(s.plans).toBe(null);

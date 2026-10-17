@@ -17,24 +17,13 @@ import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey, staleDraft } from '../../services/PlanTiming.js';
 import { saverPotOf } from '../../services/SaverReading.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
-import { stepsFor, ALL_STEPS, NEXT_ORDER, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
+import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
 import { optionsFor } from './options.js';
+import { answerAge } from './about.js';
+import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween } from './dates.js';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-/** 'YYYY-MM-DD' → a local Date at noon (never midnight: a clock change cannot move the day). */
-export function dateOf(today) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(today || ''));
-  if (!m) throw new Error('planRead needs today as YYYY-MM-DD');
-  return new Date(+m[1], +m[2] - 1, +m[3], 12, 0, 0, 0);
-}
-const ym = (s) => { const m = /^(\d{4})-(\d{2})/.exec(String(s || '')); return m ? { y: +m[1], m: +m[2] } : null; };
-/** '2026-10' (or any date text starting so) → 'October 2026'; '' when it is not one. */
-export const monthWords = (s) => { const p = ym(s); return p && p.m >= 1 && p.m <= 12 ? MONTHS[p.m - 1] + ' ' + p.y : ''; };
-export const monthName = (s) => { const p = ym(s); return p && p.m >= 1 && p.m <= 12 ? MONTHS[p.m - 1] : ''; };
-/** '2026-07-01T08:15:00.000Z' or '2026-07-01' → '1 July 2026' (the calendar day as written). */
-export const dayWords = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m && +m[2] >= 1 && +m[2] <= 12 ? +m[3] + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1] : monthWords(s); };
-const monthsBetween = (a, b) => (b.y - a.y) * 12 + (b.m - a.m);
+// The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
+export { dateOf, monthWords, monthName, dayWords };
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const r0 = (v) => Math.round(num(v) || 0);
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
@@ -246,7 +235,8 @@ function planStep(C) {
   else if (retired || stage.timingMode === 'retired') about.push(line('about.retired', [], figures, src));
   if (firstTaxYear) about.push(line('about.firstYear', [], figures, src, { year: taxYearLabel(firstTaxYear) }));
   const N = locked && doc ? ((doc.timeline && doc.timeline.length) || (doc.assumptions && doc.assumptions.duration) || null) : num(ss.duration);
-  if (N) { figures.years = N; const ageAt = (timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow)); if (ageAt != null) figures.ageEnd = ageAt + N; about.push(line('about.runs', [count('years'), ' years' + (ageAt != null ? ', to age ' : '')].concat(ageAt != null ? [age('ageEnd')] : []), figures, src)); }
+  // the age reached in the plan's last year is start + years − 1 (the planner's "— to age" hint, PlanTiming.describeTiming)
+  if (N) { figures.years = N; const ageAt = (timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow)); if (ageAt != null) figures.ageEnd = ageAt + N - 1; about.push(line('about.runs', [count('years'), ' years' + (ageAt != null ? ', to age ' : '')].concat(ageAt != null ? [age('ageEnd')] : []), figures, src)); }
 
   // What the plan pays
   const pays = [];
@@ -297,7 +287,8 @@ function planStep(C) {
   const allOptions = optionsFor(ss, ds, plan, { all: true });
 
   const sections = [
-    { id: 'about', lines: about, place: 'about' },
+    // "About you and when" is edited inside V7 (editing-in-v7.md 2): the section links to the sub-step, never to the planner
+    { id: 'about', lines: about, place: 'about', sub: 'about', href: '#/plan/' + plan.id + '/about' },
     { id: 'pays', lines: pays, place: 'spend' },
     { id: 'pots', lines: pots, place: 'pots' },
     { id: 'way', lines: way, place: 'way' }
@@ -472,6 +463,8 @@ function nextFor(C, built) {
   const setUp = month ? month.setUp : !!(plan.decisionTool && plan.decisionTool.taxYears && plan.decisionTool.taxYears[tyKey] && plan.decisionTool.taxYears[tyKey].yearSetupComplete);
   const recorded = month ? month.recorded : (!!latest && latest >= mon);
   const potRecorded = pot ? pot.recorded : false;
+  // the stored "will it last" answer is older than its inputs (editing-in-v7.md 4) — never on a locked plan, whose answer is its document's
+  const answerStale = !locked ? answerAge(plan, ss) : null;
   const RULES = {
     'P.readonly':    () => readonly,
     'P.noAge':       () => key === 'unknown',
@@ -481,6 +474,7 @@ function nextFor(C, built) {
     'P.idle':        () => retiredRunning,
     'P.pot':         () => key === 'committed-saving' && !potRecorded,
     'P.working':     () => key === 'committed-saving',
+    'P.recheck':     () => !!answerStale,
     'P.stale':       () => !!stale,
     'P.draft':       () => key === 'draft-retired',
     'P.approaching': () => key === 'approaching',
@@ -489,21 +483,23 @@ function nextFor(C, built) {
   const id = NEXT_ORDER.find((x) => RULES[x]());
   const nextMonth = (() => { const p = ym(mon); const m2 = p.m === 12 ? { y: p.y + 1, m: 1 } : { y: p.y, m: p.m + 1 }; return MONTHS[m2.m - 1]; })();
   const slots = { month: monthWords(mon), monthName: monthName(mon), nextMonth, year: taxYearLabel(ty), stop: monthWords(stop) || '', savedYear: stale ? stale.savedLabel : '' };
+  const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const BUTTONS = {
     'P.readonly': null,
-    'P.noAge': button('addAge', 'about'),
+    'P.noAge': link('addAge', aboutHref),
     'P.arrive': button('record', 'month', { month: monthName(mon) }),
     'P.taxyear': button('setUpYear', 'taxyear', { year: taxYearLabel(ty) }),
     'P.month': button('record', 'month', { month: monthName(mon) }),
     'P.idle': null,
     'P.pot': button('recordPot', 'potRecord'),
     'P.working': button('onCourse', 'onCourse'),
-    'P.stale': button('updateIt', 'about'),
+    'P.recheck': button('recheck', 'test'),
+    'P.stale': link('updateIt', aboutHref),
     'P.draft': button('testPlan', 'test'),
     'P.approaching': button('testPlan', 'test'),
     'P.saving': button('onCourse', 'onCourse')
   };
-  return { id: id || 'P.saving', slots, button: id ? BUTTONS[id] : null };
+  return { id: id || 'P.saving', slots, button: id ? BUTTONS[id] : null, answerStale };
 }
 
 // ---- one plan ----------------------------------------------------------------------------------------------------------
@@ -541,7 +537,9 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     const buttons = readonly ? b.buttons.filter((x) => x.href) : b.buttons;   // a plan shown as saved offers no change
     return { id: s.id, optional: !!s.optional, listed: s.listed !== false, state: s.id === current ? 'current' : b.done ? 'done' : 'open', ...b, buttons };
   });
-  const next = nextFor(C, built);
+  const { answerStale, ...next } = nextFor(C, built);
+  // the editing sub-steps the page links to (editing-in-v7.md 2): "About you and when" under "Your plan"
+  const subSteps = subStepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1 });
   return {
     found: true,
     id: String(plan.id),
@@ -555,7 +553,10 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     readonly,
     source,
     steps,
+    subSteps,
     current,
+    // the stored "will it last" answer, when the plan's settings no longer match the inputs it was worked out from
+    answerStale: answerStale || null,
     next: readonly ? { ...next, button: null } : next,
     // the questions the rail ends with: savers get A and B, retired stages C (2.4)
     askLinks: RETIRED_STAGES.includes(stage.key) ? ['c'] : ['a', 'b']

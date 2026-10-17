@@ -25,6 +25,9 @@ const FOCUS = /^[A-Za-z]+(\.[A-Za-z]+)*$/;
 export const PLAN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** The steps of "Your plan" (src/answers/plan/steps.js ALL_STEPS; named here so the router imports no reader). */
 export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'saving', 'budget', 'lock', 'hold', 'move', 'household']);
+/** The editing sub-steps under a plan (src/answers/plan/steps.js ALL_SUB_STEPS): #/plan/<id>/about (editing-in-v7.md 2). */
+export const PLAN_SUB_STEPS = Object.freeze(['about']);
+const planStepOk = (s) => PLAN_STEPS.includes(s) || PLAN_SUB_STEPS.includes(s);
 
 const route = (screen, q = null, step = null, focus = null, planId = null) => ({ screen, q, step, planId, focus });
 
@@ -45,7 +48,7 @@ export function parse(hash) {
   if (parts[0] !== '') return { ...NOT_FOUND };
   // the saved plans: #/plans, #/plan/<id>, #/plan/<id>/<step> (never a focus: there is no box on a plan page)
   if (parts.length === 2 && parts[1] === 'plans' && focus === null) return route('plans');
-  if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && focus === null && PLAN_ID.test(parts[2]) && (parts.length === 3 || PLAN_STEPS.includes(parts[3]))) {
+  if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && focus === null && PLAN_ID.test(parts[2]) && (parts.length === 3 || planStepOk(parts[3]))) {
     return route('plan', null, parts.length === 4 ? parts[3] : null, null, parts[2]);
   }
   if (parts.length !== 3) return { ...NOT_FOUND };
@@ -66,7 +69,7 @@ export function format(r) {
   if (r.screen === 'step' && BUILT[r.q] && BUILT[r.q].steps.some((s) => s.id === r.step)) return `#/${r.q}/${r.step}${tail}`;
   if (r.screen === 'soon' && QUESTIONS.some((x) => x.id === r.q && !x.built)) return `#/soon/${r.q}${tail}`;
   if (r.screen === 'plans') return '#/plans';
-  if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) return `#/plan/${r.planId}` + (r.step && PLAN_STEPS.includes(r.step) ? `/${r.step}` : '');
+  if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) return `#/plan/${r.planId}` + (r.step && planStepOk(r.step) ? `/${r.step}` : '');
   return '#/not-found';
 }
 
@@ -81,13 +84,13 @@ export const href = {
 
 /**
  * The name of the screen a route draws — the value of data-screen (brief 4.9):
- * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan'. An unknown address draws the front door.
+ * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan' | 'plan.about'. An unknown address draws the front door.
  */
 export function screenName(r) {
   if (!r || r.screen === 'front' || r.screen === 'notFound') return 'front';
   if (r.screen === 'soon') return 'soon';
   if (r.screen === 'plans') return 'plans';
-  if (r.screen === 'plan') return 'plan';
+  if (r.screen === 'plan') return r.step && PLAN_SUB_STEPS.includes(r.step) ? 'plan.' + r.step : 'plan';
   const step = BUILT[r.q] && BUILT[r.q].steps.find((s) => s.id === r.step);
   if (!step) return 'front';
   return step.built ? `${r.q}.${r.step}` : 'notBuilt';

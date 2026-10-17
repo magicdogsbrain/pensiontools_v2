@@ -16,7 +16,8 @@
  */
 import { SCHEMAS } from '../state/select.js';
 import { cleanSheet } from '../state/budget.js';
-import { keptKeep } from '../state/initial.js';
+import { keptKeep, keptPlanDraft } from '../state/initial.js';
+import { ABOUT_PATHS } from '../../answers/plan/schema.js';
 import { hasShape, stepsPath, shapePaths, isShapePath, cleanSteps, keptShapeExtras } from '../state/shapeDraft.js';
 
 export const DRAFT_KEY = 'pt_v7_draft';
@@ -61,6 +62,13 @@ function clean(kept) {
   }
   const budget = cleanSheet(kept.budget);
   if (budget) out.budget = budget;
+  // a saved plan's editing draft (editing-in-v7.md 4): the plan's id and the text of its boxes, nothing of the plan
+  const pd = keptPlanDraft(kept);
+  if (pd.id) {
+    const values = Object.fromEntries(Object.entries(pd.values).filter(([p]) => ABOUT_PATHS.includes(p)));
+    const touched = pd.touched.filter((p) => ABOUT_PATHS.includes(p));
+    if (Object.keys(values).length || touched.length || pd.asked) out.plan = { id: pd.id, values, touched, asked: pd.asked };
+  }
   const saves = {};
   for (const q of Object.keys(SCHEMAS)) {
     const k = keptKeep(kept.kept, q);
@@ -73,6 +81,7 @@ function clean(kept) {
 const QUESTION = (k) => k in SCHEMAS;
 const isEmpty = (draft) => Object.entries(draft || {}).every(([k, d]) => {
   if (k === 'budget') return !d;
+  if (k === 'plan') return !d || !d.id || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked);
   if (k === 'kept') return !d || Object.values(d).every((x) => !x || (x.name === null && x.sent === null));
   if (!QUESTION(k)) return true;
   return !d || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked && !d.spendHow);

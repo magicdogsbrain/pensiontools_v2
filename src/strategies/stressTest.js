@@ -50,6 +50,21 @@ export function sampleOf(seriesList, years, n = 80) {
   return out;
 }
 
+/**
+ * The per-future read-out the couples check pools pots with (6.25.0, household-draw-split.md §8): for every future the
+ * test ran, the wealth left at the plan's end (today's money) and the plan year the money ran out — null when it lasted,
+ * or when the future is marked not survived for a cut rather than an empty pot (Floor & Flex's lean year, Floor to an
+ * age's smaller income). A read-out of the runs each test already made, never a second test.
+ */
+export function futuresOf(wealthList, survived, terminals) {
+  const failYear = wealthList.map((w, i) => {
+    if (survived[i] !== false) return null;
+    const y = (w || []).findIndex((v) => !(v > 1));
+    return y >= 0 ? y : null;
+  });
+  return { terminal: terminals.map((v) => (Number.isFinite(v) ? v : 0)), failYear };
+}
+
 /** DB pension / income streams / 'other' for plan year y, today's money (0 when the plan has none). */
 const otherAt = (p, y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
 
@@ -247,6 +262,7 @@ function pnvTest(p, configs) {
     samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
     survivedMc: mc.map((w) => !w.failed),
+    futuresMc: futuresOf(mc.map((w) => w.wealthByYear), mc.map((w) => !w.failed), terms),
     // One answer (6.24.0): the income cuts counted from these same futures, and the per-start record of the real
     // histories (what History and Scenarios explain) — read-outs of the runs above, not a second test.
     cuts: summariseCuts(mc, planYears),
@@ -316,6 +332,7 @@ function ladderTest(p, configs) {
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
     failAges: mc.windows.filter((w) => w.survived === false).map((w) => w.failAge),
     survivedMc: mc.windows.map((w) => w.survived !== false),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mc.windows.map((w) => w.survived !== false), terms),
     signature: {
       neverPct: h.stats.neverPct, fullySecuredPct: h.stats.fullySecuredPct, securedMedian: h.stats.securedMedian,
       securedMedianMc: mc.stats.securedMedian, sellEventsMedian: h.stats.sellEventsMedian,
@@ -364,6 +381,7 @@ function flexTest(p, configs) {
     ruinLabel: 'chance of at least one lean year — more than 10% under the plan (the bills are always paid; the treats shrank)',
     coverage: covOf(mcE),
     survivedMc: mcE.map(paidInFull),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map(paidInFull), terms),
     worst12: { min: p.essentialsAnnual + h.stats.worstMin, median: p.essentialsAnnual + h.stats.worstMedian },
     guaranteedToAge: `${ff.horizonAge} by contract (essentials)`,
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
@@ -405,6 +423,7 @@ function scheduleFloorTest(p, configs) {
     ruin: { hist: 0, mc: 0 },   // every year of the schedule is bought; the sleeve is never drawn
     worst12: worst12Of((Array.isArray(h.windows) ? h.windows : mc.windows).map((w) => enrich(w).income)),
     guaranteedToAge: `${c.horizonAge} by contract (the whole schedule)`,
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map(() => true), terms),
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
@@ -472,6 +491,7 @@ function floorToAgeTest(p, configs) {
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
     failAges: [],
     survivedMc: mcE.map((e) => e.full),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map((e) => e.full), terms),
     signature: {
       floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / availablePot(p),
       sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull, reserveCone,
@@ -536,6 +556,7 @@ function bridgeTest(p, configs) {
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
     failAges: fails,
     survivedMc: mcE.map((e) => !e.failed),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map((e) => !e.failed), terms),
     signature: {
       bridgeAge: c.bridgeAge, B, cashYears: c.cashYears, bridgeCost: configs.beCost, engineE0: c.E0, shareOfPot: configs.beCost / availablePot(p),
       engineAtB: at(mcE), engineAtBHist: at(hE), engineCone, restCostFull: c.restCostFull, pot: availablePot(p),
@@ -590,6 +611,7 @@ function fullGiltTest(p, configs) {
     ruin: { hist: 0, mc: 0 },
     worst12: { min: minInc, median: minInc },
     guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    futuresMc: { terminal: [plan.spare], failYear: [null] },
     terminal: { p10: plan.spare, p50: plan.spare, p90: plan.spare, histMedian: plan.spare },
     cones: { wealth: flat(wealth), income: flat(income) },
     failAges: [],
@@ -634,6 +656,7 @@ function rotationTest(p, configs) {
     cones: { wealth: coneOf(wealthList, N), income: coneOf(incomeList, N) },
     samples: { wealth: sampleOf(wealthList, N), income: sampleOf(incomeList, N) },
     survivedMc: mc.map((r) => r.failAge == null),
+    futuresMc: futuresOf(wealthList, mc.map((r) => r.failAge == null), mc.map((r) => r.wealth[N])),
     coverage: Math.max(0, Math.min(100, coverage)),
     failAges,
     signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },

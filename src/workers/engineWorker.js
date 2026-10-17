@@ -7,7 +7,7 @@
  */
 import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../strategies/stressTest.js';
 import { deriveCompareConfigs } from '../strategies/compareRunner.js';
-import { runHouseholdMonteCarlo, combineHouseholdStrategies, runSurvivorCheck, runCareCheck } from '../services/HouseholdService.js';
+import { runHouseholdMonteCarlo, runSurvivorCheck, runCareCheck, runHouseholdWays } from '../services/HouseholdService.js';
 import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
 import { loadLiveEquity } from '../services/EquityIndex.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
@@ -36,10 +36,9 @@ self.onmessage = async (e) => {
     } else if (type === 'strategy') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
       self.postMessage({ id, result: cloneSafe({ p, r: stressTestStrategy(payload.strategyId, p) }) });
-    } else if (type === 'household-strategies') {
-      const pA = plan(payload.settingsA, payload.cfgA), pB = plan(payload.settingsB, payload.cfgB);
-      const rA = stressTestStrategy(payload.idA, pA), rB = stressTestStrategy(payload.idB, pB);
-      self.postMessage({ id, result: cloneSafe({ combined: combineHouseholdStrategies(rA, rB), rA: { affordable: rA.affordable, reason: rA.reason, ruin: rA.ruin, name: rA.name }, rB: { affordable: rB.affordable, reason: rB.reason, ruin: rB.ruin, name: rB.name } }) });
+    } else if (type === 'household-ways') {   // who draws what (6.25.0): both plans, both ways, through the one test
+      const test = (settings, cfg, id) => { const p = plan(settings, cfg); return { r: stressTestStrategy(id, p), p }; };
+      self.postMessage({ id, result: cloneSafe(runHouseholdWays(payload.ways, payload.needs, payload.idA, payload.idB, test)) });
     } else if (type === 'household') {
       self.postMessage({ id, result: cloneSafe(runHouseholdMonteCarlo(payload.cfgA, payload.cfgB, payload.runs, payload.offsets)) });
     } else if (type === 'survivor') {

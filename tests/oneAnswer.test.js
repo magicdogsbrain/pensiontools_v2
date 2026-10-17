@@ -270,7 +270,7 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     expect(body).not.toMatch(/disableProtection/);
     const ot = script.indexOf('window.runOnTrackCheck');
     expect(script.slice(ot, script.indexOf('\n    };', ot))).toMatch(/requiredPotForStrategy\(stratId, strategyPlanFor\(sSet\), ON_COURSE_SHARE\)/);
-    expect(script).toMatch(/runInWorker\('household-strategies'/);
+    expect(script).toMatch(/runInWorker\('household-ways'/);   // 6.25.0: both ways (as they are / drawing together) through the one test
     expect(script).toMatch(/Math\.min\(45, \+document\.getElementById\('tryYears'\)\.value/);
   });
 });

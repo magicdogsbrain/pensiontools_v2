@@ -37,6 +37,36 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.27.0', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'The preview can change "About you and when"',
+    summary: 'The first part of a plan you can change in the preview (/v7/) instead of the planner: your age, whether you have stopped work or when you will, when the plan\'s income starts, and the age to plan to, with a suggestion from how long people live. Each fact is asked once, by age, in plain English; what it works out to — the stop month, the first tax year, how long the plan runs — is shown, never asked. A save writes the same settings the planner\'s Timing block writes and nothing else, with Undo. A locked plan is never changed. After a change, the plan page says its "will it last" answer is older than its inputs and offers to check it again.',
+    changes: [
+      '"About you and when" (/v7/#/plan/<id>/about, from Your plan → "Change this here"): your age today; stopped, or stopping at an age or in a month; when the plan\'s income starts (this tax year or next April) for someone who has stopped; the age to plan to, with "Suggest from how long people live" (a man or a woman; 1 in 10, 1 in 4 or half live beyond it). Beside each box, the saved value and where it came from. Under the boxes, what it works out to: "You stop work in January 2030, at 62.", "The plan\'s first tax year is 2029/30.", "Your plan runs 32 years, from January 2030 to age 93."',
+      'Save, Cancel, and after a save an Undo for fifteen seconds that puts the plan back as it was, byte for byte.',
+      'It writes the same saved settings the planner\'s Timing block writes — the age and its date, retired or the stop age, the first tax year, the derived start age, the length, the Decision copy\'s first tax year and the budget\'s copy of the ages — and nothing else. A test proves every path written is on the step\'s declared list and that every other byte of the stored plan is unchanged.',
+      'After a change, the plan page says "Your \u2018will it last\u2019 answer was worked out on {date}, before the plan was changed on {date}" and the next sentence becomes "check it still lasts", which opens the run in the planner. A change made in the planner is caught the same way.',
+      'Couples: your partner\'s ages are on your partner\'s plan; the page says so and links there. One save writes one plan.',
+      'A locked plan is never changed: its "About you and when" is read-only, and every write passes the lock guard before anything is sent. Signed in, the account\'s plans are read again just before a save, so a plan locked from another device is seen as locked.',
+      'Without an account, this window\'s plans can be changed the same way while the free time is not used up.'
+    ],
+    corrections: [
+      '"Your plan" now says the age the plan runs to as the planner\'s Timing block does (start age + years − 1): a 35-year plan from 57 runs "to age 91", not 92.',
+      '"Add your age" and "Update it" on the plan page open "About you and when" in the preview instead of the planner.'
+    ],
+    effects: {
+      stress: ['None until you press Save on "About you and when"; a save writes that step\'s keys only and stamps the plan as every save of the planner does.'],
+      decision: ['The plan\'s first tax year is kept in step with the Stress settings on a save, as the planner does.'],
+      budget: ['The budget\'s copy of the ages is kept in step on a save, as the planner does.'],
+      strategies: [], accumulation: [], household: []
+    },
+    actions: ['None. To change your ages or the plan\'s length from the preview: Your plans → the plan → Your plan → "Change this here".'],
+    notes: [
+      'The preview\'s import boundary changed on purpose: one file may write, by updating fields of an existing plan only; creating, replacing or deleting a plan stays impossible from the preview, and a test fails on any other write name it can reach.',
+      'Typed text waits in this tab\'s draft with the other drafts and is cleared on save, cancel or leaving the plan; it never holds the plan. No new browser key.',
+      'Not yet: pots at the stop (comes with "Your pots and tax"); "Money that comes in anyway", "What you spend", "Your pots and tax" and "Does it last?" as editing steps. Engine version unchanged (6.22.0).'
+    ]
+  },
+  {
     version: '6.26.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'The preview shows your saved plans',
     summary: 'The new-look preview (/v7/) now opens the plans you have saved in the planner, read-only. "Your plans" sits in the header of every preview page. Each plan opens on a short list of steps for its stage of life — saving, locked and still working, retired — with every figure taken from the plan\'s own record, exact, with where it came from and its date. Nothing on these pages can be typed into: "Change this" opens today\'s planner on the right plan, page and section with the boxes filled, and brings you back. Browsing the preview writes nothing to any plan.',

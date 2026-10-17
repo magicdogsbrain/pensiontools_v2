@@ -14,6 +14,10 @@
  *   SPEND_FIELDS, SPEND_LISTS, SPEND_WRITES, isSpendPath
  *                      the third step, "What you spend" (editing-in-v7.md 8): the first row, the later steps and the one-off
  *                      costs as cards, and the ONLY field paths it may write
+ *   POTS_FIELDS, POTS_WRITES, isPotsPath
+ *                      the fourth step, "Your pots and tax" (editing-in-v7.md 9): the pots today and at the stop, the ISA
+ *                      choices, the ordinary account, charges, the tax bands and the tax-free part, and the ONLY field paths
+ *                      it may write
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -174,9 +178,87 @@ export const SPEND_WRITES = Object.freeze([
   'decisionTool.settings.targetSchedule'
 ]);
 
+// ---- "Your pots and tax" (research/v7/editing-in-v7.md 9): the fourth editing step ----------------------------------------
+
+export const POTS_SUB_STEP = 'pots';
+
+/** How the ISA and savings grow (stressTool.settings.isaGrowth, 6.22.0): the two choices, "Mostly cash" first. */
+export const ISA_GROWTHS = Object.freeze(['cash', 'invested']);
+/** How the ISA is used (isaDrawdownStrategy): tax-efficient, make it last, hold — the planner's three (IsaDrawdown.ISA_STRATEGIES). */
+export const ISA_USES = Object.freeze(['minimiseEarlyTax', 'maximiseLongevity', 'hold']);
+/** What the ordinary (taxable) account holds (taxableMix): the planner's five. */
+export const TAXABLE_MIXES = Object.freeze(['equity', 'gilt', 'bond', 'balanced', 'cash']);
+/** The tax band the ordinary account is taxed at (giaTaxBand). */
+export const GIA_BANDS = Object.freeze(['basic', 'higher']);
+/** Whether the tax thresholds rise with prices or stay frozen (taxMode). */
+export const TAX_MODES = Object.freeze(['inflates', 'frozen']);
+/** The 25% tax-free part (accessMethod): kept separate or already taken ('drawdown'), or a quarter of each draw ('ufpls'). */
+export const TAX_FREES = Object.freeze(['drawdown', 'ufpls']);
+/** A tick, as a choice a person makes: yes or no. */
+export const YES_NO = Object.freeze(['yes', 'no']);
+
+/**
+ * The boxes (9.2), in the order they are drawn. `when` as the other lists; the boxes whose showing depends on a figure
+ * (the ordinary account's mix and band while it holds money; the pots at the stop while the plan stops later; bed-and-ISA
+ * while the ISA is not held) are decided by the reading (pots.js checkPots applies).
+ */
+export const POTS_FIELDS = Object.freeze([
+  { path: 'pension',      type: 'money',   min: 0, max: 50000000, required: true },
+  { path: 'stopSipp',     type: 'money',   min: 1, max: 50000000, required: false },
+  { path: 'stopIsa',      type: 'money',   min: 1, max: 50000000, required: false },
+  { path: 'isa',          type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'isaGrowth',    type: 'choice',  options: ISA_GROWTHS, required: true },
+  { path: 'isaUse',       type: 'choice',  options: ISA_USES, default: 'minimiseEarlyTax' },
+  { path: 'taxable',      type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'taxableMix',   type: 'choice',  options: TAXABLE_MIXES, default: 'equity' },
+  { path: 'giaBand',      type: 'choice',  options: GIA_BANDS, default: 'basic' },
+  { path: 'earnings',     type: 'money',   min: 0, max: 10000000, required: false, default: 0 },
+  { path: 'bedAndIsa',    type: 'choice',  options: YES_NO, default: 'yes' },
+  { path: 'charges',      type: 'percent', min: 0, max: 3, step: 0.05, required: true },
+  { path: 'pa',           type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'brl',          type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'hrl',          type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'taxMode',      type: 'choice',  options: TAX_MODES, default: 'inflates' },
+  { path: 'taxFree',      type: 'choice',  options: TAX_FREES, default: 'drawdown' },
+  { path: 'ufplsYears',   type: 'count',   min: 1, max: 60, required: false, when: { taxFree: 'ufpls' } },
+  { path: 'ufplsThenIsa', type: 'choice',  options: YES_NO, default: 'no', when: { taxFree: 'ufpls' } },
+  { path: 'bandFill',     type: 'choice',  options: YES_NO, default: 'no' }
+].map(Object.freeze));
+
+export const POTS_PATHS = Object.freeze(POTS_FIELDS.map((f) => f.path));
+
+/** The paths of "Your pots and tax" a draft may hold: the boxes, nothing else. */
+export const isPotsPath = (path) => POTS_PATHS.includes(String(path));
+
+/** Every dotted field path "Your pots and tax" may change: the planner's own keys (9.3), all in the Stress settings. */
+export const POTS_WRITES = Object.freeze([
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.potAtRetirement',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.isaGrowth',
+  'stressTool.settings.isaDrawdownStrategy',
+  'stressTool.settings.taxableStart',
+  'stressTool.settings.taxableMix',
+  'stressTool.settings.giaTaxBand',
+  'stressTool.settings.relevantEarnings',
+  'stressTool.settings.bedAndIsa',
+  'stressTool.settings.chargesPct',
+  'stressTool.settings.pa',
+  'stressTool.settings.brl',
+  'stressTool.settings.hrl',
+  'stressTool.settings.taxMode',
+  'stressTool.settings.accessMethod',
+  'stressTool.settings.ufplsYears',
+  'stressTool.settings.ufplsThenPcls',
+  'stressTool.settings.bandFillRecycle'
+]);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -194,5 +276,5 @@ export const INCOME_WRITES = Object.freeze([
 ]);
 
 /** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES });
-export const ALL_WRITES = Object.freeze([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...BOOKKEEPING_WRITES]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES });
+export const ALL_WRITES = Object.freeze([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...BOOKKEEPING_WRITES]);

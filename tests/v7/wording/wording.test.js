@@ -23,6 +23,7 @@ import { PLAN } from '../../../src/v7/copy/plan.js';
 import { ABOUT } from '../../../src/v7/copy/about.js';
 import { INCOME } from '../../../src/v7/copy/income.js';
 import { SPEND } from '../../../src/v7/copy/spend.js';
+import { POTS } from '../../../src/v7/copy/pots.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -162,6 +163,19 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of strings(SPEND)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(SPEND)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+  });
+  it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
+    // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(pension|isa|taxable|shares|bonds|cash|sipp|sippBad|isaBad|pa|brl|hrl)\}/g, '£250,000')
+      .replace(/\{(pct|charges)\}/g, '0.5').replace(/\{years\}/g, ' for 10 years').replace(/\{(then|div)\}/g, '').replace(/\{mode\}/g, 'the thresholds rise with prices')
+      .replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '67');
+    const hits = [];
+    const all = strings(POTS).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(POTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`pots.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(POTS)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
+    for (const [where, s] of strings(POTS)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
   });
   it('question C: every string passes, in every scope question C is shown in — the "retired" rules included', () => {
     const hits = [];

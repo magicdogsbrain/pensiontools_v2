@@ -568,3 +568,200 @@ a record without rows is judged as before. After a save the plan page's stale li
 | S3 | `planWrite.test.js`: the spend paths on the account and the window path, a locked plan refused, Undo, the property over random boxes | §1 3e–3g for this step |
 | S4 | `e2e/plan-spend.spec.js` at 390 and 1440 (prod build, guest plan planted, outside requests blocked): change the first row's amount, add a step at an age with a fall; Save; stored JSON differs only in the declared keys; Undo byte-identical; the planner at `/` shows the new shape in its own boxes | the whole step |
 | S5 | parity: the income-shape rows this step edits carry `editV7`; `inc.extra-spends` built here; the ledger page regenerated; `wording.test.js` over `copy/spend.js` | §6 |
+
+---
+
+## 9. "Your pots and tax" (the fourth step, 17 Oct 2026)
+
+The audit's fourth row (§2.4: the pension "about £X at the day you stop, bad case £Y — or type your own", ISAs and how
+they grow, the ordinary account, charges, tax bands, the tax-free part, "each tax option says saves about £X"; §3.4: pots,
+ISA use and growth, the taxable account, charges, earnings, bed-and-ISA, the tax-free part, band fill, tax bands). Each
+fact once, in plain English, with the saved value and its source beside it; nothing is worked out here that an engine
+would work out — the screen never runs a future. It inherits §1 and §6 whole: one write file, the declared-paths test,
+the guard, the guest path, the draft rules of §4.
+
+### 9.1 What the planner saves, checked
+
+- **The pension pot today** is three (or four) keys, not one: `equityMin`, `bondMin`, `cashTarget` (and
+  `diversifierStart` when a sleeve is on), the pots the plan draws from (`PotsAtRetirement.sippTodayOf` adds them). The
+  planner's own box is "Total in your SIPP" (`#ssPot`): on Save `readAlloc` splits the total by the risk level, or keeps a
+  custom split's exact pounds; on load `writeAlloc` sums the three back into the box. This step asks the **total** and
+  writes the three **in the saved proportions** (each pot's share of the sum as stored; the balanced preset, 50/40/10,
+  when the sum is £0 — the planner's own fallback), cash taking the rounding remainder as `PlanSeed` does, so the mix is
+  untouched and `sippTodayOf(written) === typed` to the pound. The split itself, the risk level, the funds to test, the
+  diversifiers and the bond tent are the planner's "Your allocation" — the mix — and are left for **"Way of drawing and
+  mix"**; the page says so where a reader would look for them. A plan whose pots come from its funds list
+  (`allocMode: 'funds'`) has its total set by that list: the box is shown read-only with that note. A bought strategy
+  (a ladder, a floor, a rotation: the seven `BOUGHT_STRATEGIES` of src/ui/strategySettingsUse.js) sizes itself on its own
+  dial (`strategyParams.sippTotal`, `isaTotal`) when one is pinned: the page shows that figure beside the box and says the
+  dial is set with the way of drawing.
+- **Pots at the stop, typed** (`potAtRetirement`, left out of §3 on purpose): the planner's Timing block writes
+  `{ sipp, isa, source: 'override' }` when either box holds a figure, else its own projection (`source: 'accumulation'`),
+  else null; a plan that has stopped gets null. Only on a plan stopping later are the two boxes drawn. Typed: exactly the
+  planner's object (`sipp: n || null`, `isa: n || null`). Both left blank on a plan whose stored record is a typed
+  override: `null` — the planner's own fallback when it has no projection to hand (this step never projects); every
+  engine reads null as "start from today's pots" (`potScaleOf` → 1), and the planner re-projects the next time its Timing
+  block is drawn and writes it on its next Save. The page says exactly that. A stored projection (`accumulation`,
+  `sweep`) with the boxes blank is left as it is and shown: "the planner works out £X pension and £Y ISAs and savings at
+  the day you stop, from what you pay in" (the banned list has no "projection" and no "about £": the figure is the record's). A plan made from a preview answer also shows the answer's own record (`fromAnswer.people[0]
+  .pension.atStop.middling` / `.careful`, `savings.atStop`): "£X at the day you stop in a middling future; in a bad case
+  (the worst 1 in 10) £Y" — the audit's "about £X … bad case £Y", in the words the banned list allows. No saved figure:
+  the pot today only, and "the figure at the day you stop comes from ‘Does it last?’, later". Never computed here.
+- **ISAs and savings today** (`isaBalance`, the planner's `+value || 0`); **how they grow** (`isaGrowth`, 'cash' |
+  'invested', 6.22.0): the choice is drawn only where the plan has it — every unlocked plan does, by schema version 3 —
+  and, where the list of funds to test holds ISA funds (`IsaFunds.isaFundsDecide`), the planner's own line stands in for
+  it ("follows the ISA funds in your list of funds to test"), read-only. A **locked plan without the key** says "a fixed
+  3% a year (locked before this choice was added)" — `isaGrowthOf` reads it as null, the engines run the old rate — and
+  **never gains the key** (saver-lock-and-savings-growth.md §3.3, R1). **ISA use** (`isaDrawdownStrategy`: tax-efficient,
+  make it last, hold — `ISA_STRATEGIES`): "held" means nothing new is moved into it, so bed-and-ISA is not asked while
+  held (the planner disables the box) and the page says why.
+- **The ordinary (taxable) account** (`taxableStart`, `taxableMix` 'equity' | 'gilt' | 'bond' | 'balanced' | 'cash',
+  `giaTaxBand` 'basic' | 'higher' — `readGiaFields`); what it holds and the band are asked only while it holds money.
+  **Earnings this year** (`relevantEarnings`, before tax: how much of a lump sum may go into the pension) and
+  **bed-and-ISA** (`bedAndIsa`; absent reads as on: `settings.bedAndIsa !== false`).
+- **Charges** (`chargesPct`, percent a year, 0–3 in steps of 0.05): typed text goes through the planner's own
+  `normaliseChargesPct` (clamped, on the grid) and `chargesForSave` (blank keeps the plan's own); read back by
+  `chargesPctOf`. A locked plan without the key says "none (locked before charges were added)" and never gains one
+  (charges-setting.md rule 3). An unlocked plan always has one (schema version 2).
+- **Tax bands** (`pa`, `brl`, `hrl`: the planner's "Tax thresholds (year 0)") and **whether they rise** (`taxMode`
+  'inflates' | 'frozen'); read back by `createSimulationConfigFromSettings` and `bandsOf`.
+- **The tax-free part** (`accessMethod` 'drawdown' = kept separate or already taken, every draw fully taxable; 'ufpls' =
+  a quarter of every draw tax-free until the £268,275 allowance is used — the planner's two buttons; `ufplsYears`, a
+  count or null = the whole plan; `ufplsThenPcls`, then the remaining quarter into the ISA) and **band fill**
+  (`bandFillRecycle`). These are Pots & Valves / Buckets in order machinery (`data-pnv-only`): a bought strategy says
+  "Not used by this way of drawing" under each, as the planner's `settingUseNote` says beside its own boxes; so do
+  earnings and bed-and-ISA ("a lump sum buys the next years of income instead") and, once the plan is running, how the
+  ISA grows ("it still sets how your ISA grows until the day you stop").
+- **"Saves about £X over the plan."** The plan holds no such figure per choice (nothing in the settings, the document
+  or the records says what a tax option saves), so the choice is shown without one and the page says the figure comes
+  from "Does it last?", later. Never run an engine in the screen.
+- **Absent means the old behaviour.** A key the plan lacks is written only when the person chooses a value that differs
+  from what the engines read for the absent key (bed-and-ISA on, the tax-free part kept separate, no earnings, no
+  taxable account, the planner's default bands): a plan saved as it is writes nothing, and a locked pre-charge plan stays
+  without `chargesPct`. The Decision settings are not written: the planner's Stress Save copies none of these keys.
+
+### 9.2 The screen and words
+
+Address: `#/plan/<id>/pots`, a sub-step of "Your plan" beside `about`, `income` and `spend`. On the plan page the "Pots"
+section links here with "Change this here" ("See these" on a locked or shown-as-saved plan) instead of the planner.
+
+```text
+| Your pots and tax                                                               |
+| What you hold today, how it grows and how it is taxed. Each fact once; the      |
+| split of your pension and the funds are set with the way of drawing and mix.    |
+|                                                                                 |
+| Your pension pot                                                                |
+|   Your pension pot today, £          [ 440,000 ]                                |
+|     From your plan, saved 11 September 2026 (440000)                            |
+|     Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split,   |
+|     the risk level and the funds to test are set with the way of drawing and    |
+|     mix (in the planner).                                                       |
+|   (stopping later)                                                              |
+|   Your pension at the day you stop, £  [        ]   ISAs at the day you stop, £ [   ] |
+|     The planner works out £603,941 pension and £54,126 ISAs and savings at the  |
+|     day you stop, from what you pay in. Type your own above to use it instead.  |
+|                                                                                 |
+| ISAs and savings                                                                |
+|   ISAs and savings today, £          [ 60,000 ]                                 |
+|   How they grow   (x) Mostly cash   ( ) Invested like my pension                |
+|   How the ISA is used  (x) Tax-efficient … ( ) Make it last … ( ) Hold it …     |
+|                                                                                 |
+| Your ordinary account (outside a pension or ISA)                                |
+|   Money in it today, £   [ 85,000 ]                                             |
+|   What it holds (x) shares ( ) gilts ( ) bond funds ( ) a mix ( ) cash          |
+|   Your tax band for it   (x) basic rate  ( ) higher rate                        |
+|   Earnings this year, before tax, £  [ 12,000 ]                                 |
+|   Move £20,000 a year into the ISA when the allowance is unused  (x) yes ( ) no |
+|                                                                                 |
+| Charges                                                                         |
+|   Charges (funds and platform), % a year  [ 0.5 ]                               |
+|                                                                                 |
+| Tax                                                                             |
+|   Tax-free allowance, £ [ 12,570 ]  Basic rate up to, £ [ 50,270 ]              |
+|   Higher rate up to, £ [ 125,140 ]                                              |
+|   The thresholds  (x) rise with prices  ( ) stay frozen                         |
+|   Your 25% tax-free part  (x) kept separate, or already taken                   |
+|                            ( ) a quarter of each draw, tax-free                 |
+|       For how many years [    ]  Then the remaining quarter into the ISA (x) no |
+|   Fill the basic-rate band and move the rest into the ISA  ( ) yes (x) no       |
+|   What each choice saves in tax over the plan comes from ‘Does it last?’, later.|
+|                                                                                 |
+| What this works out to                                                          |
+|   Pension £440,000 and ISAs £60,000 today; £85,000 in your ordinary account.    |
+|   Your ISAs grow mostly as cash: by last year's rise in prices, less 1% a year. |
+|   Charges of 0.5% a year come off your funds and cash every month.              |
+|   Tax-free allowance £12,570; basic rate to £50,270; higher rate to £125,140,   |
+|     rising with prices.                                                         |
+|   Every draw from your pension is taxed in full (the tax-free part is kept      |
+|     separate or already taken).                                                 |
+| [ Save ]  [ Cancel ]                                                            |
+```
+
+- **Boxes** (`schema.js` `POTS_FIELDS`), by path: `pension` (money, required, 0–50,000,000); `stopSipp`, `stopIsa`
+  (money, optional; only while the plan stops later); `isa` (money, blank = 0); `isaGrowth` (choice 'cash' |
+  'invested'); `isaUse` (choice: the three `ISA_STRATEGIES`); `taxable` (money, blank = 0); `taxableMix` and `giaBand`
+  (choices; drawn while the account holds money); `earnings` (money, blank = 0); `bedAndIsa` (choice 'yes' | 'no'; not
+  while the ISA is held); `charges` (percent, 0–3, on the 0.05 grid); `pa`, `brl`, `hrl` (money, 1–1,000,000: the allowance at least £1, since the planner's band reader takes £0 as its default);
+  `taxMode` (choice 'inflates' | 'frozen'); `taxFree` (choice 'drawdown' | 'ufpls'); `ufplsYears` (count 1–60,
+  optional) and `ufplsThenIsa` (choice 'yes' | 'no') while `taxFree = ufpls`; `bandFill` (choice 'yes' | 'no').
+- **Source lines** as §2: "From your plan, saved {date} ({value})"; a locked plan "Fixed when you locked the plan on
+  {date}" once, figures only, no boxes.
+- **"Not used by this way of drawing."** `notUsedBy(strategyId)` returns the paths a bought strategy ignores (`taxFree`,
+  `ufplsYears`, `ufplsThenIsa`, `bandFill`, `earnings`, `bedAndIsa`); `useNotes` carries the planner's own longer words
+  for the ISA growth and a pinned pot. Pots & Valves and Buckets in order read everything.
+- **Derived lines** (`copy/pots.js derived`): the pots today; the split as saved and the hand-off to the mix; the pots at
+  the stop (the typed figures, the planner's own figures, or the answer's record with its bad case; or that the figure
+  comes later); how the ISAs grow (the fixed 3% on a locked plan without the choice; the funds' line); the charge (none
+  on a locked pre-charge plan); the bands and whether they rise; the tax-free part; band fill; the "saves about £X"
+  stand-in.
+- Problems in plain words; Save, Cancel, Undo, the toast ("Saved. Pension £440,000, ISAs £60,000. Charges 0.5% a year.").
+  Phone first: one column at 390 px.
+
+### 9.3 Keys written
+
+`POTS_WRITES` (schema.js), all under `stressTool.settings`, as the planner's Stress Save writes them (index.html
+`saveStressSettings({ … })`: `equityMin`/`bondMin`/`cashTarget` from `readAlloc`, `isaBalance`, `isaDrawdownStrategy`,
+`readGiaFields`, `chargesForSave`, `isaGrowthForSave`, `pa`/`brl`/`hrl`/`taxMode`, `accessMethod`/`ufplsYears`/
+`ufplsThenPcls`/`bandFillRecycle`, `timingFieldsForSave` → `potAtRetirement`). A key only when its value changes; a key
+the plan lacks only on a value that differs from what the engines read for the absent key (9.1).
+
+| Path | Value | As the planner writes it |
+|---|---|---|
+| `equityMin`, `bondMin`, `cashTarget` (+ `diversifierStart` when the sleeve is on) | the total in the saved proportions, cash the remainder | `readAlloc` (the total × the split) |
+| `potAtRetirement` | typed: `{ sipp, isa, source: 'override' }`; a typed override blanked: null; else kept | `timingSettingsFromForm` |
+| `isaBalance` | the box, 0 when blank | `+value || 0` |
+| `isaGrowth` | the choice; never written to a plan without one | `isaGrowthForSave` |
+| `isaDrawdownStrategy` | the choice | the select |
+| `taxableStart`, `taxableMix`, `giaTaxBand`, `relevantEarnings`, `bedAndIsa` | the boxes (0, 'equity', 'basic', 0, true when blank) | `readGiaFields` |
+| `chargesPct` | `normaliseChargesPct(typed)`; blank keeps the plan's own; never written to a locked plan without one | `chargesForSave` |
+| `pa`, `brl`, `hrl`, `taxMode` | the boxes | the Tax thresholds block |
+| `accessMethod`, `ufplsYears`, `ufplsThenPcls`, `bandFillRecycle` | 'drawdown' or 'ufpls'; a count or null; the two ticks | the "How you'll take this pension" block |
+| `lastModified` | now, ISO | every save |
+
+Not written, and why: `strategyParams.sippTotal` / `isaTotal` and every other per-strategy dial, `allocMode`,
+`taggedFunds`, `subAsset`, `equityGlideEnabled`, `glideEndgame`, the risk level (the mix: "Way of drawing and mix");
+`isaReturn`, `isaMin` (read by no choice a person makes; the fixed rate is what a plan without the choice runs at);
+`decisionTool.*` (the planner's Stress Save copies none of these); `holdings` (what you hold is a record, never a
+strategy input: holdings-vs-strategy ruling).
+
+### 9.4 Locked, guest, partner and stale
+
+As §4. Locked: the figures from the plan document's `pots` (`sipp`, `isa`, `gia`, `isaPolicy`, `taxableMix`,
+`potAtRetirement`, `allocation`) and `assumptions` (`pa`, `brl`, `hrl`, `taxMode`, `chargesPct`, `isaGrowth`,
+`isaFromFunds`), the rest from the settings the lock froze; "Fixed when you locked the plan on {date}" once, the unlock
+sentence once, no box. The partner's pots are on the partner's plan: "{Sam}'s pots and tax are on {Sam}'s plan." with the
+link to `#/plan/<theirId>/pots`. The stale-answer rule (`answerAge`) gains two facts the answer's record carries
+(`fromAnswer.people[0].pension`, `.savings`): the pension pot the seed wrote (`pension.today`, or the middling pot at the
+stop when today's was £0 on a plan stopping later — `PlanSeed`'s own rule) against `sippTodayOf(settings)`, and the
+savings today against `isaBalance`, each to the pound; a record without them is judged as before. After a save the plan
+page's stale line and "check it still lasts" follow.
+
+### 9.5 Tests
+
+| # | Test | Proves |
+|---|---|---|
+| T1 | `tests/v7/plan/pots.test.js`: `potsOf` on the 12 corpus plans × 3 dates; the lumpy plan's facts (an ordinary account, higher rate, earnings) and the saver's (the projection at the stop); read∘write∘read identity over random editable plans and random typed boxes (fast-check): only `POTS_WRITES` paths, every other byte unchanged, Undo byte for byte, a second write empty; the written plan read by the planner's own readers — `chargesPctOf`, `isaGrowthOf`, `bandsOf`, `sippTodayOf`, `createSimulationConfigFromSettings` (pa/brl/hrl/taxMode/accessMethod/ufpls/bandFill/taxable/bedAndIsa/earnings/isa) — equal to what the screen showed; absent keys stay absent when untouched (a locked pre-charge plan, a plan without the ISA choice); the bought list equals the planner's `BOUGHT_STRATEGIES`; the problems in their ids; a locked plan writes nothing; the stale rule; the sub-step and the plan page's link | the pure read and write |
+| T2 | `tests/v7/plan/potsRender.test.js`: every corpus plan × 3 dates (boxes with labels, every figure sourced, no banned word, no countdown for the retired); locked = read-only with "Fixed when…" once; the plan page's section and link | §9.2, §9.4 |
+| T3 | `planWrite.test.js`: the pots paths on the account and the window path, a locked plan refused, Undo, the property over random boxes | §1 3e–3g for this step |
+| T4 | `e2e/plan-pots.spec.js` at 390 and 1440 (prod build, guest plan planted, outside requests blocked): change the pension pot, the ISA growth choice and the charge; Save; stored JSON differs only in the declared keys; Undo byte-identical; the planner at `/` shows the new values in its own boxes | the whole step |
+| T5 | parity: the pots and tax rows this step edits carry `editV7`; the gap rows it closes are built; the ledger page regenerated; `wording.test.js` over `copy/pots.js` | §6 |

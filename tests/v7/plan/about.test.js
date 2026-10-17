@@ -276,13 +276,13 @@ describe('E2 — the stale-answer rule', () => {
 
 describe('E3 — the sub-step tables', () => {
   it('"about", "income" and "spend" sit under "plan"; they are listed for every stage × locked × linked that lists "plan" — every stage does', () => {
-    expect(SUB_STEPS).toEqual({ plan: ['about', 'income', 'spend'] });
-    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend']);
+    expect(SUB_STEPS).toEqual({ plan: ['about', 'income', 'spend', 'pots'] });
+    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots']);
     for (const stage of Object.keys(STEPS)) for (const locked of [false, true]) for (const linked of [false, true]) for (const manyPlans of [false, true]) {
       const steps = stepsFor(stage, { locked, linked, manyPlans }).map((s) => s.id);
       const subs = subStepsFor(stage, { locked, linked, manyPlans });
       expect(subs.length > 0).toBe(steps.includes('plan'));
-      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }]);
+      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }]);
     }
   });
   for (const today of DATES) {
@@ -290,7 +290,7 @@ describe('E3 — the sub-step tables', () => {
       const entries = entriesAt(today);
       for (const e of entries) {
         const pg = planPage(entries, e.plan.id, 'plan', { today });
-        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }]);
+        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }]);
         const about = pg.steps.find((s) => s.id === 'plan').sections.find((s) => s.id === 'about');
         expect(about.href).toBe('#/plan/' + e.plan.id + '/about');
         expect(about.sub).toBe('about');

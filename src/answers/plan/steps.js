@@ -30,11 +30,11 @@ export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.noAge', 'P.arrive', 'P
 
 /**
  * The editing sub-steps of a step (research/v7/editing-in-v7.md 2, 7, 8): "About you and when", "Money that comes in anyway"
- * and "What you spend" sit under "Your plan" / "Your plan as locked" (read-only there). A sub-step is an address under the
- * plan (#/plan/<id>/about, #/plan/<id>/income, #/plan/<id>/spend), not a rail step.
+ * "What you spend" and "Your pots and tax" sit under "Your plan" / "Your plan as locked" (read-only there). A sub-step is an address under the
+ * plan (#/plan/<id>/about, #/plan/<id>/income, #/plan/<id>/spend, #/plan/<id>/pots), not a rail step.
  */
-export const SUB_STEPS = Object.freeze({ plan: Object.freeze(['about', 'income', 'spend']) });
-export const ALL_SUB_STEPS = Object.freeze(['about', 'income', 'spend']);
+export const SUB_STEPS = Object.freeze({ plan: Object.freeze(['about', 'income', 'spend', 'pots']) });
+export const ALL_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots']);
 
 /** The sub-steps a plan's page links to: those of every step the stage lists. */
 export function subStepsFor(stageKey, o) {

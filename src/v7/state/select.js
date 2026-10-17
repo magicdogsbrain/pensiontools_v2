@@ -704,6 +704,10 @@ export function incomeView(state) {
 export function planSpendView(state) {
   return editView(state, 'spend');
 }
+/** "Your pots and tax" (editing-in-v7.md 9): the same reading for the fourth step (page.pots). */
+export function planPotsView(state) {
+  return editView(state, 'pots');
+}
 function editView(state, step) {
   const plans = state.plans;
   const r = state.route;

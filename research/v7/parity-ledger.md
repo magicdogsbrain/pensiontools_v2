@@ -18,20 +18,20 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 65 | 46 | 16 | 0 | 3 |
+| Built | 74 | 54 | 17 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
 | Designed | 42 | 40 | 0 | 2 | 0 |
-| Planned | 57 | 48 | 1 | 2 | 6 |
+| Planned | 48 | 40 | 0 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
 
-Planned with no V7 design yet: **39** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **30** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 61 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 70 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 7 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -40,7 +40,7 @@ Planned with no V7 design yet: **39** rows. Retired, waiting for the owner: **1*
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
-| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 61 |
+| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 52 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
@@ -124,7 +124,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **Retired already, or retiring at an age** | "I have already retired" or "I will retire at age X". | Stress → Settings → When your plan starts (index.html:3153-3154) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. A and B ask the stop age (or "I've already stopped"); C asks when the money starts. Edited on a saved plan in V7: stopped, or stopping at an age or a month ("About you and when"). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `stress.retired` `stress.retireAge` |
 | **Plan starts this tax year or next April** | Which tax year is the plan's year 0; months before it are bridge months, lived on cash. | Stress → Settings → "Plan starts" (index.html:3155; PlanTiming.js) | Retired, approaching | **Built**: `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. In V7, on a saved plan ("About you and when", editing-in-v7.md): "When the plan's income starts: this tax year / next April" for someone who has stopped; derived from the stop age otherwise, and said so. The Decision copy (decision.firstTaxYear) is kept in step as the planner's Save keeps it. **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `s8-e` | `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear` |
 | **Pots at retirement, projected** | For someone still working, projects the pots to the retirement age from today's pots and payments. | When your plan starts: the projection line (index.html:8953-8957) | Savers, approaching | **Built**: `src/answers/shared/saving.js`, `src/v7/components/Pots.jsx`. Better: the saving-years engine gives a middling and a bad case. | `done` | — |
-| **Pots at retirement, typed in** | Overrides the projection with the pension and ISA you expect to have on the day, in today's money. | When your plan starts: "Or SIPP at retirement", "ISA at retirement" (index.html:3160-3161) | Approaching | **Planned** (no V7 design yet): A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it. | `s8-e` | `stress.potAtRetirement` `potAtRetirement.sipp` `potAtRetirement.isa` `potAtRetirement.source` |
+| **Pots at retirement, typed in** | Overrides the projection with the pension and ISA you expect to have on the day, in today's money. | When your plan starts: "Or SIPP at retirement", "ISA at retirement" (index.html:3160-3161) | Approaching | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. A plan made from a V7 answer writes the middling pot here (PlanSeed.js); the plan step lets the person type it. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.potAtRetirement` `potAtRetirement.sipp` `potAtRetirement.isa` `potAtRetirement.source` |
 | **How long the plan runs** | The plan's length in years (the age it runs to). | Stress → Settings → Duration; Decision → Depletion Duration | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. Asked as the age to plan to (endAge, 75 to 105, 95 by default); edited on a saved plan in V7 as "Plan to age" ("About you and when"). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `stress.duration` `decision.duration` |
 | **Suggest a plan length from longevity** | Suggests the length from age and sex: a 1-in-10 chance of living beyond (cautious), 1 in 4, or average. | Stress → Settings → "Suggest from longevity" (index.html:3311-3326; LongevityModel.js) | Everyone | **Built**: `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`, `src/services/LongevityModel.js`. In V7 as "Suggest from how long people live" on "About you and when": a man or a woman, 1 in 10 / 1 in 4 / half live beyond it; the planner's own helper (LongevityModel.longevityAge) fills "Plan to age". **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `s8-e` | — |
 | **"Update this draft to today"** | A draft whose start year has passed is offered an update to today; "Leave it" is remembered. | Stale-draft banner (index.html:2954, 9020-9050) | Retired drafts | **Planned** (no V7 design yet) | `s8-e` | `stress.staleDraftDismissedFor` |
@@ -133,17 +133,17 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Pension pot, split into shares, bonds and cash** | The pension total and how it splits into the three pots the plan draws from; their floors run down over the plan (the glidepath). | Stress and Decision → Settings → Your allocation (index.html:3329-3333) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/toEngine.js`. V7 asks the pension total; the split follows the risk level. | `done` | `stress.equityMin` `stress.bondMin` `stress.cashTarget` `decision.equityMin` `decision.bondMin` `decision.cashTarget` |
+| **Pension pot, split into shares, bonds and cash** | The pension total and how it splits into the three pots the plan draws from; their floors run down over the plan (the glidepath). | Stress and Decision → Settings → Your allocation (index.html:3329-3333) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/toEngine.js`, `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. V7 asks the pension total; the split follows the risk level. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.equityMin` `stress.bondMin` `stress.cashTarget` `decision.equityMin` `decision.bondMin` `decision.cashTarget` |
 | **Risk level: cautious, balanced, adventurous** | Sets the mix of shares, bonds and cash, or switches to testing a list of funds. | Your allocation: Pick a risk level / Test on a list of funds (index.html:3303-3306, 3379-3393) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/toEngine.js`. V7 has a risk level while drawing and another while saving. | `done` | `stress.allocMode` `decision.allocMode` |
 | **Test on a list of funds** | A list of funds, each tagged to a bucket and a sub-class (searched, typed or pasted from a platform), becomes the allocation the plan is tested on. Each strategy keeps its own list. | Your allocation → Test on a list of funds (index.html:3407-3430; PortfolioTagger.js, FundCatalogue.js) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "mix" step: a pot and a risk level; a fund list there is the intended retirement portfolio. | `s8-e` | `stress.taggedFunds` `decision.taggedFunds` `stress.subAsset` `decision.subAsset` `taggedFunds[].ticker` `taggedFunds[].value` `taggedFunds[].wrapper` `taggedFunds[].subClass` `taggedFunds[].ocf` `taggedFunds[].contribution` |
 | **An example ETF portfolio for the risk level** | Shows an illustrative fund portfolio for the chosen level (not advice). | "See an example ETF portfolio for this level" (index.html:3398-3401; ModelPortfolios.js) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | — |
 | **Diversifiers sleeve: gold and trend/macro** | Carves a slice into assets that tend to hold up when shares fall, held flat and sold first in a downturn; the target rises with prices and runs down like the others. | Your allocation: Diversifiers sleeve (index.html:3394-3397) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.diversifierStart` `decision.diversifierStart` |
 | **Bond tent** | Shares rise over time: bond-heavy early, when the pot is largest and most exposed to an early crash, share-heavy later, centred on the risk level; a tagged plan sets its end mix. | Your allocation: Bond tent (index.html:3452-3462) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.equityGlideEnabled` `decision.equityGlideEnabled` `stress.glideEndgame` `decision.glideEndgame` |
-| **ISA (and savings) total** | The ISA held beside the pension, drawn as its own pot. | Your allocation: Total in your ISA (index.html:3335) | Everyone | **Built**: `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`. Asked as savings (ISAs and other savings). | `done` | `stress.isaBalance` `decision.isaBalance` |
-| **How the ISA is used** | Tax-efficient (tops up income before higher-rate tax), make it last to the State Pension, or hold it (never drawn for income; it still rescues a plan whose pension runs out). | Your allocation: How the ISA is used (index.html:3337-3343) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.isaDrawdownStrategy` `decision.isaDrawdownStrategy` |
-| **How the ISA and savings grow, and the ISA's floor** | One choice per plan: "Mostly cash" (the default; like the pension's cash, last year's rise in prices less 1%, never below nothing) or "Invested like my pension" (the pension's mix of shares, bonds and cash, in the same futures). A plan locked before the choice keeps a fixed 3% a year (isaReturn) until it is unlocked. Also the floor the ISA is drawn down towards (isaMin). | Stress tester → Settings → How your ISA and savings grow (index.html #ssIsaGrowthGroup; src/ui/isaGrowthSetting.js, src/services/IsaGrowth.js); the floor in the settings defaults (constants.js ISA_DEFAULTS) | Everyone | **Built**: `src/services/IsaGrowth.js`, `src/answers/shared/schemaParts.js`, `src/answers/shared/saving.js`, `src/answers/shared/toEngine.js`, `src/answers/shared/savingsGrowth.js`. One choice under the savings box in C, A and B ("Mostly cash" or "Invested like my pension"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes "Mostly cash" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing. | `done` | `stress.isaGrowth` `stress.isaReturn` `stress.isaMin` `decision.isaReturn` `decision.isaMin` |
-| **A taxable account (GIA)** | Money held outside a pension or ISA: how much, what it holds (shares, gilts, bond funds, a mix, cash) and the tax band it is taxed at; it is drawn first and taxed each year. | Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js) | Approaching, retired | **Planned** (no V7 design yet): answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it. | `s8-e` | `stress.taxableStart` `stress.taxableMix` `stress.giaTaxBand` `decision.taxableStart` `decision.taxableMix` `decision.giaTaxBand` |
-| **Charges (funds and platform), % a year** | One charge a year taken off monthly from funds and cash, while saving and while drawing. | Stress → Settings → Charges (6.19.0; Charges.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/services/Charges.js`, `src/answers/shared/toEngine.js` | `done` | `stress.chargesPct` |
+| **ISA (and savings) total** | The ISA held beside the pension, drawn as its own pot. | Your allocation: Total in your ISA (index.html:3335) | Everyone | **Built**: `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`, `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Asked as savings (ISAs and other savings). Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.isaBalance` `decision.isaBalance` |
+| **How the ISA is used** | Tax-efficient (tops up income before higher-rate tax), make it last to the State Pension, or hold it (never drawn for income; it still rescues a plan whose pension runs out). | Your allocation: How the ISA is used (index.html:3337-3343) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.isaDrawdownStrategy` `decision.isaDrawdownStrategy` |
+| **How the ISA and savings grow, and the ISA's floor** | One choice per plan: "Mostly cash" (the default; like the pension's cash, last year's rise in prices less 1%, never below nothing) or "Invested like my pension" (the pension's mix of shares, bonds and cash, in the same futures). A plan locked before the choice keeps a fixed 3% a year (isaReturn) until it is unlocked. Also the floor the ISA is drawn down towards (isaMin). | Stress tester → Settings → How your ISA and savings grow (index.html #ssIsaGrowthGroup; src/ui/isaGrowthSetting.js, src/services/IsaGrowth.js); the floor in the settings defaults (constants.js ISA_DEFAULTS) | Everyone | **Built**: `src/services/IsaGrowth.js`, `src/answers/shared/schemaParts.js`, `src/answers/shared/saving.js`, `src/answers/shared/toEngine.js`, `src/answers/shared/savingsGrowth.js`, `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. One choice under the savings box in C, A and B ("Mostly cash" or "Invested like my pension"), carried between them and into a plan made from the answer; today's planner has the same choice in Stress tester → Settings from 6.22.0 (schema version 3 writes "Mostly cash" into every unlocked plan). The floor (isaMin) is saved but read by no engine in either app: both draw the ISA down to nothing. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.isaGrowth` `stress.isaReturn` `stress.isaMin` `decision.isaReturn` `decision.isaMin` |
+| **A taxable account (GIA)** | Money held outside a pension or ISA: how much, what it holds (shares, gilts, bond funds, a mix, cash) and the tax band it is taxed at; it is drawn first and taxed each year. | Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; the plan step asks for it. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.taxableStart` `stress.taxableMix` `stress.giaTaxBand` `decision.taxableStart` `decision.taxableMix` `decision.giaTaxBand` |
+| **Charges (funds and platform), % a year** | One charge a year taken off monthly from funds and cash, while saving and while drawing. | Stress → Settings → Charges (6.19.0; Charges.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/services/Charges.js`, `src/answers/shared/toEngine.js`, `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.chargesPct` |
 
 ## State Pension, final salary, other income and lump sums
 
@@ -162,13 +162,13 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Tax thresholds** | Personal allowance, basic-rate limit and higher-rate limit for year 0, which can be changed. | Stress → Settings → Tax thresholds (index.html:3476-3500) | Approaching, retired | **Planned** (no V7 design yet): V7 uses today's bands (toEngine.js BANDS) and they cannot be changed. | `s8-e` | `stress.pa` `stress.brl` `stress.hrl` |
-| **Thresholds rise with prices, or stay frozen** | Whether the tax bands rise with inflation or stay where they are. | Tax thresholds: Tax Threshold Mode (index.html:3492-3497) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.taxMode` |
-| **The 25% tax-free part: in each withdrawal, or kept separate** | Take a quarter of every withdrawal tax-free (UFPLS), or count every withdrawal as taxable because the tax-free sum is taken or kept for something else. | How you'll take this pension (index.html:2982-2994) | Approaching, retired | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/toEngine.js`. V7 takes a quarter of each withdrawal tax-free unless you say it is already taken. | `done` | `stress.accessMethod` `decision.accessMethod` |
-| **Tax-free part for some years, then the rest into the ISA** | Take the tax-free quarter for a number of years, then move the remaining 25% into the ISA before switching to drawdown. | How you'll take this pension: UFPLS for how many years (index.html:3002-3014) | Approaching, retired | **Planned** (no V7 design yet): F's "tax-free cash and which pot first" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E. | `s8-e` | `stress.ufplsYears` `stress.ufplsThenPcls` `decision.ufplsYears` `decision.ufplsThenPcls` |
-| **Fill the basic-rate band and recycle into the ISA** | Draws extra pension up to the 20% band even when spending does not need it, and moves the net into the ISA (up to £20,000 a year). | How you'll take this pension: band fill (index.html:3016-3025) | Approaching, retired | **Planned** (no V7 design yet): No test plan uses it yet (square-one-audit.md §4). | `s8-e` | `stress.bandFillRecycle` `decision.bandFillRecycle` |
-| **Bed-and-ISA £20,000 a year** | Moves £20,000 a year from the taxable account into the ISA whenever the allowance is unused. | Your allocation (index.html:3377-3380) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | `stress.bedAndIsa` `decision.bedAndIsa` |
-| **Relevant UK earnings** | Earnings this year, which set how much of a lump sum can go into the pension. | Your allocation: Relevant UK earnings (index.html:3365-3370) | Approaching | **Planned** (no V7 design yet) | `s8-e` | `stress.relevantEarnings` `decision.relevantEarnings` |
+| **Tax thresholds** | Personal allowance, basic-rate limit and higher-rate limit for year 0, which can be changed. | Stress → Settings → Tax thresholds (index.html:3476-3500) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. V7's questions use today's bands (toEngine.js BANDS); a saved plan's bands are changed on the plan step. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.pa` `stress.brl` `stress.hrl` |
+| **Thresholds rise with prices, or stay frozen** | Whether the tax bands rise with inflation or stay where they are. | Tax thresholds: Tax Threshold Mode (index.html:3492-3497) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.taxMode` |
+| **The 25% tax-free part: in each withdrawal, or kept separate** | Take a quarter of every withdrawal tax-free (UFPLS), or count every withdrawal as taxable because the tax-free sum is taken or kept for something else. | How you'll take this pension (index.html:2982-2994) | Approaching, retired | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/toEngine.js`, `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. V7 takes a quarter of each withdrawal tax-free unless you say it is already taken. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.accessMethod` `decision.accessMethod` |
+| **Tax-free part for some years, then the rest into the ISA** | Take the tax-free quarter for a number of years, then move the remaining 25% into the ISA before switching to drawdown. | How you'll take this pension: UFPLS for how many years (index.html:3002-3014) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. F's "tax-free cash and which pot first" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.ufplsYears` `stress.ufplsThenPcls` `decision.ufplsYears` `decision.ufplsThenPcls` |
+| **Fill the basic-rate band and recycle into the ISA** | Draws extra pension up to the 20% band even when spending does not need it, and moves the net into the ISA (up to £20,000 a year). | How you'll take this pension: band fill (index.html:3016-3025) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. No test plan uses it yet (square-one-audit.md §4). Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.bandFillRecycle` `decision.bandFillRecycle` |
+| **Bed-and-ISA £20,000 a year** | Moves £20,000 a year from the taxable account into the ISA whenever the allowance is unused. | Your allocation (index.html:3377-3380) | Approaching, retired | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.bedAndIsa` `decision.bedAndIsa` |
+| **Relevant UK earnings** | Earnings this year, which set how much of a lump sum can go into the pension. | Your allocation: Relevant UK earnings (index.html:3365-3370) | Approaching | **Built**: `src/answers/plan/pots.js`, `src/v7/screens/plan/PotsScreen.jsx`. Edited on a saved plan in V7 ("Your pots and tax", editing-in-v7.md 9): each fact once, the saved value and source beside it, written as the planner's own key. No V7 question asks for it yet. **Edited in V7**: `src/v7/screens/plan/PotsScreen.jsx` | `done` | `stress.relevantEarnings` `decision.relevantEarnings` |
 
 ## Cuts in a slump, and the reserve
 
@@ -364,11 +364,11 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 |---|---|---|
 | `stress.accessMethod` | The 25% tax-free part: in each withdrawal, or kept separate | Built |
 | `stress.allocMode` | Risk level: cautious, balanced, adventurous | Built |
-| `stress.bandFillRecycle` | Fill the basic-rate band and recycle into the ISA | Planned (no V7 design yet) |
+| `stress.bandFillRecycle` | Fill the basic-rate band and recycle into the ISA | Built |
 | `stress.baseSalary` | The year-by-year figure every tool reads | Built |
-| `stress.bedAndIsa` | Bed-and-ISA £20,000 a year | Planned (no V7 design yet) |
+| `stress.bedAndIsa` | Bed-and-ISA £20,000 a year | Built |
 | `stress.bondMin` | Pension pot, split into shares, bonds and cash | Built |
-| `stress.brl` | Tax thresholds | Planned (no V7 design yet) |
+| `stress.brl` | Tax thresholds | Built |
 | `stress.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
 | `stress.cgtMin` | Old names of the three pot floors | Retired |
 | `stress.chargesPct` | Charges (funds and platform), % a year | Built |
@@ -389,27 +389,27 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.extraIncomes` | Income for some years | Built |
 | `stress.extraWithdrawals` | Extra spends in a given year | Built |
 | `stress.firstTaxYear` | Plan starts this tax year or next April | Built |
-| `stress.giaTaxBand` | A taxable account (GIA) | Planned (no V7 design yet) |
+| `stress.giaTaxBand` | A taxable account (GIA) | Built |
 | `stress.glideEndgame` | Bond tent | Planned (no V7 design yet) |
 | `stress.hodlEnabled` | Emergency reserve ("Break Glass HODL") | Planned (no V7 design yet) |
 | `stress.hodlValue` | Emergency reserve ("Break Glass HODL") | Planned (no V7 design yet) |
-| `stress.hrl` | Tax thresholds | Planned (no V7 design yet) |
+| `stress.hrl` | Tax thresholds | Built |
 | `stress.incomeShape` | Steps by age: "from age X take £Y a year" | Built |
 | `stress.incomeSteps` | Steps by age: "from age X take £Y a year" | Built |
 | `stress.isaBalance` | ISA (and savings) total | Built |
-| `stress.isaDrawdownStrategy` | How the ISA is used | Planned (no V7 design yet) |
+| `stress.isaDrawdownStrategy` | How the ISA is used | Built |
 | `stress.isaGrowth` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.legacyFirstTaxYear` | Plan starts this tax year or next April | Built |
 | `stress.other` | Other income or pension | Built |
-| `stress.pa` | Tax thresholds | Planned (no V7 design yet) |
+| `stress.pa` | Tax thresholds | Built |
 | `stress.pacwMin` | Old names of the three pot floors | Retired |
-| `stress.potAtRetirement` | Pots at retirement, typed in | Planned (no V7 design yet) |
+| `stress.potAtRetirement` | Pots at retirement, typed in | Built |
 | `stress.protectionEscalateMonths` | Cuts in a slump | Planned (no V7 design yet) |
 | `stress.protectionMult` | Cuts in a slump | Planned (no V7 design yet) |
 | `stress.recoveryBuffer` | Cuts in a slump | Planned (no V7 design yet) |
-| `stress.relevantEarnings` | Relevant UK earnings | Planned (no V7 design yet) |
+| `stress.relevantEarnings` | Relevant UK earnings | Built |
 | `stress.retireAge` | Retired already, or retiring at an age | Built |
 | `stress.retired` | Retired already, or retiring at an age | Built |
 | `stress.riskMode` | riskMode on the example plan | Retired |
@@ -427,11 +427,11 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.subAsset` | Test on a list of funds | Designed |
 | `stress.taggedFunds` | Test on a list of funds | Designed |
 | `stress.targetSchedule` | The year-by-year figure every tool reads | Built |
-| `stress.taxMode` | Thresholds rise with prices, or stay frozen | Planned (no V7 design yet) |
-| `stress.taxableMix` | A taxable account (GIA) | Planned (no V7 design yet) |
-| `stress.taxableStart` | A taxable account (GIA) | Planned (no V7 design yet) |
-| `stress.ufplsThenPcls` | Tax-free part for some years, then the rest into the ISA | Planned (no V7 design yet) |
-| `stress.ufplsYears` | Tax-free part for some years, then the rest into the ISA | Planned (no V7 design yet) |
+| `stress.taxMode` | Thresholds rise with prices, or stay frozen | Built |
+| `stress.taxableMix` | A taxable account (GIA) | Built |
+| `stress.taxableStart` | A taxable account (GIA) | Built |
+| `stress.ufplsThenPcls` | Tax-free part for some years, then the rest into the ISA | Built |
+| `stress.ufplsYears` | Tax-free part for some years, then the rest into the ISA | Built |
 | `stress.windfalls` | One-off lump sums | Designed |
 
 ### `decision`: decisionTool.settings: the Decision tool (Month by month) settings
@@ -440,9 +440,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 |---|---|---|
 | `decision.accessMethod` | The 25% tax-free part: in each withdrawal, or kept separate | Built |
 | `decision.allocMode` | Risk level: cautious, balanced, adventurous | Built |
-| `decision.bandFillRecycle` | Fill the basic-rate band and recycle into the ISA | Planned (no V7 design yet) |
+| `decision.bandFillRecycle` | Fill the basic-rate band and recycle into the ISA | Built |
 | `decision.baseSalary` | The year-by-year figure every tool reads | Built |
-| `decision.bedAndIsa` | Bed-and-ISA £20,000 a year | Planned (no V7 design yet) |
+| `decision.bedAndIsa` | Bed-and-ISA £20,000 a year | Built |
 | `decision.bondMin` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.configured` | Settings have been saved once | Planned |
@@ -453,12 +453,12 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.equityGlideEnabled` | Bond tent | Planned (no V7 design yet) |
 | `decision.equityMin` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.firstTaxYear` | Plan starts this tax year or next April | Built |
-| `decision.giaTaxBand` | A taxable account (GIA) | Planned (no V7 design yet) |
+| `decision.giaTaxBand` | A taxable account (GIA) | Built |
 | `decision.glideEndgame` | Bond tent | Planned (no V7 design yet) |
 | `decision.incomeShape` | Steps by age: "from age X take £Y a year" | Built |
 | `decision.incomeSteps` | Steps by age: "from age X take £Y a year" | Built |
 | `decision.isaBalance` | ISA (and savings) total | Built |
-| `decision.isaDrawdownStrategy` | How the ISA is used | Planned (no V7 design yet) |
+| `decision.isaDrawdownStrategy` | How the ISA is used | Built |
 | `decision.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
 | `decision.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
 | `decision.locked` | Lock the plan and make the plan document | Designed |
@@ -467,7 +467,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.protectionEscalateMonths` | Cuts in a slump | Planned (no V7 design yet) |
 | `decision.protectionFactor` | Cuts in a slump | Planned (no V7 design yet) |
 | `decision.recoveryBuffer` | Cuts in a slump | Planned (no V7 design yet) |
-| `decision.relevantEarnings` | Relevant UK earnings | Planned (no V7 design yet) |
+| `decision.relevantEarnings` | Relevant UK earnings | Built |
 | `decision.seededFrom` | Where a copy came from | Retired |
 | `decision.shapeAgeNow` | The year-by-year figure every tool reads | Built |
 | `decision.spStartDate` | State Pension start date, typed from the forecast | Planned (no V7 design yet) |
@@ -482,10 +482,10 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.subAsset` | Test on a list of funds | Designed |
 | `decision.taggedFunds` | Test on a list of funds | Designed |
 | `decision.targetSchedule` | The year-by-year figure every tool reads | Built |
-| `decision.taxableMix` | A taxable account (GIA) | Planned (no V7 design yet) |
-| `decision.taxableStart` | A taxable account (GIA) | Planned (no V7 design yet) |
-| `decision.ufplsThenPcls` | Tax-free part for some years, then the rest into the ISA | Planned (no V7 design yet) |
-| `decision.ufplsYears` | Tax-free part for some years, then the rest into the ISA | Planned (no V7 design yet) |
+| `decision.taxableMix` | A taxable account (GIA) | Built |
+| `decision.taxableStart` | A taxable account (GIA) | Built |
+| `decision.ufplsThenPcls` | Tax-free part for some years, then the rest into the ISA | Built |
+| `decision.ufplsYears` | Tax-free part for some years, then the rest into the ISA | Built |
 | `decision.unlockCount` | Unlock to change the plan | Designed |
 | `decision.unlockedAt` | Unlock to change the plan | Designed |
 | `decision.windfalls` | One-off lump sums | Designed |
@@ -735,9 +735,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `potAtRetirement.isa` | Pots at retirement, typed in | Planned (no V7 design yet) |
-| `potAtRetirement.sipp` | Pots at retirement, typed in | Planned (no V7 design yet) |
-| `potAtRetirement.source` | Pots at retirement, typed in | Planned (no V7 design yet) |
+| `potAtRetirement.isa` | Pots at retirement, typed in | Built |
+| `potAtRetirement.sipp` | Pots at retirement, typed in | Built |
+| `potAtRetirement.source` | Pots at retirement, typed in | Built |
 
 ### `profile`: users/{uid}/profile/settings: per-person preferences
 
@@ -791,20 +791,11 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Did you miss anything?** (Budget: "Did you miss anything?" (BudgetModel.missingSuggestions)). Step `s8-e`.
 - **A nudge when an amount looks wrong** (Budget lines and walk-through (BudgetModel.typicalSanityFlag)). Step `s8-e`.
 - **Reset, duplicate a line, undo a removal** (Budget (index.html:12024-12080)). Step `s8-e`.
-- **Pots at retirement, typed in** (When your plan starts: "Or SIPP at retirement", "ISA at retirement" (index.html:3160-3161)). Step `s8-e`. A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it.
 - **"Update this draft to today"** (Stale-draft banner (index.html:2954, 9020-9050)). Step `s8-e`.
 - **An example ETF portfolio for the risk level** ("See an example ETF portfolio for this level" (index.html:3398-3401; ModelPortfolios.js)). Step `s8-e`.
 - **Diversifiers sleeve: gold and trend/macro** (Your allocation: Diversifiers sleeve (index.html:3394-3397)). Step `s8-e`.
 - **Bond tent** (Your allocation: Bond tent (index.html:3452-3462)). Step `s8-e`.
-- **How the ISA is used** (Your allocation: How the ISA is used (index.html:3337-3343)). Step `s8-e`.
-- **A taxable account (GIA)** (Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js)). Step `s8-e`. answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it.
 - **State Pension start date, typed from the forecast** (State Pension: SP Start Date (index.html:3550)). Step `s8-e`. V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.
-- **Tax thresholds** (Stress → Settings → Tax thresholds (index.html:3476-3500)). Step `s8-e`. V7 uses today's bands (toEngine.js BANDS) and they cannot be changed.
-- **Thresholds rise with prices, or stay frozen** (Tax thresholds: Tax Threshold Mode (index.html:3492-3497)). Step `s8-e`.
-- **Tax-free part for some years, then the rest into the ISA** (How you'll take this pension: UFPLS for how many years (index.html:3002-3014)). Step `s8-e`. F's "tax-free cash and which pot first" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E.
-- **Fill the basic-rate band and recycle into the ISA** (How you'll take this pension: band fill (index.html:3016-3025)). Step `s8-e`. No test plan uses it yet (square-one-audit.md §4).
-- **Bed-and-ISA £20,000 a year** (Your allocation (index.html:3377-3380)). Step `s8-e`.
-- **Relevant UK earnings** (Your allocation: Relevant UK earnings (index.html:3365-3370)). Step `s8-e`.
 - **Cuts in a slump** (Stress and Decision → Settings → Protection (index.html:3584-3611; ProtectionStrategy.js)). Step `s8-e`. V7's answers run with cuts off (save-as-plan.md §C.3).
 - **Emergency reserve ("Break Glass HODL")** (Stress → Settings → Break Glass HODL (index.html:3613-3630)). Step `s8-e`. No test plan uses it yet (square-one-audit.md §4).
 - **What a ladder or floor costs today, against your pot** (refreshStrategyCosts (index.html:9729-9796)). Step `s8-e`. Part of each strategy's dials in E's "compare" step; no V7 design draws it.
@@ -838,8 +829,15 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Age today** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.currentAge` `stress.currentAgeAsOf`.
 - **Retired already, or retiring at an age** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.retired` `stress.retireAge`.
 - **Plan starts this tax year or next April** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear`.
+- **Pots at retirement, typed in** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.potAtRetirement` `potAtRetirement.sipp` `potAtRetirement.isa` `potAtRetirement.source`.
 - **How long the plan runs** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.duration` `decision.duration`.
 - **Suggest a plan length from longevity** (`src/v7/screens/plan/AboutScreen.jsx`): —.
+- **Pension pot, split into shares, bonds and cash** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.equityMin` `stress.bondMin` `stress.cashTarget` `decision.equityMin` `decision.bondMin` `decision.cashTarget`.
+- **ISA (and savings) total** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.isaBalance` `decision.isaBalance`.
+- **How the ISA is used** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.isaDrawdownStrategy` `decision.isaDrawdownStrategy`.
+- **How the ISA and savings grow, and the ISA's floor** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.isaGrowth` `stress.isaReturn` `stress.isaMin` `decision.isaReturn` `decision.isaMin`.
+- **A taxable account (GIA)** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.taxableStart` `stress.taxableMix` `stress.giaTaxBand` `decision.taxableStart` `decision.taxableMix` `decision.giaTaxBand`.
+- **Charges (funds and platform), % a year** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.chargesPct`.
 - **State Pension amount** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.spWeeklyAmount` `decision.spWeeklyAmount`.
 - **State Pension start date, typed from the forecast** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.spStartDate` `decision.spStartDate`.
 - **The old State Pension fields** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear`.
@@ -848,6 +846,13 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Other income or pension** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.other`.
 - **Income for some years** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.extraIncomes` `extraIncomes[].label` `extraIncomes[].annual` `extraIncomes[].startYear` `extraIncomes[].endYear` `extraIncomes[].indexation`.
 - **One-off lump sums** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.windfalls` `decision.windfalls` `windfalls[].label` `windfalls[].amount` `windfalls[].year` `windfalls[].wrapper` `windfalls[].mix` `windfalls[].toIsa`.
+- **Tax thresholds** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.pa` `stress.brl` `stress.hrl`.
+- **Thresholds rise with prices, or stay frozen** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.taxMode`.
+- **The 25% tax-free part: in each withdrawal, or kept separate** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.accessMethod` `decision.accessMethod`.
+- **Tax-free part for some years, then the rest into the ISA** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.ufplsYears` `stress.ufplsThenPcls` `decision.ufplsYears` `decision.ufplsThenPcls`.
+- **Fill the basic-rate band and recycle into the ISA** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.bandFillRecycle` `decision.bandFillRecycle`.
+- **Bed-and-ISA £20,000 a year** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.bedAndIsa` `decision.bedAndIsa`.
+- **Relevant UK earnings** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.relevantEarnings` `decision.relevantEarnings`.
 
 ## Retired, and why
 

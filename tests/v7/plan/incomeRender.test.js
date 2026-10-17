@@ -217,7 +217,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.plan.edit.income"]').getAttribute('href')).toBe('#/plan/' + id + '/income');
     expect(root.querySelector('[data-testid="plan.plan.edit.income"]').textContent).toBe('Change this here');
     expect(root.querySelector('[data-section="pots"] h3').textContent).toBe('Pots');
-    expect(root.querySelector('[data-testid="plan.plan.change.pots"]')).not.toBe(null);
+    expect(root.querySelector('[data-testid="plan.plan.edit.pots"]').getAttribute('href')).toBe('#/plan/' + id + '/pots');
     expect(text).not.toMatch(/undefined|NaN/);
   });
 });

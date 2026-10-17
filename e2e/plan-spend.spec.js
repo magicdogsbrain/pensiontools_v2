@@ -137,8 +137,8 @@ test.describe('"What you spend", without an account', () => {
     await expect(section).toContainText('falling 1% a year');
     await expect(page.getByTestId('plan.plan.edit.pays')).toHaveText('Change this here');
 
-    // the planner, in the same window, on the pots section: its own income-shape boxes hold the new values
-    await page.getByTestId('plan.plan.change.pots').click();
+    // the planner, in the same window, on the way-of-drawing section: its own income-shape boxes hold the new values
+    await page.getByTestId('plan.plan.change.way').click();
     await page.waitForURL((u) => new URL(u).pathname === '/' || new URL(u).pathname === '/index.html');
     await expect(page.locator('#landingTryGuest')).toBeVisible();
     await page.locator('#landingTryGuest').click();

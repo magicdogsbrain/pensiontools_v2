@@ -18,10 +18,10 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 53 | 37 | 15 | 0 | 1 |
+| Built | 59 | 41 | 15 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 47 | 45 | 0 | 2 | 0 |
-| Planned | 64 | 52 | 2 | 2 | 8 |
+| Designed | 43 | 41 | 0 | 2 | 0 |
+| Planned | 62 | 52 | 2 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
 
@@ -36,7 +36,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1*
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 8 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
 | `s2-saver-reading` | The saver's reading made trustworthy (square-one audit §5 item 2) | 0 |
-| `s4-open-plan` | V7 opens a saved plan, read-only, with a "Your plan" rail for every life stage (square-one audit §5 item 4) | 12 |
+| `s4-open-plan` | V7 opens a saved plan, read-only, with a “Your plan” rail for every life stage (built 17 Oct 2026, your-plan.md) (square-one audit §5 item 4) | 12 |
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
@@ -53,11 +53,11 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1*
 | **Try it without an account** | Lets a visitor see answers before signing up. | "Just try it — no account" (index.html:5036-5071) | Visitors | **Built**: `src/v7/effects/draftStore.js`, `src/v7/screens/FrontDoor.jsx`. Better: V7 answers on the visitor's own figures with no account; what was typed stays in the tab. | `done` | — |
 | **A ready-made example plan** | Opens a worked example plan (about £1m, already retired) to look around every tool before typing anything. | Guest example plan and the ?demo=1m link (index.html:5036-5084) | Visitors | **Planned** (no V7 design yet): V7's answers on your own figures are the new way in; an example to look around has no V7 home yet. | `s9-switch` | — |
 | **Guest mode: three active hours, reminders, then hand-over into an account** | A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up. | GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html) | Visitors | **Planned** (no V7 design yet): V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell. | `s9-switch` | `browser.pt_guest_minutes` `browser.pt_guest_nag_level` `browser.pt_guest_handoff` `browser.pt_guest_scenarios` |
-| **Next-step banner** | One sentence at the top saying what to do next for this plan, with a button, dismissable per plan. | index.html:8143-8196; NextStep.js | Everyone | **Designed**: research/v7/rail-screens-language.md §1.6. The rail's "next" sentence, by question and by stage (also §1.4). | `s4-open-plan` | `browser.nextStepDismissed:` |
-| **Life stages lead the way** | Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it. | LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870) | Everyone | **Designed**: research/v7/rail-screens-language.md §1.3. Stages in V7's words, and which questions each stage is offered (§1.5 table). Needs V7 to open a saved plan. | `s4-open-plan` | — |
-| **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s4-open-plan` | `plan.journey` |
+| **Next-step banner** | One sentence at the top saying what to do next for this plan, with a button, dismissable per plan. | index.html:8143-8196; NextStep.js | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/components/PlanRail.jsx`. Built, reading (6.26, your-plan.md 2.4): the one next sentence on “Your plan”, by stage, first match wins. Not dismissable: it is the rail’s own line, never a banner. | `s4-open-plan` | `browser.nextStepDismissed:` |
+| **Life stages lead the way** | Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it. | LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870) | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/copy/plan.js`. Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links. | `s4-open-plan` | — |
+| **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Shown in V7 from s4 (src/answers/plan/read.js: the stage changes with their dates under “Your plan”). | `s4-open-plan` | `plan.journey` |
 | **Finding your way on a phone** | A bottom bar (Budget, Stress, Strategies, Decide) and a More menu for the other tabs. | index.html:2235-2240, 8250-8284; mobileMenu.js | Everyone | **Built**: `src/v7/components/Rail.jsx`. The rail is one line under the header that opens as a sheet. The locked plan's rail on a phone is designed (rail-screens-language.md §1.7). | `done` | — |
-| **Open today's app on a given tab** | A one-off note in the tab that tells today's app which tab to open next (used when another page sends someone in). | sessionStorage pt_open_tab (index.html:4663-4664) | Everyone | **Planned**: "Change this" on V7's plan rail opens today's tool on the right tab through it (square-one-audit.md §5 item 4). | `s4-open-plan` | `browser.pt_open_tab` |
+| **Open the planner on a plan, page and section** | A one-off note in this window that tells the planner which plan, page and section to open next, with the way back to the preview; and which plan this window’s planner is on (the account’s open plan is not moved). The old one-off tab note (pt_open_tab, the demo link’s) is read by the same module. | src/services/OpenPlace.js; src/ui/components/OpenPlace.js; ScenarioRepository.getActiveScenarioAsync (the window pin); index.html showMainApp | Everyone | **Built**: `src/v7/effects/openPlace.js`, `src/services/OpenPlace.js`, `src/ui/components/OpenPlace.js`. “Change this” on V7’s plan pages (research/v7/your-plan.md 5): the planner presses the page’s own button so its loader runs and every box fills; the partner’s plan opens in that window only. | `s4-open-plan` | `browser.pt_open_place` `browser.pt_open_plan` `browser.pt_open_tab` |
 
 ## Budget
 
@@ -219,12 +219,12 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **Lock the plan and make the plan document** | Freezes the settings of both tools and writes the plan as committed; the first Decision record also locks it. | Stress → Settings → "Lock plan & create the plan document" (index.html:3636, 8510-8541; PlanLock.js) | Approaching, locked | **Designed**: research/v7/rail-screens-language.md §1.5. E's "lock" step; A and B (and later D) end with "Lock this plan?" (square-one-audit.md §5 item 5). | `s5-lock` | `decision.locked` `decision.lockedAt` `decision.lockedBy` |
 | **Unlock to change the plan** | Unlocking keeps the plan document as a past version (last ten) and counts the unlocks. | Lock banner "Unlock to edit" (index.html:13070-13090) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "Unlock to change the plan" keeps the document as a past version. | `s5-lock` | `decision.unlockedAt` `decision.unlockCount` `plan.planDocumentArchive` `plan.decisionTool.planOfRecordArchive` |
-| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. | `s4-open-plan` | `plan.planDocument` |
-| **The ladder card** | For a locked gilt plan: what arrives when, what has been bought, and what the same gilts would cost today, as a comparison only. | Plan document and strategy page (LadderPosition.js) | Locked plans with a ladder | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" and "Moving to your plan's mix" stations ("6 of 18 gilts bought"). | `s4-open-plan` | — |
+| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. Shown in V7 from s4 (src/answers/plan/read.js: the “Your plan as locked” step reads the document’s timing, steps, pots, strategy and assumptions; printing and past versions stay in the planner). | `s4-open-plan` | `plan.planDocument` |
+| **The ladder card** | For a locked gilt plan: what arrives when, what has been bought, and what the same gilts would cost today, as a comparison only. | Plan document and strategy page (LadderPosition.js) | Locked plans with a ladder | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" and "Moving to your plan's mix" stations ("6 of 18 gilts bought"). Shown in V7 from s4 (src/answers/plan/read.js: “Moving to your plan’s mix” counts the rungs bought from the document’s ladder). | `s4-open-plan` | — |
 | **The plan of record** | The drawdown and glidepath projection frozen when the Decision plan locked: a yardstick that does not move. | ScenarioRepository.saveActivePlanOfRecord | Nobody sees it directly | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s4-open-plan` | `plan.decisionTool.planOfRecord` |
-| **Where you are** | Reads the recorded months against the document: took this, the plan said that. | Plan document strip (PlanDocument.whereAmI) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Where you are" station. | `s4-open-plan` | — |
-| **Arrival check** | The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again. | LifeStage.js:136-147; index.html:6023-6033 | Locked savers at their stop | **Designed**: research/v7/rail-screens-language.md §1.6. P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. | `s4-open-plan` | — |
-| **"Saved by a newer version"** | A plan saved by a newer version of the app is shown read-only, with a reload button. | planNewerBanner (index.html; storage/schema.js) | Everyone | **Designed**: research/v7/rail-screens-language.md §1.6. P.readonly. | `s4-open-plan` | `plan.schemaVersion` |
+| **Where you are** | Reads the recorded months against the document: took this, the plan said that. | Plan document strip (PlanDocument.whereAmI) | Locked plans | **Built**: `src/answers/plan/read.js`, `src/services/PlanReading.js`. Built, reading (6.26): the “Where you are” step reads whereAmI on the plan document with the planner’s own inputs (PlanReading.whereAmIInputs); the ladder from the document only; dates, never a countdown. | `s4-open-plan` | — |
+| **Arrival check** | The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again. | LifeStage.js:136-147; index.html:6023-6033 | Locked savers at their stop | **Designed**: research/v7/rail-screens-language.md §1.6. P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. Shown in V7 from s4 (src/answers/plan/read.js: P.arrive asks for the first month after the stop; the comparison itself is the planner’s). | `s4-open-plan` | — |
+| **"Saved by a newer version"** | A plan saved by a newer version of the app is shown read-only, with a reload button. | planNewerBanner (index.html; storage/schema.js) | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/screens/plan/PlanScreen.jsx`. Built, reading (6.26): P.readonly — a plan saved by a newer version, or one whose upgrade failed, is shown as saved with no Change buttons. The reload button is the planner’s. | `s4-open-plan` | `plan.schemaVersion` |
 | **Nothing changes a locked plan** | Every button that writes settings refuses on a locked plan and says where the unlock is; records, holdings and the budget stay editable. | LockedPlanGuard.js (6.20.2, in progress) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "What a locked plan can and cannot do on the rail". | `s1-safety` | — |
 
 ## Month by month (the Decision tool) and tax years
@@ -254,7 +254,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **When could I retire?** | Which age clears the bar for an income wanted, if saving carries on. | Accumulation → When could I retire? (RetireSweep.js) | Savers, approaching | **Built**: `src/answers/a/answer.js`, `src/v7/screens/a/AgesScreen.jsx`, `src/v7/components/AgesChart.jsx`. A's every-age table, on the saving-years engine. | `done` | — |
 | **Am I on course?** | The pot needed for the plan's target and whether the saving gets there. | Accumulation → Am I on course? (index.html "Am I on course?"; src/services/OnCourse.js, src/ui/accumulationProjection.js) | Savers | **Built**: `src/answers/b/answer.js`, `src/v7/screens/b/AnswerScreen.jsx`, `src/v7/screens/b/ChoicesScreen.jsx`. B, with the monthly amount that gets there and the options if it does not fit. One bar everywhere from 6.22.0: on course = lasts in 9 futures out of 10 (OnCourse.ON_COURSE_SHARE = V7's BAND.careful). | `done` | — |
 | **Payment warnings** | Warns when payments pass the annual allowance, the £10,000 limit after drawing, or relevant earnings. | Accumulation (AccumulationEngine.contributionWarnings) | Savers | **Built**: `src/answers/b/answer.js`, `src/answers/shared/schemaParts.js`. Annual allowance, the £10,000 limit, the ISA allowance, and paying in past 75. | `done` | — |
-| **Record this month's pot** | One line a month while saving (pension, ISA, taxable), read against the locked plan's saving path. | Accumulation → Record this month's pot (index.html:3728-3739, 8795-8830) | Locked savers | **Planned**: A saver's station, "This month's pot" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js). | `s4-open-plan` | `plan.accumulationTool.history` |
+| **Record this month's pot** | One line a month while saving (pension, ISA, taxable), read against the locked plan's saving path. | Accumulation → Record this month's pot (index.html:3728-3739, 8795-8830) | Locked savers | **Planned**: A saver's station, "This month's pot" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js). Shown in V7 from s4 (src/answers/plan/read.js: the “This month’s pot” step shows the latest record and whether this month’s is in). | `s4-open-plan` | `plan.accumulationTool.history` |
 
 ## What you hold, and the move (Transition)
 
@@ -294,7 +294,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **The budget's version and stored totals** | A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save. | BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version) | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `budget.version` `budget.derived` |
 | **Whether a line's panels were left open** | Whether a line's age band or breakdown was open on screen when it was saved. | Budget lines (index.html:11660-11670, 12491) | Nobody sees it | **Retired**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost. | `s9-switch` | `budget.lines[]._bandOpen` `budget.lines[].breakdownOpen` |
-| **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Planned**: V7 must read an old plan the same way (fallback only, never asked). | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
+| **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Built**: `src/answers/plan/read.js`, `src/answers/plan/options.js`. Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked. | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
 | **Where a copy came from** | Which tool a settings copy came from, when, and a fingerprint of the source (for a "changed since you copied" note). | seedDecisionFromStress (ScenarioRepository.js); the Stress side went with "Copy from Decision" in 6.23.0 | Nobody sees it directly | **Retired**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched. | `s9-switch` | `decision.seededFrom` |
 | **The plan's own fields** | The plan's id, when it was made and last changed. | FirestoreService.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.id` `plan.createdAt` `plan.lastModified` |
 | **The parts a plan is kept in** | The Stress tester's, the Decision tool's and the Budget's parts of a plan. | ScenarioRepository.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.stressTool` `plan.stressTool.settings` `plan.decisionTool` `plan.decisionTool.settings` `plan.budgetTool.settings` |
@@ -345,7 +345,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.planDetails` | Your plans: switch, new, duplicate, rename | Planned |
 | `plan.planDocument` | The plan document | Designed |
 | `plan.planDocumentArchive` | Unlock to change the plan | Designed |
-| `plan.schemaVersion` | "Saved by a newer version" | Designed |
+| `plan.schemaVersion` | "Saved by a newer version" | Built |
 | `plan.strategy` | The plan's strategy block | Planned |
 | `plan.stressTool` | The parts a plan is kept in | Planned |
 | `plan.stressTool.settings` | The parts a plan is kept in | Planned |
@@ -419,8 +419,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.spendingMigratedFrom` | The old "Declining with age" spending profile | Retired |
 | `stress.spendingProfile` | The old "Declining with age" spending profile | Retired |
 | `stress.staleDraftDismissedFor` | "Update this draft to today" | Planned (no V7 design yet) |
-| `stress.statePension` | The old State Pension fields | Planned |
-| `stress.statePensionYear` | The old State Pension fields | Planned |
+| `stress.statePension` | The old State Pension fields | Built |
+| `stress.statePensionYear` | The old State Pension fields | Built |
 | `stress.strategyId` | Choose the plan's strategy; switch and come back | Designed |
 | `stress.strategyParams` | Choose the plan's strategy; switch and come back | Designed |
 | `stress.strategyState` | Choose the plan's strategy; switch and come back | Designed |
@@ -475,8 +475,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.spendingMigratedFrom` | The old "Declining with age" spending profile | Retired |
 | `decision.spendingProfile` | The old "Declining with age" spending profile | Retired |
 | `decision.startDate` | The Decision tool's old start date | Retired |
-| `decision.statePension` | The old State Pension fields | Planned |
-| `decision.statePensionYear` | The old State Pension fields | Planned |
+| `decision.statePension` | The old State Pension fields | Built |
+| `decision.statePensionYear` | The old State Pension fields | Built |
 | `decision.strategyId` | Choose the plan's strategy; switch and come back | Designed |
 | `decision.strategyParams` | Choose the plan's strategy; switch and come back | Designed |
 | `decision.subAsset` | Test on a list of funds | Designed |
@@ -749,14 +749,16 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `browser.nextStepDismissed:` | Next-step banner | Designed |
+| `browser.nextStepDismissed:` | Next-step banner | Built |
 | `browser.pt_guest_handoff` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
 | `browser.pt_guest_minutes` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
 | `browser.pt_guest_nag_level` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
 | `browser.pt_guest_scenarios` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
 | `browser.pt_lastActivity` | Sign in and out | Planned |
 | `browser.pt_lastSeenVersion` | What's new | Planned |
-| `browser.pt_open_tab` | Open today's app on a given tab | Planned |
+| `browser.pt_open_place`: this window only; no figures, no name; deleted when read or after ten minutes | Open the planner on a plan, page and section | Built |
+| `browser.pt_open_plan`: this window only: the plan this window’s planner is on; nothing written to any plan | Open the planner on a plan, page and section | Built |
+| `browser.pt_open_tab` | Open the planner on a plan, page and section | Built |
 | `browser.pt_v7_plan_receipt` | Save a V7 answer as a new plan | Built |
 | `browser.pt_v7_plan_seed` | Save a V7 answer as a new plan | Built |
 

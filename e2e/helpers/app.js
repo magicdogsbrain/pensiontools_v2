@@ -106,7 +106,8 @@ export const ADDRESSES = [
   ...QUESTIONS.filter((q) => !q.built).map((q) => ({ hash: `#/soon/${q.id}`, screen: 'soon' })),
   { hash: '#/c/numbers?focus=you.age', screen: 'c.numbers' },
   { hash: '#/no-such-page', screen: 'front' },
-  { hash: '#/plan/abc/c/answer', screen: 'front' },      // reserved for saved plans; "page not found" in this slice
+  { hash: '#/plan/abc/c/answer', screen: 'front' },      // a saved plan's address never carries a question step
+  { hash: '#/plans', screen: 'plans' },                   // the saved plans (research/v7/your-plan.md): nobody signed in here
   { hash: '#/soon/c', screen: 'front' },
   // Step 4: A's and B's addresses, once they are open (brief 4.12). A built question is never "soon".
   ...['a', 'b'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [

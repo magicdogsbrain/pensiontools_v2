@@ -109,12 +109,17 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
   return {
     route:   { screen: 'front', q: null, step: null, planId: null, focus: null },
     env:     { today, build: build === 'test' ? 'test' : 'prod', appVersion: VERSION, historyEnd: null },
-    session: { kind: 'none' },                       // fixed in this slice
-    plan:    null,                                   // fixed in this slice
+    session: { kind: 'none', email: null, signingOut: false },   // who is signed in; 'none' until a plan page asks (your-plan.md 4.3)
+    plan:    null,                                   // reserved (architecture.md 3.2)
+    plans:   null,                                   // the saved plans in page memory only, or null: { status, source, readAt, list }
     draft:   drafts,
     answers,
     budget:  cleanSheet(draft && typeof draft === 'object' ? draft.budget : null),
     keep,
-    ui:      { railOpen: false, open: [], online: true }
+    ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null }
   };
 }
+
+/** The session states the plan source reports (your-plan.md 1.1 "States"). */
+export const SESSION_KINDS = Object.freeze(['none', 'checking', 'in', 'unverified', 'nobody', 'failed']);
+export const emptyPlans = () => null;

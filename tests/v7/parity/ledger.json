@@ -106,7 +106,7 @@
       "source": "square-one audit §5 item 2"
     },
     "s4-open-plan": {
-      "title": "V7 opens a saved plan, read-only, with a \"Your plan\" rail for every life stage",
+      "title": "V7 opens a saved plan, read-only, with a “Your plan” rail for every life stage (built 17 Oct 2026, your-plan.md)",
       "source": "square-one audit §5 item 4"
     },
     "s5-lock": {
@@ -175,7 +175,9 @@
     "strategyParams.gilt-rotation.rotateTrigger": "how far shares must fall below their high to trigger a rotation, % (default 30)",
     "strategyParams.gilt-rotation.rotateDisarmYears": "how many years before the sold block starts paying the trigger switches off (default 8)",
     "strategyParams.gilt-rotation.sippTotal": "the pension total this strategy buys with (blank: the allocation's total)",
-    "strategyParams.gilt-rotation.isaTotal": "the ISA total this strategy may use"
+    "strategyParams.gilt-rotation.isaTotal": "the ISA total this strategy may use",
+    "browser.pt_open_place": "this window only; no figures, no name; deleted when read or after ten minutes",
+    "browser.pt_open_plan": "this window only: the plan this window’s planner is on; nothing written to any plan"
   },
   "rows": [
     {
@@ -256,10 +258,14 @@
       "keys": [
         "browser.nextStepDismissed:"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The rail's \"next\" sentence, by question and by stage (also §1.4)."
+      "note": "Built, reading (6.26, your-plan.md 2.4): the one next sentence on “Your plan”, by stage, first match wins. Not dismissable: it is the rail’s own line, never a banner.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/v7/components/PlanRail.jsx"
+      ]
     },
     {
       "id": "ways.life-stages",
@@ -270,10 +276,14 @@
       "whereV6": "LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870)",
       "who": "Everyone",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.3",
       "step": "s4-open-plan",
-      "note": "Stages in V7's words, and which questions each stage is offered (§1.5 table). Needs V7 to open a saved plan."
+      "note": "Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/v7/copy/plan.js"
+      ]
     },
     {
       "id": "ways.journey",
@@ -288,7 +298,7 @@
       ],
       "status": "planned",
       "step": "s4-open-plan",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Shown in V7 from s4 (src/answers/plan/read.js: the stage changes with their dates under “Your plan”)."
     },
     {
       "id": "ways.phone",
@@ -307,19 +317,26 @@
       "note": "The rail is one line under the header that opens as a sheet. The locked plan's rail on a phone is designed (rail-screens-language.md §1.7)."
     },
     {
-      "id": "ways.open-tab",
+      "id": "ways.open-place",
       "area": "ways-in",
       "kind": "machinery",
-      "name": "Open today's app on a given tab",
-      "what": "A one-off note in the tab that tells today's app which tab to open next (used when another page sends someone in).",
-      "whereV6": "sessionStorage pt_open_tab (index.html:4663-4664)",
+      "name": "Open the planner on a plan, page and section",
+      "what": "A one-off note in this window that tells the planner which plan, page and section to open next, with the way back to the preview; and which plan this window’s planner is on (the account’s open plan is not moved). The old one-off tab note (pt_open_tab, the demo link’s) is read by the same module.",
+      "whereV6": "src/services/OpenPlace.js; src/ui/components/OpenPlace.js; ScenarioRepository.getActiveScenarioAsync (the window pin); index.html showMainApp",
       "who": "Everyone",
       "keys": [
+        "browser.pt_open_place",
+        "browser.pt_open_plan",
         "browser.pt_open_tab"
       ],
-      "status": "planned",
+      "status": "built",
+      "files": [
+        "src/v7/effects/openPlace.js",
+        "src/services/OpenPlace.js",
+        "src/ui/components/OpenPlace.js"
+      ],
       "step": "s4-open-plan",
-      "note": "\"Change this\" on V7's plan rail opens today's tool on the right tab through it (square-one-audit.md §5 item 4)."
+      "note": "“Change this” on V7’s plan pages (research/v7/your-plan.md 5): the planner presses the page’s own button so its loader runs and every box fills; the partner’s plan opens in that window only."
     },
     {
       "id": "budget.lines",
@@ -1566,9 +1583,13 @@
         "decision.statePension",
         "decision.statePensionYear"
       ],
-      "status": "planned",
+      "status": "built",
       "step": "s4-open-plan",
-      "note": "V7 must read an old plan the same way (fallback only, never asked)."
+      "note": "Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/answers/plan/options.js"
+      ]
     },
     {
       "id": "inc.final-salary",
@@ -2324,7 +2345,7 @@
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The \"Your plan\" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines."
+      "note": "The \"Your plan\" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. Shown in V7 from s4 (src/answers/plan/read.js: the “Your plan as locked” step reads the document’s timing, steps, pots, strategy and assumptions; printing and past versions stay in the planner)."
     },
     {
       "id": "lock.ladder-card",
@@ -2338,7 +2359,7 @@
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The \"Your plan\" and \"Moving to your plan's mix\" stations (\"6 of 18 gilts bought\")."
+      "note": "The \"Your plan\" and \"Moving to your plan's mix\" stations (\"6 of 18 gilts bought\"). Shown in V7 from s4 (src/answers/plan/read.js: “Moving to your plan’s mix” counts the rungs bought from the document’s ladder)."
     },
     {
       "id": "lock.plan-of-record",
@@ -2364,10 +2385,14 @@
       "whereV6": "Plan document strip (PlanDocument.whereAmI)",
       "who": "Locked plans",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The \"Where you are\" station."
+      "note": "Built, reading (6.26): the “Where you are” step reads whereAmI on the plan document with the planner’s own inputs (PlanReading.whereAmIInputs); the ladder from the document only; dates, never a countdown.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/services/PlanReading.js"
+      ]
     },
     {
       "id": "lock.arrival",
@@ -2381,7 +2406,7 @@
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0."
+      "note": "P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. Shown in V7 from s4 (src/answers/plan/read.js: P.arrive asks for the first month after the stop; the comparison itself is the planner’s)."
     },
     {
       "id": "lock.newer",
@@ -2394,10 +2419,14 @@
       "keys": [
         "plan.schemaVersion"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "P.readonly."
+      "note": "Built, reading (6.26): P.readonly — a plan saved by a newer version, or one whose upgrade failed, is shown as saved with no Change buttons. The reload button is the planner’s.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/v7/screens/plan/PlanScreen.jsx"
+      ]
     },
     {
       "id": "lock.guard",
@@ -2754,7 +2783,7 @@
       ],
       "status": "planned",
       "step": "s4-open-plan",
-      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js)."
+      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js). Shown in V7 from s4 (src/answers/plan/read.js: the “This month’s pot” step shows the latest record and whether this month’s is in)."
     },
     {
       "id": "hold.record",

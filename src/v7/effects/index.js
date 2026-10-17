@@ -12,6 +12,8 @@ import { startDraftStore, sessionStore } from './draftStore.js';
 import { startRunner } from './run.js';
 import { createWorkerClient } from './workerClient.js';
 import { startPlanSeed, localStore } from './planSeed.js';
+import { startActivity } from './activity.js';
+import { startOpenPlace } from './openPlace.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -51,6 +53,21 @@ export function startEffects(store, { win = window, client = createWorkerClient(
       return () => win.removeEventListener('pageshow', shown);
     }
   }));
+
+  // The saved plans, read-only (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every
+  // page; the hand-over to the planner; and the plan source — the one Firebase file — loaded only on the plan pages.
+  stops.push(startActivity(win, { storage: localStore(win) }));
+  stops.push(startOpenPlace(store, { session: sessionStore(win), go: (address) => win.location.assign(address) }));
+  let planSource = null;
+  const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan');
+  const loadPlanSource = (state) => {
+    if (planSource || !onPlanPage(state)) return;
+    planSource = import('./planSource.js')
+      .then((m) => { const stop = m.startPlanSource(store, { win, local: localStore(win), session: sessionStore(win) }); stops.push(stop); return stop; })
+      .catch(() => { store.dispatch({ type: A.PLANS_FAILED }); return () => {}; });
+  };
+  loadPlanSource(store.getState());
+  stops.push(store.subscribe(loadPlanSource));
 
   const online = () => store.dispatch({ type: A.UI_ONLINE, online: true });
   const offline = () => store.dispatch({ type: A.UI_ONLINE, online: false });

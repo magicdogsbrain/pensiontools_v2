@@ -25,9 +25,10 @@ describe('route/set', () => {
     expect(reduce(fresh(), { type: A.ROUTE_SET, route: route('soon', 'c') }).route.screen).toBe('notFound');
     expect(reduce(fresh(), { type: A.ROUTE_SET, route: null }).route.screen).toBe('notFound');
   });
-  it('never keeps a plan id in this slice', () => {
+  it('a plan id belongs to a plan address only (research/v7/your-plan.md 4.2)', () => {
     const s = reduce(fresh(), { type: A.ROUTE_SET, route: { ...route('step', 'c', 'answer'), planId: 'abc' } });
     expect(s.route.planId).toBe(null);
+    expect(reduce(fresh(), { type: A.ROUTE_SET, route: { screen: 'plan', q: null, step: null, planId: 'abc', focus: null } }).route.planId).toBe('abc');
   });
 });
 
@@ -225,7 +226,17 @@ const anyAction = fc.oneof(
   fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
-  fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } }))
+  fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } })),
+  // the saved plans, read-only (research/v7/your-plan.md): the session, the plans in page memory, the hand-over
+  fc.constantFrom('checking', 'in', 'unverified', 'nobody', 'failed', 'none').map((kind) => ({ type: A.SESSION_SET, session: { kind, email: kind === 'in' ? 'a@b.c' : null } })),
+  fc.constant({ type: A.SESSION_OUT }),
+  fc.constant({ type: A.PLANS_READING }),
+  fc.constantFrom('account', 'window').map((source) => ({ type: A.PLANS_SET, list: [{ plan: { id: 'p1', planDetails: { name: 'One' } }, newer: false, failed: false }, { plan: null }], source, readAt: '14:03' })),
+  fc.constant({ type: A.PLANS_FAILED }),
+  fc.constant({ type: A.PLANS_VIEW, view: { today: '2026-09-30', rows: [], page: null } }),
+  fc.constant({ type: A.PLANS_CLEAR }),
+  fc.constant({ type: A.PLAN_CHANGE, planId: 'p1', place: 'month', back: '#/plan/p1' }),
+  fc.constant({ type: A.PLAN_CHANGE_FAILED })
 );
 
 describe('any sequence of actions', () => {
@@ -236,16 +247,18 @@ describe('any sequence of actions', () => {
     const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\//.test(t) || t === A.DRAFT_ONWARD);
     expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t)).sort());
   });
-  it('the state survives JSON, and plan and session never change', () => {
+  it('the state survives JSON; plan never changes and the session is always a known kind', () => {
     fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {
       let s = fresh();
       for (const a of actions) {
         s = reduce(s, a);
         expect(s.plan).toBe(null);
-        expect(s.session).toEqual({ kind: 'none' });
+        expect(['none', 'checking', 'in', 'unverified', 'nobody', 'failed']).toContain(s.session.kind);
+        // the plans never reach the draft store's shape (your-plan.md 3.8): page memory only, under one key
+        if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'plan', 'route', 'session', 'ui']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'plan', 'plans', 'route', 'session', 'ui']);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);
     }), { numRuns: 300 });
   });

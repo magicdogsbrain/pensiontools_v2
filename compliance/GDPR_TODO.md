@@ -109,6 +109,34 @@ AshworthEnterprises workspace (`compliance/DATA_PROCESSING_RECORD.md`).
   documents the pre-existing localStorage/sessionStorage items: idle timer, dismissed banners,
   guest-tab plan). No new processor, no analytics.
 
+## "Your plans" and "Your plan" in the V7 preview, read-only — 17 Oct 2026 (written, NOT yet published or deployed)
+- **No new processor, no new Firestore path, no new data category.** The preview (`/v7/#/plans`, `/v7/#/plan/<id>`) reads
+  the same plans under the same rules: one `getDocs` of `users/{uid}/scenarios` through ONE file,
+  `src/v7/effects/planSource.js`, with Firestore's read-only "Lite" library (no cache on the device). The sign-in is the
+  planner's own (one project, the same persistence); an unconfirmed email is not read (the server would refuse it, and the
+  preview does not try). Nothing the preview can reach can write a plan: `tests/v7/boundaries.test.js` walks every import
+  from the preview's entry points and fails on any write call, on any Firebase name but the read-only ones, and on any
+  storage or Firebase file other than the adapter and five named pure files; `tests/v7/plan/planSource.test.js` proves
+  no write function is ever called. Each plan is brought up to date in memory by today's own upgrade; its "write back"
+  flag is ignored.
+- **The plan list is never cached beyond the page.** The plans live in the page's memory only: never in
+  `pt_v7_draft`, never in an address (a plan's id only, which holds no figure), cleared on `pagehide`, on sign-out and
+  when the person becomes nobody. Read again when the page is shown again.
+- **Without an account:** the plans a window kept without an account (`sessionStorage['pt_guest_scenarios']`, today's
+  own key) are shown read-only, read with `getItem` only, and only when nobody is signed in; looking does not count
+  against the free hours (`pt_guest_minutes` is read, never written).
+- **Browser storage, new, both this window only, neither holding figures or names:** `sessionStorage['pt_open_place']`,
+  the hand-over request from "Change this" (the plan's id, the page and the way back; deleted when the planner reads it,
+  or refused after ten minutes); `sessionStorage['pt_open_plan']`, which plan this window's planner is on (the account's
+  open plan is not moved; nothing is written to any plan). The preview also records activity under the planner's own
+  `localStorage['pt_lastActivity']` so an idle planner window cannot sign out someone reading the preview; the preview's
+  own sign-out and idle sign-out delete the saved-answer seed and its receipt, as every sign-out must.
+- [x] One sentence added to `compliance/PRIVACY_POLICY.md` and `public/privacy.html` ("Storage in your browser"),
+      "Last updated" set to 17 October 2026.
+- [ ] Owner to read and approve the wording, then publish with the release that ships this.
+- [ ] The signed-in path is not yet walked in a browser against the emulator (no test account was used; the design's T11
+      and T12 wait for `firebase-tools` and an `emulators` block). The guest path is walked (e2e/plan.spec.js).
+
 ## "Save this as a plan" from the V7 preview — 1 Oct 2026 (written, NOT yet published or deployed)
 - **No new processor, no new Firestore path, no new data category.** A plan made from a V7 answer is an ordinary
   plan under `users/{uid}/scenarios` (or the guest tab's session storage), covered by the existing rules and wiped

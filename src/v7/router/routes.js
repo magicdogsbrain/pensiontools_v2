@@ -13,13 +13,20 @@ export const ROUTES = [
   { pattern: '#/',            screen: 'front' },
   { pattern: '#/c/:step',     screen: 'step' },      // numbers, answer, ways, keep
   { pattern: '#/soon/:q',     screen: 'soon' },      // a, b, d, e, f — never c
+  { pattern: '#/plans',       screen: 'plans' },     // the saved plans of the account (or this window)
+  { pattern: '#/plan/:planId',       screen: 'plan' },   // one saved plan, on its stage's first step
+  { pattern: '#/plan/:planId/:step', screen: 'plan' },   // … on a named step (research/v7/your-plan.md 4.2)
   { pattern: '#/not-found',   screen: 'notFound' }   // what any unknown address becomes
 ];
 
 export const NOT_FOUND = Object.freeze({ screen: 'notFound', q: null, step: null, planId: null, focus: null });
 const FOCUS = /^[A-Za-z]+(\.[A-Za-z]+)*$/;
+/** A saved plan's id: the one place a digit may appear in an address. It holds no figure (your-plan.md 3.8). */
+export const PLAN_ID = /^[A-Za-z0-9_-]{1,64}$/;
+/** The steps of "Your plan" (src/answers/plan/steps.js ALL_STEPS; named here so the router imports no reader). */
+export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'saving', 'budget', 'lock', 'hold', 'move', 'household']);
 
-const route = (screen, q = null, step = null, focus = null) => ({ screen, q, step, planId: null, focus });
+const route = (screen, q = null, step = null, focus = null, planId = null) => ({ screen, q, step, planId, focus });
 
 export function parse(hash) {
   let text = String(hash ?? '');
@@ -35,7 +42,13 @@ export function parse(hash) {
   }
   if (text === '' || text === '/') return route('front', null, null, focus);
   const parts = text.split('/');                       // '/c/numbers' → ['', 'c', 'numbers']
-  if (parts.length !== 3 || parts[0] !== '') return { ...NOT_FOUND };
+  if (parts[0] !== '') return { ...NOT_FOUND };
+  // the saved plans: #/plans, #/plan/<id>, #/plan/<id>/<step> (never a focus: there is no box on a plan page)
+  if (parts.length === 2 && parts[1] === 'plans' && focus === null) return route('plans');
+  if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && focus === null && PLAN_ID.test(parts[2]) && (parts.length === 3 || PLAN_STEPS.includes(parts[3]))) {
+    return route('plan', null, parts.length === 4 ? parts[3] : null, null, parts[2]);
+  }
+  if (parts.length !== 3) return { ...NOT_FOUND };
   const [, first, second] = parts;
   if (first === 'soon') {
     const q = QUESTIONS.find((x) => x.id === second);
@@ -52,6 +65,8 @@ export function format(r) {
   if (r.screen === 'front') return '#/' + tail;
   if (r.screen === 'step' && BUILT[r.q] && BUILT[r.q].steps.some((s) => s.id === r.step)) return `#/${r.q}/${r.step}${tail}`;
   if (r.screen === 'soon' && QUESTIONS.some((x) => x.id === r.q && !x.built)) return `#/soon/${r.q}${tail}`;
+  if (r.screen === 'plans') return '#/plans';
+  if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) return `#/plan/${r.planId}` + (r.step && PLAN_STEPS.includes(r.step) ? `/${r.step}` : '');
   return '#/not-found';
 }
 
@@ -59,16 +74,20 @@ export function format(r) {
 export const href = {
   front: () => format(route('front')),
   step: (q, step, focus = null) => format(route('step', q, step, focus)),
-  soon: (q) => format(route('soon', q))
+  soon: (q) => format(route('soon', q)),
+  plans: () => format(route('plans')),
+  plan: (planId, step = null) => format(route('plan', null, step, null, planId))
 };
 
 /**
  * The name of the screen a route draws — the value of data-screen (brief 4.9):
- * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt'. An unknown address draws the front door.
+ * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan'. An unknown address draws the front door.
  */
 export function screenName(r) {
   if (!r || r.screen === 'front' || r.screen === 'notFound') return 'front';
   if (r.screen === 'soon') return 'soon';
+  if (r.screen === 'plans') return 'plans';
+  if (r.screen === 'plan') return 'plan';
   const step = BUILT[r.q] && BUILT[r.q].steps.find((s) => s.id === r.step);
   if (!step) return 'front';
   return step.built ? `${r.q}.${r.step}` : 'notBuilt';

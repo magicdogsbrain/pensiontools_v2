@@ -9,6 +9,7 @@ import { Rail } from './Rail.jsx';
 import { format } from '../router/routes.js';
 import { focusField } from './Field.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
+import { PLAN } from '../copy/plan.js';
 
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
@@ -26,6 +27,9 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
 
   const focusMain = () => { const main = ref.current && ref.current.querySelector('main'); if (main) main.focus(); };
   const front = name === 'front';
+  // the plan pages (research/v7/your-plan.md 1.1): "Your plans" in every header; "Sign out" on plan pages while signed in
+  const onPlans = name === 'plans' || name === 'plan';
+  const signedIn = onPlans && state.session && state.session.kind === 'in';
 
   return (
     <div class={`pt pt-${name.replace('.', '-')}`} ref={ref}>
@@ -33,7 +37,9 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       <header class="top">
         <a class="brand" href="#/">{COMMON.product}</a>
         <nav class="top-nav" aria-label={COMMON.product}>
-          <a href="#/">{COMMON.allQuestions}</a>
+          <a href="#/plans" data-testid="nav.plans">{PLAN.header.plans}</a>
+          <a href="#/">{onPlans ? PLAN.header.ask : COMMON.allQuestions}</a>
+          {signedIn && <button type="button" class="btn btn-quiet top-signout" data-testid="nav.signOut" onClick={() => dispatch({ type: 'session/out' })}>{PLAN.header.signOut}</button>}
         </nav>
       </header>
       {/* One line on a phone (the short words), the full sentence where there is room: components.css picks one. */}
@@ -42,7 +48,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
         <span class="preview-short">{COMMON.preview.shortText} <a href={COMMON.links.current}>{COMMON.preview.shortLink}</a></span>
       </p>
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
-      {rail && <Rail state={state} dispatch={dispatch} />}
+      {rail === true ? <Rail state={state} dispatch={dispatch} /> : rail || null}
       <main id="main" tabIndex={-1} data-screen={name} data-question={question || undefined} data-view={view || undefined}>{children}</main>
       <footer class="foot" data-region="footer">
         {full && <p class="advice-full">{ADVICE_FULL}</p>}

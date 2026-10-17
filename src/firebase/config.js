@@ -17,20 +17,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBdbve0H70D-Ch69WlaxEly7PVBFVRB5p0",
-  authDomain: "pensiontools-4b237.firebaseapp.com",
-  projectId: "pensiontools-4b237",
-  storageBucket: "pensiontools-4b237.firebasestorage.app",
-  messagingSenderId: "760877353696",
-  appId: "1:760877353696:web:2d6f7173c8d7fab6fd9e85"
-};
-
-// Check if Firebase is configured
-export function isFirebaseConfigured() {
-  return firebaseConfig.apiKey !== "YOUR_API_KEY";
-}
+// Firebase configuration: the project's public settings live in projectConfig.js (data only), which the preview's
+// read-only plan source reads too (research/v7/your-plan.md 4.1).
+import { firebaseConfig, isFirebaseConfigured } from './projectConfig.js';
+export { isFirebaseConfigured };
 
 // Initialize Firebase
 let app = null;

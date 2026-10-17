@@ -58,8 +58,19 @@ export const A = Object.freeze({
                                        //                                     (of the younger of you), never below the budget's essentials
   SHAPE_PRESET:    'shape/preset',     // { q, id: 'level' | 'slowly' }      "The same every year" / "Slowly less" (today's old setting)
   SHAPE_UNDO:      'shape/undo',       // { q }                              the shape before the last suggestion or preset
-  SHAPE_RESCALE:   'shape/rescale'     // { q, from? }                       A, B: the later steps × new figure ÷ the figure they were set
+  SHAPE_RESCALE:   'shape/rescale',    // { q, from? }                       A, B: the later steps × new figure ÷ the figure they were set
                                        //                                     against (or `from`: "Try a change" moving the start by £100)
+
+  // ---- the saved plans, read-only (research/v7/your-plan.md 4.2, 4.3) ------------------------------------------------
+  SESSION_SET:     'session/set',      // { session }                        who is signed in: 'checking' | 'in' | 'unverified' | 'nobody' | 'failed'
+  SESSION_OUT:     'session/out',      // {}                                 "Sign out" pressed: signingOut: true → the plan source signs out
+  PLANS_READING:   'plans/reading',    // {}                                 a read is under way (the page opened, shown again, "Read again")
+  PLANS_SET:       'plans/set',        // { list, source, readAt }           the plans, brought up to date in memory; never stored anywhere
+  PLANS_FAILED:    'plans/failed',     // {}                                 the read failed; nothing was changed
+  PLANS_CLEAR:     'plans/clear',      // {}                                 pagehide, sign-out, nobody: the plans leave the page's memory
+  PLANS_VIEW:      'plans/view',       // { view }                           the plan source's reading of the plans for the route: { today, rows, page }
+  PLAN_CHANGE:     'plan/change',      // { planId, place, back }            "Change this": leaving: the hand-over effect writes the request
+  PLAN_CHANGE_FAILED: 'plan/changeFailed' // {}                             this browser would not pass the request on
 });
 
 /**
@@ -81,4 +92,4 @@ export const ACTION_TYPES = Object.freeze(Object.values(A));
  * The ids `ui/toggle` accepts: C's, and A's and B's blocks (split, partTime, pots, levers, chart); the spending shape's
  * block and its table of every year (shape, shapeYears).
  */
-export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears']);
+export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears', 'allOptions', 'allLines']);

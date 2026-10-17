@@ -2825,6 +2825,38 @@
       "note": "Better: a couple's figures on the first screen; saving makes the two linked plans."
     },
     {
+      "id": "couple.draw-split",
+      "area": "couples",
+      "kind": "option",
+      "name": "Who draws what: drawing together, tax first",
+      "what": "The split of the household's after-tax spending that pays the least tax (the lower-taxed person fills their allowance and 20% band first; the other stays at or below the top of the 20% band where the money allows), year by year, with an optional limit on the smaller pot; the two-way comparison through the one test, the household verdict first; \"Use this split\" (copies when a plan is locked) and \"Keep things as they are\", remembered for that pair until either plan changes.",
+      "whereV6": "Household → Who draws what (index.html runHouseholdCheck; src/services/HouseholdDraw.js, HouseholdSplitApply.js, src/ui/householdView.js)",
+      "who": "Couples",
+      "keys": [
+        "household.splitDismissed"
+      ],
+      "status": "designed",
+      "doc": "research/household-draw-split.md §6 (the couples answers use the same rule, the same two-column comparison, and carry the choice into a saved plan)",
+      "step": "done",
+      "note": "Built first in today's Household tab (6.25.0; usability audit §5 decision 5, option (a)). One rule in src/services so V7 shares it."
+    },
+    {
+      "id": "couple.one-budget",
+      "area": "couples",
+      "kind": "option",
+      "name": "One budget for the household",
+      "what": "The partner's plan reads the household's budget from the plan it points at (the lines are the same on both plans); each plan keeps its own side of who pays and its own ages. The Household tab says which plan's budget is the household's and offers to share it; the Budget page says when it is shared.",
+      "whereV6": "Household → One budget for the household; Budget (index.html loadBudgetUI; src/storage/ScenarioRepository.js getActiveBudget / saveActiveBudget / shareBudgetWith)",
+      "who": "Couples",
+      "keys": [
+        "plan.budgetTool.sharedFrom"
+      ],
+      "status": "designed",
+      "doc": "research/v7/v6-usability-audit.md §2.10 and §5 decision 5 (\"one budget, with 'Keeping money separate?' as an option\")",
+      "step": "done",
+      "note": "Built first in today's planner (6.25.0). A pointer field on the partner's plan; nothing changes in the shape of a budget."
+    },
+    {
       "id": "couple.joint",
       "area": "couples",
       "kind": "option",

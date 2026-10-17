@@ -33,7 +33,7 @@ import { resolve } from 'node:path';
 // deleted the welcome tour, the Edit Tools modal and its per-tool wizard, the tab-visibility code, the "Copy from
 // Stress / Decision" buttons and the headroom box: the script ends 315 lines shorter: 10,186.
 // Merged 6.23.0 (batches A, B and C): the limit is set to the merged script length below.
-const MAX_LINES = 10186;
+const MAX_LINES = 10099;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

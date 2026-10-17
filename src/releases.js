@@ -37,6 +37,35 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.25.0', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'Couples: who draws what, and one household verdict',
+    summary: 'For a couple with two linked plans, the Household tab now works out the split of your household\'s spending that pays the least tax — the lower-taxed person fills their allowance and 20% band first, the other draws the rest — and shows it against each of you drawing for your own plan: the tax saved each year and until the smaller pot\'s State Pension, what it costs the smaller pot, and what each way leaves at 90. When the saving is over £1,000 a year the headline is at the top of the tab. The household verdict now comes first: when one pot is empty the other pays, and the household runs out only when both have. It is your choice; neither way is wrong, and nothing changes in either plan until you say so.',
+    changes: [
+      'Household → "Who draws what": year by year, in today\'s prices, the lowest-tax split of your household\'s after-tax spending, worked out with the planner\'s own tax sums. Each person is capped at the top of their 20% band where the money allows, never more than a pot holds, and never past a limit you set ("keep [name]\'s pot until 67" or "keep at least £X in it").',
+      'The headline: "Drawing together saves about £X a year in tax — about £Y by the time [name] is 67", the cost to the smaller pot, then a table: tax in the first year, until the State Pension and over the plan; each pot at 67, 75 and 90; the money lasts in N of 10; what is left at 90 in a middling and a bad case. Then: "Paying the tax keeps [name]\'s pot, and your money more separate. This is your choice; neither is wrong."',
+      'Both ways run through the one stress test, each plan on its own strategy, paired future for future.',
+      'The verdict puts the household first: when one pot is empty the other pays that share. Each pot\'s own reading follows.',
+      '"Use this split" writes the split into both plans\' income shapes after a confirm, with Undo. A locked plan is never changed: you are offered copies of both plans with the split instead. "Keep things as they are" dismisses it until either plan changes.',
+      'One budget for the household: share this plan\'s budget with your partner\'s plan; each keeps its own "who pays" and ages. The Budget page says when it is shared.',
+      'The April 2028 note when one of you is 55 or 56 on 6 April 2028 and draws before then.'
+    ],
+    corrections: [
+      'The old "A tax thought" sentence understated the saving: 20% of the slice moved, in year 0 only, with nothing on what the smaller pot gives up. The real difference is 40% against about 15% where a quarter is tax-free, every year until the smaller pot\'s State Pension.',
+      '"Both together" counted only futures in which each plan lasted on its own, so one partner\'s money never paid the other\'s share.'
+    ],
+    effects: {
+      household: ['The tab opens with the comparison when it applies; the couples check\'s headline is the pooled household figure, with the each-on-its-own figure beneath it.'],
+      budget: ['A partner\'s plan can read the household\'s budget through the other plan; nothing changes unless you share it.'],
+      stress: [], strategies: [], decision: [], accumulation: []
+    },
+    actions: ['Couples: open the Household tab, run the check, read the headline. Nothing in either plan changes until you choose "Use this split".'],
+    notes: [
+      'The smaller pot is counted down at its real value with no growth for the cap (cautious by design); the strategy runs then judge both pots properly.',
+      'Gilt-ladder plans: money a bought rung pays beyond the lower draw stays as cash in the pension, as the engine keeps it today; the tab says so. An option to reinvest it in the growth part is planned.',
+      'Engine version unchanged (6.22.0). Two new saved keys only when you choose them: household.splitDismissed and budgetTool.sharedFrom.'
+    ]
+  },
+  {
     version: '6.24.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'One answer to "will the money last?"',
     summary: 'Every screen of a plan now shows the same chance of lasting: the one stress test all nine strategies use, run with your own spending-cuts setting and your plan\'s full length. The first tab (now "Will it last?"), the strategy page, the Strategies ranking, Try a strategy, the couples check and the plan document can no longer disagree. The bad case is always the worst 1 in 10. History and Scenarios explain the test instead of giving a second figure. The test itself has not changed: no strategy\'s arithmetic moved; what changed is which test each screen shows.',

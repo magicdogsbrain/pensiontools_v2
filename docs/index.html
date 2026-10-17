@@ -2129,7 +2129,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-BLnr7kwY.js"></script>
+  <script type="module" crossorigin src="./assets/main-BRH4Gd7v.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3759,6 +3759,7 @@
             <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
           </div>
 
+          <div id="hhSplit"></div>
           <div id="hhResults">
             <div class="settings-section">
               <div class="section-title">How it works</div>
@@ -3794,6 +3795,7 @@
       <div id="budget-content" class="tab-content">
         <div class="card">
           <h2>Budget — your spending plan</h2>
+          <p class="hint" id="budSharedLine" style="display:none;margin:0 0 6px;"></p>
           <p class="section-hint" style="margin-bottom:4px;">
             Enter what you expect to spend, in <strong>today's money</strong>. We total it into your
             <strong>essential</strong> (the floor that must always be covered) and <strong>comfortable</strong>

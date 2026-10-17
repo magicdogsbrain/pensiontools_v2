@@ -18,9 +18,7 @@ import { getStrategy } from '../strategies/registry.js';
 // The household check joins two P&V-shaped simulation configs; ladder/floor strategies have no
 // monteCarloReturns/simulate API, so always run the Pots & Valves engine here (the caller says so).
 const eng = () => getStrategy('pots-and-valves').engine;
-import { planDrawdown } from './DrawdownStrategy.js';
 import { spendingSmileFactor } from './SpendingModel.js';
-import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
 import { defaultSpYear, scheduleFromSteps } from '../services/IncomeSchedule.js';
 
@@ -103,7 +101,7 @@ export function targetForYear(settings, year) {
 }
 
 /** State Pension start year + annual amount (today's money) from either settings format. */
-function spFor(settings, now = new Date()) {
+export function spFor(settings, now = new Date()) {
   const cfg = spSimConfigFromSettings(settings, now);
   if (cfg) return { startYear: cfg.spStartYear, annual: cfg.spWeeklyAmount * 52 };
   if (settings.statePension > 0) {
@@ -153,7 +151,7 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
 
 /** Calendar years until this plan's income starts (0 for someone already retired). */
 /** The Timing block's "I have already retired" (saved as retired: true; older plans may hold the string). */
-function isRetired(settings) { return settings && (settings.retired === true || settings.retired === 'true'); }
+export function isRetired(settings) { return settings && (settings.retired === true || settings.retired === 'true'); }
 
 export function startOffset(settings, clock = new Date()) {
   const now = currentAgeNow(settings, clock), start = +settings.shapeAgeNow || 0;
@@ -240,55 +238,6 @@ export function runSurvivorCheck({
 }
 
 /**
- * Allowance-filling nudge: each plan's year-0 taxable position vs its basic-rate limit.
- * Display-only — "you choose, we model": if one partner pays 40% while the other has unused
- * 20% band, shifting who funds spending saves the rate difference on the shifted slice.
- */
-export function allowanceNudge(setA, setB, nameA = 'You', nameB = 'Partner', now = new Date()) {
-  // Year-0 taxable position from the REAL withdrawal policy (planDrawdown): the SIPP fills to
-  // the basic-rate limit and the ISA tops up the rest tax-free, so a large-ISA plan with a
-  // big target still pays no 40% tax — the old naive "target − fixed = taxable" version
-  // claimed higher-rate tax that was never actually paid.
-  const pos = (set) => {
-    const sp = spFor(set, now);
-    const fixed = (sp.startYear <= 0 ? sp.annual : 0) + (set.other || 0)
-      + (set.dbAmount > 0 && (set.dbStartYear || 0) <= 0 ? set.dbAmount : 0);
-    const target = targetForYear(set, 0);
-    const f = (set.accessMethod === 'ufpls' && (!set.ufplsYears || set.ufplsYears > 0)) ? 0.25 : 0;
-    const plan = planDrawdown({
-      targetGross: target,
-      fixedIncome: fixed,
-      pa: set.pa ?? 12570,
-      brl: set.brl ?? 50270,
-      hrl: set.hrl ?? 125140,
-      isaBalance: isaTodayOrAtRetirement(set),   // none today, retiring later: the ISA at retirement (review of 6.22.0)
-      strategy: set.isaDrawdownStrategy,
-      yearsUntilSp: 0,
-      taxFreeFraction: f
-    });
-    return { taxable: plan.taxable, target, brl: set.brl ?? 50270 };
-  };
-  const a = pos(setA), b = pos(setB);
-  const unusedA = Math.max(0, a.brl - a.taxable);
-  const unusedB = Math.max(0, b.brl - b.taxable);
-  const overA = Math.max(0, a.taxable - a.brl);
-  const overB = Math.max(0, b.taxable - b.brl);
-  let message = null;
-  if (overA > 0 && unusedB > 1000) {
-    const shift = Math.min(overA, unusedB);
-    message = nameA + ' pays 40% tax on about £' + Math.round(overA).toLocaleString() + '/yr while ' + nameB
-      + ' has £' + Math.round(unusedB).toLocaleString() + ' of unused 20% band. Funding £' + Math.round(shift).toLocaleString()
-      + ' more of the spending from ' + nameB + '’s pots could save ~£' + Math.round(shift * 0.2).toLocaleString() + '/yr.';
-  } else if (overB > 0 && unusedA > 1000) {
-    const shift = Math.min(overB, unusedA);
-    message = nameB + ' pays 40% tax on about £' + Math.round(overB).toLocaleString() + '/yr while ' + nameA
-      + ' has £' + Math.round(unusedA).toLocaleString() + ' of unused 20% band. Funding £' + Math.round(shift).toLocaleString()
-      + ' more of the spending from ' + nameA + '’s pots could save ~£' + Math.round(shift * 0.2).toLocaleString() + '/yr.';
-  }
-  return { unusedA, unusedB, overA, overB, message };
-}
-
-/**
  * Long-term-care one-shot stress: "if one of you needs care from year N for M years at £X/yr
  * (today's money), while the other keeps living normally — do the plans hold?"
  * Deliberately conservative: the care cost is ADDED to that person's plan in full (no offset
@@ -341,7 +290,17 @@ export function runCareCheck({ cfgA, cfgB, setA, setB, who = 'A', startYear = 10
  * @param {object} rA - stressTestStrategy result for partner A (needs survivedMc, samples.wealth)
  * @param {object} rB - same for partner B
  */
-export function combineHouseholdStrategies(rA, rB) {
+/**
+ * The pooled household verdict (usability audit §5 decision 5, option (a); household-draw-split.md §8): when one pot is
+ * empty the other pays that share, so the household runs out only when both have. Read from each test's per-future
+ * read-out (stressTest futuresOf): in a future where one plan ran out in plan year t and the other lasted, the other
+ * covers it if the wealth it had left at its end is at least the empty plan's draw need from t to its end — counted a
+ * quarter higher for the tax the payer's own bands add. A future marked not survived for a cut (money left, income
+ * short) is covered whenever the other plan lasted. Without needs or read-outs the pooled share is the paired one.
+ * @param {{ needA?: number[], needB?: number[], startAgeA?: number, startAgeB?: number }} [opts]  each plan's draw need
+ *   by plan year (gross, today's money, net of its own guaranteed income) and the age its year 0 is
+ */
+export function combineHouseholdStrategies(rA, rB, opts = {}) {
   const sa = rA.survivedMc || [true], sb = rB.survivedMc || [true];
   // A deterministic plan (one "future", e.g. the full gilt ladder) is broadcast across the other's futures.
   const bc = (arr, i) => (arr.length === 1 ? arr[0] : arr[i]);
@@ -359,5 +318,62 @@ export function combineHouseholdStrategies(rA, rB) {
     for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0)); }
     potFan.push({ year: y, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90) });
   }
-  return { runs: n, jointSuccess: n ? both / n : 0, successA: n ? okA / n : 0, successB: n ? okB / n : 0, independenceAssumed: n ? (okA / n) * (okB / n) : 0, potFan, sampleFutures: m, byStrategy: true };
+  const pooled = pooledVerdict(rA, rB, sa, sb, n, opts, bc);
+  return { runs: n, jointSuccess: n ? both / n : 0, successA: n ? okA / n : 0, successB: n ? okB / n : 0, independenceAssumed: n ? (okA / n) * (okB / n) : 0, potFan, sampleFutures: m, byStrategy: true, pooled };
+}
+
+/** The gross-up on a share one plan pays for the other (its own bands are already in use: a quarter more, pessimistic). */
+export const POOLED_TAX_UPLIFT = 1.25;
+
+function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
+  const fa = rA.futuresMc, fb = rB.futuresMc;
+  const needA = Array.isArray(opts.needA) ? opts.needA : null, needB = Array.isArray(opts.needB) ? opts.needB : null;
+  if (!fa || !fb || !needA || !needB || !n) return null;
+  const rest = (need, from) => { let t = 0; for (let y = from; y < need.length; y++) t += Math.max(0, need[y] || 0); return t * POOLED_TAX_UPLIFT; };
+  let ok = 0, coveredByA = 0, coveredByB = 0;
+  const fromAges = [];
+  for (let i = 0; i < n; i++) {
+    const a = !!bc(sa, i), b = !!bc(sb, i);
+    if (a && b) { ok++; continue; }
+    if (!a && !b) continue;
+    const payer = a ? fa : fb, empty = a ? fb : fa, need = a ? needB : needA, startAge = a ? opts.startAgeB : opts.startAgeA;
+    const fy = bc(empty.failYear, i);
+    const covered = fy == null || bc(payer.terminal, i) >= rest(need, fy);
+    if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) fromAges.push(startAge + fy); }
+  }
+  fromAges.sort((x, y) => x - y);
+  return {
+    success: ok / n, coveredByA, coveredByB,
+    fromAgeMedian: fromAges.length ? fromAges[Math.floor(fromAges.length / 2)] : null,
+    fromAgeEarliest: fromAges.length ? fromAges[0] : null
+  };
+}
+
+/** The parts of a strategy result the couples table reads (what the worker sends back for each plan each way). */
+export function compactStrategyResult(r) {
+  if (!r) return null;
+  if (!r.affordable) return { affordable: false, reason: r.reason || '', name: r.name };
+  const w = (r.cones && r.cones.wealth) || {};
+  return { affordable: true, name: r.name, ruin: r.ruin, terminal: r.terminal, n: r.n, cones: { wealth: { p10: w.p10 || [], p50: w.p50 || [] } } };
+}
+
+/**
+ * Both plans through the ONE test (stressTestStrategy), paired future for future, each way — "each draws for their
+ * own plan" and "drawing together" — with the pooled household verdict. `test(settings, cfg, id)` runs one plan (the
+ * worker's or the page's planFromSettings + stressTestStrategy) and returns { r, p }.
+ * @param {{ own: { settingsA, cfgA, settingsB, cfgB }, together: {…} }} ways
+ * @param {{ own: { a: number[], b: number[] }, together: {…} }} needs   each plan's draw need by plan year, each way
+ */
+export function runHouseholdWays(ways, needs, idA, idB, test) {
+  const out = {};
+  for (const w of Object.keys(ways)) {
+    const x = ways[w];
+    const A = test(x.settingsA, x.cfgA, idA), B = test(x.settingsB, x.cfgB, idB);
+    const nd = (needs && needs[w]) || {};
+    out[w] = {
+      combined: (A.r.affordable && B.r.affordable) ? combineHouseholdStrategies(A.r, B.r, { needA: nd.a, needB: nd.b, startAgeA: A.p.startAge, startAgeB: B.p.startAge }) : null,
+      rA: compactStrategyResult(A.r), rB: compactStrategyResult(B.r)
+    };
+  }
+  return out;
 }

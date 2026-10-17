@@ -88,7 +88,8 @@ describe('householdIncomeTimeline', () => {
   });
 });
 
-import { runSurvivorCheck, allowanceNudge } from '../src/services/HouseholdService.js';
+import { runSurvivorCheck } from '../src/services/HouseholdService.js';
+import { householdDrawSplit, headlineWords } from '../src/services/HouseholdDraw.js';
 
 describe('runSurvivorCheck', () => {
   it('inheriting the partner pots makes the survivor MORE secure than their plan alone, despite higher spending', () => {
@@ -127,40 +128,28 @@ describe('runSurvivorCheck', () => {
   });
 });
 
-describe('allowanceNudge', () => {
-  it('flags 40%-band spend on one side against unused 20% band on the other', () => {
-    const rich = { baseSalary: 70000, other: 0, statePensionYear: 99, statePension: 0, duration: 30 };
-    const modest = { baseSalary: 20000, other: 0, statePensionYear: 99, statePension: 0, duration: 30 };
-    const n = allowanceNudge(rich, modest, 'Chris', 'Wendy');
-    expect(n.overA).toBeGreaterThan(0);
-    expect(n.unusedB).toBeGreaterThan(0);
-    expect(n.message).toMatch(/Chris pays 40%/);
-    expect(n.message).toMatch(/Wendy/);
+// The allowance-filling nudge (one sentence about year 0, the saving reckoned at 20% of the shifted slice) was replaced
+// in 6.25.0 by "who draws what" (services/HouseholdDraw.js, tests/householdDraw.test.js): the same situations, read
+// from the real withdrawal policy year by year, with the saving from the app's own tax sums.
+describe('who draws what, where the nudge used to be', () => {
+  const base = { configured: true, retired: true, currentAge: 60, shapeAgeNow: 60, duration: 30, other: 0, statePensionYear: 99, statePension: 0, equityMin: 600000, bondMin: 200000, cashTarget: 50000, isaBalance: 0, isaDrawdownStrategy: 'hold', pa: 12570, brl: 50270, hrl: 125140 };
+  const split = (a, b) => householdDrawSplit({ settings: { ...base, ...a }, name: 'Chris' }, { settings: { ...base, equityMin: 100000, bondMin: 50000, cashTarget: 20000, ...b }, name: 'Wendy' }, { now: new Date('2026-10-17T10:00:00Z') });
+  it('40%-band spend on one side against unused 20% band on the other: a saving, and the words name who pays 40%', () => {
+    const s = split({ baseSalary: 70000 }, { baseSalary: 20000 });
+    expect(s.saving.year).toBeGreaterThan(1000);
+    expect(s.applies).toBe(true);
+    expect(headlineWords(s).why).toMatch(/Chris pays 40%/);
+    expect(headlineWords(s).why).toMatch(/Wendy/);
   });
-
   it('stays silent when both are inside their bands', () => {
-    const a = { baseSalary: 30000, duration: 30 }, b = { baseSalary: 25000, duration: 30 };
-    expect(allowanceNudge(a, b).message).toBeNull();
+    const s = split({ baseSalary: 30000 }, { baseSalary: 25000 });
+    expect(s.unchanged).toBe(true);
+    expect(s.applies).toBe(false);
   });
-});
-
-describe('allowanceNudge respects the real withdrawal policy', () => {
-  it('a large ISA bridge means NO higher-rate tax and NO bogus nudge', () => {
-    // £70k gross-equivalent target but a big ISA: planDrawdown caps SIPP at the BRL and the
-    // ISA covers the rest tax-free — taxable stays at the band, so nothing to flag.
-    const bigIsa = { baseSalary: 70000, isaBalance: 500000, duration: 30 };
-    const modest = { baseSalary: 20000, duration: 30 };
-    const n = allowanceNudge(bigIsa, modest, 'Chris', 'Wendy');
-    expect(n.overA).toBeLessThanOrEqual(1);   // taxable ≤ BRL (numerical dust only)
-    expect(n.message).toBeNull();
-  });
-
-  it('without an ISA the higher-rate spend is real and still flagged', () => {
-    const rich = { baseSalary: 70000, duration: 30 };
-    const modest = { baseSalary: 20000, duration: 30 };
-    const n = allowanceNudge(rich, modest, 'Chris', 'Wendy');
-    expect(n.overA).toBeGreaterThan(15000);
-    expect(n.message).toMatch(/Chris pays 40%/);
+  it('a large ISA bridge means NO higher-rate tax and NO bogus saving (the real withdrawal policy caps the SIPP at the band)', () => {
+    const s = split({ baseSalary: 70000, isaBalance: 500000, isaDrawdownStrategy: 'tax-efficient' }, { baseSalary: 20000 });
+    expect(s.rows[0].own.taxableA).toBeLessThanOrEqual(50270 + 1);
+    expect(s.rows[0].saving).toBeLessThan(1);
   });
 });
 

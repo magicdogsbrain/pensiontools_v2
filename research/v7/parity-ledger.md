@@ -20,10 +20,10 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 |---|---|---|---|---|---|
 | Built | 53 | 37 | 15 | 0 | 1 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 45 | 43 | 0 | 2 | 0 |
+| Designed | 47 | 45 | 0 | 2 | 0 |
 | Planned | 64 | 52 | 2 | 2 | 8 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
-| **All** | 172 | 135 | 17 | 4 | 16 |
+| **All** | 174 | 137 | 17 | 4 | 16 |
 
 Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1**.
 
@@ -31,7 +31,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1*
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 55 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 57 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 8 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -268,6 +268,8 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
 | **The partner's linked plan** | Links this plan to the partner's own plan, or creates theirs and switches to it. | Household → The two plans (index.html:3766-3830) | Couples | **Built**: `src/answers/shared/household.js`, `src/services/PlanSeed.js`. Better: a couple's figures on the first screen; saving makes the two linked plans. | `done` | `plan.household` `household.partnerScenarioId` |
+| **Who draws what: drawing together, tax first** | The split of the household's after-tax spending that pays the least tax (the lower-taxed person fills their allowance and 20% band first; the other stays at or below the top of the 20% band where the money allows), year by year, with an optional limit on the smaller pot; the two-way comparison through the one test, the household verdict first; "Use this split" (copies when a plan is locked) and "Keep things as they are", remembered for that pair until either plan changes. | Household → Who draws what (index.html runHouseholdCheck; src/services/HouseholdDraw.js, HouseholdSplitApply.js, src/ui/householdView.js) | Couples | **Designed**: research/household-draw-split.md §6 (the couples answers use the same rule, the same two-column comparison, and carry the choice into a saved plan). Built first in today's Household tab (6.25.0; usability audit §5 decision 5, option (a)). One rule in src/services so V7 shares it. | `done` | `household.splitDismissed` |
+| **One budget for the household** | The partner's plan reads the household's budget from the plan it points at (the lines are the same on both plans); each plan keeps its own side of who pays and its own ages. The Household tab says which plan's budget is the household's and offers to share it; the Budget page says when it is shared. | Household → One budget for the household; Budget (index.html loadBudgetUI; src/storage/ScenarioRepository.js getActiveBudget / saveActiveBudget / shareBudgetWith) | Couples | **Designed**: research/v7/v6-usability-audit.md §2.10 and §5 decision 5 ("one budget, with 'Keeping money separate?' as an option"). Built first in today's planner (6.25.0). A pointer field on the partner's plan; nothing changes in the shape of a budget. | `done` | `plan.budgetTool.sharedFrom` |
 | **Will the money last for both of us?** | Runs the two plans together. | Household → Run the household check (HouseholdService.js) | Couples | **Built**: `src/answers/shared/household.js`, `src/answers/shared/toEngine.js`. Every V7 answer is the household's; 6.20.0 adds couples who stop in different years. | `done` | — |
 | **Survivor check** | What happens to the money if one of you dies. | HouseholdService.js:163-237 | Couples | **Planned**: Gets a station at the switch (square-one-audit.md §5 item 9); "today's planner keeps them" until then (answer-D.md §8). | `s9-switch` | — |
 | **Care-cost check** | Whether the money stands a spell of care costs for one of you. | HouseholdService.js:163-237 | Couples | **Planned**: Gets a station at the switch (square-one-audit.md §5 item 9). | `s9-switch` | — |
@@ -318,6 +320,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.accumulationTool.settings` | The Accumulation planner's part of the plan | Built |
 | `plan.budgetTool` | Spending lines | Built |
 | `plan.budgetTool.settings` | The parts a plan is kept in | Planned |
+| `plan.budgetTool.sharedFrom` | One budget for the household | Designed |
 | `plan.createdAt` | The plan's own fields | Planned |
 | `plan.decisionTool` | The parts a plan is kept in | Planned |
 | `plan.decisionTool.cadence` | How often you draw | Designed |
@@ -601,6 +604,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | Key | Row | V7 |
 |---|---|---|
 | `household.partnerScenarioId` | The partner's linked plan | Built |
+| `household.splitDismissed` | Who draws what: drawing together, tax first | Designed |
 
 ### `strategy`: strategy: the plan's strategy block
 

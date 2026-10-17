@@ -183,7 +183,7 @@ export function planDocumentHtml(doc, r = {}) {
 }
 
 /** { equity, bond, cash } shares of 1 → '100% shares · 0% bonds · 0% cash'. */
-const mixWords = (m) => Math.round((+m.equity || 0) * 100) + '% shares · ' + Math.round((+m.bond || 0) * 100) + '% bonds · ' + Math.round((+m.cash || 0) * 100) + '% cash';
+const splitWords = (m) => Math.round((+m.equity || 0) * 100) + '% shares · ' + Math.round((+m.bond || 0) * 100) + '% bonds · ' + Math.round((+m.cash || 0) * 100) + '% cash';
 const ISA_GROWS = { cash: 'grows mostly as cash (last year\'s rise in prices, less 1% a year)', invested: 'is invested like your pension' };
 /**
  * Section 4b for a saving path drawn on V7's saving-years engine (6.22.0, plan document version 3; SavingPath.js): the
@@ -200,7 +200,7 @@ export function savingPathV3Html(d) {
     + (A.totalMonthly ? '; ' + gbp(A.totalMonthly) + ' a month going into the pension' : '') + (A.isaMonthly ? (A.totalMonthly ? ' and ' : '; ') + gbp(A.isaMonthly) + ' a month into ISAs and savings' : '')
     + ((A.totalMonthly || A.isaMonthly) && A.escalationPct ? ', raised by ' + esc(fmtPct(A.escalationPct)) + '% a year' : '')
     + (A.mixText ? '; the pension held as ' + esc(A.mixText) : '') + '.'
-    + (isa ? ' The ISA ' + (A.isaFromFunds ? 'follows the ISA funds in your list of funds to test' + (A.isaMix ? ' (' + mixWords(A.isaMix) + ')' : '') : ISA_GROWS[A.isaGrowth] || 'grows at a fixed ' + esc(fmtPct((+A.isaReturn || 0.03) * 100)) + '% a year') + '.' : '')
+    + (isa ? ' The ISA ' + (A.isaFromFunds ? 'follows the ISA funds in your list of funds to test' + (A.isaMix ? ' (' + splitWords(A.isaMix) + ')' : '') : ISA_GROWS[A.isaGrowth] || 'grows at a fixed ' + esc(fmtPct((+A.isaReturn || 0.03) * 100)) + '% a year') + '.' : '')
     + ' Drawn on ' + Math.round(+A.lives || 0).toLocaleString('en-GB') + ' possible futures, one per life (the same lives as the preview\'s saving-years engine). In the prices of ' + esc(when || 'the day it was drawn') + ':</p>';
   h += table(['Age', '1-in-10 bad', 'Middle', '1-in-10 good', ...(isa ? ['Pension (middle)', 'ISA (middle)'] : []), 'Paid in (pounds of the day)'],
     rows.map((r) => [String(Math.round(r.age)), gbp(r.real.careful), gbp(r.real.middling), gbp(r.real.good), ...(isa ? [gbp(r.pension.real), gbp(r.isa.real)] : []), gbp(r.paidIn)]));

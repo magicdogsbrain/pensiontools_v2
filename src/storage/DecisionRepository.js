@@ -262,9 +262,9 @@ export async function getDecisionSettingsAsync() {
  */
 export async function saveDecisionSettings(settings) {
   const db = await loadDecisionDBAsync();
-  // A locked plan (6.20.2): the change asked for may only be the unlock (services/LockedPlanGuard.js) — not even how
-  // often months are recorded, which is in the settings checksum. Anything else is refused here, before a byte is
-  // written or the copy in memory is touched.
+  // A locked plan (6.20.2): the change asked for may only be the unlock (services/LockedPlanGuard.js). Anything else is
+  // refused here, before a byte is written or the copy in memory is touched. (How often you draw is no longer a setting:
+  // ScenarioRepository.saveActiveDrawCadence writes decisionTool.cadence, outside this map and its checksum.)
   if (await activePlanLocked()) {
     const stored = await storedActiveSettings('decision');
     const keys = lockedWriteRefusal('decision', { locked: true, stored, next: { ...stored, ...settings } });

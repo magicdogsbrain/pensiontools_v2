@@ -90,7 +90,7 @@ describe('documents locked before 6.22.0 (version 2 and older): read like with l
     const d = oldDoc();
     const w = whereAmI(d, { today: new Date(2029, 2, 20), accHistory: [{ date: '2029-03', sipp: 340000, isa: 50000, total: 390000 }] });
     const t = plain(saverReadingText(w.saving));
-    expect(t).toMatch(/^Pension pot £340,000 \(recorded 2029-03\), which is £3\d\d,\d{3} in the prices of July 2026, when this path was drawn \(prices assumed to rise 2\.5% a year, as the path does\), against £3\d\d,\d{3} on the locked path for then — /);
+    expect(t).toMatch(/^Pension pot £340,000 \(recorded March 2029\), which is £3\d\d,\d{3} in the prices of July 2026, when this path was drawn \(prices assumed to rise 2\.5% a year, as the path does\), against £3\d\d,\d{3} on the locked path for then — /);
     expect(t).toMatch(/This path was drawn before ISAs were counted: it follows your pension only\.$/);
     expect(plain(whereAmIHtml(w))).toContain(t);
   });
@@ -254,14 +254,14 @@ describe('reading a version-3 document: pension + ISA on both sides, in pounds o
     const w = whereAmI(doc, { today: new Date(2028, 7, 1), accHistory: [{ date: '2028-07', sipp: at2.middling - 50000, isa: 50000, total: at2.middling }] });
     expect(w.saving.band).toBe('p50–p90');
     const t = plain(whereAmIHtml(w));
-    expect(t).toContain('Pension and ISA £' + at2.middling.toLocaleString('en-GB') + ' (recorded 2028-07: pension £' + (at2.middling - 50000).toLocaleString('en-GB') + ', ISA £50,000), in pounds of the day, against £' + at2.middling.toLocaleString('en-GB') + ', the middle of the locked path for then — between the middle');
+    expect(t).toContain('Pension and ISA £' + at2.middling.toLocaleString('en-GB') + ' (recorded July 2028: pension £' + (at2.middling - 50000).toLocaleString('en-GB') + ', ISA £50,000), in pounds of the day, against £' + at2.middling.toLocaleString('en-GB') + ', the middle of the locked path for then — between the middle');
     expect(t).toMatch(/Going in on the locked plan: £\d[\d,]* a month gross into your pension and £300 a month into ISAs and savings\./);
   });
   it('in the month the path was drawn its lines are one figure: no band yet, and the words say the lines open later', () => {
     const r = saverReading(doc, { at: '2026-07', pension: 360000, isa: 41000 });
     expect(r.band).toBe('start');
     const t = plain(saverReadingText({ ...r, actualSource: 'record', recordedAt: '2026-07' }));
-    expect(t).toBe('Pension and ISA £401,000 (recorded 2026-07: pension £360,000, ISA £41,000), in pounds of the day, against £' + path.path[0].nominal.middling.toLocaleString('en-GB') + ' the locked path starts from; its lines open as the months go on.');
+    expect(t).toBe('Pension and ISA £401,000 (recorded July 2026: pension £360,000, ISA £41,000), in pounds of the day, against £' + path.path[0].nominal.middling.toLocaleString('en-GB') + ' the locked path starts from; its lines open as the months go on.');
     expect(saverReading(doc, { at: '2026-06', pension: 1, isa: 1 }).band).toBe('start');   // a record from before the path: read at its start
   });
   it('the bands are named as the retired strip names them', () => {

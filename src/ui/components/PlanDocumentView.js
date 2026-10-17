@@ -4,6 +4,9 @@
  */
 import { esc } from './ReleaseNotesView.js';
 import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
+import { decisionRunWords, runUpWords, mixWords, runUpCashWords } from '../../services/StrategyWords.js';
+import { assumedStatePensionWords } from '../plannerWords.js';
+import { ukDate } from '../ukDates.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -61,8 +64,8 @@ export function holdingsAtLockHtml(doc) {
   for (const l of lines) { const v = +l.value || 0; total += v; byWrapper[l.wrapper || 'SIPP'] = (byWrapper[l.wrapper || 'SIPP'] || 0) + v; }
   const anyUnits = lines.some((l) => l.units != null), anyAsOf = lines.some((l) => l.asOf);
   h += table(['Holding', 'Wrapper', ...(anyUnits ? ['Units'] : []), 'Value', ...(anyAsOf ? ['As of'] : [])],
-    lines.map((l) => [esc(l.name || l.ticker || l.sedol || '') + (l.ticker && l.name ? ' <span class="hint">' + esc(l.ticker) + '</span>' : ''), esc(l.wrapper || ''), ...(anyUnits ? [l.units != null ? Math.round(+l.units).toLocaleString('en-GB') : '—'] : []), l.value != null ? gbp(l.value) : '—', ...(anyAsOf ? [esc(l.asOf || '')] : [])]));
-  h += '<p class="hint">Total ' + gbp(total) + ' — ' + Object.entries(byWrapper).map(([w, v]) => esc(w) + ' ' + gbp(v)).join(' · ') + (H.updatedAt ? '; recorded ' + esc(H.updatedAt) : '') + (SOURCE_TEXT[H.source] ? ' (' + SOURCE_TEXT[H.source] + ')' : '') + '.</p>';
+    lines.map((l) => [esc(l.name || l.ticker || l.sedol || '') + (l.ticker && l.name ? ' <span class="hint">' + esc(l.ticker) + '</span>' : ''), esc(l.wrapper || ''), ...(anyUnits ? [l.units != null ? Math.round(+l.units).toLocaleString('en-GB') : '—'] : []), l.value != null ? gbp(l.value) : '—', ...(anyAsOf ? [esc(ukDate(l.asOf || ''))] : [])]));
+  h += '<p class="hint">Total ' + gbp(total) + ' — ' + Object.entries(byWrapper).map(([w, v]) => esc(w) + ' ' + gbp(v)).join(' · ') + (H.updatedAt ? '; recorded ' + esc(ukDate(H.updatedAt)) : '') + (SOURCE_TEXT[H.source] ? ' (' + SOURCE_TEXT[H.source] + ')' : '') + '.</p>';
   return h;
 }
 
@@ -128,7 +131,7 @@ export function planDocumentHtml(doc, r = {}) {
   } else if (d.targetMix?.length) {
     pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Target mix by plan year</div>'
       + table(['Plan year', 'Shares', 'Bonds', 'Cash'], d.targetMix.map((m) => [String(m.y), m.equity + '%', m.bond + '%', m.cash + '%']))
-      + '<p class="hint">Cash is held flat; shares and bonds glide inside the growth sleeve' + (P.allocation?.allocMode === 'funds' ? '. The funds below set the starting split.' : '.') + '</p>';
+      + '<p class="hint">' + esc(mixWords(d.strategy?.id, { allocMode: P.allocation?.allocMode })) + '</p>';
     if (P.allocation?.taggedFunds?.length) pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Funds the strategy was tested on</div>'
       + table(['Fund', 'Wrapper', 'Value in the test'], P.allocation.taggedFunds.map((f) => [esc(f.name || f.ticker || ''), esc(f.wrapper || ''), gbp(f.value)]))
       + '<p class="hint">The Stress tester\'s own list — an input to the test, not a record of what you hold.</p>';
@@ -140,20 +143,19 @@ export function planDocumentHtml(doc, r = {}) {
   let as = table(['Assumption', 'Value'], [
     ['Plan starts', esc(DR.year0 || '') + (DR.bridgeMonths > 0 ? ' — ' + DR.bridgeMonths + ' run-up month' + (DR.bridgeMonths === 1 ? '' : 's') + ' before it, drawn from the SIPP cash' : '')],
     ['Duration', esc(String(A.duration || '')) + ' years'],
-    ['State Pension', A.spStartDate ? esc(A.spStartDate) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered'],
+    ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · SIPP cash to the first April ' + gbp(A.bridgeCash) : '')]] : []),
-    ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(A.giltPricesAsOf)]] : []),
+    ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(ukDate(A.giltPricesAsOf))]] : []),
     ['Fund and platform charges', chargesAssumptionText(A)],
     ['How the ISA and savings grow', esc(isaGrowthAssumptionText(A))],
     ['Engine', 'v' + esc(d.engineVersion || '') + ' (app v' + esc(d.appVersion || '') + ')']
   ]);
   as += '<div class="section-title" style="font-size:13px;margin-top:10px;">How the Decision tool runs this plan</div><ul>'
-    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '. Months before it are the run-up: paid from your SIPP cash (the money-market fund the cash years also use); nothing is sold.</li>'
+    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '. ' + esc(runUpCashWords(A)) + '</li>'
     + '<li>Each month you enter: ' + (DR.monthlyAsks || []).map(esc).join(' · ') + '.</li>'
-    + (DR.contract ? '<li>The recommendation is the year\'s rung (or the cash years) divided over the months left. Nothing is sold; pot floors and rebalancing do not apply.</li>'
-      : '<li>The recommendation draws to the tax bands, keeps the pots on their glidepath tracks and applies protection in a downturn.</li>')
+    + '<li>' + esc(decisionRunWords(d.strategy?.id)) + '</li>'
     + '<li>The tax-year wizard each April takes the next step from this document\'s schedule, uplifted by the CPI you enter.</li></ul>';
   h += section('4. Assumptions and how the Decision tool runs it', as);
 
@@ -315,7 +317,7 @@ const monthText = (k) => whenText(String(k || '').slice(0, 7));
  */
 export function saverReadingText(s) {
   if (!s) return '';
-  const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(s.recordedAt) : s.actualSource === 'holdings' ? 'from what you hold' : '';
+  const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(ukDate(s.recordedAt)) : s.actualSource === 'holdings' ? 'from what you hold' : '';
   const from = src ? ' (' + src + ')' : '';
   if (s.pathMissing) return 'The plan was locked without a pension pot on record, so there is no locked path to read against' + (s.actual != null ? ' — your pot today is ' + gbp(s.actual) + (s.actualSource === 'holdings' ? ' from what you hold' : '') : '') + '. Record what you hold and refresh the plan document.';
   const missing = Array.isArray(s.missing) ? s.missing : [];
@@ -346,7 +348,7 @@ export function whereAmIHtml(w) {
     if (text) parts.push(text);
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');
   }
-  else if (w.bridge) parts.push('<strong>Run-up month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan\'s year 0, ' + esc(w.planStart) + '. Drawn from your SIPP cash; the ladder\'s rungs begin at year 0.');
+  else if (w.bridge) parts.push('<strong>Run-up month</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan\'s year 0, ' + esc(w.planStart) + '. ' + esc(runUpWords(w.strategyId)));
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
   if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
   if (w.incomeThisYear && w.incomeThisYear.recorded) parts.push(w.incomeThisYear.recorded + ' month' + (w.incomeThisYear.recorded === 1 ? '' : 's') + ' recorded this tax year: ' + gbp(w.incomeThisYear.drawn) + ' gross so far' + (w.incomeThisYear.perMonth ? ' against ' + gbp(w.incomeThisYear.perMonth) + ' a month planned' : '') + '.');

@@ -151,7 +151,7 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
   });
 
   it('A — the Decision tool takes the anchor from the Stress plan without writing it onto the (hashed) Decision settings', () => {
-    const fn = INDEX_HTML.slice(INDEX_HTML.indexOf('async function calcDecisionWithDeps('), INDEX_HTML.indexOf('function cadenceMonths('));
+    const fn = INDEX_HTML.slice(INDEX_HTML.indexOf('async function calcDecisionWithDeps('), INDEX_HTML.indexOf('// ---- Cadence: monthly, quarterly or annual batches.'));   // the function moved to services/DrawCadence.js
     expect(fn).toContain('const settings = { ...(await getDecisionSettingsAsync()) };');   // a copy: the cached settings, and their checksum, are never touched
     expect(fn).not.toMatch(/const settings = await getDecisionSettingsAsync\(\);/);
   });

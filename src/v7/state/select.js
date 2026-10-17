@@ -694,18 +694,27 @@ export function plansView(state) {
  * which problems to show — a box's once it has been left, every box's once Save has been pressed. Nothing worked out here.
  */
 export function aboutView(state) {
+  return editView(state, 'about');
+}
+/** "Money that comes in anyway" (editing-in-v7.md 7): the same reading for the second step (page.income). */
+export function incomeView(state) {
+  return editView(state, 'income');
+}
+function editView(state, step) {
   const plans = state.plans;
   const r = state.route;
   const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
-  const about = page && page.about && r && r.screen === 'plan' && r.step === 'about' && page.forId === r.planId ? page.about : null;
+  const about = page && page[step] && r && r.screen === 'plan' && r.step === step && page.forId === r.planId ? page[step] : null;
   if (!about || !about.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
   const pd = state.draft.plan && state.draft.plan.id === about.id ? state.draft.plan : { id: about.id, values: {}, touched: [], asked: false };
   const draftKey = JSON.stringify(pd.values);
   const show = (path) => pd.asked || pd.touched.includes(path);
   const fields = about.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null }));
+  // the second step's cards (editing-in-v7.md 7.2): a card's box is marked the same way, once left or once Save is pressed
+  const lists = about.lists ? Object.fromEntries(Object.entries(about.lists).map(([L, l]) => [L, { ...l, cards: l.cards.map((c) => ({ ...c, fields: c.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null })) })) }])) : undefined;
   const ui = state.ui || {};
   return {
-    ...about, fields, draft: pd, draftKey, fresh: about.draftKey === draftKey,
+    ...about, fields, ...(lists ? { lists } : {}), draft: pd, draftKey, fresh: about.draftKey === draftKey,
     saving: ui.saving && ui.saving.planId === about.id ? ui.saving : null,
     problem: ui.saveProblem && ui.saveProblem.planId === about.id ? ui.saveProblem.problem : null,
     toast: ui.toast && ui.toast.planId === about.id ? ui.toast : null

@@ -10,8 +10,9 @@
  *   - signed in: the account's plans are read again first (one getDocs, planSource's own), so a plan locked from another
  *     device since this page opened is seen as locked;
  *   - the lock guard (services/LockedPlanGuard.js) runs on the plan as read: a locked plan is refused whatever the screen did;
- *   - the pure writer (answers/plan/about.js aboutPatch) turns the draft into the dotted field paths that change; every path
- *     must be one the step declares (answers/plan/schema.js ALL_WRITES) or the write is refused outright;
+ *   - the pure writer of the step the page is on (answers/plan/about.js aboutPatch; answers/plan/income.js incomePatch for
+ *     "Money that comes in anyway", editing-in-v7.md 7) turns the draft into the dotted field paths that change; every
+ *     path must be one the steps declare (answers/plan/schema.js ALL_WRITES) or the write is refused outright;
  *   - the write is ONE updateDoc of those paths plus the planner's stamp (lastModified, as FirestoreService.saveScenario
  *     stamps every save) — or, for this window's plans, the same patch folded onto the one plan in pt_guest_scenarios and
  *     the list written back, every other plan byte-identical;
@@ -30,6 +31,7 @@
 import { doc, updateDoc } from 'firebase/firestore/lite';
 import { A } from '../state/actions.js';
 import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
+import { incomePatch } from '../../answers/plan/income.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -103,8 +105,16 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     try { session.setItem(GUEST_PLANS_KEY, next); return session.getItem(GUEST_PLANS_KEY) === next; } catch { return false; }
   }
 
+  /** Which editing step the page is on when Save is pressed (editing-in-v7.md 7): its pure writer and its reading. */
+  function stepOf(state) {
+    const r = state.route;
+    const step = r && r.screen === 'plan' && r.step === 'income' ? 'income' : 'about';
+    return { step, patchOf: step === 'income' ? incomePatch : aboutPatch };
+  }
+
   async function save(planId) {
     let state = store.getState();
+    const { step, patchOf } = stepOf(state);
     let place = placeOf(state, planId);
     if (place.problem) { fail(planId, place.problem); return; }
     if (place.kind === 'account') {
@@ -119,9 +129,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     const typed = pd ? pd.values : {};
     if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
-    const p = aboutPatch(plan, typed, { today: state.env.today });
+    const p = patchOf(plan, typed, { today: state.env.today });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
-    const about = state.plans.view && state.plans.view.page && state.plans.view.page.about && state.plans.view.page.forId === String(planId) ? state.plans.view.page.about : null;
+    const about = state.plans.view && state.plans.view.page && state.plans.view.page[step] && state.plans.view.page.forId === String(planId) ? state.plans.view.page[step] : null;
     const line = about && about.savedLine ? about.savedLine : null;
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });

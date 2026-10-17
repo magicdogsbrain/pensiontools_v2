@@ -67,10 +67,11 @@ export function parseMonth(s) {
 }
 const monthKey = (p) => p.y + '-' + String(p.m).padStart(2, '0');
 
-function safeSettings(plan, now) {
+/** The effective settings, or the stored ones when the planner's reading throws (income.js reads these too). */
+export function safeSettings(plan, now) {
   try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
 }
-function safeTiming(ss, now) {
+export function safeTiming(ss, now) {
   try { return deriveTiming(ss, now); } catch { return { mode: 'legacy', firstTaxYear: now.getFullYear() + 1, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: (now.getFullYear() + 1) + '-04', yearsToStart: 0, bridgeMonths: 0 }; }
 }
 
@@ -319,6 +320,17 @@ export function answerAge(plan, settings) {
   if ((ss.retired === false) !== later) diffs.push('stopped');
   if (later && ss.retired === false && num(ss.retireAge) !== num(p.ageAtStop)) diffs.push('stopAge');
   if (years != null && num(ss.duration) !== years) diffs.push('years');
+  // "Money that comes in anyway" (editing-in-v7.md 7.4): the State Pension and the final-salary pension a year, when the
+  // answer's record carries them (null in the record means none); a record without them is judged on the facts above
+  if (p.statePension === null || (isObj(p.statePension) && num(p.statePension.yearly) != null)) {
+    const recorded = p.statePension === null ? 0 : Math.round(num(p.statePension.yearly));
+    const now = +ss.spWeeklyAmount > 0 && ss.spStartDate ? Math.round(+ss.spWeeklyAmount * 52) : 0;
+    if (recorded !== now) diffs.push('statePension');
+  }
+  if (p.finalSalary === null || (isObj(p.finalSalary) && num(p.finalSalary.yearly) != null)) {
+    const recorded = p.finalSalary === null ? 0 : Math.round(num(p.finalSalary.yearly));
+    if (recorded !== Math.round(num(ss.dbAmount) || 0)) diffs.push('finalSalary');
+  }
   if (!diffs.length) return null;
   const savedOn = typeof fa.savedOn === 'string' ? fa.savedOn : '';
   const changed = plan.lastModified && String(plan.lastModified) > savedOn ? dayWords(plan.lastModified) : null;

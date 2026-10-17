@@ -3,10 +3,12 @@
  * label, the box or the choice, the saved value with where it came from, the problem in plain words. Draws only: what is
  * shown, whether it applies and its problem are the reading's. Accessibility as Field.jsx: a real <label for>, help and
  * error joined by aria-describedby, aria-invalid on error, radios inside <fieldset><legend>. Boxes are controlled by the
- * state and type="text" with the right phone keypad. Test ids and element ids are "plan.about.<path>".
+ * state and type="text" with the right phone keypad. Test ids and element ids are "plan.<step>.<path>" ("plan.about.age",
+ * "plan.income.fs.0.amount").
  *
- *   <EditField f words errors source planId dispatch slots nested />
+ *   <EditField f words errors source planId dispatch slots nested step />
  *     f        { path, type, options, applies, shown, saved, error } from the reading
+ *     step     'about' (the default) or 'income': the editing step the box belongs to (editing-in-v7.md 2, 7)
  *     words    ABOUT.fields[path]; errors: ABOUT.errors[path]
  *     source   the sentence beside the saved value ("From your plan, saved 22 August 2026"), or null
  *     slots    fills {yearNow} and the like in option words and error sentences
@@ -14,9 +16,9 @@
  */
 const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 
-export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null }) {
+export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about' }) {
   if (!f || f.applies === false) return null;
-  const id = `plan.about.${f.path}`;
+  const id = `plan.${step}.${f.path}`;
   const error = f.error ? fill(errors[f.error] || errors.other || f.error, slots) : null;
   const helpText = help !== undefined ? help : words.help;
   const helpId = `${id}.help`;
@@ -50,12 +52,12 @@ export function EditField({ f, words = {}, errors = {}, source = null, savedWord
       </fieldset>
     );
   }
-  const numeric = f.type === 'age';
+  const mode = f.type === 'age' ? 'numeric' : f.type === 'money' ? 'decimal' : 'text';
   return (
     <div class={`field field-${f.type}${error ? ' has-error' : ''}`} data-field={f.path}>
       <label for={id}>{words.label}</label>
       <div class="box">
-        <input type="text" inputmode={numeric ? 'numeric' : 'text'} autocomplete="off" id={id} data-testid={id} name={id} value={f.shown || ''}
+        <input type="text" inputmode={mode} autocomplete="off" id={id} data-testid={id} name={id} value={f.shown || ''}
           aria-invalid={error ? 'true' : undefined} aria-describedby={described}
           onInput={(e) => set(e.currentTarget.value)} onBlur={touch} />
       </div>

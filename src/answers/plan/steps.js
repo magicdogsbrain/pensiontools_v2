@@ -29,11 +29,12 @@ export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-s
 export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.noAge', 'P.arrive', 'P.taxyear', 'P.month', 'P.idle', 'P.pot', 'P.working', 'P.recheck', 'P.stale', 'P.draft', 'P.approaching', 'P.saving']);
 
 /**
- * The editing sub-steps of a step (research/v7/editing-in-v7.md 2): "About you and when" sits under "Your plan" / "Your
- * plan as locked" (read-only there). A sub-step is an address under the plan (#/plan/<id>/about), not a rail step.
+ * The editing sub-steps of a step (research/v7/editing-in-v7.md 2, 7): "About you and when" and "Money that comes in anyway"
+ * sit under "Your plan" / "Your plan as locked" (read-only there). A sub-step is an address under the plan
+ * (#/plan/<id>/about, #/plan/<id>/income), not a rail step.
  */
-export const SUB_STEPS = Object.freeze({ plan: Object.freeze(['about']) });
-export const ALL_SUB_STEPS = Object.freeze(['about']);
+export const SUB_STEPS = Object.freeze({ plan: Object.freeze(['about', 'income']) });
+export const ALL_SUB_STEPS = Object.freeze(['about', 'income']);
 
 /** The sub-steps a plan's page links to: those of every step the stage lists. */
 export function subStepsFor(stageKey, o) {

@@ -266,13 +266,37 @@ function planStep(C) {
   if (potGia > 0) pots.push(line('pots.gia', [money('gia')], figures, src));
   const par = locked && doc && doc.pots ? doc.pots.potAtRetirement : ss.potAtRetirement;
   if (par && (num(par.sipp) > 0 || num(par.isa) > 0)) { figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa); pots.push(line('pots.atStop', [money('parSipp'), ' pension, ', money('parIsa'), ' ISA'], figures, src)); }
+
+  // Money that comes in anyway (editing-in-v7.md 7): the State Pension, final-salary pensions, other income, income for some
+  // years and lump sums — its own section, edited inside V7
+  const income = [];
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
-  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); pots.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? String(spDate) : '' })); }
-  else if (num(ss.statePension) > 0) { figures.spYearly = r0(ss.statePension); const fromYear = firstTaxYear && num(ss.statePensionYear) != null ? taxYearLabel(firstTaxYear + r0(ss.statePensionYear)) : ''; pots.push(line('pots.statePensionOld', [money('spYearly'), ' a year'], figures, src, { year: fromYear })); }
-  else pots.push(line('pots.noStatePension', [], figures, src));
-  if (num(ss.dbAmount) > 0) { figures.db = r0(ss.dbAmount); const from = num(ss.dbStartAge) != null ? 'age ' + String(r0(ss.dbStartAge)) : (num(ss.dbStartYear) != null && firstTaxYear ? 'tax year ' + taxYearLabel(firstTaxYear + r0(ss.dbStartYear)) : ''); pots.push(line('pots.finalSalary', [money('db'), ' a year'], figures, src, { from })); }
-  if (num(ss.other) > 0) { figures.other = r0(ss.other); pots.push(line('pots.other', [money('other'), ' a year'], figures, src)); }
+  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? String(spDate) : '' })); }
+  else if (num(ss.statePension) > 0) { figures.spYearly = r0(ss.statePension); const fromYear = firstTaxYear && num(ss.statePensionYear) != null ? taxYearLabel(firstTaxYear + r0(ss.statePensionYear)) : ''; income.push(line('pots.statePensionOld', [money('spYearly'), ' a year'], figures, src, { year: fromYear })); }
+  else income.push(line('pots.noStatePension', [], figures, src));
+  // the planner's rows are plan years; an age is the plan's start age plus the year (PlanDocument.shapeLayersFromSettings;
+  // the final-salary start as dbStartSetting.dbStartAgeOf reads it: the age when saved, else the start age plus the year)
+  const ageNow = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
+  if (num(ss.dbAmount) > 0) {
+    figures.db = r0(ss.dbAmount);
+    const dbAge = num(ss.dbStartAge) > 0 ? r0(ss.dbStartAge) : (ageNow != null && num(ss.dbStartYear) != null ? ageNow + r0(ss.dbStartYear) : null);
+    const from = dbAge != null ? 'age ' + String(dbAge) : (num(ss.dbStartYear) != null && firstTaxYear ? 'tax year ' + taxYearLabel(firstTaxYear + r0(ss.dbStartYear)) : '');
+    income.push(line('pots.finalSalary', [money('db'), ' a year'], figures, src, { from }));
+  }
+  if (num(ss.other) > 0) { figures.other = r0(ss.other); income.push(line('pots.other', [money('other'), ' a year'], figures, src)); }
+  (Array.isArray(ss.extraIncomes) ? ss.extraIncomes : []).forEach((r, i) => {
+    if (!r || typeof r !== 'object' || !(num(r.annual) > 0)) return;
+    figures['stream' + i] = r0(r.annual);
+    const from = ageNow != null ? ageNow + (num(r.startYear) || 0) : '';
+    const to = r.endYear == null ? null : (ageNow != null ? ageNow + num(r.endYear) : '');
+    income.push(line(to == null ? 'income.streamLife' : 'income.stream', [money('stream' + i), ' a year'], figures, src, { label: r.label || 'Income for some years', from: String(from), to: to == null ? '' : String(to) }));
+  });
+  (Array.isArray(ss.windfalls) ? ss.windfalls : []).forEach((r, i) => {
+    if (!r || typeof r !== 'object' || !(num(r.amount) > 0) || r.year == null) return;
+    figures['lump' + i] = r0(r.amount);
+    income.push(line('income.lump', [money('lump' + i)], figures, src, { label: r.label || 'Lump sum', age: ageNow != null ? String(ageNow + num(r.year)) : '', what: ['cash', 'pension', 'isa'].includes(r.wrapper) ? r.wrapper : 'cash' }));
+  });
 
   // How the money is taken
   const way = [];
@@ -291,6 +315,8 @@ function planStep(C) {
     { id: 'about', lines: about, place: 'about', sub: 'about', href: '#/plan/' + plan.id + '/about' },
     { id: 'pays', lines: pays, place: 'spend' },
     { id: 'pots', lines: pots, place: 'pots' },
+    // "Money that comes in anyway" is edited inside V7 too (editing-in-v7.md 7)
+    { id: 'income', lines: income, place: 'pots', sub: 'income', href: '#/plan/' + plan.id + '/income' },
     { id: 'way', lines: way, place: 'way' }
   ];
   const buttons = [];

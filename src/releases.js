@@ -37,6 +37,30 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.26.0', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'The preview shows your saved plans',
+    summary: 'The new-look preview (/v7/) now opens the plans you have saved in the planner, read-only. "Your plans" sits in the header of every preview page. Each plan opens on a short list of steps for its stage of life — saving, locked and still working, retired — with every figure taken from the plan\'s own record, exact, with where it came from and its date. Nothing on these pages can be typed into: "Change this" opens today\'s planner on the right plan, page and section with the boxes filled, and brings you back. Browsing the preview writes nothing to any plan.',
+    changes: [
+      '"Your plans" (/v7/#/plans): signed in to the planner on this device, the account\'s plans grouped as "Your household" (plans linked to each other) and "Other plans", each by its own name with one stage line, for example "Retired. Your ladder pays from April 2027." Nobody signed in: the plans this window kept without an account, read-only.',
+      'Each plan opens on the steps its stage needs — This month, Where you are, Your plan, This month\'s pot, What you pay in, What you spend, Lock the plan, What you hold, Moving to your plan\'s mix, Your household — the optional ones marked. Every figure says where it came from ("From your record, September 2026"; "From your plan as locked, 1 July 2026"); a figure over three months old is flagged. One "Next: …" sentence at the bottom. A retired person is never shown a countdown.',
+      'A locked plan is read from its plan document. Its settings say "Fixed when you locked the plan on {date}", with the prices they were worked out at; unlocking is mentioned once, on "Your plan as locked".',
+      '"Everything else this plan uses" lists every setting the plan has moved away from the planner\'s starting values, in plain words, with "Show every setting" for the rest — nothing a plan carries is invisible in the preview.',
+      '"Change this" opens the planner on the right plan, page and section with the boxes filled; a line at the top says "Opened from the preview" with the way back. Your partner\'s plan opens in that window only: your other windows and devices stay on the account\'s open plan.'
+    ],
+    corrections: [
+      'The planner\'s "which plan is open" now reads the window\'s own choice first, then the account\'s open plan as before; the plan menu, What\'s new and Download read it the same way.'
+    ],
+    effects: {
+      stress: [], strategies: [], decision: [], accumulation: [], household: [], budget: []
+    },
+    actions: ['None. To see your plans in the preview, open /v7/#/plans while signed in to the planner on this device.'],
+    notes: [
+      'Browsing the preview writes nothing: plans are brought up to date in memory only, and a test walks every import the preview can reach and fails on any write.',
+      'Two new browser keys, this window only and holding no figures: the hand-over note (pt_open_place, gone once used) and the window\'s open plan (pt_open_plan). One sentence added to the privacy policy under "Storage in your browser".',
+      'Not yet in the preview: signing in from inside it (the "Sign in" button opens the planner\'s own sign-in screen and comes back); testing a plan and "One decision" link to the planner for now. Engine version unchanged (6.22.0).'
+    ]
+  },
+  {
     version: '6.25.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'Couples: who draws what, and one household verdict',
     summary: 'For a couple with two linked plans, the Household tab now works out the split of your household\'s spending that pays the least tax — the lower-taxed person fills their allowance and 20% band first, the other draws the rest — and shows it against each of you drawing for your own plan: the tax saved each year and until the smaller pot\'s State Pension, what it costs the smaller pot, and what each way leaves at 90. When the saving is over £1,000 a year the headline is at the top of the tab. The household verdict now comes first: when one pot is empty the other pays, and the household runs out only when both have. It is your choice; neither way is wrong, and nothing changes in either plan until you say so.',

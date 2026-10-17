@@ -28,7 +28,12 @@
  *   GUEST_PLANS_KEY                     'pt_guest_scenarios' (getItem only, never setItem)
  *   viewFor(state)                      the reading for a state: { today, rows, page } (page: the route's plan and step)
  *   upgradedList(raws, now)             the entries the readers take: [{ plan, newer, failed }]
- *   startPlanSource(store, { win, local, session, now, fb }) → stop()
+ *   startPlanSource(store, { win, local, session, now, fb, fbWrite }) → stop()
+ *
+ * Editing (research/v7/editing-in-v7.md 1): the ONE file that writes a plan, effects/planWrite.js, is started from here with
+ * this file's Firestore handle and signed-in user (no second Firebase app) and a way to read the account's plans again just
+ * before a write, so the lock is checked on the plan as stored. The reading for the editing step ("About you and when") is
+ * done here too, with what was typed (state.draft.plan) laid over the saved values.
  */
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -40,6 +45,8 @@ import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
 import { A } from '../state/actions.js';
 import { lastActivity, IDLE_MS } from './activity.js';
 import { planRows, planPage } from '../../answers/plan/read.js';
+import { aboutOf } from '../../answers/plan/about.js';
+import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
 export const APP_NAME = 'pt-preview';
@@ -76,7 +83,15 @@ export function viewFor(state) {
   const rows = planRows(plans.list, { today, source: plans.source }).groups;
   const r = state.route;
   let page = null;
-  if (r && r.screen === 'plan' && r.planId) page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
+  if (r && r.screen === 'plan' && r.planId) {
+    page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
+    // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
+    if (r.step === 'about') {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.about = { ...aboutOf(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
+    }
+  }
   return { today, rows, page };
 }
 
@@ -89,7 +104,7 @@ export function viewFor(state) {
  * @param {() => Date} [o.now]
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
  */
-export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null }) {
+export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null }) {
   const F = fb || { initializeApp, getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut, getFirestore, collection, getDocs, isFirebaseConfigured };
   const stops = [];
   let user = undefined;          // undefined: not known yet; null: nobody
@@ -168,10 +183,10 @@ export function startPlanSource(store, { win, local = null, session = null, now 
     stops.push(() => { try { off(); } catch { /* already gone */ } });
   }
 
-  // The reading for the screen: after every change of the plans, the address or the date (never of the view itself).
+  // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;
@@ -180,6 +195,12 @@ export function startPlanSource(store, { win, local = null, session = null, now 
     if (view) dispatch({ type: A.PLANS_VIEW, view });
   };
   refresh(store.getState());
+
+  // Editing (editing-in-v7.md 1): the one write file, with this file's handle, user and a fresh read before an account write.
+  stops.push(startPlanWrite(store, {
+    win, session, local, now, fb: fbWrite,
+    handles: () => ({ db, user: user || null, reread: () => (user && db ? readAccount() : Promise.resolve()) })
+  }));
 
   // "Read again" / "Try again" (plans/reading) and "Sign out" (session/out).
   stops.push(store.subscribe((state, action) => {

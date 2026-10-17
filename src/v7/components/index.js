@@ -31,3 +31,6 @@ export { ShapeChart, ShapeAnswer, scaleTop, yearWords } from './ShapeChart.jsx';
 // The saved plans, read-only (research/v7/your-plan.md)
 export { PlanRail } from './PlanRail.jsx';
 export { PlanLine, PlanSentence, PlanButtons, fill } from './PlanFigures.jsx';
+// Editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 2)
+export { EditField } from './EditField.jsx';
+export { UndoToast } from './UndoToast.jsx';

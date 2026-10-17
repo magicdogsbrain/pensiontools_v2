@@ -443,3 +443,23 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 @media (min-width: 1024px) {
   .plan-rail .rail-steps { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* ---- Editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 2) ---------------------------------- */
+.about-form { max-width: 100%; }
+.about-form .field-age input[type="text"] { max-width: 6rem; }
+.about-form .field-month input[type="text"] { max-width: 10rem; }
+.edit-source { margin: 4px 0 0; }
+.about-form .option .field { margin: 6px 0 8px 28px; }
+.about-suggest { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.about-suggest legend { font-weight: 600; padding: 0 4px; }
+.about-suggest-row { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.about-suggest-row .field { margin-bottom: 8px; }
+.about-suggest .help { margin: 6px 0 0; }
+.about-derived { margin-top: 16px; }
+.about-actions { margin-top: 16px; }
+.undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
+  max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text);
+  border: 1px solid var(--line); }
+.undo-toast-message { flex: 1 1 auto; min-width: 0; }
+.undo-toast-btn { flex: 0 0 auto; }
+.undo-toast-close { flex: 0 0 auto; padding: 2px 8px; }

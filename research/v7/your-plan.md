@@ -371,6 +371,10 @@ This builds on rail-screens-language.md:306-318, and covers plans that are not l
 
 ## 4. The architecture rule, changed
 
+> **Changed again on 17 Oct 2026** (research/v7/editing-in-v7.md §1): with "About you and when" editable in V7, ONE V7
+> file writes — `src/v7/effects/planWrite.js`, by `doc` and `updateDoc` only, by declared field paths, past the lock
+> guard. Rules 3b–3d below are as they stood for the read-only step; editing-in-v7.md has them as they are now.
+
 ### 4.1 The rule, before and after
 
 **Today** (architecture.md:30, 172-173; tests/v7/boundaries.test.js:143-156):

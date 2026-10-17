@@ -26,7 +26,7 @@ const code = (k) => '`' + k + '`';
 function v7Cell(r, steps) {
   const short = r.status === 'building-now' && steps[r.step] && steps[r.step].short ? ' (' + steps[r.step].short + ')' : '';
   const head = '**' + STATUS_WORDS[r.status] + short + '**';
-  if (r.status === 'built') return head + ': ' + r.files.map(code).join(', ') + (r.note ? '. ' + r.note : '');
+  if (r.status === 'built') return head + ': ' + r.files.map(code).join(', ') + (r.note ? '. ' + r.note : '') + (r.editV7 ? ' **Edited in V7**: ' + code(r.editV7) : '');
   if (r.status === 'designed') return head + ': ' + r.doc + (waitsOf(r).length ? ' (waits for: ' + waitsOf(r).map(code).join(', ') + ')' : '') + (r.note ? '. ' + r.note : '');
   if (r.status === 'retired') return head + ': ' + r.reason + (r.owner ? ' (Owner: ' + r.owner + ')' : '');
   return head + (r.gap ? ' (no V7 design yet)' : '') + (r.note ? ': ' + r.note : '');
@@ -148,6 +148,16 @@ export function renderLedgerMarkdown(ledger) {
   L.push('');
   for (const r of gaps) L.push('- **' + r.name + '** (' + r.whereV6 + '). Step ' + code(r.step) + '.' + (r.note ? ' ' + r.note : ''));
   if (!gaps.length) L.push('- None.');
+  L.push('');
+  // edited in V7 (research/v7/editing-in-v7.md): the saved settings a person changes on a saved plan inside the preview
+  const edited = rows.filter((r) => r.editV7);
+  L.push('## Edited in V7');
+  L.push('');
+  L.push('The saved settings a person changes on a saved plan inside the preview, one step at a time (research/v7/editing-in-v7.md).');
+  L.push('Each writes the same keys today\'s planner writes, through one file (src/v7/effects/planWrite.js), past the lock guard.');
+  L.push('');
+  for (const r of edited) L.push('- **' + r.name + '** (' + code(r.editV7) + '): ' + (r.keys.length ? r.keys.map(code).join(' ') : '—') + '.');
+  if (!edited.length) L.push('- None.');
   L.push('');
   L.push('## Retired, and why');
   L.push('');

@@ -81,6 +81,8 @@ export function shapeProblems(ledger, { fileExists }) {
       if (!Array.isArray(r.files) || !r.files.length) out.push(`${at}: says built but names no file`);
       else for (const f of r.files) if (!isText(f) || !fileExists(f)) out.push(`${at}: says built in "${f}", which does not exist`);
     }
+    // edited in V7 (research/v7/editing-in-v7.md 6): the V7 screen that changes this on a saved plan
+    if ('editV7' in r && (!isText(r.editV7) || !fileExists(r.editV7))) out.push(`${at}: says edited in V7 in "${r.editV7}", which does not exist`);
     if (r.status === 'designed') {
       if (!isText(r.doc) || !r.doc.includes('§')) out.push(`${at}: says designed but names no document section ("research/v7/x.md §1.6")`);
       else if (!fileExists(r.doc.split('§')[0].trim())) out.push(`${at}: says designed in "${r.doc}", whose document does not exist`);

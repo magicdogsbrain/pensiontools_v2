@@ -102,7 +102,10 @@ export const PLAN = {
     leaveProblem: 'This browser would not pass the request to the planner. Open the planner and choose ‘{name}’ from the plan menu.',
     showAll: 'Show every setting',
     hideAll: 'Show only what has been changed',
-    noneChanged: 'Nothing has been moved away from the planner’s starting values.'
+    noneChanged: 'Nothing has been moved away from the planner’s starting values.',
+    /** The stored "will it last" answer is older than its inputs (editing-in-v7.md 4). */
+    answerStale: 'Your ‘will it last’ answer was worked out on {date}, before the plan was changed on {changed}.',
+    answerStaleUndated: 'Your ‘will it last’ answer was worked out on {date}, before the plan was changed.'
   },
 
   /** The steps, by id: the name on the rail and the short name on a phone. */
@@ -237,21 +240,26 @@ export const PLAN = {
     openPartner: 'Open ‘{name}’',
     checkTogether: 'Check the two plans together in the planner',
     linkOne: 'Link one in the planner',
-    addAge: 'Add your age in the planner',
-    updateIt: 'Update it in the planner'
+    addAge: 'Add your age',
+    updateIt: 'Update it',
+    /** Into the editing step inside V7 (editing-in-v7.md 2). */
+    editAbout: 'Change this here',
+    seeAbout: 'See these',
+    recheck: 'Check it still lasts (in the planner)'
   },
 
   /** The next sentence (2.4), by id, first match wins. */
   next: {
     'P.readonly': 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
-    'P.noAge': 'We cannot tell where you are without your age. Next: add it in the planner.',
+    'P.noAge': 'We cannot tell where you are without your age. Next: add it.',
     'P.arrive': 'You stopped work in {stop}. Next: record your first month; the planner then compares your pot with the plan’s.',
     'P.taxyear': 'Next: set up the {year} tax year.',
     'P.month': 'Next: record {month}.',
     'P.idle': '{month} is recorded. Nothing to do until {nextMonth}.',
     'P.pot': 'Your plan is locked and you stop work in {stop}. Next: record this month’s pot.',
     'P.working': 'Your plan is locked and you stop work in {stop}. Next: check you are still saving enough.',
-    'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today in the planner, or leave it as it is.',
+    'P.recheck': 'The plan has changed since its ‘will it last’ answer. Next: check it still lasts.',
+    'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today, or leave it as it is.',
     'P.draft': 'Next: test the plan in the planner, and lock it when it is right.',
     'P.approaching': 'Next: test the plan in the planner, then lock it and move what you hold to its mix.',
     'P.saving': 'Next: check you are on course in the planner.'

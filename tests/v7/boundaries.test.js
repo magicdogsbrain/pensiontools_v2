@@ -7,18 +7,24 @@
  *  2. Screens and components never import an answer function or an engine: they import only preact, components,
  *     words, the address functions, the pure readers, the formatter and a question's input list. No hooks in
  *     screens; hooks only in components.
- *  3. Nothing V7 can reach can write a plan:
+ *  3. V7 writes a plan only through ONE file, by declared field paths, past the lock guard (research/v7/editing-in-v7.md 1 —
+ *     the rule changed on 17 Oct 2026 from "V7 can reach no write" when "About you and when" became editable in V7):
  *     3a. Reach: every import reachable from V7's entry points — static, dynamic, `export from`, worker URLs — is
  *         walked. No file reached is under src/storage, src/firebase or src/workers, nor is src/ui/inlineHandlers.js,
  *         with five named pure exceptions (the project's public settings, the upgrade, the migrations, the schema, the
  *         stress defaults), each of which may import only the others, src/constants.js, src/services, src/utils,
  *         src/strategies and src/data.
- *     3b. Firebase: exactly one V7 file, src/v7/effects/planSource.js, imports a `firebase` package — only
- *         firebase/app, firebase/auth and firebase/firestore/lite, and only read-only names.
- *     3c. No write words: no file reached contains setDoc, updateDoc, addDoc, deleteDoc, writeBatch or runTransaction
- *         outside comments.
- *     3d. Browser storage: only named effects files touch it, each only the keys its row allows; the guest plans are
- *         never written.
+ *     3b. Firebase: exactly two V7 files import a `firebase` package, each by its own names — src/v7/effects/planSource.js
+ *         (reads: firebase/app, firebase/auth, firebase/firestore/lite, read-only names) and src/v7/effects/planWrite.js
+ *         (writes: firebase/firestore/lite, `doc` and `updateDoc` only). Every other name fails.
+ *     3c. Write words: `updateDoc` appears in planWrite.js only (once, in its one write); setDoc, addDoc, deleteDoc,
+ *         writeBatch and runTransaction appear nowhere V7 can reach. V7 can update fields of a plan that exists; it cannot
+ *         create, delete or replace one.
+ *     3d. Browser storage: only named effects files touch it, each only the keys its row allows; the window's plans
+ *         (pt_guest_scenarios) are read by planSource.js with getItem only and written by planWrite.js only.
+ *     3e. Field paths: planWrite.js checks every patch against the declared list (src/answers/plan/schema.js ALL_WRITES)
+ *         before its one write; the effect's own test drives it with random boxes and plans (tests/v7/plan/planWrite.test.js).
+ *     3f. The lock: planWrite.js imports the guard (services/LockedPlanGuard.js) and calls it before its one write.
  *  4. Only src/v7/effects/, src/v7/testing/ and src/v7/main.jsx use window, location, storage, Worker or the clock.
  */
 import { describe, it, expect } from 'vitest';
@@ -215,20 +221,30 @@ const REACHED = reach(ENTRIES);
 const PURE_EXCEPTIONS = ['src/firebase/projectConfig.js', 'src/firebase/scenarioMigration.js', 'src/storage/migrations.js', 'src/storage/schema.js', 'src/storage/stressDefaults.js'];
 const FORBIDDEN_DIRS = ['src/storage', 'src/firebase', 'src/workers'];
 const FORBIDDEN_FILES = ['src/ui/inlineHandlers.js'];
-/** The one Firebase file (3b), its packages and the names it may import from each. */
+/** The two Firebase files (3b): the reader and the writer, each with its packages and the names it may import from each. */
 const FIREBASE_FILE = 'src/v7/effects/planSource.js';
-const FIREBASE_ALLOWED = {
-  'firebase/app': ['initializeApp'],
-  'firebase/auth': ['getAuth', 'setPersistence', 'browserLocalPersistence', 'onAuthStateChanged', 'signOut'],
-  'firebase/firestore/lite': ['getFirestore', 'collection', 'getDocs']
+const WRITE_FILE = 'src/v7/effects/planWrite.js';
+const FIREBASE_FILES = {
+  [FIREBASE_FILE]: {
+    'firebase/app': ['initializeApp'],
+    'firebase/auth': ['getAuth', 'setPersistence', 'browserLocalPersistence', 'onAuthStateChanged', 'signOut'],
+    'firebase/firestore/lite': ['getFirestore', 'collection', 'getDocs']
+  },
+  [WRITE_FILE]: {
+    'firebase/firestore/lite': ['doc', 'updateDoc']
+  }
 };
-const WRITE_WORDS = /\b(setDoc|updateDoc|addDoc|deleteDoc|writeBatch|runTransaction)\b/;
+/** Never, anywhere V7 can reach: V7 cannot create, delete or replace a plan, nor write two at once. */
+const NEVER_WORDS = /\b(setDoc|addDoc|deleteDoc|writeBatch|runTransaction)\b/;
+/** The one write word, in the one write file only. */
+const WRITE_WORD = /\bupdateDoc\b/g;
 /** The effects that may touch browser storage (3d), and the keys each may name. */
 const STORAGE_FILES = {
   'src/v7/effects/planSeed.js':   { keys: ['pt_v7_plan_seed', 'pt_v7_plan_receipt'], names: ['localStorage'] },
   'src/v7/effects/draftStore.js': { keys: ['pt_v7_draft'], names: ['sessionStorage'] },
   'src/v7/effects/activity.js':   { keys: ['pt_lastActivity'], names: [] },
   'src/v7/effects/planSource.js': { keys: ['pt_guest_scenarios'], names: [] },
+  'src/v7/effects/planWrite.js':  { keys: ['pt_guest_scenarios'], names: [] },
   'src/v7/effects/openPlace.js':  { keys: [], names: [] }
 };
 
@@ -259,30 +275,55 @@ describe('rule 3a — reach: every import from V7\'s entry points, walked', () =
   });
 });
 
-describe('rule 3b — exactly one V7 file talks to Firebase, read-only', () => {
-  it('only planSource.js imports a firebase package, and nothing in src/answers does', () => {
+describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the writer, each by its own names', () => {
+  it('only planSource.js and planWrite.js import a firebase package, and nothing in src/answers does', () => {
     const naming = [...V7, ...ANSWERS].filter((f) => targetsOf(f).some((t) => t === 'firebase' || t.startsWith('firebase/')));
-    expect(naming).toEqual([FIREBASE_FILE]);
+    expect(naming.sort()).toEqual(Object.keys(FIREBASE_FILES).sort());
   });
-  it('it imports only firebase/app, firebase/auth and firebase/firestore/lite, by read-only names', () => {
-    const src = read(FIREBASE_FILE);
-    const pkgs = targetsOf(FIREBASE_FILE).filter((t) => t === 'firebase' || t.startsWith('firebase/'));
-    expect(pkgs.sort()).toEqual(Object.keys(FIREBASE_ALLOWED).sort());
-    for (const [pkg, allowed] of Object.entries(FIREBASE_ALLOWED)) {
+  it.each(Object.entries(FIREBASE_FILES))('%s imports only its packages, by its allowed names', (file, allowedByPkg) => {
+    const src = read(file);
+    const pkgs = targetsOf(file).filter((t) => t === 'firebase' || t.startsWith('firebase/'));
+    expect(pkgs.sort()).toEqual(Object.keys(allowedByPkg).sort());
+    for (const [pkg, allowed] of Object.entries(allowedByPkg)) {
       const names = namesImportedFrom(src, pkg);
       expect(names.length, pkg).toBeGreaterThan(0);
-      for (const n of names) expect(allowed, `${FIREBASE_FILE} imports ${n} from ${pkg}`).toContain(n);
+      for (const n of names) expect(allowed, `${file} imports ${n} from ${pkg}`).toContain(n);
     }
+  });
+  it('the writer imports exactly doc and updateDoc; the reader imports neither', () => {
+    expect(namesImportedFrom(read(WRITE_FILE), 'firebase/firestore/lite').sort()).toEqual(['doc', 'updateDoc']);
+    expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain('updateDoc');
+    expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain('doc');
   });
   it('the full firestore package (with its cache and its writes) is never reached', () => {
     for (const f of REACHED) for (const t of targetsOf(f)) expect(t, `${f} imports ${t}`).not.toBe('firebase/firestore');
   });
+  it('the writer makes no Firebase app of its own: it takes the reader\'s handle', () => {
+    const code = codeOf(WRITE_FILE);
+    expect(code).not.toMatch(/\b(initializeApp|getFirestore|getAuth)\b/);
+    expect(strip(read(WRITE_FILE), { keepStrings: true })).toMatch(/handles\(\)/);
+  });
 });
 
-describe('rule 3c — no write words anywhere V7 can reach', () => {
+describe('rule 3c — the one write word in the one write file; never a create, delete or replace', () => {
   it.each(REACHED)('%s', (file) => {
-    const m = WRITE_WORDS.exec(codeOf(file));
-    expect(m && m[0], `${file} contains ${m && m[0]}`).toBeFalsy();
+    const code = codeOf(file);
+    const never = NEVER_WORDS.exec(code);
+    expect(never && never[0], `${file} contains ${never && never[0]}`).toBeFalsy();
+    const writes = code.match(WRITE_WORD) || [];
+    if (file === WRITE_FILE) expect(writes.length, 'the import, the default and the one call').toBe(3);
+    else expect(writes.length, `${file} contains updateDoc`).toBe(0);
+  });
+  it('3e, 3f: the writer checks every patch against the declared paths and the lock guard before its one write', () => {
+    const code = strip(read(WRITE_FILE), { keepStrings: true });
+    expect(targetsOf(WRITE_FILE)).toContain('src/answers/plan/schema.js');
+    expect(targetsOf(WRITE_FILE)).toContain('src/services/LockedPlanGuard.js');
+    expect(namesImportedFrom(read(WRITE_FILE), '../../answers/plan/schema.js')).toContain('ALL_WRITES');
+    for (const n of ['isLockedSettings', 'lockedPlanWriteRefusal']) expect(namesImportedFrom(read(WRITE_FILE), '../../services/LockedPlanGuard.js')).toContain(n);
+    // the save and the undo each pass through declaredOnly(...) and lockedRefusal(...) before write(...)
+    expect((code.match(/declaredOnly\(/g) || []).length).toBeGreaterThanOrEqual(3);   // the definition, the save, the undo
+    expect((code.match(/lockedRefusal\(/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect((code.match(/F\.updateDoc\(/g) || []).length).toBe(1);
   });
 });
 
@@ -302,12 +343,16 @@ describe('rule 3d — browser storage: only the named effects, only their keys',
   it('effects/index.js names no key', () => {
     expect(keysNamed('src/v7/effects/index.js')).toEqual([]);
   });
-  it('the window\'s plans are read with getItem only: planSource.js never writes them', () => {
+  it('the window\'s plans are read with getItem only by planSource.js, and written (setItem, never removed) by planWrite.js alone', () => {
     const code = strip(read(FIREBASE_FILE), { keepStrings: true });
     expect(code).toMatch(/getItem\(\s*GUEST_PLANS_KEY\s*\)/);
     expect(code).not.toMatch(/setItem\(\s*GUEST_PLANS_KEY/);
     expect(code).not.toMatch(/removeItem\(\s*GUEST_PLANS_KEY/);
     expect(code.match(/GUEST_PLANS_KEY/g).length).toBeGreaterThanOrEqual(2);
+    const writer = strip(read(WRITE_FILE), { keepStrings: true });
+    expect(writer).toMatch(/setItem\(\s*GUEST_PLANS_KEY/);
+    expect(writer).not.toMatch(/removeItem\(\s*GUEST_PLANS_KEY/);
+    for (const f of V7.filter((x) => x !== WRITE_FILE)) expect(strip(read(f), { keepStrings: true }), f).not.toMatch(/setItem\(\s*GUEST_PLANS_KEY|setItem\(\s*['"]pt_guest_scenarios/);
   });
   it('the plan seed\'s key appears in V7 only through the seed module', () => {
     for (const file of V7) expect(strip(read(file), { keepStrings: true }), file).not.toMatch(/pt_v7_plan_seed/);

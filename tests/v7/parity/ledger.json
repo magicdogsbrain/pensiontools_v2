@@ -759,7 +759,7 @@
       ],
       "status": "built",
       "step": "done",
-      "note": "A and B: on the spend step, under the figure, \"Does what you spend change as you get older?\" → \"Change it with age\": any number of steps by age (up to one a year of the plan), each a month after tax. C: the same block under \"Add more detail\", each step a share of what you start on. Each year's figure is today's own IncomeSchedule.amountAtAge (imported). A couple's ages are yours, with your partner's beside each step.",
+      "note": "A and B: on the spend step, under the figure, \"Does what you spend change as you get older?\" → \"Change it with age\": any number of steps by age (up to one a year of the plan), each a month after tax. C: the same block under \"Add more detail\", each step a share of what you start on. Each year's figure is today's own IncomeSchedule.amountAtAge (imported). A couple's ages are yours, with your partner's beside each step. Edited on a saved plan in V7 (editing-in-v7.md 8): the plan's own steps read a month after tax through the planner's tax sum and written back as the planner's rows.",
       "files": [
         "src/answers/shared/shape.js",
         "src/answers/shared/schemaParts.js",
@@ -767,8 +767,11 @@
         "src/v7/components/StepsField.jsx",
         "src/v7/screens/a/SpendScreen.jsx",
         "src/v7/screens/c/NumbersScreen.jsx",
-        "src/answers/shared/toEngine.js"
-      ]
+        "src/answers/shared/toEngine.js",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.add-remove",
@@ -784,9 +787,12 @@
       "files": [
         "src/v7/components/StepsField.jsx",
         "src/v7/state/shapeDraft.js",
-        "src/v7/state/reduce.js"
+        "src/v7/state/reduce.js",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
       ],
-      "note": "\"+ Add a step\" adds one 10 years after the last and 10% lower (today: £10,000 a year lower), and puts the keyboard in its age box; \"Remove the step from 75\" on every step after the first. No limit but one a year of the plan."
+      "note": "\"+ Add a step\" adds one 10 years after the last and 10% lower (today: £10,000 a year lower), and puts the keyboard in its age box; \"Remove the step from 75\" on every step after the first. No limit but one a year of the plan. Edited on a saved plan in V7 (editing-in-v7.md 8): the plan's own steps read a month after tax through the planner's tax sum and written back as the planner's rows.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.decline",
@@ -804,9 +810,12 @@
       "files": [
         "src/answers/shared/shape.js",
         "src/v7/components/StepsField.jsx",
-        "src/answers/shared/validate.js"
+        "src/answers/shared/validate.js",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
       ],
-      "note": "Every step, the first included, \"falls by …% a year\": 0.25% to 10% in quarter points (today's slider stops at 5%), compounding at today's prices, by today's own amountAtAge."
+      "note": "Every step, the first included, \"falls by …% a year\": 0.25% to 10% in quarter points (today's slider stops at 5%), compounding at today's prices, by today's own amountAtAge. Edited on a saved plan in V7 (editing-in-v7.md 8): the plan's own steps read a month after tax through the planner's tax sum and written back as the planner's rows.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.glide",
@@ -824,9 +833,12 @@
       "files": [
         "src/answers/shared/shape.js",
         "src/v7/components/StepsField.jsx",
-        "src/answers/shared/validate.js"
+        "src/answers/shared/validate.js",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
       ],
-      "note": "\"moves evenly to the next step\" on every step but the last: a straight line in pounds arriving as the next step starts, by today's own amountAtAge."
+      "note": "\"moves evenly to the next step\" on every step but the last: a straight line in pounds arriving as the next step starts, by today's own amountAtAge. Edited on a saved plan in V7 (editing-in-v7.md 8): the plan's own steps read a month after tax through the planner's tax sum and written back as the planner's rows.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.phases",
@@ -842,9 +854,11 @@
       "files": [
         "src/v7/copy/shape.js",
         "src/v7/components/ShapeChart.jsx",
-        "src/answers/shared/shape.js"
+        "src/answers/shared/shape.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
       ],
-      "note": "The words above the steps name go-go (travel, projects), go-slow (from the mid-70s) and no-go (less again, though care can cost more); the picture draws the three bands at 75 and 85 (a couple: of the younger of you)."
+      "note": "The words above the steps name go-go (travel, projects), go-slow (from the mid-70s) and no-go (less again, though care can cost more); the picture draws the three bands at 75 and 85 (a couple: of the younger of you). The plan's \"What you spend\" step draws the same bands on its picture.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.suggest",
@@ -860,9 +874,12 @@
       "files": [
         "src/answers/shared/shape.js",
         "src/v7/state/reduce.js",
-        "src/v7/components/StepsField.jsx"
+        "src/v7/components/StepsField.jsx",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
       ],
-      "note": "\"Suggest go-go, go-slow and no-go years\": today's suggestSteps in V7's units: 15% less from 75 and 30% less from 85, never below the budget's essentials, to the nearest £10 a month (today: £500 a year); for a couple, from when the younger of you is 75 and 85. Says what it filled in, and has Undo (today's has none). The preset \"Slowly less\" is today's old \"declining with age\" (smileToSteps)."
+      "note": "\"Suggest go-go, go-slow and no-go years\": today's suggestSteps in V7's units: 15% less from 75 and 30% less from 85, never below the budget's essentials, to the nearest £10 a month (today: £500 a year); for a couple, from when the younger of you is 75 and 85. Says what it filled in, and has Undo (today's has none). The preset \"Slowly less\" is today's old \"declining with age\" (smileToSteps). On a saved plan: the planner's own suggestSteps rule, function for function (tested against it), on the before-tax figures, said a month after tax; Cancel is the undo there.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.start-from-budget",
@@ -875,12 +892,14 @@
       "keys": [],
       "status": "built",
       "step": "done",
-      "note": "\"Use £X a month\" copies the budget's total into the figure (the budget stays a guide: owner, 1 Oct 2026); later steps are kept, as today, and \"Move the later steps in proportion\" is offered.",
+      "note": "\"Use £X a month\" copies the budget's total into the figure (the budget stays a guide: owner, 1 Oct 2026); later steps are kept, as today, and \"Move the later steps in proportion\" is offered. On a saved plan: \"Use £X a month at the start\" fills the first row from the budget's cached total; a guide, never written.",
       "files": [
         "src/v7/components/Budget.jsx",
         "src/v7/state/reduce.js",
-        "src/v7/components/StepsField.jsx"
-      ]
+        "src/v7/components/StepsField.jsx",
+        "src/v7/screens/plan/SpendScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.start-from-number",
@@ -961,7 +980,7 @@
       "status": "designed",
       "doc": "research/v7/spending-shape.md §15.1",
       "step": "shape-next",
-      "note": "Not built: the spend step's picture shows the shape alone (\"Each bar is one year of your life\"); the layers come with the answer. Designed: the spend step reads the year-by-year income you get anyway from the plan the inputs already make (yearsOf, no engine run), once a stop age is known."
+      "note": "Not built: the spend step's picture shows the shape alone (\"Each bar is one year of your life\"); the layers come with the answer. Designed: the spend step reads the year-by-year income you get anyway from the plan the inputs already make (yearsOf, no engine run), once a stop age is known. On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
     },
     {
       "id": "income.budget-mark",
@@ -975,7 +994,7 @@
       "status": "designed",
       "doc": "research/v7/spending-shape.md §15.1",
       "step": "shape-next",
-      "note": "Not built as a mark: V7 says it in words beside each later step (\"85% of the start, 71% of your budget (a guide)\"). Designed: a short dashed mark at the budget's total a month, named in the key, a guide only."
+      "note": "Not built as a mark: V7 says it in words beside each later step (\"85% of the start, 71% of your budget (a guide)\"). Designed: a short dashed mark at the budget's total a month, named in the key, a guide only. On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
     },
     {
       "id": "income.markers",
@@ -1006,13 +1025,16 @@
       "keys": [],
       "status": "built",
       "step": "done",
-      "note": "With a budget: the essentials are a dashed line, a year below them is marked in the warning colour, and a note says so in words (\"That is allowed: it is your figure\"). A guide only: never a floor (owner, 1 Oct 2026).",
+      "note": "With a budget: the essentials are a dashed line, a year below them is marked in the warning colour, and a note says so in words (\"That is allowed: it is your figure\"). A guide only: never a floor (owner, 1 Oct 2026). The plan's \"What you spend\" step draws the budget's essentials dashed and says the first year below them.",
       "files": [
         "src/v7/components/ShapeChart.jsx",
         "src/v7/state/select.js",
         "src/v7/components/StepsField.jsx",
-        "src/v7/copy/shape.js"
-      ]
+        "src/v7/copy/shape.js",
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.guaranteed-floor",
@@ -1043,7 +1065,7 @@
       "status": "designed",
       "doc": "research/v7/spending-shape.md §15.2",
       "step": "shape-next",
-      "note": "Not built: V7 says it on the answer only. Designed: the same words on the spend step, from the same year-by-year income as the layers (§15.1)."
+      "note": "Not built: V7 says it on the answer only. Designed: the same words on the spend step, from the same year-by-year income as the layers (§15.1). On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
     },
     {
       "id": "income.budget-share",
@@ -1111,10 +1133,16 @@
         "extraWithdrawals[].years",
         "extraWithdrawals[].indexation"
       ],
-      "status": "designed",
-      "step": "shape-next",
-      "note": "Not built. Designed inside the spending shape: \"Any one-off costs?\" under the steps (A, B, D; C under \"Add more detail\"): an amount after tax at an age, once or every year for a number of years, going up with prices or a fixed sum, with a name. Each year's need is the shape's figure plus that year's costs; kept plans get today's extraWithdrawals, exact to the year. The budget's one-off costs stay a guide: one tap copies them.",
-      "doc": "research/v7/spending-shape.md §16"
+      "status": "built",
+      "step": "done",
+      "note": "Built on a saved plan's \"What you spend\" step (editing-in-v7.md 8): one-off costs as cards — what it is, the amount a year after tax at today's prices, at an age, for how many years, going up with prices or a fixed sum — written as the planner's extraWithdrawals rows (the before-tax amount the planner's marginal sum on top of that year's figure, the plan year from the age). Not yet on the questions' spend step (spending-shape.md §16 still stands for that).",
+      "doc": "research/v7/spending-shape.md §16",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/spend.js"
+      ]
     },
     {
       "id": "income.schedule",
@@ -1138,9 +1166,11 @@
         "src/answers/shared/toEngine.js",
         "src/answers/shared/shape.js",
         "src/answers/keep/planSeed.js",
-        "src/services/PlanSeed.js"
+        "src/services/PlanSeed.js",
+        "src/answers/plan/spend.js"
       ],
-      "note": "Every V7 answer (C, A, B) works out each year's figure from the shape and tests it year by year. \"Save this as a plan\" writes seed version 3 for a shaped answer, and today's planner turns it into its own income steps (compressSteps) that give the answer's after-tax figure in every year, to the pound."
+      "note": "Every V7 answer (C, A, B) works out each year's figure from the shape and tests it year by year. \"Save this as a plan\" writes seed version 3 for a shaped answer, and today's planner turns it into its own income steps (compressSteps) that give the answer's after-tax figure in every year, to the pound. Written with the steps by the plan's \"What you spend\" step: the planner's compiledTargetSchedule rule (floored by the income you get anyway, rounded), and the Decision copies, as the planner's Save does.",
+      "editV7": "src/v7/screens/plan/SpendScreen.jsx"
     },
     {
       "id": "income.gross-today",
@@ -3200,7 +3230,8 @@
       ],
       "status": "retired",
       "reason": "Retired in 6.2.1: \"Declining with age\" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset \"Slowly less\" (src/answers/shared/shape.js slowlyLess, today's smileToSteps).",
-      "step": "v6-retired"
+      "step": "v6-retired",
+      "note": " The plan's \"What you spend\" step sets it to flat with the steps, as the planner's Save does (the taper lives on the steps)."
     },
     {
       "id": "mach.old-names",

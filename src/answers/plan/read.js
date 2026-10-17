@@ -313,7 +313,8 @@ function planStep(C) {
   const sections = [
     // "About you and when" is edited inside V7 (editing-in-v7.md 2): the section links to the sub-step, never to the planner
     { id: 'about', lines: about, place: 'about', sub: 'about', href: '#/plan/' + plan.id + '/about' },
-    { id: 'pays', lines: pays, place: 'spend' },
+    // "What you spend" is edited inside V7 too (editing-in-v7.md 8): the shape, the one-off costs, the budget as a guide
+    { id: 'pays', lines: pays, place: 'spend', sub: 'spend', href: '#/plan/' + plan.id + '/spend' },
     { id: 'pots', lines: pots, place: 'pots' },
     // "Money that comes in anyway" is edited inside V7 too (editing-in-v7.md 7)
     { id: 'income', lines: income, place: 'pots', sub: 'income', href: '#/plan/' + plan.id + '/income' },

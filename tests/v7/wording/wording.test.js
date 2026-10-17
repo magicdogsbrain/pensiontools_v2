@@ -22,6 +22,7 @@ import { B } from '../../../src/v7/copy/b.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { ABOUT } from '../../../src/v7/copy/about.js';
 import { INCOME } from '../../../src/v7/copy/income.js';
+import { SPEND } from '../../../src/v7/copy/spend.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -148,6 +149,19 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of strings(INCOME)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(INCOME)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+  });
+  it('"What you spend" (spend.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
+    // the third editing step is a plan page too (editing-in-v7.md 8): a retired person's and a saver's plan are both edited from it
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(monthly|yearly|gross|net|total|essentials|amount|endMonthly|toMonthly)\}/g, '£2,300')
+      .replace(/\{(age|ageNow|endAge|startAge|age75|age85|endAge|toAge|n|value)\}/g, '67').replace(/\{(years|steps|costs)\}/g, '2').replace(/\{(pct|budgetPct)\}/g, '85')
+      .replace(/\{label\}/g, 'New roof').replace(/\{name\}/g, 'Sam').replace(/\{prices\}/g, 'going up with prices').replace(/\{floor\}/g, '');
+    const hits = [];
+    const all = strings(SPEND).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(SPEND)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`spend.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(SPEND)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
+    for (const [where, s] of strings(SPEND)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
   });
   it('question C: every string passes, in every scope question C is shown in — the "retired" rules included', () => {
     const hits = [];

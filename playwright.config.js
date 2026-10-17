@@ -39,8 +39,9 @@ const JOURNEYS_KEEP = ['budget-step', 'keep'];
 // 1440 (the planner's Household tab is on the wide tab bar).
 const JOURNEYS_APART = ['a-already-stopped'];
 // The saved plans in the preview, without an account (research/v7/your-plan.md 9, T10 and T12 on the guest path), and the
-// editing steps "About you and when" (research/v7/editing-in-v7.md 5, E8) and "Money that comes in anyway" (7.5, I5): at 390 and 1440.
-const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income'];
+// editing steps "About you and when" (research/v7/editing-in-v7.md 5, E8), "Money that comes in anyway" (7.5, I5) and
+// "What you spend" (8.5, S4): at 390 and 1440.
+const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income', 'plan-spend'];
 const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);

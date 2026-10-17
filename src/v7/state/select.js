@@ -700,6 +700,10 @@ export function aboutView(state) {
 export function incomeView(state) {
   return editView(state, 'income');
 }
+/** "What you spend" on a saved plan (editing-in-v7.md 8): the same reading for the third step (page.spend). */
+export function planSpendView(state) {
+  return editView(state, 'spend');
+}
 function editView(state, step) {
   const plans = state.plans;
   const r = state.route;

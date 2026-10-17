@@ -381,3 +381,190 @@ plan page's stale line and "check it still lasts" follow unchanged.
 | I4 | `planDraft.test.js`, `draftStore`: card paths kept and cleaned; `routes`: `#/plan/<id>/income` | §7.2 |
 | I5 | `e2e/plan-income.spec.js` at 390 and 1440 (prod build, guest plan planted, outside requests blocked): change the State Pension choice, add a final-salary pension at an age and a lump sum; Save; stored JSON differs only in the declared keys; Undo byte-identical; the planner at `/` shows the new values in its own boxes | the whole step |
 | I6 | parity: the rows this step edits carry `editV7`; the ledger page regenerated | §6 |
+
+---
+
+## 8. "What you spend" (the third step, 17 Oct 2026)
+
+The audit's third row (§2.4 "What you spend": V7's spending shape at full parity, one-off costs at an age, the before-tax
+figure shown and never asked; §3.4: the income shape — steps, tapers, glides, the go-go suggestion, the layers — and the
+extra spends; §2.3: the budget as a guide). The owner's rules, verbatim: "We MUST offer as many steps and tapers as V6! …
+We must have Gogo, goslow and nogo years." and, on the budget, every spend step gets a budget step; a person may skip it
+with ONE figure, told plainly that they are skipping and that doing it is better; the budget is a GUIDE only, never used to
+work out what they need; the spend used is always the figure in the box. It inherits §1 and §6 whole: one write file, the
+declared-paths test, the guard, the guest path, the draft rules of §4 and the cards of §7.2.
+
+### 8.1 What the planner saves, checked
+
+- **The shape** is `stressTool.settings.incomeSteps` — `[{ fromAge, amount, decline, glideToNext }]`, `amount` **a year,
+  before tax** (the planner's own editor says "£/yr gross" and "Each step is your TOTAL gross income for the year"),
+  `decline` a % a year compounding, `glideToNext` a straight line to the next step (`IncomeSchedule.amountAtAge`; the
+  planner's slider runs 0–5 in quarter points and the model accepts any; a glide on the last step is ignored). With it,
+  on every Save, the planner writes `incomeShape: 'phases'`, `baseSalary` (the first step's amount — `updIncomeStep` keeps
+  the hidden `ssBaseSalary` in step), and **`targetSchedule`**: the shape compiled to one figure a year from the plan's
+  start, `duration + 1` entries, each `round(max(0, amountAtAge(steps, startAge + y, baseSalary), guaranteedAtYear(y)))`
+  — "never below the income you get anyway" (T12): the State Pension (weekly × 52 from its plan year, by
+  `spSimConfigFromSettings`; the planner's annual box is never filled from a plan, so it counts nothing), other income,
+  the final-salary pension from its start year and every income stream in range. The engines read the SAVED schedule
+  first (`IncomeSchedule.scheduleFromSteps`), so a step written without the schedule would change nothing: this step
+  writes both, as the planner does. While unlocked the Stress Save also copies the first step and the schedule to the
+  Decision settings (`saveDecisionSettings({ baseSalary, targetSchedule, … })`); a locked plan is never written from
+  here, so this step copies them too.
+- **The planner's convention is before tax; V7's is after tax.** The planner's own hidden "take-home" box turned a
+  monthly after-tax figure into `baseSalary` with the one tax sum (`TaxCalculator.netToGross`, as
+  `BudgetModel.grossUpAnnual` still does for the budget hand-off) and showed "≈ £X/yr before tax" beside it. This step
+  asks **a month, after tax, at today's prices** (the unit of every V7 question and of the budget) and converts with the
+  planner's own two functions at the plan's own tax bands (`pa`, `brl`, `hrl`; the planner's defaults when absent):
+  read `round(grossToNet(amount) ÷ 12)`, write `round(grossUpAnnual(monthly × 12))`. Only a changed box is written, so a
+  plan saved as it is writes nothing and a figure typed reads back as typed (tested: write∘read∘write is empty). The
+  before-tax figure is **shown under every amount box** ("£38,000 a year before tax, as the plan saves it") and in the
+  derived lines, never asked. A fall of N% a year is the planner's: on the before-tax figure, year on year.
+- **One-off costs** have a saved key: `extraWithdrawals` — `[{ label, amount, year, years, indexation }]`, `amount` a year
+  before tax added on top of that year's figure and taxed like income for `years` years from plan year `year`
+  (`SimulationEngine.extraWithdrawalFor`; `indexation` 'cpi' rises with prices — the default — or 'level', a fixed sum).
+  Asked here as an amount **a year after tax** at an **age**, for a number of years, going up with prices or fixed. The
+  before-tax figure is the planner's marginal sum on top of that year's own figure (spending-shape.md §16.4's rule):
+  `round(netToGross(netOfYear + x) − netToGross(netOfYear))`, `netOfYear = grossToNet(targetSchedule[year])`; read back the
+  other way. A cost card left untouched keeps its stored row byte for byte, whatever else changed.
+- **Floor & Flex essentials** (`strategyParams.essentialsAnnual`) is a plain key but lives in the block the planner
+  keeps for the active strategy alone (`cleanParams`, 6.13.0) and is set on that strategy's own card; it is left for
+  "Way of drawing and mix" and the page says so when the plan's way of drawing is Floor & Flex.
+- **The budget** (`budgetTool.settings`) is read only: the all-in total and the essentials a month after tax from its
+  cached `derived` (what the planner's own chip and `_shapeRefs` read), with its source. Nothing under `budgetTool` is
+  written by this step.
+
+### 8.2 The screen and words
+
+Address: `#/plan/<id>/spend`, a sub-step of "Your plan" beside `about` and `income`. On the plan page the "What the plan
+pays" section links here with "Change this here" ("See these" on a locked or shown-as-saved plan) instead of the planner.
+
+```text
+| What you spend                                                                 |
+| What you spend each month after tax, at today's prices, and how it changes as  |
+| you get older. The plan works out the figure before tax and shows it.          |
+|                                                                                |
+| Your budget, as a guide                                                        |
+|   All in: £2,264 a month after tax; essentials £1,610.  From your budget       |
+|   (a guide), saved 11 September 2026.                                          |
+|   A guide only: the plan uses the figures in the boxes below, never the budget.|
+|   Working it out line by line is the better way to choose them.               |
+|   [ Use £2,264 a month at the start ]  [ Change the budget lines (planner) ]  |
+|   (not worked out: "Your budget is not worked out, so you are choosing by one |
+|    figure. That is fine for a first look, but …"  [ Work it out (planner) ])  |
+|                                                                                |
+| From the start                                                                 |
+|   From age 63, the plan's first year   [ 2,641 ] a month after tax            |
+|     £38,000 a year before tax, as the plan saves it.                           |
+|     From your plan, saved 14 August 2026 (£2,641)                              |
+|   then  [ stays the same ▾ ]   (falls by [ 1 ] % a year, at today's prices)    |
+|                                                                                |
+| Later steps                                                                    |
+|   ┌ Step 1 ──────────────────────────────────────────────┐                     |
+|   │ From age            [ 75 ]                             │                     |
+|   │ A month after tax   [ 2,281 ]  £32,000 a year before…  │                     |
+|   │ then  [ falls by a percentage a year ▾ ]  [ 1 ] %      │  [Remove]           |
+|   └────────────────────────────────────────────────────────┘                     |
+|   [ + Add a step ]  [ Suggest go-go, go-slow and no-go years ]                  |
+|   → "Filled in: 15% less from 75 and 30% less from 85 — the planner's own      |
+|      suggestion, to £500 a year before tax, never below your budget's          |
+|      essentials. Typical, not yours: change any of it. Cancel puts it back."   |
+|                                                                                |
+| [ the picture: a bar a year, lighter the pensions you get anyway, go-go /      |
+|   go-slow / no-go bands, the budget's essentials dashed ]  Show each year      |
+|                                                                                |
+| One-off costs                                                                  |
+|   ┌ One-off cost 1 ───────────────────────────────────────┐                     |
+|   │ What it is        [ New roof ]                          │                     |
+|   │ A year after tax  [ 19,200 ]   £25,000 a year before…  │                     |
+|   │ At age            [ 62 ]     For [ 1 ] year(s)          │                     |
+|   │ Prices (x) going up with prices  ( ) a fixed sum        │  [Remove]           |
+|   └─────────────────────────────────────────────────────────┘                     |
+|   [ Add a one-off cost ]                                                        |
+|                                                                                |
+| What this works out to                                                         |
+|   From age 63: £2,641 a month after tax (£38,000 a year before tax).            |
+|   From age 75: £2,281 a month after tax (£32,000 a year before tax), falling   |
+|     1% a year to £2,066 at 95.                                                  |
+|   From age 72 your State Pension and other pensions pay more than this …        |
+|   New roof: £19,200 after tax at age 62 (tax year 2028/29), once — £25,000      |
+|     before tax on top of that year's figure, going up with prices.             |
+| [ Save ]  [ Cancel ]                                                           |
+```
+
+- **The first row** (`first.amount`, money a month 1–50,000; `first.then` level | falls | glides; `first.fallsPct`
+  0.25–10 in quarter points): its age is the plan's start and is never asked (the planner disables it: "The first step
+  starts when the plan starts"). Read from the first saved step (`cleanSteps` order), or — a flat plan, `incomeShape`
+  'level' or no steps — from `targetSchedule[0]` or `baseSalary` at the start age, as "Your plan" reads it
+  (`read.js incomeSteps`). "moves evenly" is offered only while there is a later step.
+- **Later steps** as cards (`steps.ids`, `steps.<id>.fromAge` above the first row's age and at most the plan's end age,
+  no two the same; `.amount`; `.then`; `.fallsPct`), in the order read (the planner sorts by age; so does the write).
+  Beside each amount: "{pct}% of the start" and, with a budget, "{pct}% of your budget (a guide)" — the planner's own
+  "— 85% of today's budget" (T14). "+ Add a step" adds one 10 years after the last and 10% less, as V7's questions do.
+- **"Suggest go-go, go-slow and no-go years"** is the planner's own `suggestSteps(first, startAge, essentials)` on the
+  before-tax figures: the first as it is, then from 75 the larger of 85% and the budget's essentials, from 85 the larger
+  of 70% and the essentials, each to £500 a year; 75 only when the start is before it, 85 likewise; the budget's
+  essentials grossed up as the planner grosses them (`grossUpAnnual(derived.essentialAnnualNet)`). It replaces the later
+  steps, as the planner's does; the line under it says what it filled in and that Cancel puts the draft back (there is
+  no Undo inside a draft; Cancel is the undo).
+- **The picture** is `ShapeChart` (reused, not forked): one bar a year from the start to the end of the plan, the year's
+  figure after tax a month from the **compiled schedule** (so the floor shows: a year the pensions pay more than the
+  shape is drawn at what they pay), the part the State Pension and other pensions pay lighter (their before-tax floor
+  taken through the same tax sum), the go-go / go-slow / no-go bands at 75 and 85, the budget's essentials dashed, a
+  year under them in the warning colour with `SHAPE.belowEssentials` under the chart ("That is allowed: it is your
+  figure." — a guide, never a floor). "Show each year" opens the table.
+- **One-off costs** as cards (`costs.ids`, `costs.<id>.label` up to 60; `.amount` a year after tax 1–1,000,000; `.atAge`
+  from the start age to the end age; `.years` 1 to the years left; `.prices` rise | fixed).
+- **The budget, as a guide** (the owner's rule, in the step's words): the all-in total and the essentials, "From your
+  budget (a guide), saved {date}"; "A guide only: the plan uses the figures in the boxes below, never the budget. Working
+  it out line by line is the better way to choose them."; "Use £X a month at the start" (one tap into the first row —
+  the planner's own chip, T7 — the person can change it); "Change the budget lines (in the planner)" by the existing
+  hand-over (`openPlace.js`, place `budget`). Not worked out: "Your budget is not worked out, so you are choosing by one
+  figure. That is fine for a first look, but most people spend more than they think …" and "Work it out (in the planner)".
+- **Derived lines** (`copy/spend.js derived`): each step's after- and before-tax figures with where a fall ends
+  (the year before the next step or the plan's last year) or where a glide arrives; "From age N your State Pension and
+  other pensions pay more than this (£X a month after tax): the plan pays that, and nothing is taken from your pension or
+  savings." when the floor bites (T12); each cost with its before-tax figure, its tax year and its rise; the Floor & Flex
+  note when that is the way of drawing.
+- Problems in plain words; Save, Cancel, Undo, the toast ("Saved. From 63: £2,641 a month after tax. Later steps: 1.
+  One-off costs: 2."). Phone first: one column at 390 px, cards not a table.
+
+### 8.3 Keys written
+
+`SPEND_WRITES` (schema.js). The shape block is written when the first row or any step card changed (the planner rewrites
+the four together on every Save); the costs when a cost card changed; a key only when its value changes.
+
+| Path | Value | As the planner writes it |
+|---|---|---|
+| `stressTool.settings.incomeShape` | `'phases'` | `saveStressSettings({ incomeShape })` |
+| `stressTool.settings.incomeSteps` | the rows in age order: a stored row kept byte for byte where its card is unchanged, an edited card merged onto its row (`fromAge`, `amount`, `decline`, `glideToNext`; other keys kept), a new card `{ fromAge, amount[, decline][, glideToNext] }`; the first row's age the stored first step's, or the start age | `incomeSteps: _ssIncomeSteps.filter(amount > 0)` |
+| `stressTool.settings.targetSchedule` | the compiled schedule, `duration + 1` figures (8.1) | `compiledTargetSchedule` |
+| `stressTool.settings.baseSalary` | the first row's before-tax amount | the hidden `ssBaseSalary` kept in step by `updIncomeStep` |
+| `stressTool.settings.spendingProfile` | `'flat'`, only on a plan still holding the old `'declining'` setting (the taper lives on the steps, which `effectiveStressSettings` bakes in on load; absent reads as flat and is left absent) | `saveStressSettings({ spendingProfile: 'flat' })` with the steps |
+| `decisionTool.settings.baseSalary`, `.targetSchedule` | the same two | the Stress Save's Decision sync (drafts only — a locked plan is never written) |
+| `stressTool.settings.extraWithdrawals` | the rows as 7.3 rebuilds a list: unchanged kept, edited merged (`label`, `amount`, `year`, `years`, `indexation`), removed dropped, new appended | `extraWithdrawals: _ssExtraWithdrawals.filter(amount > 0 && year != null)` |
+| `lastModified` | now, ISO | every save |
+
+Not written, and why: `budgetTool.*` (a guide; "Change the budget lines" is the planner's page); `spendingProfile` (the
+old setting `smileToSteps` already baked into the steps on load); `decisionTool.settings.incomeSteps` (the Decision form's
+own copy, which the Stress Save does not touch); `strategyParams.essentialsAnnual` (8.1).
+
+### 8.4 Locked, guest, partner and stale
+
+As §4 and §7.4. Locked: the document's `steps` (`planDocument.steps`: age, before-tax amount, fall, glide) and the
+settings the lock froze for the costs, figures only, "Fixed when you locked the plan on {date}" once, the unlock sentence
+once, no box; the budget guide still shows (the budget is not frozen by the lock) with its planner button. The partner's
+spending is on the partner's plan: "{Sam}'s spending is on {Sam}'s plan." with the link to `#/plan/<theirId>/spend`.
+The stale-answer rule (`answerAge`) gains the spend: a record with `takeHome` rows (PlanSeed.js, versions 2 and 3) is
+compared on its first row's after-tax figure a month against the plan's first step read back through the same tax sum,
+within £1 (the seed grossed it up at the planner's default bands; a plan whose bands were changed later still compares);
+a record without rows is judged as before. After a save the plan page's stale line and "check it still lasts" follow.
+
+### 8.5 Tests
+
+| # | Test | Proves |
+|---|---|---|
+| S1 | `tests/v7/plan/spend.test.js`: `spendOf` on the 12 corpus plans × 3 dates; the lumpy plan's facts (3 steps with a glide, 2 costs) and the flat plans' (the first row from `baseSalary`); read∘write∘read identity over random plans, random cards and random typed boxes (fast-check): only `SPEND_WRITES` paths, every other byte unchanged, Undo byte for byte, the read-back equal to the typed figures (a month after tax to the pound; falls and glides exactly; costs a year after tax to the pound), a second write empty; `shapeLayersFromSettings(written).steps` equal to the steps the screen showed (age, before-tax amount, fall, glide) and `targetSchedule` equal to the planner's own `compileSteps` floored by its own `floorVals`; age↔year against `dbStartYearOfAge`; the suggestion equal to the planner's `suggestSteps`; the problems in their ids; a locked plan writes nothing; the stale rule; the sub-step and the plan page's link | the pure read and write; every V6 shape feature round-trips |
+| S2 | `tests/v7/plan/spendRender.test.js`: every corpus plan × 3 dates (the first row, the cards, the chart with one bar a year, the budget guide, every figure sourced, no banned word, no countdown for the retired); locked = read-only with "Fixed when…" once; Add, Remove, Suggest and Use dispatch `plan/edit`; the plan page's section and link | §8.2, §8.4 |
+| S3 | `planWrite.test.js`: the spend paths on the account and the window path, a locked plan refused, Undo, the property over random boxes | §1 3e–3g for this step |
+| S4 | `e2e/plan-spend.spec.js` at 390 and 1440 (prod build, guest plan planted, outside requests blocked): change the first row's amount, add a step at an age with a fall; Save; stored JSON differs only in the declared keys; Undo byte-identical; the planner at `/` shows the new shape in its own boxes | the whole step |
+| S5 | parity: the income-shape rows this step edits carry `editV7`; `inc.extra-spends` built here; the ledger page regenerated; `wording.test.js` over `copy/spend.js` | §6 |

@@ -67,8 +67,11 @@ export function stepErrorText(view, field, messageId, i) {
   return E.other;
 }
 
-/** "then": a pick-list of the three; "moves evenly" only where there is a next step (or where it is already chosen). */
-function ThenBox({ id, value, last, label, error, onChange, fallsId, falls, fallsError, onFalls, onFallsLeave }) {
+/**
+ * "then": a pick-list of the three; "moves evenly" only where there is a next step (or where it is already chosen).
+ * Exported for the plan's "What you spend" step (editing-in-v7.md 8), which draws the same box on the plan's own paths.
+ */
+export function ThenBox({ id, value, last, label, error, onChange, fallsId, falls, fallsError, onFalls, onFallsLeave }) {
   // data-field is the box's path ("spend.steps.0.then"): the form puts the keyboard in the first one with a problem
   const pathOf = (x) => x.slice(x.indexOf('.') + 1);
   const options = ['level', 'falls', 'glides'].filter((o) => o !== 'glides' || !last || value === 'glides');

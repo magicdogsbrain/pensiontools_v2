@@ -206,10 +206,11 @@ describe('the parity ledger: the owner\'s rules', () => {
     expect(waitsOf(byId.get('income.markers')).sort()).toEqual(['inc.extra-spends', 'inc.lump-sums']);
   });
 
-  it('dated extra spends are a spending-shape option with a V7 design, and so are the lump sums "Turn a lump sum into income" waits for: neither is a gap', () => {
+  it('dated extra spends are a spending-shape option built on the plan\'s "What you spend" step (editing-in-v7.md 8) and still designed for the questions, and the lump sums "Turn a lump sum into income" waits for are designed: neither is a gap', () => {
     const extra = byId.get('inc.extra-spends');
     expect(extra.area).toBe('income-shape');
-    expect(extra.status).toBe('designed');
+    expect(extra.status).toBe('built');
+    expect(extra.editV7).toBe('src/v7/screens/plan/SpendScreen.jsx');
     expect(extra.doc).toMatch(/^research\/v7\/spending-shape\.md §16/);
     expect(extra.gap).toBeFalsy();
     const lumps = byId.get('inc.lump-sums');
@@ -222,7 +223,7 @@ describe('the parity ledger: the owner\'s rules', () => {
   it('the readable page counts every spending-shape row not built as "not yet", with what it waits for', () => {
     const md = renderLedgerMarkdown(ledger);
     const notYet = incomeShapeNotYet(ledger);
-    expect(notYet.map((r) => r.id).sort()).toEqual(['inc.extra-spends', 'income.below-income-live', 'income.budget-mark', 'income.layers-editing', 'income.lump-to-steps',
+    expect(notYet.map((r) => r.id).sort()).toEqual(['income.below-income-live', 'income.budget-mark', 'income.layers-editing', 'income.lump-to-steps',
       'income.markers', 'income.staircase-motion']);
     const section = md.slice(md.indexOf('## The spending shape: not yet in V7'));
     expect(section).toMatch(new RegExp(`^## The spending shape: not yet in V7 \\(${notYet.length} of ${ledger.rows.filter((r) => r.area === 'income-shape').length}\\)`));

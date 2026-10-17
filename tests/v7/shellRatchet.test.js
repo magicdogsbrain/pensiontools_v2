@@ -23,7 +23,10 @@ import { resolve } from 'node:path';
 // (src/services/SavingPath.js, loaded by src/ui/savingPathForLock.js), the Accumulation planner's table and "Am I on
 // course?" (src/ui/accumulationProjection.js), the bar and its words (src/services/OnCourse.js) — and the script ends
 // 30 lines shorter: 10,501.
-const MAX_LINES = 10501;
+// 6.23 (the monthly entry asks what a platform shows; every pasted line counts) moved the entry card's helpers — the
+// per-fund popup, the plausibility guard, the taxable account's cost pre-fill, the view switch — to src/ui/monthlyEntry.js
+// and the paste preview to src/ui/components/HoldingsPasteView.js, and the script ends 84 lines shorter: 10,417.
+const MAX_LINES = 10417;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

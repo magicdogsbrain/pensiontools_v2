@@ -125,6 +125,7 @@ export function parsePaste(text) {
   const data = hasHeader ? rows.slice(1) : rows;
   const out = [];
   const warnings = [];
+  const leftOut = [];   // every line that did not become a row, with the reason (6.23: nothing drops out silently)
   data.forEach((r, i) => {
     const cell = (k) => (map[k] != null ? (r[map[k]] || '').trim() : '');
     const name = cell('name') || r.find((c) => /[A-Za-z]{3,}/.test(c) && !SEDOL_RE.test(c)) || '';
@@ -134,13 +135,73 @@ export function parsePaste(text) {
     const value = parseMoney(cell('value'));
     const units = map.units != null ? parseMoney(cell('units')) : null;
     const price = map.price != null ? parseMoney(cell('price')) : null;
-    if (!name && !ticker && !sedol) { warnings.push('Row ' + (i + 1) + ' skipped: no name, ticker or SEDOL'); return; }
-    if (/^total/i.test(name) || /^cash$/i.test(name) && value == null) return;
-    if (value == null && units == null && !ticker && !sedol) { warnings.push('Row ' + (i + 1) + ' skipped: no units or value found in "' + name.slice(0, 40) + '"'); return; }
+    const skip = (why) => { warnings.push('Row ' + (i + 1) + ' skipped: ' + why); leftOut.push({ line: i + 1, text: (name || r.join(' ')).trim().slice(0, 60), why }); };
+    if (!name && !ticker && !sedol) { skip('no name, ticker or SEDOL'); return; }
+    if (/^total/i.test(name) || /^cash$/i.test(name) && value == null) { leftOut.push({ line: i + 1, text: name.slice(0, 60), why: /^total/i.test(name) ? 'a total line, not a holding' : 'a cash heading with no value' }); return; }
+    if (value == null && units == null && !ticker && !sedol) { skip('no units or value found'); return; }
     out.push({ line: i + 1, name, ticker: up(ticker), sedol: up(sedol) || null, isin: up(isin) || null, units: units != null ? units : null, value: value != null ? Math.round(value) : null, price });
   });
   if (!out.length) warnings.push('Nothing recognisable was pasted — copy the holdings table from your platform page (name, units, value) and try again.');
-  return { rows: out, columns: map, sep, hasHeader, warnings };
+  return { rows: out, columns: map, sep, hasHeader, warnings, leftOut };
+}
+
+// ---- "What is this?" — every pasted line counts (6.23; research/v7/v6-usability-audit.md §2.9) ----
+
+/** The answers to "What is this?" for a line the tool cannot recognise. The sub-class is a plain stand-in for the bucket. */
+export const CATEGORY_CHOICES = [
+  { key: 'shares', label: 'Shares', subClass: 'worldGrowth', kind: null },
+  { key: 'bonds', label: 'Bonds', subClass: 'globalAggHedged', kind: null },
+  { key: 'cash', label: 'Cash', subClass: 'moneyMarket', kind: 'cash' },
+  { key: 'diversifiers', label: 'Gold and trend', subClass: 'gold', kind: null },
+  { key: 'unknown', label: 'Don\'t know', subClass: null, kind: null }
+];
+
+/** A matched row (or a ledger line) with the person's answer applied: the bucket chosen, or none for "don't know". No undefined. */
+export function categorise(row, key) {
+  const c = CATEGORY_CHOICES.find((x) => x.key === key) || CATEGORY_CHOICES[CATEGORY_CHOICES.length - 1];
+  const out = { ...(row || {}), subClass: c.subClass, kind: c.kind, category: c.key };
+  if (out.match) out.match = { ...out.match, kind: c.kind === 'cash' ? 'cash' : (c.subClass ? 'chosen' : 'none'), subClass: c.subClass, confidence: 'chosen', ticker: out.match.ticker || '', name: out.match.name || out.name || '' };
+  return out;
+}
+
+/** Does a ledger line still need the person to say what it is? Placed lines: a sub-class, a gilt or cash kind, a catalogue ticker, a gilt code, or a bank (CASH) wrapper. */
+export function needsCategory(line) {
+  const l = line || {};
+  if (l.subClass) return false;
+  if (l.kind === 'gilt' || l.kind === 'cash') return false;
+  if (String(l.wrapper || '').toUpperCase() === 'CASH') return false;
+  const t = up(l.ticker);
+  if (t && (CATALOGUE_TICKERS.has(t) || isGiltCode(t))) return false;
+  return true;
+}
+
+const gbpWhole = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+/**
+ * What a paste came to: every line read, the ones recognised, the ones not, the ones marked "don't know", and the
+ * lines left out with the reason — as figures and as one plain paragraph.
+ */
+export function pasteSummary({ parsed, matched }) {
+  const rows = (matched || []);
+  const val = (r) => (r && r.value != null ? +r.value : 0);
+  const unrecognised = rows.filter((r) => r.match && r.match.kind === 'none' && r.category !== 'unknown');
+  const unknown = rows.filter((r) => r.category === 'unknown');
+  const recognised = rows.filter((r) => !unrecognised.includes(r) && !unknown.includes(r));
+  const sum = (xs) => xs.reduce((t, r) => t + val(r), 0);
+  const leftOut = (parsed && parsed.leftOut) || [];
+  const parts = [plural(rows.length, 'line', 'lines') + ' read, ' + gbpWhole(sum(rows)) + ' in all.'];
+  if (recognised.length && (unrecognised.length || unknown.length)) parts.push(plural(recognised.length, 'line', 'lines') + ' recognised (' + gbpWhole(sum(recognised)) + ').');
+  if (unrecognised.length) parts.push(plural(unrecognised.length, 'line', 'lines') + ' (' + gbpWhole(sum(unrecognised)) + ') ' + (unrecognised.length === 1 ? 'is' : 'are') + ' not recognised — say what each is under "What is this?" and they count.');
+  if (unknown.length) parts.push(plural(unknown.length, 'line', 'lines') + ' (' + gbpWhole(sum(unknown)) + ') ' + (unknown.length === 1 ? 'is' : 'are') + ' marked "don\'t know": ' + (unknown.length === 1 ? 'it stays' : 'they stay') + ' on your record and ' + (unknown.length === 1 ? 'counts' : 'count') + ' in the total, but not in the mix until you say what ' + (unknown.length === 1 ? 'it is' : 'they are') + '.');
+  if (leftOut.length) parts.push('Left out: ' + leftOut.map((x) => 'line ' + x.line + (x.text ? ' "' + x.text + '"' : '') + ' (' + x.why + ')').join('; ') + '.');
+  return {
+    pastedCount: rows.length, pastedTotal: sum(rows),
+    recognisedCount: recognised.length, recognisedTotal: sum(recognised),
+    unrecognised: unrecognised.map((r) => ({ line: r.line, name: r.name, value: val(r) })), unrecognisedTotal: sum(unrecognised),
+    unknownCount: unknown.length, unknownTotal: sum(unknown),
+    leftOut, text: parts.join(' ')
+  };
 }
 
 /**
@@ -234,7 +295,7 @@ export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
     const idx = out.findIndex(key);
     // No `undefined` values: Firestore refuses them and the whole settings save fails (6.10.5).
     const line = { ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? (out[idx].units ?? null) : null), sedol: m.match.sedol || m.sedol || null };
-    const sc = m.match.subClass || (idx >= 0 ? out[idx].subClass : null); if (sc) line.subClass = sc;
+    const sc = m.match.subClass || (idx >= 0 ? out[idx].subClass : null); line.subClass = sc || null;   // null, never missing: a "don't know" line is on the record, unplaced (6.23)
     const kind = m.match.kind === 'gilt' ? 'gilt' : m.match.kind === 'cash' ? 'cash' : null; if (kind) line.kind = kind;
     if (idx >= 0) { out[idx] = { ...out[idx], ...line }; updated.push(line); seen.add(out[idx]); }
     else { out.push(line); added.push(line); seen.add(out[out.length - 1]); }

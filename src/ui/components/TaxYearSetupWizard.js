@@ -1,6 +1,11 @@
 /**
- * Tax Year Setup Wizard
- * Guides users through setting up a new tax year including ISA/Savings allocation
+ * Tax Year Setup — the set-up for a tax year the Decision tool has not seen yet.
+ *
+ * Three screens (6.23; research/v7/v6-usability-audit.md §2.7): this year's figures (everything the app cannot
+ * know, on one screen — income so far when the year starts mid-way, last year's inflation, income before tax, other
+ * income, gains realised; the tax bands shown as an assumption you can change, never a question), the tax-free
+ * top-up (what the ISA or savings need to provide to keep the pension income in the 20% band, and the choice when
+ * they cannot), and confirm. The config saved is exactly what the six-screen set-up saved.
  */
 
 import { DECISION_ASSUMED_CPI } from '../../services/InflationModel.js';
@@ -10,7 +15,10 @@ import {
   calculateIsaNeeded,
   validateIsaInput,
   buildTaxYearConfig,
-  calculateMonthlyBreakdown
+  calculateMonthlyBreakdown,
+  wizardScreens,
+  bandsAssumptionText,
+  statePensionLine
 } from '../../services/TaxYearWizardService.js';
 import { saveTaxYearConfig, getTaxYearConfigAsync } from '../../storage/DecisionRepository.js';
 import { lockPlanIfNeeded } from '../../services/PlanLock.js';
@@ -21,6 +29,9 @@ let onCompleteCallback = null;
 let currentStep = 1;
 let wizardContext = null;  // Data from getWizardData()
 let wizardInputs = {};     // User inputs collected during wizard
+
+const fmt = (val) => '£' + Math.round(+val || 0).toLocaleString('en-GB');
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
  * Initialize and show the Tax Year Setup Wizard
@@ -37,7 +48,7 @@ export async function initTaxYearWizard(container, selectedMonth, onComplete) {
   // Load wizard context data
   wizardContext = await getWizardData(selectedMonth);
 
-  // Pre-fill inputs with defaults
+  // Pre-fill inputs with what the app already knows
   wizardInputs = {
     pa: wizardContext.defaults.pa,
     brl: wizardContext.defaults.brl,
@@ -48,7 +59,7 @@ export async function initTaxYearWizard(container, selectedMonth, onComplete) {
     grossIncomeToDate: 0,
     taxPaidToDate: null,
     confirmedSalary: wizardContext.suggestedSalary,
-    isaSavingsAllocation: 0,
+    isaSavingsAllocation: null,   // null until the top-up screen suggests one
     isTaxEfficient: true,
     taxEfficiencyChoice: null
   };
@@ -71,24 +82,25 @@ export async function checkWizardNeeded(selectedMonth) {
 function renderWizard() {
   if (!wizardElement || !wizardContext) return;
 
-  const totalSteps = wizardContext.isApril ? 6 : 7;
+  const screens = wizardScreens(wizardContext);
+  const screen = screens[currentStep - 1] || screens[0];
 
   wizardElement.innerHTML = `
     <div class="wizard-overlay">
       <div class="wizard-box">
-        <div class="wizard-title">Tax Year ${wizardContext.taxYear} Setup</div>
+        <div class="wizard-title">Setting up tax year ${esc(wizardContext.taxYear)}</div>
         <div class="wizard-subtitle">
           ${wizardContext.isApril
-            ? 'Setting up for the full tax year'
-            : `Starting in ${getMonthName(wizardContext.selectedMonth)} - ${wizardContext.remainingMonths} months remaining`
+            ? 'The whole tax year, April to March'
+            : `Starting in ${esc(getMonthName(wizardContext.selectedMonth))} — ${wizardContext.remainingMonths} payments to come this tax year`
           }
         </div>
 
         <div class="wizard-progress">
-          ${renderProgressDots(totalSteps, currentStep)}
+          ${renderProgressDots(screens.length, currentStep)}
         </div>
 
-        ${renderStep()}
+        ${screen.key === 'this-year' ? renderThisYear() : screen.key === 'top-up' ? renderTopUp() : renderConfirmation()}
       </div>
     </div>
   `;
@@ -97,75 +109,127 @@ function renderWizard() {
 }
 
 /**
- * Render the current step content
+ * Screen 1: this year's figures — everything the app cannot know, on one screen.
  */
-function renderStep() {
-  // Adjust step numbers if mid-year (has extra step 2 for income-to-date)
-  const effectiveStep = wizardContext.isApril ? currentStep : currentStep;
+function renderThisYear() {
+  const monthName = getMonthName(wizardContext.selectedMonth);
+  const prevMonth = getPreviousMonthName(wizardContext.selectedMonth);
+  const currentCpi = wizardInputs.cpi !== undefined ? wizardInputs.cpi : wizardContext.defaults.cpi;
+  const cpiPercent = (currentCpi * 100).toFixed(1);
 
-  if (wizardContext.isApril) {
-    switch (currentStep) {
-      case 1: return renderTaxThresholds();
-      case 2: return renderCpiAndSalary();
-      case 3: return renderOtherIncome();
-      case 4: return renderIsaRequirement();
-      case 5: return renderTaxEfficiencyDecision();
-      case 6: return renderConfirmation();
-      default: return '';
-    }
-  } else {
-    // Mid-year has extra step for income-to-date
-    switch (currentStep) {
-      case 1: return renderTaxThresholds();
-      case 2: return renderMidYearIncome();
-      case 3: return renderCpiAndSalary();
-      case 4: return renderOtherIncome();
-      case 5: return renderIsaRequirement();
-      case 6: return renderTaxEfficiencyDecision();
-      case 7: return renderConfirmation();
-      default: return '';
-    }
-  }
-}
+  // Suggested income before tax: last year's figure (or the plan base in year 1) uplifted by CPI, netted by the
+  // real-spending decline when the plan declines — the Stress tester's own curve; or the plan's schedule for this year.
+  const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
+  const declineRate = wizardContext.declineRate || 0;
+  const fromBridge = wizardContext.suggestionSource === 'bridge';
+  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule' || fromBridge;
+  const suggestedSalary = fromSchedule ? Math.round(wizardContext.suggestedSalary) : Math.round(base * (1 + currentCpi - declineRate));
+  const declining = declineRate > 0;
+  const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
+  const startLabel = wizardContext.planStartYear ? wizardContext.planStartYear + '/' + String(wizardContext.planStartYear + 1).slice(2) : '';
 
-/**
- * Step: Tax Thresholds
- */
-function renderTaxThresholds() {
+  const midYear = wizardContext.isApril ? '' : `
+      <div class="wizard-step-desc">
+        <strong>Income before tax you have already received this tax year</strong> (April to ${esc(prevMonth)}): pay, self-employment, rent,
+        dividends, pension already drawn. ${esc(monthName)}'s own payment is the first the tool plans, so do not include it. If ${esc(monthName)}'s
+        payment has already been made, cancel, tick "This month's payment has already been made" on the entry, and the set-up restarts from next month.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizIncomeToDate" value="${wizardInputs.grossIncomeToDate}" placeholder="0">
+        <span class="wizard-unit">before tax</span>
+      </div>
+      <div class="wizard-step-desc" style="margin-top:10px;">
+        Tax already taken off that income (from your payslips, or a P60 to date). Leave blank if you don't know — the tool then assumes
+        the earlier income was taxed on its own, which overstates the tax to come for someone already drawing a pension.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizTaxPaidToDate" value="${wizardInputs.taxPaidToDate == null ? '' : wizardInputs.taxPaidToDate}" placeholder="leave blank if unknown">
+        <span class="wizard-unit">tax paid</span>
+      </div>`;
+
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">Tax Thresholds for ${wizardContext.taxYear}</div>
-      <div class="wizard-step-desc">
-        Enter the tax thresholds for this tax year. These are pre-filled with standard values.
+      <div class="wizard-step-title">This year's figures</div>
+      ${midYear}
+
+      <div class="wizard-step-desc" style="margin-top:${wizardContext.isApril ? 0 : 14}px;">
+        <strong>Last year's inflation (CPI)</strong> — it moves this year's suggested income.
+      </div>
+      <div class="wizard-input" style="margin-bottom: 12px;">
+        <input type="number" id="wizCPI" value="${cpiPercent}" step="0.1" style="max-width: 80px;">
+        <span class="wizard-unit">%</span>
       </div>
 
-      <div class="wizard-grid">
-        <div class="wizard-grid-item">
-          <label>Personal Allowance</label>
-          <div class="wizard-input">
-            <span class="wizard-unit">£</span>
-            <input type="number" id="wizPA" value="${wizardInputs.pa}">
-          </div>
-        </div>
-        <div class="wizard-grid-item">
-          <label>Basic Rate Limit</label>
-          <div class="wizard-input">
-            <span class="wizard-unit">£</span>
-            <input type="number" id="wizBRL" value="${wizardInputs.brl}">
-          </div>
-        </div>
-        <div class="wizard-grid-item">
-          <label>Higher Rate Limit</label>
-          <div class="wizard-input">
-            <span class="wizard-unit">£</span>
-            <input type="number" id="wizHRL" value="${wizardInputs.hrl}">
-          </div>
-        </div>
+      <div class="wizard-info-box" id="salaryInfoBox">
+        ${fromBridge
+          ? `<p><strong>Run-up year</strong> — your plan's first year is ${esc(startLabel)}, so this tax year is drawn from your pension cash
+             (the money-market fund the cash years also use). The suggestion is your plan's first income step, the rate that cash was sized
+             for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the cash to April covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
+          : fromSchedule
+          ? `<p><strong>From your plan's income schedule for this year</strong> — the year-by-year income your plan was priced on
+             (the income steps, or the Budget tool's plan), uplifted to this year's money:</p>`
+          : ''}
+        ${fromSchedule
+          ? `<span id="cpiDisplay" hidden>${cpiPercent}</span><span id="netUpliftDisplay" hidden>${netUpliftPct}</span>`
+          : declining
+            ? `<p>Your plan's spending <strong>falls a little each year</strong> (about ${(declineRate * 100).toFixed(0)}% a year in today's money). Last year's income rises with <span id="cpiDisplay">${cpiPercent}</span>% inflation less that fall — a net <strong><span id="netUpliftDisplay">${netUpliftPct}</span>%</strong> — to:</p>`
+            : `<p>With <span id="cpiDisplay">${cpiPercent}</span>% inflation, this year's income before tax would be:<span id="netUpliftDisplay" hidden>${netUpliftPct}</span></p>`}
+        <p style="font-size: 24px; color: var(--primary); margin: 12px 0;">£<span id="suggestedSalaryDisplay">${suggestedSalary.toLocaleString('en-GB')}</span></p>
+        <p>a year, before tax</p>
       </div>
 
-      <div class="wizard-example">
-        <strong>Note:</strong> BRL is the threshold where 40% tax begins. Staying at or below BRL keeps you in the 20% tax band.
+      <div class="wizard-step-desc" style="margin-top: 12px;">
+        <strong>Income before tax</strong> for this year — what you want to live on, counting the State Pension and any other income below. Change it if you like.
       </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizSalary" value="${Math.round(wizardInputs.confirmedSalary || suggestedSalary)}">
+        <span class="wizard-unit">a year</span>
+      </div>
+
+      <div class="wizard-step-desc" style="margin-top: 14px;">
+        <strong>Other taxable income this year</strong> — a workplace or private pension in payment, rent, part-time work, dividends above the allowance. A year's worth.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizOther" value="${wizardInputs.other}">
+        <span class="wizard-unit">a year</span>
+      </div>
+
+      <div class="wizard-step-desc" style="margin-top: 14px;">
+        <strong>Gains already made this tax year</strong> outside this tool, if any — they share the £3,000 capital-gains allowance with any sales from a taxable account the tool advises.
+      </div>
+      <div class="wizard-input">
+        <span class="wizard-unit">£</span>
+        <input type="number" id="wizCgtUsed" value="${wizardInputs.cgtExemptionUsed || 0}" min="0">
+        <span class="wizard-unit">of gains</span>
+      </div>
+
+      <div class="wizard-info-box" style="margin-top: 14px;">
+        <strong>State Pension:</strong> ${esc(statePensionLine(wizardContext.statePension, wizardContext.selectedMonth))}
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">From your settings — change it there if it is wrong.</p>
+      </div>
+
+      <details class="wizard-example" style="margin-top: 12px;">
+        <summary style="cursor:pointer;">${esc(bandsAssumptionText(wizardInputs))} <span style="color: var(--primary);">Change</span></summary>
+        <div class="wizard-grid" style="margin-top: 10px;">
+          <div class="wizard-grid-item">
+            <label>Tax-free allowance</label>
+            <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizPA" value="${wizardInputs.pa}"></div>
+          </div>
+          <div class="wizard-grid-item">
+            <label>20% tax up to (taxable income)</label>
+            <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizBRL" value="${wizardInputs.brl}"></div>
+          </div>
+          <div class="wizard-grid-item">
+            <label>45% tax above (taxable income)</label>
+            <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizHRL" value="${wizardInputs.hrl}"></div>
+          </div>
+        </div>
+        <p style="font-size:12px; color: var(--text-muted); margin-top:6px;">Pre-filled from your plan. Keeping pension income within the 20% band is what the tax-free top-up on the next screen is for.</p>
+      </details>
 
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="cancel">Cancel</button>
@@ -175,191 +239,13 @@ function renderTaxThresholds() {
   `;
 }
 
-/**
- * Step: Mid-Year Income (only for non-April starts)
- */
-function renderMidYearIncome() {
-  const monthName = getMonthName(wizardContext.selectedMonth);
-  const prevMonth = getPreviousMonthName(wizardContext.selectedMonth);
-
-  return `
-    <div class="wizard-step">
-      <div class="wizard-step-title">Income Before Starting Pension</div>
-      <div class="wizard-step-desc">
-        You're starting your pension drawdown in ${monthName}. Enter any taxable income you've already received this tax year (April to ${prevMonth}).
-        ${monthName}'s own payment is the first the tool plans, so do not include it here. If ${monthName}'s payment has already been made, cancel, tick
-        "This month's payment has already been made" on Monthly Entry, and the setup restarts from next month.
-      </div>
-
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizIncomeToDate" value="${wizardInputs.grossIncomeToDate}" placeholder="0">
-        <span class="wizard-unit">gross</span>
-      </div>
-
-      <div class="wizard-example">
-        <strong>Include:</strong> Employment income, self-employment, rental income, dividends, pension already drawn, etc. received since April — gross, before tax.
-        <br><strong>Exclude:</strong> Tax-free income like ISA withdrawals.
-      </div>
-
-      <div class="wizard-step-desc" style="margin-top:14px;">
-        Tax already deducted on that income (PAYE, from your payslips or a P60-to-date). Leave blank if you don't know.
-      </div>
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizTaxPaidToDate" value="${wizardInputs.taxPaidToDate == null ? '' : wizardInputs.taxPaidToDate}" placeholder="leave blank if unknown">
-        <span class="wizard-unit">tax paid</span>
-      </div>
-
-      <div class="wizard-info-box">
-        <p>The income to date uses up allowance and basic-rate band, which affects how tax-efficient the rest of the year can be. If you fill in the tax paid, the tax still to come is the year's total less that — the right answer if you have been drawing your pension since April under PAYE. Left blank, the tool assumes the earlier income was taxed on its own (a salary before you started), which overstates the tax to come for someone already in drawdown.</p>
-      </div>
-
-      <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="next">Next</button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Step: CPI and Salary
- */
-function renderCpiAndSalary() {
-  // Use current CPI input if available, otherwise default
-  const currentCpi = wizardInputs.cpi !== undefined ? wizardInputs.cpi : wizardContext.defaults.cpi;
-  const cpiPercent = (currentCpi * 100).toFixed(1);
-
-  // Calculate suggested salary: uplift last year's confirmed salary (or the plan base in year 1) by
-  // CPI, netted by the real-spending decline when the plan declines — mirrors the Stress tester.
-  const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
-  const declineRate = wizardContext.declineRate || 0;
-  const fromBridge = wizardContext.suggestionSource === 'bridge';
-  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule' || fromBridge;
-  const suggestedSalary = fromSchedule
-    ? Math.round(wizardContext.suggestedSalary)
-    : Math.round(base * (1 + currentCpi - declineRate));
-  const declining = declineRate > 0;
-  const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
-  const startLabel = wizardContext.planStartYear ? wizardContext.planStartYear + '/' + String(wizardContext.planStartYear + 1).slice(2) : '';
-
-  return `
-    <div class="wizard-step">
-      <div class="wizard-step-title">Inflation and Target Salary</div>
-      <div class="wizard-step-desc">
-        Enter last year's CPI (used to adjust your target salary for inflation).
-      </div>
-
-      <div class="wizard-input" style="margin-bottom: 16px;">
-        <span class="wizard-unit">CPI</span>
-        <input type="number" id="wizCPI" value="${cpiPercent}" step="0.1" style="max-width: 80px;" data-on-change="callIfDefined('_updateWizardSalary')">
-        <span class="wizard-unit">%</span>
-      </div>
-
-      <div class="wizard-info-box" id="salaryInfoBox">
-        ${fromBridge
-          ? `<p><strong>Run-up year</strong> — your plan's year 0 is ${startLabel}, so this tax year is drawn
-             from your SIPP cash (the money-market fund the cash years also use). The suggestion is your plan's first income step, the rate
-             that cash was sized for${wizardContext.bridgeCoverMonths != null ? ` (at that rate the cash to April covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
-          : fromSchedule
-          ? `<p><strong>From your plan's income schedule for this year</strong> — the per-year schedule
-             your plan was priced on (the Stress Tester's income steps, or the Budget tool's plan: temporary
-             costs end when they end, one-offs land in their year), uplifted to this year's money:</p>`
-          : ''}
-        ${fromSchedule
-          ? `<span id="cpiDisplay" hidden>${cpiPercent}</span><span id="netUpliftDisplay" hidden>${netUpliftPct}</span>`
-          : declining
-            ? `<p>Your plan uses <strong>declining spending</strong> (~${(declineRate * 100).toFixed(0)}%/yr real). Last year's salary rises with <span id="cpiDisplay">${cpiPercent}</span>% CPI less that decline — a net <strong><span id="netUpliftDisplay">${netUpliftPct}</span>%</strong> — to:</p>`
-            : `<p>Based on <span id="cpiDisplay">${cpiPercent}</span>% inflation, your target salary should be:<span id="netUpliftDisplay" hidden>${netUpliftPct}</span></p>`}
-        <p style="font-size: 24px; color: var(--primary); margin: 12px 0;">£<span id="suggestedSalaryDisplay">${suggestedSalary.toLocaleString()}</span></p>
-        <p>per year (gross)</p>
-      </div>
-
-      <div class="wizard-step-desc" style="margin-top: 16px;">
-        Confirm or adjust your target salary:
-      </div>
-
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizSalary" value="${Math.round(wizardInputs.confirmedSalary || suggestedSalary)}">
-        <span class="wizard-unit">per year</span>
-      </div>
-
-      <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="next">Next</button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Step: Other Income
- */
-function renderOtherIncome() {
-  const spInfo = wizardContext.statePension;
-  const spStartsLater = spInfo.isReceiving && spInfo.startYm && wizardContext.selectedMonth && spInfo.startYm > wizardContext.selectedMonth;
-  const spDisplay = spStartsLater
-    ? `<span style="color: var(--success);">Starts ${spInfo.startDate || spInfo.startYm}: £${Math.round(spInfo.monthlyFull || 0).toLocaleString()}/month (£${Math.round(spInfo.amount).toLocaleString()} this tax year)</span>`
-    : spInfo.isReceiving
-    ? `<span style="color: var(--success);">Receiving £${Math.round(spInfo.amount).toLocaleString()}/year</span>`
-    : `<span style="color: var(--text-muted);">${spInfo.yearsUntil} years until state pension</span>`;
-
-  return `
-    <div class="wizard-step">
-      <div class="wizard-step-title">Other Taxable Income</div>
-      <div class="wizard-step-desc">
-        Enter any other taxable income you'll receive this tax year (annual amount).
-      </div>
-
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizOther" value="${wizardInputs.other}">
-        <span class="wizard-unit">per year</span>
-      </div>
-
-      <div class="wizard-example">
-        <strong>Include:</strong> Private pensions, rental income, side hustles, dividends above allowance.
-      </div>
-
-      <div class="wizard-step-desc" style="margin-top: 14px;">
-        Capital gains already realised this tax year outside this tool (optional). The £3,000 CGT exemption
-        is shared with any taxable-account (GIA) sales the tool advises.
-      </div>
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizCgtUsed" value="${wizardInputs.cgtExemptionUsed || 0}" min="0">
-        <span class="wizard-unit">of gains</span>
-      </div>
-
-      <div class="wizard-info-box">
-        <strong>State Pension:</strong> ${spDisplay}
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-          (Based on your settings - edit in Settings if needed)
-        </p>
-      </div>
-
-      <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="next">Next</button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Step: ISA Requirement
- */
-function renderIsaRequirement() {
-  // Calculate ISA needed based on current inputs
-  saveCurrentInputs();
-
+/** The one place the top-up need is worked out from screen 1's answers. */
+function isaCalcNow() {
   const isaCalc = calculateIsaNeeded({
     targetAnnualGross: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
-    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the set-up collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
@@ -368,87 +254,72 @@ function renderIsaRequirement() {
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate
   });
-
-  // Store for next step
   wizardInputs._isaCalc = isaCalc;
+  return isaCalc;
+}
 
+/** The choice when the top-up typed is short of what is needed (or the band is already used up). */
+function choiceHtml(isaCalc, isaTyped) {
+  const validation = validateIsaInput(isaTyped || 0, isaCalc.isaNeeded || 0, !!isaCalc.brlExhausted);
+  if (validation.sufficient && !validation.isBrlExhausted) return '';
+  const brl = fmt(wizardInputs.brl), target = fmt(wizardInputs.confirmedSalary);
+  const radio = (v, strong, p) => `
+        <label class="wizard-option">
+          <input type="radio" name="taxChoice" value="${v}" ${wizardInputs.taxEfficiencyChoice === v ? 'checked' : ''}>
+          <div class="wizard-option-content"><strong>${strong}</strong><p>${p}</p></div>
+        </label>`;
+  return `
+      <div class="wizard-step-desc" style="margin-top: 12px;">
+        ${validation.isBrlExhausted
+          ? 'The 20% band is already used up this year, so any pension income is taxed at 40% or more. Which do you want?'
+          : `That is ${fmt(validation.shortfall)} short of the ${fmt(isaCalc.isaNeeded)} needed. Which do you want?`}
+      </div>
+      <div class="wizard-options" id="wizChoice">
+        ${validation.isBrlExhausted ? '' : radio('increase', `Top up ${fmt(isaCalc.isaNeeded)} from the ISA or savings this year`, 'Keeps the pension income within the 20% band.')}
+        ${radio('reduced', `Take less: ${brl} before tax this year`, 'Keeps the ISA and savings to grow; a lower income this year.')}
+        ${radio('inefficient', `Take the full ${target} from the pension and pay 40% tax on the part above the band`, 'The ISA and savings are left untouched.')}
+      </div>`;
+}
+
+/**
+ * Screen 2: the tax-free top-up — and the choice, on the same screen, when it falls short.
+ */
+function renderTopUp() {
+  const isaCalc = isaCalcNow();
+  const months = wizardContext.remainingMonths;
+  const brl = fmt(wizardInputs.brl);
+  let lead, isaBox;
   if (isaCalc.brlExhausted) {
-    return `
-      <div class="wizard-step">
-        <div class="wizard-step-title">BRL Already Exhausted</div>
-
-        <div class="wizard-info-box" style="background: rgba(231, 76, 60, 0.2); border: 1px solid var(--danger);">
-          <p style="color: var(--danger); font-weight: 500;">
-            Your income to date (£${wizardInputs.grossIncomeToDate.toLocaleString()}) has already exceeded the BRL (£${wizardInputs.brl.toLocaleString()}).
-          </p>
-          <p style="margin-top: 8px;">
-            You cannot be tax-efficient this tax year. Any pension income will be taxed at 40% or higher.
-          </p>
-        </div>
-
-        <div class="wizard-buttons">
-          <button class="wizard-btn secondary" data-action="back">Back</button>
-          <button class="wizard-btn primary" data-action="next">Continue</button>
-        </div>
-      </div>
-    `;
+    lead = `<div class="wizard-info-box" style="background: rgba(231, 76, 60, 0.2); border: 1px solid var(--danger);">
+        <p style="color: var(--danger); font-weight: 500;">Your income so far this tax year (${fmt(wizardInputs.grossIncomeToDate)}) is already above the 20% band (${brl}).</p>
+        <p style="margin-top: 8px;">Any pension income this year is taxed at 40% or more, so no top-up can keep it in the 20% band.</p>
+      </div>`;
+    isaBox = '';
+    wizardInputs.isaSavingsAllocation = 0;
+  } else if (isaCalc.targetAchievableAtBrl) {
+    lead = `<div class="wizard-info-box" style="background: rgba(46, 204, 113, 0.2); border: 1px solid var(--success);">
+        <p style="color: var(--success); font-weight: 500;">No tax-free top-up is needed: ${fmt(wizardInputs.confirmedSalary)} before tax fits within the 20% band (${brl}).</p>
+        <p style="margin-top: 8px;">Everything you take this year is taxed at 20% or less.</p>
+      </div>`;
+    if (wizardInputs.isaSavingsAllocation == null) wizardInputs.isaSavingsAllocation = 0;
+    isaBox = `<div class="wizard-step-desc" style="margin-top: 14px;">Still want some of this year's income to come tax-free from the ISA or savings? Optional.</div>
+      <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizISA" value="${Math.round(wizardInputs.isaSavingsAllocation || 0)}" min="0"><span class="wizard-unit">this year</span></div>`;
+  } else {
+    lead = `<div class="wizard-info-box" style="background: rgba(52, 152, 219, 0.2); border: 1px solid var(--primary);">
+        <p>To keep the pension income within the 20% band (${brl}) for the remaining <strong>${months} payment${months === 1 ? '' : 's'}</strong> and still reach ${fmt(wizardInputs.confirmedSalary)} before tax, <strong>you need about ${fmt(isaCalc.isaNeeded)} from your ISA or savings</strong> this tax year.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Money taken from an ISA or savings is not taxed, so it makes up the difference without pushing pension income into the 40% band.</p>
+      </div>`;
+    if (wizardInputs.isaSavingsAllocation == null) wizardInputs.isaSavingsAllocation = Math.round(isaCalc.isaNeeded);
+    isaBox = `<div class="wizard-step-desc" style="margin-top: 14px;">How much can the ISA or savings provide this tax year?</div>
+      <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizISA" value="${Math.round(wizardInputs.isaSavingsAllocation)}" min="0"><span class="wizard-unit">this year</span></div>`;
   }
-
-  if (isaCalc.targetAchievableAtBrl) {
-    return `
-      <div class="wizard-step">
-        <div class="wizard-step-title">Good News!</div>
-
-        <div class="wizard-info-box" style="background: rgba(46, 204, 113, 0.2); border: 1px solid var(--success);">
-          <p style="color: var(--success); font-weight: 500;">
-            Your target salary of £${Math.round(wizardInputs.confirmedSalary).toLocaleString()} is achievable within the BRL.
-          </p>
-          <p style="margin-top: 8px;">
-            No ISA/Savings allocation is needed for tax efficiency. All your income will be taxed at 20% or less.
-          </p>
-        </div>
-
-        <div class="wizard-input" style="margin-top: 16px;">
-          <span class="wizard-unit">ISA allocation (optional): £</span>
-          <input type="number" id="wizISA" value="0">
-        </div>
-
-        <div class="wizard-buttons">
-          <button class="wizard-btn secondary" data-action="back">Back</button>
-          <button class="wizard-btn primary" data-action="next">Continue</button>
-        </div>
-      </div>
-    `;
-  }
-
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">ISA/Savings Requirement</div>
-
-      <div class="wizard-info-box" style="background: rgba(52, 152, 219, 0.2); border: 1px solid var(--primary);">
-        <p>To be tax-efficient for the remaining <strong>${wizardContext.remainingMonths} months</strong>, you need:</p>
-        <p style="font-size: 28px; color: var(--primary); margin: 12px 0;">
-          £${Math.round(isaCalc.isaNeeded).toLocaleString()}
-        </p>
-        <p>from ISA/Savings</p>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
-          This keeps your SIPP draw at the BRL (£${wizardInputs.brl.toLocaleString()}) while reaching your target salary.
-        </p>
-      </div>
-
-      <div class="wizard-step-desc" style="margin-top: 16px;">
-        How much ISA/Savings can you allocate this tax year?
-      </div>
-
-      <div class="wizard-input">
-        <span class="wizard-unit">£</span>
-        <input type="number" id="wizISA" value="${wizardInputs.isaSavingsAllocation || Math.round(isaCalc.isaNeeded)}">
-      </div>
-
-      <div class="wizard-example">
-        <strong>Tip:</strong> This is money you'll withdraw tax-free from ISA or savings to supplement your SIPP income.
-      </div>
-
+      <div class="wizard-step-title">Tax-free top-up</div>
+      ${lead}
+      ${isaBox}
+      <div id="wizChoiceBox">${choiceHtml(isaCalc, isaCalc.brlExhausted ? 0 : wizardInputs.isaSavingsAllocation)}</div>
+      <p class="hint" id="wizChoiceAsk" style="color: var(--warning); margin: 8px 0 0; display:none;">Choose one of the ${isaCalc.brlExhausted ? 'two' : 'three'} before going on.</p>
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="back">Back</button>
         <button class="wizard-btn primary" data-action="next">Next</button>
@@ -457,217 +328,98 @@ function renderIsaRequirement() {
   `;
 }
 
-/**
- * Step: Tax Efficiency Decision (if ISA insufficient or BRL exhausted)
- */
-function renderTaxEfficiencyDecision() {
-  saveCurrentInputs();
-
-  const isaCalc = wizardInputs._isaCalc;
-  const validation = validateIsaInput(
-    wizardInputs.isaSavingsAllocation,
-    isaCalc?.isaNeeded || 0,
-    isaCalc?.brlExhausted || false
-  );
-
-  // If sufficient ISA, skip to confirmation
+/** Settle the top-up screen's answer: enough typed → efficient; short → the choice picked. False when nothing is chosen yet. */
+function settleTopUp() {
+  const isaCalc = wizardInputs._isaCalc || isaCalcNow();
+  const typed = isaCalc.brlExhausted ? 0 : (wizardInputs.isaSavingsAllocation || 0);
+  const validation = validateIsaInput(typed, isaCalc.isaNeeded || 0, !!isaCalc.brlExhausted);
   if (validation.sufficient && !validation.isBrlExhausted) {
     wizardInputs.isTaxEfficient = true;
     wizardInputs.taxEfficiencyChoice = 'efficient';
-    // Auto-advance to confirmation - use setTimeout to avoid returning empty
-    setTimeout(() => {
-      currentStep++;
-      renderWizard();
-    }, 0);
-    // Show a brief "processing" message instead of blank
-    return `
-      <div class="wizard-step">
-        <div class="wizard-step-title">Setting Up Tax Efficiency...</div>
-        <div class="wizard-info-box">
-          <p>Your ISA allocation is sufficient for tax efficiency.</p>
-        </div>
-      </div>
-    `;
+    return true;
   }
-
-  const shortfallMsg = validation.shortfall > 0
-    ? `You entered £${wizardInputs.isaSavingsAllocation.toLocaleString()} but need £${Math.round(isaCalc.isaNeeded).toLocaleString()}.`
-    : '';
-
-  return `
-    <div class="wizard-step">
-      <div class="wizard-step-title">Tax Efficiency Choice</div>
-
-      ${validation.isBrlExhausted ? `
-        <div class="wizard-info-box" style="background: rgba(231, 76, 60, 0.2);">
-          <p style="color: var(--danger);">Your prior income has exhausted the BRL. You cannot be tax-efficient this year.</p>
-        </div>
-      ` : `
-        <div class="wizard-info-box" style="background: rgba(243, 156, 18, 0.2);">
-          <p style="color: var(--warning);">${shortfallMsg}</p>
-        </div>
-      `}
-
-      <div class="wizard-step-desc" style="margin-top: 16px;">
-        Choose how to proceed:
-      </div>
-
-      <div class="wizard-options">
-        ${!validation.isBrlExhausted ? `
-          <label class="wizard-option">
-            <input type="radio" name="taxChoice" value="increase" ${wizardInputs.taxEfficiencyChoice === 'increase' ? 'checked' : ''}>
-            <div class="wizard-option-content">
-              <strong>Increase ISA to £${Math.round(isaCalc.isaNeeded).toLocaleString()}</strong>
-              <p>Provide enough ISA/Savings for tax efficiency</p>
-            </div>
-          </label>
-        ` : ''}
-
-        <label class="wizard-option">
-          <input type="radio" name="taxChoice" value="reduced" ${wizardInputs.taxEfficiencyChoice === 'reduced' ? 'checked' : ''}>
-          <div class="wizard-option-content">
-            <strong>Reduce salary to BRL (£${wizardInputs.brl.toLocaleString()})</strong>
-            <p>Keep ISA/Savings to grow, accept lower income this year</p>
-          </div>
-        </label>
-
-        <label class="wizard-option">
-          <input type="radio" name="taxChoice" value="inefficient" ${wizardInputs.taxEfficiencyChoice === 'inefficient' ? 'checked' : ''}>
-          <div class="wizard-option-content">
-            <strong>Accept tax-inefficient year</strong>
-            <p>Draw full SIPP to target, ISA stays untouched, pay 40% on excess</p>
-          </div>
-        </label>
-      </div>
-
-      <div class="wizard-buttons">
-        <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="apply-choice">Continue</button>
-      </div>
-    </div>
-  `;
+  const choice = wizardElement.querySelector('input[name="taxChoice"]:checked')?.value;
+  if (!choice) return false;
+  wizardInputs.taxEfficiencyChoice = choice;
+  switch (choice) {
+    case 'increase':
+      wizardInputs.isaSavingsAllocation = isaCalc.isaNeeded;
+      wizardInputs.isTaxEfficient = true;
+      break;
+    case 'reduced':
+      wizardInputs.confirmedSalary = wizardInputs.brl;
+      wizardInputs.isaSavingsAllocation = 0;
+      wizardInputs.isTaxEfficient = true;
+      break;
+    case 'inefficient':
+      wizardInputs.isaSavingsAllocation = 0;
+      wizardInputs.isTaxEfficient = false;
+      break;
+  }
+  return true;
 }
 
 /**
- * Step: Confirmation
+ * Screen 3: confirm
  */
 function renderConfirmation() {
-  saveCurrentInputs();
-
   const breakdown = calculateMonthlyBreakdown({
     targetSalary: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
-    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the set-up collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
     spStartYm: wizardContext.statePension.startYm ?? null,
     startYm: wizardContext.selectedMonth,
-    isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
+    isaSavingsAllocation: wizardInputs.isaSavingsAllocation || 0,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
     taxPaidToDate: wizardInputs.taxPaidToDate,
     isTaxEfficient: wizardInputs.isTaxEfficient
   });
 
-  const modeLabel = wizardInputs.isTaxEfficient ? 'Tax-efficient (SIPP to the basic-rate limit, ISA tops up)' : 'Full target from the SIPP';
+  const modeLabel = wizardInputs.isTaxEfficient ? 'Pension income kept within the 20% band; the ISA or savings top it up' : 'The full amount from the pension, 40% tax on the part above the band';
   const modeClass = wizardInputs.isTaxEfficient ? 'success' : 'warning';
-
-  // Format currency helper
-  const fmt = (val) => `£${Math.round(val).toLocaleString()}`;
+  const sp = wizardContext.statePension;
+  const row = (k, v) => `<div class="wizard-summary-row"><span>${k}</span><span>${v}</span></div>`;
+  const cell = (v, extra = '') => `<td style="padding: 4px 0; text-align: right;${extra}">${v}</td>`;
+  const line = (label, b, taxFree) => `<tr><td style="padding: 4px 0;">${label}</td>${cell(fmt(b.gross))}${cell(taxFree ? '£0' : '-' + fmt(b.tax), taxFree ? ' color: var(--success);' : ' color: var(--danger);')}${cell(fmt(b.net))}</tr>`;
 
   return `
     <div class="wizard-step">
-      <div class="wizard-step-title">Confirm Tax Year Setup</div>
+      <div class="wizard-step-title">Confirm</div>
 
       <div class="wizard-summary">
-        <div class="wizard-summary-row">
-          <span>Tax Year:</span>
-          <span>${wizardContext.taxYear}</span>
-        </div>
-        <div class="wizard-summary-row">
-          <span>Starting Month:</span>
-          <span>${getMonthName(wizardContext.selectedMonth)}</span>
-        </div>
-        <div class="wizard-summary-row">
-          <span>Payments to come this tax year (including this month's):</span>
-          <span>${wizardContext.remainingMonths}</span>
-        </div>
-        ${wizardInputs.grossIncomeToDate > 0 ? `
-          <div class="wizard-summary-row">
-            <span>Income to Date:</span>
-            <span>${fmt(wizardInputs.grossIncomeToDate)}</span>
-          </div>
-        ` : ''}
-        ${wizardInputs.taxPaidToDate != null ? `
-          <div class="wizard-summary-row">
-            <span>Tax already paid:</span>
-            <span>${fmt(wizardInputs.taxPaidToDate)}</span>
-          </div>
-        ` : ''}
-        ${wizardContext.statePension && wizardContext.statePension.amount > 0 && wizardContext.statePension.startYm && wizardContext.statePension.startYm > wizardContext.selectedMonth ? `
-          <div class="wizard-summary-row">
-            <span>State Pension:</span>
-            <span>${fmt(wizardContext.statePension.monthlyFull || 0)}/month from ${wizardContext.statePension.startDate || wizardContext.statePension.startYm} — the months before it are drawn from the SIPP</span>
-          </div>
-        ` : ''}
-        <div class="wizard-summary-row">
-          <span>Target Salary:</span>
-          <span>${fmt(wizardInputs.confirmedSalary)}/year</span>
-        </div>
-        <div class="wizard-summary-row">
-          <span>Tax Mode:</span>
-          <span class="${modeClass}">${modeLabel}</span>
-        </div>
-        <div class="wizard-summary-row">
-          <span>ISA Allocation:</span>
-          <span>${fmt(wizardInputs.isaSavingsAllocation)}</span>
-        </div>
+        ${row('Tax year', esc(wizardContext.taxYear))}
+        ${row('Starting month', esc(getMonthName(wizardContext.selectedMonth)))}
+        ${row('Payments to come this tax year (including this month\'s)', wizardContext.remainingMonths)}
+        ${wizardInputs.grossIncomeToDate > 0 ? row('Income so far this year', fmt(wizardInputs.grossIncomeToDate)) : ''}
+        ${wizardInputs.taxPaidToDate != null ? row('Tax already paid', fmt(wizardInputs.taxPaidToDate)) : ''}
+        ${sp && sp.amount > 0 && sp.startYm && sp.startYm > wizardContext.selectedMonth ? row('State Pension', fmt(sp.monthlyFull || 0) + '/month from ' + esc(sp.startDate || sp.startYm) + ' — the months before it come from the pension') : ''}
+        ${row('Income before tax', fmt(wizardInputs.confirmedSalary) + ' a year')}
+        ${row('How it is taken', '<span class="' + modeClass + '">' + modeLabel + '</span>')}
+        ${row('Tax-free top-up this year', fmt(wizardInputs.isaSavingsAllocation || 0))}
+        ${row('Tax bands assumed', esc(bandsAssumptionText(wizardInputs)))}
       </div>
 
       <div class="wizard-info-box" style="margin-top: 16px;">
-        <strong>Expected Monthly Take-Home:</strong>
+        <strong>What reaches your bank each month:</strong>
         <table style="width: 100%; margin-top: 12px; font-size: 13px;">
           <thead>
             <tr style="text-align: left; color: var(--text-muted);">
-              <th style="padding: 4px 0;">Source</th>
-              <th style="padding: 4px 0; text-align: right;">Gross</th>
+              <th style="padding: 4px 0;">From</th>
+              <th style="padding: 4px 0; text-align: right;">Before tax</th>
               <th style="padding: 4px 0; text-align: right;">Tax</th>
-              <th style="padding: 4px 0; text-align: right;">Net</th>
+              <th style="padding: 4px 0; text-align: right;">After tax</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td style="padding: 4px 0;">SIPP</td>
-              <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.sipp.gross)}</td>
-              <td style="padding: 4px 0; text-align: right; color: var(--danger);">-${fmt(breakdown.sipp.tax)}</td>
-              <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.sipp.net)}</td>
-            </tr>
-            ${breakdown.other.gross > 0 ? `
-              <tr>
-                <td style="padding: 4px 0;">Other</td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.other.gross)}</td>
-                <td style="padding: 4px 0; text-align: right; color: var(--danger);">-${fmt(breakdown.other.tax)}</td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.other.net)}</td>
-              </tr>
-            ` : ''}
-            ${breakdown.statePension.gross > 0 ? `
-              <tr>
-                <td style="padding: 4px 0;">State Pension</td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.statePension.gross)}</td>
-                <td style="padding: 4px 0; text-align: right; color: var(--danger);">-${fmt(breakdown.statePension.tax)}</td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.statePension.net)}</td>
-              </tr>
-            ` : ''}
-            ${breakdown.isa.net > 0 ? `
-              <tr>
-                <td style="padding: 4px 0;">ISA <span style="color: var(--success);">(tax-free)</span></td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.isa.gross)}</td>
-                <td style="padding: 4px 0; text-align: right; color: var(--success);">£0</td>
-                <td style="padding: 4px 0; text-align: right;">${fmt(breakdown.isa.net)}</td>
-              </tr>
-            ` : ''}
+            ${line('Pension', breakdown.sipp)}
+            ${breakdown.other.gross > 0 ? line('Other income', breakdown.other) : ''}
+            ${breakdown.statePension.gross > 0 ? line('State Pension', breakdown.statePension) : ''}
+            ${breakdown.isa.net > 0 ? line('ISA or savings <span style="color: var(--success);">(tax-free)</span>', breakdown.isa, true) : ''}
           </tbody>
           <tfoot>
             <tr style="border-top: 1px solid var(--border); font-weight: bold;">
@@ -679,13 +431,13 @@ function renderConfirmation() {
           </tfoot>
         </table>
         <p style="margin-top: 12px; font-size: 14px; color: var(--text);">
-          <strong>You'll receive ${fmt(breakdown.totalNet)}/month</strong> in your bank
+          <strong>About ${fmt(breakdown.totalNet)} a month</strong> reaches your bank
         </p>
       </div>
 
       <div class="wizard-buttons">
         <button class="wizard-btn secondary" data-action="back">Back</button>
-        <button class="wizard-btn primary" data-action="finish">Confirm & Save</button>
+        <button class="wizard-btn primary" data-action="finish">Confirm &amp; save</button>
       </div>
     </div>
   `;
@@ -712,7 +464,7 @@ function attachListeners() {
     btn.addEventListener('click', () => handleAction(btn.dataset.action));
   });
 
-  // Setup CPI change handler for dynamic salary update
+  // Last year's CPI moves the suggested income
   window._updateWizardSalary = function() {
     // Budget-schedule suggestions don't depend on this year's CPI entry (the schedule is
     // uplifted by PRIOR years' CPI only) — don't clobber them with the chain recompute.
@@ -726,7 +478,7 @@ function attachListeners() {
     if (cpiInput && salaryInput && cpiDisplay && suggestedDisplay) {
       const cpiPercent = parseFloat(cpiInput.value) || 0;
       const cpi = cpiPercent / 100;
-      // Compound off last year's confirmed salary (or the plan base in year 1), netting the spending
+      // Compound off last year's confirmed figure (or the plan base in year 1), netting the spending
       // decline when the plan declines — same behaviour as the Stress tester.
       const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
       const declineRate = wizardContext.declineRate || 0;
@@ -737,20 +489,27 @@ function attachListeners() {
         ? Math.round(wizardContext.scheduleSuggestedBase * (1 + cpi))   // last year's CPI was assumed: the typed figure replaces it (6.11.6)
         : Math.round(base * (1 + cpi - declineRate));
 
-      // Update displays
       cpiDisplay.textContent = cpiPercent.toFixed(1);
-      suggestedDisplay.textContent = suggestedSalary.toLocaleString();
+      suggestedDisplay.textContent = suggestedSalary.toLocaleString('en-GB');
       const netDisplay = document.getElementById('netUpliftDisplay');
       if (netDisplay) netDisplay.textContent = ((cpi - declineRate) * 100).toFixed(1);
 
-      // Update the salary input to match suggestion
       salaryInput.value = suggestedSalary;
-
-      // Store the CPI value
       wizardInputs.cpi = cpi;
       wizardInputs.confirmedSalary = suggestedSalary;
     }
   };
+  const cpi = wizardElement.querySelector('#wizCPI');
+  if (cpi) cpi.addEventListener('change', () => window._updateWizardSalary());
+
+  // The top-up typed decides whether there is a choice to make — shown on the same screen as you type
+  const isa = wizardElement.querySelector('#wizISA');
+  if (isa) isa.addEventListener('input', () => {
+    wizardInputs.isaSavingsAllocation = parseFloat(isa.value) || 0;
+    const box = wizardElement.querySelector('#wizChoiceBox');
+    if (box) box.innerHTML = choiceHtml(wizardInputs._isaCalc || isaCalcNow(), wizardInputs.isaSavingsAllocation);
+    const ask = wizardElement.querySelector('#wizChoiceAsk'); if (ask) ask.style.display = 'none';
+  });
 }
 
 /**
@@ -758,36 +517,30 @@ function attachListeners() {
  */
 function handleAction(action) {
   saveCurrentInputs();
-
-  const totalSteps = wizardContext.isApril ? 6 : 7;
+  const totalSteps = wizardScreens(wizardContext).length;
+  const onTopUp = currentStep === 2;
 
   switch (action) {
     case 'cancel':
       hideWizard();
-      // Call callback with cancelled status
-      if (onCompleteCallback) {
-        onCompleteCallback({ completed: false, cancelled: true });
-      }
+      if (onCompleteCallback) onCompleteCallback({ completed: false, cancelled: true });
       break;
 
     case 'next':
-      if (currentStep < totalSteps) {
-        currentStep++;
-        renderWizard();
+      if (onTopUp && !settleTopUp()) {
+        const ask = wizardElement.querySelector('#wizChoiceAsk'); if (ask) ask.style.display = '';
+        break;
       }
+      if (currentStep < totalSteps) { currentStep++; renderWizard(); }
       break;
 
     case 'back':
       if (currentStep > 1) {
+        // Back from confirm: a "take less" choice set the income to the band limit — undo it so the first screen shows what was typed
+        if (currentStep === 3 && wizardInputs.taxEfficiencyChoice === 'reduced' && wizardInputs._salaryBeforeChoice != null) wizardInputs.confirmedSalary = wizardInputs._salaryBeforeChoice;
         currentStep--;
         renderWizard();
       }
-      break;
-
-    case 'apply-choice':
-      applyTaxEfficiencyChoice();
-      currentStep++;
-      renderWizard();
       break;
 
     case 'finish': {
@@ -795,35 +548,9 @@ function handleAction(action) {
       // duplicate dialogs behind. Disable the button for the duration of the save.
       const btn = wizardElement?.querySelector('[data-action="finish"]');
       if (btn) { if (btn.disabled) break; btn.disabled = true; btn.textContent = 'Saving…'; }
-      finishWizard().finally(() => { if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Save'; } });
+      finishWizard().finally(() => { if (btn) { btn.disabled = false; btn.textContent = 'Confirm & save'; } });
       break;
     }
-  }
-}
-
-/**
- * Apply the tax efficiency choice
- */
-function applyTaxEfficiencyChoice() {
-  const choice = document.querySelector('input[name="taxChoice"]:checked')?.value;
-  wizardInputs.taxEfficiencyChoice = choice;
-
-  switch (choice) {
-    case 'increase':
-      wizardInputs.isaSavingsAllocation = wizardInputs._isaCalc.isaNeeded;
-      wizardInputs.isTaxEfficient = true;
-      break;
-
-    case 'reduced':
-      wizardInputs.confirmedSalary = wizardInputs.brl;
-      wizardInputs.isaSavingsAllocation = 0;
-      wizardInputs.isTaxEfficient = true;
-      break;
-
-    case 'inefficient':
-      wizardInputs.isaSavingsAllocation = 0;
-      wizardInputs.isTaxEfficient = false;
-      break;
   }
 }
 
@@ -844,7 +571,12 @@ function saveCurrentInputs() {
   if (cpi) wizardInputs.cpi = (parseFloat(cpi.value) || DECISION_ASSUMED_CPI * 100) / 100;
 
   const salary = document.getElementById('wizSalary');
-  if (salary) wizardInputs.confirmedSalary = parseFloat(salary.value) || 30000;
+  if (salary) {
+    const typed = parseFloat(salary.value) || 30000;
+    if (typed !== wizardInputs.confirmedSalary) wizardInputs.isaSavingsAllocation = null;   // a new income: the top-up is suggested afresh
+    wizardInputs.confirmedSalary = typed;
+    wizardInputs._salaryBeforeChoice = typed;
+  }
 
   const other = document.getElementById('wizOther');
   if (other) wizardInputs.other = parseFloat(other.value) || 0;
@@ -872,13 +604,13 @@ async function finishWizard() {
     targetSalary: wizardInputs.confirmedSalary,
     brl: wizardInputs.brl,
     pa: wizardInputs.pa,
-    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the wizard collects (until 6.16.0 the sums always used the standard £125,140)
+    hrl: wizardInputs.hrl || undefined,   // the 45% threshold the set-up collects (until 6.16.0 the sums always used the standard £125,140)
     other: wizardInputs.other,
     statePension: wizardContext.statePension.amount,
     statePensionMonthlyFull: wizardContext.statePension.monthlyFull ?? null,
     spStartYm: wizardContext.statePension.startYm ?? null,
     startYm: wizardContext.selectedMonth,
-    isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
+    isaSavingsAllocation: wizardInputs.isaSavingsAllocation || 0,
     remainingMonths: wizardContext.remainingMonths,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
     taxPaidToDate: wizardInputs.taxPaidToDate,
@@ -893,7 +625,7 @@ async function finishWizard() {
     cpi: wizardInputs.cpi,
     other: wizardInputs.other,
     cgtExemptionUsed: wizardInputs.cgtExemptionUsed || 0,
-    isaSavingsAllocation: wizardInputs.isaSavingsAllocation,
+    isaSavingsAllocation: wizardInputs.isaSavingsAllocation || 0,
     isTaxEfficient: wizardInputs.isTaxEfficient,
     taxEfficiencyChoice: wizardInputs.taxEfficiencyChoice,
     grossIncomeToDate: wizardInputs.grossIncomeToDate,
@@ -928,10 +660,8 @@ async function finishWizard() {
     return;
   }
 
-  // Hide wizard
   hideWizard();
 
-  // Callback
   if (onCompleteCallback) {
     onCompleteCallback({
       completed: true,
@@ -994,9 +724,12 @@ export function getTaxYearWizardStyles() {
     .wizard-summary-row {
       display: flex;
       justify-content: space-between;
+      gap: 12px;
       padding: 8px 0;
       border-bottom: 1px solid var(--border);
     }
+
+    .wizard-summary-row > span:last-child { text-align: right; }
 
     .wizard-summary-row:last-child {
       border-bottom: none;

@@ -888,13 +888,13 @@ describe('what became of a seed: the receipt V7 reads on coming Back (review, 1 
 
 describe('the Budget page\'s words about the target (review, 1 Oct 2026: the budget is a guide)', () => {
   const money = (n) => '£' + Math.round(n).toLocaleString('en-GB');
-  const f = { allInMonthly: 2837.33, allInAnnual: 34048, periodicMonthly: 187.5, headroomMonthly: 0, targetGrossAnnual: 39417, shared: false };
-  it('a plan made in the planner: today\'s words, exactly as they were', () => {
+  const f = { allInMonthly: 2837.33, allInAnnual: 34048, periodicMonthly: 187.5, targetGrossAnnual: 39417, shared: false };
+  it('a plan made in the planner: the budget is a guide, and only the button changes the plan (6.23.0; tests/budgetToPlan.test.js has the words)', () => {
     const w = budgetSummaryWords(f, null, money);
-    expect(w.allInCaption).toBe('£34,048/yr — what your plan funds');
-    expect(w.handoff).toBe('Your all-in take-home of <strong>£2,837/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.');
-    expect(w.targetLine).toBe('Plan target: <strong>£2,837/mo take-home</strong> <span style="color:var(--text-muted);">(≈ £39,417/yr before tax)</span>');
-    expect(budgetSummaryWords({ ...f, headroomMonthly: 100 }, null, money).targetLine).toBe('Plan target: <strong>£2,937/mo take-home</strong> <span style="color:var(--text-muted);">(≈ £39,417/yr before tax — budget + £100/mo headroom)</span>');
+    expect(w.allInCaption).toBe('£34,048/yr — a guide; it changes nothing until you use it');
+    expect(w.handoff).toBe('Your budget adds up to <strong>£2,837/mo</strong> take-home, including £188/mo set aside for the periodic costs. The budget is a guide. Only “Use as my spending” changes the plan — and it changes one thing, the plan’s spending figure. Age bands and one-off costs stay here, for your eye.');
+    expect(w.targetLine).toBe('If you use it: <strong>£2,837/mo take-home</strong> <span style="color:var(--text-muted);">(≈ £39,417/yr before tax)</span>');
+    expect(budgetSummaryWords({ ...f, useMonthly: 3121, plusTen: true, targetGrossAnnual: 43000 }, null, money).targetLine).toBe('If you use it: <strong>£3,121/mo take-home</strong> <span style="color:var(--text-muted);">(≈ £43,000/yr before tax — your budget with a tenth on top)</span>');
   });
   it('a plan made from a V7 answer: the budget is a guide beside the target chosen — never "what your plan funds" or "the target"', () => {
     const w = budgetSummaryWords(f, { monthly: 2650.2, grossAnnual: 36608, steps: false }, money);

@@ -44,21 +44,27 @@ export function pendingNag(storage, minutes) {
   const left = remainingMinutes(minutes);
   const hrs = (v) => (v >= 60 ? Math.round(v / 60 * 10) / 10 + ' hours' : v + ' minutes');
   const messages = [
-    'You have been trying things for a quarter of an hour. Nothing here is saved — when you are ready, sign in and it comes with you.',
-    'Guest mode keeps nothing. You have ' + hrs(left) + ' of guest time left; sign in now and everything you have built is kept.',
-    'Sign in soon: ' + hrs(left) + ' of guest time left. Your plan, budget and settings will be copied into your account when you do.',
+    'You have been trying things for a quarter of an hour. ' + GUEST_RULE,
+    'Your plans are kept in this browser window only. You have ' + hrs(left) + ' of guest time left; make a free account now and everything you have built is kept for good.',
+    'Sign in soon: ' + hrs(left) + ' of guest time left. Your plans, budget and settings will be copied into your account when you do.',
     'Last reminder before guest mode stops: ' + hrs(left) + ' left. Sign in and keep your work.'
   ];
   return { level: lvl, message: messages[Math.min(lvl, messages.length) - 1], firm: lvl >= 3 };
 }
 export function markNagShown(storage, level) { safeSet(storage, KEY_NAG, level); }
 
+/** The one rule for guests (usability audit 2.1): said the same way everywhere. */
+export const GUEST_RULE = 'Kept in this browser window until you close it. Make a free account to keep it for good.';
+/** What the Budget's status chip says instead of "Saved ✓" for a guest: a guest's work is kept, not saved. */
+export const GUEST_SAVED_CHIP = 'Kept in this window \u2713';
+export function savedChipText(guest) { return guest ? GUEST_SAVED_CHIP : 'Saved \u2713'; }
+
 /** What the guest banner says. */
 export function bannerText(minutes) {
   const left = remainingMinutes(minutes);
   if (left <= 0) return 'Your guest time is used up — sign in to continue; your work comes with you.';
   const used = Math.round(minutes);
-  return 'Guest mode — nothing is saved. ' + (used < 60 ? used + ' min' : (Math.round(used / 6) / 10) + ' h') + ' of your ' + (GUEST_ALLOWANCE_MINUTES / 60) + ' free hours used. Sign in and everything you have done is kept.';
+  return 'Guest mode — ' + GUEST_RULE + ' ' + (used < 60 ? used + ' min' : (Math.round(used / 6) / 10) + ' h') + ' of your ' + (GUEST_ALLOWANCE_MINUTES / 60) + ' free hours used.';
 }
 
 /**

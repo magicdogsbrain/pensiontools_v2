@@ -9,8 +9,8 @@ import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } fr
 /**
  * Default stress settings for a new scenario.
  *
- * NOT the fund and platform charge (6.19.0): this map is also the fallback merged UNDER a stored plan's settings
- * (seedStressFromDecision), and a locked plan from before charges must keep reading none (0%). The default charge is
+ * NOT the fund and platform charge (6.19.0): this map is also the fallback merged UNDER a stored plan's settings,
+ * and a locked plan from before charges must keep reading none (0%). The default charge is
  * written by getDefaultScenario (every new plan) and by the readers in ScenarioRepository that know the plan is unlocked.
  */
 export function getDefaultStressSettings() {

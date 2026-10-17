@@ -5,13 +5,14 @@
  */
 
 import { guestHasData } from '../../firebase/FirestoreService.js';
+import { GUEST_RULE } from '../../services/GuestMeter.js';
 
 let landingPageElement = null;
 
 /**
  * Initialize the landing page
  * @param {HTMLElement} container - Container element
- * @param {Object} callbacks - { onGetStarted, onSignIn }
+ * @param {Object} callbacks - { onGetStarted, onSignIn, onTryGuest, onLookAround }
  */
 export function initLandingPage(container, callbacks) {
   landingPageElement = container;
@@ -21,7 +22,7 @@ export function initLandingPage(container, callbacks) {
 /**
  * Render the landing page content
  */
-function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
+function renderLandingPage({ onGetStarted, onSignIn, onTryGuest, onLookAround }) {
   if (!landingPageElement) return;
   // A tab that already holds plans made without an account (from a V7 answer, or earlier in the tab): the button carries
   // on with them (index.html → NewPlanFromSeed tryWithoutAccount) and says so — "nothing saved" would read as "gone".
@@ -31,6 +32,9 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
   landingPageElement.innerHTML = `
     <div class="landing-page">
       <div class="landing-content">
+
+        <!-- The preview's questions (usability audit decision 8): one line, at the top, before anything else -->
+        <p class="landing-new"><a href="v7/" id="landingPreviewLink">New: answer one question in about two minutes (preview)</a></p>
 
         <!-- Hero -->
         <div class="landing-hero">
@@ -49,7 +53,7 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
             <div class="landing-tool-icon">&#x1F9FE;</div>
             <h3>Budget Planner</h3>
             <p class="landing-tool-question">"What will retirement actually cost?"</p>
-            <p>A guided walk-through of your real spending — bills to holidays to the car you'll replace every few years — with typical UK figures when you're unsure. Couples can split who pays what. The answer becomes your plan's target.</p>
+            <p>A guided walk-through of your real spending — bills to holidays to the car you'll replace every few years — with typical UK figures when you're unsure. Couples can split who pays what. When you are ready, one button uses it as your plan's spending.</p>
           </div>
 
           <div class="landing-tool-card">
@@ -102,8 +106,10 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
           <button class="landing-btn primary" id="landingGetStarted">Get Started — Create Free Account</button>
           <button class="landing-btn secondary" id="landingSignIn">Already have an account? Sign In</button>
           ${tabHolds
-            ? '<button class="landing-btn secondary" id="landingTryGuest" title="The plans you made in this browser tab without an account are still here until you close it">Carry on with the plans in this tab — no account</button>'
-            : '<button class="landing-btn secondary" id="landingTryGuest" title="Everything works; nothing is saved or sent anywhere — it lives in this browser tab until you close it">Just try it — no account, nothing saved</button>'}
+            ? '<button class="landing-btn secondary" id="landingTryGuest" title="The plans you made in this browser window without an account are still here until you close it">Carry on with the plans in this window — no account</button>'
+            : '<button class="landing-btn secondary" id="landingTryGuest" title="Start your own plan with no account. ' + GUEST_RULE + '">Just try it — no account needed</button>'}
+          <button class="landing-btn secondary" id="landingLookAround" title="A finished example plan to look around: £1M, £40,000 a year. It cannot be changed.">Look around an example</button>
+          <p class="landing-guest-note">Without an account: ${GUEST_RULE}</p>
         </div>
 
         <div class="landing-footer">
@@ -118,6 +124,7 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest }) {
   document.getElementById('landingGetStarted').addEventListener('click', onGetStarted);
   document.getElementById('landingSignIn').addEventListener('click', onSignIn);
   const g = document.getElementById('landingTryGuest'); if (g && onTryGuest) g.addEventListener('click', onTryGuest);
+  const ex = document.getElementById('landingLookAround'); if (ex && onLookAround) ex.addEventListener('click', onLookAround);
 }
 
 /**
@@ -160,6 +167,26 @@ export function getLandingPageStyles() {
     .landing-content {
       max-width: 680px;
       width: 100%;
+    }
+
+    .landing-new {
+      text-align: center;
+      font-size: 15px;
+      margin: 0 0 22px;
+      padding: 10px 14px;
+      border: 1px solid var(--primary);
+      border-radius: 10px;
+      background: var(--card);
+    }
+
+    .landing-new a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .landing-new a:hover { text-decoration: underline; }
+
+    .landing-guest-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 4px 0 0;
+      max-width: 380px;
     }
 
     .landing-hero {

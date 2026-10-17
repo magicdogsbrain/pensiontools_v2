@@ -20,6 +20,7 @@ import { normalizeScenario, upgradeScenario } from './scenarioMigration.js';
 import { isNewerSchema, PlanNewerThanAppError, PLAN_NEWER_EVENT } from '../storage/schema.js';
 import { PlanLockedError, isPlanLockedError, writeTouchesLockedParts, lockedPlanWriteRefusal } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../storage/stressDefaults.js';
+import { ExamplePlanError, examplePlanWriteRefusal } from '../services/GuestPlans.js';
 
 /**
  * Get current user's document path
@@ -250,7 +251,7 @@ export async function saveScenario(scenarioId, data) {
   if (guarded && newerPlanIds.has(scenarioId)) throw new PlanNewerThanAppError(scenarioId);
   // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
   // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } if (examplePlanWriteRefusal(list[i], data)) throw new ExamplePlanError(); refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);

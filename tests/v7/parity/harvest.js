@@ -4,7 +4,7 @@
  * fails until the ledger has a row for it.
  *
  * Where the keys come from (each key carries the places it was found, for the failure message):
- *  - the default and copy functions, run (getDefaultStressSettings, getDefaultScenario, seedStressFromDecision …);
+ *  - the default and copy functions, run (getDefaultStressSettings, getDefaultScenario, seedDecisionFromStress …);
  *  - the code, read as text (scan.js): the object literals given to saveStressSettings / saveDecisionSettings, the
  *    settings forms' read functions, the plan seed V7 hands over (PlanSeed.js), the store's root writes, the field names
  *    the editors pass to their setters (updIncomeStep(i, 'decline', …));
@@ -18,7 +18,7 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  getDefaultStressSettings, getDefaultDecisionSettings, getDefaultScenario, seedStressFromDecision, seedDecisionFromStress,
+  getDefaultStressSettings, getDefaultDecisionSettings, getDefaultScenario, seedDecisionFromStress,
   defaultStrategyBlock
 } from '../../../src/storage/ScenarioRepository.js';
 import { defaultBudget, starterLines, starterOneOffs, budgetToCsv, parseBudgetCsv, markBudgetAgesSet } from '../../../src/services/BudgetModel.js';
@@ -121,13 +121,12 @@ export function harvestV6Keys() {
   // -- Stress settings (run) --
   add('stress', keysOf(getDefaultStressSettings()), 'getDefaultStressSettings()');
   add('stress', keysOf(scenario.stressTool.settings), 'getDefaultScenario().stressTool.settings');
-  add('stress', keysOf(seedStressFromDecision({}, {}, '2026-01-01T00:00:00.000Z')), 'seedStressFromDecision() (Copy from Decision)');
   add('stress', TIMING_PIN_KEYS, 'PlanTiming.TIMING_PIN_KEYS (the plan-start pin)');
 
   // -- Decision settings (run) --
   add('decision', keysOf(getDefaultDecisionSettings()), 'getDefaultDecisionSettings()');
   add('decision', keysOf(scenario.decisionTool.settings), 'getDefaultScenario().decisionTool.settings');
-  add('decision', keysOf(seedDecisionFromStress({}, {})), 'seedDecisionFromStress() (Use ALL Stress settings)');
+  add('decision', keysOf(seedDecisionFromStress({}, {})), 'seedDecisionFromStress() (the lock\'s copy into the Decision tool)');
 
   // -- settings writes in the code (read) --
   for (const f of everywhere) {

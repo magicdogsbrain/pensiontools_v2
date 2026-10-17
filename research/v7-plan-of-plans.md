@@ -201,3 +201,14 @@ doing the building that should compress, but it is a large job and the estimate 
   V7 answers stay outside the guest meter's three hours.
 - Order from here: lock-safety fixes (6.20.2) → parity ledger + spending shape + 2028 for all → saver lock made
   trustworthy, savings growth, one on-course bar → V7 opens saved plans → D → E one section at a time → 7.0.
+
+## 11. Owner decisions after the V6 usability audit (17 Oct 2026)
+
+"Get on with all of them": all 15 decisions in research/v7/v6-usability-audit.md section 5 taken as recommended —
+editing moves into V7 straight after "Your plan" (before D); one "will it last" answer per plan; every first month asks
+before locking; "how often you draw" stays changeable when locked; couples become one pooled household with "who draws
+what"; the budget stays a guide (false promises removed, the button asks first with Undo); guests get a read-only
+example and up to three plans; a landing-page link to the preview; five retirements (welcome tour, per-tool wizard,
+Edit Tools, headroom box → "+10%", Copy-between-tools); monthly entry asks for platform totals; the five "Your plan"
+questions as recommended. Order: the audit's section 4 road (fix release → one answer → who draws what → Your plan →
+editing in V7 → …). Work leaner from here: direct edits and small agent counts.

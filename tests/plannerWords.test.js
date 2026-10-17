@@ -30,7 +30,7 @@ describe('how many strategies', () => {
   it('index.html never types the number: "six strategies" is gone, the markup carries the span, the strings call the word', () => {
     expect(html).not.toMatch(/six strategies/i);
     expect(html).toContain('<span data-strategy-count>nine</span> strategies');
-    expect(html).toContain("Running ' + strategyCountWord() + ' strategies…");
+    expect(html).not.toMatch(/all eight strategies/i);   // the "Re-running all eight strategies" toggle went with the level-footing run (6.24.0)
     expect(html).toContain("All ' + strategyCountWord() + ' strategies, compared on your plan");
     expect(html).toContain('paintStrategyCounts(document)');
   });

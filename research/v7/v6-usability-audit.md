@@ -398,6 +398,24 @@ A setting a strategy ignores says "not used by this way of drawing". Nothing tha
 
 The cuts part is new work: V7's answers run with cuts off.
 
+**Done in the planner (17 Oct 2026, decision 2 option (a), built):** every "will it last" figure the planner shows now
+comes from the one stress test all nine strategies use — `stressTestStrategy` on the plan's own strategy, with its own
+cuts setting and its full length (`src/services/OneAnswer.js`, `src/services/NamedStarts.js`, `src/ui/oneAnswerView.js`;
+`tests/oneAnswer.test.js`, `tests/oneAnswer.slow.test.js`). The Monte Carlo tab's own run, the Historical tab's own run,
+the looped Scenarios, the ranking's "level footing" toggle, the allocation optimiser and the couples check's own Monte
+Carlo are retired. The guest example now reads one figure (96%) on every screen; before it read 94% / 100% / 91% / 96%.
+
+**What still differs, and why — V7's answers against the planner's one figure.** V7's answers (A, B, C and D,
+`src/answers/*` on `fastEngine`) are a *separate question*: "from today, over my whole life". They start at the
+person's age today, carry the saving years on V7's own saving engine, draw 1,000 lives, and run with the cuts OFF
+(the cuts part above is still to do). The planner's one test starts at the plan's first tax year, runs the plan's full
+length on pots projected to retirement by the Timing block, and runs the plan's own cuts. So the same person can still
+read, say, "lasts in 4 futures out of 10" in V7 and a different share in the planner — a saver most of all (a different
+path to the pot at retirement), and anyone with cuts on (the planner's figure counts the cuts as a way of lasting; V7's
+does not). The hand-over (`PlanSeed.answerLastedWords`, the "Save this as a plan" dialog) keeps stating V7's own figure
+beside the planner's so the two are never confused. Closing this gap is V7 work — the cuts dials in V7's "Does it last?"
+and one engine for the saving years — not a planner change.
+
 ### 2.6 The lock, the plan document and "Where you are"
 
 **What is hard** (besides problem 5)

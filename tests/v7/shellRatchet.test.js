@@ -33,7 +33,11 @@ import { resolve } from 'node:path';
 // deleted the welcome tour, the Edit Tools modal and its per-tool wizard, the tab-visibility code, the "Copy from
 // Stress / Decision" buttons and the headroom box: the script ends 315 lines shorter: 10,186.
 // Merged 6.23.0 (batches A, B and C): the limit is set to the merged script length below.
-const MAX_LINES = 10099;
+// 6.24.0 (one "will it last" answer per plan; usability audit decision 2) retired the Monte Carlo tab's own run, the
+// Historical tab's own run, the looped Scenarios, the allocation optimiser and the ranking's level-footing toggle, and put
+// the one answer's words and screens in modules (src/services/OneAnswer.js, src/services/NamedStarts.js,
+// src/ui/oneAnswerView.js): the script ends 786 lines shorter: 9,313.
+const MAX_LINES = 9313;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

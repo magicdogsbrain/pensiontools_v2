@@ -18,20 +18,20 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 74 | 54 | 17 | 0 | 3 |
+| Built | 78 | 58 | 17 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 42 | 40 | 0 | 2 | 0 |
-| Planned | 48 | 40 | 0 | 2 | 6 |
+| Designed | 40 | 38 | 0 | 2 | 0 |
+| Planned | 46 | 38 | 0 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
 
-Planned with no V7 design yet: **30** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 70 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 74 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 7 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -40,7 +40,7 @@ Planned with no V7 design yet: **30** rows. Retired, waiting for the owner: **1*
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
-| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 52 |
+| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 48 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
@@ -174,8 +174,8 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Cuts in a slump** | After a set number of months below the glidepath, income is cut by a set share (half the cut for the first months, the whole cut if it lasts), the cash buffer is kept, and missed income is made up later. | Stress and Decision → Settings → Protection (index.html:3584-3611; ProtectionStrategy.js) | Approaching, retired | **Planned** (no V7 design yet): V7's answers run with cuts off (save-as-plan.md §C.3). | `s8-e` | `stress.consecutiveLimit` `stress.protectionMult` `stress.protectionEscalateMonths` `stress.recoveryBuffer` `stress.disableProtection` `decision.consecutiveLimit` `decision.protectionFactor` `decision.protectionEscalateMonths` `decision.recoveryBuffer` `decision.disableProtection` |
-| **Emergency reserve ("Break Glass HODL")** | A reserve touched only when the plan would otherwise fail. | Stress → Settings → Break Glass HODL (index.html:3613-3630) | Approaching, retired | **Planned** (no V7 design yet): No test plan uses it yet (square-one-audit.md §4). | `s8-e` | `stress.hodlEnabled` `stress.hodlValue` |
+| **Cuts in a slump** | After a set number of months below the glidepath, income is cut by a set share (half the cut for the first months, the whole cut if it lasts), the cash buffer is kept, and missed income is made up later. | Stress and Decision → Settings → Protection (index.html:3584-3611; ProtectionStrategy.js) | Approaching, retired | **Built**: `src/answers/plan/lasts.js`, `src/v7/screens/plan/LastsScreen.jsx`, `src/answers/plan/lastsRun.js`. Edited on a saved plan in V7 ("Does it last?", editing-in-v7.md 10): cuts on or off, the months below the line, the cut as a percent, the months at half the cut, the buffer — written as the planner's own Stress keys; the Decision copies are the Decision form's own and are not written. The one test runs in the preview with the cuts as set. V7's questions still run with cuts off (save-as-plan.md §C.3). **Edited in V7**: `src/v7/screens/plan/LastsScreen.jsx` | `done` | `stress.consecutiveLimit` `stress.protectionMult` `stress.protectionEscalateMonths` `stress.recoveryBuffer` `stress.disableProtection` `decision.consecutiveLimit` `decision.protectionFactor` `decision.protectionEscalateMonths` `decision.recoveryBuffer` `decision.disableProtection` |
+| **Emergency reserve ("Break Glass HODL")** | A reserve touched only when the plan would otherwise fail. | Stress → Settings → Break Glass HODL (index.html:3613-3630) | Approaching, retired | **Built**: `src/answers/plan/lasts.js`, `src/v7/screens/plan/LastsScreen.jsx`. Edited on a saved plan in V7 ("Does it last?", editing-in-v7.md 10): on or off, and the amount while on. No test plan uses it yet (square-one-audit.md §4). **Edited in V7**: `src/v7/screens/plan/LastsScreen.jsx` | `done` | `stress.hodlEnabled` `stress.hodlValue` |
 
 ## Strategies and their dials
 
@@ -204,9 +204,9 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Monte Carlo: a thousand futures** | Runs the plan through 1,000 simulated futures and shows how often it lasts, with cones of income and wealth. | Stress → Monte Carlo (index.html:2779-2815) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "answer" step. V7's answers already run futures (src/answers/shared/futures.js) on the 9-in-10 bar. | `s8-e` | — |
-| **Every start year in history** | Runs the plan from every start year in the record and shows the worst sequences. | Stress → Historical (index.html:2840-2860) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "answer" step: "Does it come through the bad times?" | `s8-e` | — |
-| **Named stress scenarios** | Runs the plan through named crashes and bad decades. | Stress → Scenarios (index.html:2862-2881) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "answer" step. | `s8-e` | — |
+| **Monte Carlo: a thousand futures** | Runs the plan through 1,000 simulated futures and shows how often it lasts, with cones of income and wealth. | Stress → Monte Carlo (index.html:2779-2815) | Approaching, retired | **Built**: `src/answers/plan/lastsRun.js`, `src/answers/plan/lasts.js`, `src/v7/screens/plan/LastsScreen.jsx`, `src/v7/effects/lasts.js`. A saved plan's one test runs in the preview on "Does it last?" (editing-in-v7.md 10): the planner's own stressTestStrategy through OneAnswer.js, loaded lazily in the V7 worker; the same figures as the planner's "Will it last?" tab, to the pound. The cones are not drawn in V7. V7's questions run their own futures (src/answers/shared/futures.js) on the 9-in-10 bar. | `done` | — |
+| **Every start year in history** | Runs the plan from every start year in the record and shows the worst sequences. | Stress → Historical (index.html:2840-2860) | Approaching, retired | **Built**: `src/answers/plan/lastsRun.js`, `src/answers/plan/lasts.js`, `src/v7/screens/plan/LastsScreen.jsx`. "What if you had retired into a bad year?" on "Does it last?" (editing-in-v7.md 10.2): the hardest real starts (an unfair test) and the six named starts, read from the same run as the planner's History tab (OneAnswer.worstStarts, NamedStarts.namedStartRows). | `done` | — |
+| **Named stress scenarios** | Runs the plan through named crashes and bad decades. | Stress → Scenarios (index.html:2862-2881) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "answer" step. The named decades (what each did to shares and prices) stay in the planner; "Does it last?" (editing-in-v7.md 10.2) says so and hands over to it. | `s8-e` | — |
 | **Try a strategy, never saved** | A what-if on any strategy, pot, ISA, income, years and cuts, run without changing the plan (works on a locked plan too); "Use this strategy for my plan" adopts it on an unlocked one. | Stress → Monte Carlo → Try a strategy (index.html:2818-2836) | Everyone, locked plans too | **Designed**: research/v7/rail-screens-language.md §1.6. "Test the plan: try-only". V7's answers have Try a change (src/v7/components/TryAChange.jsx), and with a spending shape "Try it the same every year" and "Put back my steps by age" (today's "Income: … A flat amount"). | `s8-e` | — |
 | **"What is this doing?"** | A plain explanation beside each test of what it runs and what its figures mean. | Stress → Monte Carlo, Historical, Scenarios: "What is this doing?" (openStressExplainer) | Approaching, retired | **Planned** (no V7 design yet): V7 says what each answer assumed (src/v7/components/Assumed.jsx); an explanation of each test needs E. | `s8-e` | — |
 | **Compare allocations and apply the best split** | Searches the share, bond and cash split for Pots & Valves and offers to apply it. | Stress → "Compare allocations (Pots & Valves)" (index.html:6683-6834) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | — |
@@ -373,7 +373,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.cgtMin` | Old names of the three pot floors | Retired |
 | `stress.chargesPct` | Charges (funds and platform), % a year | Built |
 | `stress.configured` | Settings have been saved once | Planned |
-| `stress.consecutiveLimit` | Cuts in a slump | Planned (no V7 design yet) |
+| `stress.consecutiveLimit` | Cuts in a slump | Built |
 | `stress.csh2Target` | Old names of the three pot floors | Retired |
 | `stress.currentAge` | Age today | Built |
 | `stress.currentAgeAsOf` | Age today | Built |
@@ -381,7 +381,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.dbIndexation` | How a final-salary pension rises | Built |
 | `stress.dbStartAge` | Final-salary pension: amount and start | Built |
 | `stress.dbStartYear` | Final-salary pension: amount and start | Built |
-| `stress.disableProtection` | Cuts in a slump | Planned (no V7 design yet) |
+| `stress.disableProtection` | Cuts in a slump | Built |
 | `stress.diversifierStart` | Diversifiers sleeve: gold and trend/macro | Planned (no V7 design yet) |
 | `stress.duration` | How long the plan runs | Built |
 | `stress.equityGlideEnabled` | Bond tent | Planned (no V7 design yet) |
@@ -391,8 +391,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.firstTaxYear` | Plan starts this tax year or next April | Built |
 | `stress.giaTaxBand` | A taxable account (GIA) | Built |
 | `stress.glideEndgame` | Bond tent | Planned (no V7 design yet) |
-| `stress.hodlEnabled` | Emergency reserve ("Break Glass HODL") | Planned (no V7 design yet) |
-| `stress.hodlValue` | Emergency reserve ("Break Glass HODL") | Planned (no V7 design yet) |
+| `stress.hodlEnabled` | Emergency reserve ("Break Glass HODL") | Built |
+| `stress.hodlValue` | Emergency reserve ("Break Glass HODL") | Built |
 | `stress.hrl` | Tax thresholds | Built |
 | `stress.incomeShape` | Steps by age: "from age X take £Y a year" | Built |
 | `stress.incomeSteps` | Steps by age: "from age X take £Y a year" | Built |
@@ -406,9 +406,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.pa` | Tax thresholds | Built |
 | `stress.pacwMin` | Old names of the three pot floors | Retired |
 | `stress.potAtRetirement` | Pots at retirement, typed in | Built |
-| `stress.protectionEscalateMonths` | Cuts in a slump | Planned (no V7 design yet) |
-| `stress.protectionMult` | Cuts in a slump | Planned (no V7 design yet) |
-| `stress.recoveryBuffer` | Cuts in a slump | Planned (no V7 design yet) |
+| `stress.protectionEscalateMonths` | Cuts in a slump | Built |
+| `stress.protectionMult` | Cuts in a slump | Built |
+| `stress.recoveryBuffer` | Cuts in a slump | Built |
 | `stress.relevantEarnings` | Relevant UK earnings | Built |
 | `stress.retireAge` | Retired already, or retiring at an age | Built |
 | `stress.retired` | Retired already, or retiring at an age | Built |
@@ -446,8 +446,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.bondMin` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.configured` | Settings have been saved once | Planned |
-| `decision.consecutiveLimit` | Cuts in a slump | Planned (no V7 design yet) |
-| `decision.disableProtection` | Cuts in a slump | Planned (no V7 design yet) |
+| `decision.consecutiveLimit` | Cuts in a slump | Built |
+| `decision.disableProtection` | Cuts in a slump | Built |
 | `decision.diversifierStart` | Diversifiers sleeve: gold and trend/macro | Planned (no V7 design yet) |
 | `decision.duration` | How long the plan runs | Built |
 | `decision.equityGlideEnabled` | Bond tent | Planned (no V7 design yet) |
@@ -464,9 +464,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.locked` | Lock the plan and make the plan document | Designed |
 | `decision.lockedAt` | Lock the plan and make the plan document | Designed |
 | `decision.lockedBy` | Lock the plan and make the plan document | Designed |
-| `decision.protectionEscalateMonths` | Cuts in a slump | Planned (no V7 design yet) |
-| `decision.protectionFactor` | Cuts in a slump | Planned (no V7 design yet) |
-| `decision.recoveryBuffer` | Cuts in a slump | Planned (no V7 design yet) |
+| `decision.protectionEscalateMonths` | Cuts in a slump | Built |
+| `decision.protectionFactor` | Cuts in a slump | Built |
+| `decision.recoveryBuffer` | Cuts in a slump | Built |
 | `decision.relevantEarnings` | Relevant UK earnings | Built |
 | `decision.seededFrom` | Where a copy came from | Retired |
 | `decision.shapeAgeNow` | The year-by-year figure every tool reads | Built |
@@ -796,8 +796,6 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Diversifiers sleeve: gold and trend/macro** (Your allocation: Diversifiers sleeve (index.html:3394-3397)). Step `s8-e`.
 - **Bond tent** (Your allocation: Bond tent (index.html:3452-3462)). Step `s8-e`.
 - **State Pension start date, typed from the forecast** (State Pension: SP Start Date (index.html:3550)). Step `s8-e`. V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.
-- **Cuts in a slump** (Stress and Decision → Settings → Protection (index.html:3584-3611; ProtectionStrategy.js)). Step `s8-e`. V7's answers run with cuts off (save-as-plan.md §C.3).
-- **Emergency reserve ("Break Glass HODL")** (Stress → Settings → Break Glass HODL (index.html:3613-3630)). Step `s8-e`. No test plan uses it yet (square-one-audit.md §4).
 - **What a ladder or floor costs today, against your pot** (refreshStrategyCosts (index.html:9729-9796)). Step `s8-e`. Part of each strategy's dials in E's "compare" step; no V7 design draws it.
 - **A page for each strategy** (Strategies → one page per strategy). Step `s8-e`. E's outline names "compare" but no V7 design draws a page per strategy.
 - **"What is this doing?"** (Stress → Monte Carlo, Historical, Scenarios: "What is this doing?" (openStressExplainer)). Step `s8-e`. V7 says what each answer assumed (src/v7/components/Assumed.jsx); an explanation of each test needs E.
@@ -853,6 +851,8 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Fill the basic-rate band and recycle into the ISA** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.bandFillRecycle` `decision.bandFillRecycle`.
 - **Bed-and-ISA £20,000 a year** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.bedAndIsa` `decision.bedAndIsa`.
 - **Relevant UK earnings** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.relevantEarnings` `decision.relevantEarnings`.
+- **Cuts in a slump** (`src/v7/screens/plan/LastsScreen.jsx`): `stress.consecutiveLimit` `stress.protectionMult` `stress.protectionEscalateMonths` `stress.recoveryBuffer` `stress.disableProtection` `decision.consecutiveLimit` `decision.protectionFactor` `decision.protectionEscalateMonths` `decision.recoveryBuffer` `decision.disableProtection`.
+- **Emergency reserve ("Break Glass HODL")** (`src/v7/screens/plan/LastsScreen.jsx`): `stress.hodlEnabled` `stress.hodlValue`.
 
 ## Retired, and why
 

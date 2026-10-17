@@ -49,6 +49,7 @@ import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
 import { potsOf } from '../../answers/plan/pots.js';
+import { lastsOf, verdictOf } from '../../answers/plan/lasts.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -89,12 +90,21 @@ export function viewFor(state) {
   if (r && r.screen === 'plan' && r.planId) {
     page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
-    if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots') {
+    if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
-      // "Money that comes in anyway" (editing-in-v7.md 7), "What you spend" (8) and "Your pots and tax" (9) read the same way
-      const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : r.step === 'spend' ? spendOf : potsOf;
+      // "Money that comes in anyway" (editing-in-v7.md 7), "What you spend" (8), "Your pots and tax" (9) and "Does it last?" (10) read the same way
+      const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : r.step === 'spend' ? spendOf : r.step === 'pots' ? potsOf : lastsOf;
       page[r.step] = { ...read(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
+      // "Does it last?": the words of the one test's result held in page memory (state.lasts), read here with the plan (10.2)
+      if (r.step === 'lasts' && page.lasts.found) {
+        const L = state.lasts;
+        const pl = page.lasts;
+        pl.verdict = L && L.result ? verdictOf(L.result, pl) : null;
+        // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
+        pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;
+        pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;
+      }
     }
   }
   return { today, rows, page };
@@ -191,7 +201,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

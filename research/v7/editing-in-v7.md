@@ -765,3 +765,227 @@ page's stale line and "check it still lasts" follow.
 | T3 | `planWrite.test.js`: the pots paths on the account and the window path, a locked plan refused, Undo, the property over random boxes | §1 3e–3g for this step |
 | T4 | `e2e/plan-pots.spec.js` at 390 and 1440 (prod build, guest plan planted, outside requests blocked): change the pension pot, the ISA growth choice and the charge; Save; stored JSON differs only in the declared keys; Undo byte-identical; the planner at `/` shows the new values in its own boxes | the whole step |
 | T5 | parity: the pots and tax rows this step edits carry `editV7`; the gap rows it closes are built; the ledger page regenerated; `wording.test.js` over `copy/pots.js` | §6 |
+
+---
+
+## 10. "Does it last?" (the fifth and last step, 17 Oct 2026)
+
+The audit's "Does it last?" (§2.5: one answer — the plan's own cuts, its full length, the bad case as the worst 1 in 10;
+the four parts; §3.4: the Monte Carlo, Historical, Scenarios, Drawdown and Glidepath tabs, the cut dials, the emergency
+reserve; §3.1 rule 2: one plan, one answer). Two things in one step: the plan's **one answer, run in the preview** — the
+very test the planner runs (`stressTestStrategy` on the plan's own strategy, through `OneAnswer.js`, 6.24.0) — and the
+**dials every strategy of the Pots & Valves family reads when it runs**: the spending cuts in a slump and the emergency
+reserve, each once, with the saved value and source beside it. It inherits §1 and §6 whole: one write file, the
+declared-paths test, the guard, the guest path, the draft rules of §4. Nothing in this step reimplements a figure: the
+run is the planner's own functions, loaded lazily, and the words are read from its result.
+
+### 10.1 What the planner saves and runs, checked
+
+- **The planner persists no run result on an unlocked plan.** `index.html oneTestFor` keeps the result in page memory
+  (`window._oneTest`, keyed by the settings' text) and nothing of it is written to the plan: no `stressTool.lastResult`,
+  no date of the run, no figure. The only stored "will it last" figures are (a) a plan made from a preview answer, whose
+  `fromAnswer` carries the ANSWER's own figure — a different question (§2.5 "What still differs"), never rewritten by a
+  planner run — and (b) a locked plan's document, `planDocument.strategy.r` / `.p`, the figure it was locked with, never
+  rewritten (6.24.0). So **this step writes nothing after a run**: the result lives in page memory (`state.lasts`), is
+  worked out again whenever the plan in memory changes (its id, its last-changed stamp or its Stress settings), and leaves
+  with the plans on pagehide, sign-out or nobody. The plan page's stale line (§4: the answer older than its inputs) stays
+  until the plan's inputs match the answer's record again; it cannot be "cleared" by a run without inventing a stored key
+  the planner does not have, and a V7 run is not the answer's question. What changes is where "Check it still lasts" goes:
+  here, no hand-over.
+- **The run is `index.html strategyPlanFor` + `oneTestFor`, line for line:** the effective settings the planner's own
+  loader reads (`PlanReading.effectiveStressSettings` — defaults merged under, old names renamed, the taper folded into
+  the steps, the Budget's newer age, the start pinned in memory), the engine config `createSimulationConfigFromSettings({},
+  settings)`, `planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, startAge: settings.shapeAgeNow || 57, now })`,
+  `stressTestStrategy(settings.strategyId || 'pots-and-valves', p)`, then `oneAnswer(r, p)`. The futures are the engine's
+  own fixed seeds (future i is `i × 7919 + 3`, the same market for every strategy), so there is no seed to save and no
+  length-of-test key: `OneAnswer` reads the plan's length from `p.durationYears` (the `duration` "About you and when"
+  writes). The charge, how the ISA grows, the cuts, the 2028 rule, the State Pension, the pots at the stop: all come
+  through the same config, because it is the same function.
+- `createSimulationConfigFromSettings` lived in `src/storage/StressRepository.js`, which imports the Firebase module and
+  which V7 may not reach (rule 3a). The function is pure given its settings; it moves to
+  **`src/services/SimulationConfig.js`** (`simulationConfigFromSettings(overrides, settings)`), and the repository keeps
+  its export as a one-line wrapper that fills the settings from its cache as before. Nothing the planner calls changes.
+- **Live gilt and share prices.** The planner's worker loads `data/gilts.json` and `data/equity.json` before a run
+  (`engineWorker.js`); V7's worker reads no live data (its rule since the build brief) and the preview's tests block every
+  outside request. The run here prices a ladder on the bundled curve (`LinkerUniverse.activeLinkers()` without
+  `setLiveGilts`): a ladder or floor plan can read a different cost here from the planner's on a day the live file has
+  moved. The Pots & Valves family reads none of it. The page says so under a bought strategy's figure.
+- **Progress.** The engine has no hook inside its loops, and it is not touched: the worker posts one progress message
+  before the heavy run (the plan built) and one after it (the history replays left), so the bar is drawn, and the shell's
+  "slow" sentence follows after five seconds as for every answer. The run itself is short: 0.45–0.65 s for every
+  Pots & Valves corpus plan in Node on the reference Mac (a ladder plan 1–45 ms), so a phone four times slower sees the
+  figure in 2–3 s, inside the budgets of `e2e/helpers/app.js` (`FIRST_ANSWER_BUDGET.finalMs`, 15 s slowed).
+- **The dials.** The planner's Stress Save writes `consecutiveLimit`, `protectionMult`, `protectionEscalateMonths`,
+  `disableProtection`, `recoveryBuffer`, `hodlEnabled`, `hodlValue` (index.html `saveStressSettings`, lines 10108–10114)
+  and copies none of them to the Decision settings (the Decision form has its own `protectionFactor` and
+  `consecutiveLimit`, filled from its own boxes). `createSimulationConfigFromSettings` passes them to the Pots & Valves
+  engine (`SimulationEngine`: `assessProtection`, `protectionMultForStreak`, the reserve as `hodl`); every other strategy
+  ignores them (`cutsSettingWords`: "no spending cuts — this strategy pays the plan in full until it cannot"; Floor & Flex
+  "the treats flex instead"). Absent reads as: cuts on, 3 months, a 20% cut (`protectionMult` 0.8), half the cut for 12
+  months, a £15,000 buffer, no reserve.
+
+### 10.2 The screen and words
+
+Address: `#/plan/<id>/lasts`, a sub-step of "Your plan" beside the four others. The plan page's "Next: check it still
+lasts" links here; so does the plan step's own button ("Does it last?") on an unlocked plan, in place of "Test it in the
+planner", and the P.draft / P.approaching next sentences ("Next: check it lasts, then lock it when it is right.").
+
+```text
+| Does it last?                                                                  |
+| The one test every screen of the planner shows: your plan, its own way of      |
+| drawing, its own cuts, its full length, through every real stretch of markets  |
+| since 1871 and 1,000 possible futures.                                         |
+|                                                                                |
+| [ band ]  Your plan lasts in 9 futures out of 10.   ▮▮▮▮▮▮▮▮▮▯                 |
+|           93% of 1,000 futures; 681 real starts since 1871; 39 years, to 95.   |
+|   Left at the end, today's money: typically £1,287,917; in a bad case (the     |
+|     worst 1 in 10) £49,177; in a good case (the best 1 in 10) £3,100,000.      |
+|   Income cuts: in 680 of 1,000 futures (41 of them later ran out), typically   |
+|     £4,000 a year less for about 3 years (£12,000 in all; the most in any      |
+|     future £31,000). A cut is a tax year in which more than 1% of the planned  |
+|     income went unpaid and was never caught up.                                |
+|   Run with the spending cuts you set: up to 20% after 3 months in a row below  |
+|     the plan's line. Pots and valves, 39 years.                                |
+|   Worked out just now, on the plan as saved 11 September 2026.                 |
+|                                                                                |
+| What if you had retired into a bad year?                                       |
+|   The hardest starts in the record — an unfair test: September 1929: ran out   |
+|   at 84; lowest 12 months £31,000; left £0.  …  (5 rows)                       |
+|   Named starts: the Great Depression (1929): lasted; income cut in 4 years     |
+|   (£16,000 in all); left £240,000. … (6 rows)                                  |
+|   The named stresses as decades (Scenarios) are explained in the planner.      |
+|                                                                                |
+| Cuts in a slump                                                                |
+|   Cut spending in a slump   (x) Yes  ( ) No      From your plan, saved … (Yes) |
+|   After how many months in a row below the plan's line  [ 3 ]                  |
+|   Cut income by, %  [ 20 ]   (half the cut for the first [ 12 ] months)        |
+|   Keep this much above the line before the cut ends, £  [ 15,000 ]             |
+| Emergency reserve                                                              |
+|   Keep a reserve touched only when the plan would otherwise run out            |
+|     ( ) Yes  (x) No          Amount, £ [ 25,000 ]                              |
+|   (a ladder, a floor, a rotation: "Not used by this way of drawing." under each)|
+| What this works out to                                                         |
+|   In a slump, after 3 months in a row below the plan's line, income is cut by  |
+|   10% for 12 months and by 20% if it lasts; missed income is made up later.    |
+|   No emergency reserve.                                                        |
+| [ Save ]  [ Cancel ]   → after Save the test runs again on the saved plan      |
++--------------------------------------------------------------------------------+
+```
+
+- **The verdict band** (`src/answers/plan/lasts.js verdictOf`): the planner's own words `OneAnswer.futuresOutOfTen` ("in
+  9 futures out of 10", "in just under 9 futures out of 10", "in every future it tried"); the colour token `yes` at 9 in 10
+  or better (the on-course bar every screen uses, `OnCourse.ON_COURSE_SHARE`), `close` from 85% to just under 90%, else
+  `no` — a word and a colour, never a colour alone; the ten-cell bar from the share. Under it the count of futures, the
+  real starts, the length ("39 years, to 95"). Then what is left (typical, the bad case — the worst 1 in 10, never the
+  worst of 1,000 — and the good case), the income cuts as the planner's "Will it last?" tab says them (`cutsRowHtml`),
+  the cuts setting the run used, and the way of drawing. A bought strategy with no cuts says "Income cuts: none — this
+  way of drawing pays the plan in full until it cannot" and, for a ladder or floor, that the bundled gilt curve priced it.
+- **"Worked out just now, on the plan as saved {date}."** — every figure's source. A result is kept only while the plan in
+  memory is the one it was run on (10.1): a save of any step, or a change made in the planner and read again, runs it
+  again (the key: the plan's id, its last-changed stamp and the text of its Stress settings).
+- **History** — "What if you had retired into a bad year?" — comes free from the same run: `OneAnswer.worstStarts` reads
+  the test's own per-start history (`r.histWindows`, the five hardest starts, "an unfair test"), and
+  `NamedStarts.namedStartRows` replays the six named starts with the plan the family's test ran on (`pnvFamilyPlan`;
+  one short run each, under a millisecond apiece). Rows in words: ran out at {age}; lasted, income cut in {n} years
+  ({total} in all); the lowest 12 months; what was left. A ladder's and floor's rows as the planner says them; a contract
+  strategy: "every year is bought: a start year changes nothing but the pounds that arrive". **Scenarios** (the named
+  decades, what each did to shares and prices) need the planner's decade tables and are explained there: one line and
+  the planner's hand-over (place `test`). The Drawdown and Glidepath tables are not here either (the audit's "Year by
+  year" is its own later step).
+- **The dials** (`schema.js LASTS_FIELDS`): `cutsOn` (yes | no); `cutAfterMonths` (count 1–24); `cutPct` (count 0–95,
+  whole percent: the planner's box holds the multiplier 0.8, its strategy page "Cut %" = (1 − mult) × 100);
+  `deeperAfterMonths` (count 0–60, the planner's "First-stage months (half the cut)"); `buffer` (money 0–1,000,000, the
+  planner's "Recovery Buffer"); `reserveOn` (yes | no); `reserveAmount` (money 1–50,000,000, while on). The cut boxes
+  are drawn while cuts are on. For a bought strategy (a ladder, a floor, a rotation: `BOUGHT` of pots.js) every dial says
+  "Not used by this way of drawing." under it and is still editable, as the planner's own boxes are (`data-pnv-only`
+  hides them there; here the words say why).
+- **Derived lines** (`copy/lasts.js derived`): the cuts in one sentence, from the values as they would be saved; the
+  reserve; "Not used by this way of drawing: {strategy} pays the plan in full until it cannot" for a bought strategy.
+- Problems in plain words; Save, Cancel, Undo, the toast ("Saved. Cuts of up to 30% after 3 months; no reserve."). After
+  a save the plan's stamp changes, so the test runs again on the saved plan and the band updates. Phone first: one
+  column at 390 px, the band and the rows wrap, no table wider than the screen (the history rows are cards).
+- **Working.** While the run is under way: the shell's "Working out your answer…" block with the progress bar (the
+  worker's messages) and the slow sentence after five seconds; the old band stays greyed when there is one. Failed:
+  "Sorry, we could not work that out." with "Try again". A plan the test finds unaffordable on its strategy (a ladder
+  that cannot be bought): the planner's own sentence, no figures.
+
+### 10.3 Keys written
+
+`LASTS_WRITES` (schema.js), all under `stressTool.settings`, as the planner's Stress Save writes them. A key only when its
+value changes; a key the plan lacks only on a value that differs from what the engines read for the absent key (10.1), so
+a plan saved as it is writes nothing and a plan without the reserve never gains `hodlValue` unless the reserve is switched on.
+
+| Path | Value | As the planner writes it |
+|---|---|---|
+| `disableProtection` | `cutsOn = no` | the "Disable Protection Mode" tick |
+| `consecutiveLimit` | the months | the "Months Below Glidepath" box |
+| `protectionMult` | `1 − cutPct / 100` | the "Protection Multiplier" box (the strategy page's "Cut %" the other way) |
+| `protectionEscalateMonths` | the months | the "First-stage months" box |
+| `recoveryBuffer` | the pounds (`|| 15000` as the Save has it: 0 reads as the default) | the "Recovery Buffer" box |
+| `hodlEnabled`, `hodlValue` | the tick; the pounds while on (kept as stored while off) | the "Break Glass HODL" boxes |
+| `lastModified` | now, ISO | every save |
+
+Not written, and why: `decisionTool.settings.{consecutiveLimit, protectionFactor, protectionEscalateMonths,
+recoveryBuffer, disableProtection}` (the planner's Stress Save copies none of them; the Decision form keeps its own);
+`strategyParams.*` (the strategy page's own cut dial writes the same Stress keys through `useSpecStrategy` — no
+per-strategy copy exists); anything of the run (10.1: nothing is stored).
+
+### 10.4 The run: where the code loads, and how big
+
+- **The worker** (`effects/answerWorker.js`) gains one message, `{ id, type: 'lasts', plan, env: { today } }`, answered by
+  `src/answers/plan/lastsRun.js` through a **dynamic import** — the strategy registry, the nine strategies, the market
+  history, the gilt data and the one-answer readers load into the worker only when a plan's "Does it last?" is opened.
+  The worker's own chunk and the shell carry none of it: `tests/v7/boundaries.test.js` keeps a static walk from
+  `main.jsx` and `answerWorker.js` that must not reach `src/strategies/stressTest.js`, and the lazy chunk is walked by
+  the full reach rule (3a: nothing under `src/storage`, `src/firebase`, `src/workers` but the pure files). The plan goes
+  to the worker as data (`cloneSafe`), after the in-memory upgrade; the result comes back as data (`trimResult` shape:
+  no samples, no per-future lists). **No page fallback, on purpose**: a first build with one (`import()` of the run from
+  the shell's graph) made Rollup split the modules the run shares with the plan source — the strategies the plan
+  document already reaches, until then tree-shaken down to what the reading used — into a shared chunk the plan pages
+  load whether or not the step is opened (+121 KB on every plan page). The run is the worker's alone; a browser that
+  cannot start a worker is told so (`lasts/failed`, reason `noWorker`) and offered the planner, which runs the same test.
+- **The runner** (`effects/lasts.js`): on the step, when `state.lasts` holds no result for the page's `runKey`, dispatch
+  `lasts/working`, run, `lasts/done` (or `lasts/failed`); a result for a key no longer wanted is dropped, as the
+  questions' runner drops stale answers; `lasts/slow` after five seconds. `readyMark` counts a run under way, so
+  `#app[data-ready]` and `pt:done` cover it.
+- **Sizes** (the published build, `vite build --config vite.v7.config.js`, bytes, before → after): the shell
+  `index-*.js` grows by the screen and its words only, as each editing step has (the engine is not in it: no strategy,
+  no one-answer words, no market history — the boundary test's static walk proves it, and a string check of the built
+  chunk confirms it); the questions' chunk is unchanged; the worker `answerWorker-*.js` 330,778 → a little larger, because
+  the market-history module the questions already share with the run now exports the functions the run needs (Rollup
+  hosts a shared module in the chunk both import); the engine proper is the new lazy `lastsRun-*.js`, loaded by the worker
+  on the first "Does it last?". The measured figures are in the commit and the report.
+
+### 10.5 Locked, guest, partner and stale
+
+- **Locked** (`decisionTool.settings.locked`): the dials read-only — the figures the lock froze, "Fixed when you locked the
+  plan on {date}" once, the unlock sentence once, no box. The band shows the **document's figure** (`planDocument.strategy.r`
+  through `oneAnswer`, with the document's `p`: "Worked out when the plan was locked on {date}"), and **today's test on the
+  same plan** runs as the planner's document page runs it (`earlierTestCheck`): on the frozen settings; a locked gilt
+  ladder is not re-priced (`documentLadder`: the document's own result stands, as `oneTestFor` has it), every other
+  strategy runs live. When the two differ, the one line of 6.24.0 (`OneAnswer.earlierTestNote`) says so; when they
+  agree, nothing. Never a write.
+- **Shown as saved**, **not in this account**, **nobody signed in**: as §4; the run still happens on a plan shown as saved
+  (reading is allowed; the dials are read-only) and on this window's plans while the free time is not used up (used up:
+  the band runs — a read — but Save says so and writes nothing, as every step).
+- **Couples (linked plans).** This step runs THIS plan. "{Sam}'s plan is tested on {Sam}'s plan." with the link to
+  `#/plan/<theirId>/lasts`, and "Check the two plans together in the planner" — the household's pooled verdict (who draws
+  what, the paired futures) stays in the planner's Household tab for now; the hand-over is the existing one (place
+  `household`).
+- **The stale answer** (§4): unchanged as a rule; the next sentence's button is a link here. A plan with no stored answer
+  has nothing to be stale, and this step is where its answer is.
+
+### 10.6 Tests
+
+| # | Test | Proves |
+|---|---|---|
+| L1 | `tests/v7/plan/lasts.test.js`: `lastsOf` on the 12 corpus plans × 3 dates; the lumpy plan's and the fresh plan's dials; read∘write∘read identity over random editable plans and random typed boxes (fast-check): only `LASTS_WRITES` paths, every other byte unchanged, Undo byte for byte, a second write empty; the written plan read by `createSimulationConfigFromSettings` shows what the screen showed (`disableProtection`, `consecutiveLimit`, `protectionMult`, `protectionEscalateMonths`, `recoveryBuffer`, `hodlEnabled`, `hodlValue`); absent keys stay absent when untouched; `verdictOf` over the figures (the words are `futuresOutOfTen`'s; yes/close/no at the bar); the run key moves with the stamp and the settings and nothing else; a locked plan writes nothing; the sub-step, the address, the plan page's links | the pure read and write |
+| L2 | `tests/v7/plan/lastsRun.test.js` (slow tier): for every corpus plan with an unlocked strategy, `runLasts(plan, { today })` — what the worker runs — gives figures equal to the pound to `oneAnswer(stressTestStrategy(…), p)` built as `index.html strategyPlanFor` builds it (`createSimulationConfigFromSettings` from the repository, `planFromSettings`, `realYieldForYear`, the same `now`); the chance to a tenth of a point, the left figures and the cuts to the pound, the histories' count; a locked plan: the document's figure read back and today's figure, the note '' when they agree; the result is plain data | the worker's run is the planner's |
+| L3 | `tests/v7/plan/lastsRender.test.js`: every corpus plan × 3 dates with a made-up result in `state.lasts` (boxes with labels, the band with its word and bar, every figure sourced, the history rows, no banned word, no countdown for the retired); working, slow, failed and unaffordable states; locked = read-only with "Fixed when…" once, the document's figure and the earlier-test line; a plan shown as saved; the plan page's links | §10.2, §10.5 |
+| L4 | `planWrite.test.js`: the lasts paths on the account and the window path, a locked plan refused, Undo, the property over random boxes | §1 3e–3g for this step |
+| L5 | `tests/v7/shell/lasts.test.js`: the reducer (a result for an old key is dropped; the plans leaving memory clears it; `readyMark`); the runner with a fake client (progress, slow, failed, the page fallback on NO_WORKER, a stale result dropped); the worker handler's `lasts` message through the real handler (lazy import, progress then result, plain data) | §10.4 |
+| L6 | `boundaries.test.js`: the static walk from the entry points does not reach `src/strategies/stressTest.js` or `src/services/OneAnswer.js`; the full walk (with the dynamic import) does, and still nothing forbidden; `src/services/SimulationConfig.js` imports no repository; the worker's lazy import is the one place `lastsRun.js` is reached from V7 | §10.4 |
+| L7 | `e2e/plan-lasts.spec.js` at 390 and 1440 (prod build, guest plans planted, outside requests blocked): open the step, the band appears with its figures within the slowed budget, every figure equals the Node run on the same plan (a child process, as `answerInNode`), the dials hold the saved facts; change the cut to 30% and the months to 4; Save; stored JSON differs only in the declared keys; the band runs again and the figure moves; Undo byte-identical; the locked plan shows the document's figure and today's; no sideways scroll; the measured times are written to the test's annotations | the whole step |
+| L8 | parity: `prot.cuts` and `prot.reserve` built, edited in V7 (`editV7`), their gaps closed; `test.monte-carlo` built on this step; the ledger page regenerated; `wording.test.js` over `copy/lasts.js` | §6 |
+
+Owner-plan tests (`tests/fixtures/local/`) are skipped: the folder does not exist in this checkout.

@@ -81,7 +81,15 @@ export const A = Object.freeze({
   PLAN_CANCEL:     'plan/cancel',      // { planId }                         the draft goes
   PLAN_UNDO:       'plan/undo',        // { planId }                         Undo pressed: the write effect puts the previous values back
   PLAN_UNDO_DONE:  'plan/undoDone',    // { planId }                         put back; the toast says so
-  PLAN_TOAST_CLOSE: 'plan/toastClose'  // {}                                 the toast goes (its time is up, or Close)
+  PLAN_TOAST_CLOSE: 'plan/toastClose', // {}                                 the toast goes (its time is up, or Close)
+
+  // ---- "Does it last?": the one test of a saved plan, run in the preview (research/v7/editing-in-v7.md 10.4) ---------
+  LASTS_WORKING:   'lasts/working',    // { key }                            the run for this key (lasts.js runKeyOf) is under way; an old result stays greyed
+  LASTS_PROGRESS:  'lasts/progress',   // { key, done, total }               ignored unless the key is the one under way
+  LASTS_DONE:      'lasts/done',       // { key, result }                    the result (lastsRun.js), plain data; ignored if the key is stale
+  LASTS_FAILED:    'lasts/failed',     // { key, reason? }                   the run failed; "Try again" offered — or reason 'noWorker': this browser cannot start one
+  LASTS_SLOW:      'lasts/slow',       // { key }                            slow: true
+  LASTS_RETRY:     'lasts/retry'       // {}                                 after a failure: idle again, so the runner starts over
 });
 
 /**

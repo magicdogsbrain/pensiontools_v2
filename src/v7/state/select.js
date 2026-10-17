@@ -333,6 +333,15 @@ export function readyMark(state) {
     if (answer.extending || (due && status === 'final' && isCurrent(state, q))) partial = true;
     if (status === 'first' || status === 'final') shown = status;
   }
+  // "Does it last?" (editing-in-v7.md 10.4): a run under way, or one due for the plan on the step, is not ready
+  const L = state.lasts;
+  if (L && L.status === 'working') busy = true;
+  const r = state.route;
+  if (r && r.screen === 'plan' && r.step === 'lasts') {
+    const page = state.plans && state.plans.view && state.plans.view.page;
+    const key = page && page.forId === r.planId && page.lasts && page.lasts.runKey ? page.lasts.runKey : null;
+    if (key && !(L && L.key === key && (L.status === 'done' || L.status === 'failed'))) busy = true;
+  }
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
 }
 
@@ -707,6 +716,19 @@ export function planSpendView(state) {
 /** "Your pots and tax" (editing-in-v7.md 9): the same reading for the fourth step (page.pots). */
 export function planPotsView(state) {
   return editView(state, 'pots');
+}
+/**
+ * "Does it last?" (editing-in-v7.md 10): the same reading for the fifth step (page.lasts) — the dials — with the run: its
+ * status for THIS plan's key (state.lasts: working, done, failed; the progress and the slow flag), and the words of the
+ * result the plan source read from it (page.lasts.verdict, worked out there, never here); `fresh` says the result is for
+ * the plan as it is now, else it is an older run's, shown greyed while the new one is under way.
+ */
+export function planLastsView(state) {
+  const v = editView(state, 'lasts');
+  if (!v.found) return v;
+  const L = state.lasts || { key: null, status: 'idle', reason: null, result: null, progress: null, slow: false };
+  const mine = L.key === v.runKey;
+  return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict } };
 }
 function editView(state, step) {
   const plans = state.plans;

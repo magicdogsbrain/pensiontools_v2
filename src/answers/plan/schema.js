@@ -18,6 +18,9 @@
  *                      the fourth step, "Your pots and tax" (editing-in-v7.md 9): the pots today and at the stop, the ISA
  *                      choices, the ordinary account, charges, the tax bands and the tax-free part, and the ONLY field paths
  *                      it may write
+ *   LASTS_FIELDS, LASTS_WRITES, isLastsPath
+ *                      the fifth step, "Does it last?" (editing-in-v7.md 10): the spending cuts in a slump and the emergency
+ *                      reserve, and the ONLY field paths it may write (the run itself writes nothing)
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -256,9 +259,44 @@ export const POTS_WRITES = Object.freeze([
   'stressTool.settings.bandFillRecycle'
 ]);
 
+// ---- "Does it last?" (research/v7/editing-in-v7.md 10): the fifth editing step --------------------------------------------
+
+export const LASTS_SUB_STEP = 'lasts';
+
+/**
+ * The dials (10.2), in the order they are drawn: the spending cuts in a slump (the Pots & Valves family's protection) and
+ * the emergency reserve. The cut boxes are drawn while cuts are on; the reserve's amount while the reserve is on. The run
+ * itself has no box: the test's futures are the engine's own fixed seeds and its length is the plan's (10.1).
+ */
+export const LASTS_FIELDS = Object.freeze([
+  { path: 'cutsOn',            type: 'choice', options: YES_NO, default: 'yes' },
+  { path: 'cutAfterMonths',    type: 'count',  min: 1, max: 24, required: true, when: { cutsOn: 'yes' } },
+  { path: 'cutPct',            type: 'count',  min: 0, max: 95, required: true, when: { cutsOn: 'yes' } },
+  { path: 'deeperAfterMonths', type: 'count',  min: 0, max: 60, required: true, when: { cutsOn: 'yes' } },
+  { path: 'buffer',            type: 'money',  min: 0, max: 1000000, required: false, default: 0, when: { cutsOn: 'yes' } },
+  { path: 'reserveOn',         type: 'choice', options: YES_NO, default: 'no' },
+  { path: 'reserveAmount',     type: 'money',  min: 1, max: 50000000, required: true, when: { reserveOn: 'yes' } }
+].map(Object.freeze));
+
+export const LASTS_PATHS = Object.freeze(LASTS_FIELDS.map((f) => f.path));
+
+/** The paths of "Does it last?" a draft may hold: the dials, nothing else. */
+export const isLastsPath = (path) => LASTS_PATHS.includes(String(path));
+
+/** Every dotted field path "Does it last?" may change: the planner's own Stress keys for the cuts and the reserve (10.3). */
+export const LASTS_WRITES = Object.freeze([
+  'stressTool.settings.disableProtection',
+  'stressTool.settings.consecutiveLimit',
+  'stressTool.settings.protectionMult',
+  'stressTool.settings.protectionEscalateMonths',
+  'stressTool.settings.recoveryBuffer',
+  'stressTool.settings.hodlEnabled',
+  'stressTool.settings.hodlValue'
+]);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -276,5 +314,5 @@ export const INCOME_WRITES = Object.freeze([
 ]);
 
 /** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES });
-export const ALL_WRITES = Object.freeze([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...BOOKKEEPING_WRITES]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES });
+export const ALL_WRITES = Object.freeze([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...BOOKKEEPING_WRITES]);

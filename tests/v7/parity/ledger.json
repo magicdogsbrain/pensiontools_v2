@@ -1571,9 +1571,13 @@
       ],
       "status": "built",
       "files": [
-        "src/answers/shared/schemaParts.js"
+        "src/answers/shared/schemaParts.js",
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx"
       ],
-      "step": "done"
+      "step": "done",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx",
+      "note": "Asked in every question; edited on a saved plan in V7 (\"Money that comes in anyway\", editing-in-v7.md 7): the full amount, the forecast's weekly amount, or none — and, while a plan has no figure, \"as the planner assumes\" (its old yearly figure from age 67), said in the planner's own words."
     },
     {
       "id": "inc.state-pension-date",
@@ -1590,7 +1594,8 @@
       "status": "planned",
       "step": "s8-e",
       "gap": true,
-      "note": "V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it."
+      "note": "V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.state-pension-old",
@@ -1608,11 +1613,12 @@
       ],
       "status": "built",
       "step": "s4-open-plan",
-      "note": "Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked.",
+      "note": "Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked. Written by \"Money that comes in anyway\" as PlanSeed writes it: 0 for none (else every run assumes £12,000), the yearly figure beside a weekly amount.",
       "files": [
         "src/answers/plan/read.js",
         "src/answers/plan/options.js"
-      ]
+      ],
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.final-salary",
@@ -1630,10 +1636,13 @@
       "status": "built",
       "files": [
         "src/answers/shared/schemaParts.js",
-        "src/answers/shared/household.js"
+        "src/answers/shared/household.js",
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx"
       ],
       "step": "done",
-      "note": "Better: V7 asks the start by age, not plan year, for each person."
+      "note": "Better: V7 asks the start by age, not plan year, for each person. Edited on a saved plan in V7 as cards by start age (editing-in-v7.md 7): the first is the planner's own keys (the year from the age, the age beside it); a second or third goes into the planner's \"income for some years\" list as income for the rest of the plan, labelled \"Final-salary pension\".",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.final-salary-rises",
@@ -1646,10 +1655,14 @@
       "keys": [
         "stress.dbIndexation"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7's household takes all three (household.js) but the forms always say prices capped at 5%."
+      "status": "built",
+      "step": "done",
+      "note": "V7's household takes all three (household.js) but the question forms always say prices capped at 5%. Edited on a saved plan in V7 with all three (\"Money that comes in anyway\", editing-in-v7.md 7).",
+      "files": [
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.other",
@@ -1662,10 +1675,14 @@
       "keys": [
         "stress.other"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "D designs income you have bought (answer-D.md §5.2); a general other income has no V7 form."
+      "status": "built",
+      "step": "done",
+      "note": "D designs income you have bought (answer-D.md §5.2); no question form asks a general other income. Edited on a saved plan in V7 (\"Money that comes in anyway\", editing-in-v7.md 7): other income for the whole plan, a year before tax, rising with prices capped at 4%.",
+      "files": [
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.part-time",
@@ -1700,10 +1717,14 @@
         "extraIncomes[].endYear",
         "extraIncomes[].indexation"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "Only part-time work from the stop is asked in V7 (row above)."
+      "status": "built",
+      "step": "done",
+      "note": "Only part-time work from the stop is asked in the questions (row above). Edited on a saved plan in V7 as cards (\"Money that comes in anyway\", editing-in-v7.md 7): what it is, the amount a year before tax, from age, to age or for the rest of the plan, how it rises — by age, stored as the planner's plan years.",
+      "files": [
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx"
+      ],
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "inc.lump-sums",
@@ -1726,7 +1747,8 @@
       "status": "designed",
       "step": "shape-next",
       "doc": "research/v7/spending-shape.md §17",
-      "note": "Not built. Designed: \"Money you expect to come in\" on the pots step (A, B; C under \"Add more detail\"): an amount at an age, and what it is (cash, an inherited pension, an inherited ISA). Where it can go is today's own routeWindfall (the ISA allowance, the pension within its limit, the rest a taxable account); kept plans get today's windfalls."
+      "note": "Edited on a saved plan in V7 as cards (\"Money that comes in anyway\", editing-in-v7.md 7): what it is, the amount, at age, and what kind (cash, an inherited pension, an inherited ISA) — the saved plan's rows, kept byte for byte where unchanged. Where a cash lump sum can go (routeWindfall: the ISA allowance, the pension within its limit, the rest a taxable account) and what its taxable part is held in stay the planner's, kept as saved. The question forms' \"Money you expect to come in\" (spending-shape.md §17) is still designed, not built, so the row stays designed.",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
     },
     {
       "id": "tax.bands",

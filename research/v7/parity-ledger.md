@@ -18,20 +18,20 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 61 | 43 | 15 | 0 | 3 |
+| Built | 64 | 45 | 16 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
 | Designed | 43 | 41 | 0 | 2 | 0 |
-| Planned | 60 | 50 | 2 | 2 | 6 |
+| Planned | 57 | 48 | 1 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
 
-Planned with no V7 design yet: **42** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **39** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 57 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 60 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 8 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -40,7 +40,7 @@ Planned with no V7 design yet: **42** rows. Retired, waiting for the owner: **1*
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
-| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 64 |
+| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 61 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
@@ -149,14 +149,14 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **State Pension amount** | The State Pension from the forecast: full, a forecast amount, or none. | Stress and Decision → Settings → State Pension (index.html:3546-3561) | Everyone | **Built**: `src/answers/shared/schemaParts.js` | `done` | `stress.spWeeklyAmount` `decision.spWeeklyAmount` |
-| **State Pension start date, typed from the forecast** | The exact date it starts, as on the forecast (also the birthday the plan reckons ages from). | State Pension: SP Start Date (index.html:3550) | Everyone | **Planned** (no V7 design yet): V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. | `s8-e` | `stress.spStartDate` `decision.spStartDate` |
-| **Final-salary pension: amount and start** | A defined-benefit pension: how much a year, in today's money, and when it starts. | Other income: Defined-Benefit Pension, starts at an age (the plan year is derived and saved beside it; src/ui/dbStartSetting.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/household.js`. Better: V7 asks the start by age, not plan year, for each person. | `done` | `stress.dbAmount` `stress.dbStartYear` `stress.dbStartAge` |
-| **How a final-salary pension rises** | Rises with prices capped at 5%, with full prices, or not at all. | Other income: DB Increases (index.html:3528-3532) | Everyone | **Planned** (no V7 design yet): V7's household takes all three (household.js) but the forms always say prices capped at 5%. | `s8-e` | `stress.dbIndexation` |
-| **Other income or pension** | Another taxable income a year from now, rising with prices capped at 4%. | Other income: Other Income/Pension (index.html:3512) | Everyone | **Planned** (no V7 design yet): D designs income you have bought (answer-D.md §5.2); a general other income has no V7 form. | `s8-e` | `stress.other` |
+| **State Pension amount** | The State Pension from the forecast: full, a forecast amount, or none. | Stress and Decision → Settings → State Pension (index.html:3546-3561) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/plan/income.js`, `src/v7/screens/plan/IncomeScreen.jsx`. Asked in every question; edited on a saved plan in V7 ("Money that comes in anyway", editing-in-v7.md 7): the full amount, the forecast's weekly amount, or none — and, while a plan has no figure, "as the planner assumes" (its old yearly figure from age 67), said in the planner's own words. **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `done` | `stress.spWeeklyAmount` `decision.spWeeklyAmount` |
+| **State Pension start date, typed from the forecast** | The exact date it starts, as on the forecast (also the birthday the plan reckons ages from). | State Pension: SP Start Date (index.html:3550) | Everyone | **Planned** (no V7 design yet): V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded. | `s8-e` | `stress.spStartDate` `decision.spStartDate` |
+| **Final-salary pension: amount and start** | A defined-benefit pension: how much a year, in today's money, and when it starts. | Other income: Defined-Benefit Pension, starts at an age (the plan year is derived and saved beside it; src/ui/dbStartSetting.js) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/shared/household.js`, `src/answers/plan/income.js`, `src/v7/screens/plan/IncomeScreen.jsx`. Better: V7 asks the start by age, not plan year, for each person. Edited on a saved plan in V7 as cards by start age (editing-in-v7.md 7): the first is the planner's own keys (the year from the age, the age beside it); a second or third goes into the planner's "income for some years" list as income for the rest of the plan, labelled "Final-salary pension". **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `done` | `stress.dbAmount` `stress.dbStartYear` `stress.dbStartAge` |
+| **How a final-salary pension rises** | Rises with prices capped at 5%, with full prices, or not at all. | Other income: DB Increases (index.html:3528-3532) | Everyone | **Built**: `src/answers/plan/income.js`, `src/v7/screens/plan/IncomeScreen.jsx`. V7's household takes all three (household.js) but the question forms always say prices capped at 5%. Edited on a saved plan in V7 with all three ("Money that comes in anyway", editing-in-v7.md 7). **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `done` | `stress.dbIndexation` |
+| **Other income or pension** | Another taxable income a year from now, rising with prices capped at 4%. | Other income: Other Income/Pension (index.html:3512) | Everyone | **Built**: `src/answers/plan/income.js`, `src/v7/screens/plan/IncomeScreen.jsx`. D designs income you have bought (answer-D.md §5.2); no question form asks a general other income. Edited on a saved plan in V7 ("Money that comes in anyway", editing-in-v7.md 7): other income for the whole plan, a year before tax, rising with prices capped at 4%. **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `done` | `stress.other` |
 | **Part-time work for some years** | Earnings for a number of years after stopping. | Income streams (index.html:3537-3542) | Approaching | **Built**: `src/answers/a/schema.js`, `src/answers/a/answer.js`. A's "Would some part-time work help?"; D designs the same for the retired (answer-D.md §3.6). | `done` | — |
-| **Income for some years** | Any taxable income between two plan years (rent that ends, part-time work, a small pension), with how it rises. | Stress → Settings → Income streams & lump sums (index.html:3535-3545, 10635-10641) | Approaching, retired | **Planned** (no V7 design yet): Only part-time work from the stop is asked in V7 (row above). | `s8-e` | `stress.extraIncomes` `extraIncomes[].label` `extraIncomes[].annual` `extraIncomes[].startYear` `extraIncomes[].endYear` `extraIncomes[].indexation` |
-| **One-off lump sums** | Money arriving in a plan year (an inheritance, downsizing): where it can legally go (ISA allowance, pension up to earnings or the £10,000 limit, the rest taxable), what it is held in, and the Decision tool's advice in its year. | Income streams & lump sums: + One-off lump sum (index.html:10639-10660; TaxableSleeve.routeWindfall) | Approaching, retired | **Designed**: research/v7/spending-shape.md §17. Not built. Designed: "Money you expect to come in" on the pots step (A, B; C under "Add more detail"): an amount at an age, and what it is (cash, an inherited pension, an inherited ISA). Where it can go is today's own routeWindfall (the ISA allowance, the pension within its limit, the rest a taxable account); kept plans get today's windfalls. | `shape-next` | `stress.windfalls` `decision.windfalls` `windfalls[].label` `windfalls[].amount` `windfalls[].year` `windfalls[].wrapper` `windfalls[].mix` `windfalls[].toIsa` |
+| **Income for some years** | Any taxable income between two plan years (rent that ends, part-time work, a small pension), with how it rises. | Stress → Settings → Income streams & lump sums (index.html:3535-3545, 10635-10641) | Approaching, retired | **Built**: `src/answers/plan/income.js`, `src/v7/screens/plan/IncomeScreen.jsx`. Only part-time work from the stop is asked in the questions (row above). Edited on a saved plan in V7 as cards ("Money that comes in anyway", editing-in-v7.md 7): what it is, the amount a year before tax, from age, to age or for the rest of the plan, how it rises — by age, stored as the planner's plan years. **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `done` | `stress.extraIncomes` `extraIncomes[].label` `extraIncomes[].annual` `extraIncomes[].startYear` `extraIncomes[].endYear` `extraIncomes[].indexation` |
+| **One-off lump sums** | Money arriving in a plan year (an inheritance, downsizing): where it can legally go (ISA allowance, pension up to earnings or the £10,000 limit, the rest taxable), what it is held in, and the Decision tool's advice in its year. | Income streams & lump sums: + One-off lump sum (index.html:10639-10660; TaxableSleeve.routeWindfall) | Approaching, retired | **Designed**: research/v7/spending-shape.md §17. Edited on a saved plan in V7 as cards ("Money that comes in anyway", editing-in-v7.md 7): what it is, the amount, at age, and what kind (cash, an inherited pension, an inherited ISA) — the saved plan's rows, kept byte for byte where unchanged. Where a cash lump sum can go (routeWindfall: the ISA allowance, the pension within its limit, the rest a taxable account) and what its taxable part is held in stay the planner's, kept as saved. The question forms' "Money you expect to come in" (spending-shape.md §17) is still designed, not built, so the row stays designed. | `shape-next` | `stress.windfalls` `decision.windfalls` `windfalls[].label` `windfalls[].amount` `windfalls[].year` `windfalls[].wrapper` `windfalls[].mix` `windfalls[].toIsa` |
 
 ## Tax and the tax-free part
 
@@ -294,7 +294,7 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **The budget's version and stored totals** | A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save. | BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version) | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `budget.version` `budget.derived` |
 | **Whether a line's panels were left open** | Whether a line's age band or breakdown was open on screen when it was saved. | Budget lines (index.html:11660-11670, 12491) | Nobody sees it | **Retired**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost. | `s9-switch` | `budget.lines[]._bandOpen` `budget.lines[].breakdownOpen` |
-| **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Built**: `src/answers/plan/read.js`, `src/answers/plan/options.js`. Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked. | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
+| **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Built**: `src/answers/plan/read.js`, `src/answers/plan/options.js`. Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked. Written by "Money that comes in anyway" as PlanSeed writes it: 0 for none (else every run assumes £12,000), the yearly figure beside a weekly amount. **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
 | **Where a copy came from** | Which tool a settings copy came from, when, and a fingerprint of the source (for a "changed since you copied" note). | seedDecisionFromStress (ScenarioRepository.js); the Stress side went with "Copy from Decision" in 6.23.0 | Nobody sees it directly | **Retired**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched. | `s9-switch` | `decision.seededFrom` |
 | **The plan's own fields** | The plan's id, when it was made and last changed. | FirestoreService.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.id` `plan.createdAt` `plan.lastModified` |
 | **The parts a plan is kept in** | The Stress tester's, the Decision tool's and the Budget's parts of a plan. | ScenarioRepository.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.stressTool` `plan.stressTool.settings` `plan.decisionTool` `plan.decisionTool.settings` `plan.budgetTool.settings` |
@@ -378,7 +378,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.currentAge` | Age today | Built |
 | `stress.currentAgeAsOf` | Age today | Built |
 | `stress.dbAmount` | Final-salary pension: amount and start | Built |
-| `stress.dbIndexation` | How a final-salary pension rises | Planned (no V7 design yet) |
+| `stress.dbIndexation` | How a final-salary pension rises | Built |
 | `stress.dbStartAge` | Final-salary pension: amount and start | Built |
 | `stress.dbStartYear` | Final-salary pension: amount and start | Built |
 | `stress.disableProtection` | Cuts in a slump | Planned (no V7 design yet) |
@@ -386,7 +386,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.duration` | How long the plan runs | Built |
 | `stress.equityGlideEnabled` | Bond tent | Planned (no V7 design yet) |
 | `stress.equityMin` | Pension pot, split into shares, bonds and cash | Built |
-| `stress.extraIncomes` | Income for some years | Planned (no V7 design yet) |
+| `stress.extraIncomes` | Income for some years | Built |
 | `stress.extraWithdrawals` | Extra spends in a given year | Designed |
 | `stress.firstTaxYear` | Plan starts this tax year or next April | Built |
 | `stress.giaTaxBand` | A taxable account (GIA) | Planned (no V7 design yet) |
@@ -402,7 +402,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.legacyFirstTaxYear` | Plan starts this tax year or next April | Built |
-| `stress.other` | Other income or pension | Planned (no V7 design yet) |
+| `stress.other` | Other income or pension | Built |
 | `stress.pa` | Tax thresholds | Planned (no V7 design yet) |
 | `stress.pacwMin` | Old names of the three pot floors | Retired |
 | `stress.potAtRetirement` | Pots at retirement, typed in | Planned (no V7 design yet) |
@@ -693,11 +693,11 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `extraIncomes[].annual` | Income for some years | Planned (no V7 design yet) |
-| `extraIncomes[].endYear` | Income for some years | Planned (no V7 design yet) |
-| `extraIncomes[].indexation` | Income for some years | Planned (no V7 design yet) |
-| `extraIncomes[].label` | Income for some years | Planned (no V7 design yet) |
-| `extraIncomes[].startYear` | Income for some years | Planned (no V7 design yet) |
+| `extraIncomes[].annual` | Income for some years | Built |
+| `extraIncomes[].endYear` | Income for some years | Built |
+| `extraIncomes[].indexation` | Income for some years | Built |
+| `extraIncomes[].label` | Income for some years | Built |
+| `extraIncomes[].startYear` | Income for some years | Built |
 
 ### `windfalls`: stressTool.settings.windfalls[]: a one-off lump sum
 
@@ -799,10 +799,7 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Bond tent** (Your allocation: Bond tent (index.html:3452-3462)). Step `s8-e`.
 - **How the ISA is used** (Your allocation: How the ISA is used (index.html:3337-3343)). Step `s8-e`.
 - **A taxable account (GIA)** (Your allocation: Taxable investments today (index.html:3347-3376; TaxableSleeve.js)). Step `s8-e`. answer-D.md §9.2 reads the ordinary account from a locked plan's holdings; no V7 form asks for it.
-- **State Pension start date, typed from the forecast** (State Pension: SP Start Date (index.html:3550)). Step `s8-e`. V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it.
-- **How a final-salary pension rises** (Other income: DB Increases (index.html:3528-3532)). Step `s8-e`. V7's household takes all three (household.js) but the forms always say prices capped at 5%.
-- **Other income or pension** (Other income: Other Income/Pension (index.html:3512)). Step `s8-e`. D designs income you have bought (answer-D.md §5.2); a general other income has no V7 form.
-- **Income for some years** (Stress → Settings → Income streams & lump sums (index.html:3535-3545, 10635-10641)). Step `s8-e`. Only part-time work from the stop is asked in V7 (row above).
+- **State Pension start date, typed from the forecast** (State Pension: SP Start Date (index.html:3550)). Step `s8-e`. V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.
 - **Tax thresholds** (Stress → Settings → Tax thresholds (index.html:3476-3500)). Step `s8-e`. V7 uses today's bands (toEngine.js BANDS) and they cannot be changed.
 - **Thresholds rise with prices, or stay frozen** (Tax thresholds: Tax Threshold Mode (index.html:3492-3497)). Step `s8-e`.
 - **Tax-free part for some years, then the rest into the ISA** (How you'll take this pension: UFPLS for how many years (index.html:3002-3014)). Step `s8-e`. F's "tax-free cash and which pot first" is the decision page (rail-screens-language.md §1.5); the plan's own setting needs E.
@@ -834,6 +831,14 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Plan starts this tax year or next April** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear`.
 - **How long the plan runs** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.duration` `decision.duration`.
 - **Suggest a plan length from longevity** (`src/v7/screens/plan/AboutScreen.jsx`): —.
+- **State Pension amount** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.spWeeklyAmount` `decision.spWeeklyAmount`.
+- **State Pension start date, typed from the forecast** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.spStartDate` `decision.spStartDate`.
+- **The old State Pension fields** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear`.
+- **Final-salary pension: amount and start** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.dbAmount` `stress.dbStartYear` `stress.dbStartAge`.
+- **How a final-salary pension rises** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.dbIndexation`.
+- **Other income or pension** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.other`.
+- **Income for some years** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.extraIncomes` `extraIncomes[].label` `extraIncomes[].annual` `extraIncomes[].startYear` `extraIncomes[].endYear` `extraIncomes[].indexation`.
+- **One-off lump sums** (`src/v7/screens/plan/IncomeScreen.jsx`): `stress.windfalls` `decision.windfalls` `windfalls[].label` `windfalls[].amount` `windfalls[].year` `windfalls[].wrapper` `windfalls[].mix` `windfalls[].toIsa`.
 
 ## Retired, and why
 

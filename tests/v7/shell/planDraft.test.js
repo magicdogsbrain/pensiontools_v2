@@ -30,6 +30,22 @@ describe('plan/edit and plan/touch', () => {
     expect(reduce(s, edit('p1', 'age', '58'))).toBe(s);   // nothing changed: the same state
     for (const p of ABOUT_PATHS) expect(reduce(s, edit('p1', p, 'x')).draft.plan.values[p]).toBe('x');
   });
+  it('the second step\'s paths (editing-in-v7.md 7.2): the single boxes, a list\'s order, a card\'s boxes by id; anything else refused', () => {
+    const s = run(fresh(), at('#/plan/p1/income'), edit('p1', 'spKind', 'none'), edit('p1', 'fs.ids', '0,n1'), edit('p1', 'fs.n1.amount', '3,000'), edit('p1', 'lumps.0.atAge', '69'), edit('p1', 'streams.n2.toAge', ''));
+    expect(s.draft.plan.values).toEqual({ spKind: 'none', 'fs.ids': '0,n1', 'fs.n1.amount': '3,000', 'lumps.0.atAge': '69', 'streams.n2.toAge': '' });
+    for (const p of ['fs', 'fs.0.toAge', 'lumps.x.amount', 'pots.0.amount', 'fs.ids.0']) expect(() => reduce(s, edit('p1', p, '1')), p).toThrow(/no field/);
+    expect(() => reduce(s, { type: A.PLAN_TOUCH, planId: 'p1', path: 'lumps.x.amount' })).toThrow();
+    expect(run(s, { type: A.PLAN_TOUCH, planId: 'p1', path: 'fs.n1.amount' }).draft.plan.touched).toEqual(['fs.n1.amount']);
+    // the same plan's about step keeps it; another plan's income step clears it
+    expect(reduce(s, at('#/plan/p1/about')).draft.plan.values['fs.ids']).toBe('0,n1');
+    expect(reduce(s, at('#/plan/p2/income')).draft.plan).toEqual(emptyPlanDraft());
+    // the draft store keeps and cleans them the same way
+    const storage = fakeStorage();
+    expect(saveDraft(storage, draftOf(s))).toBe(true);
+    expect(JSON.parse(storage.getItem(DRAFT_KEY)).plan.values).toEqual(s.draft.plan.values);
+    const dirty = fakeStorage({ [DRAFT_KEY]: JSON.stringify({ plan: { id: 'p1', values: { 'fs.n1.amount': '3,000', 'fs.zz.amount': '1', 'lumps.0.atAge': 69 }, touched: ['lumps.0.atAge', 'nope'], asked: false } }) });
+    expect(loadDraft(dirty).plan).toEqual({ id: 'p1', values: { 'fs.n1.amount': '3,000' }, touched: ['lumps.0.atAge'], asked: false });
+  });
   it('typing for another plan starts afresh; plan/touch marks a box once', () => {
     const s = run(fresh(), at('#/plan/p1/about'), edit('p1', 'age', '58'));
     const t = reduce(s, edit('p2', 'age', '60'));

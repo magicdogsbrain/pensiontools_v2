@@ -457,6 +457,17 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .about-suggest .help { margin: 6px 0 0; }
 .about-derived { margin-top: 16px; }
 .about-actions { margin-top: 16px; }
+/* "Money that comes in anyway" (editing-in-v7.md 7): lists of pensions and lump sums as cards, never a wide table */
+.income-section { margin-top: 18px; }
+.income-section > h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.income-card { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); min-width: 0; }
+.income-card legend { font-weight: 600; padding: 0 4px; }
+.income-card .field { margin-bottom: 8px; }
+.income-card .field-money input[type="text"], .about-form .field-money input[type="text"] { max-width: 9rem; }
+.income-card .field-text input[type="text"] { max-width: 100%; }
+.income-card-actions { margin: 4px 0 0; }
+.income-add-row { margin: 6px 0 4px; }
+.income-none { margin: 4px 0 8px; }
 .undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
   max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text);
   border: 1px solid var(--line); }

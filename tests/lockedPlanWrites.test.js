@@ -24,7 +24,7 @@ import { clearGuestData, guestSnapshot } from '../src/firebase/FirestoreService.
 import {
   getActiveScenarioAsync, invalidateScenarioCache, saveActiveStressSettings, saveActiveDecisionSettings, setActiveStrategy,
   seedStressFromDecision, seedDecisionFromStress, getDefaultDecisionSettings, saveActivePlanDocument, archivePlanDocument,
-  saveActiveHoldings, saveActiveAccumulationHistory, saveActiveJourney, activePlanLocked
+  saveActiveHoldings, saveActiveAccumulationHistory, saveActiveJourney, activePlanLocked, saveActiveDrawCadence
 } from '../src/storage/ScenarioRepository.js';
 import {
   getStressSettingsAsync, saveStressSettings, updateStressSetting, saveStressDB, loadStressDBAsync, resetStressSettings,
@@ -104,7 +104,6 @@ const BUTTONS = {
     return [() => saveStressSettings(seedStressFromDecision({ ...d, baseSalary: 1 }, s))];
   },
   'Decision tool → Settings → "Save Settings"': async () => [() => saveDecisionSettings({ configured: true, baseSalary: 46000, locked: true })],
-  'Decision tool → Monthly Entry → how often months are recorded (window.setCadence)': async () => [() => saveDecisionSettings({ cadence: 'quarterly' })],
   'Decision tool → Settings → "Reset to Defaults"': async () => [() => saveDecisionSettings({ equityMin: 250000, bondMin: 200000, cashTarget: 50000, duration: 35, baseSalary: 30000, protectionFactor: 20, recoveryBuffer: 15000, consecutiveLimit: 3 })],
   'Decision tool → Settings → "Copy from Stress tester" (target, then everything)': async () => {
     const s = await getStressSettingsAsync(), d = await getDecisionSettingsAsync();
@@ -249,10 +248,11 @@ describe('a locked plan: the named bookkeeping writes still go through', () => {
   });
 });
 
-describe('a locked plan: how often months are recorded is part of the plan (review of 6.20.2)', () => {
-  // The cadence is inside the Decision settings, so it is in the settings checksum. On a plan that has been unlocked
-  // before, a changed checksum relabels every month already recorded as "recorded under previous settings".
-  it('the picker is refused on a plan unlocked once before: no record is relabelled, the checksum does not move', async () => {
+describe('a locked plan: how often months are recorded is a PREFERENCE (v6 usability audit, decision 4; was "part of the plan" from the review of 6.20.2)', () => {
+  // The picker writes decisionTool.cadence (ScenarioRepository.saveActiveDrawCadence), outside the Decision settings and
+  // their checksum. On a plan unlocked once before, no recorded month is relabelled by it. The OLD key inside the settings
+  // is still a setting: a write to it is refused like any other, and it stays as stored.
+  it('the picker goes through on a plan unlocked once before: no record is relabelled, nothing frozen moves; the old settings key is still refused', async () => {
     const plan = fixture('03-gilt-ladder-runup');
     plan.decisionTool.settings.unlockCount = 1;
     plan.decisionTool.settings.unlockedAt = '2026-07-01T00:00:00.000Z';
@@ -262,20 +262,23 @@ describe('a locked plan: how often months are recorded is part of the plan (revi
     const dep = await planDependents();
     expect(dep.entriesUnderCurrent).toBe(3);
     expect(dep.entriesUnderPrevious).toBe(0);
-    await expect(saveDecisionSettings({ cadence: 'quarterly' })).rejects.toMatchObject({ code: PLAN_LOCKED_CODE, message: PLAN_LOCKED_MESSAGE });
+    await saveActiveDrawCadence('quarterly');
+    expect(stored().decisionTool.cadence).toBe('quarterly');
     expect(frozenParts()).toEqual(before);
     expect(before.checksum).toBe(sum);
     const after = await planDependents();
     expect(after.entriesUnderCurrent).toBe(3);
     expect(after.entriesUnderPrevious).toBe(0);
+    await expect(saveDecisionSettings({ cadence: 'quarterly' })).rejects.toMatchObject({ code: PLAN_LOCKED_CODE, message: PLAN_LOCKED_MESSAGE });
+    expect(frozenParts()).toEqual(before);
     expect((await getDecisionSettingsAsync()).cadence).toBe(plan.decisionTool.settings.cadence);   // the copy in memory either
   });
-  it('a draft still changes it freely', async () => {
+  it('a draft changes it freely, through the preference', async () => {
     enterGuestMode(); clearGuestData();
     sessionStorage.setItem(GUEST_KEY, JSON.stringify([{ ...fixture('02-pnv-draft'), isActive: true }]));
     fresh();
-    await saveDecisionSettings({ cadence: 'annual' });
-    expect(stored().decisionTool.settings.cadence).toBe('annual');
+    await saveActiveDrawCadence('annual');
+    expect(stored().decisionTool.cadence).toBe('annual');
   });
 });
 

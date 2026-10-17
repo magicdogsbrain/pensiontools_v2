@@ -140,7 +140,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(w2.saving.actual).toBe(350000);
     expect(w2.saving.actualSource).toBe('holdings');
     expect(w2.saving.recordedAt).toBe('2027-01-05');
-    expect(whereAmIHtml(w2)).toContain('holdings as of 2027-01-05');
+    expect(whereAmIHtml(w2)).toContain('holdings as of 5 January 2027');   // UK words, never an ISO stamp (ukDates.js)
   });
   it('locked with no pot on record: the strip and the document ask for the pot instead of comparing with nothing', () => {
     const doc = buildPlanDocument({ planName: 'Sam Real', settings, accumulation, lockedAt: NOW.toISOString(), now: NOW });

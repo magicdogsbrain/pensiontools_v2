@@ -140,18 +140,33 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
  * @returns {{ title: string, paragraphs: string[], okLabel: string, cancelLabel: string }|null}
  */
 export function decisionLockQuestion(stage) {
-  if (!stage || stage.locked || stage.timingMode !== 'future' || !stage.beforeStart) return null;
-  const m = /^(\d{4})-(\d{2})$/.exec(String(stage.startMonth || ''));
-  const when = m ? MONTHS[+m[2] - 1] + ' ' + m[1] : 'you retire (' + stage.startLabel + ')';
+  if (!stage || stage.locked) return null;
+  // Still saving (6.20.2): the month would lock a plan that has not started; say where a saver records their pot.
+  if (stage.timingMode === 'future' && stage.beforeStart) {
+    const m = /^(\d{4})-(\d{2})$/.exec(String(stage.startMonth || ''));
+    const when = m ? MONTHS[+m[2] - 1] + ' ' + m[1] : 'you retire (' + stage.startLabel + ')';
+    return {
+      title: 'This locks the plan. Lock it now?',
+      paragraphs: [
+        'Your plan says you are still saving until ' + when + '. Recording a month in the Decision tool locks the plan.',
+        'Locking copies your Stress tester settings across to the Decision tool and freezes both until you unlock; it writes the plan document, which follows your saving month by month; and the Decision tool takes no more months until you stop saving.',
+        'While you are saving, record your pot each month on the Accumulation tab instead. That does not lock anything.',
+        '"Not now" leaves this month unrecorded. How often you draw, your records, what you hold and the Budget stay changeable either way.'
+      ],
+      okLabel: 'Lock the plan and carry on',
+      cancelLabel: 'Not now'
+    };
+  }
+  // Everyone else (v6 usability audit, decision 3): the first month, or its tax-year set-up, locks the plan — ask, and
+  // lock the plan as the Stress settings do (settings copied across, document written), never on the Decision tool's defaults.
   return {
-    title: 'Lock this plan?',
+    title: 'This locks the plan. Lock it now?',
     paragraphs: [
-      'Your plan says you are still saving until ' + when + '. Recording a month in the Decision tool locks the plan.',
-      'Locking freezes the plan: its Stress tester and Decision tool settings cannot be changed until you unlock it, and the Decision tool takes no more months until you stop saving.',
-      'While you are saving, record your pot each month on the Accumulation tab instead. That does not lock anything.',
-      'To lock the plan on purpose, use Stress tester → Settings → "Lock plan & create the plan document". It also writes the plan document, which follows your saving month by month.'
+      'Recording a month in the Decision tool — or setting up its tax year — locks the plan' + (stage.startLabel ? ' (plan starts ' + stage.startLabel + ')' : '') + '.',
+      'Locking copies your Stress tester settings across to the Decision tool — the pots, income steps, State Pension and strategy you tested — and freezes both until you unlock. It also writes the plan document: the record of what you committed to, which "Where you are" reads against each month.',
+      'How often you draw, your records, what you hold and the Budget stay changeable. "Not now" leaves this month unrecorded; to lock without recording a month, use Stress tester → Settings → "Lock plan & create the plan document".'
     ],
-    okLabel: 'Lock the plan and carry on',
+    okLabel: 'Lock the plan and record this month',
     cancelLabel: 'Not now'
   };
 }

@@ -154,7 +154,7 @@ describe('the parity ledger: the gate — every key today\'s app saves has a row
     for (const k of [
       'stress.incomeSteps', 'stress.incomeShape', 'stress.targetSchedule', 'stress.dbAmount', 'stress.extraIncomes', 'stress.windfalls',
       'stress.extraWithdrawals', 'stress.chargesPct', 'stress.hodlEnabled', 'stress.bandFillRecycle', 'stress.strategyState',
-      'decision.cadence', 'decision.locked', 'decision.protectionFactor', 'incomeSteps[].decline', 'incomeSteps[].glideToNext',
+      'plan.decisionTool.cadence', 'decision.locked', 'decision.protectionFactor', 'incomeSteps[].decline', 'incomeSteps[].glideToNext',
       'budget.lines[].paidBy', 'budget.splitPhases[].mySharePct', 'budget.oneOffs[].everyYears', 'accumulation.escalationPct',
       'holdings.lines[].sedol', 'household.partnerScenarioId', 'taxYear.confirmedSalary', 'plan.planDocument', 'plan.fromAnswer',
       'strategyParams.gilt-rotation.rotateCutAge', 'strategies.floor-to-age'

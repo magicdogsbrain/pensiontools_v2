@@ -5,7 +5,7 @@
  *    on a bare `localStorage` and left a blank page);
  *  - signing out by ANY route deletes a waiting seed (only the menu's Logout did; the idle timer and the verify-email
  *    screen's "Sign out" call logOut() alone) — and the first "nobody" of a signed-out visit does not;
- *  - the landing page's "Just try it" in a tab that holds plans carries on with them; only an empty tab gets the demo;
+ *  - the landing page's "Just try it" in a tab that holds plans carries on with them; only an empty tab starts a plan of the person's own (startGuest(null), 6.23.0);
  *  - the Budget page's guide: only on a plan made from a V7 answer, with the plan's own target.
  * The browser walk is tests/integration/newPlanFromSeed.browser.mjs.
  */
@@ -105,7 +105,7 @@ describe('"Just try it" on the landing page (found 1 Oct 2026: it deleted the ta
     expect(s.startGuestMeter).toHaveBeenCalled();
     expect(document.getElementById('guestBanner').style.display).toBe('flex');
   });
-  it('an empty tab: the demo plan, as before', async () => {
+  it('an empty tab: the person\'s own empty plan (startGuest with no example key)', async () => {
     const s = shell();
     await startSeedEntry(s, fakeWindow()).tryWithoutAccount();
     expect(s.startGuest).toHaveBeenCalledWith(null);

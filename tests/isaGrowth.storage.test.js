@@ -27,7 +27,7 @@ import { DEFAULT_CHARGES_PCT } from '../src/services/Charges.js';
 import { enterGuestMode, leaveGuestMode } from '../src/firebase/AuthService.js';
 import { clearGuestData, loadScenario } from '../src/firebase/FirestoreService.js';
 import {
-  getDefaultScenario, getDefaultStressSettings, getDefaultDecisionSettings, seedDecisionFromStress, seedStressFromDecision,
+  getDefaultScenario, getDefaultStressSettings, getDefaultDecisionSettings, seedDecisionFromStress,
   createNewScenario, duplicateScenario, getActiveStressSettings, invalidateScenarioCache, unlockPatchesOf, chargesPatchOnUnlock
 } from '../src/storage/ScenarioRepository.js';
 import { getStressSettingsAsync, loadStressDB, invalidateStressCache, createSimulationConfigFromSettings, saveStressSettings, resetStressSettings } from '../src/storage/StressRepository.js';
@@ -234,10 +234,6 @@ describe('the copies between the two tools', () => {
     expect('isaGrowth' in seedDecisionFromStress({ equityMin: 1, isaGrowth: 'invested' }, {})).toBe(false);
     const b = { equityMin: 1, baseSalary: 2 };
     expect(decisionSettingsChecksum(seedDecisionFromStress({ ...b, isaGrowth: 'invested' }, {}))).toBe(decisionSettingsChecksum(seedDecisionFromStress(b, {})));
-  });
-  it('Decision → Stress keeps the plan\'s own choice, and gives none to a plan that had none', () => {
-    expect(seedStressFromDecision({ equityMin: 1 }, { isaGrowth: 'invested' }, 't').isaGrowth).toBe('invested');
-    expect('isaGrowth' in seedStressFromDecision({ equityMin: 1, isaGrowth: 'cash' }, {}, 't')).toBe(false);
   });
 });
 

@@ -964,18 +964,23 @@ export function seedSavedNote(made, seed = null) {
  *    person chose, which is what the plan works to. Found 1 Oct 2026: the page said the budget's total, with an averaged
  *    allowance for one-offs added, was "what your plan funds" and "the target both tools work to" — it was neither, and
  *    the owner's rule is that the budget never formulates how much they need.
- * @param {{ allInMonthly: number, allInAnnual: number, periodicMonthly: number, headroomMonthly: number, targetGrossAnnual: number, shared: boolean }} f
+ * @param {{ allInMonthly: number, allInAnnual: number, periodicMonthly: number, useMonthly?: number, plusTen?: boolean, targetGrossAnnual: number, shared: boolean }} f
  * @param {null | { monthly: number, grossAnnual: number, steps: boolean }} guide
  * @param {(n: number) => string} money
  * @returns {{ allInCaption: string, handoff: string, targetLine: string }}   HTML (figures and fixed words only)
  */
 export function budgetSummaryWords(f, guide, money) {
-  const headM = +f.headroomMonthly || 0;
   if (!guide) {
+    // A plan made in the planner (6.23.0, usability audit decision 6): the budget is a guide, and says so. Only the
+    // button changes the plan; `useMonthly` is the figure it would use (the budget, or the budget with a tenth on top).
+    const useM = f.useMonthly != null ? +f.useMonthly : +f.allInMonthly;
+    const plusTen = !!f.plusTen;
     return {
-      allInCaption: money(f.allInAnnual) + '/yr — what your plan funds',
-      handoff: 'Your all-in take-home of <strong>' + money(f.allInMonthly) + '/mo</strong> becomes the <strong>target both tools work to</strong>: the Stress Tester asks “will my pots deliver this for life?” and the Decision Tool works out each month’s withdrawal to hit it tax-efficiently.',
-      targetLine: 'Plan target: <strong>' + money(f.allInMonthly + headM) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(f.targetGrossAnnual) + '/yr before tax' + (headM ? ' — budget + ' + money(headM) + '/mo headroom' : '') + ')</span>'
+      allInCaption: money(f.allInAnnual) + '/yr — a guide; it changes nothing until you use it',
+      handoff: (f.shared ? 'Your share of the budget adds up to <strong>' : 'Your budget adds up to <strong>') + money(f.allInMonthly) + '/mo</strong> take-home'
+        + (f.periodicMonthly > 0 ? ', including ' + money(f.periodicMonthly) + '/mo set aside for the periodic costs' : '')
+        + '. The budget is a guide. Only “Use as my spending” changes the plan — and it changes one thing, the plan’s spending figure. Age bands and one-off costs stay here, for your eye.',
+      targetLine: 'If you use it: <strong>' + money(useM) + '/mo take-home</strong> <span style="color:var(--text-muted);">(≈ ' + money(f.targetGrossAnnual) + '/yr before tax' + (plusTen ? ' — your budget with a tenth on top' : '') + ')</span>'
     };
   }
   const yours = f.shared ? ' (your part)' : '';

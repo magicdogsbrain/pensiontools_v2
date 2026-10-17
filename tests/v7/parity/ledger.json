@@ -184,7 +184,7 @@
       "kind": "option",
       "name": "Landing page, welcome tour and set-up wizard",
       "what": "Shows a new person what the app does, then asks name, single or couple, ages and retirement age, and where to start: work out my budget, can I afford to retire, this month's withdrawal, or I'm already drawing.",
-      "whereV6": "LandingPage.js, OnboardingPage.js, SetupWizard.js:226-270",
+      "whereV6": "LandingPage.js, SetupWizard.js:226-270 (the welcome tour, OnboardingPage.js, was retired in 6.23.0)",
       "who": "New people",
       "keys": [],
       "status": "built",
@@ -613,13 +613,11 @@
       "what": "Adds a monthly margin on top of the budget's total when it becomes the plan's target.",
       "whereV6": "Budget: Your spending need (index.html:12167-12170)",
       "who": "Savers, retired",
-      "keys": [
-        "budget.targetHeadroomMonthly"
-      ],
+      "keys": [],
       "status": "retired",
-      "reason": "The spending figure is now always your own, with the budget as a guide beside it (owner, 1 Oct 2026), so there is no budget total to add a margin to: type the figure with the margin you want.",
-      "step": "s9-switch",
-      "owner": "to confirm (follows from the rule of 1 Oct 2026 that the budget is a guide; budget-step.md)"
+      "reason": "Retired in today's planner too (6.23.0): the box is gone and the saved figure is no longer read; a \"+10%\" button beside \"Use £X a month as my spending\" gives the margin instead (usability audit decision 9).",
+      "step": "done",
+      "owner": "approved (owner, 17 Oct 2026, usability audit decision 9)"
     },
     {
       "id": "budget.use-as-target",
@@ -2526,13 +2524,13 @@
       "kind": "option",
       "name": "Copy settings between the two tools",
       "what": "\"Copy from Decision Tool\" seeds the Stress tester from the committed plan; \"Use ALL Stress settings\" or \"Copy target amount only\" goes the other way.",
-      "whereV6": "Stress → Settings (index.html:3563-3567); Decision → Settings (index.html:2648-2660)",
+      "whereV6": "Gone from today's planner in 6.23.0 (was Stress → Settings and Decision → Settings); the lock still copies the Stress settings into the Decision tool (seedDecisionFromStress)",
       "who": "Approaching, retired",
       "keys": [],
       "status": "retired",
-      "reason": "V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between: every figure the copy carried is in the one plan.",
-      "step": "s9-switch",
-      "owner": "to confirm"
+      "reason": "One plan has one set of settings (usability audit decision 9; retired in today's planner in 6.23.0). V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between.",
+      "step": "done",
+      "owner": "approved (owner, 17 Oct 2026, usability audit decision 9)"
     },
     {
       "id": "month.seeded",
@@ -2540,12 +2538,9 @@
       "kind": "machinery",
       "name": "Where a copy came from",
       "what": "Which tool a settings copy came from, when, and a fingerprint of the source (for a \"changed since you copied\" note).",
-      "whereV6": "seedStressFromDecision / seedDecisionFromStress (ScenarioRepository.js)",
+      "whereV6": "seedDecisionFromStress (ScenarioRepository.js); the Stress side went with \"Copy from Decision\" in 6.23.0",
       "who": "Nobody sees it directly",
       "keys": [
-        "stress.seededFrom",
-        "stress.seededAt",
-        "stress.decisionChecksum",
         "decision.seededFrom"
       ],
       "status": "retired",

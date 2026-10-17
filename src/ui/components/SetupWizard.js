@@ -977,57 +977,6 @@ export function showSetupWizard() {
   }
 }
 
-/**
- * Initialize wizard for specific tools only (skips scenario phase).
- * Used when adding new tools to an existing scenario.
- * @param {HTMLElement} container - Container element
- * @param {string[]} tools - Tools to configure (e.g. ['stress'], ['decision'], ['stress','decision'])
- * @param {Function} onComplete - Callback when wizard completes
- */
-export function initToolWizard(container, tools, onComplete, existingSettings) {
-  wizardElement = container;
-  onCompleteCallback = onComplete;
-  resetWizardState();
-  wizardData.enabledTools = tools;
-
-  // Pre-fill from existing settings of the other tool (shared fields)
-  if (existingSettings) {
-    // If adding stress and we have decision settings, pre-fill stress fields
-    if (tools.includes('stress') && existingSettings.source === 'decision') {
-      wizardData.baseSalary = existingSettings.baseSalary || 30000;
-      wizardData.equityMin = existingSettings.equityMin || 250000;
-      wizardData.bondMin = existingSettings.bondMin || 200000;
-      wizardData.cashTarget = existingSettings.cashTarget || 50000;
-      wizardData.isaBalance = existingSettings.isaBalance || 0;
-      wizardData.duration = existingSettings.duration || 35;
-      wizardData.spStartDate = existingSettings.spStartDate || '';
-      wizardData.spWeeklyAmount = existingSettings.spWeeklyAmount || 0;
-    }
-    // If adding decision and we have stress settings, pre-fill decision fields
-    if (tools.includes('decision') && existingSettings.source === 'stress') {
-      wizardData.decisionSalary = existingSettings.baseSalary || 30000;
-      wizardData.decisionEquity = existingSettings.equityMin || 250000;
-      wizardData.decisionBond = existingSettings.bondMin || 200000;
-      wizardData.decisionCash = existingSettings.cashTarget || 50000;
-      wizardData.decisionIsaBalance = existingSettings.isaBalance || 0;
-      wizardData.decisionDuration = existingSettings.duration || 35;
-    }
-  }
-
-  // Start at the first tool's phase
-  if (tools.includes('stress')) {
-    currentPhase = 'stress';
-  } else if (tools.includes('decision')) {
-    currentPhase = 'decision';
-  } else {
-    // No tools — shouldn't happen but handle gracefully
-    if (onComplete) onComplete(wizardData);
-    return;
-  }
-
-  currentStep = 1;
-  renderWizard();
-}
 
 /**
  * Get the wizard data

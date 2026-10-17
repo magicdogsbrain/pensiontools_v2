@@ -17,7 +17,7 @@
 import { SCHEMAS } from '../state/select.js';
 import { cleanSheet } from '../state/budget.js';
 import { keptKeep, keptPlanDraft } from '../state/initial.js';
-import { ABOUT_PATHS } from '../../answers/plan/schema.js';
+import { isPlanEditPath } from '../../answers/plan/schema.js';
 import { hasShape, stepsPath, shapePaths, isShapePath, cleanSteps, keptShapeExtras } from '../state/shapeDraft.js';
 
 export const DRAFT_KEY = 'pt_v7_draft';
@@ -62,11 +62,11 @@ function clean(kept) {
   }
   const budget = cleanSheet(kept.budget);
   if (budget) out.budget = budget;
-  // a saved plan's editing draft (editing-in-v7.md 4): the plan's id and the text of its boxes, nothing of the plan
+  // a saved plan's editing draft (editing-in-v7.md 4, 7.2): the plan's id and the text of its boxes, nothing of the plan
   const pd = keptPlanDraft(kept);
   if (pd.id) {
-    const values = Object.fromEntries(Object.entries(pd.values).filter(([p]) => ABOUT_PATHS.includes(p)));
-    const touched = pd.touched.filter((p) => ABOUT_PATHS.includes(p));
+    const values = Object.fromEntries(Object.entries(pd.values).filter(([p]) => isPlanEditPath(p)));
+    const touched = pd.touched.filter((p) => isPlanEditPath(p));
     if (Object.keys(values).length || touched.length || pd.asked) out.plan = { id: pd.id, values, touched, asked: pd.asked };
   }
   const saves = {};

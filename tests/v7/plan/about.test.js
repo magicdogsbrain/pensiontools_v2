@@ -275,14 +275,14 @@ describe('E2 — the stale-answer rule', () => {
 });
 
 describe('E3 — the sub-step tables', () => {
-  it('"about" sits under "plan"; it is listed for every stage × locked × linked that lists "plan" — every stage does', () => {
-    expect(SUB_STEPS).toEqual({ plan: ['about'] });
-    expect(ALL_SUB_STEPS).toEqual(['about']);
+  it('"about" and "income" sit under "plan"; they are listed for every stage × locked × linked that lists "plan" — every stage does', () => {
+    expect(SUB_STEPS).toEqual({ plan: ['about', 'income'] });
+    expect(ALL_SUB_STEPS).toEqual(['about', 'income']);
     for (const stage of Object.keys(STEPS)) for (const locked of [false, true]) for (const linked of [false, true]) for (const manyPlans of [false, true]) {
       const steps = stepsFor(stage, { locked, linked, manyPlans }).map((s) => s.id);
       const subs = subStepsFor(stage, { locked, linked, manyPlans });
       expect(subs.length > 0).toBe(steps.includes('plan'));
-      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }]);
+      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }]);
     }
   });
   for (const today of DATES) {
@@ -290,7 +290,7 @@ describe('E3 — the sub-step tables', () => {
       const entries = entriesAt(today);
       for (const e of entries) {
         const pg = planPage(entries, e.plan.id, 'plan', { today });
-        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }]);
+        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }]);
         const about = pg.steps.find((s) => s.id === 'plan').sections.find((s) => s.id === 'about');
         expect(about.href).toBe('#/plan/' + e.plan.id + '/about');
         expect(about.sub).toBe('about');
@@ -311,6 +311,8 @@ describe('E3 — the sub-step tables', () => {
   it('the fields and their words line up; the declared writes are the planner\'s timing keys', () => {
     for (const f of ABOUT_FIELDS) { expect(ABOUT.fields[f.path].label, f.path).toBeTypeOf('string'); if (f.type === 'choice') for (const o of f.options) expect(ABOUT.fields[f.path].options[o], `${f.path}.${o}`).toBeTypeOf('string'); }
     for (const p of ABOUT_WRITES) expect(p).toMatch(/^(stressTool|decisionTool|budgetTool)\.settings\.[a-zA-Z]+$/);
-    expect(ALL_WRITES).toEqual([...ABOUT_WRITES, 'lastModified']);
+    // the second step's declared list sits between this step's and the stamp (editing-in-v7.md 7.3)
+    expect(ALL_WRITES.slice(0, ABOUT_WRITES.length)).toEqual([...ABOUT_WRITES]);
+    expect(ALL_WRITES[ALL_WRITES.length - 1]).toBe('lastModified');
   });
 });

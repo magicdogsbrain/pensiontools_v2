@@ -21,9 +21,9 @@ import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS } from './initial.js';
-import { ABOUT_PATHS } from '../../answers/plan/schema.js';
+import { isPlanEditPath } from '../../answers/plan/schema.js';
 
-/** The plan draft (editing-in-v7.md 4): what was typed into "About you and when" for ONE plan; gone when the plan changes. */
+/** The plan draft (editing-in-v7.md 4, 7.2): what was typed into an editing step for ONE plan; gone when the plan changes. */
 const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
 const withPlanDraft = (state, plan) => ({ ...state, draft: { ...state.draft, plan } });
 const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly'];
@@ -542,11 +542,11 @@ export function reduce(state, action) {
     case A.PLAN_CHANGE_FAILED:
       return { ...state, ui: { ...state.ui, leaving: null, leaveProblem: 'storage' } };
 
-    // ---- editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 2, 4) ----------------------------
+    // ---- editing a saved plan: "About you and when", "Money that comes in anyway" (research/v7/editing-in-v7.md 2, 4, 7) ----
     case A.PLAN_EDIT: {
       const { planId, path, value } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/edit: needs a plan id');
-      if (!ABOUT_PATHS.includes(path)) return refuse(`plan/edit: no field "${path}"`);
+      if (!isPlanEditPath(path)) return refuse(`plan/edit: no field "${path}"`);
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : emptyPlanDraft();
       const values = { ...base.values };
@@ -557,7 +557,7 @@ export function reduce(state, action) {
     case A.PLAN_TOUCH: {
       const { planId, path } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/touch: needs a plan id');
-      if (!ABOUT_PATHS.includes(path)) return refuse(`plan/touch: no field "${path}"`);
+      if (!isPlanEditPath(path)) return refuse(`plan/touch: no field "${path}"`);
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
       if (base.touched.includes(path)) return base === pd ? state : withPlanDraft(state, base);

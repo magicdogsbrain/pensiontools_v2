@@ -21,6 +21,7 @@ import { A } from '../../../src/v7/copy/a.js';
 import { B } from '../../../src/v7/copy/b.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { ABOUT } from '../../../src/v7/copy/about.js';
+import { INCOME } from '../../../src/v7/copy/income.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -113,7 +114,8 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
     const slot = (s) => s.replace(/\{(month|nextMonth|stop)\}/g, 'April 2027').replace(/\{(date|asOf)\}/g, '1 July 2026').replace(/\{(year|savedYear)\}/g, '2027/28')
       .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{changed\}/g, '17 October 2026').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month')
-      .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036');
+      .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036')
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum');
     const hits = [];
     const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
     // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
@@ -133,6 +135,19 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of strings(ABOUT)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(ABOUT)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+  });
+  it('"Money that comes in anyway" (income.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
+    // the second editing step is a plan page too (editing-in-v7.md 7): a retired person's and a saver's plan are both edited from it
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(yearly|amount)\}/g, '£11,973').replace(/\{full\}/g, '£12,548')
+      .replace(/\{(age|ageNow|endAge|from|to|n|value)\}/g, '67').replace(/\{years\}/g, '15 years').replace(/\{(fs|streams|lumps)\}/g, '2').replace(/\{day\}/g, '5 April 2028')
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{name\}/g, 'Sam').replace(/\{rises\}/g, 'going up with prices').replace(/\{what\}/g, 'a cash lump sum').replace(/\{sp\}/g, 'none');
+    const hits = [];
+    const all = strings(INCOME).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(INCOME)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`income.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(INCOME)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
+    for (const [where, s] of strings(INCOME)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
   });
   it('question C: every string passes, in every scope question C is shown in — the "retired" rules included', () => {
     const hits = [];

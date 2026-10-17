@@ -46,6 +46,7 @@ import { A } from '../state/actions.js';
 import { lastActivity, IDLE_MS } from './activity.js';
 import { planRows, planPage } from '../../answers/plan/read.js';
 import { aboutOf } from '../../answers/plan/about.js';
+import { incomeOf } from '../../answers/plan/income.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -86,10 +87,11 @@ export function viewFor(state) {
   if (r && r.screen === 'plan' && r.planId) {
     page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
-    if (r.step === 'about') {
+    if (r.step === 'about' || r.step === 'income') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
-      page.about = { ...aboutOf(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
+      const read = r.step === 'about' ? aboutOf : incomeOf;   // "Money that comes in anyway" (editing-in-v7.md 7) reads the same way
+      page[r.step] = { ...read(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
     }
   }
   return { today, rows, page };

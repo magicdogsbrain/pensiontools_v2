@@ -151,6 +151,9 @@ export const PLAN = {
     'pots.noStatePension': 'No State Pension figure.',
     'pots.finalSalary': 'Final-salary pension',
     'pots.other': 'Other income',
+    'income.stream': '{label}',
+    'income.streamLife': '{label}',
+    'income.lump': '{label}',
     'way.strategy': 'How the money is taken: {strategy}.',
     'way.dial': '{dial}',
     'way.allocMode': 'The mix is set {mode}.',
@@ -171,8 +174,13 @@ export const PLAN = {
     'about.stopAt': ', in {month}',
     'pots.statePension': ' from {from}',
     'pots.statePensionOld': ' from tax year {year}',
-    'pots.finalSalary': ' from {from}'
+    'pots.finalSalary': ' from {from}',
+    'income.stream': ' from age {from} to age {to}',
+    'income.streamLife': ' from age {from}',
+    'income.lump': ' at age {age}, {what}'
   },
+  /** What a lump sum is (the planner's wrapper), in words. */
+  wrappers: { cash: 'a cash lump sum', pension: 'an inherited pension', isa: 'an inherited ISA' },
   /** The strategies in plain names. The one with an ampersand is spelt as the planner spells it. */
   strategies: {
     'pots-and-valves': 'Pots and valves',
@@ -206,7 +214,8 @@ export const PLAN = {
   sections: {
     about: 'About you',
     pays: 'What the plan pays',
-    pots: 'Pots and other income',
+    pots: 'Pots',
+    income: 'Money that comes in anyway',
     way: 'How the money is taken',
     else: 'Everything else this plan uses'
   },

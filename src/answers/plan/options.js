@@ -16,13 +16,15 @@
  */
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from '../../constants.js';
 
-/** The keys the four sections show, by section (the ledger's names: 'stress.x', 'decision.x'). */
+/** The keys the five sections show, by section (the ledger's names: 'stress.x', 'decision.x'). */
 export const SECTION_KEYS = Object.freeze({
   about: ['stress.currentAge', 'stress.currentAgeAsOf', 'stress.retired', 'stress.retireAge', 'stress.firstTaxYear', 'stress.legacyFirstTaxYear', 'decision.firstTaxYear', 'stress.duration', 'decision.duration'],
   pays:  ['stress.incomeShape', 'stress.incomeSteps', 'decision.incomeShape', 'decision.incomeSteps', 'stress.targetSchedule', 'decision.targetSchedule', 'stress.baseSalary', 'decision.baseSalary', 'stress.shapeAgeNow', 'decision.shapeAgeNow'],
   pots:  ['stress.equityMin', 'stress.bondMin', 'stress.cashTarget', 'decision.equityMin', 'decision.bondMin', 'decision.cashTarget', 'stress.isaBalance', 'decision.isaBalance',
-          'stress.taxableStart', 'stress.taxableMix', 'stress.giaTaxBand', 'decision.taxableStart', 'decision.taxableMix', 'decision.giaTaxBand',
-          'stress.spWeeklyAmount', 'decision.spWeeklyAmount', 'stress.spStartDate', 'decision.spStartDate', 'stress.dbAmount', 'stress.dbStartYear', 'stress.dbStartAge', 'stress.other', 'stress.potAtRetirement'],
+          'stress.taxableStart', 'stress.taxableMix', 'stress.giaTaxBand', 'decision.taxableStart', 'decision.taxableMix', 'decision.giaTaxBand', 'stress.potAtRetirement'],
+  // "Money that comes in anyway" (editing-in-v7.md 7): the State Pension, the final-salary pension, other income, the streams and the lump sums
+  income: ['stress.spWeeklyAmount', 'decision.spWeeklyAmount', 'stress.spStartDate', 'decision.spStartDate', 'stress.dbAmount', 'stress.dbStartYear', 'stress.dbStartAge', 'stress.dbIndexation', 'stress.other',
+          'stress.extraIncomes', 'stress.windfalls', 'decision.windfalls'],
   way:   ['stress.strategyId', 'stress.strategyParams', 'stress.strategyState', 'decision.strategyId', 'decision.strategyParams', 'stress.allocMode', 'decision.allocMode']
 });
 

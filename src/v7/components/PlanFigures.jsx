@@ -37,7 +37,7 @@ function sourceWords(source) {
 }
 
 /** Slots that hold an id: the strategy, a dial, the mix's mode — drawn by their plain names. */
-const SLOT_WORDS = { strategy: PLAN.strategies, dial: PLAN.dials, mode: PLAN.allocModes };
+const SLOT_WORDS = { strategy: PLAN.strategies, dial: PLAN.dials, mode: PLAN.allocModes, what: PLAN.wrappers };
 const worded = (slots) => Object.fromEntries(Object.entries(slots || {}).map(([k, v]) => [k, SLOT_WORDS[k] && SLOT_WORDS[k][v] ? SLOT_WORDS[k][v] : v]));
 
 export function PlanLine({ line, figures, hideSource = false }) {

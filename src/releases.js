@@ -37,6 +37,63 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.23.0', date: '2026-10-17', engineVersion: '6.22.0',
+    title: 'The planner made plainer: no silent locks or overwrites, settings in view, a monthly entry that asks what your platform shows',
+    summary: 'The first batch of fixes from a full review of the planner. Nothing locks or rewrites your plan without asking: a first monthly entry asks before it locks the plan and then runs the full lock; the budget\'s button into the plan asks first, changes one thing and offers Undo; writing a new plan document asks first. The seven ladder and floor strategies show the settings their engines use. A final-salary pension start is asked by age, and the plan says when it assumes a State Pension. The monthly entry asks for your pension total, cash and gilts or bond funds, with last month\'s figures filled in, and the tax-year set-up is three screens. Visitors start with a plan of their own and can keep three, and the example plan is read-only. Five things with no modern purpose are retired. Nothing in a locked plan changes.',
+    changes: [
+      'Recording a first month asks "This locks the plan. Lock it now?" — everyone, not only savers. Yes runs the same lock as Stress tester → Settings (settings copied across, plan document written), then records the month. "Not now" leaves the month unrecorded.',
+      'How often you draw (monthly, quarterly, yearly) is a preference: changeable on a locked plan, and changing it never marks recorded months as "under previous settings".',
+      'Budget: "Use £X a month as my spending" asks first ("was £Y"), changes only the plan\'s spending figure, and offers Undo for 15 seconds. A "+10%" button beside it replaces the "Optional headroom" box. The page says plainly: the budget is a guide; only that button changes the plan.',
+      'Stress tester → Settings: the ladder, floor and rotation strategies now show the plan\'s length, charges, how the ISA grows, the taxable account, earnings and bed-and-ISA — their engines use them. A setting a way of drawing ignores says "Not used by this way of drawing".',
+      'Final-salary pension: its start is asked by age, with the plan year and tax year said beside it; a start past the plan\'s end is refused instead of silently never paying.',
+      'With no State Pension entered, Settings, the gilt order sheet and the plan document all say "assumed £12,000 a year from 67".',
+      'Month by month asks for what your platform shows: pension total, of which cash, of which gilts or bond funds (shares are the rest; a ladder plan asks only total and cash). Last month\'s figures are filled in. "Enter by type instead" keeps the old boxes.',
+      'The tax-year set-up is three screens: it no longer asks for tax bands the app knows (shown as "we assume …, change"), says "income before tax" instead of "target salary", and says the right thing about your State Pension instead of "0 years until state pension".',
+      'Pasting your holdings: every line counts. A line the app cannot recognise asks "What is this?" (shares, bonds, cash, gold and trend, don\'t know); the summary says what was read and what was left out and why.',
+      '"Try a strategy" runs the plan\'s full length, not a 35-year cap.',
+      'The plan document: "Write a new version from today\'s settings" (was "Refresh the document") asks first; the current document becomes a past version. Its words follow the way of drawing (a ladder plan\'s document no longer describes Pots & Valves mechanics).',
+      'Dates read as "September 2026" or "6 April 2027" everywhere. "Six strategies" is counted from the registry (nine). The abolished lifetime allowance is no longer mentioned.',
+      'Visitors: "Just try it" starts a plan of your own; "Look around an example" opens the read-only £1M example. Without an account you can keep up to three plans in this browser window. One rule everywhere: "Kept in this browser window until you close it. Make a free account to keep it for good."',
+      'Landing page: "New: answer one question in about two minutes (preview)" links to the preview\'s questions.',
+      'Retired, with nothing in their place: the welcome tour, the old per-tool wizard, "⚙ Edit Tools" (every tab is on for every plan), the Copy from Stress / Copy from Decision buttons, and the budget\'s headroom box.'
+    ],
+    corrections: [
+      'The first monthly entry locked an unlocked plan without asking, against the Decision tool\'s defaults (£500,000, 35 years), and wrote no plan document.',
+      'A final-salary pension start typed as an age (65) into the "plan year" box was saved and never paid, with no warning.',
+      'Budget, couples: a blank "Change who pays over time" row counted as "from age 0, my share 0%" and wiped your share. Blank or half-filled rows are ignored. "vs PLSA (couple)" compared one share with the couple standard; it now compares the household.',
+      'The budget\'s words promised that age bands, one-off costs and "who pays over time" fed the plan; none did. The words are corrected and the unused code removed. "Use as the start of my income shape" also silently rewrote the Floor & Flex essentials; it no longer touches them.',
+      'The tax-year set-up said "0 years until state pension" when the pension was in payment or its date was missing.',
+      'Pasting holdings dropped lines it did not recognise: £282,550 pasted became a £97,300 pot. Every line now counts or is listed as left out.',
+      'Guest wording contradicted itself ("nothing saved" beside "Saved ✓"); a guest was offered Delete Account; "Just try it" emptied the window of any other guest plan.',
+      'The plan document\'s "Where you are" spoke of "the ladder\'s rungs" on plans with no ladder.'
+    ],
+    effects: {
+      budget: ['A saved headroom figure is no longer read (it stays in the saved budget). Words change; no figure moves until you press the button.'],
+      stress: ['Unlocked plans: the next Save writes the final-salary start age beside the plan year. Bought strategies show six more settings; their figures do not change. The Copy from Decision button is gone.'],
+      strategies: ['The order sheet marks an assumed State Pension; figures unchanged. "Try a strategy" what-ifs run the plan\'s full length, so a what-if on a plan longer than 35 years can read differently from before.'],
+      decision: ['A first month on an unlocked plan now asks before locking. How often you draw is saved as a preference outside the locked settings. New records keep what you typed and the split it became; old records are unchanged. The Copy from Stress buttons are gone.'],
+      accumulation: [],
+      household: []
+    },
+    actions: [
+      'If you typed an age into the old "DB Starts (plan year)" box, check Stress tester → Settings → Other income: the words beside the box say when the pension pays.',
+      'If no State Pension is entered, enter your forecast date and weekly amount in Settings.',
+      'If you used "Optional headroom", press "+10%" beside the budget\'s Use button instead.'
+    ],
+    notes: [
+      'Locked plans: settings, checksum, plan document, history and recorded months stay exactly as they were. Changing how often you draw writes only decisionTool.cadence.',
+      'The "What is this?" answers map to plain stand-ins: shares → world growth, bonds → global bonds (£-hedged), cash → money market, gold and trend → gold.',
+      'Engine version unchanged (6.22.0): no strategy\'s arithmetic changed.'
+    ],
+    affects: (scenario) => {
+      const out = [];
+      const s = scenario && scenario.stressTool && scenario.stressTool.settings;
+      if (s && +s.dbAmount > 0 && s.dbStartAge == null) out.push('This plan has a final-salary pension: check the start age now shown in Settings → Other income.');
+      if (s && !(+s.spWeeklyAmount > 0) && !(+s.statePension > 0)) out.push('This plan has no State Pension entered: every run assumes £12,000 a year from 67. Enter your forecast in Settings.');
+      return out;
+    }
+  },
+  {
     version: '6.22.0', date: '2026-10-02', engineVersion: '6.22.0',
     title: 'Choose how your ISA grows; a plan locked while saving reads true; one bar for "on course"',
     summary: 'Until now every ISA grew at a fixed 3% a year, whatever prices did. Each plan now says how its ISA and savings grow: "Mostly cash" (the default) grows like the cash in your pension, by last year\'s rise in prices less 1%, never below nothing; "Invested like my pension" follows your pension\'s mix of shares, bonds and cash in the same futures. A plan you locked earlier keeps its figures. If you locked your plan while still saving, the monthly reading now compares like with like: your pot is put into the same prices as the locked path and read at the month you recorded it, refreshing the plan document starts its path again, and plans locked from now on count your ISA and what you pay into it. "On course" now means the money lasts in 9 futures out of 10 everywhere.',

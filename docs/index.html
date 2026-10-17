@@ -304,50 +304,6 @@
       border-color: var(--primary);
     }
 
-    /* Edit Tools Modal */
-    .edit-tools-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1002;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .edit-tools-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
-      max-width: 480px;
-      width: 100%;
-    }
-
-    .edit-tools-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--primary);
-      margin-bottom: 6px;
-    }
-
-    .edit-tools-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    .edit-tools-buttons {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-      justify-content: flex-end;
-    }
-
     .logout-btn {
       padding: 8px 16px;
       background: var(--card-alt);
@@ -2173,7 +2129,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-CgKy_Qk0.js"></script>
+  <script type="module" crossorigin src="./assets/main-DmDgPK6J.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2189,7 +2145,6 @@
   <div id="authScreen" style="display: none;"></div>
 
   <!-- Onboarding Page (shown after first login, before wizard) -->
-  <div id="onboardingPage" style="display: none;"></div>
 
   <!-- Setup Wizard Container (shown for new users) -->
   <div id="setupWizard" style="display: none;"></div>
@@ -2243,7 +2198,7 @@
       <div id="mobileSheet" data-on-click="sheetBackdropClick(event, this)"><div class="sheet" id="mobileSheetBody"></div></div>
 
       <!-- Tabs -->
-      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — everything works, but nothing is saved or sent anywhere: it lives in this tab until you close it. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
+      <div id="guestBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.08);font-size:13px;"><span id="guestBannerText"><strong>Guest mode</strong> — kept in this browser window until you close it. Make a free account to keep it for good. <strong>Beta:</strong> this is a work in progress and not financial advice — expect rough edges, and check anything you rely on.</span><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signup')">Create a free account and keep this work</button><button type="button" class="risk-btn" style="padding:4px 10px;" data-on-click="keepGuestWork('signin')">I have an account — sign in and keep it</button></div>
       <div id="seedNote" role="status" style="display:none;margin:8px 0 10px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:rgba(99,102,241,.08);font-size:13px;"><span id="seedNoteText"></span> <a id="seedNoteBack" href="./" style="color:inherit;text-decoration:underline;font-weight:600;">Back to the question</a> to try something else and save that too.</div>
 <div id="planNewerBanner" role="alert" style="display:none; margin:10px 0; padding:10px 14px; border:1px solid var(--danger, #dc2626); border-radius:var(--radius); background:rgba(220,38,38,0.08); font-size:14px; align-items:center; gap:12px; flex-wrap:wrap;">
         <span style="flex:1; min-width:220px;">This plan was updated by a newer version of the app — reload the page. Nothing you change here will be saved until you do.</span>
@@ -2309,30 +2264,46 @@
                   </div>
                 </div>
 
-                <h3 style="margin-top: 24px;">This month's fund values</h3>
+                <h3 style="margin-top: 24px;">This month's values — as your platform shows them</h3>
+                <!-- The platform view (6.23, decision 10): pension total, of which cash, of which bond funds or gilts. Drawn by src/ui/monthlyEntry.js. -->
+                <div id="entryPlatform"></div>
+                <p class="hint" id="entryModeNote" style="margin:0 0 8px;"></p>
+                <div id="entryByType" style="display:none;">
                 <div id="entryTagPrompt" style="display:none; margin-bottom:12px;"></div>
                 <div class="form-grid">
                   <div class="form-group" id="entryEquityGroup">
-                    <label>Equity Funds <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Equity funds'); return false;">enter per fund ▸</a></label>
+                    <label>Shares <a href="#" class="itemise-link" data-on-click="openFundBucketModal('shares','entryEquity','Share funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryEquity" value="" required>
+                      <input type="number" id="entryEquity" value="">
                     </div>
                   </div>
                   <div class="form-group" id="entryBondGroup">
-                    <label><span id="entryBondLabel">Bond Funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
+                    <label><span id="entryBondLabel">Bond funds</span> <a href="#" class="itemise-link" id="entryBondItemise" data-on-click="openFundBucketModal('bonds','entryBond','Bond funds'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryBond" value="" required>
+                      <input type="number" id="entryBond" value="">
                     </div>
                   </div>
                   <div class="form-group">
                     <label>Cash <a href="#" class="itemise-link" data-on-click="openFundBucketModal('cash','entryCash','Cash'); return false;">enter per fund ▸</a></label>
                     <div class="input-with-unit">
                       <span class="unit">£</span>
-                      <input type="number" id="entryCash" value="" required>
+                      <input type="number" id="entryCash" value="">
                     </div>
                   </div>
+                  <div class="form-group" id="entryDiversifierGroup">
+                    <label>Gold and trend <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Gold and trend'); return false;">enter per fund ▸</a>
+                      <span class="hlp" tabindex="0" data-tip="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">?</span>
+                    </label>
+                    <div class="input-with-unit">
+                      <span class="unit">£</span>
+                      <input type="number" id="entryDiversifier" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+                </div>
+                <div class="form-grid">
                   <div class="form-group">
                     <label>ISA Balance
                       <span class="hlp" tabindex="0" data-tip="Tax-free pot. When set, the plan draws SIPP up to the basic-rate limit and tops up income from the ISA tax-free (band management). Leave 0 to use the per-tax-year ISA allocation instead.">?</span>
@@ -2340,15 +2311,6 @@
                     <div class="input-with-unit">
                       <span class="unit">£</span>
                       <input type="number" id="entryIsa" value="0" min="0">
-                    </div>
-                  </div>
-                  <div class="form-group" id="entryDiversifierGroup">
-                    <label>Diversifiers <a href="#" class="itemise-link" data-on-click="openFundBucketModal('diversifiers','entryDiversifier','Diversifiers'); return false;">enter per fund ▸</a>
-                      <span class="hlp" tabindex="0" data-tip="Optional gold + trend/macro crisis-hedge sleeve. Held flat and sold FIRST in a downturn (before depressed shares/bonds). Leave 0 if you don't hold one.">?</span>
-                    </label>
-                    <div class="input-with-unit">
-                      <span class="unit">£</span>
-                      <input type="number" id="entryDiversifier" value="0" min="0">
                     </div>
                   </div>
                   <div class="form-group" id="entryGiaGroup">
@@ -2586,7 +2548,7 @@
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  withdrawal as tax-free (until the £268,275 tax-free lump sum allowance is used up);
                   <strong>kept separate</strong> models every withdrawal as fully taxable —
                   the right choice if you’ve already taken your tax-free lump sum.
                 </p>
@@ -2645,19 +2607,6 @@
             </div>
 
 
-            <div class="settings-section">
-              <div class="section-title">Start from your Stress Tester</div>
-              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                Found a plan that survives the stress tests? Bring it across — either just the income
-                target, or the whole setup (funds, allocation, State Pension, ISA, protection, glide).
-                You still review and Save before anything locks.
-              </p>
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('all')">Use ALL Stress settings</button>
-                <button type="button" class="secondary" data-on-click="copyDecisionFromStressUI('target')">Copy target amount only</button>
-              </div>
-            </div>
-
             <div class="settings-section" id="dsProtectionSection">
               <div class="section-title">Protection</div>
               <div class="form-grid">
@@ -2701,7 +2650,7 @@
         <div id="decision-plandoc" class="decision-subtab hidden">
           <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <button type="button" class="btn secondary" data-on-click="printPlanDocument()">Download PDF</button>
-            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Re-take the snapshot from the current settings (the previous document is kept under previous versions)">Refresh the document</button>
+            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Write a new plan document from the settings as they stand today; the current document is kept under previous versions">Write a new version from today's settings</button>
           </div>
           <div id="planDocumentPage"><p class="hint">Loading…</p></div>
         </div>
@@ -2817,7 +2766,7 @@
           <div id="optimiseResultsMC"></div>
           <div class="card" id="tryStrategyCard">
             <h2>Try a strategy <span style="font-weight:normal;color:var(--text-muted);font-size:13px;">— nothing here is saved</span></h2>
-            <p class="hint" style="margin:0 0 10px;">Run any of the six strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
+            <p class="hint" style="margin:0 0 10px;">Run any of the <span data-strategy-count>nine</span> strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
             <div class="form-grid">
               <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
               <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
@@ -2825,7 +2774,7 @@
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
-              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
+              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="45"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
               <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
               <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
@@ -2980,7 +2929,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">How you'll take this pension</div>
 <div>
                 <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
@@ -2991,7 +2940,7 @@
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  withdrawal as tax-free (until the £268,275 tax-free lump sum allowance is used up);
                   <strong>kept separate</strong> models every withdrawal as fully taxable —
                   the right choice if you’ve already taken your tax-free lump sum.
                 </p>
@@ -3300,15 +3249,18 @@
 
             <div class="settings-section">
               <div class="section-title">Your allocation</div>
+              <div data-pnv-only>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
                 <button type="button" id="ssModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ss','risk')">Pick a risk level</button>
                 <button type="button" id="ssModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ss','funds')">Test on a list of funds</button>
               </div>
+              </div><!-- /data-pnv-only (risk level or funds list) -->
 
             <div class="form-group" style="margin-top: 16px;">
               <label>Duration (years) <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
               <input type="number" id="ssDuration" value="35" style="max-width:220px;" data-on-input="updateDurationHint()">
+              <p id="ssUseDuration" class="hint" style="display:none;margin:4px 0 0;"></p>
               <div class="row-flex" style="margin-top:8px;">
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
@@ -3330,6 +3282,7 @@
             </div>
 
             <div id="ssRiskMode">
+              <div data-pnv-only>
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Total in your SIPP (£)</label>
@@ -3353,6 +3306,71 @@
                 ("How your ISA and savings grow"). Choose above whether it tops up income tax-free, is rationed to the
                 State Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
+              </div><!-- /data-pnv-only (the pots a bought strategy sizes in its own block) -->
+              <div data-pnv-only>
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="ssRisks" class="risk-cards">
+                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ss','cautious')">
+                    <div class="rc-title">Cautious</div>
+                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ss','balanced')">
+                    <div class="rc-title">Balanced</div>
+                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ss','adventurous')">
+                    <div class="rc-title">Adventurous</div>
+                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
+                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
+                </p>
+              </div>
+              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ss')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
+              </details>
+              </div><!-- /data-pnv-only (risk level, diversifiers, example portfolio) -->
+            </div>
+
+            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
+            <div id="ssFundsMode" data-pnv-only style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
+              </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
+                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                <button type="button" class="risk-btn" data-on-click="addFundRow('ss')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" data-on-click="clearFunds('ss')">Clear</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
+                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                  </tr></thead>
+                  <tbody id="ssFundRows"></tbody>
+                </table>
+                <datalist id="ssFundCatalogue"></datalist>
+              </div>
+              <div id="ssFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
+            </div>
+
+            <div id="ssAllocAmounts" class="starting-note" data-pnv-only style="margin-top: 14px;"></div>
+            <!-- The taxable account, earnings and bed-and-ISA: outside the risk / funds switch and shown for every strategy (v6 usability audit, problem 4). -->
+            <div id="ssTaxableBlock">
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Taxable investments today (GIA, £)
@@ -3384,73 +3402,16 @@
                   <input type="number" id="ssRelevantEarnings" value="0" min="0" style="max-width:220px;">
                 </div>
               </div>
+              <p id="ssUseTaxable" class="hint" style="display:none;margin:4px 0 0;"></p>
               <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
                 <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
               <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
-              <div class="form-group" style="margin-top: 12px;">
-                <label>Risk level</label>
-                <div id="ssRisks" class="risk-cards">
-                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ss','cautious')">
-                    <div class="rc-title">Cautious</div>
-                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
-                  </button>
-                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ss','balanced')">
-                    <div class="rc-title">Balanced</div>
-                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
-                  </button>
-                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ss','adventurous')">
-                    <div class="rc-title">Adventurous</div>
-                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
-                  </button>
-                </div>
-              </div>
-              <div class="form-group" style="margin-top: 12px;">
-                <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
-                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
-                </label>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
-                </p>
-              </div>
-              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ss')">
-                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
-                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
-              </details>
+              <p id="ssUseGia" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
 
-            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
-            <div id="ssFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
-              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
-              </p>
-              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
-              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
-                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
-                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
-              </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" data-on-click="addFundRow('ss')">+ Add custom ticker</button>
-                <button type="button" class="risk-btn" data-on-click="clearFunds('ss')">Clear</button>
-              </div>
-              <div style="overflow-x:auto;">
-                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
-                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
-                  </tr></thead>
-                  <tbody id="ssFundRows"></tbody>
-                </table>
-                <datalist id="ssFundCatalogue"></datalist>
-              </div>
-              <div id="ssFundSummary" style="margin-top:12px;"></div>
-              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
-            </div>
-
-            <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
-
-            <div class="form-group" style="margin-top: 16px;">
+            <div class="form-group" style="margin-top: 16px;" data-pnv-only>
               <label style="display:flex; align-items:center; cursor:pointer;">
                 <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss')">
                 <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
@@ -3475,6 +3436,7 @@
               </div>
               <p id="ssIsaGrowthLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
               <p id="ssIsaGrowthHint" class="hint" style="margin:4px 0 0;">Used by Pots &amp; Valves and Buckets in order. The other strategies spend the ISA as part of their own pot.</p>
+              <p id="ssUseIsaGrowth" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
             <!-- Fund and platform charges (6.19.0): ONE per-plan setting, stressTool.settings.chargesPct (percent a year).
                  Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssChargesLocked
@@ -3486,8 +3448,9 @@
               <input type="number" id="ssChargesPct" min="0" max="3" step="0.05" value="0.5" inputmode="decimal" style="max-width:120px;">
               <p id="ssChargesLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
               <p id="ssChargesHint" class="hint" style="margin:4px 0 0;">Taken off every month from your funds and cash — not from gilts you hold directly, annuities, final-salary or State Pensions. 0.5% is a typical total.</p>
+              <p id="ssUseCharges" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
+            <div class="alert alert-info" style="margin-top: 12px;" data-pnv-only>
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
             </div>
             </div><!-- /.settings-section (allocation) -->
@@ -3530,11 +3493,13 @@
                 </div>
                 <div class="form-group">
                   <label>Defined-Benefit Pension (£/yr, today's money)</label>
-                  <input type="number" id="ssDbAmount" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <input type="number" id="ssDbAmount" value="0" data-on-input="dbStartAgeChanged()">
                 </div>
                 <div class="form-group">
-                  <label>DB Starts (plan year, 0 = now)</label>
-                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <label>Final-salary pension starts at age</label>
+                  <input type="number" id="ssDbStartAge" min="40" max="100" placeholder="e.g. 65" data-on-input="dbStartAgeChanged()">
+                  <input type="hidden" id="ssDbStartYear" value="0">
+                  <p id="ssDbStartHint" class="hint" style="margin:4px 0 0;"></p>
                 </div>
                 <div class="form-group">
                   <label>DB Increases</label>
@@ -3583,6 +3548,7 @@
                   <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <p id="ssAgeNote" class="hint" style="margin:6px 0 0;"></p>
+                <p id="ssSpAssumedNote" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">
                 <strong>Pension Inflation:</strong><br>
@@ -3591,13 +3557,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
-              <div class="section-title">Start from your Decision plan</div>
-              <button type="button" class="secondary" data-on-click="copyStressFromDecisionUI()">Copy from Decision Tool</button>
-              <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
-            </div>
-
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
@@ -3626,7 +3586,7 @@
               <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">Break Glass HODL <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(emergency reserve)</span></div>
               <div class="form-grid">
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
@@ -3895,7 +3855,7 @@
                 <button type="button" class="risk-btn" style="margin-top:6px; padding:4px 12px; font-size:12px;" data-on-click="addSplitPhase()">+ Add a change</button>
                 <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                   Each row: from the age given, your share of "Shared" costs becomes the new percentage.
-                  Before the first row, the percentage above applies. Your plan's per-year target follows this automatically.
+                  Before the first row, the percentage above applies. This changes your share of the budget's total. The budget is a guide. Only ‘Use as my spending’ changes the plan.
                 </p>
               </details>
             </div>

@@ -1578,11 +1578,12 @@
       "kind": "setting",
       "name": "Final-salary pension: amount and start",
       "what": "A defined-benefit pension: how much a year, in today's money, and when it starts.",
-      "whereV6": "Other income: Defined-Benefit Pension, DB Starts as a plan year (index.html:3508-3534)",
+      "whereV6": "Other income: Defined-Benefit Pension, starts at an age (the plan year is derived and saved beside it; src/ui/dbStartSetting.js)",
       "who": "Everyone",
       "keys": [
         "stress.dbAmount",
-        "stress.dbStartYear"
+        "stress.dbStartYear",
+        "stress.dbStartAge"
       ],
       "status": "built",
       "files": [
@@ -2449,10 +2450,10 @@
       "kind": "option",
       "name": "How often you draw",
       "what": "Monthly, quarterly or a year at a time.",
-      "whereV6": "Decision → Monthly Entry: How often you draw (index.html:2301-2310, 5960-5970)",
+      "whereV6": "Decision → Monthly Entry: How often you draw (index.html:2301-2310; a preference at decisionTool.cadence, outside the locked settings — services/DrawCadence.js)",
       "who": "Run-up, running",
       "keys": [
-        "decision.cadence"
+        "plan.decisionTool.cadence"
       ],
       "status": "designed",
       "doc": "research/v7/rail-screens-language.md §1.6",

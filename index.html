@@ -2592,7 +2592,7 @@
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  withdrawal as tax-free (until the £268,275 tax-free lump sum allowance is used up);
                   <strong>kept separate</strong> models every withdrawal as fully taxable —
                   the right choice if you’ve already taken your tax-free lump sum.
                 </p>
@@ -2707,7 +2707,7 @@
         <div id="decision-plandoc" class="decision-subtab hidden">
           <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <button type="button" class="btn secondary" data-on-click="printPlanDocument()">Download PDF</button>
-            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Re-take the snapshot from the current settings (the previous document is kept under previous versions)">Refresh the document</button>
+            <button type="button" class="btn secondary" data-on-click="createPlanDocumentNow()" title="Write a new plan document from the settings as they stand today; the current document is kept under previous versions">Write a new version from today's settings</button>
           </div>
           <div id="planDocumentPage"><p class="hint">Loading…</p></div>
         </div>
@@ -2823,7 +2823,7 @@
           <div id="optimiseResultsMC"></div>
           <div class="card" id="tryStrategyCard">
             <h2>Try a strategy <span style="font-weight:normal;color:var(--text-muted);font-size:13px;">— nothing here is saved</span></h2>
-            <p class="hint" style="margin:0 0 10px;">Run any of the six strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
+            <p class="hint" style="margin:0 0 10px;">Run any of the <span data-strategy-count>nine</span> strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
             <div class="form-grid">
               <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
               <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
@@ -2831,7 +2831,7 @@
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
               <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
-              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="35"></div>
+              <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="45"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — level footing</option></select></div>
               <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
               <div class="form-group"><label>First-stage months (half the cut)</label><input type="number" id="tryCutEsc" placeholder="as saved" min="0" max="60"></div>
@@ -2986,7 +2986,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">How you'll take this pension</div>
 <div>
                 <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
@@ -2997,7 +2997,7 @@
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
-                  withdrawal as tax-free (until the £268,275 lifetime allowance is used up);
+                  withdrawal as tax-free (until the £268,275 tax-free lump sum allowance is used up);
                   <strong>kept separate</strong> models every withdrawal as fully taxable —
                   the right choice if you’ve already taken your tax-free lump sum.
                 </p>
@@ -3306,15 +3306,18 @@
 
             <div class="settings-section">
               <div class="section-title">Your allocation</div>
+              <div data-pnv-only>
               <div class="section-hint">How do you want to set your allocation?</div>
               <div class="mode-toggle">
                 <button type="button" id="ssModeRisk" class="alloc-mode-btn active" data-on-click="setAllocMode('ss','risk')">Pick a risk level</button>
                 <button type="button" id="ssModeFunds" class="alloc-mode-btn" data-on-click="setAllocMode('ss','funds')">Test on a list of funds</button>
               </div>
+              </div><!-- /data-pnv-only (risk level or funds list) -->
 
             <div class="form-group" style="margin-top: 16px;">
               <label>Duration (years) <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
               <input type="number" id="ssDuration" value="35" style="max-width:220px;" data-on-input="updateDurationHint()">
+              <p id="ssUseDuration" class="hint" style="display:none;margin:4px 0 0;"></p>
               <div class="row-flex" style="margin-top:8px;">
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
@@ -3336,6 +3339,7 @@
             </div>
 
             <div id="ssRiskMode">
+              <div data-pnv-only>
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Total in your SIPP (£)</label>
@@ -3359,6 +3363,71 @@
                 ("How your ISA and savings grow"). Choose above whether it tops up income tax-free, is rationed to the
                 State Pension, or is held untouched (it still rescues a plan whose SIPP has actually run out).
               </p>
+              </div><!-- /data-pnv-only (the pots a bought strategy sizes in its own block) -->
+              <div data-pnv-only>
+              <div class="form-group" style="margin-top: 12px;">
+                <label>Risk level</label>
+                <div id="ssRisks" class="risk-cards">
+                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ss','cautious')">
+                    <div class="rc-title">Cautious</div>
+                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ss','balanced')">
+                    <div class="rc-title">Balanced</div>
+                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
+                  </button>
+                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ss','adventurous')">
+                    <div class="rc-title">Adventurous</div>
+                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
+                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
+                </label>
+                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
+                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
+                </p>
+              </div>
+              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ss')">
+                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
+                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
+              </details>
+              </div><!-- /data-pnv-only (risk level, diversifiers, example portfolio) -->
+            </div>
+
+            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
+            <div id="ssFundsMode" data-pnv-only style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
+              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
+              </p>
+              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
+              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
+                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
+                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                <button type="button" class="risk-btn" data-on-click="addFundRow('ss')">+ Add custom ticker</button>
+                <button type="button" class="risk-btn" data-on-click="clearFunds('ss')">Clear</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
+                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
+                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
+                  </tr></thead>
+                  <tbody id="ssFundRows"></tbody>
+                </table>
+                <datalist id="ssFundCatalogue"></datalist>
+              </div>
+              <div id="ssFundSummary" style="margin-top:12px;"></div>
+              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
+            </div>
+
+            <div id="ssAllocAmounts" class="starting-note" data-pnv-only style="margin-top: 14px;"></div>
+            <!-- The taxable account, earnings and bed-and-ISA: outside the risk / funds switch and shown for every strategy (v6 usability audit, problem 4). -->
+            <div id="ssTaxableBlock">
               <div class="form-grid" style="margin-top: 12px;">
                 <div class="form-group">
                   <label>Taxable investments today (GIA, £)
@@ -3390,73 +3459,16 @@
                   <input type="number" id="ssRelevantEarnings" value="0" min="0" style="max-width:220px;">
                 </div>
               </div>
+              <p id="ssUseTaxable" class="hint" style="display:none;margin:4px 0 0;"></p>
               <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
                 <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
               <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
-              <div class="form-group" style="margin-top: 12px;">
-                <label>Risk level</label>
-                <div id="ssRisks" class="risk-cards">
-                  <button type="button" class="risk-card" data-risk="cautious" data-on-click="setRiskPreset('ss','cautious')">
-                    <div class="rc-title">Cautious</div>
-                    <div class="rc-desc">More bonds &amp; cash — steadier, with lower long-run growth.</div>
-                  </button>
-                  <button type="button" class="risk-card" data-risk="balanced" data-on-click="setRiskPreset('ss','balanced')">
-                    <div class="rc-title">Balanced</div>
-                    <div class="rc-desc">A middle path — a blend of shares and bonds.</div>
-                  </button>
-                  <button type="button" class="risk-card" data-risk="adventurous" data-on-click="setRiskPreset('ss','adventurous')">
-                    <div class="rc-title">Adventurous</div>
-                    <div class="rc-desc">More shares — higher expected growth, bigger swings.</div>
-                  </button>
-                </div>
-              </div>
-              <div class="form-group" style="margin-top: 12px;">
-                <label style="display:flex; align-items:center; cursor:pointer;">
-                  <input type="checkbox" id="ssDiversifiers" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss'); renderModelPortfolio('ss')">
-                  <span><strong>Diversifiers sleeve</strong> — add gold + trend/macro (a crisis-hedge bucket held flat, sold first in a downturn)</span>
-                </label>
-                <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
-                  Carves a slice into assets that tend to hold up or rise when shares fall. Tail protection, not a free lunch — run it and compare.
-                </p>
-              </div>
-              <details style="margin-top:10px;" data-on-toggle="renderModelPortfolio('ss')">
-                <summary style="font-size:13px; cursor:pointer;">See an example ETF portfolio for this level <span class="hint">(illustration, not advice)</span></summary>
-                <div id="ssModelPortfolio" style="margin-top:8px;"></div>
-              </details>
+              <p id="ssUseGia" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
 
-            <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
-            <div id="ssFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
-              <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
-              </p>
-              <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
-              <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
-                <input type="text" id="ssFundSearch" placeholder="Search a ticker or company name to add…" autocomplete="off" data-on-input="showFundSearch('ss', this.value)" data-on-focus="showFundSearch('ss', this.value)" data-on-blur="setTimeout(function(){hideFundSearch('ss')},150)" style="width:100%;">
-                <div id="ssFundSearchResults" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; background:var(--card,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; max-height:240px; overflow:auto; margin-top:2px;"></div>
-              </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                <button type="button" class="risk-btn" data-on-click="addFundRow('ss')">+ Add custom ticker</button>
-                <button type="button" class="risk-btn" data-on-click="clearFunds('ss')">Clear</button>
-              </div>
-              <div style="overflow-x:auto;">
-                <table style="width:100%; font-size:13px; border-collapse:collapse; min-width:520px;">
-                  <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border,#cbd5e1);">
-                    <th style="padding:4px 6px;">Fund</th><th style="padding:4px 6px;">Value £</th><th style="padding:4px 6px;">Wrapper</th><th style="padding:4px 6px;" title="Ongoing charge, % a year (optional) — a note of what the fund costs. The runs take off the plan's one setting, Charges (funds and platform), in Stress tester → Settings — not this.">Cost %/yr</th><th style="padding:4px 6px;" title="New money going into this holding each month, £ gross (optional). Tells the Accumulation planner where contributions land.">£/mo in</th><th style="padding:4px 6px;">Category <span title="How this fund is modelled. Defaults are suggestions — change any of them.">ⓘ</span></th><th></th>
-                  </tr></thead>
-                  <tbody id="ssFundRows"></tbody>
-                </table>
-                <datalist id="ssFundCatalogue"></datalist>
-              </div>
-              <div id="ssFundSummary" style="margin-top:12px;"></div>
-              <div style="margin-top:12px; font-weight:600;">Total pot: <span id="ssPotDisplay">—</span> <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(from your funds)</span></div>
-            </div>
-
-            <div id="ssAllocAmounts" class="starting-note" style="margin-top: 14px;"></div>
-
-            <div class="form-group" style="margin-top: 16px;">
+            <div class="form-group" style="margin-top: 16px;" data-pnv-only>
               <label style="display:flex; align-items:center; cursor:pointer;">
                 <input type="checkbox" id="ssEquityGlide" style="width:auto; margin-right:8px;" data-on-change="updateAllocDisplay('ss')">
                 <span><strong>Bond tent</strong> — shares rise over time (bond-heavy early &rarr; share-heavy late), centred on your risk level</span>
@@ -3481,6 +3493,7 @@
               </div>
               <p id="ssIsaGrowthLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
               <p id="ssIsaGrowthHint" class="hint" style="margin:4px 0 0;">Used by Pots &amp; Valves and Buckets in order. The other strategies spend the ISA as part of their own pot.</p>
+              <p id="ssUseIsaGrowth" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
             <!-- Fund and platform charges (6.19.0): ONE per-plan setting, stressTool.settings.chargesPct (percent a year).
                  Outside the risk / funds switch, so it shows in both. A locked plan with no setting shows #ssChargesLocked
@@ -3492,8 +3505,9 @@
               <input type="number" id="ssChargesPct" min="0" max="3" step="0.05" value="0.5" inputmode="decimal" style="max-width:120px;">
               <p id="ssChargesLocked" class="hint" style="display:none; margin:4px 0 0;"></p>
               <p id="ssChargesHint" class="hint" style="margin:4px 0 0;">Taken off every month from your funds and cash — not from gilts you hold directly, annuities, final-salary or State Pensions. 0.5% is a typical total.</p>
+              <p id="ssUseCharges" class="hint" style="display:none;margin:4px 0 0;"></p>
             </div>
-            <div class="alert alert-info" style="margin-top: 12px;">
+            <div class="alert alert-info" style="margin-top: 12px;" data-pnv-only>
               <strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete linearly to £0. Cash inflates only (maintains real value).
             </div>
             </div><!-- /.settings-section (allocation) -->
@@ -3536,11 +3550,13 @@
                 </div>
                 <div class="form-group">
                   <label>Defined-Benefit Pension (£/yr, today's money)</label>
-                  <input type="number" id="ssDbAmount" value="0" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <input type="number" id="ssDbAmount" value="0" data-on-input="dbStartAgeChanged()">
                 </div>
                 <div class="form-group">
-                  <label>DB Starts (plan year, 0 = now)</label>
-                  <input type="number" id="ssDbStartYear" value="0" min="0" max="40" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <label>Final-salary pension starts at age</label>
+                  <input type="number" id="ssDbStartAge" min="40" max="100" placeholder="e.g. 65" data-on-input="dbStartAgeChanged()">
+                  <input type="hidden" id="ssDbStartYear" value="0">
+                  <p id="ssDbStartHint" class="hint" style="margin:4px 0 0;"></p>
                 </div>
                 <div class="form-group">
                   <label>DB Increases</label>
@@ -3589,6 +3605,7 @@
                   <input type="number" id="ssSpAnnualAmount" step="1" placeholder="e.g. 11500" data-on-input="callIfDefined('renderIncomeShapePreview')">
                 </div>
                 <p id="ssAgeNote" class="hint" style="margin:6px 0 0;"></p>
+                <p id="ssSpAssumedNote" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
               </div>
               <div class="alert alert-info" style="margin-top: 12px;">
                 <strong>Pension Inflation:</strong><br>
@@ -3603,7 +3620,7 @@
               <span id="ssSeedNote" style="margin-left: 10px; font-size: 12px; color: var(--text-muted);"></span>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">Protection</div>
               <div class="form-grid">
                 <div class="form-group">
@@ -3632,7 +3649,7 @@
               <p class="hint" style="margin:8px 0 0;">Income cuts are staged, in line with published guardrail practice (Guyton-Klinger): for the first-stage months above (default 12) a downturn trims your draw by <em>half</em> the reduction set here (e.g. 10% when set to 20%); the full cut applies only if the stress persists beyond a year. Missed income is restored by the Tax Boost catch-up once markets recover.</p>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" data-pnv-only>
               <div class="section-title">Break Glass HODL <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">(emergency reserve)</span></div>
               <div class="form-grid">
                 <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
@@ -4198,9 +4215,14 @@
     import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js';
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
-    import { askBeforeMonthLocks } from './src/ui/decisionLockAsk.js';   // a saver's unlocked plan asks before a Decision month locks it (6.20.2)
+    import { askBeforeMonthLocks } from './src/ui/decisionLockAsk.js';   // every unlocked plan asks before a Decision month locks it; yes = the full lock (v6 usability audit, decision 3)
+    import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
+    import { pnvOnlySections, paintSettingUseNotes } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
+    import { ukMonth, ukDay } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
+    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion, lockFromStressQuestion } from './src/ui/plannerWords.js';
+    import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { refusedWhenLocked, sayIfLocked } from './src/ui/lockedPlan.js';   // a locked plan's settings: refused in the save functions, said plainly here (6.20.2)
     import { budgetIncomeShapePatch } from './src/services/BudgetToPlan.js';
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
@@ -4844,7 +4866,7 @@
         document.getElementById('ssTaxMode').value = stressSettings.taxMode || 'inflates';
         document.getElementById('ssOther').value = stressSettings.other || 0;
         document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
-        document.getElementById('ssDbStartYear').value = stressSettings.dbStartYear || 0;
+        setDbStartFields(document, stressSettings, window._ssTiming);   // the final-salary start: the year the engines read, and the age box (dbStartSetting.js)
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', activeParams(stressSettings));   // this strategy's own keys only (6.13.0)
         window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
@@ -4881,7 +4903,7 @@
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
           seedNote.textContent = stressSettings.seededFrom === 'decision' && stressSettings.seededAt
-            ? 'Seeded from Decision Tool ' + new Date(stressSettings.seededAt).toLocaleDateString()
+            ? 'Seeded from Decision Tool ' + ukDay(stressSettings.seededAt)
             : '';
         }
 
@@ -5152,7 +5174,7 @@
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
-        : 'This plan’s settings are still editable. It locks itself when you record the first monthly entry or set up a tax year. Click for details.';
+        : 'This plan’s settings are still editable. You are asked before the first monthly entry or tax-year set-up locks it. Click for details.';
       chip.style.cursor = 'pointer';
       chip.onclick = (e) => { e.stopPropagation(); explainPlanLock(locked); };
     }
@@ -5168,7 +5190,7 @@
         '<div style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:560px; width:100%; padding:26px; font-size:15px; line-height:1.6;">' +
           '<h2 style="margin-bottom:12px;">Plans — and why they lock 🔒</h2>' +
           '<p style="margin-bottom:10px; color:var(--text-muted);">A <strong style="color:var(--text);">plan</strong> is a named scenario: its settings (pots, spending target, State Pension, rules) plus everything you record against them — monthly decisions and tax years. You can keep several plans and switch or duplicate them from this dropdown.</p>' +
-          '<p style="margin-bottom:10px; color:var(--text-muted);">When you record the first monthly entry or set up a tax year, the plan <strong style="color:var(--text);">locks</strong>: the settings freeze so your recorded history stays meaningful — a decision saved under one set of rules shouldn’t be silently re-judged under another.</p>' +
+          '<p style="margin-bottom:10px; color:var(--text-muted);">Before you record the first monthly entry or set up a tax year, you are asked to lock the plan (the same lock as Stress tester → Settings → Lock plan): the settings freeze so your recorded history stays meaningful — a decision saved under one set of rules shouldn’t be silently re-judged under another.</p>' +
           '<ul style="margin:0 0 12px 18px; color:var(--text-muted);">' +
             '<li><strong style="color:var(--text);">✏️ draft</strong> — settings editable; nothing recorded against them yet.</li>' +
             '<li><strong style="color:var(--text);">🔒 locked</strong> — entries or tax years are recorded against these settings. You can still unlock: you are shown exactly what that does to your record first.</li>' +
@@ -5983,20 +6005,20 @@
       // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
       // withdrawal); what changes is WHERE it comes from and whether the P&V pot advice applies.
       try { decision.strategyOverlay = await decisionStrategyOverlay(decision, dateStr); } catch (e) { console.warn('strategy overlay', e); }
-      decision.cadenceMonths = cadenceMonths(settings.cadence);
+      decision.cadenceMonths = cadenceMonths(await getActiveDrawCadence());   // a preference, not a setting (DrawCadence.js)
       return decision;
     }
     // ---- Cadence: monthly, quarterly or annual batches. The engine is monthly; a batch is N months of
-    // the same recommendation sold at once and parked as SIPP cash, and N history records. ----
-    function cadenceMonths(c) { return c === 'annual' ? 12 : c === 'quarterly' ? 3 : 1; }
+    // the same recommendation sold at once and parked as SIPP cash, and N history records. How often you draw is a
+    // preference (decisionTool.cadence, services/DrawCadence.js): changeable on a locked plan, outside the settings checksum.
     window.setCadence = async function (v) {
-      try { await saveDecisionSettings({ cadence: v }); } catch (e) { if (!sayIfLocked(e)) showToast('Could not save: ' + e.message, 'error'); loadCadenceUI(); return; }   // a locked plan: said plainly, the picker back as saved (6.20.2)
+      try { await saveActiveDrawCadence(v); } catch (e) { showToast('Could not save: ' + e.message, 'error'); loadCadenceUI(); return; }
       const n = document.getElementById('entryCadenceNote');
-      if (n) n.textContent = v === 'monthly' ? '' : 'Enter this month\'s values; the recommendation covers the next ' + cadenceMonths(v) + ' months and Save records them all.';
+      if (n) n.textContent = cadenceNote(v);
       if (currentDecision) { currentDecision.cadenceMonths = cadenceMonths(v); renderDecisionPanel(currentDecision, document.getElementById('decisionOutput')); }
     };
     window.loadCadenceUI = async function () {
-      try { const s = await getDecisionSettingsAsync(); const el = document.getElementById('entryCadence'); if (el) { el.value = s.cadence || 'monthly'; const n = document.getElementById('entryCadenceNote'); if (n) n.textContent = (s.cadence && s.cadence !== 'monthly') ? 'Enter this month\'s values; the recommendation covers the next ' + cadenceMonths(s.cadence) + ' months and Save records them all.' : ''; } } catch (e) { /* not ready */ }
+      try { const c = await getActiveDrawCadence(); const el = document.getElementById('entryCadence'); if (el) { el.value = c; const n = document.getElementById('entryCadenceNote'); if (n) n.textContent = cadenceNote(c); } } catch (e) { /* not ready */ }
     };
     function addMonths(ym, k) { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
@@ -6216,7 +6238,7 @@
     }
     function giltOrderSheetHtml(plan, opts = {}) {
       if (opts.side === 'sell') return giltSellTicketHtml(plan, opts);
-      let h = '<div class="alert alert-warning" style="font-size:12px;margin-top:10px;"><strong>Illustration, not advice.</strong> A shopping list implied by your income schedule, priced from delayed exchange prices and DMO index ratios (settlement ' + budEsc(dataProvenance().index_ratio_settlement || '—') + '). Gilts are dealt in NOMINAL by phone; check nominal × index ratio ≈ the "pays" figure on every order. Prices and ratios move daily.</div>';
+      let h = assumedStatePensionAlertHtml(opts.p) + '<div class="alert alert-warning" style="font-size:12px;margin-top:10px;"><strong>Illustration, not advice.</strong> A shopping list implied by your income schedule, priced from delayed exchange prices and DMO index ratios (settlement ' + budEsc(dataProvenance().index_ratio_settlement || '—') + '). Gilts are dealt in NOMINAL by phone; check nominal × index ratio ≈ the "pays" figure on every order. Prices and ratios move daily.</div>';
       h += '<div class="alert alert-info" style="font-size:12px;margin-top:8px;"><strong>How to give the order (AJ Bell and most platforms take either):</strong> say the <strong>number of units</strong> — that is the nominal figure below (1 unit = £1 nominal; if the screen counts £100 lots, use the bracketed number). Units are what set the income: at maturity you receive units × the index ratio then. Ordering by <em>amount to spend</em> also works, but the units you get depend on the dealing price at that moment, so the income is then only approximately the figure shown. Rule: order by units; check the quoted spend is close to the cost column (plus accrued interest and the dealing fee).</div>'
       h += '<div class="section-title" style="font-size:13px;margin-top:10px;">Order sheet</div><div class="table-scroll-container"><table><thead><tr><th>#</th><th>Buy</th><th>SEDOL</th><th>Ticker</th><th>Matures</th><th>Pays (today\'s £)</th><th>For tax years</th><th>Index ratio</th><th>Units to order <span class="hint">(nominal £)</span></th><th>Or spend <span class="hint">(approx)</span></th></tr></thead><tbody>';
       h += '<tr><td>1</td><td>Money-market fund (e.g. CSH2)</td><td></td><td></td><td>—</td><td>' + gbp(Math.round(plan.cash)) + '</td><td>' + (plan.cashYears.length ? plan.cashYears[0].Y + '/' + String(plan.cashYears[0].Y + 1).slice(2) + ' – ' + plan.cashYears[plan.cashYears.length - 1].Y + '/' + String(plan.cashYears[plan.cashYears.length - 1].Y + 1).slice(2) : 'bridge') + '</td><td></td><td></td><td>' + gbp(Math.round(plan.cash)) + '</td></tr>';
@@ -6225,7 +6247,7 @@
       // and explained below, instead of a £0 row with a £20 fee.
       const liveOrders = plan.orders.filter((o) => o.pays > 0);
       const coveredYears = (plan.years || []).filter((y) => y.from !== 'cash' && y.from !== 'none' && !(y.need > 0));
-      liveOrders.forEach((o, i) => { h += '<tr><td>' + (i + 2) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + o.matures.slice(0, 7) + '</td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td>' + gbp(Math.round(o.cost)) + '<br><span class="hint">+ accrued + fee</span></td></tr>'; });
+      liveOrders.forEach((o, i) => { h += '<tr><td>' + (i + 2) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures)) + '</td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td>' + gbp(Math.round(o.cost)) + '<br><span class="hint">+ accrued + fee</span></td></tr>'; });
       h += '<tr><td colspan="9"><strong>Total</strong> (' + liveOrders.length + ' gilts + cash)</td><td><strong>' + gbp(Math.round(plan.total)) + '</strong></td></tr></tbody></table></div>';
       if (coveredYears.length) {
         const lumps = (window._ssWindfalls || []).filter((w) => w && w.amount > 0 && w.year != null);
@@ -6236,7 +6258,7 @@
         h += '<p class="hint" style="margin-top:6px;"><strong>Nothing to buy for ' + ty(coveredYears[0]) + (coveredYears.length > 1 ? ' – ' + ty(coveredYears[coveredYears.length - 1]) : '') + '</strong> (' + coveredYears.length + ' tax year' + (coveredYears.length === 1 ? '' : 's') + '): ' + why + '</p>';
       }
       h += '<details style="margin-top:8px;"><summary class="hint" style="cursor:pointer;">What arrives when (by tax year)</summary><div class="table-scroll-container"><table><thead><tr><th>Tax year</th><th>Age</th><th>Gross plan</th><th>From the pot</th><th>Source</th></tr></thead><tbody>';
-      for (const y of plan.years) h += '<tr><td>' + y.Y + '/' + String(y.Y + 1).slice(2) + '</td><td>' + y.age + '</td><td>' + gbp(Math.round(y.gross)) + '</td><td>' + gbp(Math.round(y.need)) + (y.gross - y.need > 1 ? ' <span class="hint">+ SP ' + gbp(Math.round(y.gross - y.need)) + '</span>' : '') + '</td><td>' + (!(y.need > 0) && y.from !== 'cash' && y.from !== 'none' ? '<span class="hint">no rung needed — a lump sum or other income covers it</span>' : y.from === 'cash' ? 'cash' : y.from === 'none' ? '<span style="color:var(--danger);">nothing matures in time</span>' : budEsc(y.from) + (y.held ? ' <span class="hint">(held from the year before)</span>' : '')) + '</td></tr>';
+      for (const y of plan.years) h += '<tr><td>' + y.Y + '/' + String(y.Y + 1).slice(2) + '</td><td>' + y.age + '</td><td>' + gbp(Math.round(y.gross)) + '</td><td>' + gbp(Math.round(y.need)) + (y.gross - y.need > 1 ? ' <span class="hint">+ SP ' + gbp(Math.round(y.gross - y.need)) + assumedStatePensionTag(opts.p) + '</span>' : '') + '</td><td>' + (!(y.need > 0) && y.from !== 'cash' && y.from !== 'none' ? '<span class="hint">no rung needed — a lump sum or other income covers it</span>' : y.from === 'cash' ? 'cash' : y.from === 'none' ? '<span style="color:var(--danger);">nothing matures in time</span>' : budEsc(y.from) + (y.held ? ' <span class="hint">(held from the year before)</span>' : '')) + '</td></tr>';
       h += '</tbody></table></div></details>';
       return h;
     }
@@ -6251,7 +6273,7 @@
       h += '<div class="table-scroll-container"><table><thead><tr><th>#</th><th>Sell</th><th>SEDOL</th><th>Ticker</th><th>Matures</th><th>Units to sell <span class="hint">(nominal £)</span></th><th>Approx proceeds</th><th>Income given up (today\'s £)</th><th>For tax years</th></tr></thead><tbody>';
       let tot = 0, inc = 0;
       rows.forEach((o, i) => { const pr = sellProceeds(o); tot += pr; inc += o.pays;
-        h += '<tr><td>' + (i + 1) + '</td><td>' + budEsc((o.name || '').replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + (o.matures || '').slice(0, 7) + '</td><td><strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span></td><td>' + gbp(Math.round(pr)) + '<br><span class="hint">+ accrued − fee</span></td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + (o.taxYears || []).map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + '</td></tr>'; });
+        h += '<tr><td>' + (i + 1) + '</td><td>' + budEsc((o.name || '').replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures || '')) + '</td><td><strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span></td><td>' + gbp(Math.round(pr)) + '<br><span class="hint">+ accrued − fee</span></td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + (o.taxYears || []).map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + '</td></tr>'; });
       h += '<tr><td colspan="6"><strong>Total</strong> (' + rows.length + ' gilts)</td><td><strong>' + gbp(Math.round(tot)) + '</strong></td><td><strong>' + gbp(Math.round(inc)) + '</strong></td><td></td></tr></tbody></table></div>';
       h += '<p class="hint" style="margin-top:6px;">Every rung NOT on this ticket stays. The proceeds buy the world-equity fund the same day — the point of the rule is not to negotiate with it.</p>';
       return h;
@@ -6356,7 +6378,7 @@
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
         h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp || drawNetFromPlan(p), 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
       }
-      if ((r.strategyId === 'full-il-gilt' || r.strategyId === 'gilt-rotation') && r.plan) h += giltOrderSheetHtml(r.plan);
+      if ((r.strategyId === 'full-il-gilt' || r.strategyId === 'gilt-rotation') && r.plan) h += giltOrderSheetHtml(r.plan, { p });
       if (r.strategyId === 'floor-to-age' && r.configs.fa) {
         h += exampleLadderHtml(Array.from({ length: r.configs.fa.A }, (_, i) => i + 1), r.configs.fa.floorDraw || drawNetFromPlan(p), 'this is the schedule to ' + r.configs.fa.floorToAge + ', one rung per year, net of your State Pension.');
       }
@@ -6412,7 +6434,7 @@
     let _tryLast = null;
     window.resetTryStrategyUI = async function () {
       const s = await getStressSettingsAsync();
-      const sel = document.getElementById('tryStrategy');
+      const sel = document.getElementById('tryStrategy'); paintStrategyCounts(document);   // the count comes from the registry, never typed in
       if (sel && !sel.options.length) sel.innerHTML = Object.entries(STRATEGY_NAMES).map(([id, n]) => '<option value="' + id + '">' + budEsc(n) + '</option>').join('');
       if (sel) sel.value = s.strategyId || 'pots-and-valves';
       const sp = s.strategyParams || {};
@@ -6443,7 +6465,7 @@
       c.strategyParams = { ...restoredParamsFor(s, id), sippTotal: pot, isaTotal: isa };   // the tried strategy's own dials, never the active strategy's bag (6.13.0)
       const pol = document.getElementById('tryIsaPolicy').value; if (pol) c.isaDrawdownStrategy = pol; else if (document.getElementById('tryIsaPolicy').selectedIndex === 2) c.isaDrawdownStrategy = 'bridge';
       if (document.getElementById('tryIncomeMode').value === 'flat') { c.baseSalary = +document.getElementById('tryIncome').value || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
-      c.duration = Math.max(5, Math.min(35, +document.getElementById('tryYears').value || 35));
+      c.duration = Math.max(5, Math.min(45, +document.getElementById('tryYears').value || s.duration || 35));   // the plan's full length (the engines run to 45 years), no 35-year cap (audit problem 1)
       const cuts = document.getElementById('tryCuts').value; if (cuts) c.disableProtection = cuts === 'off';
       const cp = document.getElementById('tryCutPct').value; if (cp !== '') c.protectionMult = 1 - (+cp) / 100;
       const ce = document.getElementById('tryCutEsc').value; if (ce !== '') c.protectionEscalateMonths = Math.max(0, +ce);
@@ -8002,7 +8024,7 @@
       const btn = document.getElementById('optimiseBtn' + testType);
       const resultsDiv = document.getElementById('optimiseResults' + testType);
       if (btn) { btn.disabled = true; btn.textContent = 'Comparing...'; }
-      if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running six strategies…</div>';
+      if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + strategyCountWord() + ' strategies…</div>';
 
       const s = JSON.parse(JSON.stringify(await getStressSettingsAsync()));
       if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
@@ -8278,6 +8300,7 @@
         const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow, firstTaxYear: window._ssTiming?.firstTaxYear || undefined });
         if (wk > 0 && cfgSp) sp = { annual: wk * 52, fromAge: ageNow + cfgSp.spStartYear };
         else { const sa = +document.getElementById('ssSpAnnualAmount')?.value || 0; if (sa > 0 && cfgSp) sp = { annual: sa, fromAge: ageNow + cfgSp.spStartYear }; }
+        { const n = document.getElementById('ssSpAssumedNote'); if (n) n.textContent = assumedStatePensionSettingsNote(!!sp || +document.getElementById('ssSpAnnualAmount')?.value > 0); }   // said here, where it is assumed (audit 2.5)
         const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
         const db = +document.getElementById('ssDbAmount')?.value || 0; if (db > 0) other.push({ annual: db, fromAge: ageNow + (+document.getElementById('ssDbStartYear')?.value || 0), label: 'DB pension' });
         // Income streams (rent, part-time work…) are guaranteed-income layers for their years.
@@ -8424,47 +8447,45 @@
       window._planDocLast = doc;
       return doc;
     }
-    window.lockPlanFromStress = async function () {
-      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
-      if (await planIsLocked()) { showToast('This plan is already locked.', 'info'); return; }
-      const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Lock this plan?</h3><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">'
-        + '<li>Your Stress settings are saved first, then <strong>frozen</strong> — and so are the Decision tool\'s. The Decision tool runs exactly this plan.</li>'
-        + '<li>The <strong>plan document</strong> is written: your age against the tax years, the income steps, who pays each year, the strategy verdict and cones, the pots and the shopping list, the assumptions — the record you read against each month of retirement.</li>'
-        + '<li>The strategy can no longer be switched on this plan; "Try a strategy" what-ifs still run.</li>'
-        + '<li>You can unlock later — you are shown exactly what that does first.</li></ul>' }, { okLabel: 'Lock the plan', cancelLabel: 'Not yet' });
-      if (!ok) return;
-      showLoading('Saving, running the strategy and writing the plan document…');
+    // The FULL lock (v6 usability audit, decision 3) — the one route both the Stress settings' button and the Decision
+    // tool's first month take (src/ui/decisionLockAsk.js): the Stress settings copied across to the Decision tool, the
+    // plan locked, the plan document written, every lock banner redrawn. Never on the Decision tool's defaults.
+    window.commitPlanLock = async function (reason) {
+      showLoading('Locking the plan and writing the plan document…');
       try {
-        await saveStressSettingsUI();
-        // Locking IS the commit: the Decision tool must run THIS plan — its pots, floors, ISA, State Pension,
-        // strategy — not the defaults it was created with (a £380k plan was judged against £500k floors, 6.10.4).
-        try {
-          if (!(await planIsLocked())) {
-            const stressNow = await getStressSettingsAsync();
-            const decisionNow = await getDecisionSettingsAsync();
-            await saveDecisionSettings(seedDecisionFromStress(stressNow, decisionNow));
-            invalidateCache();
-          }
-        } catch (e) { console.warn('Decision seed on lock failed (non-fatal):', e); }
-        const fresh = await lockPlanIfNeeded('locked from Stress settings');
-        await buildPlanDocumentNow('locked from Stress settings');
+        // Locking IS the commit: the Decision tool must run THIS plan — its pots, floors, ISA, State Pension, strategy — not the defaults it was created with (a £380k plan was judged against £500k floors, 6.10.4).
+        if (!(await planIsLocked())) { await saveDecisionSettings(seedDecisionFromStress(await getStressSettingsAsync(), await getDecisionSettingsAsync())); invalidateCache(); }
+        const fresh = await lockPlanIfNeeded(reason);
+        await buildPlanDocumentNow(reason);
         await refreshStressLock();
         try { await refreshDecisionLock(); } catch (e) { /* form not built yet */ }
         try { await refreshLifeStage(); updatePlanLockChip(); } catch (e) { /* chip optional */ }
+        return fresh;
+      } finally { hideLoading(); }
+    };
+    window.lockPlanFromStress = async function () {
+      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
+      if (await planIsLocked()) { showToast('This plan is already locked.', 'info'); return; }
+      const q = lockFromStressQuestion();
+      if (!(await appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel }))) return;
+      try {
+        if (!(await saveStressSettingsUI())) return;   // the form refused (a date, a figure): say nothing more, lock nothing
+        const fresh = await commitPlanLock('locked from Stress settings');
         showToast('Plan locked' + (fresh ? '' : ' (it was already locked)') + ' — plan document written.', 'success', 5000);
         openPlanDocument();
       } catch (e) { console.error('Lock from Stress:', e); showToast('Could not lock: ' + e.message, 'error'); }
-      finally { hideLoading(); }
     };
     window.createPlanDocumentNow = async function () {
       if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
+      const prev = await getActivePlanDocument();
+      // A new version is asked for first (audit problem 5): the current document becomes a past version, never lost.
+      if (prev) { const q = newDocumentVersionQuestion({ strategyName: prev.strategy?.name, lockedAt: ukDay(prev.lockedAt) }); if (!(await appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel, danger: false }))) return; }
       showLoading('Running the strategy and writing the plan document…');
       try {
-        const prev = await getActivePlanDocument();
         if (prev) await archivePlanDocument();
         await buildPlanDocumentNow(prev ? 'document refreshed' : 'document created after lock');
         await refreshStressLock();
-        showToast(prev ? 'Plan document refreshed — the previous version is kept under previous versions.' : 'Plan document created.', 'success', 4000);
+        showToast(prev ? 'A new version of the plan document was written — the previous one is kept under previous versions.' : 'Plan document created.', 'success', 4000);
         await renderPlanDocumentPage();
         openPlanDocument();
       } catch (e) { console.error(e); showToast('Could not create the plan document: ' + e.message, 'error'); }
@@ -8727,7 +8748,7 @@
         const hist = await getActiveAccumulationHistory();
         const m = document.getElementById('acRecMonth'); if (m && !m.value) m.value = getCurrentMonth();
         el.innerHTML = hist.length ? '<div class="table-scroll-container"><table><thead><tr><th>Month</th><th>Pension pot</th><th>ISA</th><th>Taxable / other</th><th>Total</th><th></th></tr></thead><tbody>'
-          + hist.slice().reverse().slice(0, 36).map((r) => '<tr><td>' + budEsc(r.date) + '</td><td>' + gbp(r.sipp || 0) + '</td><td>' + (recordIsaOf(r) == null ? '—' : gbp(r.isa)) + '</td><td>' + gbp(r.gia || 0) + '</td><td><strong>' + gbp(r.total || 0) + '</strong></td><td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="deleteAccumulationRecord(\'' + budEsc(r.date) + '\')">&times;</button></td></tr>').join('')
+          + hist.slice().reverse().slice(0, 36).map((r) => '<tr><td>' + budEsc(ukMonth(r.date)) + '</td><td>' + gbp(r.sipp || 0) + '</td><td>' + (recordIsaOf(r) == null ? '—' : gbp(r.isa)) + '</td><td>' + gbp(r.gia || 0) + '</td><td><strong>' + gbp(r.total || 0) + '</strong></td><td><button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="deleteAccumulationRecord(\'' + budEsc(r.date) + '\')">&times;</button></td></tr>').join('')
           + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
         if (strip) {
           const doc = await getActivePlanDocument();
@@ -8846,6 +8867,7 @@
       const dur = +document.getElementById('ssDuration')?.value || 0; const a = window._ssTiming?.shapeAgeNow || +document.getElementById('shapeAgeNow')?.value || 0;
       h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur - 1) : '';
     };
+    window.dbStartAgeChanged = function () { dbStartFromAgeInput(document, window._ssTiming); renderIncomeShapePreview(); };
     function timingSettingsFromForm() {
       const base = window._ssTimingBase || {};
       const g = (id) => document.getElementById(id);
@@ -8918,7 +8940,7 @@
       g('tmSummary').textContent = summary;
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
-      updateDurationHint();
+      updateDurationHint(); paintDbStart(document, window._ssTiming);   // the start age is known now: the final-salary age box and its words
       if (typeof renderIncomeSteps === 'function') renderIncomeSteps();
       const echo = g('giltPotEcho'); if (echo && typeof refreshStrategyCosts === 'function') refreshStrategyCosts();
     };
@@ -9557,15 +9579,6 @@
     window._ssStrategy = 'pots-and-valves';
 
     // Sections that only make sense for Pots & Valves (its pots, its valves, its tax draw).
-    function pnvOnlySections() {
-      const anchors = ['ssModeRisk', 'ssRecoveryBuffer', 'ssHodlEnabled', 'ssAccessMethod'];
-      return anchors
-        .map((id) => document.getElementById(id))
-        .filter(Boolean)
-        .map((el) => el.closest('.settings-section'))
-        .filter((sec, i, arr) => sec && arr.indexOf(sec) === i);
-    }
-
     // 6.13.0: switching strategy in Settings puts the outgoing strategy's inputs (dials, funds to test, alloc mode)
     // away under strategyState and brings this one's back — or starts it clean. Nothing bleeds between them.
     function stashAndRestoreStrategy(prev, id) {
@@ -9591,9 +9604,9 @@
         if (mini) { mini.style.display = wants ? 'block' : 'none'; if (wants) seedMiniPot(id); } }
       document.getElementById('ssLrParams').style.display = id === 'ladder-and-ratchet' ? 'block' : 'none';
       document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
-      // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS
-      // mechanics — hide the Pots & Valves machinery instead of letting the two fight.
-      for (const sec of pnvOnlySections()) sec.style.display = isLadder ? 'none' : '';
+      // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS mechanics — hide that machinery
+      // (the parts marked data-pnv-only). The settings every engine reads stay in view, each with a note when a strategy ignores it.
+      for (const sec of pnvOnlySections(document)) sec.style.display = isLadder ? 'none' : ''; paintSettingUseNotes(document, id);
       // Switching strategy invalidates any run cards from the previous one — clear them.
       for (const rid of ['strategyRunResults', 'histResults', 'scenResults']) {
         const el = document.getElementById(rid);
@@ -9839,7 +9852,7 @@
           el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run Monte Carlo</em> runs ' + d.name + '’s own engine and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
           el.style.display = 'block';
         } else {
-          el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. Six strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
+          el.innerHTML = '<div class="alert alert-info">This Monte Carlo runs <strong>Pots &amp; Valves</strong> — the plan’s current strategy. All ' + strategyCountWord() + ' strategies, compared on your plan, live in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
           el.style.display = 'block';
         }
       } catch (e) { el.style.display = 'none'; }
@@ -10205,7 +10218,7 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div><ul><li>Sell the remaining gilts any day at market price (gilts are liquid).</li><li>Or swap them for an RPI-linked annuity at 75 or 80 — one transaction, income for life, no admin.</li></ul></div>'
         + '</div></div>';
       // Block 5 — honest numbers
-      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + lockedNote + giltOrderSheetHtml(plan)
+      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + lockedNote + giltOrderSheetHtml(plan, { p })
         + '<p class="hint" style="margin-top:8px;">' + (fromDoc ? 'This order sheet is the one in your plan document, priced on ' + budEsc(locked.pricedOn || '—') + '. For a ladder built today: prices' : 'Prices') + ' as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>';
       // Block 6 — the rotation watch (the same rule the Gilt ladder + rotation strategy models)
       h += '<div class="strat-block"><div class="section-title">6 · The one optional extra: a rotation watch</div><p class="hint" style="margin:0 0 6px;">You can run this ladder with one pre-agreed escape — see the <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="showStrategyPage(\'gilt-rotation\')">Gilt ladder + rotation</button> page for the modelled version.</p>' + rotationWatchHtml(plan) + '</div>';
@@ -11120,7 +11133,7 @@
         document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
         document.getElementById('ssOther').value = s.other || 0;
         document.getElementById('ssDbAmount').value = s.dbAmount || 0;
-        document.getElementById('ssDbStartYear').value = s.dbStartYear || 0;
+        setDbStartFields(document, s, window._ssTiming);
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));   // legacy flat bag sorted per strategy (6.13.0)
         applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
@@ -11158,7 +11171,7 @@
         const seedNote = document.getElementById('ssSeedNote');
         if (seedNote) {
           seedNote.textContent = s.seededFrom === 'decision' && s.seededAt
-            ? 'Seeded from Decision Tool ' + new Date(s.seededAt).toLocaleDateString()
+            ? 'Seeded from Decision Tool ' + ukDay(s.seededAt)
             : '';
         }
 
@@ -11194,6 +11207,7 @@
       if (ssSpCheck.warning) {
         showToast(ssSpCheck.warning, 'warning');
       }
+      { const dbErr = dbStartError(document, window._ssTiming); if (dbErr) { showToast(dbErr, 'error', 8000); return; } }   // a final-salary start past the plan's end would never pay (audit problem 3)
 
       // Soft plausibility guard: the sims start from these Fund Minimums, so catch values
       // probably typed in thousands before saving.
@@ -11253,7 +11267,7 @@
           taxMode: document.getElementById('ssTaxMode').value,
           other: +document.getElementById('ssOther').value,
           dbAmount: +document.getElementById('ssDbAmount').value || 0,
-          dbStartYear: +document.getElementById('ssDbStartYear').value || 0,
+          dbStartYear: +document.getElementById('ssDbStartYear').value || 0, dbStartAge: dbStartAgeForSave(document),   // the year is what the engines read; the age is what was asked (dbStartSetting.js)
           dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
           extraIncomes: (window._ssExtraIncomes || []).filter((r) => r.annual > 0),
           windfalls: (window._ssWindfalls || []).filter((r) => r.amount > 0 && r.year != null),
@@ -11287,7 +11301,7 @@
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); renderChargesField().catch(() => {});   // the box shows the charge as saved
         updateSetupBanners();
         updateNextStepBanner();
-        showToast('Settings saved successfully', 'success');
+        showToast('Settings saved successfully', 'success'); return true;
       } catch (error) {
         console.error('Error saving stress settings:', error);
         showToast('Error saving: ' + error.message, 'error');
@@ -12987,7 +13001,7 @@
       if (dep.entriesUnderPrevious) li.push('<li>' + dep.entriesUnderPrevious + ' older entr' + (dep.entriesUnderPrevious === 1 ? 'y is' : 'ies are') + ' already marked as recorded under previous settings (this plan has been unlocked before).</li>');
       li.push('<li><strong>Stress-Tester settings</strong> unlock too, and the <strong>plan document</strong> is moved to previous versions — a new one is written when you lock again. The strategy can then be switched.</li>'); let unlockPatch = null; try { unlockPatch = unlockPatchesOf(await getStressSettingsAsync()); } catch (e) { /* none */ } li.push(...unlockNotesHtml(unlockPatch));   // locked before charges (6.19.0, D2) or the ISA choice (6.22.0, D4) were added → the defaults once unlocked
       li.push('<li><strong>Not affected:</strong> your Budget, fund values, and the tax-year facts you entered (allowances, income to date).</li>');
-      li.push('<li>The plan locks itself again the moment a new entry is recorded. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
+      li.push('<li>You are asked again before a new entry locks the plan. If you would rather keep this plan\'s record intact, <em>duplicate</em> it and edit the copy.</li>');
       const ok = await appConfirm({ html: '<h3 style="margin:0 0 10px;">Unlock this plan?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>' }, { okLabel: 'Unlock — I understand', cancelLabel: 'Keep locked', danger: true });
       if (!ok) return;
       showLoading('Unlocking…');
@@ -13296,7 +13310,7 @@
         const bridgeNote = bridgeRecords && anchor ? '<p class="hint" style="margin-top:6px;">' + bridgeRecords + ' month' + (bridgeRecords === 1 ? '' : 's') + ' recorded before the plan starts (' + taxYearLabel(anchor) + ') ' + (bridgeRecords === 1 ? 'is' : 'are') + ' the run-up — drawn from your SIPP cash before the plan\'s year 0, so there is no plan figure to compare ' + (bridgeRecords === 1 ? 'it' : 'them') + ' with.</p>' : '';
         if (!rows) { box.innerHTML = bridgeNote ? '<div class="settings-section" style="margin-bottom:14px;"><div class="section-title">Plan vs actual</div>' + bridgeNote + '</div>' : ''; return; }
         box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
-          + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + new Date(por.savedAt).toLocaleDateString() + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'
+          + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">— against the projection frozen when this plan was locked (' + ukDay(new Date(por.savedAt)) + ', ' + (por.assumedCpi * 100).toFixed(0) + '% assumed CPI)</span></div>'
           + '<div class="table-scroll-container"><table><thead><tr><th>Plan year</th><th>Planned draw</th><th>Actual draw</th><th>Planned tax/yr</th><th>Actual tax pace</th><th>Planned ISA left</th></tr></thead><tbody>'
           + rows + '</tbody></table></div>'
           + bridgeNote

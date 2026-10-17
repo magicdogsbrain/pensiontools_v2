@@ -34,6 +34,7 @@ import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
+import { cadenceOf, normaliseCadence } from '../services/DrawCadence.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -775,6 +776,28 @@ export async function saveActiveBudget(budget) {
 export async function getActiveAccumulation() {
   const scenario = await getActiveScenarioAsync();
   return scenario?.accumulationTool?.settings || {};
+}
+
+/**
+ * How often you draw (v6 usability audit, decision 4): a preference at `decisionTool.cadence`, OUTSIDE the Decision
+ * settings — so it is not in the settings checksum, is changeable on a locked plan, and never relabels a recorded
+ * month (services/DrawCadence.js). A plan saved before this change is read through its old `settings.cadence`,
+ * which is left as it is; only the new field is ever written.
+ */
+export async function getActiveDrawCadence() {
+  const scenario = await getActiveScenarioAsync();
+  return cadenceOf(scenario?.decisionTool);
+}
+export async function saveActiveDrawCadence(cadence) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const v = normaliseCadence(cadence);
+  await saveScenario(scenario.id, { 'decisionTool.cadence': v });   // DRAW_CADENCE_FIELD, written as a literal so the parity harvest sees it
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.decisionTool) cachedActiveScenario.decisionTool = {};
+    cachedActiveScenario.decisionTool.cadence = v;
+  }
+  return v;
 }
 
 /**

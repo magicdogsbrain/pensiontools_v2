@@ -35,7 +35,7 @@ describe('the named bookkeeping keys', () => {
   it('Stress: the timing pin and the out-of-date-draft answer — nothing that sets a figure', () => {
     expect(LOCKED_BOOKKEEPING.stress).toEqual([...TIMING_PIN_KEYS, 'staleDraftDismissedFor']);
   });
-  it('Decision: nothing but the unlock itself — not even how often months are recorded (it is in the checksum)', () => {
+  it('Decision: nothing but the unlock itself — not even the OLD cadence key inside the settings (it is in the checksum; the preference lives outside, at decisionTool.cadence)', () => {
     expect(LOCKED_BOOKKEEPING.decision).toEqual([]);
     expect(UNLOCK_KEYS).toEqual(['locked', 'unlockedAt', 'unlockCount']);
     const s = { baseSalary: 40000, equityMin: 1 };
@@ -78,7 +78,7 @@ describe('lockedWriteRefusal', () => {
     expect(lockedWriteRefusal('stress', { locked: true, stored, next: { ...stored, baseSalary: 1, equityMin: 2 } })).toEqual(['baseSalary', 'equityMin']);
     expect(lockedWriteRefusal('decision', { locked: true, stored, next: { ...stored, cadence: 'annual', baseSalary: 1 } })).toEqual(['baseSalary', 'cadence']);
   });
-  it('a locked plan: how often months are recorded is refused like any other Decision setting', () => {
+  it('a locked plan: the old cadence key inside the settings is refused like any other Decision setting (the preference is decisionTool.cadence, tests/drawCadence.test.js)', () => {
     expect(lockedWriteRefusal('decision', { locked: true, stored, next: { ...stored, cadence: 'quarterly' } })).toEqual(['cadence']);
   });
   it('a locked plan: a bookkeeping key alone goes; a Stress key is not a Decision one', () => {
@@ -165,6 +165,10 @@ describe('the same rules against the plan AS STORED (FirestoreService.saveScenar
   };
   const draft = { ...plan, decisionTool: { ...plan.decisionTool, settings: { baseSalary: 40000 } } };
 
+  it('a write to the draw-cadence preference (decisionTool.cadence) touches no guarded part, locked or not', () => {
+    expect(writeTouchesLockedParts({ 'decisionTool.cadence': 'annual' })).toBe(false);
+    expect(lockedPlanWriteRefusal(plan, { 'decisionTool.cadence': 'annual' }, DEFAULTS)).toBeNull();
+  });
   it('which writes touch the guarded parts: the two settings maps (whole, or a key inside) and the strategy', () => {
     for (const k of ['stressTool', 'stressTool.settings', 'stressTool.settings.baseSalary', 'decisionTool', 'decisionTool.settings', 'decisionTool.settings.cadence', 'strategy', 'strategy.params'])
       expect(writeTouchesLockedParts({ [k]: 1 }), k).toBe(true);

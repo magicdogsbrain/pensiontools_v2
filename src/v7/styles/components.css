@@ -475,6 +475,18 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .spend-form .shape-chart { margin-top: 8px; }
 .income-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .income-none { margin: 4px 0 8px; }
+/* "Does it last?" (editing-in-v7.md 10): the one test's band, the history rows as lines, the dials as the other steps */
+.lasts-answer { margin-top: 8px; }
+.lasts-band .figure { font-size: 1.6rem; }
+.lasts-band .figure-sub { margin-bottom: 8px; }
+.lasts-band.is-stale .figure, .lasts-band.is-stale .figure-sub { color: var(--text-muted); }
+.lasts-bar { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.lasts-history h4 { margin: 12px 0 4px; font-size: 1rem; }
+.lasts-start { overflow-wrap: anywhere; }
+.lasts-form .field-count input[type="text"] { max-width: 6rem; }
+@media (min-width: 744px) {
+  .lasts-band .figure { font-size: 2rem; }
+}
 .undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
   max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text);
   border: 1px solid var(--line); }

@@ -116,9 +116,13 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     answers,
     budget:  cleanSheet(draft && typeof draft === 'object' ? draft.budget : null),
     keep,
+    lasts:   emptyLasts(),                           // "Does it last?": the one test's result for ONE plan, page memory only (editing-in-v7.md 10)
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
 }
+
+/** No run of "Does it last?" held: `key` is lasts.js runKeyOf of the plan a result (or a run under way) is for. */
+export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false });
 
 /** An empty plan draft: no plan, nothing typed. */
 export const emptyPlanDraft = () => ({ id: null, values: {}, touched: [], asked: false });

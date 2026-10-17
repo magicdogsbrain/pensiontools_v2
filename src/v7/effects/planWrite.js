@@ -11,7 +11,8 @@
  *     device since this page opened is seen as locked;
  *   - the lock guard (services/LockedPlanGuard.js) runs on the plan as read: a locked plan is refused whatever the screen did;
  *   - the pure writer of the step the page is on (answers/plan/about.js aboutPatch; answers/plan/income.js incomePatch for
- *     "Money that comes in anyway", editing-in-v7.md 7; spend.js spendPatch; pots.js potsPatch for "Your pots and tax", 9)
+ *     "Money that comes in anyway", editing-in-v7.md 7; spend.js spendPatch; pots.js potsPatch for "Your pots and tax", 9;
+ *     lasts.js lastsPatch for the cut and reserve dials of "Does it last?", 10 — the run itself writes nothing)
  *     turns the draft into the dotted field paths that change; every
  *     path must be one the steps declare (answers/plan/schema.js ALL_WRITES) or the write is refused outright;
  *   - the write is ONE updateDoc of those paths plus the planner's stamp (lastModified, as FirestoreService.saveScenario
@@ -35,6 +36,7 @@ import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
+import { lastsPatch } from '../../answers/plan/lasts.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -111,8 +113,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   /** Which editing step the page is on when Save is pressed (editing-in-v7.md 7): its pure writer and its reading. */
   function stepOf(state) {
     const r = state.route;
-    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots') ? r.step : 'about';
-    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : aboutPatch };
+    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts') ? r.step : 'about';
+    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : step === 'lasts' ? lastsPatch : aboutPatch };
   }
 
   async function save(planId) {

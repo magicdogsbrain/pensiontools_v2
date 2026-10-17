@@ -11,7 +11,7 @@
  * No DOM, no storage; runs in the engine worker.
  */
 import { planFromSettings, stressTestStrategy } from '../strategies/stressTest.js';
-import { createSimulationConfigFromSettings } from '../storage/StressRepository.js';
+import { simulationConfigFromSettings } from './SimulationConfig.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { holdingsLines } from './HoldingsRecord.js';
@@ -154,7 +154,7 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
     const yearsToAge = Math.max(0, age - currentAge);
     let r = null, affordable = true;
     try {
-      const cfg = createSimulationConfigFromSettings({}, s);
+      const cfg = simulationConfigFromSettings({}, s);
       const p = planFromSettings(s, cfg, { now });   // one clock for the timing, the plan and the ladder pricing
       p.mcRuns = mcRuns; p.stride = stride;
       r = stressTestStrategy(s0.strategyId || 'pots-and-valves', p);

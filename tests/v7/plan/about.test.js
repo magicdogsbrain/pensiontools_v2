@@ -265,7 +265,7 @@ describe('E2 — the stale-answer rule', () => {
     const changed = applyPatch({ ...plan, lastModified: '2026-10-02T09:00:00.000Z' }, aboutPatch(plan, { endAge: '95' }, { today: TODAY }).patch);
     const pg = planPage([{ plan: changed }], changed.id, 'plan', { today: TODAY });
     expect(pg.next.id).toBe('P.recheck');
-    expect(pg.next.button).toEqual({ id: 'recheck', place: 'test', slots: {} });
+    expect(pg.next.button).toEqual({ id: 'recheck', href: '#/plan/' + changed.id + '/lasts', slots: {} });   // into "Does it last?" inside V7 (editing-in-v7.md 10), no hand-over
     expect(pg.answerStale).toMatchObject({ workedOutOn: '20 September 2026', changedOn: '2 October 2026' });
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).next.id).toBe('P.approaching');
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).answerStale).toBe(null);
@@ -276,13 +276,13 @@ describe('E2 — the stale-answer rule', () => {
 
 describe('E3 — the sub-step tables', () => {
   it('"about", "income" and "spend" sit under "plan"; they are listed for every stage × locked × linked that lists "plan" — every stage does', () => {
-    expect(SUB_STEPS).toEqual({ plan: ['about', 'income', 'spend', 'pots'] });
-    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots']);
+    expect(SUB_STEPS).toEqual({ plan: ['about', 'income', 'spend', 'pots', 'lasts'] });
+    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts']);
     for (const stage of Object.keys(STEPS)) for (const locked of [false, true]) for (const linked of [false, true]) for (const manyPlans of [false, true]) {
       const steps = stepsFor(stage, { locked, linked, manyPlans }).map((s) => s.id);
       const subs = subStepsFor(stage, { locked, linked, manyPlans });
       expect(subs.length > 0).toBe(steps.includes('plan'));
-      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }]);
+      if (steps.includes('plan')) expect(subs).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }, { id: 'lasts', under: 'plan' }]);
     }
   });
   for (const today of DATES) {
@@ -290,7 +290,7 @@ describe('E3 — the sub-step tables', () => {
       const entries = entriesAt(today);
       for (const e of entries) {
         const pg = planPage(entries, e.plan.id, 'plan', { today });
-        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }]);
+        expect(pg.subSteps).toEqual([{ id: 'about', under: 'plan' }, { id: 'income', under: 'plan' }, { id: 'spend', under: 'plan' }, { id: 'pots', under: 'plan' }, { id: 'lasts', under: 'plan' }]);
         const about = pg.steps.find((s) => s.id === 'plan').sections.find((s) => s.id === 'about');
         expect(about.href).toBe('#/plan/' + e.plan.id + '/about');
         expect(about.sub).toBe('about');

@@ -119,7 +119,7 @@ test.describe('"About you and when", without an account', () => {
     await expect(page.getByTestId('plan.step.plan')).toBeVisible();
     await expect(page.getByTestId('plan.answerStale')).toHaveText('Your ‘will it last’ answer was worked out on 20 September 2026, before the plan was changed on 30 September 2026.');
     await expect(page.getByTestId('rail.next')).toContainText('The plan has changed since its ‘will it last’ answer. Next: check it still lasts.');
-    await expect(page.getByTestId('rail.next.button')).toHaveText('Check it still lasts (in the planner)');
+    await expect(page.getByTestId('rail.next.button')).toHaveText('Check it still lasts');
     await expect(page.getByTestId('plan.plan.edit.about')).toHaveText('Change this here');
     await expect(page.locator('[data-region="plan-step"]')).toContainText('Stopping work at 63, in January 2031');
 

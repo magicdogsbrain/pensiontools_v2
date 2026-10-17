@@ -254,7 +254,10 @@ export const PLAN = {
     /** Into the editing step inside V7 (editing-in-v7.md 2). */
     editAbout: 'Change this here',
     seeAbout: 'See these',
-    recheck: 'Check it still lasts (in the planner)'
+    /** Into "Does it last?" inside V7 (editing-in-v7.md 10): the one test runs there, no hand-over. */
+    recheck: 'Check it still lasts',
+    lasts: 'Does it last?',
+    lastsLocked: 'Does it last? (as locked, and today)'
   },
 
   /** The next sentence (2.4), by id, first match wins. */
@@ -269,8 +272,8 @@ export const PLAN = {
     'P.working': 'Your plan is locked and you stop work in {stop}. Next: check you are still saving enough.',
     'P.recheck': 'The plan has changed since its ‘will it last’ answer. Next: check it still lasts.',
     'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today, or leave it as it is.',
-    'P.draft': 'Next: test the plan in the planner, and lock it when it is right.',
-    'P.approaching': 'Next: test the plan in the planner, then lock it and move what you hold to its mix.',
+    'P.draft': 'Next: check it lasts, then lock it when it is right.',
+    'P.approaching': 'Next: check it lasts, then lock it and move what you hold to its mix.',
     'P.saving': 'Next: check you are on course in the planner.'
   },
 

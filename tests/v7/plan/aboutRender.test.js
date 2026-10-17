@@ -183,7 +183,7 @@ describe('the saver 10: what the page says, and what typing does', () => {
     const { root, text } = draw(stateWith(es, '#/plan/' + changed.id + '/plan'));
     expect(root.querySelector('[data-testid="plan.answerStale"]').textContent).toBe('Your ‘will it last’ answer was worked out on 20 September 2026, before the plan was changed on 2 October 2026.');
     expect(text).toContain('The plan has changed since its ‘will it last’ answer. Next: check it still lasts.');
-    expect(root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Check it still lasts (in the planner)');
+    expect(root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Check it still lasts');
     expect(root.querySelector('[data-testid="plan.plan.edit.about"]').getAttribute('href')).toBe('#/plan/' + changed.id + '/about');
     const before = draw(stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/plan'));
     expect(before.root.querySelector('[data-testid="plan.answerStale"]')).toBe(null);

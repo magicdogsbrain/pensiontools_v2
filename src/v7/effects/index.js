@@ -10,6 +10,7 @@ import { readyMark } from '../state/select.js';
 import { startAddress } from './address.js';
 import { startDraftStore, sessionStore } from './draftStore.js';
 import { startRunner } from './run.js';
+import { startLastsRunner } from './lasts.js';
 import { createWorkerClient } from './workerClient.js';
 import { startPlanSeed, localStore } from './planSeed.js';
 import { startActivity } from './activity.js';
@@ -42,6 +43,9 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startAddress(store, win));
   stops.push(startDraftStore(store, sessionStore(win)));
   stops.push(startRunner({ store, client, local }));
+  // "Does it last?" (research/v7/editing-in-v7.md 10.4): a saved plan's one test, in the worker only, on that step only —
+  // no page fallback, so the engine's chunk is the worker's alone and the plan pages' own chunk does not carry it
+  stops.push(startLastsRunner({ store, client }));
   // "Save this as a plan": the seed in localStorage, then today's planner in this tab (save-as-plan.md Contract C.2)
   stops.push(startPlanSeed(store, {
     storage: localStore(win),

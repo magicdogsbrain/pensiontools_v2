@@ -24,6 +24,7 @@ import { ABOUT } from '../../../src/v7/copy/about.js';
 import { INCOME } from '../../../src/v7/copy/income.js';
 import { SPEND } from '../../../src/v7/copy/spend.js';
 import { POTS } from '../../../src/v7/copy/pots.js';
+import { LASTS } from '../../../src/v7/copy/lasts.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -163,6 +164,24 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of strings(SPEND)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(SPEND)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+  });
+  it('"Does it last?" (lasts.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
+    // the fifth editing step is a plan page too (editing-in-v7.md 10): a retired person's and a saver's plan are both shown it
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{words\}/g, 'in 9 futures out of 10')
+      .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
+      .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart)\}/g, '12')
+      .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves');
+    const hits = [];
+    const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(LASTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lasts.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(LASTS)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|FAILED)\b/);
+    for (const [where, s] of strings(LASTS)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    // the words every screen of the planner uses for the one answer (6.24.0), and the bad case said the one way
+    expect(LASTS.verdict['lasts.headline']).toBe('Your plan lasts {words}.');
+    expect(LASTS.rows.left).toContain('a bad case (the worst 1 in 10)');
+    expect(strings(LASTS).some(([, s]) => /worst of 1,000|worst case/i.test(s))).toBe(false);
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

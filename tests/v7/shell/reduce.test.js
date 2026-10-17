@@ -247,7 +247,14 @@ const anyAction = fc.oneof(
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO_DONE, planId })),
-  fc.constant({ type: A.PLAN_TOAST_CLOSE })
+  fc.constant({ type: A.PLAN_TOAST_CLOSE }),
+  // "Does it last?" (editing-in-v7.md 10.4): the one test's result for one plan, by its run key
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_WORKING, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 2 })).map(([key, done]) => ({ type: A.LASTS_PROGRESS, key, done, total: 2 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom({ strategyId: 'pots-and-valves', a: null }, { strategyId: 'buckets-in-order', a: { share: 0.9 } })).map(([key, result]) => ({ type: A.LASTS_DONE, key, result })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_FAILED, key })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_SLOW, key })),
+  fc.constant({ type: A.LASTS_RETRY })
 );
 
 describe('any sequence of actions', () => {
@@ -269,7 +276,8 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'plan', 'plans', 'route', 'session', 'ui']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'plan', 'plans', 'route', 'session', 'ui']);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);
     }), { numRuns: 300 });
   });

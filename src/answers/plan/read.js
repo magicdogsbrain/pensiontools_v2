@@ -322,8 +322,10 @@ function planStep(C) {
     { id: 'way', lines: way, place: 'way' }
   ];
   const buttons = [];
-  if (locked) { buttons.push(button('openDocument', 'document'), button('testLocked', 'test')); }
-  else if (!readonly) buttons.push(button('testPlan', 'test'));
+  // "Does it last?" is inside V7 (editing-in-v7.md 10): the one test runs there; a locked plan still has the planner's what-ifs
+  // a plan shown as saved is not run (its shape is newer than this code), so it gets no link into the step
+  if (locked) { buttons.push(button('openDocument', 'document')); if (!readonly) buttons.push(link('lastsLocked', '#/plan/' + plan.id + '/lasts')); buttons.push(button('testLocked', 'test')); }
+  else if (!readonly) buttons.push(link('lasts', '#/plan/' + plan.id + '/lasts'));
   const journey = Array.isArray(plan.journey) ? plan.journey.filter((j) => j && j.stage).map((j) => ({ stage: j.stage, on: dayWords(j.at), arrival: /arrival/i.test(String(j.note || '')) })) : [];
   const pastVersions = Array.isArray(plan.planDocumentArchive) ? plan.planDocumentArchive.length : 0;
   return { done: stage.key !== 'unknown', result, figures, lines, buttons, notes, sections, options, allOptions, journey, pastVersions, lockedOn: locked ? dayWords(lockedAt) : null };
@@ -512,6 +514,7 @@ function nextFor(C, built) {
   const nextMonth = (() => { const p = ym(mon); const m2 = p.m === 12 ? { y: p.y + 1, m: 1 } : { y: p.y, m: p.m + 1 }; return MONTHS[m2.m - 1]; })();
   const slots = { month: monthWords(mon), monthName: monthName(mon), nextMonth, year: taxYearLabel(ty), stop: monthWords(stop) || '', savedYear: stale ? stale.savedLabel : '' };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
+  const lastsHref = '#/plan/' + plan.id + '/lasts';   // "Does it last?", inside V7 (editing-in-v7.md 10): no hand-over to the run
   const BUTTONS = {
     'P.readonly': null,
     'P.noAge': link('addAge', aboutHref),
@@ -521,10 +524,10 @@ function nextFor(C, built) {
     'P.idle': null,
     'P.pot': button('recordPot', 'potRecord'),
     'P.working': button('onCourse', 'onCourse'),
-    'P.recheck': button('recheck', 'test'),
+    'P.recheck': link('recheck', lastsHref),
     'P.stale': link('updateIt', aboutHref),
-    'P.draft': button('testPlan', 'test'),
-    'P.approaching': button('testPlan', 'test'),
+    'P.draft': link('lasts', lastsHref),
+    'P.approaching': link('lasts', lastsHref),
     'P.saving': button('onCourse', 'onCourse')
   };
   return { id: id || 'P.saving', slots, button: id ? BUTTONS[id] : null, answerStale };

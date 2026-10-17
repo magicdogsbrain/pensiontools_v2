@@ -4,6 +4,7 @@
  *   createWorkerClient({ makeWorker }) → {
  *     init(today)                              → Promise<{ historyEnd, engineVersion }>
  *     answer(q, inputs, env, onProgress)       → Promise<Answer>       env = { today, futures, seed, trace } (+ detail for A, B)
+ *     lasts(plan, env, onProgress)             → Promise<Result>       a saved plan's one test (lane 'lasts'; editing-in-v7.md 10)
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
  *                                              is not given) is under way; those answers reject with code 'stopped'.
  *                                              Answers of other questions still under way are sent again, unchanged,
@@ -127,6 +128,23 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
         const id = nextId++;
         const msg = { id, type: 'answer', q, inputs: cloneSafe(inputs), env: cloneSafe(env) };
         pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * "Does it last?" (editing-in-v7.md 10.4): a saved plan's one test, in its own lane 'lasts' (stop('lasts') ends it and
+     * nothing else). The plan goes as data; the result comes back as data.
+     */
+    lasts(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'lasts', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'lasts', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
           reject(coded('the worker could not be reached', 'worker-error'));

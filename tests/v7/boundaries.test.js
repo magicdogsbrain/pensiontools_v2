@@ -275,6 +275,51 @@ describe('rule 3a — reach: every import from V7\'s entry points, walked', () =
   });
 });
 
+describe('"Does it last?" — the engine reaches the worker lazily, and nowhere else (research/v7/editing-in-v7.md 10.4)', () => {
+  const ENGINE = ['src/strategies/stressTest.js', 'src/strategies/registry.js', 'src/services/OneAnswer.js', 'src/services/NamedStarts.js', 'src/services/SimulationConfig.js', 'src/answers/plan/lastsRun.js'];
+  /** The walk by static imports only (no import(), no worker URL): what a chunk carries before anything lazy is asked for. */
+  function staticReach(entries) {
+    const seen = new Set(); const queue = [...entries];
+    while (queue.length) {
+      const f = queue.shift();
+      if (seen.has(f) || isPackage(f) || !existsSync(join(ROOT, f))) continue;
+      seen.add(f);
+      const code = strip(read(f), { keepStrings: true });
+      for (const m of code.matchAll(/\b(?:import|export)\b[^'"`;()]*?\bfrom\s*['"]([^'"]+)['"]|\bimport\s*['"]([^'"]+)['"]/g)) { const t = target(f, m[1] || m[2]); if (!isPackage(t)) queue.push(t); }
+    }
+    return seen;
+  }
+  it('the shell and the worker carry none of the engine: neither static walk reaches the strategies, the one-answer readers or the run', () => {
+    for (const entry of ['src/v7/main.jsx', 'src/v7/effects/answerWorker.js']) {
+      const reached = staticReach([entry]);
+      for (const f of ENGINE) expect(reached.has(f), `${entry} reaches ${f} statically`).toBe(false);
+    }
+  });
+  it('the full walk (with the dynamic import) reaches the run and the engine, so the reach rule covers them, and still nothing forbidden', () => {
+    for (const f of ENGINE) expect(REACHED, f).toContain(f);
+    expect(REACHED).toContain('src/strategies/LadderAndRatchet.js');
+    expect(REACHED).toContain('src/data/shiller.js');
+  });
+  it('the run is imported by the worker alone, and only with import(): no page fallback, so the plan pages\' chunk never carries the engine', () => {
+    const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lastsRun.js'));
+    expect(importers).toEqual(['src/v7/effects/answerWorker.js']);
+    expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
+  });
+  it('the engine config moved out of the repository is pure: no repository, no Firebase, no clock, no window', () => {
+    const f = 'src/services/SimulationConfig.js';
+    for (const t of targetsOf(f)) { expect(under(t, 'src/storage') || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false); }
+    const code = codeOf(f);
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
+    // the repository still exports the old name, as a wrapper over the service
+    expect(targetsOf('src/storage/StressRepository.js')).toContain(f);
+    expect(strip(read('src/storage/StressRepository.js'), { keepStrings: true })).toMatch(/export function createSimulationConfigFromSettings\(/);
+  });
+  it('the answers\' run reads no clock of its own: the date arrives as today', () => {
+    const code = codeOf('src/answers/plan/lastsRun.js');
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `lastsRun.js uses ${re}`).toBe(false);
+  });
+});
+
 describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the writer, each by its own names', () => {
   it('only planSource.js and planWrite.js import a firebase package, and nothing in src/answers does', () => {
     const naming = [...V7, ...ANSWERS].filter((f) => targetsOf(f).some((t) => t === 'firebase' || t.startsWith('firebase/')));

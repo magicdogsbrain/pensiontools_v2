@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, emptyPlanDraft, keptPlanDraft } from './initial.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, emptyPlanDraft, keptPlanDraft, emptyLasts } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
@@ -532,8 +532,9 @@ export function reduce(state, action) {
       return { ...state, plans: { ...state.plans, view: { today: String(v.today), rows: v.rows, page: v.page && typeof v.page === 'object' ? v.page : null } } };
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null) return state;
-      return withPlanDraft({ ...state, plans: null, session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null) return state;
+      // the plans leave the page's memory, and the one test's result with them (editing-in-v7.md 10.1)
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -600,6 +601,41 @@ export function reduce(state, action) {
     }
     case A.PLAN_TOAST_CLOSE:
       return state.ui.toast === null ? state : { ...state, ui: { ...state.ui, toast: null } };
+
+    // ---- "Does it last?": the one test's result, page memory only (research/v7/editing-in-v7.md 10.4) ------------------
+    case A.LASTS_WORKING: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('lasts/working: needs a key');
+      const L = state.lasts || emptyLasts();
+      // the old result stays (greyed on the screen) while the new run is under way for another key
+      return { ...state, lasts: { ...L, key: action.key, status: 'working', reason: null, progress: null, slow: false } };
+    }
+    case A.LASTS_PROGRESS: {
+      const L = state.lasts || emptyLasts();
+      if (action.key !== L.key || L.status !== 'working') return state;
+      return { ...state, lasts: { ...L, progress: { done: Number(action.done) || 0, total: Number(action.total) || 0 } } };
+    }
+    case A.LASTS_DONE: {
+      const L = state.lasts || emptyLasts();
+      if (action.key !== L.key || L.status !== 'working') return state;                                                   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('lasts/done: needs a result');
+      return { ...state, lasts: { ...L, status: 'done', result: action.result, progress: null, slow: false } };
+    }
+    case A.LASTS_FAILED: {
+      const L = state.lasts || emptyLasts();
+      if (action.key !== L.key || L.status !== 'working') return state;                                                   // stale
+      // 'noWorker': this browser cannot start a worker, and the test runs nowhere else in the preview (the screen offers the planner)
+      return { ...state, lasts: { ...L, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null, progress: null, slow: false } };
+    }
+    case A.LASTS_SLOW: {
+      const L = state.lasts || emptyLasts();
+      if (action.key !== L.key || L.status !== 'working' || L.slow) return state;
+      return { ...state, lasts: { ...L, slow: true } };
+    }
+    case A.LASTS_RETRY: {
+      const L = state.lasts || emptyLasts();
+      if (L.status !== 'failed') return state;
+      return { ...state, lasts: { ...L, status: 'idle' } };
+    }
 
     case A.ENV_SET: {
       // Start-up and the test hook only. The date, the last month of market history and the version; never the build.
@@ -725,6 +761,10 @@ export function reduce(state, action) {
         answers,
         budget: cleanSheet(copy.budget),
         keep,
+        // a named plan state may carry the one test's result for its plan (editing-in-v7.md 10): a key with a plain result
+        lasts: copy.lasts && typeof copy.lasts === 'object' && typeof copy.lasts.key === 'string' && ['working', 'done', 'failed'].includes(copy.lasts.status)
+          ? { key: copy.lasts.key, status: copy.lasts.status, reason: copy.lasts.reason === 'noWorker' ? 'noWorker' : null, result: copy.lasts.result && typeof copy.lasts.result === 'object' ? copy.lasts.result : null, progress: copy.lasts.progress && typeof copy.lasts.progress === 'object' ? { done: Number(copy.lasts.progress.done) || 0, total: Number(copy.lasts.progress.total) || 0 } : null, slow: copy.lasts.slow === true }
+          : emptyLasts(),
         ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
       };
     }

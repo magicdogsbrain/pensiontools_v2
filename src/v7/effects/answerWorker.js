@@ -5,6 +5,7 @@
  *   page → worker                                   worker → page
  *   { id, type: 'init', today }                     { id, ready: true, historyEnd, engineVersion }
  *   { id, type: 'answer', q: 'c', inputs, env }     { id, progress: { done, total } } …  then  { id, result }  or  { id, error }
+ *   { id, type: 'lasts', plan, env: { today } }     the same shape: a saved plan's one test (answers/plan/lastsRun.js, loaded lazily)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -30,9 +31,31 @@ function historyEndOf(answers) {
   return null;
 }
 
-export function createHandler(answers = ANSWERS) {
+/**
+ * "Does it last?" (research/v7/editing-in-v7.md 10.4): the one test of a saved plan, through the planner's own functions.
+ * Loaded LAZILY, so the strategy registry, the nine strategies, the market history and the gilt data reach the worker
+ * only when a plan's "Does it last?" is opened; the worker's own chunk carries none of it. `loadLasts` is the one place the
+ * lazy module is imported from V7 (the tests hand in a fake to drive the handler without it).
+ */
+const loadLasts = () => import('../../answers/plan/lastsRun.js');
+
+export function createHandler(answers = ANSWERS, { lasts = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
+  const runLasts = async (msg, post, id) => {
+    const env = { ...(msg.env || {}) };
+    if (!env.today && today) env.today = today;
+    let lastStep = -1;
+    const onProgress = (done, total) => {
+      const step = total > 0 ? Math.floor((done * PROGRESS_STEPS) / total) : 0;
+      if (step === lastStep) return;
+      lastStep = step;
+      post({ id, progress: { done, total } });
+    };
+    const fn = lasts || (await loadLasts()).runLasts;
+    const result = fn(msg.plan, { today: env.today, onProgress });
+    post({ id, result: cloneSafe(result) });
+  };
   return function handle(msg, post) {
     const id = msg && msg.id;
     try {
@@ -40,6 +63,11 @@ export function createHandler(answers = ANSWERS) {
       if (msg.type === 'init') {
         today = msg.today;
         post({ id, ready: true, historyEnd: historyEndOf(answers), engineVersion: VERSION });
+        return;
+      }
+      if (msg.type === 'lasts') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('lasts: no plan');
+        runLasts(msg, post, id).catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'answer') {

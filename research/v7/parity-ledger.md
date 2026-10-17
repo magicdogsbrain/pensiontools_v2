@@ -18,14 +18,14 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 59 | 41 | 15 | 0 | 3 |
+| Built | 61 | 43 | 15 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
 | Designed | 43 | 41 | 0 | 2 | 0 |
-| Planned | 62 | 52 | 2 | 2 | 6 |
+| Planned | 60 | 50 | 2 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
 
-Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **42** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
@@ -74,7 +74,7 @@ Planned with no V7 design yet: **43** rows. Retired, waiting for the owner: **1*
 | **Sums in the amount boxes** | An amount box takes a sum such as =200*12 or 1,200 and works it out. | BudgetModel.evalAmountExpr | Budget keepers | **Planned** (no V7 design yet) | `s8-e` | — |
 | **A line from or to an age** | A line can start or stop at an age, e.g. the mortgage ends at 63, or care costs from 85. | Budget line age band (index.html:11641-11670; BudgetModel.lineActiveAtAge) | Retired, approaching | **Planned**: D adds one later amount (answer-D.md §5.3); lines by age need E's spending section, alongside the spending shape. | `s8-e` | `budget.lines[].fromAge` `budget.lines[].toAge` |
 | **One-off and every-few-years costs** | Lists costs that come at an age or every few years (a car every 8 years, a roof). | Budget: One-off & periodic costs (index.html:3940-3946) | Savers, retired | **Built**: `src/v7/components/Budget.jsx`, `src/answers/keep/budgetSheet.js`. Shown as a guide beside the figure, not added to it (budget-step.md). | `done` | `budget.oneOffs` `budget.oneOffs[].id` `budget.oneOffs[].label` `budget.oneOffs[].amount` `budget.oneOffs[].atAge` `budget.oneOffs[].everyYears` |
-| **Horizon: age today, retirement age, plan to age** | The three ages the budget is worked over; whether you have retired; when the age was given. | Budget: Horizon (index.html:3842-3856) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`. V7 asks the ages once, in each question. | `done` | `budget.currentAge` `budget.retirementAge` `budget.endAge` `budget.retired` `budget.agesSetByUser` `budget.currentAgeAsOf` |
+| **Horizon: age today, retirement age, plan to age** | The three ages the budget is worked over; whether you have retired; when the age was given. | Budget: Horizon (index.html:3842-3856) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. V7 asks the ages once, in each question. On a saved plan, "About you and when" keeps the budget's copy in step as the planner's Save does (syncBudgetAgeFromTiming). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `budget.currentAge` `budget.retirementAge` `budget.endAge` `budget.retired` `budget.agesSetByUser` `budget.currentAgeAsOf` |
 | **Partner's age, retirement age, retired or not** | The partner's ages, kept on the budget for a couple. | Set-up wizard and Household → Create their plan (index.html:4900-4926, 10877-10887) | Couples | **Built**: `src/answers/shared/schemaParts.js`. V7 asks the partner's age and stop on the first screen (partnerStopFields). | `done` | `budget.partnerAge` `budget.partnerRetirementAge` `budget.partnerRetired` |
 | **Who pays: me, partner or shared, and my share** | For a couple, each line and one-off is paid by me, my partner or shared, with my share as a percentage (budget-wide or per line). | Budget: Sharing with a partner (index.html:3859-3883) | Couples | **Planned** (no V7 design yet): V7's budget is the household's (budget-step.md). | `s8-e` | `budget.sharedWithPartner` `budget.mySharePct` `budget.lines[].paidBy` `budget.lines[].mySharePct` `budget.oneOffs[].paidBy` `budget.oneOffs[].mySharePct` |
 | **Who pays, changing over time** | My share of shared costs can change at an age, e.g. 70% until her pension starts at 63, then 50/50. | Budget: "Change who pays over time" (index.html:3876-3880; BudgetModel.budgetSharePctAtAge) | Couples | **Planned** (no V7 design yet) | `s8-e` | `budget.splitPhases` `budget.splitPhases[].fromAge` `budget.splitPhases[].mySharePct` |
@@ -120,13 +120,13 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Age today** | Your age now, dated, which with the State Pension date pins every plan year to a tax year and an age. | Stress → Settings → When your plan starts (index.html:3150-3166) | Everyone | **Built**: `src/answers/shared/schemaParts.js`. Asked in every question. | `done` | `stress.currentAge` `stress.currentAgeAsOf` |
-| **Retired already, or retiring at an age** | "I have already retired" or "I will retire at age X". | Stress → Settings → When your plan starts (index.html:3153-3154) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`. A and B ask the stop age (or "I've already stopped"); C asks when the money starts. | `done` | `stress.retired` `stress.retireAge` |
-| **Plan starts this tax year or next April** | Which tax year is the plan's year 0; months before it are bridge months, lived on cash. | Stress → Settings → "Plan starts" (index.html:3155; PlanTiming.js) | Retired, approaching | **Planned**: square-one-audit.md §5: offer "I've stopped; my plan's income starts next April" as a plain choice. | `s8-e` | `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear` |
+| **Age today** | Your age now, dated, which with the State Pension date pins every plan year to a tax year and an age. | Stress → Settings → When your plan starts (index.html:3150-3166) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. Asked in every question; edited on a saved plan in V7 ("About you and when", editing-in-v7.md). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `stress.currentAge` `stress.currentAgeAsOf` |
+| **Retired already, or retiring at an age** | "I have already retired" or "I will retire at age X". | Stress → Settings → When your plan starts (index.html:3153-3154) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/c/schema.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. A and B ask the stop age (or "I've already stopped"); C asks when the money starts. Edited on a saved plan in V7: stopped, or stopping at an age or a month ("About you and when"). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `stress.retired` `stress.retireAge` |
+| **Plan starts this tax year or next April** | Which tax year is the plan's year 0; months before it are bridge months, lived on cash. | Stress → Settings → "Plan starts" (index.html:3155; PlanTiming.js) | Retired, approaching | **Built**: `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. In V7, on a saved plan ("About you and when", editing-in-v7.md): "When the plan's income starts: this tax year / next April" for someone who has stopped; derived from the stop age otherwise, and said so. The Decision copy (decision.firstTaxYear) is kept in step as the planner's Save keeps it. **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `s8-e` | `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear` |
 | **Pots at retirement, projected** | For someone still working, projects the pots to the retirement age from today's pots and payments. | When your plan starts: the projection line (index.html:8953-8957) | Savers, approaching | **Built**: `src/answers/shared/saving.js`, `src/v7/components/Pots.jsx`. Better: the saving-years engine gives a middling and a bad case. | `done` | — |
 | **Pots at retirement, typed in** | Overrides the projection with the pension and ISA you expect to have on the day, in today's money. | When your plan starts: "Or SIPP at retirement", "ISA at retirement" (index.html:3160-3161) | Approaching | **Planned** (no V7 design yet): A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it. | `s8-e` | `stress.potAtRetirement` `potAtRetirement.sipp` `potAtRetirement.isa` `potAtRetirement.source` |
-| **How long the plan runs** | The plan's length in years (the age it runs to). | Stress → Settings → Duration; Decision → Depletion Duration | Everyone | **Built**: `src/answers/shared/schemaParts.js`. Asked as the age to plan to (endAge, 75 to 105, 95 by default). | `done` | `stress.duration` `decision.duration` |
-| **Suggest a plan length from longevity** | Suggests the length from age and sex: a 1-in-10 chance of living beyond (cautious), 1 in 4, or average. | Stress → Settings → "Suggest from longevity" (index.html:3311-3326; LongevityModel.js) | Everyone | **Planned** (no V7 design yet) | `s8-e` | — |
+| **How long the plan runs** | The plan's length in years (the age it runs to). | Stress → Settings → Duration; Decision → Depletion Duration | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. Asked as the age to plan to (endAge, 75 to 105, 95 by default); edited on a saved plan in V7 as "Plan to age" ("About you and when"). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `stress.duration` `decision.duration` |
+| **Suggest a plan length from longevity** | Suggests the length from age and sex: a 1-in-10 chance of living beyond (cautious), 1 in 4, or average. | Stress → Settings → "Suggest from longevity" (index.html:3311-3326; LongevityModel.js) | Everyone | **Built**: `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`, `src/services/LongevityModel.js`. In V7 as "Suggest from how long people live" on "About you and when": a man or a woman, 1 in 10 / 1 in 4 / half live beyond it; the planner's own helper (LongevityModel.longevityAge) fills "Plan to age". **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `s8-e` | — |
 | **"Update this draft to today"** | A draft whose start year has passed is offered an update to today; "Leave it" is remembered. | Stale-draft banner (index.html:2954, 9020-9050) | Retired drafts | **Planned** (no V7 design yet) | `s8-e` | `stress.staleDraftDismissedFor` |
 
 ## Pots and the drawing mix
@@ -388,7 +388,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.equityMin` | Pension pot, split into shares, bonds and cash | Built |
 | `stress.extraIncomes` | Income for some years | Planned (no V7 design yet) |
 | `stress.extraWithdrawals` | Extra spends in a given year | Designed |
-| `stress.firstTaxYear` | Plan starts this tax year or next April | Planned |
+| `stress.firstTaxYear` | Plan starts this tax year or next April | Built |
 | `stress.giaTaxBand` | A taxable account (GIA) | Planned (no V7 design yet) |
 | `stress.glideEndgame` | Bond tent | Planned (no V7 design yet) |
 | `stress.hodlEnabled` | Emergency reserve ("Break Glass HODL") | Planned (no V7 design yet) |
@@ -401,7 +401,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.isaGrowth` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
 | `stress.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
-| `stress.legacyFirstTaxYear` | Plan starts this tax year or next April | Planned |
+| `stress.legacyFirstTaxYear` | Plan starts this tax year or next April | Built |
 | `stress.other` | Other income or pension | Planned (no V7 design yet) |
 | `stress.pa` | Tax thresholds | Planned (no V7 design yet) |
 | `stress.pacwMin` | Old names of the three pot floors | Retired |
@@ -452,7 +452,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.duration` | How long the plan runs | Built |
 | `decision.equityGlideEnabled` | Bond tent | Planned (no V7 design yet) |
 | `decision.equityMin` | Pension pot, split into shares, bonds and cash | Built |
-| `decision.firstTaxYear` | Plan starts this tax year or next April | Planned |
+| `decision.firstTaxYear` | Plan starts this tax year or next April | Built |
 | `decision.giaTaxBand` | A taxable account (GIA) | Planned (no V7 design yet) |
 | `decision.glideEndgame` | Bond tent | Planned (no V7 design yet) |
 | `decision.incomeShape` | Steps by age: "from age X take £Y a year" | Built |
@@ -793,7 +793,6 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **A nudge when an amount looks wrong** (Budget lines and walk-through (BudgetModel.typicalSanityFlag)). Step `s8-e`.
 - **Reset, duplicate a line, undo a removal** (Budget (index.html:12024-12080)). Step `s8-e`.
 - **Pots at retirement, typed in** (When your plan starts: "Or SIPP at retirement", "ISA at retirement" (index.html:3160-3161)). Step `s8-e`. A plan made from a V7 answer writes the middling pot here (PlanSeed.js); no V7 form lets the person type it.
-- **Suggest a plan length from longevity** (Stress → Settings → "Suggest from longevity" (index.html:3311-3326; LongevityModel.js)). Step `s8-e`.
 - **"Update this draft to today"** (Stale-draft banner (index.html:2954, 9020-9050)). Step `s8-e`.
 - **An example ETF portfolio for the risk level** ("See an example ETF portfolio for this level" (index.html:3398-3401; ModelPortfolios.js)). Step `s8-e`.
 - **Diversifiers sleeve: gold and trend/macro** (Your allocation: Diversifiers sleeve (index.html:3394-3397)). Step `s8-e`.
@@ -823,6 +822,18 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **A projection at your own holdings' mix** (Accumulation → Projection: Your mix (6.7.0)). Step `s8-e`. V7 projects at a risk level while saving (savingRisk).
 - **Reset a tool's settings to the defaults** (Stress and Decision → Settings → Reset to Defaults). Step `s8-e`.
 - **Administration** (Header gear (index.html:12840-12900)). Step `s9-switch`. Owner only; could stay on the previous version's page.
+
+## Edited in V7
+
+The saved settings a person changes on a saved plan inside the preview, one step at a time (research/v7/editing-in-v7.md).
+Each writes the same keys today's planner writes, through one file (src/v7/effects/planWrite.js), past the lock guard.
+
+- **Horizon: age today, retirement age, plan to age** (`src/v7/screens/plan/AboutScreen.jsx`): `budget.currentAge` `budget.retirementAge` `budget.endAge` `budget.retired` `budget.agesSetByUser` `budget.currentAgeAsOf`.
+- **Age today** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.currentAge` `stress.currentAgeAsOf`.
+- **Retired already, or retiring at an age** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.retired` `stress.retireAge`.
+- **Plan starts this tax year or next April** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.firstTaxYear` `decision.firstTaxYear` `stress.legacyFirstTaxYear`.
+- **How long the plan runs** (`src/v7/screens/plan/AboutScreen.jsx`): `stress.duration` `decision.duration`.
+- **Suggest a plan length from longevity** (`src/v7/screens/plan/AboutScreen.jsx`): —.
 
 ## Retired, and why
 

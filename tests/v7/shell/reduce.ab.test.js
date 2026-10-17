@@ -104,6 +104,17 @@ const anyAction = fc.oneof(
   fc.constant({ type: A.PLANS_CLEAR }),
   fc.constant({ type: A.PLAN_CHANGE, planId: 'p1', place: 'month', back: '#/plan/p1' }),
   fc.constant({ type: A.PLAN_CHANGE_FAILED }),
+  // editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 4): the draft of one plan, its save, its undo
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'stopMonth', 'startWhen', 'endAge', 'sex', 'chance'), fc.constantFrom('', '58', 'yes', 'age', 'month', '2030-06', 'april', 'abc', null))
+    .map(([planId, path, value]) => ({ type: A.PLAN_EDIT, planId, path, value })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'endAge')).map(([planId, path]) => ({ type: A.PLAN_TOUCH, planId, path })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, {}, { 'stressTool.settings.duration': 32 })).map(([planId, previous]) => ({ type: A.PLAN_SAVED, planId, previous, line: { id: 'runsTo', slots: { endAge: 93, years: 32 } } })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO_DONE, planId })),
+  fc.constant({ type: A.PLAN_TOAST_CLOSE }),
   // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
   saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
   fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),
@@ -168,7 +179,10 @@ describe('any sequence of actions over the three questions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s.draft).sort()).toEqual(Q);
+      // the questions' drafts, and the one plan draft of the editing step (editing-in-v7.md 4): one plan's id, text by path
+      expect(Object.keys(s.draft).sort()).toEqual([...Q, 'plan'].sort());
+      expect(s.draft.plan.id === null || typeof s.draft.plan.id === 'string').toBe(true);
+      for (const v of Object.values(s.draft.plan.values)) expect(typeof v).toBe('string');
       for (const q of Q) {
         expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers[q].status);
         if (q !== 'c') {

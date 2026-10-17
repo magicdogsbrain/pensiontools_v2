@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep } from './initial.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, emptyPlanDraft, keptPlanDraft } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
@@ -21,6 +21,12 @@ import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS } from './initial.js';
+import { ABOUT_PATHS } from '../../answers/plan/schema.js';
+
+/** The plan draft (editing-in-v7.md 4): what was typed into "About you and when" for ONE plan; gone when the plan changes. */
+const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
+const withPlanDraft = (state, plan) => ({ ...state, draft: { ...state.draft, plan } });
+const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -311,8 +317,20 @@ export function reduce(state, action) {
   const answer = q ? state.answers[q] : null;
 
   switch (action.type) {
-    case A.ROUTE_SET:
-      return noteShown(state, { ...state, route: tidyRoute(action.route), ui: closeRail(state.ui) });
+    case A.ROUTE_SET: {
+      const route = tidyRoute(action.route);
+      const pd = planDraftOf(state);
+      // the plan draft belongs to one plan: an address naming another plan (or none) clears it, and the toast goes with it
+      const onPlan = (id) => route.screen === 'plan' && route.planId === id;
+      const other = pd.id !== null && !onPlan(pd.id);
+      // the toast and a save's problem belong to their plan too
+      const t = state.ui.toast, sp = state.ui.saveProblem;
+      const uiOther = (t && !onPlan(t.planId)) || (sp && sp.planId && !onPlan(sp.planId));
+      const next = { ...state, route, ui: closeRail(state.ui) };
+      if (!other && !uiOther) return noteShown(state, next);
+      const cleared = { ...next, ui: { ...next.ui, saving: null, saveProblem: null, toast: null } };
+      return noteShown(state, other ? withPlanDraft(cleared, emptyPlanDraft()) : cleared);
+    }
 
     // ---- what was typed -------------------------------------------------------------------------------------
     case A.DRAFT_SET: {
@@ -514,7 +532,8 @@ export function reduce(state, action) {
       return { ...state, plans: { ...state.plans, view: { today: String(v.today), rows: v.rows, page: v.page && typeof v.page === 'object' ? v.page : null } } };
     }
     case A.PLANS_CLEAR:
-      return state.plans === null && state.session.kind === 'none' ? state : { ...state, plans: null, session: { kind: 'checking', email: null, signingOut: false } };
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null) return state;
+      return withPlanDraft({ ...state, plans: null, session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -522,6 +541,65 @@ export function reduce(state, action) {
     }
     case A.PLAN_CHANGE_FAILED:
       return { ...state, ui: { ...state.ui, leaving: null, leaveProblem: 'storage' } };
+
+    // ---- editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 2, 4) ----------------------------
+    case A.PLAN_EDIT: {
+      const { planId, path, value } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/edit: needs a plan id');
+      if (!ABOUT_PATHS.includes(path)) return refuse(`plan/edit: no field "${path}"`);
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : emptyPlanDraft();
+      const values = { ...base.values };
+      if (typeof value === 'string') values[path] = value; else delete values[path];   // text as typed; anything else empties the box
+      if (base.id === planId && values[path] === pd.values[path] && (path in values) === (path in pd.values)) return state;
+      return withPlanDraft({ ...state, ui: { ...state.ui, saveProblem: null } }, { ...base, id: planId, values });
+    }
+    case A.PLAN_TOUCH: {
+      const { planId, path } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/touch: needs a plan id');
+      if (!ABOUT_PATHS.includes(path)) return refuse(`plan/touch: no field "${path}"`);
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      if (base.touched.includes(path)) return base === pd ? state : withPlanDraft(state, base);
+      return withPlanDraft(state, { ...base, touched: [...base.touched, path] });
+    }
+    case A.PLAN_SAVE: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/save: needs a plan id');
+      if (state.ui.saving) return state;
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_SAVED: {
+      const { planId, previous = null, line = null } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/saved: needs a plan id');
+      const hasPrevious = !!previous && typeof previous === 'object' && Object.keys(previous).length > 0;
+      const toast = hasPrevious ? { planId, kind: 'saved', previous, line: line && typeof line === 'object' ? line : null } : { planId, kind: 'unchanged', previous: null, line: null };
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
+    }
+    case A.PLAN_SAVE_FAILED: {
+      const { planId, problem } = action;
+      if (!PLAN_PROBLEMS.includes(problem)) return refuse(`plan/saveFailed: "${problem}" is not a problem it knows`);
+      return { ...state, ui: { ...state.ui, saving: null, saveProblem: { planId: typeof planId === 'string' ? planId : null, problem } } };
+    }
+    case A.PLAN_CANCEL: {
+      const pd = planDraftOf(state);
+      if (pd.id === null && !state.ui.saveProblem) return state;
+      return withPlanDraft({ ...state, ui: { ...state.ui, saveProblem: null } }, emptyPlanDraft());
+    }
+    case A.PLAN_UNDO: {
+      const t = state.ui.toast;
+      if (!t || t.kind !== 'saved' || t.planId !== action.planId || state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId: t.planId, kind: 'undo', previous: t.previous }, toast: { ...t, kind: 'undoing' } } };
+    }
+    case A.PLAN_UNDO_DONE: {
+      const t = state.ui.toast;
+      if (!t || t.planId !== action.planId) return { ...state, ui: { ...state.ui, saving: null } };
+      return { ...state, ui: { ...state.ui, saving: null, toast: { planId: t.planId, kind: 'undone', previous: null, line: null } } };
+    }
+    case A.PLAN_TOAST_CLOSE:
+      return state.ui.toast === null ? state : { ...state, ui: { ...state.ui, toast: null } };
 
     case A.ENV_SET: {
       // Start-up and the test hook only. The date, the last month of market history and the version; never the build.
@@ -614,9 +692,9 @@ export function reduce(state, action) {
       if (!ok) return refuse('state/replace: not a V7 state');
       const copy = JSON.parse(JSON.stringify(s));
       // Every question open here gets its draft and answer, in its own shape; one the state handed in leaves out is empty.
-      const drafts = {};
+      const drafts = { plan: keptPlanDraft(copy.draft) };   // the plan draft has its own shape (editing-in-v7.md 4)
       const answers = {};
-      for (const id of Object.keys(state.draft)) {
+      for (const id of Object.keys(state.draft).filter((k) => k !== 'plan')) {
         const d = copy.draft[id] && typeof copy.draft[id] === 'object' ? copy.draft[id] : {};
         drafts[id] = { ...emptyDraftFor(id), ...d, revealed: Array.isArray(d.revealed) ? d.revealed : [] };
         if ('spendHow' in drafts[id]) {
@@ -628,7 +706,7 @@ export function reduce(state, action) {
       }
       // "Save this as a plan": the name and the last save as draftStore would keep them, and what was found on coming back.
       const keep = {};
-      for (const id of Object.keys(state.draft)) {
+      for (const id of Object.keys(state.draft).filter((k) => k !== 'plan')) {
         const k = copy.keep && typeof copy.keep === 'object' ? copy.keep[id] : null;
         keep[id] = { ...keptKeep(copy.keep, id), back: k && KEEP_BACKS.includes(k.back) ? k.back : null,
           problem: k && KEEP_PROBLEMS.includes(k.problem) ? k.problem : null };
@@ -647,7 +725,7 @@ export function reduce(state, action) {
         answers,
         budget: cleanSheet(copy.budget),
         keep,
-        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null }
+        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
       };
     }
 

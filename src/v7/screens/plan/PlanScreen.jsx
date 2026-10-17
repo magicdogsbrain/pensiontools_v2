@@ -17,9 +17,15 @@ function Section({ section, view, onChange }) {
     <section class="plan-section" data-section={section.id}>
       <h3>{title}</h3>
       {section.lines.length ? <ul class="plan-lines">{section.lines.map((l, i) => <PlanLine key={i} line={l} figures={view.figures} hideSource />)}</ul> : null}
-      {view.lockedOn ? <p class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</p>
-        : view.readonly ? null
-          : <div class="actions-row"><Button testid={`plan.plan.change.${section.id}`} onClick={() => onChange(section.place)}>{w.changeThis}</Button></div>}
+      {section.href
+        // a section edited inside V7 (research/v7/editing-in-v7.md 2): a link to its step, on a locked plan too (read-only there)
+        ? <div class="actions-row">
+          {view.lockedOn && <span class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</span>}
+          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
+        </div>
+        : view.lockedOn ? <p class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</p>
+          : view.readonly ? null
+            : <div class="actions-row"><Button testid={`plan.plan.change.${section.id}`} onClick={() => onChange(section.place)}>{w.changeThis}</Button></div>}
     </section>
   );
 }
@@ -92,6 +98,7 @@ export function PlanScreen(state, dispatch) {
           {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
           {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
           {state.ui.leaveProblem && <p class="notice" role="alert">{fill(w.leaveProblem, { name: view.name })}</p>}
+          {view.answerStale && <p class="notice" role="status" data-testid="plan.answerStale">{view.answerStale.changedOn ? fill(w.answerStale, { date: view.answerStale.workedOutOn, changed: view.answerStale.changedOn }) : fill(w.answerStaleUndated, { date: view.answerStale.workedOutOn })}</p>}
         </div>
         <h1 tabIndex={-1} data-testid={`plan.step.${step.id}`}>{stepName}{step.optional && <span class="rail-optional"> ({w.optional})</span>}</h1>
         {!step.listed && <p class="note" data-testid="plan.notListed">{w.notListed}</p>}

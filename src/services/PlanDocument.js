@@ -49,7 +49,7 @@ export function plainClone(v) {
 /** The strategy result without the bulky/transient parts; still renders through strategyResultCard. */
 export function trimResult(r) {
   if (!r) return null;
-  const { samples, survivedMc, configs, ...rest } = r;
+  const { samples, survivedMc, configs, histWindows, ...rest } = r;   // histWindows: the per-start history (6.24.0) is a read-out of the runs, not part of the record
   return plainClone({ ...rest, configs: {} });
 }
 

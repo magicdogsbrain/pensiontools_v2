@@ -61,13 +61,9 @@ describe('(a) a button that would change a locked plan\'s settings: told plainly
     expect(f.indexOf('saveBudgetUI()')).toBeGreaterThan(check);
     expect(f.indexOf('closeBudgetWizard()')).toBeGreaterThan(check);
   });
-  it('the optimiser\'s "Apply this split": refused before the form fields are touched', () => {
-    const i = html.indexOf('window.applyOptimisedAllocationUI = async function');
-    const f = html.slice(i, i + 900);
-    const check = f.indexOf('if (await refusedWhenLocked()) return;');
-    expect(check).toBeGreaterThan(0);
-    expect(f.indexOf('writeAlloc(')).toBeGreaterThan(check);
-    expect(f.indexOf('saveStressSettings(')).toBeGreaterThan(check);
+  it('the optimiser\'s "Apply this split" went with the optimiser (6.24.0: the one test; Compare allocations only shows the grid)', () => {
+    expect(html.indexOf('window.applyOptimisedAllocationUI')).toBe(-1);
+    expect(html.indexOf('window.runOptimisationUI')).toBe(-1);
   });
   it('the Decision tool\'s "Reset": refused before it asks anything ("Copy from Decision" is gone, 6.23.0)', () => {
     for (const name of ['resetDecisionSettingsUI']) {

@@ -67,11 +67,11 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(SRC).not.toMatch(/85% success/);
     expect(SRC).not.toMatch(/85% Monte-Carlo success/);
   });
-  it('the search runs at the one bar, for Pots & Valves and for every other strategy', () => {
+  it('the search runs at the one bar, through the one test, for Pots & Valves and for every other strategy (6.24.0)', () => {
     const at = script.indexOf('window.runOnTrackCheck');
     expect(at).toBeGreaterThan(-1);
     const body = script.slice(at, script.indexOf('\n    };', at));
-    expect(body).toMatch(/requiredPotForSuccess\(createSimulationConfigFromSettings\(\{\}, sSet\), ON_COURSE_SHARE, 300\)/);
+    expect(body).not.toMatch(/requiredPotForSuccess/);   // Pots & Valves searched its own Monte Carlo until 6.24.0
     expect(body).toMatch(/requiredPotForStrategy\(stratId, strategyPlanFor\(sSet\), ON_COURSE_SHARE\)/);
     expect(body).not.toMatch(/0\.85/);
     expect(body).not.toMatch(/on track/);

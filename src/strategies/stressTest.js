@@ -26,6 +26,7 @@ import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
 import { chargesPctOf } from '../services/Charges.js';
+import { summariseCuts } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
@@ -220,7 +221,8 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   return {
     failed: r.failed, failAge: r.failed ? startAge + r.failMonth / 12 : null,
     terminal: r.failed ? 0 : (r.finalReal + (r.finalIsa || 0) / (r.cumInflation || 1)),   // today's money
-    worst12, protMonths: r.protMonths, wealthByYear: wealth, incomeByYear
+    worst12, protMonths: r.protMonths, wealthByYear: wealth, incomeByYear,
+    cutYears: r.cutYears || 0, cutReal: r.cutReal || 0   // the engine's own record of income actually unpaid (6.24.0: the cuts the one answer reports)
   };
 }
 
@@ -245,6 +247,10 @@ function pnvTest(p, configs) {
     samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
     survivedMc: mc.map((w) => !w.failed),
+    // One answer (6.24.0): the income cuts counted from these same futures, and the per-start record of the real
+    // histories (what History and Scenarios explain) — read-outs of the runs above, not a second test.
+    cuts: summariseCuts(mc, planYears),
+    histWindows: hist.map((w) => ({ s: w.s, failed: !!w.failed, failAge: w.failAge, terminal: w.terminal, worst12: w.worst12, protMonths: w.protMonths, cutYears: w.cutYears, cutReal: w.cutReal })),
     signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5),
       pots: { equity: p.pnvCfg.equityStart || 0, bond: p.pnvCfg.bondStart || 0, cash: p.pnvCfg.cashStart || 0, diversifier: p.pnvCfg.diversifierStart || 0, isa: p.pnvCfg.isaBalance || 0 },
       floors: { equity: p.pnvCfg.equityMin || 0, bond: p.pnvCfg.bondMin || 0, cash: p.pnvCfg.cashTarget || 0 },
@@ -544,8 +550,8 @@ function bridgeTest(p, configs) {
 
 /** Buckets in order: the Pots & Valves engine with ordered sourcing and no rebalancing (see WithdrawalSourcing.planSourcingOrdered). */
 function bucketsTest(p, configs) {
-  const band = p.params?.bucketBand > 0 ? p.params.bucketBand / 100 : 0.10;
-  const q = { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: 'ordered', bucketBand: band, equityGlide: null } };
+  const q = pnvFamilyPlan('buckets-in-order', p);
+  const band = q.pnvCfg.bucketBand;
   const r = pnvTest(q, configs);
   const draw = Math.max(1, p.targetAnnual - (p.spAnnual || 0) * 0);
   r.signature = { ...r.signature, ordered: true, band, eqPath: q.pnvCfg.equityStart || 0, cashYears: (q.pnvCfg.cashStart || 0) / draw,
@@ -673,7 +679,18 @@ export function pnvDecadeSeries(p, year, month = 1) {
  * to the Buckets row in the ranked table.
  */
 function pnvPlain(p, configs) {
-  return pnvTest({ ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: undefined, bucketBand: undefined } }, configs);
+  return pnvTest(pnvFamilyPlan('pots-and-valves', p), configs);
+}
+/**
+ * The plan the Pots & Valves family's own test ran on (pnvPlain / bucketsTest) — so a replay of one real start year
+ * (NamedStarts) is the same arithmetic the test counted that window with.
+ */
+export function pnvFamilyPlan(strategyId, p) {
+  if (strategyId === 'buckets-in-order') {
+    const band = p.params?.bucketBand > 0 ? p.params.bucketBand / 100 : 0.10;
+    return { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: 'ordered', bucketBand: band, equityGlide: null } };
+  }
+  return { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: undefined, bucketBand: undefined } };
 }
 
 export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {

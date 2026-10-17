@@ -240,60 +240,10 @@ export function saveCurrentDecision() {
   }
 }
 
-/**
- * Runs Monte Carlo simulation with current settings
- * @param {object} overrides - Optional config overrides
- * @param {object} preloadedSettings - Optional pre-loaded settings (to avoid cache issues in loops)
- */
-export function runMonteCarloSimulation(overrides = {}, preloadedSettings = null) {
-  const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
-  const results = getStrategy(config.strategyId).engine.runMonteCarlo(config);
-  const stats = analyzeResults(results);
-  // The same futures with protection off (6.12.0): shows what protection is worth — how many futures
-  // would have run short without the safety response, against how many actually had income cut with it.
-  if (!config.disableProtection) stats.noProtection = withoutProtection(config, 'runMonteCarlo');
-  return { results, stats, config };
-}
-
-function withoutProtection(config, method) {
-  try {
-    const r = getStrategy(config.strategyId).engine[method]({ ...config, disableProtection: true });
-    const a = analyzeResults(r);
-    return { successRate: a.successRate, cutPct: a.cuts ? a.cuts.pctWithCut : 100 - a.successRate };
-  } catch (e) { return null; }
-}
-
-/**
- * Runs historical simulation with current settings
- * @param {object} overrides - Optional config overrides
- * @param {object} preloadedSettings - Optional pre-loaded settings (to avoid cache issues in loops)
- */
-export function runHistoricalSimulation(overrides = {}, preloadedSettings = null) {
-  const config = createSimulationConfigFromSettings(overrides, preloadedSettings);
-  const results = getStrategy(config.strategyId).engine.runHistorical(config);
-  const stats = analyzeResults(results);
-  if (!config.disableProtection) stats.noProtection = withoutProtection(config, 'runHistorical');
-
-  return { results, stats, config };
-}
-
-/**
- * Runs all predefined scenarios
- * @param {object} overrides - Optional config overrides
- */
-export function runAllScenarios(overrides = {}) {
-  const config = createSimulationConfigFromSettings(overrides);
-  const results = {};
-
-  for (const [key, scenario] of Object.entries(SCENARIOS)) {
-    results[key] = {
-      ...scenario,
-      result: getStrategy(config.strategyId).engine.runScenario(config, scenario)
-    };
-  }
-
-  return results;
-}
+// 6.24.0 — one answer per plan: the Monte Carlo, Historical and Scenarios tabs' own runs (runMonteCarloSimulation,
+// runHistoricalSimulation, runAllScenarios — 5-year blocks of 1928–2024 through SimulationEngine) are retired. Every
+// "will it last" figure is the one stress test every strategy runs (strategies/stressTest.js stressTestStrategy),
+// read through services/OneAnswer.js.
 
 /**
  * Generates a drawdown schedule projection

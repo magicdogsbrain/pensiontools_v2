@@ -16,7 +16,7 @@ import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYi
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
-import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge } from './GiltRotation.js';
+import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath } from './GiltRotation.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
@@ -625,13 +625,35 @@ function fullGiltTest(p, configs) {
 // equities close >=trigger below their running all-time high, the rungs funding ages above
 // cutAge are sold (accreted value) and become an equity sleeve that pays those years instead.
 // Never triggers => identical to the full ladder. See src/strategies/GiltRotation.js.
-function rotationTest(p, configs) {
+/** The rotation's own set-up — the ladder, the cut age, the trigger — as its test builds it (shared with NamedStarts). */
+function rotationSetup(p, configs) {
   const base = fullGiltTest(p, configs);
-  if (!base.affordable) return { ...base, strategyIdHint: 'gilt-rotation' };
-  const plan = base.plan;
+  if (!base.affordable) return { base, ctx: null };
   const cutAge = Math.max(p.startAge + 1, Math.min(p.params?.rotateCutAge || 75, p.startAge + p.durationYears - 2));
   const trigger = (p.params?.rotateTrigger > 0 ? p.params.rotateTrigger : 30) / 100;
-  const ctx = rotationPathsCtx(plan, p, { cutAge, trigger });
+  return { base, cutAge, trigger, ctx: rotationPathsCtx(base.plan, p, { cutAge, trigger }) };
+}
+
+/**
+ * One real start replayed through the rotation, exactly as its test counts that window (runRotationWindows walks every
+ * month from January 1871; this is one of them). Null when the ladder cannot be bought. Sweep 18 Oct 2026: History and
+ * Scenarios said "no start-year replay" for the owner's own strategy.
+ */
+export function rotationReplay(p, startYear, configs = deriveCompareConfigs(p)) {
+  const { ctx } = rotationSetup(p, configs);
+  if (!ctx) return null;
+  const off = (startYear - 1871) * 12;
+  const hist = getRtr();
+  if (off < 0 || off + (ctx.N + 1) * 12 >= hist.length) return { tooShort: true };
+  const w = runRotationPath(hist, off, ctx);
+  const N = ctx.N;
+  return { failAge: w.failAge, triggeredYear: w.triggeredYear, terminal: w.wealth[N], worst12: Math.min(...w.income.slice(0, N)), startAge: ctx.startAge, rotates: ctx.split.soldOrders.length > 0 };
+}
+
+function rotationTest(p, configs) {
+  const { base, cutAge, trigger, ctx } = rotationSetup(p, configs);
+  if (!ctx) return { ...base, strategyIdHint: 'gilt-rotation' };
+  const plan = base.plan;
   if (!ctx.split.soldOrders.length) return base;   // nothing above the cut: it IS the full ladder
   const N = p.durationYears;
   const hist = runRotationWindows(ctx);

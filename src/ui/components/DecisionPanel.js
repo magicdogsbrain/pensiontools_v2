@@ -316,7 +316,7 @@ export function buildDecisionHTML(decision) {
     : monthlyTaxable - (annualTax / 12) + (d.isaDraw || 0);
 
   html += '<div class="draw-row total">';
-  html += `<span class="label">Total Monthly Income</span>`;
+  html += `<span class="label">Total Monthly Income, after tax</span>`;
   html += `<span class="value">${formatCurrency(totalMonthlyNet)}</span>`;
   html += '</div>';
 

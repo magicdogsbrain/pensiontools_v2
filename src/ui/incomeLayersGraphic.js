@@ -44,7 +44,7 @@ export function incomeLayersSvg({ rows }, o = {}) {
   for (const k of present) { out += `<rect x="${lx}" y="${padT - 20}" width="10" height="10" fill="${LAYER_COLORS[k]}"/><text x="${lx + 14}" y="${padT - 11}" font-size="10" fill="#bbb">${LAYER_LABELS[k]}</text>`; lx += 20 + LAYER_LABELS[k].length * 5.6; }
   out += `<line x1="${lx}" y1="${padT - 15}" x2="${lx + 14}" y2="${padT - 15}" stroke="#fff" stroke-dasharray="4 3"/><text x="${lx + 18}" y="${padT - 11}" font-size="10" fill="#bbb">need</text>`; lx += 50;
   if (rows.some((r) => r.p10 > 0)) out += `<line x1="${lx}" y1="${padT - 15}" x2="${lx + 14}" y2="${padT - 15}" stroke="#ef4444"/><text x="${lx + 18}" y="${padT - 11}" font-size="10" fill="#bbb">1-in-10 bad future</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" style="display:block;max-width:100%;" role="img" aria-label="What pays you, year by year">${out}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%;height:auto;" role="img" aria-label="What pays you, year by year">${out}</svg>`;
 }
 
 /**

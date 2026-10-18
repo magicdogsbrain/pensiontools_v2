@@ -5,9 +5,9 @@
  * A row is the SAME arithmetic the one test counted that window with: the Pots & Valves family replays the window
  * through pnvDecadeSeries (stressTest pnvRun, on the plan the family's own test ran); Ladder & Ratchet and Floor & Flex
  * read their window from the same window set their test used (runLadderWindows / runFlexWindows); a contract strategy
- * has nothing to replay — every year is bought. The other strategies have no per-start record yet (kind 'none').
+ * has nothing to replay — every year is bought; the gilt ladder + rotation replays the window its test walked (rotationReplay). The other strategies have no per-start record yet (kind 'none').
  */
-import { pnvDecadeSeries, pnvFamilyPlan } from '../strategies/stressTest.js';
+import { pnvDecadeSeries, pnvFamilyPlan, rotationReplay } from '../strategies/stressTest.js';
 import { deriveCompareConfigs } from '../strategies/compareRunner.js';
 import { runLadderWindows } from '../strategies/LadderAndRatchet.js';
 import { runFlexWindows } from '../strategies/FloorAndFlex.js';
@@ -55,6 +55,17 @@ export function namedStartRows(strategyId, p, starts = NAMED_STARTS) {
       return strategyId === 'ladder-and-ratchet'
         ? { ...base(st), kind: 'ladder', available: true, failed: w.survived === false, failAge: w.failAge ?? null, terminal: w.terminal ?? 0, secured: w.secured ?? 0 }
         : { ...base(st), kind: 'flex', available: true, failed: false, terminal: w.terminal ?? 0, worstYearFlex: w.worstYearD ?? 0 };
+    });
+  }
+  if (strategyId === 'gilt-rotation') {
+    let configs = null; try { configs = deriveCompareConfigs(p); } catch (e) { configs = null; }
+    return starts.map((st) => {
+      if (st.year > lastStart) return { ...base(st), kind: 'rotation', tooShort: true, lastStart };
+      const w = configs ? rotationReplay(p, st.year, configs) : null;
+      if (!w) return { ...base(st), kind: 'none', reason: 'not affordable' };
+      if (w.tooShort) return { ...base(st), kind: 'rotation', tooShort: true, lastStart };
+      return { ...base(st), kind: 'rotation', available: true, failed: w.failAge != null, failAge: w.failAge, terminal: w.terminal, worst12: w.worst12,
+        firedAge: w.triggeredYear != null ? w.startAge + w.triggeredYear : null };
     });
   }
   return starts.map((st) => ({ ...base(st), kind: 'none' }));

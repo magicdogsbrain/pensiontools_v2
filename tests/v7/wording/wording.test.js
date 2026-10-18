@@ -170,7 +170,7 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{words\}/g, 'in 9 futures out of 10')
       .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
-      .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart)\}/g, '12')
+      .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')
       .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves');
     const hits = [];
     const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');

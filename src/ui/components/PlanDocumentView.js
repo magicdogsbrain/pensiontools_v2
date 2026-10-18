@@ -26,7 +26,7 @@ export function planDocumentHeaderHtml(doc) {
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
     + '<div class="rpt-sub">Locked ' + esc(dateGB(d.lockedAt)) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
     + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + esc(d.strategy?.name || d.strategy?.id || '—') + '</td><td>Plan starts</td><td>' + esc(d.decisionRun?.year0 || '—') + '</td></tr>'
-    + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? ' + ISA ' + gbp(d.pots.isa) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
+    + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
 
 const fmtPct = (v) => String(Math.round((+v || 0) * 100) / 100);
@@ -81,7 +81,9 @@ export function planDocumentHtml(doc, r = {}) {
   let h = '<div class="card pd">';
   h += planDocumentHeaderHtml(d);
   if (r.whereAmI) h += r.whereAmI;
-  h += '<p>' + esc(t.text || '') + '</p>';
+  // The timing sentence is the snapshot's (its "in 9 months" was counted on the lock date): say so, or it reads as today's
+  // under "Where you are" (sweep 18 Oct 2026).
+  if (t.text) h += '<p>' + (r.whereAmI ? '<span class="hint">As written when the plan was locked: </span>' : '') + esc(t.text) + '</p>';
 
   // Timeline: picture + table
   let tl = '';

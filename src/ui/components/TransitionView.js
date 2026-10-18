@@ -129,7 +129,7 @@ export function transitionHtml(a) {
       + (rotation && rotation.applies ? ' Only the rotation watch below remains.' : '') + '</div>';
   } else {
     const tone = prog.held >= 98 ? 'alert-success' : prog.held >= 50 ? 'alert-info' : 'alert-warning';
-    h += '<div class="alert ' + tone + '"><strong>' + prog.held + '% of the target is held</strong>' + (prog.total ? ' · ' + prog.doneCount + ' of ' + prog.total + ' moves ticked off' : ' · nothing to do') + (seq && seq.startPassed ? ' · the ladder has been paying since tax year ' + esc(startLabel) + ' — schedule spread over the next ' + seq.months + ' months' : (startLabel ? ' · the ladder\'s first tax year is ' + esc(startLabel) : '') + (seq ? ' · ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + ' to go' : '')) + '.'
+    h += '<div class="alert ' + tone + '"><strong>' + prog.held + '% of the target is held</strong>' + (prog.total ? ' · ' + prog.doneCount + ' of ' + prog.total + ' moves ticked off' : ' · nothing to do') + (seq && seq.startPassed ? ' · the ladder has been paying since tax year ' + esc(startLabel) + ' — schedule spread over the next ' + seq.months + ' months' : (startLabel ? ' · the ladder\'s first tax year is ' + esc(startLabel) : '') + (seq ? ' · the buying spread over the next ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') : '')) + '.'
       + (prog.next ? '<br>Next: <strong>' + esc(prog.next.action) + ' ' + esc(prog.next.label) + '</strong>' + (prog.next.units ? ', ' + units(prog.next.units) + ' units' : '') + (prog.next.amount ? ' (' + gbp(prog.next.amount) + ')' : '') + '.' : '') + '</div>';
   }
   // Already retired, ladder not yet started (the run-up): say so, or "months to go" reads as "you have not retired yet".

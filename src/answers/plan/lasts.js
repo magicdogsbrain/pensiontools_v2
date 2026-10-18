@@ -281,6 +281,7 @@ export function startRow(x) {
   if (x.kind === 'none') return { ...base, id: 'hist.none', slots: {} };
   if (x.kind === 'ladder') return { ...base, left: pounds(x.terminal), id: x.failed ? 'hist.ladderRanOut' : 'hist.ladder', slots: x.failed ? { age: x.failAge ? String(Math.round(x.failAge)) : '' } : { secured: n0(x.secured), s: Math.round(+x.secured || 0) === 1 ? '' : 's' } };
   if (x.kind === 'flex') return { ...base, left: pounds(x.terminal), id: 'hist.flex', slots: { leanest: pounds(x.worstYearFlex) } };
+  if (x.kind === 'rotation') return { ...base, lowest: pounds(x.worst12), left: pounds(x.terminal), id: (x.firedAge != null ? 'hist.rotationFired' : 'hist.rotationHeld') + (x.failed ? 'Short' : ''), slots: { fired: x.firedAge != null ? String(Math.round(x.firedAge)) : '', age: x.failed ? String(Math.round(x.failAge || 0)) : '' } };
   const row = { ...base, lowest: pounds(x.worst12), left: pounds(x.terminal) };
   if (x.failed) return { ...row, id: 'hist.ranOut', slots: { age: String(Math.round(x.failAge || 0)) } };
   if (x.cutYears > 0) return { ...row, id: 'hist.lastedCut', slots: { n: n0(x.cutYears), s: Math.round(x.cutYears) === 1 ? '' : 's', total: pounds(x.cutReal) } };

@@ -8133,7 +8133,7 @@
 
     // "What do I tell the broker this month" for a contract ladder. Everything here is contracted,
     // so there is no advice to give — only the figure, where it comes from, and what must not be spent.
-    function ladderDecisionCardHtml(lp) {
+    function ladderDecisionCardHtml(lp, sid) {   // sid: the strategy the plan runs — only gilt-rotation agreed the rotation rule (sweep 18 Oct 2026)
       if (!lp) return '';
       const g = (v) => gbp(Math.round(v));
       const dt = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -8154,7 +8154,7 @@
             + '</div>'
             + '<p class="hint" style="margin-top:8px;">Keep the cash bucket in a money-market fund (CSH2 or equivalent) until each April. Figures in today\'s money.</p>';
         } else { hb += '<p style="font-size:14px;">' + budEsc(lp.instruction) + '</p>'; }
-        return hb + '</div>' + rotationWatchHtml();
+        return hb + '</div>' + (sid === 'gilt-rotation' ? rotationWatchHtml() : '');
       }
       if (lp.phase === 'after') return '<div class="settings-section" style="border-color:var(--accent);"><div class="section-title">Your gilt ladder</div><p style="font-size:14px;">' + budEsc(lp.instruction) + '</p></div>' + rotationWatchHtml();
       const src = lp.source === 'cash' ? 'the cash-years bucket (money-market fund)' : ('rung <strong>' + budEsc(lp.source) + '</strong>, which has already matured into cash');
@@ -8185,7 +8185,7 @@
         + '<div id="ladCheckResult" style="margin-top:8px;"></div>'
         + '<div class="hint" style="margin-top:6px;">' + lp.yearsLeft + ' year' + (lp.yearsLeft === 1 ? '' : 's') + ' of ladder still to run after this one.</div>'
         + '</div>';
-      h += rotationWatchHtml();
+      if (sid === 'gilt-rotation') h += rotationWatchHtml();
       return h;
     }
 
@@ -8389,7 +8389,7 @@
         }
         if (st.id === 'full-il-gilt' || st.id === 'gilt-rotation' || st.id === 'floor-the-schedule') {
           const lp = await ladderPositionForPlan(settings, null);
-          html = ladderDecisionCardHtml(lp);
+          html = ladderDecisionCardHtml(lp, st.id);
         }
         if (st.id === 'floor-and-flex') {
           const ess = params.essentialsAnnual || 0;
@@ -8729,7 +8729,7 @@
         const st = await getActiveStrategy();
         if (document.getElementById('tryStrategy') && !document.getElementById('tryStrategy').options.length) { try { await resetTryStrategyUI(); } catch (e2) { /* settings not ready */ } }
         const isPnv = !st.id || st.id === 'pots-and-valves';
-        { const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = isPnv ? '' : 'none'; }
+        { const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = isPnv ? '' : 'none'; const fam = !st.id || PNV_FAMILY.includes(st.id); document.querySelectorAll('[data-stresstab="drawdown"], [data-stresstab="glidepath"]').forEach((t) => { t.style.display = fam ? '' : 'none'; }); }   // the fund boxes' schedule and glidepath mean nothing to a bought strategy (sweep 18 Oct 2026)
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
           el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run the test</em> runs ' + d.name + ' through the one test — every real stretch since 1871 and 1,000 futures — and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
@@ -12408,7 +12408,7 @@
 
           <div style="margin-top:16px;padding:16px;background:var(--card-alt);border-radius:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:500;">Total Monthly Income</span>
+              <span style="font-weight:500;">Total Monthly Income, after tax</span>
               <span style="font-size:20px;font-weight:600;color:var(--success);">${fmt(h.monthlyNet)}</span>
             </div>
           </div>

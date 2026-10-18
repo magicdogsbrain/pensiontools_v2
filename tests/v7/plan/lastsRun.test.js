@@ -38,7 +38,8 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
       const out = runLasts(plan, { today: TODAY, onProgress: (d, t) => progress.push([d, t]) });
       const ms = performance.now() - t0;
       expect(progress).toEqual([[0, 2], [1, 2]]);
-      expect(ms, 'a run takes well under five seconds here').toBeLessThan(5000);
+      // wall-clock: only where timing means something (not shared CI runners — the rule of tests/v7/shared/speed.*)
+      if (!process.env.CI || process.env.TIMING_CHECKS === '1') expect(ms, 'a run takes well under five seconds here').toBeLessThan(5000);
       // plain data: it survives JSON and a worker boundary
       expect(JSON.parse(JSON.stringify(out))).toEqual(out);
       expect(() => structuredClone(out)).not.toThrow();

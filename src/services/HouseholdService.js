@@ -6,87 +6,19 @@
  * and the documented DIY workaround on the MSE forums). What two separate plans cannot answer
  * is "can WE afford to retire, together?" — that is this module's job.
  *
- * The joint success rate runs BOTH plans on the SAME Monte-Carlo market paths (both partners
- * hold the same equity market — failures correlate). Summing or multiplying two independent
- * success rates misstates joint risk; the paired-path P(both survive) is the honest number.
- * Idiosyncratic noise inside each simulation gets a DIFFERENT seed per partner (same market,
- * different funds).
+ * Every "will it last" figure here comes from the ONE test (6.24.0): each plan through its own strategy's
+ * stressTestStrategy, on the plan planFromSettings builds, paired future for future (every strategy draws future i from
+ * the same seeded market) and pooled by combineHouseholdStrategies. Nothing in this module runs an engine itself: the
+ * caller hands in `test(settings, cfg, strategyId) → { r, p }` (the worker's or the page's planFromSettings +
+ * stressTestStrategy). tests/oneTestOnly.test.js keeps it that way.
  */
 
-import { getStrategy } from '../strategies/registry.js';
-// Phase B: the household view runs each plan's OWN locked strategy from the registry.
-// The household check joins two P&V-shaped simulation configs; ladder/floor strategies have no
-// monteCarloReturns/simulate API, so always run the Pots & Valves engine here (the caller says so).
-const eng = () => getStrategy('pots-and-valves').engine;
 import { spendingSmileFactor } from './SpendingModel.js';
 import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
 import { defaultSpYear, scheduleFromSteps } from '../services/IncomeSchedule.js';
-
-/**
- * Paired-path Monte Carlo across two plan configs.
- * @returns {{runs, jointSuccess, successA, successB, independenceAssumed,
- *            potFan: Array<{year, p10, p50, p90}>}}  pot fan = household wealth (pots + ISA,
- *            today's money); a finished shorter plan carries its final value flat.
- */
-export function runHouseholdMonteCarlo(configA, configB, runs = 1000, offsets = { a: 0, b: 0 }) {
-  // Calendar alignment: each plan's year 0 is ITS OWN income start. A partner still working
-  // starts `offset` calendar years later, so their plan runs on the market path shifted by that
-  // much — the same calendar year sees the same market for both, which is the whole point.
-  const offA = Math.max(0, Math.round(offsets?.a || 0));
-  const offB = Math.max(0, Math.round(offsets?.b || 0));
-  const yearsMax = Math.max(configA.years + offA, configB.years + offB);
-  let both = 0, okA = 0, okB = 0;
-  const perYear = Array.from({ length: yearsMax + 1 }, () => []);
-  const shifted = (returns, off) => {
-    if (!off) return returns;
-    const out = { equity: {}, inflation: {} };
-    for (const k of Object.keys(returns.equity)) {
-      const y = Number(k) - off;
-      if (y >= 0) { out.equity[y] = returns.equity[k]; out.inflation[y] = returns.inflation[k]; }
-    }
-    return out;
-  };
-
-  for (let i = 0; i < runs; i++) {
-    const returns = eng(configA).monteCarloReturns({ years: yearsMax }, i);
-    // Same yearly market path; different in-sim seeds so idiosyncratic residuals differ.
-    const ra = eng(configA).simulate(configA, shifted(returns, offA), i);
-    const rb = eng(configB).simulate(configB, shifted(returns, offB), i + 500000);
-    if (!ra.failed) okA++;
-    if (!rb.failed) okB++;
-    if (!ra.failed && !rb.failed) both++;
-
-    // Wealth in calendar year c: a plan not yet started holds its opening pot (still working).
-    const wealthAt = (r, cfg, c, off) => {
-      const y = c - off;
-      const opening = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0) + (cfg.isaBalance || 0);
-      if (y < 0) return opening;
-      const len = (r.potByYear || []).length;
-      const idx = Math.min(y, len - 1);
-      const pot = (r.potByYear && r.potByYear[idx] != null) ? r.potByYear[idx] : 0;
-      const isa = (r.isaByYear && r.isaByYear[idx] != null) ? r.isaByYear[idx] : 0;
-      return pot + isa;
-    };
-    for (let c = 0; c <= yearsMax; c++) perYear[c].push(wealthAt(ra, configA, c, offA) + wealthAt(rb, configB, c, offB));
-  }
-
-  const pct = (arr, p) => {
-    const s = [...arr].sort((a, b) => a - b);
-    return s[Math.min(s.length - 1, Math.floor(p * s.length))];
-  };
-  const potFan = perYear.map((vals, year) => ({
-    year, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90)
-  }));
-
-  return {
-    runs,
-    jointSuccess: both / runs,
-    successA: okA / runs,
-    successB: okB / runs,
-    independenceAssumed: (okA / runs) * (okB / runs), // what naive multiplication would claim
-    potFan
-  };
-}
+import { simulationConfigFromSettings } from './SimulationConfig.js';
+import { grossToNet, netToGross } from './TaxCalculator.js';
+import { oneAnswer } from './OneAnswer.js';
 
 /**
  * Per-person yearly gross target (today's money): the schedule the ENGINES run (scheduleFromSteps — the saved per-year
@@ -158,124 +90,166 @@ export function startOffset(settings, clock = new Date()) {
   return (now > 0 && start > now) ? Math.round(start - now) : 0;
 }
 
+// ---- The survivor and care checks: each plan through its own strategy's one test (household sweep, Oct 2026) ----------
+// Until then both ran the Pots & Valves engine directly on each plan's equity/bond/cash, whatever its strategy: a gilt
+// ladder was modelled as a growth portfolio, the inheritance was the median pension plus the median ISA (from different
+// futures) then raised by 2.5% a year into nominal pounds beside today's-money spending — about double what a ladder leaves.
+
+/** The strategies whose test runs the Pots & Valves engine: their wealth cone holds the ISA, held or not. */
+const PNV_ENGINE = ['pots-and-valves', 'buckets-in-order'];
+const idOf = (settings) => (settings && settings.strategyId) || 'pots-and-valves';
+const bandsOf = (s) => ({ pa: +s.pa > 0 ? +s.pa : 12570, brl: +s.brl > 0 ? +s.brl : 50270, hrl: +s.hrl > 0 ? +s.hrl : 125140 });
+const netOf = (gross, b) => grossToNet(Math.max(0, +gross || 0), b.pa, b.brl, b.hrl);
+/** The planner's own gross-up (BudgetModel.grossUpAnnual): exact within the allowance. */
+const grossOf = (net, b) => { const n = Math.max(0, +net || 0); return n <= b.pa ? n : netToGross(n, b.pa, b.brl, b.hrl); };
+const runOne = (test, settings) => test(settings, simulationConfigFromSettings({}, settings), idOf(settings));
+
+/** The yearly spending (before tax, today's money) a plan's engines read: the saved schedule, else the steps compiled, else the flat figure. */
+export function scheduleOf(settings) {
+  const s = scheduleFromSteps(settings, +settings.shapeAgeNow || 57);
+  const n = Math.max(1, +settings.duration || 35) + 1;
+  if (Array.isArray(s) && s.length) return Array.from({ length: Math.max(n, s.length) }, (_, y) => +s[Math.min(y, s.length - 1)] || 0);
+  return Array.from({ length: n }, () => +settings.baseSalary || 0);
+}
+
 /**
- * Survivor one-shot stress: "if one of you dies in year N, is the survivor still OK?"
- * No free UK tool offers this. Mechanics — everything reuses the standard engine:
- *  1. The deceased's REMAINING wealth at year N is taken from their own Monte Carlo
- *     (median pots + ISA at that year — their genuinely simulated depletion, not a guess),
- *     converted to nominal at 2.5%/yr, and injected into the survivor's simulation as a
- *     windfall at year N (pension pots pass tax-free before 75; ISA via APS — simplified
- *     to a like-for-like transfer, noted in the UI).
- *  2. The survivor's spending steps at year N from their own share to a fraction of the
- *     former HOUSEHOLD spending (default 70% — two can live cheaper than twice one).
- *  3. The deceased's DB pension continues at its survivor rate via extraIncomes.
- * Then one standard Monte Carlo of the survivor's modified plan.
+ * What a plan leaves at its plan year y, read from its own test: the median and the worst 1 in 10 of the TOTAL wealth
+ * the test carries (cones.wealth p50 / p10 — never a median pension plus a median ISA), today's money. A bought strategy
+ * (ladders, floors, bridge) leaves a held ISA out of its cone — it buys nothing with it — so the held ISA is added as the
+ * plan holds it: untouched, at its value at the start, holding its real value (the planner's assumption for parked money).
+ * The Pots & Valves engines carry the ISA in their own cone. `isaShare`: the share of the rest that is ISA money, in the
+ * proportion the plan started with (the cone is one total), so the inheritance can pass as pension and as ISA.
  */
-export function runSurvivorCheck({
-  survivorCfg, survivorSettings, deceasedCfg, deceasedSettings,
-  deathYear, spendFraction = 0.7, dbSurvivorPct = 0.5, runs = 500
-}) {
-  // Deceased's median remaining wealth at the year of death (today's money → nominal)
-  const potVals = [], isaVals = [];
-  const horizon = Math.max(deathYear + 1, deceasedCfg.years);
-  for (let i = 0; i < runs; i++) {
-    const r = eng(deceasedCfg).simulate(deceasedCfg, eng(deceasedCfg).monteCarloReturns({ years: horizon }, i), i + 900000);
-    const idx = Math.min(deathYear, (r.potByYear || []).length - 1);
-    potVals.push((r.potByYear && r.potByYear[idx]) || 0);
-    isaVals.push((r.isaByYear && r.isaByYear[idx]) || 0);
-  }
-  const median = (a) => { const s2 = [...a].sort((x, y) => x - y); return s2[Math.floor(s2.length / 2)]; };
-  const toNominal = Math.pow(1.025, deathYear);
-  const inheritedPots = median(potVals) * toNominal;
-  const inheritedIsa = median(isaVals) * toNominal;
+export function leftAtYear(r, p, strategyId, y) {
+  const w = r.cones.wealth;
+  const i = Math.max(0, Math.min(Math.round(y), w.p50.length - 1));
+  const held = !PNV_ENGINE.includes(strategyId) && p.isaHold ? Math.max(0, +p.isa || 0) : 0;
+  const pot = Math.max(0, +p.pot || 0), isa = Math.max(0, +p.isa || 0);
+  const isaShare = held > 0 || pot + isa <= 0 ? 0 : isa / (pot + isa);
+  const split = (v) => { const rest = Math.max(0, v); const toIsa = held + rest * isaShare; return { total: rest + held, isa: toIsa, pension: rest + held - toIsa }; };
+  return { year: i, middling: split(w.p50[i]), bad: split(w.p10[i]), heldIsa: held, isaShare };
+}
 
-  // Survivor spending: their own plan until year N, then a fraction of the joint spending.
-  // The spending profile is BAKED into this schedule, so the constructed config runs 'flat'
-  // (otherwise the engine would apply the profile twice).
-  const dur = survivorSettings.duration || 35;
-  const durDeceased = deceasedSettings.duration || 35;
-  const schedule = [];
-  for (let y = 0; y <= dur; y++) {
-    const own = targetForYear(survivorSettings, y);
-    if (y < deathYear) schedule.push(own);
-    else schedule.push((own + (y <= durDeceased ? targetForYear(deceasedSettings, y) : 0)) * spendFraction);
+/**
+ * The survivor's plan from the year of death, written in the planner's own keys (nothing here is a second model):
+ *  - spending (targetSchedule, which every engine reads first): their own until then; from then the chosen share of the
+ *    household's spending — both plans' figures for that calendar year taken after tax on each one's own bands, the
+ *    share of that grossed up again on the survivor's bands (one person's tax, not two);
+ *  - the inheritance as two windfalls in today's money: the pension stays a pension (wrapper 'pension': beneficiary
+ *    drawdown), the ISA passes as ISA (wrapper 'isa': the additional permitted subscription);
+ *  - a final-salary survivor's pension as an income stream (extraIncomes), on the deceased's own indexation.
+ */
+export function survivorSettingsFor({ survivorSettings: sv, deceasedSettings: dc, survivorYear, offsets, spendFraction, dbSurvivorPct, inherit }) {
+  const own = scheduleOf(sv), theirs = scheduleOf(dc);
+  const bS = bandsOf(sv), bD = bandsOf(dc);
+  const durD = Math.max(1, +dc.duration || 35);
+  const shift = (offsets.survivor || 0) - (offsets.deceased || 0);
+  const targetSchedule = own.map((g, y) => {
+    if (y < survivorYear) return g;
+    const yd = Math.max(0, y + shift);   // the deceased's plan year in the same calendar year (their first figure while still working)
+    const d = yd <= durD ? theirs[Math.min(yd, theirs.length - 1)] : 0;
+    return Math.round(grossOf(spendFraction * (netOf(g, bS) + netOf(d, bD)), bS));
+  });
+  const windfalls = [...(Array.isArray(sv.windfalls) ? sv.windfalls : []), ...[
+    { label: 'Inherited pension', year: survivorYear, amount: Math.round(inherit.pension), wrapper: 'pension', indexation: 'cpi' },
+    { label: 'Inherited ISA', year: survivorYear, amount: Math.round(inherit.isa), wrapper: 'isa', indexation: 'cpi' }
+  ].filter((w) => w.amount > 0)];
+  const extraIncomes = [...(Array.isArray(sv.extraIncomes) ? sv.extraIncomes : [])];
+  if (+dc.dbAmount > 0 && dbSurvivorPct > 0) {
+    extraIncomes.push({ label: 'Survivor\'s pension', startYear: Math.max(survivorYear, (+dc.dbStartYear || 0) - shift), annual: Math.round(+dc.dbAmount * dbSurvivorPct), indexation: dc.dbIndexation || 'lpi5' });
   }
+  return { ...sv, targetSchedule, windfalls, extraIncomes };
+}
 
-  const extraIncomes = [...(survivorCfg.extraIncomes || [])];
-  if (deceasedSettings.dbAmount > 0 && dbSurvivorPct > 0) {
-    extraIncomes.push({
-      startYear: Math.max(deathYear, deceasedSettings.dbStartYear || 0),
-      annual: deceasedSettings.dbAmount * dbSurvivorPct,
-      indexation: deceasedSettings.dbIndexation || 'lpi5'
-    });
-  }
+const answerOf = (x) => (x && x.r && x.r.affordable ? oneAnswer(x.r, x.p) : null);
+const reasonOf = (x) => (x && x.r && !x.r.affordable ? (x.r.reason || 'not affordable as configured') : null);
 
-  const cfg = {
-    ...survivorCfg,
-    targetSchedule: schedule,
-    spendingProfile: 'flat',
-    // Already nominal at the year of death (indexation 'level'), and NOT a cash lump sum: an
-    // inherited pension stays in a pension (beneficiary drawdown) and the ISA passes by APS —
-    // so the engine must not route either through the contribution limits into a taxable sleeve.
-    windfalls: [
-      ...(survivorCfg.windfalls || []),
-      { year: deathYear, amount: inheritedPots, wrapper: 'pension', indexation: 'level' },
-      { year: deathYear, amount: inheritedIsa, wrapper: 'isa', toIsa: true, indexation: 'level' }
-    ].filter((w) => w.amount > 0),
-    extraIncomes
-  };
-
-  let ok = 0;
-  for (let i = 0; i < runs; i++) {
-    if (!eng(cfg).simulate(cfg, eng(cfg).monteCarloReturns({ years: cfg.years }, i), i + 700000).failed) ok++;
-  }
+/**
+ * Survivor one-shot stress: "if one of you dies N years from now, is the survivor still OK?" Everything through the
+ * planner's one test, in today's money:
+ *  1. what the deceased leaves: their OWN strategy's test, its wealth at their plan year for that calendar year — the
+ *     middling case (median) and the bad case (worst 1 in 10) of the total (leftAtYear);
+ *  2. the survivor's plan with that inheritance, the household share of spending and the survivor's pension written in
+ *     (survivorSettingsFor), run through the survivor's OWN strategy's test — twice: with the middling inheritance and
+ *     with the bad-case one. (Not paired future for future: a test takes one plan, and a windfall is one figure; the
+ *     bad case pairs the deceased's worst 1 in 10 with every future of the survivor's — cautious.)
+ * `test(settings, cfg, strategyId) → { r, p }`.
+ */
+export function runSurvivorCheck({ survivorSettings, deceasedSettings, deathYear = 10, spendFraction = 0.7, dbSurvivorPct = 0.5, now = new Date() }, test) {
+  const offsets = { survivor: startOffset(survivorSettings, now), deceased: startOffset(deceasedSettings, now) };
+  const deceasedYear = Math.max(0, deathYear - offsets.deceased), survivorYear = Math.max(0, deathYear - offsets.survivor);
+  const D = runOne(test, deceasedSettings);
+  if (!D.r.affordable) return { affordable: false, who: 'deceased', reason: reasonOf(D) };
+  const left = leftAtYear(D.r, D.p, idOf(deceasedSettings), deceasedYear);
+  const settingsFor = (inherit) => survivorSettingsFor({ survivorSettings, deceasedSettings, survivorYear, offsets, spendFraction, dbSurvivorPct, inherit });
+  const middling = settingsFor(left.middling), bad = settingsFor(left.bad);
+  const M = runOne(test, middling), B = runOne(test, bad);
+  const g = middling.targetSchedule[Math.min(survivorYear, middling.targetSchedule.length - 1)];
   return {
-    survivorSuccess: ok / runs,
-    inheritedPots,
-    inheritedIsa,
-    survivorAnnualAfter: schedule[Math.min(deathYear, dur)]
+    affordable: true, deathYear, deceasedYear, survivorYear, offsets,
+    deceasedStrategy: idOf(deceasedSettings), survivorStrategy: idOf(survivorSettings),
+    inherited: left,
+    spending: { gross: g, net: Math.round(netOf(g, bandsOf(survivorSettings))) },
+    middling: { a: answerOf(M), reason: reasonOf(M) },
+    bad: { a: answerOf(B), reason: reasonOf(B) },
+    settings: { middling, bad }   // the plans the survivor's two runs were (what-ifs: never saved)
   };
 }
 
 /**
- * Long-term-care one-shot stress: "if one of you needs care from year N for M years at £X/yr
- * (today's money), while the other keeps living normally — do the plans hold?"
- * Deliberately conservative: the care cost is ADDED to that person's plan in full (no offset
- * for reduced normal spending), and we model the COST only — never local-authority
- * means-testing, which is benefits advice. Runs both plans on the same market paths and
- * reports the joint result next to the no-care baseline.
+ * The care cost as the planner's own one-off spend rows (extraWithdrawals, as 6.29.0's spend step writes them): a year
+ * before tax, today's money ('cpi'), on top of that year's figure — the after-tax cost grossed up at the plan's own bands
+ * on top of that year's spending (one row a year, each at its own year's figure). Plan years before 0 count at year 0.
  */
-export function runCareCheck({ cfgA, cfgB, setA, setB, who = 'A', startYear = 10, years = 3, annualCost = 90000, runs = 500 }) {
-  const bake = (set, addCare) => {
-    const dur = set.duration || 35;
-    const schedule = [];
-    for (let y = 0; y <= dur; y++) {
-      let t = targetForYear(set, y);
-      if (addCare && y >= startYear && y < startYear + years) t += annualCost;
-      schedule.push(t);
-    }
-    return schedule;
-  };
-  const mk = (cfg, set, addCare) => ({ ...cfg, targetSchedule: bake(set, addCare), spendingProfile: 'flat' });
+export function careRowsFor(settings, { fromYear, years, annualCost }) {
+  const sched = scheduleOf(settings), b = bandsOf(settings);
+  const rows = [];
+  for (let k = 0; k < years; k++) {
+    const y = Math.max(0, fromYear + k);
+    const g = sched[Math.min(y, sched.length - 1)] || 0;
+    const gross = Math.round(grossOf(netOf(g, b) + annualCost, b) - grossOf(netOf(g, b), b));
+    if (gross > 0) rows.push({ label: 'Care', amount: gross, year: y, years: 1, indexation: 'cpi' });
+  }
+  return rows;
+}
 
-  const run = (a, b) => {
-    const yearsMax = Math.max(a.years, b.years);
-    let both = 0;
-    for (let i = 0; i < runs; i++) {
-      const returns = eng(a).monteCarloReturns({ years: yearsMax }, i);
-      const ra = eng(a).simulate(a, returns, i);
-      const rb = eng(b).simulate(b, returns, i + 500000);
-      if (!ra.failed && !rb.failed) both++;
-    }
-    return both / runs;
-  };
+const jointOf = (c) => (c ? { runs: c.runs, jointSuccess: c.jointSuccess, successA: c.successA, successB: c.successB, pooled: c.pooled } : null);
 
-  const baseA = mk(cfgA, setA, false), baseB = mk(cfgB, setB, false);
-  const careA = mk(cfgA, setA, who === 'A'), careB = mk(cfgB, setB, who === 'B');
+/**
+ * Long-term-care one-shot stress: "if one of you needs care from N years from now for M years at £X a year (after
+ * tax, today's money), while the other keeps living normally — do the plans hold?" Deliberately cautious: the cost is
+ * ADDED to that person's plan in full (no offset for reduced normal spending), and only the COST is modelled — never
+ * local-authority means-testing, which is benefits advice. Each plan through its own strategy's one test, paired
+ * future for future, the household read pooled (combineHouseholdStrategies, 6.25.0) — with the care and without it.
+ * @param {{ needs?: { a: number[], b: number[] } }} o   each plan's draw need by plan year (HouseholdDraw's needs.own),
+ *   for the pooled verdict; the care years' cost before tax is added to the cared-for plan's need
+ */
+export function runCareCheck({ setA, setB, who = 'A', startYear = 15, years = 3, annualCost = 90000, needs = null, now = new Date() }, test) {
+  const care = who === 'B' ? setB : setA;
+  const fromYear = startYear - startOffset(care, now);
+  const rows = careRowsFor(care, { fromYear, years, annualCost });
+  const withCare = { ...care, extraWithdrawals: [...(Array.isArray(care.extraWithdrawals) ? care.extraWithdrawals : []), ...rows] };
+  const A = runOne(test, setA), B = runOne(test, setB);
+  const bad = [A, B].find((x) => !x.r.affordable);
+  if (bad) return { affordable: false, reason: reasonOf(bad) };
+  const C = runOne(test, withCare);
+  if (!C.r.affordable) return { affordable: false, reason: reasonOf(C) };
+  const addCare = (need) => {
+    if (!Array.isArray(need)) return null;
+    const out = [...need];
+    for (const r of rows) if (r.year < out.length) out[r.year] = (out[r.year] || 0) + r.amount;
+    return out;
+  };
+  const nA = needs && needs.a, nB = needs && needs.b;
+  const opts = (careA, careB) => ({ needA: careA ? addCare(nA) : nA, needB: careB ? addCare(nB) : nB, startAgeA: A.p.startAge, startAgeB: B.p.startAge });
+  const baseline = combineHouseholdStrategies(A.r, B.r, opts(false, false));
+  const withIt = who === 'B' ? combineHouseholdStrategies(A.r, C.r, opts(false, true)) : combineHouseholdStrategies(C.r, B.r, opts(true, false));
   return {
-    baselineJoint: run(baseA, baseB),
-    careJoint: run(careA, careB),
-    totalCareCost: annualCost * years
+    affordable: true, who, fromYear, rows,
+    baseline: jointOf(baseline), care: jointOf(withIt),
+    totalCareCost: annualCost * years,
+    totalCareGross: rows.reduce((t, r) => t + r.amount, 0),
+    settings: withCare   // the cared-for plan as run (a what-if: never saved)
   };
 }
 

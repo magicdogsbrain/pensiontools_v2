@@ -40,7 +40,9 @@ import { resolve } from 'node:path';
 // 6.25.0 (who draws what; usability audit decision 5) put the Household tab's results in modules — the rule
 // (src/services/HouseholdDraw.js), the writes (src/services/HouseholdSplitApply.js), the HTML (src/ui/householdView.js),
 // the one household budget (src/storage/ScenarioRepository.js) — and the script ends 21 lines shorter: 9,292.
-const MAX_LINES = 9292;
+// The household sweep (Oct 2026: the survivor and care checks through each plan's own test) put their words in
+// src/ui/householdView.js (survivorResultHtml, careResultHtml) and the script ends 15 lines shorter: 9,277.
+const MAX_LINES = 9277;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

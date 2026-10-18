@@ -37,6 +37,42 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.32.0', date: '2026-10-18', engineVersion: '6.22.0',
+    title: 'A sweep for plans that are not invested for growth: the survivor and care checks, and every gilt-ladder page',
+    summary: 'On the Household tab, "What if one of you dies?" and "What if one of you needs care?" ran every plan as a portfolio of shares, bonds and cash, whatever its way of drawing — so a gilt ladder was tested as if it were invested for growth. The survivor check also added the median pension and the median ISA from different futures and raised the result by 2.5% a year into future pounds, beside spending in today\'s money: on a gilt-ladder plan the inheritance it showed was about double what the plan leaves. Both checks now run each plan through its own strategy\'s test — the same one test as Will it last?, the Strategies page and the household verdict — and say the result in the planner\'s words, in today\'s money.',
+    changes: [
+      'Survivor check: the inheritance is what the other person\'s own plan has left in that year in its own test: about £X in a middling case and £Y in a bad case (the worst 1 in 10), today\'s money. A gilt-ladder plan that holds its ISA aside adds the ISA as it holds it. The survivor\'s plan is then run through its own strategy\'s test twice, with each inheritance, and the result is said as "lasts in N futures out of 10" for each.',
+      'Survivor check: the survivor\'s spending from that year is the chosen share of what you both spend after tax, grossed up again on the survivor\'s own tax bands, and shown as a figure a year before tax with what it leaves after tax beside it. The inheritance arrives as a pension that stays a pension and an ISA that passes as an ISA; a final-salary survivor\'s pension continues as an income stream, as before.',
+      'Care check: the care cost is entered as a figure a year after tax, in today\'s money, and added to that person\'s plan as one-off costs — the same key the planner\'s own one-off costs use, grossed up on top of that year\'s spending. Both plans run through their own tests, paired future for future, and the household verdict comes first (when one pot is empty, the other pays), with care and without; both plans each lasting on their own is shown beside it.',
+      'The year boxes now read "Years from now", and each plan\'s own year is found from it (a partner who has not started drawing starts later).'
+    ],
+    corrections: [
+      'Monthly Entry showed the rotation watch — the rule to sell the long rungs for shares in a crash — on a full gilt ladder and on Floor the schedule, as a rule "agreed in advance". Only a plan whose way of drawing is the gilt ladder + rotation agreed it; the others no longer show it (it stays described as an optional extra on the full ladder\'s Strategies page).',
+      'Stress tester → Drawdown and Glidepath drew the fund boxes\' schedule and glidepath on plans that buy gilts or a floor and never use them. They are now shown only for Pots & Valves and Buckets in order.',
+      'History and Scenarios said "No start-year replay for this strategy yet" for the gilt ladder + rotation. Each named year is now replayed from the very windows its test walks: when the market fell 30% below its high and the long rungs were sold for shares, whether the later years were paid in full, the lowest year and what was left.',
+      'The plan document\'s header said "Priced on £X + ISA £Y" for a plan whose ISA is held aside and never buys rungs; it now says the ISA is held aside. Its timing sentence (for example "in 9 months") was counted on the lock date but sat under today\'s "Where you are"; it now says it is as written when the plan was locked.',
+      'Transition said both "6 months away" and "5 months to go" for different things; the second now says it is the months the buying is spread over.',
+      'Monthly Entry and History called the after-tax figure "Total Monthly Income" under before-tax withdrawals; it now says after tax.',
+      'Survivor check: a gilt ladder (full or with rotation), a floor or a bridge was tested as a growth portfolio. Each plan now runs on its own strategy. On a gilt ladder + rotation that leaves about £0.73M in its own test ten years in, the check said it left about £1.48M.',
+      'Survivor check: the inheritance was the median pension plus the median ISA, taken from different futures, then raised by 2.5% a year into future pounds and shown beside spending in today\'s money. It is now the middle and the worst 1 in 10 of the total the plan leaves, in today\'s money.',
+      'Survivor check: the survivor\'s spending was 70% of the two plans\' before-tax figures added together. It is now 70% of what you both have after tax, taxed again as one person.',
+      'Care check: both plans were tested as growth portfolios, the cost was added before tax although care fees are paid from money after tax, and the result counted only futures in which both pots lasted on their own. Each plan now runs its own test, the cost is grossed up, and the household verdict (when one pot is empty, the other pays) comes first.'
+    ],
+    effects: {
+      household: [
+        'The survivor and care checks give different figures: lower inheritances on gilt-ladder, floor and bridge plans (often about half), and on every plan an inheritance in today\'s money rather than future pounds. Nothing is saved: both checks are what-ifs and never change a plan, locked or not.'
+      ],
+      stress: ['Words and which pages show: no figure changes. Gilt ladder + rotation plans gain start-year replays on History and Scenarios.'],
+      decision: ['Monthly Entry no longer shows the rotation watch on a plan that did not choose the rotation; labels only.'],
+      strategies: [], accumulation: [], budget: []
+    },
+    actions: ['If you ran the survivor or care check before, run it again: the earlier figures came from a different model.'],
+    notes: [
+      'Simplifications still made: pensions are inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares the plan started with; gilts still held count at what they cost; the bad case sets the worst 1 in 10 of what is left against every one of the survivor\'s futures rather than future by future (cautious); care fees are added in full and no means-testing is modelled.',
+      'Nothing outside the one test may now run the drawdown engine directly; a test fails the build if anything does.'
+    ]
+  },
+  {
     version: '6.31.1', date: '2026-10-18', engineVersion: '6.22.0',
     title: 'Gilt-ladder plans: the line above the runs says what the ladder is bought from',
     summary: 'On a plan whose way of drawing is the full index-linked gilt ladder or the gilt ladder + rotation, the line above Will it last?, History and Scenarios described a growth strategy: starting balances split into shares, bonds and cash, and an ISA growing as the ISA funds in your list. The ladder test does neither. It now says what the test does.',

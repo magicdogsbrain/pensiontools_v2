@@ -57,3 +57,45 @@ describe('the Timing block\'s line', () => {
     expect(potsAtRetirementLine({ ...p, hasContributions: false })).toMatch(/middle band \(growth only — no contributions saved on the Accumulation tab\):/);
   });
 });
+
+// Owner's report, 18 Oct 2026: a gilt ladder + rotation plan was told "Starting balances come from your Settings (Fund
+// Minimums): Equity · Bond · Cash" and "Your ISA grows as the ISA funds in your list of funds to test" — neither is
+// what the ladder test does. The ladder is bought from one pension total (+ the ISA unless it is held back).
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { planFromSettings } from '../src/strategies/stressTest.js';
+import { ladderPotsOf } from '../src/ui/startingPotsWords.js';
+
+describe('a gilt-ladder plan: the line says what the ladder is bought from', () => {
+  const corpus = (f) => JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'plans', f), 'utf8'));
+  const NOW = new Date('2026-09-30T08:00:00Z');
+  const cases = [];
+  for (const f of ['03-gilt-ladder-runup.json', '07-pre-6.13-flat-params.json']) {
+    const S = corpus(f).stressTool.settings;
+    cases.push([f + ' as saved', S]);
+    cases.push([f + ' unpinned, ISA used', { ...S, strategyParams: { ...(S.strategyParams || {}), sippTotal: 0, isaTotal: 0 }, isaDrawdownStrategy: 'efficient' }]);
+    cases.push([f + ' as full ladder', { ...S, strategyId: 'full-il-gilt' }]);
+    cases.push([f + ' as rotation', { ...S, strategyId: 'gilt-rotation' }]);
+  }
+  for (const [name, S] of cases) {
+    it(`${name}: the pension and ISA named are planFromSettings' own`, () => {
+      const cfg = createSimulationConfigFromSettings({}, S);
+      const p = planFromSettings(S, cfg, { now: NOW });
+      const L = ladderPotsOf(S);
+      expect(Math.round(L.pension)).toBe(Math.round(p.pot));
+      expect(Math.round(L.isa)).toBe(Math.round(p.isa || 0));
+      const text = plain(startSummaryHtml(S, { locked: true }));
+      expect(text).not.toContain('Fund Minimums');
+      expect(text).not.toContain('ISA funds in your list');
+      expect(text).toContain(`buys the ladder from ${fmt(L.pension + (S.isaDrawdownStrategy === 'hold' ? 0 : L.isa))}`);
+      expect(text).toContain('does not apply to the gilts');
+      expect(text).toContain('not grown');
+      if (L.isa > 0 && S.isaDrawdownStrategy === 'hold') expect(text).toContain('held back and never buys rungs');
+      if (!('chargesPct' in S)) expect(text).toContain('locked before charges were added');
+    });
+  }
+  it('a growth strategy keeps its own line', () => {
+    const S = { ...corpus('03-gilt-ladder-runup.json').stressTool.settings, strategyId: 'pots-and-valves' };
+    expect(plain(startSummaryHtml(S, {}))).toContain('Starting balances come from your Settings (Fund Minimums)');
+  });
+});

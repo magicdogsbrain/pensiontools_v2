@@ -37,6 +37,19 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.31.1', date: '2026-10-18', engineVersion: '6.22.0',
+    title: 'Gilt-ladder plans: the line above the runs says what the ladder is bought from',
+    summary: 'On a plan whose way of drawing is the full index-linked gilt ladder or the gilt ladder + rotation, the line above Will it last?, History and Scenarios described a growth strategy: starting balances split into shares, bonds and cash, and an ISA growing as the ISA funds in your list. The ladder test does neither. It now says what the test does.',
+    changes: [],
+    corrections: [
+      'Gilt-ladder plans: the line now says the ladder is bought from one total — your pension (the strategy\'s own pinned total, or the total of your Settings fund boxes) and your ISA unless it is held back — that the shares/bonds/cash split does not apply to the gilts, and that money left over after buying the ladder is counted at its value today, not grown. Charges are said as the ladder takes them: off the cash years and, after a rotation, the share fund; never off the gilts.',
+      'It no longer says the ISA grows as the ISA funds in your list of funds to test: in the ladder test the ISA either helps buy the ladder or, held back, never buys rungs.'
+    ],
+    effects: { stress: ['Words only: no figure changes.'], strategies: [], decision: [], accumulation: [], household: [], budget: [] },
+    actions: [],
+    notes: ['The pots the line names are tested equal to the pots the ladder test itself is sized on. Reinvesting left-over money in the growth part, rather than holding it at its value, is still to come.']
+  },
+  {
     version: '6.31.0', date: '2026-10-17', engineVersion: '6.22.0',
     title: 'The preview runs "Does it last?"',
     summary: 'The fifth and last part of a plan you can change in the preview (/v7/) instead of the planner, and the first that works something out: "Does it last?" runs the one test every screen of the planner shows — your plan, its own way of drawing, its own spending cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures — and says it the preview\'s way: "Your plan lasts in 9 futures out of 10", what is typically left, a bad case (the worst 1 in 10) and a good case, how often and by how much income is cut, and what would have happened had you retired into the hardest real starts and the famous bad years. The figures are the planner\'s own, to the pound. Under them, the spending cuts in a slump and the emergency reserve, each once, with the saved value and where it came from, with Undo. A locked plan is never changed: it shows the figure it was locked with and today\'s test beside it.',

@@ -17,7 +17,8 @@
  */
 import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
 import { answerLastedWords } from '../services/PlanSeed.js';
-import { chargesRunLine } from './chargesSetting.js';
+import { chargesRunLine, hasStoredCharges, formatChargesPct } from './chargesSetting.js';
+import { chargesPctOf } from '../services/Charges.js';
 import { isaGrowthRunLine } from './isaGrowthSetting.js';
 
 const fmt = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
@@ -34,12 +35,55 @@ export function startsScaled(settings) {
   return s.retired === false && (k.sipp !== 1 || k.isa !== 1 || isaFromNothing(s) > 0);
 }
 
+/** The two strategies that buy a gilt ladder with the whole pot (stressTest.js fullGiltTest, rotationTest). */
+const GILT_LADDER_IDS = new Set(['full-il-gilt', 'gilt-rotation']);
+const LADDER_NAMES = { 'full-il-gilt': 'full index-linked gilt ladder', 'gilt-rotation': 'gilt ladder + rotation' };
+
+/**
+ * The pots a gilt-ladder strategy is bought from, as stressTest.js planFromSettings sizes them (owner's report, 18 Oct
+ * 2026: a ladder + rotation plan was told its runs start from an equity/bond/cash split it never uses).
+ *  - pension: the strategy's own pinned "Total in your SIPP" (scaled to retirement), else the total of the fund boxes;
+ *  - ISA: the pinned ISA total (scaled), else the ISA the runs start from; left out when the ISA is held back
+ *    (availablePot: a held ISA never funds rungs).
+ */
+export function ladderPotsOf(settings) {
+  const s = settings || {};
+  const params = s.strategyParams || {};
+  const k = potScaleOf(s);
+  const pinned = +params.sippTotal > 0;
+  const pension = pinned ? params.sippTotal * k.sipp
+    : ((+s.equityMin || 0) + (+s.bondMin || 0) + (+s.cashTarget || 0) + (+s.diversifierStart || 0)) * k.sipp;
+  const isa = pinned ? ((+params.isaTotal || 0) > 0 ? params.isaTotal * k.isa : isaAtRetirementOf(s, 0)) : isaAtRetirementOf(s);
+  const held = s.isaDrawdownStrategy === 'hold';
+  return { pinned, pension, isa, held, used: pension + (held ? 0 : isa) };
+}
+
+function ladderLine(s, locked) {
+  const L = ladderPotsOf(s);
+  const name = LADDER_NAMES[s.strategyId];
+  const from = L.pinned ? 'the pension total in this strategy\'s own settings' : 'the total of your <strong>Settings</strong> fund boxes';
+  let text = `This plan's way of drawing is the ${name}: every run buys the ladder from ${fmt(L.used)} — your pension, ${fmt(L.pension)} (${from})`;
+  if (L.isa > 0) text += L.held ? `. Your ISA (${fmt(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${fmt(L.isa)}`;
+  text += '. The split into shares, bonds and cash in Settings does not apply to the gilts. Money left over after buying the ladder is counted at its value today, not grown.';
+  if (hasStoredCharges(s)) {
+    const pct = chargesPctOf(s);
+    text += pct > 0 ? ` Fund and platform charges of ${formatChargesPct(pct)}% a year come off the cash years${s.strategyId === 'gilt-rotation' ? ' and, after a rotation, the share fund' : ''}; not off the gilts.` : ' No fund or platform charges are taken off (0% in <strong>Settings</strong>).';
+  } else if (locked === true) {
+    text += ' No fund or platform charges are taken off: this plan was locked before charges were added.';
+  }
+  return text;
+}
+
 export function startSummaryHtml(settings, { fromAnswer = null, locked = null } = {}) {
   const s = settings || {};
   const knowsSp = ('statePension' in s) || ('spStartDate' in s);
   const spNote = knowsSp && (!s.spStartDate || !s.spWeeklyAmount)
     ? ` <span style="color:var(--warning, #f59e0b);">State Pension not entered — assuming ${fmt(s.statePension || 0)}/yr from age 67 (plan year ${Math.max(0, 67 - (+s.shapeAgeNow || 67))}); set your real forecast in Settings.</span>`
     : '';
+  if (GILT_LADDER_IDS.has(s.strategyId)) {
+    const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
+    return ladderLine(s, locked) + (lasted ? ` <span class="hint">This plan was made from a quick answer, where ${lasted}. These runs are the planner's own test, so they can differ.</span>` : '') + spNote;
+  }
   const k = potScaleOf(s);
   const div = (+s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart * k.sipp)}` : '';
   let text;

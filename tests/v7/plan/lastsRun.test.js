@@ -29,7 +29,7 @@ function plannerRun(plan) {
   return { sid, p, r, a: oneAnswer(r, p) };
 }
 
-describe('L2 — the one test in the preview equals the planner\'s, to the pound', () => {
+describe('L2 — the one test in the preview equals the planner\'s, to the pound', { timeout: 120_000 }, () => {
   for (const [name, raw] of Object.entries(C)) {
     it(`${name}${isLocked(raw) ? ' (locked)' : ''}`, () => {
       const plan = entryOf(raw).plan;

@@ -141,8 +141,10 @@ describe('the couples, survivor and care checks', () => {
     expect(view).toMatch(/const share = r\.pooled \? r\.pooled\.success : r\.jointSuccess;\s*\n\s*let html = .*\n.*onCourseAlertClass\(share\)/);
     expect(view).toMatch(/if \(isOnCourse\(share\)\) return '';/);
     expect(view).not.toMatch(/0\.85/);
-    expect(script).toMatch(/onCourseAlertClass\(r\.survivorSuccess\)/);
-    expect(script).toMatch(/onCourseAlertClass\(r\.careJoint\)/);
+    // the household sweep: the survivor and care verdicts are drawn by the same view module, from the same bar
+    expect(view).toMatch(/id="hhSurvivorVerdict"/);
+    expect(view).toMatch(/onCourseAlertClass\(share\) \+ '" id="hhSurvivorVerdict"/);
+    expect(view).toMatch(/onCourseAlertClass\(withIt\) \+ '" id="hhCareVerdict"/);
     expect(SRC).not.toMatch(/Looking solid/);
   });
 });

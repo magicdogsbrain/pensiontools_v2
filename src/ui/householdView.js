@@ -109,23 +109,60 @@ export function whatToDoHtml(r, ownName, pName) {
 export function survivorCareHtml(ownName, pName) {
   const a = esc(ownName), b = esc(pName);
   return '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-    + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits the other\'s remaining pots (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending.</p>'
+    + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">In year<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Survivor spends (% of joint)<input type="number" id="hhSurvivorPct" value="70" min="40" max="100" style="width:80px;"></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">DB survivor %<input type="number" id="hhDbSurvivorPct" value="50" min="0" max="100" style="width:80px;"></label>'
     + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runSurvivorUI()">Run survivor check</button></div>'
     + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>'
     + '<div class="settings-section"><div class="section-title">What if one of you needs care?</div>'
-    + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) and re-runs both plans. It models the cost only — never local-authority means-testing.</p>'
+    + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) as a one-off cost in that person\'s plan and re-runs both plans through their own strategy\'s test. It models the cost only — never local-authority means-testing.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who needs care<select id="hhCareWho" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From year<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From (years from now)<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="3" min="1" max="15" style="width:80px;"></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£/yr, today)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£ a year after tax, today\'s money)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
     + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runCareUI()">Run care check</button></div>'
     + '<div id="hhCareResult" style="margin-top:8px;"></div></div>';
+}
+
+/** "lasts in 9 futures out of 10" for one result of the one test (OneAnswer), or why it could not run. */
+const lastsWords = (x) => (x && x.a ? 'lasts ' + futuresOutOfTen(x.a.share).words : 'could not be tested (' + esc((x && x.reason) || 'not affordable as configured') + ')');
+
+/**
+ * The survivor check's result (HouseholdService.runSurvivorCheck), in the planner's words since 6.24.0. Today's money
+ * throughout; the spending is the survivor's yearly figure before tax, with what it leaves after tax beside it.
+ * @param {{ res: object, survivorName: string, deceasedName: string, years: number, spendPct: number, strategyNames: { survivor: string, deceased: string } }} o
+ */
+export function survivorResultHtml({ res, survivorName, deceasedName, years, spendPct, strategyNames = {} }) {
+  const s = esc(survivorName), d = esc(deceasedName);
+  if (!res || !res.affordable) return '<div class="alert alert-warning">' + d + '\'s plan could not be tested as configured' + (res && res.reason ? ' — ' + esc(res.reason) : '') + '. Fix that plan first.</div>';
+  const share = res.middling.a ? res.middling.a.share : 0;
+  const inh = res.inherited;
+  const held = inh.heldIsa > 0 ? ' (including the ISA ' + d + '\'s plan holds aside, ' + gbp(inh.heldIsa) + ')' : '';
+  return '<div class="alert ' + onCourseAlertClass(share) + '" id="hhSurvivorVerdict">If ' + d + ' dies ' + years + ' year' + (years === 1 ? '' : 's') + ' from now, <strong>' + s + '\'s plan ' + lastsWords(res.middling) + '</strong> with a middling inheritance, and ' + lastsWords(res.bad) + ' with a bad-case one.</div>'
+    + '<ul style="font-size:13px;margin:6px 0 0 18px;padding:0;">'
+    + '<li>' + s + ' inherits about <strong>' + gbp(inh.middling.total) + '</strong> in a middling case, <strong>' + gbp(inh.bad.total) + '</strong> in a bad case (the worst 1 in 10), today\'s money — what ' + d + '\'s own plan (' + esc(strategyNames.deceased || '') + ') has left then' + held + '.</li>'
+    + '<li>' + s + ' then spends <strong>' + gbp(res.spending.gross) + ' a year before tax</strong> (about ' + gbp(res.spending.net) + ' after tax), today\'s money — ' + Math.round(spendPct) + '% of what you both spend after tax.</li>'
+    + '<li>' + s + '\'s plan runs on its own strategy (' + esc(strategyNames.survivor || '') + ') with the inheritance arriving that year.</li></ul>'
+    + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares ' + d + '\'s plan started with; gilts still held count at what they cost; the bad case sets ' + d + '\'s worst 1 in 10 against every one of ' + s + '\'s futures, not future by future.</p>';
+}
+
+/**
+ * The care check's result (HouseholdService.runCareCheck): the household verdict first (when one pot is empty the other
+ * pays, 6.25.0), with care and without, then both plans each lasting on its own.
+ */
+export function careResultHtml({ res, name, years, startIn, annualCost }) {
+  if (!res || !res.affordable) return '<div class="alert alert-warning">The plans could not be tested as configured' + (res && res.reason ? ' — ' + esc(res.reason) : '') + '.</div>';
+  const shareOf = (c) => (c ? (c.pooled ? c.pooled.success : c.jointSuccess) : 0);   // pooled first (6.25.0)
+  const withIt = shareOf(res.care), without = shareOf(res.baseline);
+  return '<div class="alert ' + onCourseAlertClass(withIt) + '" id="hhCareVerdict">With ' + esc(name) + ' needing care from ' + startIn + ' year' + (startIn === 1 ? '' : 's') + ' from now for ' + years + ' year' + (years === 1 ? '' : 's')
+    + ' (' + gbp(annualCost) + ' a year after tax, ' + gbp(res.totalCareCost) + ' in all, today\'s money): <strong>the household\'s money lasts ' + esc(futuresOutOfTen(withIt).words) + '</strong> — '
+    + esc(futuresOutOfTen(without).words) + ' without care.</div>'
+    + '<p class="hint">' + (res.care.pooled ? 'When one pot is empty, the other pays that share. ' : '') + 'Both plans each lasting on its own: ' + inTen(res.care.jointSuccess) + ' with care, ' + inTen(res.baseline.jointSuccess) + ' without. '
+    + 'A stress check, not advice. The cost is added in full on top of normal spending, as a one-off cost of ' + gbp(res.totalCareGross) + ' before tax in all; no means-testing modelled.</p>';
 }
 
 /** One budget for the household (decision 5): which plan's budget it is, and the offer to share it. */

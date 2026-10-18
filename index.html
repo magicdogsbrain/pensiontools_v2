@@ -4145,7 +4145,7 @@
     import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
     import { runHouseholdWays } from './src/services/HouseholdService.js';
-    import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
+    import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
@@ -9598,56 +9598,41 @@
       catch (e) { showToast('Could not change that: ' + e.message, 'error'); }
     };
 
+    // Survivor and care (household sweep): each plan through its own strategy's one test (HouseholdService), what-ifs never saved.
+    const oneTestInline = (st, cfg, id) => { const p = strategyPlanFor(st); return { r: stressTestStrategy(id, p), p }; };
     window.runSurvivorUI = async function () {
-      const box = document.getElementById('hhSurvivorResult');
-      const L = window._hhLast;
+      const box = document.getElementById('hhSurvivorResult'), L = window._hhLast;
       if (!L) return;
-      box.innerHTML = '<p style="font-size:13px;">Running the survivor\'s modified plan…</p>';
+      box.innerHTML = '<p style="font-size:13px;">Running both plans through their own strategy\'s test…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const whoDies = document.getElementById('hhWhoDies').value;
-        const deathYear = +document.getElementById('hhDeathYear').value || 10;
-        const spendFraction = (+document.getElementById('hhSurvivorPct').value || 70) / 100;
-        const dbSurvivorPct = (+document.getElementById('hhDbSurvivorPct').value || 0) / 100;
-        const surv = whoDies === 'A'
-          ? { cfg: L.cfgB, set: L.partnerSettings, name: L.pName, dCfg: L.cfgA, dSet: L.ownSettings, dName: L.ownName }
-          : { cfg: L.cfgA, set: L.ownSettings, name: L.ownName, dCfg: L.cfgB, dSet: L.partnerSettings, dName: L.pName };
-        const survArgs = { survivorCfg: surv.cfg, survivorSettings: surv.set, deceasedCfg: surv.dCfg, deceasedSettings: surv.dSet, deathYear, spendFraction, dbSurvivorPct, runs: 500 };
-        let r;
-        try { r = await runInWorker('survivor', survArgs); }
-        catch (e) { console.warn('engine worker unavailable, running inline', e); r = runSurvivorCheck(survArgs); }
-        const cls = onCourseAlertClass(r.survivorSuccess);   // green from 9 in 10 (6.22.0)
-        box.innerHTML = '<div class="alert ' + cls + '">If ' + surv.dName + ' dies in year ' + deathYear + ': <strong>' + surv.name
-          + '\'s plan still works in ' + (r.survivorSuccess * 100).toFixed(0) + '%</strong> of 500 futures — inheriting about '
-          + gbp(Math.round(r.inheritedPots + r.inheritedIsa)) + ' (median remaining pots), spending '
-          + gbp(Math.round(r.survivorAnnualAfter)) + '/yr from then on.</div>'
-          + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions assumed inherited tax-free (death before 75), ISA passed via the spouse allowance, median inheritance from ' + surv.dName + '\'s own simulations.</p>';
+        const aDies = document.getElementById('hhWhoDies').value === 'A';
+        const years = +document.getElementById('hhDeathYear').value || 10, spendPct = +document.getElementById('hhSurvivorPct').value || 70;
+        const sv = aDies ? L.partnerSettings : L.ownSettings, dc = aDies ? L.ownSettings : L.partnerSettings;
+        const args = { survivorSettings: sv, deceasedSettings: dc, deathYear: years, spendFraction: spendPct / 100, dbSurvivorPct: (+document.getElementById('hhDbSurvivorPct').value || 0) / 100 };
+        let res;
+        try { res = await runInWorker('survivor', args); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runSurvivorCheck(args, oneTestInline); }
+        box.innerHTML = survivorResultHtml({ res, survivorName: aDies ? L.pName : L.ownName, deceasedName: aDies ? L.ownName : L.pName, years, spendPct,
+          strategyNames: { survivor: STRATEGY_NAMES[sv.strategyId || 'pots-and-valves'], deceased: STRATEGY_NAMES[dc.strategyId || 'pots-and-valves'] } });
       } catch (e) {
         box.innerHTML = '<div class="alert alert-warning">Survivor check failed: ' + e.message + '</div>';
       }
     };
 
     window.runCareUI = async function () {
-      const box = document.getElementById('hhCareResult');
-      const L = window._hhLast;
+      const box = document.getElementById('hhCareResult'), L = window._hhLast;
       if (!L) return;
       box.innerHTML = '<p style="font-size:13px;">Re-running both plans with the care years included…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
         const who = document.getElementById('hhCareWho').value;
-        const startYear = +document.getElementById('hhCareStart').value || 15;
-        const years = +document.getElementById('hhCareYears').value || 3;
-        const annualCost = +document.getElementById('hhCareCost').value || 90000;
-        const careArgs = { cfgA: L.cfgA, cfgB: L.cfgB, setA: L.ownSettings, setB: L.partnerSettings, who, startYear, years, annualCost, runs: 500 };
-        let r;
-        try { r = await runInWorker('care', careArgs); }
-        catch (e) { console.warn('engine worker unavailable, running inline', e); r = runCareCheck(careArgs); }
-        const name = who === 'A' ? L.ownName : L.pName;
-        const cls = onCourseAlertClass(r.careJoint);   // green from 9 in 10 (6.22.0)
-        box.innerHTML = '<div class="alert ' + cls + '">With ' + name + ' needing care from year ' + startYear + ' for ' + years
-          + ' years (' + gbp(r.totalCareCost) + ' total in today\'s money): the money lasts for both of you in <strong>'
-          + (r.careJoint * 100).toFixed(0) + '%</strong> of 500 futures — versus ' + (r.baselineJoint * 100).toFixed(0) + '% without care.</div>'
-          + '<p class="hint">A stress check, not advice. Cost added in full on top of normal spending; no means-testing modelled.</p>';
+        const startIn = +document.getElementById('hhCareStart').value || 15, years = +document.getElementById('hhCareYears').value || 3, annualCost = +document.getElementById('hhCareCost').value || 90000;
+        const args = { setA: L.ownSettings, setB: L.partnerSettings, who, startYear: startIn, years, annualCost, needs: L.split && L.split.needs ? L.split.needs.own : null };
+        let res;
+        try { res = await runInWorker('care', args); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runCareCheck(args, oneTestInline); }
+        box.innerHTML = careResultHtml({ res, name: who === 'A' ? L.ownName : L.pName, years, startIn, annualCost });
       } catch (e) {
         box.innerHTML = '<div class="alert alert-warning">Care check failed: ' + e.message + '</div>';
       }

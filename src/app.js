@@ -11,7 +11,7 @@ import { longevityAge } from './services/LongevityModel.js';
 import { modelPortfolio } from './services/ModelPortfolios.js';
 import { contributionBreakdown, contributionWarnings, projectAccumulation, requiredPotForSuccess } from './services/AccumulationEngine.js';
 import { getActiveAccumulation, saveActiveAccumulation, getHouseholdPartnerId, setHouseholdPartnerId, getActivePlanOfRecord, saveActivePlanOfRecord, getActiveStrategy, setActiveStrategy } from './storage/ScenarioRepository.js';
-import { runHouseholdMonteCarlo, householdIncomeTimeline, startOffset, combineHouseholdStrategies, runSurvivorCheck, runCareCheck } from './services/HouseholdService.js';
+import { householdIncomeTimeline, startOffset, combineHouseholdStrategies, runSurvivorCheck, runCareCheck } from './services/HouseholdService.js';
 
 import {
   analyzeResults,
@@ -412,7 +412,6 @@ export {
   runFlexWindows,
   getStrategy,
   ENGINE_VERSION,
-  runHouseholdMonteCarlo,
   householdIncomeTimeline,
   startOffset,
   combineHouseholdStrategies,

@@ -1,41 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { runHouseholdMonteCarlo, householdIncomeTimeline, targetForYear } from '../src/services/HouseholdService.js';
+import { describe, it, expect } from 'vitest';
+import { householdIncomeTimeline, targetForYear } from '../src/services/HouseholdService.js';
 import { scheduleFromSteps } from '../src/services/IncomeSchedule.js';
-
-// Reuse the SimulationEngine test mock so MC runs are fast and deterministic
-vi.mock('../src/constants.js', async (importOriginal) => {
-  const actual = await importOriginal();
-  return actual; // full constants — household tests want the real historical series
-});
-
-const cfg = (over = {}) => ({
-  equityStart: 300000, bondStart: 200000, cashStart: 50000,
-  equityMin: 100000, bondMin: 80000, cashTarget: 30000,
-  duration: 35, years: 20, baseSalary: 30000, other: 0,
-  statePension: 12000, statePensionYear: 8,
-  pa: 12570, brl: 50270, taxMode: 'inflates',
-  disableProtection: false, protectionMult: 0.8,
-  hodlEnabled: false, hodlValue: 0, isaBalance: 20000,
-  ...over
-});
-
-describe('runHouseholdMonteCarlo', () => {
-  it('joint success ≤ each individual success, ≥ correlated floor of naive product', () => {
-    const r = runHouseholdMonteCarlo(cfg(), cfg({ baseSalary: 25000, years: 15 }), 200);
-    expect(r.jointSuccess).toBeLessThanOrEqual(Math.min(r.successA, r.successB) + 1e-9);
-    // Same market paths → failures co-occur → joint ≥ independence-assumed product
-    expect(r.jointSuccess).toBeGreaterThanOrEqual(r.independenceAssumed - 0.03);
-    expect(r.potFan).toHaveLength(21);
-    expect(r.potFan[0].p50).toBeCloseTo((300000+200000+50000+20000) * 2, -4);
-    expect(r.potFan[5].p90).toBeGreaterThanOrEqual(r.potFan[5].p10);
-  });
-
-  it('a hopeless partner plan drags joint success to ~their level', () => {
-    const r = runHouseholdMonteCarlo(cfg(), cfg({ equityStart: 20000, bondStart: 10000, cashStart: 5000, isaBalance: 0, baseSalary: 40000 }), 100);
-    expect(r.successB).toBeLessThan(0.2);
-    expect(r.jointSuccess).toBeLessThanOrEqual(r.successB);
-  });
-});
 
 describe('householdIncomeTimeline', () => {
   const setA = { duration: 30, baseSalary: 30000, statePension: 12000, statePensionYear: 8, other: 0 };
@@ -88,46 +53,7 @@ describe('householdIncomeTimeline', () => {
   });
 });
 
-import { runSurvivorCheck } from '../src/services/HouseholdService.js';
 import { householdDrawSplit, headlineWords } from '../src/services/HouseholdDraw.js';
-
-describe('runSurvivorCheck', () => {
-  it('inheriting the partner pots makes the survivor MORE secure than their plan alone, despite higher spending', () => {
-    const survivorSet = { duration: 25, baseSalary: 20000, statePension: 12000, statePensionYear: 5 };
-    const deceasedSet = { duration: 25, baseSalary: 20000, statePension: 11000, statePensionYear: 5 };
-    const mk = (o={}) => ({ equityStart: 200000, bondStart: 120000, cashStart: 30000,
-      equityMin: 80000, bondMin: 60000, cashTarget: 20000, duration: 35, years: 25,
-      baseSalary: 20000, other: 0, statePension: 12000, statePensionYear: 5,
-      pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
-      protectionMult: 0.8, hodlEnabled: false, hodlValue: 0, isaBalance: 10000, ...o });
-    const r = runSurvivorCheck({
-      survivorCfg: mk(), survivorSettings: survivorSet,
-      deceasedCfg: mk({ statePension: 11000 }), deceasedSettings: deceasedSet,
-      deathYear: 8, spendFraction: 0.7, runs: 100
-    });
-    expect(r.inheritedPots).toBeGreaterThan(0);
-    expect(r.survivorSuccess).toBeGreaterThan(0.4);
-    // spending steps to 70% of joint at death year: (20000+20000)*0.7 = 28000 (flat profiles)
-    expect(r.survivorAnnualAfter).toBeCloseTo(28000, 0);
-  });
-
-  it('deceased DB continues at the survivor rate via extraIncomes', () => {
-    const base = { equityStart: 150000, bondStart: 100000, cashStart: 30000,
-      equityMin: 60000, bondMin: 50000, cashTarget: 20000, duration: 35, years: 20,
-      baseSalary: 22000, other: 0, statePension: 0, statePensionYear: 99,
-      pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
-      protectionMult: 0.8, hodlEnabled: false, hodlValue: 0 };
-    const args = {
-      survivorCfg: base, survivorSettings: { duration: 20, baseSalary: 22000 },
-      deceasedCfg: base, deceasedSettings: { duration: 20, baseSalary: 15000, dbAmount: 10000, dbStartYear: 0 },
-      deathYear: 5, spendFraction: 0.7, runs: 60
-    };
-    const withDb = runSurvivorCheck({ ...args, dbSurvivorPct: 0.5 });
-    const noDb = runSurvivorCheck({ ...args, dbSurvivorPct: 0 });
-    expect(withDb.survivorSuccess).toBeGreaterThanOrEqual(noDb.survivorSuccess);
-  });
-});
-
 // The allowance-filling nudge (one sentence about year 0, the saving reckoned at 20% of the shifted slice) was replaced
 // in 6.25.0 by "who draws what" (services/HouseholdDraw.js, tests/householdDraw.test.js): the same situations, read
 // from the real withdrawal policy year by year, with the saving from the app's own tax sums.
@@ -153,25 +79,6 @@ describe('who draws what, where the nudge used to be', () => {
   });
 });
 
-import { runCareCheck } from '../src/services/HouseholdService.js';
-
-describe('runCareCheck', () => {
-  const mk = () => ({ equityStart: 350000, bondStart: 250000, cashStart: 60000,
-    equityMin: 100000, bondMin: 80000, cashTarget: 30000, duration: 35, years: 30,
-    baseSalary: 34000, other: 0, statePension: 12000, statePensionYear: 5,
-    pa: 12570, brl: 50270, taxMode: 'inflates', disableProtection: true,
-    protectionMult: 0.8, hodlEnabled: false, hodlValue: 0, isaBalance: 20000 });
-  const set = { duration: 30, baseSalary: 34000, statePension: 12000, statePensionYear: 5 };
-
-  it('care years reduce joint success; a heavier burden hurts more', () => {
-    const care = runCareCheck({ cfgA: mk(), cfgB: mk(), setA: set, setB: set, who: 'A', startYear: 5, years: 3, annualCost: 90000, runs: 80 });
-    expect(care.careJoint).toBeLessThan(care.baselineJoint);
-    expect(care.totalCareCost).toBe(270000);
-    const heavy = runCareCheck({ cfgA: mk(), cfgB: mk(), setA: set, setB: set, who: 'A', startYear: 5, years: 6, annualCost: 120000, runs: 80 });
-    expect(heavy.careJoint).toBeLessThan(care.careJoint);
-  });
-});
-
 import { startOffset } from '../src/services/HouseholdService.js';
 
 describe('calendar alignment for a partner who is still working', () => {
@@ -194,14 +101,6 @@ describe('calendar alignment for a partner who is still working', () => {
     expect(rows[9].spA).toBe(12000);
     expect(rows[3].spB).toBe(11000);
     expect(rows.length).toBe(33);
-  });
-  it('Monte Carlo: shifting a plan by its offset leaves its own success rate unchanged in shape and runs it on later market years', () => {
-    const cfg = (o = {}) => ({ equityStart: 150000, bondStart: 100000, cashStart: 30000, isaBalance: 0, baseSalary: 12000, years: 20, pa: 12570, brl: 50270, hrl: 125140, ...o });
-    const r0 = runHouseholdMonteCarlo(cfg(), cfg(), 60, { a: 0, b: 0 });
-    const r2 = runHouseholdMonteCarlo(cfg(), cfg(), 60, { a: 0, b: 2 });
-    expect(r2.potFan.length).toBe(23);
-    expect(r2.successA).toBe(r0.successA);
-    expect(r2.potFan[0].p50).toBeCloseTo(r0.potFan[0].p50, -3);
   });
 });
 

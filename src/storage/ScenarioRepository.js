@@ -919,9 +919,23 @@ export async function setActiveStrategy(id, params = {}) {
   return block;
 }
 
+/**
+ * The plan's strategy, as the one test runs it (6.33.0). The test reads the stress settings' strategyId
+ * (stressTest via SimulationConfig: absent = Pots & Valves); the scenario's own strategy block is a second copy that
+ * every switch writes too, but plans could carry the two apart — and then the page named one strategy above a figure
+ * worked out for another. The id is now the tested one; the block's params are kept only when it names the same
+ * strategy. A plan with no stress settings at all reads its block as before. Pure — nothing is written.
+ */
+export function strategyOf(scenario) {
+  const block = (scenario && scenario.strategy) || defaultStrategyBlock();
+  const ss = scenario && scenario.stressTool && scenario.stressTool.settings;
+  if (!ss || typeof ss !== 'object') return block;
+  const tested = ss.strategyId || 'pots-and-valves';
+  return tested === block.id ? block : { ...block, id: tested, params: {} };
+}
+
 export async function getActiveStrategy() {
-  const scenario = await getActiveScenarioAsync();
-  return (scenario && scenario.strategy) || defaultStrategyBlock();
+  return strategyOf(await getActiveScenarioAsync());
 }
 
 /**

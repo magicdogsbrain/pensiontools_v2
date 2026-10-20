@@ -8,6 +8,7 @@
  *  4. A long slump: cash is gone — the defensive sleeve pays; only when that is empty are
  *     equities sold below their path. The cone on the right is what is left, all pots.
  */
+import { pctText, RUIN_BARS } from '../services/OneAnswer.js';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
@@ -84,7 +85,7 @@ export function bucketsSvg(d, frame = 4, o = {}) {
     s += `<line x1="${rx0}" y1="${y0}" x2="${(rx0 + rW).toFixed(1)}" y2="${y0}" stroke="var(--border,#8883)"/>`;
     for (let i = 0; i < n; i += 10) s += `<text x="${xs(i).toFixed(1)}" y="${y0 + 14}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">age ${d.startAge + i}</text>`;
     s += `<text x="${rx0}" y="${top - 8}" font-size="11" fill="var(--text,#eee)">What is left, all pots — 1,000 futures</text>`;
-    if (d.ruinMc != null) s += `<text x="${(rx0 + rW).toFixed(1)}" y="${top - 8}" text-anchor="end" font-size="10" fill="${d.ruinMc > 15 ? '#ef4444' : 'var(--text-muted,#999)'}">runs out in ${Math.round(d.ruinMc)}% of futures${d.failAgeP10 ? ', by ' + Math.round(d.failAgeP10) + ' in the worst tenth' : ''}</text>`;
+    if (d.ruinMc != null) s += `<text x="${(rx0 + rW).toFixed(1)}" y="${top - 8}" text-anchor="end" font-size="10" fill="${d.ruinMc > 15 ? '#ef4444' : 'var(--text-muted,#999)'}">runs out in ${pctText(d.ruinMc, 0, RUIN_BARS)} of futures${d.failAgeP10 ? ', by ' + Math.round(d.failAgeP10) + ' in the worst tenth' : ''}</text>`;
   }
   s = `<defs><marker id="bkArrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker><marker id="bkArrowG" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#9ca3af"/></marker></defs>` + s;
   const f = BK_FRAMES[Math.max(0, Math.min(3, frame - 1))];

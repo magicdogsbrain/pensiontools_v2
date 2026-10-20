@@ -47,6 +47,44 @@ export function futuresOutOfTen(share) {
   return { n: 0, words: 'in none of the futures it tried' };
 }
 
+/** The lines a chance of lasting is judged against (on course, likely, at real risk), and the same for running out. */
+export const CHANCE_BARS = [90, 75, 50];
+export const RUIN_BARS = [10, 25, 50];
+
+/**
+ * A percentage said honestly (6.33.0): rounding never turns a near miss into a clean 100% or a trace into 0%, and never
+ * carries a figure across one of `bar` (a number or a list — the lines the words beside it change at), so 89.6% never
+ * reads "90%" beside "not on course". 99.8% of the years paid read "100%" beside income cuts until now; a 0.3% chance
+ * of a cut read "0%". The figure keeps `dp` decimals and adds up to two more where rounding would mislead; if it still
+ * would, it is cut toward its true side (89.996 → "89.99%", 99.999 → "99.99%"), and a trace reads "under 0.01%".
+ * Exactly 0 and exactly 100 (and anything outside) read as themselves.
+ * @returns {string} e.g. '98%', '99.8%', '89.99%', 'under 0.01%' — always with the % sign
+ */
+export function pctText(v, dp = 0, bar = null) {
+  const x = num(v);
+  if (x <= 0) return '0%';
+  if (x >= 100) return '100%';
+  const bars = bar == null ? [] : [].concat(bar).filter((b) => Number.isFinite(+b));
+  const fair = (t) => t > 0 && t < 100 && bars.every((b) => (t >= b) === (x >= b));
+  for (let d = dp; d <= dp + 2; d++) {
+    const t = x.toFixed(d);
+    if (fair(+t)) return t + '%';
+  }
+  const d = dp + 2, f = Math.pow(10, d);
+  const down = Math.floor(x * f) / f;   // a cut, never a rounding up: stays below any line x is below, and under 100
+  return fair(down) ? down.toFixed(d) + '%' : 'under ' + (1 / f).toFixed(d) + '%';
+}
+
+/**
+ * The same share as futures out of 10 to one decimal (Compare allocations): never "10.0" while a future failed, never
+ * "9.0" under the on-course line, never "0.0" while one lasted (6.33.0).
+ */
+export function tenthsOutOfTen(share) {
+  const s = Math.max(0, Math.min(1, num(share)));
+  const t = Math.round(s * 100) / 10;
+  return (s < 1 && t >= 10 ? 9.9 : s < 0.9 && t >= 9 ? 8.9 : s > 0 && t <= 0 ? 0.1 : t).toFixed(1);
+}
+
 /**
  * The income cuts, counted from the per-future record of the one test (stressTest pnvRun: the engine's cutYears =
  * tax years in which more than 1% of the planned income went unpaid and was never caught up; cutReal = the income done
@@ -131,7 +169,7 @@ export function earlierTestNote(storedR, liveR) {
   const leftMoved = Math.abs(a.typicalLeft - b.typicalLeft) > 0.005 * Math.max(1, Math.abs(a.typicalLeft));
   if (!chanceMoved && !leftMoved) return '';
   const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
-  const pc = (v) => Math.round(v) + '%';
+  const pc = (v) => pctText(v, 0, CHANCE_BARS);
   let s = 'This figure was worked out under the earlier test, when the plan was locked: ' + pc(a.chancePct) + ' (' + a.outOfTen.words + ')';
   if (chanceMoved) s += '; today\'s test gives ' + pc(b.chancePct) + ' (' + b.outOfTen.words + ')';
   if (leftMoved) s += '; then typically ' + gbp(a.typicalLeft) + ' left, today ' + gbp(b.typicalLeft);

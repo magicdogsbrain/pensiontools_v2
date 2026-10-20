@@ -21,7 +21,7 @@
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { PROTECTION_ESCALATE_MONTHS } from '../../services/ProtectionStrategy.js';
-import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
+import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
@@ -324,7 +324,7 @@ export function verdictOf(result, saved) {
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
     sub: CONTRACT.includes(result.strategyId)
       ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
-      : { id: 'lasts.sub', slots: { pct: String(Math.round(a.chancePct * 10) / 10), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
+      : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
     history: { worst, named, histRanOut: n0(a.histRanOutN), histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
   };

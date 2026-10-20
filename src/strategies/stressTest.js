@@ -26,7 +26,7 @@ import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
 import { chargesPctOf } from '../services/Charges.js';
-import { summariseCuts } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
+import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
@@ -673,7 +673,7 @@ function rotationTest(p, configs) {
     ruin: { hist: ruinOf(hist), mc: ruinOf(mc) },
     ruinLabel: 'chance the rotated years (after ' + cutAge + ') are cut — the floor to ' + cutAge + ' and the State Pension never fail',
     worst12: { min: q(worstInc, 0.0), median: q(worstInc, 0.5) },
-    guaranteedToAge: cutAge + ' by contract whatever happens; above that, contract until the trigger fires (' + Math.round(triggeredShare * 100) + '% of futures rotate)',
+    guaranteedToAge: cutAge + ' by contract whatever happens; above that, contract until the trigger fires (' + pctText(triggeredShare * 100) + ' of futures rotate)',
     terminal: { p10: q(terminals, 0.1), p50: q(terminals, 0.5), p90: q(terminals, 0.9), histMedian: q(histTerm, 0.5) },
     cones: { wealth: coneOf(wealthList, N), income: coneOf(incomeList, N) },
     samples: { wealth: sampleOf(wealthList, N), income: sampleOf(incomeList, N) },

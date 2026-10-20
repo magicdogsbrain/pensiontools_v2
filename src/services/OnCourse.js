@@ -9,6 +9,8 @@
  * Pure: no DOM, no storage. index.html imports the words and thresholds from here (its script may only shrink).
  */
 
+import { pctText } from './OneAnswer.js';
+
 /** The share of futures the money must last in to be "on course". */
 export const ON_COURSE_SHARE = 0.9;
 /** The same bar as a whole percent (the age spin's picker and rows are in percent). */
@@ -28,7 +30,7 @@ export function onCourseAlertClass(share) {
   return isOnCourse(share) ? 'alert-success' : share >= BORDERLINE_SHARE ? 'alert-warning' : 'alert-danger';
 }
 
-const pct = (x) => Math.round((+x || 0) * 100) + '%';
+const pct = (x) => pctText((+x || 0) * 100, 0, [ON_COURSE_PCT, BORDERLINE_SHARE * 100]);   // 89.6% never reads "90%" beside "not on course" (6.33.0)
 
 /** The couples check's headline: on course at 9 in 10 or more for both of them (it was "Looking solid" from 85%). */
 export function jointVerdictHtml(share) {

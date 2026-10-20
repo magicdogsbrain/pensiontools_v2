@@ -5,6 +5,7 @@
  *  3. The reserve rides world equities until that age — a band, not a line.
  *  4. At that age the reserve buys the remaining years: the schedule if it can, a smaller income if not.
  */
+import { pctText, CHANCE_BARS } from '../services/OneAnswer.js';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
@@ -64,7 +65,7 @@ export function floorToAgeSvg(d, frame = 4, o = {}) {
   // the price at A (frame 4)
   if (frame >= 4 && d.restCostFull) {
     s += `<line x1="${(xA - colW * 3).toFixed(1)}" y1="${yRes(d.restCostFull).toFixed(1)}" x2="${(xA + colW * 3).toFixed(1)}" y2="${yRes(d.restCostFull).toFixed(1)}" stroke="#f97316" stroke-width="2"/>`;
-    const lbl = `the rest of the schedule costs ${gbpK(d.restCostFull)} at ${d.floorToAge}`; const lbl2 = d.canBuy && d.canBuy[0] ? `reserve covers it in ${Math.round(d.canBuy[0].mc)}% of futures` : '';
+    const lbl = `the rest of the schedule costs ${gbpK(d.restCostFull)} at ${d.floorToAge}`; const lbl2 = d.canBuy && d.canBuy[0] ? `reserve covers it in ${pctText(d.canBuy[0].mc, 0, CHANCE_BARS)} of futures` : '';
     const right = xA + colW * 3 + 4 + Math.max(lbl.length, lbl2.length) * 5.4 < W - padR;
     const tx = right ? xA + colW * 3 + 4 : xA - colW * 3 - 4, anchor = right ? 'start' : 'end';
     s += `<text x="${tx.toFixed(1)}" y="${(yRes(d.restCostFull) - 4).toFixed(1)}" text-anchor="${anchor}" font-size="10" fill="#f97316">${lbl}</text>`;

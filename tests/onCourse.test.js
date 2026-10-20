@@ -17,7 +17,6 @@ import {
   onCourseVerdictHtml, ON_COURSE_SEARCHING, confidenceWords
 } from '../src/services/OnCourse.js';
 import { BAND, VERDICT } from '../src/answers/shared/rules.js';
-import { requiredPotForSuccess } from '../src/services/AccumulationEngine.js';
 import { requiredPotForStrategy } from '../src/strategies/stressTest.js';
 import { earliestAt, sweepHeadline } from '../src/services/RetireSweep.js';
 import { answerLastedWords } from '../src/services/PlanSeed.js';
@@ -48,11 +47,10 @@ describe('the one number', () => {
     expect(isOnCourse(0.85)).toBe(false);
     for (const v of [null, undefined, NaN, '0.95']) expect(isOnCourse(v)).toBe(false);
   });
-  it('both required-pot searches default to it', () => {
-    expect(typeof requiredPotForSuccess).toBe('function');
+  it('the required-pot search defaults to it — and there is only the one (the growth engine\'s own went in 6.33.0)', () => {
     expect(typeof requiredPotForStrategy).toBe('function');
-    expect(defaultIn('src/services/AccumulationEngine.js', 'requiredPotForSuccess')).toBe('ON_COURSE_SHARE');
     expect(defaultIn('src/strategies/stressTest.js', 'requiredPotForStrategy')).toBe('ON_COURSE_SHARE');
+    expect(read('src/services/AccumulationEngine.js')).not.toMatch(/export function requiredPotForSuccess|runMonteCarlo\(/);
   });
 });
 

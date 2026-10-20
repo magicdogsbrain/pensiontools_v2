@@ -8,7 +8,8 @@
  *
  * Deterministic projection uses the FCA point-of-sale rates (2% / 5% / 8% nominal, the
  * regulator-prescribed low/mid/high for tax-advantaged products) with results shown in today's
- * money. The stochastic view reuses the existing Monte-Carlo engine via requiredPotForSuccess.
+ * money. The stochastic view is the one test (stressTest.requiredPotForStrategy, 6.24.0); this module's own Monte-Carlo
+ * search, requiredPotForSuccess, had no caller after that and is gone (6.33.0).
  *
  * UK rules encoded (2026/27 — update annually):
  *   Annual Allowance £60,000 (tapered £1 per £2 of adjusted income over £260k, floor £10k;
@@ -21,8 +22,6 @@
  *   exceeds £1,073,100.
  */
 
-import { ON_COURSE_SHARE } from './OnCourse.js';
-import { getStrategy } from '../strategies/registry.js';
 import { monthlyChargeFactor, isChargesPct } from './Charges.js';
 
 export const ACCUMULATION_RULES = {
@@ -211,39 +210,4 @@ export function potOnPath(rows, yearsElapsed, key = 'potMid') {
   if (!a) return null;
   const va = a[key] ?? a.potMid, vb = (b && (b[key] ?? b.potMid)) ?? va;
   return va + (vb - va) * f;
-}
-
-/**
- * Pot needed at retirement for >= successTarget Monte-Carlo success against the CURRENT stress
- * plan (the budget-derived target, duration, allocation shape, SP, access method — everything the
- * user already configured). Binary search, scaling the three pots proportionally.
- * @param {object} baseConfig - createSimulationConfigFromSettings() output
- * @param {number} successTarget - the share of futures the pot must last in: "on course", 9 in 10 (OnCourse.js, 6.22.0)
- * @param {number} runs - MC runs per probe (300 keeps the search fast)
- * @returns {{requiredPot: number, successAtRequired: number}}
- */
-export function requiredPotForSuccess(baseConfig, successTarget = ON_COURSE_SHARE, runs = 300) {
-  const basePot = (baseConfig.equityStart || 0) + (baseConfig.bondStart || 0) + (baseConfig.cashStart || 0);
-  const shape = basePot > 0
-    ? { e: baseConfig.equityStart / basePot, b: baseConfig.bondStart / basePot, c: baseConfig.cashStart / basePot }
-    : { e: 0.6, b: 0.3, c: 0.1 };
-  const successAt = (pot) => {
-    const cfg = {
-      ...baseConfig,
-      equityStart: pot * shape.e, bondStart: pot * shape.b, cashStart: pot * shape.c,
-      // Scale the glidepath floors with the pot so the allocation POLICY is preserved
-      equityMin: (baseConfig.equityMin || 0) * (basePot > 0 ? pot / basePot : 1),
-      bondMin: (baseConfig.bondMin || 0) * (basePot > 0 ? pot / basePot : 1),
-      cashTarget: (baseConfig.cashTarget || 0) * (basePot > 0 ? pot / basePot : 1)
-    };
-    const results = getStrategy(cfg.strategyId).engine.runMonteCarlo(cfg, runs);
-    return results.filter((r) => !r.failed).length / results.length;
-  };
-  let lo = 10000, hi = 5000000;
-  for (let i = 0; i < 12; i++) {   // ±£1.2k on a £5M range — precision beyond this is noise vs MC error
-    const mid = (lo + hi) / 2;
-    if (successAt(mid) >= successTarget) hi = mid; else lo = mid;
-  }
-  const requiredPot = hi;
-  return { requiredPot, successAtRequired: successAt(requiredPot) };
 }

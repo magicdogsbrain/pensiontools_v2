@@ -62,8 +62,8 @@ describe('the headline section', () => {
     expect(t).toContain('Alex\'s pot at 67 / 75 / 90 (middling)');
     expect(t).toContain('Sam\'s pot at 67 / 75 / 90 (middling)');
     const lastsRow = [...doc(html).querySelectorAll('#hhSplitTable tbody tr')].find((tr) => tr.children[0].textContent.startsWith('The money lasts for the household (9 in 10 is on course)'));
-    expect(lastsRow.children[1].textContent).toBe(fig.own.lasts.household.n + ' in 10');
-    expect(lastsRow.children[2].textContent).toBe(fig.together.lasts.household.n + ' in 10');
+    expect(lastsRow.children[1].textContent).toBe(fig.own.lasts.household.words.replace(/^in /, ''));
+    expect(lastsRow.children[2].textContent).toBe(fig.together.lasts.household.words.replace(/^in /, ''));
     expect(t).toContain('Left for the household when Alex is 90, today\'s prices (middling / bad case)');
     expect(t).toContain('Paying the tax keeps Sam’s pot, and your money more separate. Drawing together leaves the household about ' + about(fig.betterOff90) + (fig.betterOff90 >= 0 ? ' better off' : ' worse off') + ' at 90. This is your choice; neither is wrong.');
   });

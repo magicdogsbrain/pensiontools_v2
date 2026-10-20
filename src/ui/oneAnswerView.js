@@ -4,7 +4,7 @@
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
-import { futuresOutOfTen } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS } from '../services/OneAnswer.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -66,7 +66,7 @@ export function historyTabHtml({ strategyId, name, a, rows = [], worst = [] }) {
   let h = '<div class="card"><h2>What if you had retired into a bad year?</h2>';
   if (!a) return h + '<div class="alert alert-warning">The strategy is not affordable on this plan, so there is no history to explain. Fix the plan in Settings first.</div></div>';
   const contract = rows.length && rows.every((x) => x.kind === 'contract');
-  h += '<p>The one test ran <strong>' + esc(name) + '</strong> on your plan through <strong>every real ' + a.years + '-year stretch of markets since 1871</strong> — ' + n0(a.histories) + ' start' + (a.histories === 1 ? '' : 's') + ', two months apart' + (contract ? '. Every year of this plan is bought by contract, so no start year can run it out.' : ', and the money ran out in <strong>' + n0(a.histRanOutN) + '</strong> of them (' + pc(a.histRanOutPct) + ').') + ' These are the same histories the test\'s 1,000 futures are stitched from; the figure that matters — <strong>' + pc(a.chancePct) + '</strong>, lasts ' + esc(a.outOfTen.words) + ' — is on the first tab, and this page only shows where it comes from.</p>';
+  h += '<p>The one test ran <strong>' + esc(name) + '</strong> on your plan through <strong>every real ' + a.years + '-year stretch of markets since 1871</strong> — ' + n0(a.histories) + ' start' + (a.histories === 1 ? '' : 's') + ', two months apart' + (contract ? '. Every year of this plan is bought by contract, so no start year can run it out.' : ', and the money ran out in <strong>' + n0(a.histRanOutN) + '</strong> of them (' + pctText(a.histRanOutPct) + ').') + ' These are the same histories the test\'s 1,000 futures are stitched from; the figure that matters — <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong>, lasts ' + esc(a.outOfTen.words) + ' — is on the first tab, and this page only shows where it comes from.</p>';
   if (worst.length) {
     h += '<div class="section-title" style="margin-top:12px;">The hardest starts in the record — an unfair test</div>'
       + '<p class="hint" style="margin:0 0 6px;">Nobody retires into the worst month of 150 years on purpose, and the test counts every one of them all the same. Read these as the edge of what has ever happened, not as a forecast.</p>'
@@ -115,7 +115,7 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     h += '<p class="hint" style="margin-top:10px;">What no scenario here tests: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030, frozen tax thresholds, and the DMO\'s 3-month indexation lag in a fast-moving year. The Great Depression row is a real deflation — UK linkers have no floor, so the pounds fall with prices; they still buy the plan.</p>';
     return h + '</div>';
   }
-  h += '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pc(a.chancePct) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
+  h += '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
   h += '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
   for (const [k, sc] of Object.entries(scenarios)) {
     const y = startYears[k];
@@ -155,15 +155,15 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
   rows.forEach((x, i) => {
     const r = x.r;
     h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (i + 1) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + esc(colors[x.id] || '#888') + ';border-radius:2px;margin-right:6px;"></span>' + esc(names[x.id] || x.id) + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + esc(x.id) + '\')">read →</button></td>'
-      + '<td>lasts ' + esc(x.lasts) + ' <span class="hint">(' + pc(x.share * 100) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
+      + '<td>lasts ' + esc(x.lasts) + ' <span class="hint">(' + pctText(x.share * 100, 0, CHANCE_BARS) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
       + '<td>' + gbp(r.worst12 && r.worst12.min) + '</td><td>' + gbp(r.terminal.p50) + '</td><td>' + gbp(r.terminal.p10) + '</td>'
-      + (more ? '<td>' + (r.coverage != null ? Math.round(r.coverage) : '—') + '%</td><td>' + (x.sc ? x.sc.coverageRatio.toFixed(2) : '—') + '</td><td>' + (r.spentMedian != null ? gbp(r.spentMedian) : '—') + '</td><td>' + (x.sc ? (x.sc.vol * 100).toFixed(0) + '%/yr' : '—') + '</td><td><strong>' + (x.sc ? x.sc.vac.toFixed(1) : '—') + '</strong></td>' : '')
+      + (more ? '<td>' + (r.coverage != null ? pctText(r.coverage) : '—') + '</td><td>' + (x.sc ? x.sc.coverageRatio.toFixed(2) : '—') + '</td><td>' + (r.spentMedian != null ? gbp(r.spentMedian) : '—') + '</td><td>' + (x.sc ? (x.sc.vol * 100).toFixed(0) + '%/yr' : '—') + '</td><td><strong>' + (x.sc ? x.sc.vac.toFixed(1) : '—') + '</strong></td>' : '')
       + '</tr>';
   });
   h += '</tbody></table></div>';
   if (unaffordable.length) h += '<p class="hint" style="margin-top:6px;">Not affordable on this plan, so not ranked: ' + unaffordable.map((u) => esc(u.name) + ' (' + esc(u.reason || '') + ')').join('; ') + '.</p>';
   const best = rows[0];
-  if (best) h += '<div class="alert alert-info" style="margin-top:10px;"><strong>' + esc(names[best.id] || best.id) + ' comes first on your plan</strong> — it lasts ' + esc(best.lasts) + ' (' + pc(best.share * 100) + '), typically leaving ' + gbp(best.r.terminal.p50) + '; in a bad case (the worst 1 in 10) ' + gbp(best.r.terminal.p10) + '. Read its page, then the runner-up\'s: the right choice depends on what you would rather live with — a cut, a cliff, or a bumpy pot — and that is yours to weigh. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="showStrategyPage(\'' + esc(best.id) + '\')">Read ' + esc(names[best.id] || best.id) + ' →</button></div>';
+  if (best) h += '<div class="alert alert-info" style="margin-top:10px;"><strong>' + esc(names[best.id] || best.id) + ' comes first on your plan</strong> — it lasts ' + esc(best.lasts) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '), typically leaving ' + gbp(best.r.terminal.p50) + '; in a bad case (the worst 1 in 10) ' + gbp(best.r.terminal.p10) + '. Read its page, then the runner-up\'s: the right choice depends on what you would rather live with — a cut, a cliff, or a bumpy pot — and that is yours to weigh. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="showStrategyPage(\'' + esc(best.id) + '\')">Read ' + esc(names[best.id] || best.id) + ' →</button></div>';
   h += '<p class="hint" style="margin-top:8px;">Lasts = the share of the 1,000 futures in which the plan was paid in full to the end (for Floor &amp; Flex: no lean year; for Floor to an age and the rotation: never cut). Worst 12 months = the lowest income lived in any real history. Typically left and the bad case = what is left at the end in the middle future and in the worst 1 in 10 — never the single worst of 1,000.'
     + (more ? ' Years covered = share of the plan\'s years the money paid for, averaged over futures. Coverage ratio = years sustained plus the years the money left over would have funded, over the plan length (Estrada &amp; Kritzman, <em>Toward Determining the Optimal Investment Strategy for Retirement</em>, J. Retirement 2019). Bumpiness = year-on-year volatility of total wealth along the way, floored at ' + Math.round(volFloorPct) + '% so a fully bought plan scores finite. Score = the volatility-adjusted coverage ratio (Estrada, <em>Retirement Planning: The Volatility-Adjusted Coverage Ratio</em>, J. Retirement 2024): coverage divided by bumpiness — it rewards lasting longer and leaving more and penalises a bumpy ride; one honest yardstick, not the only one.' : '')
     + ' A what-if with the cuts switched off is one click away in Try a strategy.</p></div>';
@@ -180,7 +180,7 @@ export function allocationGridHtml(grid, presets, order) {
   const cell = (g, isBest) => {
     if (!g || !g.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">not run</td>';
     const sh = (100 - (+g.ruin.mc || 0)) / 100;
-    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (isBest ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (isBest ? 'success' : 'text') + ');">' + (Math.round(sh * 100) / 10).toFixed(1) + ' futures out of 10</div><div style="font-size:11px;color:var(--text-muted);">' + pc(sh * 100) + ' · typically ' + gbp(g.terminal.p50) + ' left · bad case ' + gbp(g.terminal.p10) + '</div></td>';
+    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (isBest ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (isBest ? 'success' : 'text') + ');">' + tenthsOutOfTen(sh) + ' futures out of 10</div><div style="font-size:11px;color:var(--text-muted);">' + pctText(sh * 100, 0, CHANCE_BARS) + ' · typically ' + gbp(g.terminal.p50) + ' left · bad case ' + gbp(g.terminal.p10) + '</div></td>';
   };
   let h = '<h3 style="margin-bottom:6px;">Compare allocations</h3>';
   h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">Each cell is the one test (every real stretch since 1871 and 1,000 futures, your own cuts setting, your full length) with the pot split that way. More shares usually lasts in a few more futures but gives a rougher ride; the bond tent mainly lifts the bad case. Pick the risk level you are comfortable holding — the tool will not change it for you.</p>';
@@ -193,6 +193,6 @@ export function allocationGridHtml(grid, presets, order) {
     h += '</tr>';
   }
   h += '</tbody></table>';
-  if (best.key) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(presets[best.key].label) + (best.tent === 'tent' ? ' + bond tent' : '') + '</strong> lasts best: ' + futuresWords(best.share) + ' (' + pc(best.share * 100) + '). Set it in Settings if you would like it.</p>';
+  if (best.key) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(presets[best.key].label) + (best.tent === 'tent' ? ' + bond tent' : '') + '</strong> lasts best: ' + futuresWords(best.share) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '). Set it in Settings if you would like it.</p>';
   return h;
 }

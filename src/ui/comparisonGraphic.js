@@ -3,6 +3,7 @@
  * reader's chosen year marked and each strategy's 10–90 band at that year drawn as a whisker.
  * Pure SVG; strategies as [{ id, name, color, cone: {p10,p50,p90} }].
  */
+import { pctText, RUIN_BARS } from '../services/OneAnswer.js';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 export const STRATEGY_COLORS = { 'pots-and-valves': '#f97316', 'buckets-in-order': '#f43f5e', 'ladder-and-ratchet': '#a78bfa', 'bridge-and-engine': '#2dd4bf', 'floor-and-flex': '#22c55e', 'floor-the-schedule': '#60a5fa', 'floor-to-age': '#facc15', 'full-il-gilt': '#e5e7eb', 'gilt-rotation': '#fb7185' };
@@ -72,7 +73,7 @@ export function riskBarsSvg({ rows }, o = {}) {
   rows.forEach((r, i) => { const yy = 22 + i * rh; s += `<text x="${padL - 8}" y="${yy + 13}" text-anchor="end" font-size="12" fill="${r.color}">${esc(r.name)}</text>`;
     s += `<rect x="${padL}" y="${yy}" width="${Math.max(2, x(r.mc) - padL).toFixed(1)}" height="20" fill="${r.color}" opacity=".75"><title>${esc(r.name)}: ${r.mc.toFixed(1)}% of futures (${r.hist.toFixed(1)}% of real histories)</title></rect>`;
     s += `<line x1="${x(r.hist).toFixed(1)}" y1="${yy - 2}" x2="${x(r.hist).toFixed(1)}" y2="${yy + 22}" stroke="var(--text,#eee)" stroke-width="2"/>`;
-    s += `<text x="${(x(r.mc) + 6).toFixed(1)}" y="${yy + 14}" font-size="11" fill="var(--text,#eee)">${r.mc.toFixed(0)}%</text>`;
+    s += `<text x="${(x(r.mc) + 6).toFixed(1)}" y="${yy + 14}" font-size="11" fill="var(--text,#eee)">${pctText(r.mc, 0, RUIN_BARS)}</text>`;
     s += `<text x="${padL}" y="${yy + 31}" font-size="9" fill="var(--text-muted,#999)">${esc(r.label)}</text>`; });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Chance it goes wrong">${s}</svg>`;
 }

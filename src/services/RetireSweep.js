@@ -20,6 +20,7 @@ import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
 import { cashProjectionRate } from './IsaGrowth.js';
 import { INFLATION_DEFAULTS } from '../constants.js';
 import { ON_COURSE_PCT, confidenceWords } from './OnCourse.js';
+import { pctText } from './OneAnswer.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 export const NO_POT_MESSAGE = 'Record what you hold (or the pot today on the Accumulation planner) first — the spin projects from your own pension pot, never from the pots the strategy is tested on.';
@@ -160,9 +161,10 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
       r = stressTestStrategy(s0.strategyId || 'pots-and-valves', p);
       affordable = r.affordable !== false;
     } catch (e) { r = null; }
-    const success = r && affordable ? Math.round(100 - num(r.ruin?.mc)) : (r ? 0 : null);
+    // Unrounded (6.33.0): 89.6% rounded to 90 read as on course; the words round with pctText, never across the bar.
+    const success = r && affordable ? Math.max(0, Math.min(100, 100 - num(r.ruin?.mc))) : (r ? 0 : null);
     rows.push({ age, taxYear: taxYearLabel(now.getFullYear() + yearsToAge - (now.getMonth() < 3 ? 1 : 0)), yearsAway: yearsToAge, pot: pa.pot, low: pa.low, high: pa.high,
-      success, coverage: r && affordable ? Math.round(num(r.coverage ?? success)) : null, ruin: r ? num(r.ruin?.mc) : null, worst12: r && affordable ? Math.round(num(r.worst12?.min)) : null, affordable, reason: r && !affordable ? (r.reason || 'not affordable') : null });
+      success, coverage: r && affordable ? num(r.coverage ?? success) : null, ruin: r ? num(r.ruin?.mc) : null, worst12: r && affordable ? Math.round(num(r.worst12?.min)) : null, affordable, reason: r && !affordable ? (r.reason || 'not affordable') : null });
   });
   return { rows, income, basis, currentAge };
 }
@@ -187,9 +189,9 @@ export function sweepHeadline(result, target = ON_COURSE_PCT) {
   const e75 = earliestAt(result.rows, 75);
   const bar = target === ON_COURSE_PCT;
   let s = 'At ' + gbp(result.income) + ' a year';
-  if (e && e.met) s += ' you could retire at ' + e.age + (bar ? ' and be on course' : '') + ': the money lasted in ' + e.success + '% of futures' + (bar ? '' : ' (you asked for ' + target + '%)');
-  else if (e) s += bar ? ' no age in the range is on course (the money lasting ' + confidenceWords(target) + ') — the best is ' + e.age + ' at ' + e.success + '%'
-    : ' no age in the range reaches ' + target + '% — the best is ' + e.age + ' at ' + e.success + '%';
-  if (e75 && e75.met && (!e || !e.met || e75.age < e.age)) s += (e && e.met ? ', or at ' + e75.age + ' if lasting ' + confidenceWords(75) + ' is enough (' : '; at ' + e75.age + ' it lasted ' + confidenceWords(75) + ' (') + e75.success + '%)';
+  if (e && e.met) s += ' you could retire at ' + e.age + (bar ? ' and be on course' : '') + ': the money lasted in ' + pctText(e.success, 0, [target, 75]) + ' of futures' + (bar ? '' : ' (you asked for ' + target + '%)');
+  else if (e) s += bar ? ' no age in the range is on course (the money lasting ' + confidenceWords(target) + ') — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75])
+    : ' no age in the range reaches ' + target + '% — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75]);
+  if (e75 && e75.met && (!e || !e.met || e75.age < e.age)) s += (e && e.met ? ', or at ' + e75.age + ' if lasting ' + confidenceWords(75) + ' is enough (' : '; at ' + e75.age + ' it lasted ' + confidenceWords(75) + ' (') + pctText(e75.success, 0, [75, target]) + ')';
   return s + '. Pots projected at ' + (result.basis || 'the middle band') + ', today\'s money; ' + 'a compass, not the full stress test.';
 }

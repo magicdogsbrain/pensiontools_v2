@@ -37,6 +37,31 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.33.0', date: '2026-10-20', engineVersion: '6.22.0',
+    title: 'The sweep, part two: no figure rounds to 100% while something fell short, and one strategy name everywhere',
+    summary: 'A plan that paid 99.8% of its years beside income cuts said "100% of the plan\'s years covered"; a plan that lasted in 89.6% of futures said "90%" beside "not on course yet". Percentages now never round a near miss into 100% or a trace into 0%, and never across a line the words beside them change at (9 in 10 above all). The planner also read the strategy\'s name from one saved copy and ran the test on another; both now come from the one the test runs. No figure the test works out has changed; Monthly Entry changes only on a plan whose two copies disagreed (see below).',
+    changes: [],
+    corrections: [
+      'Will it last? and every strategy page: "100% of the plan\'s years covered" was shown beside income cuts when 99.5% or more was covered. It now says the figure as it is (for example 99.8%). The same holds for the chance the money lasts, the share of futures cut, and the share of histories that ran out: a 0.3% chance of a cut no longer reads "0%".',
+      'A chance of lasting just under 9 in 10 (for example 89.6%) was rounded to "90%" beside "not on course yet" — on the strategy pages, the Strategies ranking, the Household checks and "When could I retire?". It now keeps the decimal that shows it is under the line.',
+      '"When could I retire?" rounded each age\'s chance before checking it against your bar, so an age at 89.6% was named as on course. It now checks the figure itself. The same table named the strategy by its internal code; it now uses its name.',
+      'Stress tester → Compare allocations could say "10.0 futures out of 10" for a mix that failed in a few, and "9.0" for one just under 9 in 10; it now says 9.9 and 8.9.',
+      'The pictures on the strategy pages ("runs out in 0% of futures", "(0% fail)" beside "ran out by", "reserve covers it in 100% of futures", the risk bars on Strategies) and the rotation\'s "0% of futures rotate" were rounded the same way; they now say the figure as it is.',
+      'Household: the household and each pot\'s "N in 10" counted every share from 95% as "10 in 10" and from 85% as "9 in 10". They now say it in words ("more than 9 futures out of 10", "just under 9 futures out of 10").',
+      'The planner kept the plan\'s strategy in two saved places: one for the test, one for the names on the pages and for Monthly Entry. Every switch writes both, but a plan could carry them apart, and a page then named one strategy above a figure worked out for another. Names and Monthly Entry now read the strategy the test runs.'
+    ],
+    effects: {
+      stress: ['Words only: the same figures, said without rounding to 100% or 0%.'],
+      strategies: ['Words only: the same figures, said without rounding to 100% or 0% or across 9 in 10.'],
+      decision: ['On a plan whose two saved copies of the strategy disagreed, Monthly Entry now follows the strategy the test runs (on a gilt ladder that means no spending cut in a slump, as its test assumes). Plans whose copies agree — every plan switched since 6.13 — are unchanged.'],
+      accumulation: ['"When could I retire?" may name a later age as the first on course, where an age just under 9 in 10 was rounded up before. An unused calculation was removed; nothing you see comes from it.'],
+      household: ['Words only: the shares of futures beside each verdict are said in words and without rounding across 9 in 10.'],
+      budget: []
+    },
+    actions: [],
+    notes: ['A figure is still rounded to a whole percent when it is not near 0, 100 or the 9-in-10 line.']
+  },
+  {
     version: '6.32.0', date: '2026-10-18', engineVersion: '6.22.0',
     title: 'A sweep for plans that are not invested for growth: the survivor and care checks, and every gilt-ladder page',
     summary: 'On the Household tab, "What if one of you dies?" and "What if one of you needs care?" ran every plan as a portfolio of shares, bonds and cash, whatever its way of drawing — so a gilt ladder was tested as if it were invested for growth. The survivor check also added the median pension and the median ISA from different futures and raised the result by 2.5% a year into future pounds, beside spending in today\'s money: on a gilt-ladder plan the inheritance it showed was about double what the plan leaves. Both checks now run each plan through its own strategy\'s test — the same one test as Will it last?, the Strategies page and the household verdict — and say the result in the planner\'s words, in today\'s money.',

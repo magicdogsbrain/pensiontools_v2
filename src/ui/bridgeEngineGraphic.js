@@ -6,6 +6,7 @@
  *  4. After the bridge the engine pays the rest by ordinary withdrawals; the band keeps going —
  *     and where it reaches £0 the plan has run out (the 1-in-10 bad marker shows how late).
  */
+import { pctText, RUIN_BARS } from '../services/OneAnswer.js';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
@@ -72,7 +73,7 @@ export function bridgeEngineSvg(d, frame = 4, o = {}) {
     if (d.failAgeP10) {
       const xf = padL + (d.failAgeP10 - d.startAge) * colW;
       s += `<line x1="${xf.toFixed(1)}" y1="${incTop - 4}" x2="${xf.toFixed(1)}" y2="${y0}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 3"/>`;
-      s += `<text x="${(xf - 4).toFixed(1)}" y="${(incTop + 8).toFixed(1)}" text-anchor="end" font-size="10" fill="#ef4444">ran out by ${Math.round(d.failAgeP10)} in the worst 1-in-10 of failing futures (${Math.round(d.ruinMc)}% fail)</text>`;
+      s += `<text x="${(xf - 4).toFixed(1)}" y="${(incTop + 8).toFixed(1)}" text-anchor="end" font-size="10" fill="#ef4444">ran out by ${Math.round(d.failAgeP10)} in the worst 1-in-10 of failing futures (${pctText(d.ruinMc, 0, RUIN_BARS)} fail)</text>`;
     }
   }
   d.years.forEach((y, i) => { if (i % 5 === 0 || i === n - 1) s += `<text x="${xs(i).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">age ${y.age}</text>`; });

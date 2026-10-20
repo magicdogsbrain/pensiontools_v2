@@ -12,13 +12,14 @@
  */
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
-import { futuresOutOfTen } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, CHANCE_BARS } from '../services/OneAnswer.js';
 import { headlineWords, about } from '../services/HouseholdDraw.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
-const pctFmt = (x) => ((+x || 0) * 100).toFixed(0) + '%';
-const inTen = (share) => futuresOutOfTen(+share || 0).n + ' in 10';
+const pctFmt = (x) => pctText((+x || 0) * 100, 0, [...CHANCE_BARS, 70]);   // a share of futures: never rounded across a verdict's line
+// In words (6.33.0): the whole count said "10 in 10" from 95% and "9 in 10" from 85% — the words do not.
+const inTen = (share) => futuresOutOfTen(+share || 0).words.replace(/^in /, '');
 
 /** The household verdict in words: pooled first. */
 export function householdVerdictHtml(r) {
@@ -183,7 +184,7 @@ export function budgetShareHtml({ ownName, pName, sharedFrom, sharedTo }) {
 
 const cell = (v) => (v == null ? '—' : about(v));
 const potCells = (vals) => vals.map(cell).join(' / ');
-const lasts = (w) => (w && w.lasts ? w.lasts.household.n + ' in 10' : '…');
+const lasts = (w) => (w && w.lasts ? w.lasts.household.words.replace(/^in /, '') : '…');
 
 /**
  * The headline section (household-draw-split.md §4). `fig` is null until the runs are in: the headline and the "why"

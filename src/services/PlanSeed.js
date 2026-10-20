@@ -71,6 +71,7 @@ import { grossUpAnnual, defaultBudget, BUDGET_CATEGORIES, SUGGESTED_EXTRAS } fro
 import { amountAtAge } from './IncomeSchedule.js';
 import { isChargesPct, DEFAULT_CHARGES_PCT } from './Charges.js';
 import { isIsaGrowth, DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
+import { pctText, CHANCE_BARS } from './OneAnswer.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
 /** The version V7 writes now for a flat spend (src/answers/keep/planSeed.js has the same value; a shaped spend writes 3). */
@@ -533,7 +534,7 @@ export function answerLastedWords(seed) {
     : share >= 0.05 ? 'in only 1 future out of 10'
     : share > 0 ? 'in fewer than 1 future out of 10' : 'in none of the futures it tried';
   const to = seed.household === 'couple' ? 'until the younger of you was ' + seed.endAge : 'to ' + seed.endAge;
-  return 'the money lasted ' + to + ' ' + out + ' (' + Math.round(share * 100) + '%)';
+  return 'the money lasted ' + to + ' ' + out + ' (' + pctText(share * 100, 0, CHANCE_BARS) + ')';
 }
 
 /**

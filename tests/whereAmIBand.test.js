@@ -210,12 +210,12 @@ describe('the band in the first months of a plan opens with the square root of t
 });
 
 describe('gilts valued as held to repay: no verdict against their market value', () => {
-  // A Ladder + rotation band like the owner's: the 1-in-10 bad line IS the median while most futures never rotate.
+  // A Ladder + rotation band of a common shape: the 1-in-10 bad line IS the median while most futures never rotate.
   const rot = { p10: [1019460, 971497, 923611, 873025, 819491], p50: [1019460, 971497, 923611, 876647, 829763], p90: [1019460, 971497, 937865, 905479, 893232] };
-  const owner = (extra = {}) => deepFreeze(makeDoc({ id: 'gilt-rotation', contract: true, isa: 80000, isaPolicy: 'hold', firstTaxYear: 2027, bridgeCash: 30000, bridgeMonths: 7, cones: rot,
+  const ladderRotation = (extra = {}) => deepFreeze(makeDoc({ id: 'gilt-rotation', contract: true, isa: 80000, isaPolicy: 'hold', firstTaxYear: 2027, bridgeCash: 30000, bridgeMonths: 7, cones: rot,
     timeline: series(10, (y) => ({ y, gross: 52000, sp: 0, other: 0, lumpIn: [] })), ...extra }));
   it('a £1 dip in the gilts\' market price is not "below the plan\'s 1-in-10 bad line"', () => {
-    const doc = owner();
+    const doc = ladderRotation();
     const before = JSON.stringify(doc);
     // May 2028 (plan year 1, one month in): the band reads 967,506 on the 1-in-10 bad line AND the median; the pot is £1
     // under it in plan-start prices — the gilts' market price dipped a little, every rung still pays
@@ -234,8 +234,8 @@ describe('gilts valued as held to repay: no verdict against their market value',
     expect(h).toContain('The plan counts its gilts at what they cost, and your figure is at today\'s market prices');
     expect(JSON.stringify(doc)).toBe(before);
   });
-  it('the owner\'s shape — locked, ISA held aside, in the run-up: the run-up cash on both sides, and still no verdict', () => {
-    const doc = owner();
+  it('the common shape — locked, ISA held aside, in the run-up: the run-up cash on both sides, and still no verdict', () => {
+    const doc = ladderRotation();
     const w = whereAmI(doc, { today: at(2026, 10, 2), history: [record('2026-09', 0, 870000, 180000, { sipp: 4333, taxYear: '26/27' })], holdings: holdingsWith([isaLine(81000)], '2026-09-01') });
     expect(w.bridge).toBe(true);
     expect(w.pot.actual).toBe(1050000);                    // gilts + cash; the held ISA is not added
@@ -255,11 +255,11 @@ describe('gilts valued as held to repay: no verdict against their market value',
     expect(w3.pot.p50).toBe(1019460);
     // a document without its run-up length: the draw the record shows, else the plan's year-0 draw, capped at the cash
     const old = makeDoc({ id: 'gilt-rotation', contract: true, isa: 60000, isaPolicy: 'hold', firstTaxYear: 2027, bridgeCash: 50000, cones: rot, timeline: series(10, (y) => ({ y, gross: 83650, sp: 0, other: 3650, lumpIn: [] })) });
-    expect(whereAmI(old, { today: at(2026, 10, 2), history: [record('2026-09', 0, 912960, 116000, { sipp: 7000 })] }).pot.runUp).toMatchObject({ months: 7, value: 49000 });
+    expect(whereAmI(old, { today: at(2026, 10, 2), history: [record('2026-09', 0, 912960, 116000, { sipp: 6500 })] }).pot.runUp).toMatchObject({ months: 7, value: 45500 });
     expect(whereAmI(old, { today: at(2026, 10, 2), holdings: holdingsWith([{ wrapper: 'SIPP', ticker: 'T30', value: 1060000 }], '2026-10-01') }).pot.runUp).toMatchObject({ months: 6, value: 40000 });
   });
   it('later in the plan the band is read at the record\'s month and the pot in plan-start prices — still numbers only', () => {
-    const doc = owner();
+    const doc = ladderRotation();
     const w = whereAmI(doc, { today: at(2031, 1, 20), history: [record('2031-01', 0, 760000, 20000, { taxYear: '30/31' })] });
     expect(w.planYear).toBe(3);
     expect(w.pot.p50).toBe(Math.round(876647 + 0.75 * (829763 - 876647)));

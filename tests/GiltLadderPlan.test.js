@@ -3,10 +3,10 @@ import { buildGiltLadder, spreadFor, ladderWealthByYear, accretedValue, yearsToM
 import { activeLinkers } from '../src/services/LinkerUniverse.js';
 import { rotationPathsCtx, runRotationPath } from '../src/strategies/GiltRotation.js';
 
-// A ladder plan: £35k bridge, 3 cash years at £80k, £65k to 67, £45k to 74, £40k to 91.
-const amountAtAge = (age) => age <= 59 ? 80000 : age <= 67 ? 65000 : age <= 74 ? 45000 : 40000;
-const base = { pot: 1212000, startAge: 57, durationYears: 35, amountAtAge, spAnnual: 12480, spStartAge: 67, spFirstYearRatio: 8 / 12,
-  firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 3, bridgeCash: 35000, todayIso: '2026-08-26' };
+// A ladder plan: £30k bridge, 3 cash years at £78k, £62k to 67, £47k to 74, £41k to 91.
+const amountAtAge = (age) => age <= 59 ? 78000 : age <= 67 ? 62000 : age <= 74 ? 47000 : 41000;
+const base = { pot: 1150000, startAge: 57, durationYears: 35, amountAtAge, spAnnual: 12480, spStartAge: 67, spFirstYearRatio: 8 / 12,
+  firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 3, bridgeCash: 30000, todayIso: '2026-08-26' };
 
 describe('GiltLadderPlan — the fully deterministic ladder', () => {
   const plan = buildGiltLadder(base);
@@ -20,18 +20,18 @@ describe('GiltLadderPlan — the fully deterministic ladder', () => {
   it('cash covers the bridge and the first N years; the State Pension is netted from 67 with a partial first year', () => {
     expect(plan.cashYears.map((c) => c.Y)).toEqual([2027, 2028, 2029]);
     // Cash years cost their inflation drag (−1% real a year, like every other strategy's cash): year 1 at face, year k × 1.01^(k−1).
-    expect(plan.cash).toBeCloseTo(35000 + 80000 * (1 + 1.01 + 1.01 * 1.01), 6);
+    expect(plan.cash).toBeCloseTo(30000 + 78000 * (1 + 1.01 + 1.01 * 1.01), 6);
     const y2037 = plan.years.find((y) => y.Y === 2037);
     expect(y2037.age).toBe(67);
-    expect(y2037.need).toBeCloseTo(65000 - 12480 * 8 / 12, 0);
-    expect(plan.years.find((y) => y.Y === 2038).need).toBe(45000 - 12480);
+    expect(y2037.need).toBeCloseTo(62000 - 12480 * 8 / 12, 0);
+    expect(plan.years.find((y) => y.Y === 2038).need).toBe(47000 - 12480);
   });
   it('only 3-month-lag linkers; gap years are double-drops of the previous linker, never a sale', () => {
     expect(plan.orders.every((o) => o.name.includes('Index-linked') || o.name.includes('Index-Linked'))).toBe(true);
     expect(plan.orders.some((o) => o.name.includes('Stock'))).toBe(false);   // no old-style 8-month-lag stocks
     const t29 = plan.orders.find((o) => o.tidm === 'T29');
     expect(t29.taxYears).toEqual([2030, 2031]);                                 // no 2030 linker → 2029 bought twice
-    expect(t29.pays).toBe(130000);
+    expect(t29.pays).toBe(124000);
     const t58 = plan.orders.find((o) => o.tidm === 'T58');
     expect(t58.taxYears.length).toBeGreaterThanOrEqual(3);                      // nothing matures 2058-2061 in time
   });

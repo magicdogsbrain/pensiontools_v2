@@ -87,15 +87,15 @@ describe('"tax saved" is tax-free money used, nothing else', () => {
 });
 
 describe('a tax year that starts part-way through', () => {
-  // The owner, September 2026: five £7,000 payments and five £281.40 DB payments already received (gross
+  // A saver, September 2026: five £6,500 payments and five £281.40 DB payments already received (gross
   // £33,907), PAYE deducted so far £8,475. Target £81,375 including £3,377 DB. Seven payments to come.
   const alex = { targetSalary: 81375, brl: 50270, pa: 12570, other: 3377, statePension: 0, isaSavingsAllocation: 0, remainingMonths: 7, grossIncomeToDate: 33907, isTaxEfficient: false };
 
   it('R6.4.1-a — with the tax already paid known, the tax to come is the year\'s total less that', () => {
-    const yearTax = ukTax(81375);                                   // £22,492
+    const yearTax = ukTax(81375);                                   // £19,982
     const told = calculateMonthlyBreakdown({ ...alex, taxPaidToDate: 8475 });
-    expect(Math.round(told.sipp.gross)).toBe(7000);                 // the gross draw never moved
-    expect(Math.abs(told.totalTax - (yearTax - 8475) / 7)).toBeLessThan(2);      // ≈ £1,875 a month, as the payslips show
+    expect(Math.round(told.sipp.gross)).toBe(6500);                 // the gross draw never moved
+    expect(Math.abs(told.totalTax - (yearTax - 8475) / 7)).toBeLessThan(2);      // ≈ £1,644 a month, as the payslips show
     const blank = calculateMonthlyBreakdown(alex);
     expect(blank.totalTax - told.totalTax).toBeGreaterThan(300);    // the old assumption overstated it by hundreds a month
   });

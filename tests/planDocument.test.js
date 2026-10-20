@@ -108,14 +108,14 @@ describe('buildPlanDocument', () => {
 describe('whereAmI', () => {
   const doc = buildPlanDocument({ planName: 'Alex Example', settings, p, r, now: NOW });
   it('September 2026 is a bridge month, step 1, pot compared with the contract path', () => {
-    const w = whereAmI(doc, { today: NOW, history: [{ date: '2026-09', taxYear: '26/27', sipp: 7000, other: 305, equity: 0, bond: 912960, cash: 216461 }] });
+    const w = whereAmI(doc, { today: NOW, history: [{ date: '2026-09', taxYear: '26/27', sipp: 6500, other: 281, equity: 0, bond: 912960, cash: 216461 }] });
     expect(w.bridge).toBe(true);
     expect(w.planYear).toBe(-1);
     expect(w.planStart).toBe('2027/28');
     expect(w.step).toMatchObject({ index: 1, of: 3, amount: 83650 });
     expect(w.step.next).toMatchObject({ fromAge: 60, amount: 68650 });
     expect(w.incomeThisYear.recorded).toBe(1);
-    expect(w.incomeThisYear.drawn).toBe(7305);
+    expect(w.incomeThisYear.drawn).toBe(6781);
     expect(w.pot.actual).toBe(1129421);
     expect(w.pot.flat).toBe(true);
   });

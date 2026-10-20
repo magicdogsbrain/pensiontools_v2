@@ -2,7 +2,7 @@
  * Who draws what (research/household-draw-split.md §7; usability audit §5 decision 5): the split that pays the least
  * tax when a couple draws together, worked out year by year with the app's own tax sums, and what it must never do.
  *
- * The owner's reference case is kept GENERIC (no names): plan A draws £80,000 fully taxed plus a £3,650 final-salary
+ * The reference case (made-up figures, no names): plan A draws £80,000 fully taxed plus a £3,650 final-salary
  * pension (gross £83,650 → tax £20,892); plan B's quarter-tax-free draw of £1,716 a month with A capped at £50,270 gives
  * the same household net within £20 and tax £8,115 (saving £12,777).
  */

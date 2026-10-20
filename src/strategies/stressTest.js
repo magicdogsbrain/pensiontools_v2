@@ -16,7 +16,7 @@ import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYi
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
-import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath } from './GiltRotation.js';
+import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
 import { deriveCompareConfigs } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
@@ -25,7 +25,7 @@ import { scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
-import { chargesPctOf } from '../services/Charges.js';
+import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
 import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 
 export const STRATEGY_NAMES = {
@@ -178,7 +178,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
       floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
       bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule,
-      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears
+      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears,
+      spareGrowth: params.spareGrowth === true || undefined   // a gilt ladder's money left over in shares (6.35.0); absent = kept
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
     // No State Pension entered: the engine falls back to the legacy £12,000-from-67 default. Say so.
@@ -582,7 +583,7 @@ function bucketsTest(p, configs) {
   return r;
 }
 
-function fullGiltTest(p, configs) {
+function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   const N = p.durationYears;
   const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
   const amountAtAge = (age) => { const k = age - p.startAge; return sched ? (sched[Math.min(k, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual; };
@@ -605,6 +606,30 @@ function fullGiltTest(p, configs) {
   }
   const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });
   const minInc = Math.min(...income.slice(0, N));
+  // The spare in the growth part (strategyParams.spareGrowth, 6.35.0): the income stays bought by contract; what is
+  // left rides the market, on the test's own histories and futures (GiltRotation spareGrowthRuns).
+  const grow = spareRuns && !!(p.params && p.params.spareGrowth) && plan.spare > 0;
+  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyChargeFactor(p.chargesPct), p.mcRuns || 400) : null;
+  const withSpare = (sp) => wealth.map((w, y) => w - plan.spare + sp[y]);
+  const mcW = grow ? runs.mc.map(withSpare) : null;
+  const ends = grow ? mcW.map((w) => w[N]).sort((a, b) => a - b) : null;
+  const histEnds = grow ? runs.hist.map((sp) => withSpare(sp)[N]).sort((a, b) => a - b) : null;
+  const q = (arr, pr) => arr[Math.min(arr.length - 1, Math.floor(arr.length * pr))] ?? 0;
+  if (grow) return {
+    affordable: true, plan,
+    ruin: { hist: 0, mc: 0 },
+    worst12: { min: minInc, median: minInc },
+    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    futuresMc: futuresOf(mcW, mcW.map(() => true), mcW.map((w) => w[N])),
+    terminal: { p10: q(ends, 0.1), p50: q(ends, 0.5), p90: q(ends, 0.9), histMedian: q(histEnds, 0.5) },
+    cones: { wealth: coneOf(mcW, N), income: flat(income) },
+    samples: { wealth: sampleOf(mcW, N) },
+    survivedMc: mcW.map(() => true),
+    failAges: [],
+    signature: { cash: plan.cash, giltsCost: plan.giltsCost, total: plan.total, spare: plan.spare, orders: plan.orders.length, doubleDrops: plan.orders.filter((o) => o.taxYears.length > 1).length, firstTaxYear, cashYears: plan.cashYears.length, spareGrowth: true },
+    n: { hist: runs.hist.length, mc: mcW.length },
+    wealthLabel: "Unpaid rungs (each rising from its cost to what it pays, yields unchanged) + cash + the money left over in shares, today's money"
+  };
   return {
     affordable: true, plan,
     ruin: { hist: 0, mc: 0 },
@@ -626,7 +651,8 @@ function fullGiltTest(p, configs) {
 // Never triggers => identical to the full ladder. See src/strategies/GiltRotation.js.
 /** The rotation's own set-up — the ladder, the cut age, the trigger — as its test builds it (shared with NamedStarts). */
 function rotationSetup(p, configs) {
-  const base = fullGiltTest(p, configs);
+  // The ladder only: the rotation grows the money left over in its own paths, so the full ladder's runs of it are not needed.
+  const base = fullGiltTest(p, configs, { spareRuns: false });
   if (!base.affordable) return { base, ctx: null };
   const cutAge = Math.max(p.startAge + 1, Math.min(p.params?.rotateCutAge || 75, p.startAge + p.durationYears - 2));
   const trigger = (p.params?.rotateTrigger > 0 ? p.params.rotateTrigger : 30) / 100;
@@ -653,7 +679,7 @@ function rotationTest(p, configs) {
   const { base, cutAge, trigger, ctx } = rotationSetup(p, configs);
   if (!ctx) return { ...base, strategyIdHint: 'gilt-rotation' };
   const plan = base.plan;
-  if (!ctx.split.soldOrders.length) return base;   // nothing above the cut: it IS the full ladder
+  if (!ctx.split.soldOrders.length) return fullGiltTest(p, configs);   // nothing above the cut: it IS the full ladder
   const N = p.durationYears;
   const hist = runRotationWindows(ctx);
   const mc = runRotationMonteCarlo(ctx, p.mcRuns || 400);
@@ -680,9 +706,9 @@ function rotationTest(p, configs) {
     futuresMc: futuresOf(wealthList, mc.map((r) => r.failAge == null), mc.map((r) => r.wealth[N])),
     coverage: Math.max(0, Math.min(100, coverage)),
     failAges,
-    signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },
+    signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, spareGrowth: !!ctx.spareGrowth, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },
     n: { hist: hist.length, mc: mc.length },
-    wealthLabel: 'Unpaid rungs + the rotation block (accreted, then the equity sleeve once the trigger fires), today\'s money'
+    wealthLabel: 'Unpaid rungs + the rotation block (accreted, then the equity sleeve once the trigger fires)' + (ctx.spareGrowth ? ' + the money left over in shares' : '') + ', today\'s money'
   };
 }
 

@@ -24,8 +24,8 @@ export const OWNED_KEYS = {
   'floor-and-flex': ['essentialsAnnual', 'horizonAge', 'sleeveRate', 'treatsRule', 'ratchet'],
   'floor-the-schedule': [],
   'floor-to-age': ['floorToAge', 'borrowedFloor'],
-  'full-il-gilt': ['cashYears', 'bridgeCash'],
-  'gilt-rotation': ['cashYears', 'bridgeCash', 'rotateCutAge', 'rotateTrigger', 'rotateDisarmYears']
+  'full-il-gilt': ['cashYears', 'bridgeCash', 'spareGrowth'],
+  'gilt-rotation': ['cashYears', 'bridgeCash', 'rotateCutAge', 'rotateTrigger', 'rotateDisarmYears', 'spareGrowth']
 };
 /** Shared by every strategy except Pots & Valves: the SIPP / ISA totals the strategy is priced on. */
 export const SHARED_KEYS = ['sippTotal', 'isaTotal'];

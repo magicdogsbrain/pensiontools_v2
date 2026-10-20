@@ -277,7 +277,7 @@ export function startRow(x) {
   const when = (x.month ? MONTHS[x.month - 1] + ' ' : '') + x.year;
   const base = { when, label: x.label || null, unfair: !!x.unfair, lowest: null, left: null };
   if (x.tooShort) return { ...base, id: 'hist.tooShort', slots: { year: String(x.year), lastStart: x.lastStart ? String(x.lastStart) : '' } };
-  if (x.kind === 'contract') return { ...base, id: 'hist.contract', slots: {} };
+  if (x.kind === 'contract') return { ...base, id: x.spareGrowth ? 'hist.contractShares' : 'hist.contract', slots: {} };
   if (x.kind === 'none') return { ...base, id: 'hist.none', slots: {} };
   if (x.kind === 'ladder') return { ...base, left: pounds(x.terminal), id: x.failed ? 'hist.ladderRanOut' : 'hist.ladder', slots: x.failed ? { age: x.failAge ? String(Math.round(x.failAge)) : '' } : { secured: n0(x.secured), s: Math.round(+x.secured || 0) === 1 ? '' : 's' } };
   if (x.kind === 'flex') return { ...base, left: pounds(x.terminal), id: 'hist.flex', slots: { leanest: pounds(x.worstYearFlex) } };

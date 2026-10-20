@@ -176,6 +176,15 @@ describe('the words that go with it', () => {
     expect(s.ladderNote).toContain('A’s plan is a gilt ladder');
     expect(s.ladderNote).toContain('stays as cash');
     expect(split().ladderNote).toBe('');
+    // the money left over in shares (6.35.0): the freed money joins it; another bought strategy is not called a gilt ladder
+    const g = split(planA({ strategyId: 'gilt-rotation', strategyParams: { sippTotal: 1180000, spareGrowth: true } }), planB());
+    expect(g.ladderNote).toContain('joins the money left over in shares');
+    expect(g.ladderNote).not.toContain('stays as cash');
+    const f = split(planA({ strategyId: 'floor-to-age', strategyParams: { sippTotal: 1180000 } }), planB());
+    expect(f.ladderNote).toContain('A’s plan buys its income');
+    expect(f.ladderNote).not.toContain('gilt ladder');
+    const flex = split(planA({ strategyId: 'floor-and-flex', strategyParams: { sippTotal: 1180000 } }), planB());
+    expect(flex.ladderNote).toContain('A’s plan buys part of its income and invests the rest');
   });
 
   it('steps and settings helpers', () => {

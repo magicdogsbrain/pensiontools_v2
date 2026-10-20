@@ -18,19 +18,19 @@ describe('the key map', () => {
     expect(ownedKeys('floor-the-schedule')).toEqual([]);
     expect(ownedKeys('floor-to-age')).toEqual(['floorToAge', 'borrowedFloor']);
     expect(ownedKeys('bridge-and-engine')).toEqual(['bridgeAge', 'cashYears']);
-    expect(ownedKeys('full-il-gilt')).toEqual(['cashYears', 'bridgeCash']);
-    expect(ownedKeys('gilt-rotation')).toEqual(['cashYears', 'bridgeCash', 'rotateCutAge', 'rotateTrigger', 'rotateDisarmYears']);
+    expect(ownedKeys('full-il-gilt')).toEqual(['cashYears', 'bridgeCash', 'spareGrowth']);   // spareGrowth: 6.35.0
+    expect(ownedKeys('gilt-rotation')).toEqual(['cashYears', 'bridgeCash', 'rotateCutAge', 'rotateTrigger', 'rotateDisarmYears', 'spareGrowth']);
     expect(ownedKeys('buckets-in-order')).toEqual(['bucketBand']);
     expect(ownedKeys('pots-and-valves')).toEqual([]);
     expect(ownedKeys('nope')).toEqual([]);
     ownedKeys('full-il-gilt').push('x');   // a copy: the map is not mutable through it
-    expect(OWNED_KEYS['full-il-gilt']).toEqual(['cashYears', 'bridgeCash']);
+    expect(OWNED_KEYS['full-il-gilt']).toEqual(['cashYears', 'bridgeCash', 'spareGrowth']);
   });
   it('the mini-pot totals are shared by every strategy except Pots & Valves', () => {
     expect(SHARED_KEYS).toEqual(['sippTotal', 'isaTotal']);
     expect(allowedKeys('pots-and-valves')).toEqual([]);
     expect(allowedKeys('floor-the-schedule')).toEqual(['sippTotal', 'isaTotal']);
-    expect(allowedKeys('full-il-gilt')).toEqual(['cashYears', 'bridgeCash', 'sippTotal', 'isaTotal']);
+    expect(allowedKeys('full-il-gilt')).toEqual(['cashYears', 'bridgeCash', 'spareGrowth', 'sippTotal', 'isaTotal']);
   });
 });
 

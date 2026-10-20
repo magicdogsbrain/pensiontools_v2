@@ -93,7 +93,7 @@ describe('the headline section', () => {
     const with2028 = householdDrawSplit({ settings: stressA, name: 'Alex' }, { settings: { ...stressB, currentAge: 55, shapeAgeNow: 55, statePensionYear: 12 }, name: 'Sam' }, { now: NOW });
     expect(text(splitSectionHtml({ split: with2028, fig: null }))).toContain('Sam will be 56 on 6 April 2028: take the months up to the 57th birthday in one go before then (or check whether the scheme gives a protected pension age).');
     const ladder = householdDrawSplit({ settings: { ...stressA, strategyId: 'full-il-gilt', strategyParams: { sippTotal: 1180000 } }, name: 'Alex' }, { settings: stressB, name: 'Sam' }, { now: NOW });
-    expect(text(splitSectionHtml({ split: ladder, fig: null }))).toContain('Alex’s plan is a gilt ladder: the comparison sizes the ladder to the lower draw.');
+    expect(text(splitSectionHtml({ split: ladder, fig: null }))).toContain('Alex’s plan is a gilt ladder: the comparison sizes the ladder to the lower draw, as if the rungs not needed were sold today.');
   });
 
   it('the confirm lists what changes', () => {

@@ -76,7 +76,8 @@ export function personProfile(settings, { now = new Date(), years } = {}) {
     rows, dur, off, startAge, bands: bandsOf(s), isaStrategy: s.isaDrawdownStrategy || ISA_STRATEGIES.TAX_EFFICIENT, sp,
     pot: potOf(s), isa: Math.max(0, +isaTodayOrAtRetirement(s) || 0),
     spAge: Number.isFinite(sp.startYear) && sp.annual > 0 ? startAge + sp.startYear : null,
-    strategyId: s.strategyId || 'pots-and-valves', ladder: LADDER_STRATEGIES.includes(s.strategyId)
+    strategyId: s.strategyId || 'pots-and-valves', ladder: LADDER_STRATEGIES.includes(s.strategyId),
+    spareGrowth: !!(s.strategyParams && s.strategyParams.spareGrowth)   // a gilt ladder's money left over in shares (6.35.0)
   };
 }
 
@@ -305,11 +306,19 @@ function unusedWords(first, PA, PB, smaller) {
   return { over, allowanceUnused, bandUnused, bandMost: bandUnused > 0.5 * (Ps.bands.brl - Ps.bands.pa) };
 }
 
-/** The ladder note (household-draw-split.md §8): the engine cannot reinvest money a bought rung pays beyond the draw. */
+/**
+ * The ladder note (household-draw-split.md §8): the comparison prices a bought income at the lower draw, as if bought
+ * that way today. On a gilt ladder the money that frees is the ladder's money left over: kept, holding its value, or in
+ * shares when the plan says so (strategyParams.spareGrowth, 6.35.0). One sentence per plan, true for its own strategy.
+ */
 export function ladderNote(profiles, names) {
-  const who = ['a', 'b'].filter((k) => profiles[k].ladder).map((k) => names[k]);
-  if (!who.length) return '';
-  return who.join(' and ') + (who.length > 1 ? '’s plans are gilt ladders' : '’s plan is a gilt ladder') + ': the comparison sizes the ladder to the lower draw. Money a rung already bought pays beyond the draw stays as cash in the pension, as the engine keeps it today; it is not reinvested in the growth part.';
+  return ['a', 'b'].filter((k) => profiles[k].ladder).map((k) => {
+    const P = profiles[k], n = names[k];
+    if (P.strategyId === 'floor-the-schedule' || P.strategyId === 'floor-to-age') return n + '’s plan buys its income' + (P.strategyId === 'floor-to-age' ? ' to an age' : '') + ': the comparison prices it at the lower draw, as if it were bought that way today.';
+    if (P.strategyId !== 'full-il-gilt' && P.strategyId !== 'gilt-rotation') return n + '’s plan buys part of its income and invests the rest: the comparison runs it at the lower draw, as if it were set up that way today.';
+    return n + '’s plan is a gilt ladder: the comparison sizes the ladder to the lower draw, as if the rungs not needed were sold today. '
+      + (P.spareGrowth ? 'The money that frees joins the money left over in shares, as the plan is set.' : 'The money that frees stays as cash in the pension, holding its value — Stress tester → Settings → "Money left over" can put it in shares.');
+  }).join(' ');
 }
 
 /**

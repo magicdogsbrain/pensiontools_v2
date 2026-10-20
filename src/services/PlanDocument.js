@@ -229,6 +229,8 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       pa: +settings.pa || 12570, brl: +settings.brl || 50270, hrl: +settings.hrl || 125140, taxMode: settings.taxMode || 'inflates',
       cpiDecision: DECISION_ASSUMED_CPI_FOR_RECORD, duration: N, firstTaxYear: timing.firstTaxYear, bridgeMonths: timing.bridgeMonths,
       cashYears: params.cashYears ?? null, bridgeCash: +params.bridgeCash || 0, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
+      // A gilt ladder's money left over in shares (6.35.0); absent = kept, holding its value (every document before it).
+      ...(params.spareGrowth ? { spareGrowth: true } : {}),
       // Fund and platform charges the plan's figures were worked out at, percent a year (6.19.0). A document locked
       // before 6.19.0 has no key: its figures were worked out without charges.
       chargesPct: chargesPctOf(settings),
@@ -239,7 +241,7 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
     },
     decisionRun: {
       year0: taxYearLabel(timing.firstTaxYear), bridgeMonths: timing.bridgeMonths, contract,
-      monthlyAsks: contract ? ['Gilt ladder value (unpaid rungs)', 'Cash, including the money-market fund', 'ISA balance', 'Taxable account (GIA), if any']
+      monthlyAsks: contract ? ['Gilt ladder value (unpaid rungs)', 'Cash, including the money-market fund', ...(params.spareGrowth ? ['The money left over in shares (as equity)'] : []), 'ISA balance', 'Taxable account (GIA), if any']
         : ['Equity funds', 'Bond funds', 'Cash', 'Diversifiers, if any', 'ISA balance', 'Taxable account (GIA), if any']
     }
   });

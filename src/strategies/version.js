@@ -10,5 +10,7 @@
  *   6.34.0  Full gilt ladder / ladder + rotation: a rung not yet repaid is valued at its accreted value (cost rising to
  *           what it pays at its purchase yield), never at cost; the rotation's kept cash years at what they cost; an
  *           unfired rotation block is its unpaid years only (it was counted again after paying out).
+ *   6.35.0  Full gilt ladder / ladder + rotation: strategyParams.spareGrowth puts the money left over in a world-equity
+ *           fund on the test's own futures (never drawn for income); absent = kept, holding its value, as before.
  */
-export const ENGINE_VERSION = '6.34.0';
+export const ENGINE_VERSION = '6.35.0';

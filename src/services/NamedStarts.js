@@ -33,7 +33,8 @@ export function namedStartRows(strategyId, p, starts = NAMED_STARTS) {
   const years = Math.max(1, +p.durationYears || 35);
   const lastStart = lastFullStartYear(years);
   const base = (st) => ({ year: st.year, label: st.label, available: false });
-  if (CONTRACT.includes(strategyId)) return starts.map((st) => ({ ...base(st), kind: 'contract', available: true }));
+  // A gilt ladder with its money left over in shares (6.35.0): the income is still bought; only what is left moves.
+  if (CONTRACT.includes(strategyId)) return starts.map((st) => ({ ...base(st), kind: 'contract', available: true, ...(p.params && p.params.spareGrowth ? { spareGrowth: true } : {}) }));
   if (PNV_FAMILY.includes(strategyId)) {
     const q = pnvFamilyPlan(strategyId, p);
     return starts.map((st) => {

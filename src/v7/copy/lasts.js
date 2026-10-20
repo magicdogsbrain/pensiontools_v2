@@ -58,6 +58,7 @@ export const LASTS = {
       'hist.rotationHeldShort': 'the whole ladder paid by contract, but the later years ran short from {age}',
       'hist.flex': 'the floor paid by contract; the leanest treat-year was {leanest}',
       'hist.contract': 'every year is bought by contract — the start year changes nothing but the pounds that arrive',
+      'hist.contractShares': 'every year of income is bought by contract — the start year changes only what the money left over in shares is worth',
       'hist.none': 'no start-year replay for this way of drawing yet: its history figure above is the one test’s',
       'hist.tooShort': 'real history since {year} is not long enough yet for a plan of this length; the futures the test stitches from it carry it on'
     },

@@ -37,6 +37,32 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.35.0', date: '2026-10-20', engineVersion: '6.35.0',
+    title: 'A gilt ladder\'s money left over can go into shares',
+    summary: 'The full gilt ladder and the ladder + rotation buy every year of your income, and until now whatever was left after buying it was kept, holding its value. A new setting, Stress tester → Settings → "Money left over", can put it in shares instead: a world-equity fund, charged like your other funds, run through the same histories and futures as everything else. It is never drawn for income, so your income and the chance the plan lasts do not change; what you would have left rides the market — more in most futures, less in a bad one. In the Household couples comparison, money freed when a gilt ladder is asked to draw less joins it. Plans without the setting read exactly as before.',
+    changes: [
+      'Stress tester → Settings, Full gilt ladder and Gilt ladder + rotation: "Money left over" — "Kept, holding its value" (as before, and what a plan without the setting does) or "Invested in shares (a growth part)". It is saved with the plan.',
+      'With it on, the strategy page, "Will it last?", the cones and the one-line-per-future picture show what would be left in a bad, a typical and a good case. A plan locked with it says so in its plan document and asks for the money left over in shares each month, recorded as equity.',
+      'Household couples comparison: when the comparison has a gilt ladder draw less, it sizes the ladder to the lower draw, as if the rungs not needed were sold today. The money that frees joins the money left over in shares when the plan is set that way, and stays as cash otherwise; the note says which, plan by plan.'
+    ],
+    corrections: [
+      'Household couples comparison: the note called every plan that buys its income — a floor, a bridge — "a gilt ladder", and said the money freed "stays as cash in the pension" for all of them. It now says that only of a gilt ladder; a floor is said to buy its income at the lower draw, and a plan that buys part of its income and invests the rest (Floor & flex, Bridge & engine, Ladder & Ratchet) is said to be run at the lower draw.',
+      'History: "N starts, two months apart" was said of every strategy, but only Pots & Valves and Buckets in order run their real starts two months apart; every other strategy runs a start every month. It now says which.'
+    ],
+    effects: {
+      stress: ['None unless you choose "Invested in shares". History says how far apart the real starts are.'],
+      strategies: ['None unless you choose "Invested in shares".'],
+      decision: ['A plan locked with the setting asks for the money left over in shares each month. Locked plans are unchanged.'],
+      household: ['The couples note is reworded. With the setting on, a gilt ladder\'s freed money grows in shares in the comparison.'],
+      accumulation: [],
+      budget: []
+    },
+    actions: ['If you hold, or mean to hold, your gilt ladder\'s spare money in shares, choose "Invested in shares" under Money left over and save.'],
+    notes: [
+      'The money left over is never drawn for income in the test — not even in a future where the rotation cuts the years after its cut age — so the chance of a cut does not count on it. Engine 6.35.0.'
+    ]
+  },
+  {
     version: '6.34.0', date: '2026-10-20', engineVersion: '6.34.0',
     title: 'The sweep, part three: what a gilt ladder holds, counted once and as it is held; and "cut" where nothing ran out',
     summary: 'Gilt ladder + rotation counted too much money left over: in every future where its trigger never fired, the long gilts it would have sold were still counted after they had paid out, so the money left at the end included their whole income a second time. On a test plan the typical amount left at the end was £519,853 and is £133,523. Both gilt-ladder strategies also counted a gilt not yet repaid at what it cost, for as long as it was held, which put the middle years too low. Several pages said "ran out" of strategies that never run out (they cut instead), and the Household total left out an ISA held aside. All corrected. The income and the chance of lasting are unchanged.',

@@ -2151,13 +2151,14 @@
       "area": "strategies",
       "kind": "option",
       "name": "Full index-linked gilt ladder",
-      "what": "Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the pension and ISA totals.",
+      "what": "Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
       "whereV6": "Income strategy: Full index-linked gilt ladder (index.html:3184-3192)",
       "who": "Approaching, retired",
       "keys": [
         "strategies.full-il-gilt",
         "strategyParams.full-il-gilt.cashYears",
         "strategyParams.full-il-gilt.bridgeCash",
+        "strategyParams.full-il-gilt.spareGrowth",
         "strategyParams.full-il-gilt.sippTotal",
         "strategyParams.full-il-gilt.isaTotal"
       ],
@@ -2171,7 +2172,7 @@
       "area": "strategies",
       "kind": "option",
       "name": "Gilt ladder + rotation",
-      "what": "The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the pension and ISA totals.",
+      "what": "The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
       "whereV6": "Income strategy: Gilt ladder + rotation (index.html:3186-3189; strategies/GiltRotation.js)",
       "who": "Approaching, retired",
       "keys": [
@@ -2181,6 +2182,7 @@
         "strategyParams.gilt-rotation.rotateCutAge",
         "strategyParams.gilt-rotation.rotateTrigger",
         "strategyParams.gilt-rotation.rotateDisarmYears",
+        "strategyParams.gilt-rotation.spareGrowth",
         "strategyParams.gilt-rotation.sippTotal",
         "strategyParams.gilt-rotation.isaTotal"
       ],

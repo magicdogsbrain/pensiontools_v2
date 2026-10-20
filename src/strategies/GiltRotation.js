@@ -37,6 +37,33 @@ export function splitLadderAtAge(plan, cutAge) {
 }
 
 /**
+ * The money left over after the ladder is bought (`plan.spare`), when the plan puts it in the growth part
+ * (strategyParams.spareGrowth, 6.35.0): a world-equity fund on the same real total-return series as the rotation's
+ * sleeve, charged like it. Its value at the START of each plan year 0..N, so year 0 is the spare itself, as every
+ * ladder figure counts it. It is never drawn for income: the ladder pays the income; this is what is left over.
+ * Without the setting the spare is held at its real value (absent = the old behaviour).
+ */
+export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
+  const c = Number.isFinite(chargeM) && chargeM > 0 && chargeM <= 1 ? chargeM : 1;
+  const out = [];
+  let v = spare;
+  for (let y = 0; y <= N; y++) {
+    out.push(v);
+    for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) { v *= series[off + m + 1] / series[off + m]; if (c !== 1) v *= c; }
+  }
+  return out;
+}
+
+/** spareGrowthPath over the one test's real starts (every month since 1871) and its futures (seed i × 7919 + 3). */
+export function spareGrowthRuns(N, spare, chargeM, runs = 400) {
+  const months = (N + 1) * 12;
+  const hist = getRtr(), h = [], mc = [];
+  for (let s = 0; s + months < hist.length; s++) h.push(spareGrowthPath(hist, s, N, spare, chargeM));
+  for (let i = 0; i < runs; i++) mc.push(spareGrowthPath(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, 0, N, spare, chargeM));
+  return { hist: h, mc };
+}
+
+/**
  * Run the rotation over one monthly real-TR series.
  * @param {number[]} series  monthly index, series[off] is month 0
  * @param {number} off       start offset into series
@@ -47,11 +74,16 @@ export function runRotationPath(series, off, ctx) {
   const { N, startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
   const chargeM = Number.isFinite(ctx.chargeM) && ctx.chargeM > 0 && ctx.chargeM <= 1 ? ctx.chargeM : 1;
   let ath = series[off], sleeve = 0, rotated = false, triggeredMonth = null;
+  // The spare in the growth part (spareGrowthPath, the same series and charges), in place of the flat spare the ladder holds.
+  const spareFlat = ctx.spareGrowth ? ctx.spare : 0;
+  let spare = spareFlat;
   const wealth = [], income = [];
   let failAge = null, paidShort = 0, owed = 0;
   for (let y = 0; y <= N; y++) {
+    const spareNow = spare;   // the start of the plan year, as the ladder's own figures count it
     // walk this plan year's months
     for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) {
+      if (spareFlat) { spare *= series[off + m + 1] / series[off + m]; if (chargeM !== 1) spare *= chargeM; }
       const lvl = series[off + m];
       if (lvl > ath) ath = lvl;
       if (!rotated && y <= lastRotateYear && lvl <= (1 - trigger) * ath) {
@@ -84,7 +116,7 @@ export function runRotationPath(series, off, ctx) {
     // them). Until 6.34.0 an unfired block stayed at its full accreted value after its rungs had paid out, so a future
     // that never rotated ended with the block's whole income on top of what the full ladder leaves.
     const blockVal = rotated ? sleeve : blockWealthByYear[y];
-    wealth.push(keptWealthByYear[y] + blockVal);
+    wealth.push(keptWealthByYear[y] + blockVal - spareFlat + spareNow);
   }
   return { wealth, income, failAge, triggeredYear: triggeredMonth == null ? null : Math.floor(triggeredMonth / 12), paidShort, owed };
 }
@@ -110,6 +142,7 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   // block's first draw. A rotation foregone is not a failure — it is simply the full ladder.
   const disarm = p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8;
   return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt,
+    spareGrowth: !!(p.params && p.params.spareGrowth) && plan.spare > 0, spare: plan.spare,
     chargeM: monthlyChargeFactor(p.chargesPct),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
     otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,

@@ -127,6 +127,8 @@ export function oneAnswer(r, p) {
     futures: num(r.n && r.n.mc),
     histories: nHist,
     years: num(p && p.durationYears),
+    // Pots & Valves and Buckets run their real starts `p.stride` months apart; every other strategy runs every month.
+    histStrideMonths: (r.strategyId === 'pots-and-valves' || r.strategyId === 'buckets-in-order') ? Math.max(1, num(p && p.stride) || 1) : 1,
     histRanOutPct: num(r.ruin.hist),
     histRanOutN: Math.round(num(r.ruin.hist) * nHist / 100),
     typicalLeft: num(t.p50),

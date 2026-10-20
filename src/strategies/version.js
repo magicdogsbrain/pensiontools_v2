@@ -18,5 +18,11 @@
  *           the start of each year like the rungs beside it (it was a year ahead); the sleeve pays only the years whose
  *           gilts were sold (a gilt straddling the cut age is kept and pays by contract); futuresMc.failYear is the
  *           first cut year (read from wealth, a kept spare hid every cut).
+ *   6.37.0  Ladder + rotation: the money left over fills a rotated year the sleeve cannot pay when it is kept too (at its
+ *           value). futuresMc carries the first cut year for every strategy (Floor & Flex: the first lean year; Floor to
+ *           an age: the first short year after the age; Pots & Valves, Buckets: the fail year, a year earlier than the
+ *           start-of-year wealth read it; Ladder & Ratchet: the fail year, which the wealth read late only for a fail in a
+ *           year's last month) and, where a cut still pays part of the income, `unpaid`: the
+ *           couples check asks the other plan for that, not the whole need.
  */
-export const ENGINE_VERSION = '6.36.0';
+export const ENGINE_VERSION = '6.37.0';

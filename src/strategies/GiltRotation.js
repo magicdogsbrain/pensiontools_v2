@@ -42,7 +42,8 @@ export function splitLadderAtAge(plan, cutAge) {
  * sleeve, charged like it. Its value at the START of each plan year 0..N, so year 0 is the spare itself, as every
  * ladder figure counts it. The ladder pays the income; this is what is left over. On the ladder + rotation it also
  * fills a year the rotated block cannot pay before that year counts as cut (6.36.0; runRotationPath).
- * Without the setting the spare is held at its real value (absent = the old behaviour).
+ * Without the setting the spare is held at its real value (absent = the old behaviour); on the rotation it fills a
+ * cut year all the same (6.37.0).
  */
 export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
   const c = Number.isFinite(chargeM) && chargeM > 0 && chargeM <= 1 ? chargeM : 1;
@@ -75,8 +76,10 @@ export function runRotationPath(series, off, ctx) {
   const { N, startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
   const chargeM = Number.isFinite(ctx.chargeM) && ctx.chargeM > 0 && ctx.chargeM <= 1 ? ctx.chargeM : 1;
   let ath = series[off], sleeve = 0, rotated = false, triggeredMonth = null;
-  // The spare in the growth part (spareGrowthPath, the same series and charges), in place of the flat spare the ladder holds.
-  const spareFlat = ctx.spareGrowth ? ctx.spare : 0;
+  // The money left over after the ladder is bought. In shares (spareGrowth, 6.35.0) it moves with the series and its
+  // charges (spareGrowthPath); kept, it is held at its real value, as the ladder's own figures hold it. Either way it
+  // fills a rotated year the sleeve cannot pay before that year counts as cut (shares from 6.36.0, kept from 6.37.0).
+  const spareFlat = ctx.spare > 0 ? ctx.spare : 0, spareGrows = !!ctx.spareGrowth && spareFlat > 0;
   let spare = spareFlat;
   const wealth = [], income = [];
   let failAge = null, paidShort = 0, owed = 0, lastPaid = 0;
@@ -95,7 +98,7 @@ export function runRotationPath(series, off, ctx) {
     }
     // walk this plan year's months
     for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) {
-      if (spareFlat) { spare *= series[off + m + 1] / series[off + m]; if (chargeM !== 1) spare *= chargeM; }
+      if (spareGrows) { spare *= series[off + m + 1] / series[off + m]; if (chargeM !== 1) spare *= chargeM; }
       const lvl = series[off + m];
       if (lvl > ath) ath = lvl;
       if (!rotated && y <= lastRotateYear && lvl <= (1 - trigger) * ath) {
@@ -119,8 +122,8 @@ export function runRotationPath(series, off, ctx) {
     if (ctx.soldAges ? ctx.soldAges.has(age) : age > cutAge) {
       if (rotated) {
         const take = Math.min(sleeve, need); sleeve -= take; paid = take;
-        // The money left over in shares (6.36.0) fills what the sleeve cannot pay before the year counts as cut. Kept
-        // (no setting) it is not drawn, as before.
+        // The money left over fills what the sleeve cannot pay before the year counts as cut (in shares from 6.36.0;
+        // kept from 6.37.0 — until then kept money was never drawn, so a plan could be cut with it untouched).
         if (spareFlat && paid < need) { const fill = Math.min(spare, need - paid); spare -= fill; paid += fill; }
       } else {
         // not rotated (yet): the rung is still owned and pays by contract

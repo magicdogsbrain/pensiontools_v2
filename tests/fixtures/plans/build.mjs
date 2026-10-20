@@ -3,6 +3,8 @@
  *
  *   node tests/fixtures/plans/build.mjs                 rebuild every fixture + snapshot.json
  *   node tests/fixtures/plans/build.mjs --repin-market  …and first re-copy market/ from src/data/*Snapshot.js
+ *   node tests/fixtures/plans/build.mjs --snapshot-only  re-answer the COMMITTED fixtures into snapshot.json and leave
+ *                                                        them as they are (an explained engine change: 6.37.0)
  *
  * Why generated, not hand-written: a fixture is only a safety net if it is a shape the app really writes.
  * Each plan is created, saved, locked and recorded through the real repositories in GUEST mode (the guest
@@ -464,15 +466,16 @@ const out = {};   // file name → document
   out['10-couple-b'] = docs.find((d) => d.id === 'Rb2CoupleBenK5mVy8Ju');
 }
 
-// 11 — THE GUEST DEMO: exactly what startGuest() creates from DEMO_PLANS['1m'] — read out of index.html so the
-//      fixture follows the demo if it is edited (a build script may evaluate a literal; the app never does).
+// 11 — THE GUEST DEMO: exactly what startGuest() creates from DEMO_PLANS['1m'] — imported from GuestPlans.js (where
+//      it has lived since 6.23.0; until 6.37.0 this read a literal out of index.html and failed once it moved), so the
+//      fixture follows the demo if it is edited.
 {
   startGuestStore(); at('2026-09-29T20:15:00.000Z');
-  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-  const m = html.match(/'1m':\s*\{\s*name:\s*'([^']+)'[\s\S]{0,200}?stress:\s*(\{[^\n]*\})\s*\},\s*\n/);
-  if (!m) throw new Error('11: DEMO_PLANS[\'1m\'] not found in index.html — the demo moved; update this matcher');
-  const stress = new Function('return (' + m[2] + ');')();
-  const id = await newPlan(m[1], 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: stress }, true);
+  const { DEMO_PLANS } = await import(S('services/GuestPlans.js'));
+  const demo = DEMO_PLANS['1m'];
+  if (!demo || !demo.stress) throw new Error('11: DEMO_PLANS[\'1m\'] not found in GuestPlans.js — the demo moved; update this step');
+  const stress = JSON.parse(JSON.stringify(demo.stress));
+  const id = await newPlan(demo.name, 'A guest plan — nothing is saved. Change anything.', ['budget', 'stress', 'decision', 'accumulation', 'household'], { stressSettings: stress }, true);
   [out['11-guest-demo']] = exportDocs({ [id]: 'guest-k3v9x1qa' });
 }
 
@@ -505,13 +508,19 @@ const out = {};   // file name → document
 }
 
 // ---- Write the fixtures, then the snapshot of what each one answers at the corpus clock ---------------------
-for (const f of readdirSync(HERE)) if (/^\d\d-.*\.json$/.test(f)) unlinkSync(join(HERE, f));   // a renamed fixture leaves no orphan
-for (const [name, doc] of Object.entries(out)) writeFileSync(join(HERE, name + '.json'), JSON.stringify(doc, null, 1) + '\n');
+// --snapshot-only keeps the committed fixtures: they are saved plans as earlier versions wrote them, and rebuilding them
+// with today's code would quietly turn every one into today's shape.
+const SNAPSHOT_ONLY = process.argv.includes('--snapshot-only');
+if (!SNAPSHOT_ONLY) {
+  for (const f of readdirSync(HERE)) if (/^\d\d-.*\.json$/.test(f)) unlinkSync(join(HERE, f));   // a renamed fixture leaves no orphan
+  for (const [name, doc] of Object.entries(out)) writeFileSync(join(HERE, name + '.json'), JSON.stringify(doc, null, 1) + '\n');
+}
+const names = SNAPSHOT_ONLY ? readdirSync(HERE).filter((f) => /^\d\d-.*\.json$/.test(f)).map((f) => f.slice(0, -5)) : Object.keys(out);
 
 at(CORPUS_NOW);
 const snapshot = { corpusNow: CORPUS_NOW, market, plans: {} };
 let bad = 0;
-for (const name of Object.keys(out).sort()) {
+for (const name of names.sort()) {
   const raw = JSON.parse(readFileSync(join(HERE, name + '.json'), 'utf8'));
   const { record, problems } = await evaluatePlan(raw, { name });
   snapshot.plans[name] = record;
@@ -519,5 +528,5 @@ for (const name of Object.keys(out).sort()) {
   for (const p of problems) { bad++; say('       - (' + p.check + ') ' + p.msg); }
 }
 writeFileSync(join(HERE, 'snapshot.json'), JSON.stringify(snapshot, null, 1) + '\n');
-say('\nWrote ' + Object.keys(out).length + ' fixtures + snapshot.json' + (bad ? ' — ' + bad + ' PROBLEM(S) above (the corpus test will fail on them)' : ''));
+say('\nWrote ' + (SNAPSHOT_ONLY ? 'snapshot.json for ' + names.length + ' committed fixtures' : Object.keys(out).length + ' fixtures + snapshot.json') + (bad ? ' — ' + bad + ' PROBLEM(S) above (the corpus test will fail on them)' : ''));
 process.exit(0);   // firebase keeps handles open

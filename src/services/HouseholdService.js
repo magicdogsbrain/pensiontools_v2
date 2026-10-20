@@ -275,8 +275,10 @@ export function runCareCheck({ setA, setB, who = 'A', startYear = 15, years = 3,
  * empty the other pays that share, so the household runs out only when both have. Read from each test's per-future
  * read-out (stressTest futuresOf): in a future where one plan ran out in plan year t and the other lasted, the other
  * covers it if the wealth it had left at its end is at least the empty plan's draw need from t to its end — counted a
- * quarter higher for the tax the payer's own bands add. A future marked not survived for a cut (money left, income
- * short) is covered whenever the other plan lasted. Without needs or read-outs the pooled share is the paired one.
+ * quarter higher for the tax the payer's own bands add. A future cut with money left and the income short (a lean year,
+ * a smaller income, a rotated year part paid) says what it left unpaid (futuresMc.unpaid, 6.37.0), and the other plan
+ * covers that, a quarter higher; until 6.37.0 such a future was covered whenever the other plan lasted. Without needs or
+ * read-outs the pooled share is the paired one.
  * @param {{ needA?: number[], needB?: number[], startAgeA?: number, startAgeB?: number, heldA?: number, heldB?: number }} [opts]  each plan's draw need
  *   by plan year (gross, today's money, net of its own guaranteed income) and the age its year 0 is; heldA / heldB: an ISA
  *   each plan holds aside (heldIsaOf), added to every year of the combined figure
@@ -322,7 +324,10 @@ function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
     if (!a && !b) continue;
     const payer = a ? fa : fb, empty = a ? fb : fa, need = a ? needB : needA, startAge = a ? opts.startAgeB : opts.startAgeA;
     const fy = bc(empty.failYear, i);
-    const covered = fy == null || bc(payer.terminal, i) >= rest(need, fy);
+    // What the other plan must find: the income the cut plan left unpaid when its test says (a lean year or a smaller
+    // income still pays most of it, 6.37.0), else all of its need from the year it was cut (an empty pot).
+    const short = empty.unpaid ? bc(empty.unpaid, i) : null;
+    const covered = fy == null || bc(payer.terminal, i) >= (short != null ? short * POOLED_TAX_UPLIFT : rest(need, fy));
     if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) fromAges.push(startAge + fy); }
   }
   fromAges.sort((x, y) => x - y);

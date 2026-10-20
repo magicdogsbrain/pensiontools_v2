@@ -524,12 +524,12 @@
    "where": null,
    "headline": {
     "affordable": true,
-    "ruinHist": 6.95,
-    "ruinMc": 15.2,
-    "coverage": 98.42,
+    "ruinHist": 0,
+    "ruinMc": 9.1,
+    "coverage": 99.47,
     "worst12Min": 11773,
     "worst12Median": 34000,
-    "terminalP10": 117991,
+    "terminalP10": 19955,
     "terminalP50": 157283,
     "terminalP90": 1903019,
     "spentMedian": 1382000,
@@ -547,7 +547,7 @@
       763752,
       564489,
       306417,
-      117991
+      19955
      ],
      "wealthP50": [
       969980,

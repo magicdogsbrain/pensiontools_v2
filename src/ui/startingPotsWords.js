@@ -64,10 +64,10 @@ function ladderLine(s, locked) {
   const from = L.pinned ? 'the pension total in this strategy\'s own settings' : 'the total of your <strong>Settings</strong> fund boxes';
   let text = `This plan's way of drawing is the ${name}: every run buys the ladder from ${fmt(L.used)} — your pension, ${fmt(L.pension)} (${from})`;
   if (L.isa > 0) text += L.held ? `. Your ISA (${fmt(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${fmt(L.isa)}`;
-  // The money left over (strategyParams.spareGrowth, 6.35.0; on the rotation it fills a cut year from 6.36.0).
+  // The money left over (strategyParams.spareGrowth, 6.35.0; on the rotation it fills a cut year: in shares from 6.36.0, kept from 6.37.0).
   const grown = !!(s.strategyParams && s.strategyParams.spareGrowth), rot = s.strategyId === 'gilt-rotation';
   text += '. The split into shares, bonds and cash in Settings does not apply to the gilts. Money left over after buying the ladder is '
-    + (grown ? 'invested in shares (your <strong>Money left over</strong> setting), so what you would have left rides the market' + (rot ? '; it pays a rotated year the sleeve cannot, before that year counts as cut.' : '.') : 'counted at its value today, not grown.');
+    + (grown ? 'invested in shares (your <strong>Money left over</strong> setting), so what you would have left rides the market' + (rot ? '; it pays a rotated year the sleeve cannot, before that year counts as cut.' : '.') : 'counted at its value today, not grown' + (rot ? '; it pays a rotated year the sleeve cannot, before that year counts as cut.' : '.'));
   if (hasStoredCharges(s)) {
     const pct = chargesPctOf(s);
     const off = ['the cash years', ...(grown ? ['the money left over in shares'] : []), ...(rot ? ['after a rotation, the share fund'] : [])];

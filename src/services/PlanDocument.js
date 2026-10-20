@@ -230,9 +230,11 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       cpiDecision: DECISION_ASSUMED_CPI_FOR_RECORD, duration: N, firstTaxYear: timing.firstTaxYear, bridgeMonths: timing.bridgeMonths,
       cashYears: params.cashYears ?? null, bridgeCash: +params.bridgeCash || 0, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
       // A gilt ladder's money left over in shares (6.35.0); absent = kept, holding its value (every document before it).
-      // On the ladder + rotation from 6.36.0 it also pays a rotated year the sleeve cannot; a 6.35.0 document has no
-      // spareFillsCuts and reads as it was locked (never drawn).
-      ...(params.spareGrowth ? { spareGrowth: true, ...(strategyId === 'gilt-rotation' ? { spareFillsCuts: true } : {}) } : {}),
+      // On the ladder + rotation it also pays a rotated year the sleeve cannot (in shares from 6.36.0, kept from 6.37.0);
+      // an earlier document has no spareFillsCuts and reads as it was locked (never drawn).
+      ...(params.spareGrowth ? { spareGrowth: true } : {}),
+      // Only where there is a block to rotate: with nothing above the cut age the test is the full ladder's (no cut years).
+      ...(strategyId === 'gilt-rotation' && r?.signature?.soldRungs > 0 && (params.spareGrowth || r.signature.spare > 0) ? { spareFillsCuts: true } : {}),
       // Fund and platform charges the plan's figures were worked out at, percent a year (6.19.0). A document locked
       // before 6.19.0 has no key: its figures were worked out without charges.
       chargesPct: chargesPctOf(settings),

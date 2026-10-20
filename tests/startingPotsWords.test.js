@@ -90,6 +90,9 @@ describe('a gilt-ladder plan: the line says what the ladder is bought from', () 
       expect(text).toContain(`buys the ladder from ${fmt(L.pension + (S.isaDrawdownStrategy === 'hold' ? 0 : L.isa))}`);
       expect(text).toContain('does not apply to the gilts');
       expect(text).toContain('not grown');
+      // kept, it still pays a rotated year the sleeve cannot (6.37.0); the full ladder never draws it
+      if (S.strategyId === 'gilt-rotation') expect(text).toContain('not grown; it pays a rotated year the sleeve cannot, before that year counts as cut.');
+      else expect(text).not.toContain('rotated year');
       if (L.isa > 0 && S.isaDrawdownStrategy === 'hold') expect(text).toContain('held back and never buys rungs');
       if (!('chargesPct' in S)) expect(text).toContain('locked before charges were added');
     });

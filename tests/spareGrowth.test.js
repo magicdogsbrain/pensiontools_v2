@@ -3,8 +3,8 @@
  * rotation buy every year's income; what is left after buying it is kept, holding its value — or, with the setting, put
  * in a world-equity fund on the test's own histories and futures, charged like the rotation's sleeve. On the full ladder
  * it is never drawn for income, so the income, the chance of lasting and year 0 are the same either way; only what is
- * left moves. On the ladder + rotation (6.36.0) it also fills a year the rotated block cannot pay before that year counts
- * as cut. Absent = kept: a plan without the key reads exactly as before, and kept money is not drawn.
+ * left moves. On the ladder + rotation it also fills a year the rotated block cannot pay before that year counts as cut —
+ * in shares from 6.36.0, kept from 6.37.0 (until then kept money was never drawn). Absent = kept.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -50,7 +50,7 @@ describe.each(['full-il-gilt', 'gilt-rotation'])('%s with the money left over in
     expect(kept.signature.spareGrowth || false).toBe(false);
   });
   it(id === 'full-il-gilt' ? 'the income, the chance of lasting and year 0 are the same; what is left now rides the market'
-    : 'year 0 is the same; the income is never less and the chance of a cut never higher (the shares fill cut years); what is left rides the market', () => {
+    : 'year 0 is the same; either way the money left over fills cut years (the label says which); what is left rides the market', () => {
     expect(grown.affordable).toBe(true);
     expect(grown.signature.spareGrowth).toBe(true);
     expect(grown.signature.spare).toBeGreaterThan(100000);
@@ -59,12 +59,10 @@ describe.each(['full-il-gilt', 'gilt-rotation'])('%s with the money left over in
       expect(grown.ruin).toEqual(kept.ruin);
       expect(grown.worst12).toEqual(kept.worst12);
     } else {
-      for (const k of ['p10', 'p50', 'p90']) grown.cones.income[k].forEach((v, y) => expect(v, k + ' year ' + y).toBeGreaterThanOrEqual(kept.cones.income[k][y] - 1e-6));
-      expect(grown.ruin.mc).toBeLessThanOrEqual(kept.ruin.mc);
-      expect(grown.ruin.hist).toBeLessThanOrEqual(kept.ruin.hist);
-      expect(grown.worst12.min).toBeGreaterThanOrEqual(kept.worst12.min - 1e-6);
+      // Kept money fills at its value; in shares it fills at what the market left it — so neither is always ahead (6.37.0).
       expect(grown.ruinLabel).toMatch(/once the money left over in shares is spent/);
-      expect(kept.ruinLabel).not.toMatch(/money left over/);
+      expect(kept.ruinLabel).toMatch(/once the money left over is spent/);
+      expect(kept.ruinLabel).not.toMatch(/in shares/);
     }
     for (const k of ['p10', 'p50', 'p90']) expect(grown.cones.wealth[k][0]).toBeCloseTo(kept.cones.wealth.p50[0], 6);   // year 0: what was spent + the spare
     expect(grown.cones.wealth.p90[N]).toBeGreaterThan(grown.cones.wealth.p10[N]);
@@ -81,38 +79,47 @@ describe.each(['full-il-gilt', 'gilt-rotation'])('%s with the money left over in
   });
 });
 
-describe('ladder + rotation: the money left over in shares fills a year the rotated block cannot pay (6.36.0)', () => {
+describe('ladder + rotation: the money left over fills a year the rotated block cannot pay (shares 6.36.0, kept 6.37.0)', () => {
   // Flat for two years, then a 50% crash that never recovers: the trigger fires at month 24, the sleeve (the block sold at
-  // its accreted value, then flat) falls short of the rotated years, and the spare is worth exactly half of itself.
+  // its accreted value, then flat) falls short of the rotated years, and the spare in shares is worth exactly half of
+  // itself. `none` is the same plan with nothing left over to draw — what kept money did until 6.37.0.
   const Q = { ...P, chargesPct: 0 };
   const plan = stressTestStrategy('gilt-rotation', { ...Q, params: {} }).plan;
   const crash = Array.from({ length: 12 * (N + 2) }, (_, m) => (m < 24 ? 100 : 50));
   const ctxOf = (params) => rotationPathsCtx(plan, { ...Q, params }, { cutAge: 75, trigger: 0.3 });
+  const none = runRotationPath(crash, 0, { ...ctxOf({}), spare: 0 });
   const kept = runRotationPath(crash, 0, ctxOf({})), grown = runRotationPath(crash, 0, ctxOf({ spareGrowth: true }));
-  it('the crash fires the trigger and the kept plan is cut', () => {
-    expect(kept.triggeredYear).toBe(2);
-    expect(kept.failAge).not.toBeNull();
-    expect(kept.paidShort).toBeGreaterThan(0);
+  const sum = (r) => r.income.slice(0, N).reduce((a, b) => a + b, 0);   // the plan's N years (point N repeats the last)
+  it('the crash fires the trigger and, with nothing left over to draw, the plan is cut', () => {
+    expect(none.triggeredYear).toBe(2);
+    expect(none.failAge).not.toBeNull();
+    expect(none.paidShort).toBeGreaterThan(0);
   });
-  it('the shares pay what they hold towards the cut years, pound for pound; the floor years are unchanged', () => {
+  it('kept money pays the cut years pound for pound at its value', () => {
+    expect(kept.triggeredYear).toBe(2);
+    expect(kept.paidShort).toBeCloseTo(Math.max(0, none.paidShort - plan.spare), 4);
+    expect(sum(kept) - sum(none)).toBeCloseTo(Math.min(plan.spare, none.paidShort), 4);
+    kept.income.forEach((v, y) => expect(v, 'year ' + y).toBeGreaterThanOrEqual(none.income[y] - 1e-6));
+    if (none.paidShort > plan.spare) expect(kept.failAge).toBeGreaterThan(none.failAge); else expect(kept.failAge).toBeNull();
+  });
+  it('the shares pay what the market left them, pound for pound; the floor years are unchanged', () => {
     const half = plan.spare / 2;
     expect(grown.triggeredYear).toBe(2);
-    expect(grown.paidShort).toBeCloseTo(Math.max(0, kept.paidShort - half), 4);
-    grown.income.forEach((v, y) => expect(v, 'year ' + y).toBeGreaterThanOrEqual(kept.income[y] - 1e-6));
-    const sum = (r) => r.income.slice(0, N).reduce((a, b) => a + b, 0);   // the plan's N years (point N repeats the last)
-    const extra = sum(grown) - sum(kept);
-    expect(extra).toBeCloseTo(Math.min(half, kept.paidShort), 4);
-    if (kept.paidShort > half) expect(grown.failAge).toBeGreaterThan(kept.failAge);
+    expect(grown.paidShort).toBeCloseTo(Math.max(0, none.paidShort - half), 4);
+    grown.income.forEach((v, y) => expect(v, 'year ' + y).toBeGreaterThanOrEqual(none.income[y] - 1e-6));
+    expect(sum(grown) - sum(none)).toBeCloseTo(Math.min(half, none.paidShort), 4);
+    if (none.paidShort > half) expect(grown.failAge).toBeGreaterThan(none.failAge);
     else expect(grown.failAge).toBeNull();
   });
   it('nothing is drawn past the plan\'s last bought year: the cut years are the plan\'s own, and point N repeats the last year', () => {
     const rotatedYears = N - (75 - P.startAge) - 1;   // ages 76 … startAge + N − 1
-    expect(kept.owed).toBeCloseTo(rotatedYears * plan.years[N - 1].need, 4);
-    expect(kept.income[N]).toBeCloseTo(kept.income[N - 1], 6);
-    expect(kept.failAge).toBeLessThan(P.startAge + N);
+    expect(none.owed).toBeCloseTo(rotatedYears * plan.years[N - 1].need, 4);
+    expect(none.income[N]).toBeCloseTo(none.income[N - 1], 6);
+    expect(none.failAge).toBeLessThan(P.startAge + N);
   });
-  it('what is left falls by what the shares paid out', () => {
-    expect(grown.wealth[N]).toBeCloseTo(kept.wealth[N] - plan.spare + Math.max(0, plan.spare / 2 - kept.paidShort), 4);
+  it('what is left falls by what the money left over paid out', () => {
+    expect(kept.wealth[N]).toBeCloseTo(none.wealth[N] - Math.min(plan.spare, none.paidShort), 4);
+    expect(grown.wealth[N]).toBeCloseTo(none.wealth[N] - plan.spare + Math.max(0, plan.spare / 2 - none.paidShort), 4);
   });
 });
 
@@ -135,16 +142,26 @@ describe('ladder + rotation: only the years the sold block paid for are the slee
   });
 });
 
-describe('ladder + rotation: each future says the year it was first cut (the couples check reads it)', () => {
-  for (const params of [{}, { spareGrowth: true }]) it(params.spareGrowth ? 'money left over in shares' : 'money left over kept', () => {
-    const r = stressTestStrategy('gilt-rotation', { ...P, mcRuns: params.spareGrowth ? 400 : P.mcRuns, params });   // the shares cut ~1 in 100
+describe('ladder + rotation: each future says the year it was first cut and what it left unpaid (the couples check reads both)', () => {
+  // Kept, the £518,811 left over now covers every cut year of this plan (6.37.0), so the kept case is the same plan
+  // bought with £1,000 to spare; in shares it is still cut about 1 future in 100.
+  const total = Math.ceil(stressTestStrategy('gilt-rotation', { ...P, params: {} }).plan.total);
+  for (const [label, Q, params] of [['little left over, kept', { ...P, pot: total + 1000 }, {}], ['money left over in shares', { ...P, mcRuns: 400 }, { spareGrowth: true }]]) it(label, () => {
+    const r = stressTestStrategy('gilt-rotation', { ...Q, params });
     const cut = r.survivedMc.map((ok, i) => (ok ? null : i)).filter((i) => i != null);
     expect(cut.length).toBeGreaterThan(0);
     for (const i of cut) {
       expect(r.futuresMc.failYear[i]).not.toBeNull();
       expect(P.startAge + r.futuresMc.failYear[i]).toBeGreaterThan(75);
+      expect(r.futuresMc.unpaid[i]).toBeGreaterThan(1);
     }
-    r.survivedMc.forEach((ok, i) => { if (ok) expect(r.futuresMc.failYear[i]).toBeNull(); });
+    r.survivedMc.forEach((ok, i) => { if (ok) { expect(r.futuresMc.failYear[i]).toBeNull(); expect(r.futuresMc.unpaid[i]).toBeNull(); } });
+  });
+  it('kept, the money left over covers this plan\'s cut years: none is cut', () => {
+    const r = stressTestStrategy('gilt-rotation', { ...P, mcRuns: 400, params: {} });
+    expect(r.signature.spare).toBeGreaterThan(500000);
+    expect(r.ruin.mc).toBe(0);
+    expect(r.ruin.hist).toBe(0);
   });
 });
 
@@ -216,6 +233,18 @@ describe('where the setting lives', () => {
     const locked635 = { ...d, assumptions: { ...d.assumptions } };
     delete locked635.assumptions.spareFillsCuts;   // what a 6.35.0 document holds
     expect(planDocumentHtml(locked635)).toContain('never drawn for income');
+  });
+  it('a ladder + rotation locked with its money left over kept says it pays a rotated year (6.37.0); an earlier one has no row', () => {
+    const settings = { strategyId: 'gilt-rotation', strategyParams: { sippTotal: 1500000, cashYears: 2 }, duration: N };
+    const d = buildPlanDocument({ settings, p: { ...P }, r: run('gilt-rotation', {}), now: new Date('2026-10-20T10:00:00Z') });
+    expect(d.assumptions.spareFillsCuts).toBe(true);
+    expect(d.assumptions.spareGrowth).toBeUndefined();
+    expect(planDocumentHtml(d)).toContain('kept, holding its value; it pays a rotated year the sleeve cannot, before that year counts as cut');
+    const earlier = { ...d, assumptions: { ...d.assumptions } };
+    delete earlier.assumptions.spareFillsCuts;   // what a document locked before 6.37.0 holds
+    expect(planDocumentHtml(earlier)).not.toContain('Money left over');
+    const full = buildPlanDocument({ settings: { ...settings, strategyId: 'full-il-gilt' }, p: { ...P }, r: run('full-il-gilt', {}), now: new Date('2026-10-20T10:00:00Z') });
+    expect(full.assumptions.spareFillsCuts).toBeUndefined();   // the full ladder never draws it
   });
 });
 function kept0() { return run('full-il-gilt', {}); }

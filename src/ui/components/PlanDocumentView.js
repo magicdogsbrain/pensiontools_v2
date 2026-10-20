@@ -151,6 +151,7 @@ export function planDocumentHtml(doc, r = {}) {
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · SIPP cash to the first April ' + gbp(A.bridgeCash) : '')]] : []),
     ...(A.spareGrowth ? [['Money left over', 'invested in shares (a growth part); ' + (A.spareFillsCuts ? 'it pays a rotated year the sleeve cannot, before that year counts as cut' : 'never drawn for income')]] : []),   // 6.35.0 (6.36.0: fills cuts); absent = kept, as every earlier document
+    ...(!A.spareGrowth && A.spareFillsCuts ? [['Money left over', 'kept, holding its value; it pays a rotated year the sleeve cannot, before that year counts as cut']] : []),   // 6.37.0
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(ukDate(A.giltPricesAsOf))]] : []),
     ['Fund and platform charges', chargesAssumptionText(A)],
     ['How the ISA and savings grow', esc(isaGrowthAssumptionText(A))],

@@ -37,6 +37,32 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.37.0', date: '2026-10-20', engineVersion: '6.37.0',
+    title: 'Gilt ladder + rotation: money left over pays a cut year, kept or invested; the couples check sees every cut',
+    summary: 'On the gilt ladder + rotation, the money left over after buying the ladder now pays any rotated year the sleeve cannot, whether it is kept or invested in shares, and a year counts as cut only once that money is spent. Until now kept money was never drawn, so a plan could be counted as cut with it untouched. The Household couples check also now sees when a Floor & Flex or Floor to an age plan is cut.',
+    changes: [
+      'Gilt ladder + rotation with "Money left over: Kept": a rotated year the sleeve cannot pay is paid from that money first, at its value, before the year counts as cut. The chance of a cut, the strategy page, "Will it last?", History and the cones all count it. On a test plan with £518,811 left over, the chance of a cut falls from 11.75% of futures and 3.57% of real histories to none. What is left in a bad case is lower, because that money is spent.',
+      'Kept or invested, the rotation now draws on the money left over the same way, so comparing the two shows only what the shares add or cost. In a crash, kept money can cover more than money in shares: on the same test plan with the money in shares, the chance of a cut is 1.25% of futures.',
+      'The setting\'s help, the strategy page, the note on what the ladder is bought from, and a plan document locked from now on say so. A document locked earlier still reads as it was locked.'
+    ],
+    corrections: [
+      'Household couples comparison, "if one plan falls short, can the other carry it?": a Floor & Flex plan cut by a lean year, or a Floor to an age plan cut to a smaller income, still held money, so it was read as never cut, or cut only in its last year, and nearly every such future was counted as carried by the other plan. Each future now says the year it was first cut and how much income it left unpaid, and the other plan is asked to cover that, with a quarter added for tax. On a made-up couple, Floor & Flex next to Pots & Valves, the chance the household is covered falls from 99.5% to 85.5%; with Floor to an age, from 98.4% to 94.1%, carried from age 81 rather than 92.',
+      'Household couples comparison: Pots & Valves and Buckets in order read the year the money ran out a year late, and Ladder & Ratchet did when it ran out in a year\'s last month. They now read the year it happened, so the other plan is asked to cover that year too.'
+    ],
+    effects: {
+      stress: ['Gilt ladder + rotation with the money left over kept: the chance of a cut is lower, often much lower, and what is left in a bad case is lower. With it in shares: unchanged.'],
+      strategies: ['Gilt ladder + rotation, as above. Other strategies unchanged.'],
+      decision: ['None. Locked plans and their documents are unchanged.'],
+      household: ['The chance the household is covered can be lower where one plan is Floor & Flex or Floor to an age (their cuts now count), a little lower where one is Pots & Valves, Buckets in order or Ladder & Ratchet, and higher where one is a gilt ladder + rotation (it asks only for the rotated years it left unpaid).'],
+      accumulation: [],
+      budget: []
+    },
+    actions: [],
+    notes: [
+      'A cut plan that still pays part of its income asks the other plan only for what it left unpaid; one that has run out asks for all of its need from that year, as before. Engine 6.37.0.'
+    ]
+  },
+  {
     version: '6.36.0', date: '2026-10-20', engineVersion: '6.36.0',
     title: 'Gilt ladder + rotation: money left over in shares pays a year before it is cut',
     summary: 'On the gilt ladder + rotation with "Money left over" set to "Invested in shares", that money now pays any rotated year the sleeve cannot, and the year counts as cut only once it is spent. Until now the test never drew it, so a cut was counted even with the money there. On a test plan with £518,811 left over, the chance of a cut fell from 13% of futures to about 1%, and from 4.3% of real histories to none. Older slips in the rotation are also put right. It drew one year past the end of the plan. On some cut ages it paid one year twice. It valued its sleeve a year ahead of the gilts beside it. And the couples check treated its cut futures as never cut.',

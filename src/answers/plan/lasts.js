@@ -326,6 +326,6 @@ export function verdictOf(result, saved) {
       ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
-    history: { worst, named, histRanOut: n0(a.histRanOutN), histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
+    history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
   };
 }

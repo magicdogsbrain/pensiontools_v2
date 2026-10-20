@@ -288,9 +288,10 @@ export function whereAmIPotText(pot) {
   const expects = ' against ' + gbp(P.p50) + ' the plan expects by then' + (P.runUp ? ' (' + gbp(P.startP50) + ' at the start of the plan + ' + gbp(P.runUp.value) + ' of run-up cash for the ' + P.runUp.months + ' month' + (P.runUp.months === 1 ? '' : 's') + ' still to pay)' : '');
   const verdict = P.verdict || (P.band ? 'band' : null);
   let s;
-  if (verdict === 'gilts-at-cost') {
-    // The band holds the gilts at what they cost, the record at their market value: no verdict (RUNGS_AT_COST).
-    s = pt + expects + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts at what they cost and your figure is at today\'s market prices, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
+  if (verdict === 'gilts-held-to-pay') {
+    // The band holds the gilts as held to repay (at cost in a document locked before 6.34.0), the record at their market
+    // value: no verdict (RUNGS_HELD_TO_PAY).
+    s = pt + expects + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts ' + (P.atCost ? 'at what they cost' : 'as held until they repay') + ', and your figure is at today\'s market prices, which move with interest rates, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
   } else if (verdict === 'start') {
     s = P.planYear < 0
       ? pt + ' against ' + gbp(P.p50) + ' the plan starts from; the band opens once the plan has started.'

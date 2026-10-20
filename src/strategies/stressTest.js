@@ -22,7 +22,7 @@ import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
-import { cashCostFactor, buildGiltLadder } from './GiltLadderPlan.js';
+import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
 import { chargesPctOf } from '../services/Charges.js';
@@ -596,13 +596,12 @@ function fullGiltTest(p, configs) {
     chargesPct: p.chargesPct   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
   });
   if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };
-  // Deterministic: income = the schedule; wealth = unpaid rungs at cost (+ spare) — no market exposure.
-  const income = [], wealth = [];
-  const costByYear = {}; for (const o of plan.orders) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
+  // Deterministic: income = the schedule; wealth = unpaid rungs at their accreted value (+ cash, + spare) — no market
+  // exposure. Held at cost until 6.34.0, which understated what a ladder holds mid-plan (the survivor's estate, the cone).
+  const income = [];
+  const wealth = ladderWealthByYear(plan, N);
   for (let y = 0; y <= N; y++) {
     const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)) + otherAt(p, y));
-    let w = plan.spare; for (const yr of plan.years) if (yr.Y >= firstTaxYear + y) w += yr.from === 'cash' ? (yr.cost ?? yr.need) : (costByYear[yr.Y] || 0);
-    wealth.push(w);
   }
   const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });
   const minInc = Math.min(...income.slice(0, N));
@@ -617,7 +616,7 @@ function fullGiltTest(p, configs) {
     failAges: [],
     signature: { cash: plan.cash, giltsCost: plan.giltsCost, total: plan.total, spare: plan.spare, orders: plan.orders.length, doubleDrops: plan.orders.filter((o) => o.taxYears.length > 1).length, firstTaxYear, cashYears: plan.cashYears.length },
     n: { hist: 1, mc: 1 },
-    wealthLabel: "Unpaid rungs at cost + cash, today's money (no market exposure)"
+    wealthLabel: "Unpaid rungs (each rising from its cost to what it pays, yields unchanged) + cash, today's money (no market exposure)"
   };
 }
 

@@ -207,7 +207,8 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(text).toContain('Pension £1,050,000 and ISAs and savings £80,000 today.');
     expect(text).toContain('This way of drawing is sized on its own figures: £1,050,000 pension and £80,000 ISAs, set with the way of drawing (in the planner).');
-    expect(text).toContain('The ISA is held, never drawn for income');
+    expect(text).toContain('The ISA is held aside: this way of drawing buys nothing with it and never draws from it');   // a ladder: no "rescue" line
+    expect(text).not.toContain('rescues the plan');
     expect(root.querySelector('[data-testid="plan.pots.back"]').getAttribute('href')).toBe('#/plan/' + C['03-gilt-ladder-runup'].id + '/plan');
     const page = draw(stateWith(entries, '#/plan/' + C['03-gilt-ladder-runup'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.pots"]').textContent).toBe('See these');

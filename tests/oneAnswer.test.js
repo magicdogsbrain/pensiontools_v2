@@ -224,6 +224,18 @@ describe('History and Scenarios explain the one test; neither shows a rival perc
     expect(t).not.toMatch(/FAILED/);
     expect(t).not.toMatch(/looped|on repeat/i);
   });
+  it('a strategy that cuts instead of running out says "cut" (or "a lean year"), never "the money ran out" (sweep 20 Oct 2026)', () => {
+    expect(a.failKind).toBe('ran-out');
+    expect(plain(historyTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, rows: [], worst: [] }))).toMatch(/the money ran out in \d+ of them/);
+    const rot = oneAnswer({ ...R, strategyId: 'gilt-rotation', ruinLabel: 'chance the rotated years (after 75) are cut' }, P);
+    expect(rot.failKind).toBe('cut');
+    const t = plain(historyTabHtml({ strategyId: 'gilt-rotation', name: 'Gilt ladder + rotation', a: rot, rows: [], worst: [] }));
+    expect(t).toMatch(/the plan was cut in \d+ of them/);
+    expect(t).not.toMatch(/ran out/);
+    const flex = oneAnswer({ ...R, strategyId: 'floor-and-flex', ruinLabel: 'chance of at least one lean year' }, P);
+    expect(flex.failKind).toBe('lean');
+    expect(plain(historyTabHtml({ strategyId: 'floor-and-flex', name: 'Floor & flex', a: flex, rows: [], worst: [] }))).toMatch(/\d+ of them had a lean year/);
+  });
   it('a contract strategy: every year is bought, so a bad start changes nothing', () => {
     const t = plain(historyTabHtml({ strategyId: 'floor-the-schedule', name: 'Floor the schedule', a: { ...a, histRanOutPct: 0 }, rows: [{ year: 1929, label: 'the Great Depression', kind: 'contract', available: true }], worst: [] }));
     expect(t).toMatch(/bought by contract/i);

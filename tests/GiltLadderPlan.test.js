@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildGiltLadder, spreadFor } from '../src/strategies/GiltLadderPlan.js';
+import { buildGiltLadder, spreadFor, ladderWealthByYear, accretedValue, yearsToMaturity } from '../src/strategies/GiltLadderPlan.js';
 import { activeLinkers } from '../src/services/LinkerUniverse.js';
+import { rotationPathsCtx, runRotationPath } from '../src/strategies/GiltRotation.js';
 
 // The user's own plan (26 Aug 2026): £35k bridge, 3 cash years at £80k, £65k to 67, £45k to 74, £40k to 91.
 const amountAtAge = (age) => age <= 59 ? 80000 : age <= 67 ? 65000 : age <= 74 ? 45000 : 40000;
@@ -48,5 +49,55 @@ describe('GiltLadderPlan — the fully deterministic ladder', () => {
     if (!plan.affordable) expect(plan.reason).toMatch(/more than the pot/);
     const rich = buildGiltLadder({ ...base, pot: 2000000 });
     expect(rich.affordable).toBe(true); expect(rich.spare).toBeGreaterThan(700000);
+  });
+});
+
+describe('what a ladder holds, year by year — never at cost while a rung is held (sweep 20 Oct 2026)', () => {
+  const p = { pot: 1500000, startAge: 60, durationYears: 30, amountAtAge: () => 50000, spAnnual: 0, spStartAge: 99, spFirstYearRatio: 1,
+    firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 2, bridgeCash: 0, todayIso: '2026-10-20' };
+  const plan = buildGiltLadder(p);
+  const w = ladderWealthByYear(plan, p.durationYears);
+  // The old measure: each rung at what it cost, split evenly over the years it pays.
+  const atCost = (y) => plan.spare + plan.years.filter((yr) => yr.Y >= p.firstTaxYear + y).reduce((t, yr) => {
+    if (yr.from === 'cash') return t + yr.cost;
+    const o = plan.orders.find((x) => x.tidm === yr.from);
+    return t + o.cost / o.taxYears.length;
+  }, 0);
+  it('year 0 is what the rungs and cash cost plus what is left; the last year is what is left', () => {
+    expect(plan.affordable).toBe(true);
+    expect(w).toHaveLength(p.durationYears + 1);
+    expect(w[0]).toBeCloseTo(plan.spare + plan.cash + plan.giltsCost, 6);
+    expect(w[0]).toBeCloseTo(atCost(0), 6);
+    expect(w[p.durationYears]).toBeCloseTo(plan.spare, 6);
+  });
+  it('a rung rises from its cost on the day it is bought to what it pays on the day it matures', () => {
+    for (const o of plan.orders) {
+      const T = yearsToMaturity(o, p.firstTaxYear);
+      expect(accretedValue(o, 0, T)).toBeCloseTo(o.cost, 6);
+      expect(accretedValue(o, T, T)).toBeCloseTo(o.pays, 6);
+      expect(accretedValue(o, T + 5, T)).toBeCloseTo(o.pays, 6);   // after maturity it is cash: what it paid
+    }
+  });
+  it('mid-plan, rungs bought below what they pay are worth more than they cost', () => {
+    const cheap = plan.orders.filter((o) => o.cost < o.pays).length;
+    expect(cheap).toBeGreaterThan(0);
+    for (let y = 1; y < p.durationYears; y++) expect(w[y]).toBeGreaterThan(atCost(y) - 1e-6);
+    expect(w[15]).toBeGreaterThan(atCost(15) + 1000);
+  });
+  it('a rotation whose trigger never fires holds exactly what the full ladder holds, every year — the block\'s rungs are not counted again after they pay (6.34.0)', () => {
+    const ctx = rotationPathsCtx(plan, { ...p, params: {}, chargesPct: 0, otherIncomeByYear: [] }, { cutAge: 75, trigger: 0.3 });
+    expect(ctx.split.soldOrders.length).toBeGreaterThan(0);
+    const rising = Array.from({ length: 12 * (p.durationYears + 2) }, (_, i) => 100 * 1.004 ** i);   // never 30% below its high
+    const run = runRotationPath(rising, 0, ctx);
+    expect(run.triggeredYear).toBeNull();
+    expect(run.failAge).toBeNull();
+    for (let y = 0; y <= p.durationYears; y++) expect(run.wealth[y], 'year ' + y).toBeCloseTo(w[y], 6);
+    expect(run.wealth[p.durationYears]).toBeCloseTo(plan.spare, 6);
+  });
+  it('leaving a rung out removes exactly its accreted value (the rotation values its sold block on its own)', () => {
+    const o = plan.orders[plan.orders.length - 1];
+    const without = ladderWealthByYear(plan, p.durationYears, new Set([o.tidm]));
+    const T = yearsToMaturity(o, p.firstTaxYear);
+    for (const y of [0, 5, 10]) expect(w[y] - without[y]).toBeCloseTo(accretedValue(o, y, T), 6);
   });
 });

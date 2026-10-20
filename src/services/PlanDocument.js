@@ -248,12 +248,13 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
 /** The strategies whose band is "all pots": the Pots & Valves engine's SIPP + ISA + taxable account (stressTest pnvRun). */
 export const POT_STRATEGIES = ['pots-and-valves', 'buckets-in-order'];
 /**
- * The strategies whose band holds the gilts at what they COST (stressTest fullGiltTest / rotationTest: unpaid rungs at
- * cost, the rotation block at its accreted value), where the Decision record holds their market value. The two are not
- * the same measure, so the strip gives no verdict on these (6.20.1). The other ladder strategies value the unpaid rungs
- * on the plan's own yield curve at each year (ladderPvAt), next to a market sleeve whose spread dominates the band.
+ * The strategies whose band holds the gilts as held to repay (stressTest fullGiltTest / rotationTest: each unpaid rung
+ * rising from its cost to what it pays, yields unchanged — at cost in documents locked before 6.34.0), where the Decision
+ * record holds their market value. The two are not the same measure and the band is flat, so the strip gives no verdict
+ * on these (6.20.1). The other ladder strategies value the unpaid rungs on the plan's own yield curve at each year
+ * (ladderPvAt), next to a market sleeve whose spread dominates the band.
  */
-export const RUNGS_AT_COST = ['full-il-gilt', 'gilt-rotation'];
+export const RUNGS_HELD_TO_PAY = ['full-il-gilt', 'gilt-rotation'];
 
 /**
  * Which accounts the plan's wealth band counts at a plan year (6.20.1). Read from the stored document only.
@@ -466,8 +467,8 @@ export function bandAt(wc, yi, frac = 0) {
  *    not hold that cash but the pot does: the part of it the plan has not yet spent — spread evenly over the run-up
  *    months it was priced with, the pot's own month still to pay — is added to the band.
  * A verdict (`band`) is given only when the two are the same measure and the band has opened:
- *  - `verdict: 'gilts-at-cost'` — Full ladder / Ladder + rotation: the band holds the gilts at what they cost, the
- *    record at today's market prices (RUNGS_AT_COST). No verdict; the ladder line says whether the rungs are on track.
+ *  - `verdict: 'gilts-held-to-pay'` — Full ladder / Ladder + rotation: the band holds the gilts as held to repay, the
+ *    record at today's market prices (RUNGS_HELD_TO_PAY). No verdict; the ladder line says whether the rungs are on track.
  *  - `verdict: 'start'` — the run-up, or April of year 0: every line is still the starting figure.
  *  - `verdict: 'not-open'` — the 1-in-10 bad line is still the median (nothing to be below).
  *  - `verdict: 'band'` — `band` is set.
@@ -508,12 +509,14 @@ function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) 
   const prices = pricesSinceStart(doc, P.at, taxYears);
   const real = actual == null ? null : actual / prices.factor;
   // "Bought by contract" only when the cone is flat over the WHOLE run — every cone is flat at year 0 (6.10.4). Only a
-  // ladder held at cost draws one (fullGiltTest), so a document without its strategy id is read as one too.
+  // ladder held to repay draws one (fullGiltTest), so a document without its strategy id is read as one too.
   const flatAll = Array.isArray(wc.p10) && Array.isArray(wc.p90) && wc.p10.length > 1 && wc.p10.every((v, i) => Math.abs((wc.p90[i] ?? v) - v) < 1);
-  const atCost = RUNGS_AT_COST.includes(P.measure.strategyId) || flatAll;
+  const heldToPay = RUNGS_HELD_TO_PAY.includes(P.measure.strategyId) || flatAll;
+  // A document locked before engine 6.34.0 holds its gilts at what they cost (the cone it stored); later ones as held to repay.
+  const atCost = heldToPay && engineBefore(doc.engineVersion, '6.34.0');
   let verdict = null, band = null;
   if (real != null && p50 != null) {
-    if (atCost) verdict = 'gilts-at-cost';
+    if (heldToPay) verdict = 'gilts-held-to-pay';
     else if (p10 == null || p90 == null || Math.abs(p50 - p10) < 1) {
       const closed = p10 == null || p90 == null || Math.abs(p90 - p10) < 1;
       verdict = closed && (pY < 0 || (pY === 0 && frac === 0)) ? 'start' : 'not-open';
@@ -528,8 +531,15 @@ function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) 
     source: P.source, asOf: P.asOf, planYear: pY, monthsIn: Math.round(frac * 12),
     prices: { factor: prices.factor, assumed: prices.assumed, years: prices.years.length, entered: prices.years.filter((x) => x.entered).length },
     p10: r0(p10), p50: r0(p50), p90: r0(p90), startP50: runUp ? r0(startP50) : null, runUp,
-    verdict, band, flat: flatAll, isaLeftOut: P.measure.isaLeftOut, stale
+    verdict, band, flat: flatAll, atCost, isaLeftOut: P.measure.isaLeftOut, stale
   };
+}
+
+/** True when engine version `v` ('6.22.0') is before `than`, or absent (a document from before engines were stamped). */
+function engineBefore(v, than) {
+  const a = String(v || '0').split('.').map((x) => +x || 0), b = String(than).split('.').map((x) => +x || 0);
+  for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) < (b[i] || 0);
+  return false;
 }
 
 /**

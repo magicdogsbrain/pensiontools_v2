@@ -10,7 +10,7 @@
  *  - the same pounds: every band is in prices at the start of the plan, a pot in the pounds of its month — the pot is
  *    turned into the plan's prices with the CPI entered in the Decision tool, else the plan's 4% assumption;
  *  - the same point in the plan: the band is read at the pot's month, the spread opening with the square root of time;
- *  - the same measure: a band that holds gilts at what they cost (Full ladder, Ladder + rotation) is not set against
+ *  - the same measure: a band that holds gilts as held to repay (Full ladder, Ladder + rotation) is not set against
  *    a record of their market value — no verdict there.
  * The plan document itself is never changed.
  */
@@ -209,7 +209,7 @@ describe('the band in the first months of a plan opens with the square root of t
   });
 });
 
-describe('gilts valued at what they cost: no verdict against their market value', () => {
+describe('gilts valued as held to repay: no verdict against their market value', () => {
   // A Ladder + rotation band like the owner's: the 1-in-10 bad line IS the median while most futures never rotate.
   const rot = { p10: [1019460, 971497, 923611, 873025, 819491], p50: [1019460, 971497, 923611, 876647, 829763], p90: [1019460, 971497, 937865, 905479, 893232] };
   const owner = (extra = {}) => deepFreeze(makeDoc({ id: 'gilt-rotation', contract: true, isa: 80000, isaPolicy: 'hold', firstTaxYear: 2027, bridgeCash: 30000, bridgeMonths: 7, cones: rot,
@@ -224,12 +224,14 @@ describe('gilts valued at what they cost: no verdict against their market value'
     const w = whereAmI(doc, { today: at(2028, 5, 20), history: [record('2028-05', 0, nominal - 20000, 20000)] });
     expect(w.pot.p10).toBe(w.pot.p50);
     expect(w.pot.real).toBe(Math.round(real));
-    expect(w.pot.verdict).toBe('gilts-at-cost');
+    expect(w.pot.verdict).toBe('gilts-held-to-pay');
     expect(w.pot.band).toBeNull();
     const h = strip(w);
     expect(h).not.toMatch(/below the plan|1-in-10/);
     expect(h).toContain('the plan expects by then');
-    expect(h).toContain('The plan counts its gilts at what they cost and your figure is at today\'s market prices');
+    // a document locked before engine 6.34.0 stored its gilts at what they cost, and the strip says so
+    expect(w.pot.atCost).toBe(true);
+    expect(h).toContain('The plan counts its gilts at what they cost, and your figure is at today\'s market prices');
     expect(JSON.stringify(doc)).toBe(before);
   });
   it('the owner\'s shape — locked, ISA held aside, in the run-up: the run-up cash on both sides, and still no verdict', () => {
@@ -240,7 +242,7 @@ describe('gilts valued at what they cost: no verdict against their market value'
     expect(w.pot.real).toBe(1050000);                      // the run-up is at the starting prices
     expect(w.pot.runUp).toMatchObject({ months: 7, of: 7, value: 30000 });
     expect(w.pot.p50).toBe(1019460 + 30000);
-    expect(w.pot.verdict).toBe('gilts-at-cost');
+    expect(w.pot.verdict).toBe('gilts-held-to-pay');
     const h = strip(w);
     expect(h).toContain('against £1,049,460 the plan expects by then (£1,019,460 at the start of the plan + £30,000 of run-up cash for the 7 months still to pay)');
     expect(h).toMatch(/ISA is held aside/);
@@ -265,15 +267,17 @@ describe('gilts valued at what they cost: no verdict against their market value'
     expect(w.pot.band).toBeNull();
     expect(strip(w)).not.toMatch(/1-in-10|cone opens|at the start of the plan, priced/);
   });
-  it('the full ladder (flat band): bought by contract, no verdict, the same cost-and-market note', () => {
+  it('the full ladder (flat band): bought by contract, no verdict, the same held-and-market note', () => {
     const flat = series(11, (y) => 1019980 - 80000 * y);
-    const doc = makeDoc({ id: 'full-il-gilt', contract: true, isa: 0, firstTaxYear: 2027, cones: { p10: flat, p50: flat, p90: flat } });
+    const doc = { ...makeDoc({ id: 'full-il-gilt', contract: true, isa: 0, firstTaxYear: 2027, cones: { p10: flat, p50: flat, p90: flat } }), engineVersion: '6.34.0' };
     const w = whereAmI(doc, { today: at(2029, 6, 20), history: [record('2029-06', 0, 850000, 10000, { taxYear: '29/30' })] });
     expect(w.pot.flat).toBe(true);
     expect(w.pot.band).toBeNull();
     const h = strip(w);
     expect(h).toContain('the plan\'s path is bought by contract');
-    expect(h).toContain('at what they cost');
+    expect(h).toContain('The plan counts its gilts as held until they repay');   // locked under engine 6.34.0: valued as held
+    expect(h).not.toContain('at what they cost');
+    expect(whereAmI({ ...doc, engineVersion: '6.22.0' }, { today: at(2029, 6, 20), history: [record('2029-06', 0, 850000, 10000, { taxYear: '29/30' })] }).pot.atCost).toBe(true);
   });
   it('a band whose 1-in-10 bad line is still its median gives no verdict on any strategy', () => {
     const cones = { p10: [700000, 690000, 680000], p50: [700000, 690000, 680000], p90: [700000, 700000, 700000] };

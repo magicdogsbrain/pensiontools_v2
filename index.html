@@ -4133,7 +4133,7 @@
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
-    import { pnvOnlySections, paintSettingUseNotes } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
+    import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
     import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion, lockFromStressQuestion } from './src/ui/plannerWords.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
@@ -5895,7 +5895,7 @@
         : { t: flex ? 'Bills always paid; expect lean years for the treats' : cut ? 'A cut is more likely than not' : 'Unlikely to last as planned', c: flex ? 'warning' : 'danger' };
       const basis = r.n.mc.toLocaleString() + ' simulated futures and ' + r.n.hist + ' real ' + p.durationYears + '-year histories since 1871';
       return '<div class="verdict verdict-' + v.c + '"><div class="verdict-title">' + (cut ? 'Will you get what you planned? — ' : 'Will your money last? — ') + v.t + '</div>'
-        + '<div class="verdict-heroes"><div><span class="hero">' + pctText(sr, 0, CHANCE_BARS) + '</span><span class="hero-sub">' + (flex ? 'chance of no lean year (never more than 10% under the plan; the bills can\'t fail)' : cut ? 'chance the plan is paid in full (never runs out)' : 'chance your money lasts the whole plan') + ' — lasts ' + futuresOutOfTen(sr / 100).words + '</span></div>'
+        + '<div class="verdict-heroes"><div><span class="hero">' + pctText(sr, 0, CHANCE_BARS) + '</span><span class="hero-sub">' + (flex ? 'chance of no lean year (never more than 10% under the plan; the bills can\'t fail)' : cut ? 'chance the plan is paid in full, with no year cut' : 'chance your money lasts the whole plan') + ' — ' + (flex ? 'no lean year ' : cut ? 'paid in full ' : 'lasts ') + futuresOutOfTen(sr / 100).words + '</span></div>'
         + '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
         + '<div><span class="hero" style="font-size:30px;">' + gbp(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div></div>'
         + '<div class="verdict-basis">Based on ' + basis + ' (' + pctText((r.ruin.hist || 0)) + ' of the histories ' + (cut ? 'were cut' : 'ran out') + '). Today\'s money. The one test: the same figure on every screen of this plan.</div></div>';
@@ -5970,13 +5970,13 @@
       try { const rows = incomeLayersRows(r, p); if (rows.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">What pays you, year by year</div><p class="hint" style="margin:0 0 4px;">Stacked by source, today\'s money: State Pension, other income (DB pension, streams), income bought by contract, and what the median future adds from the market. Dashed = your need (income shape plus any one-off spends); red = the 1-in-10 bad future\'s total.</p><div class="machine-scroll">' + incomeLayersSvg({ rows }) + '</div></div>'; } catch (e) { console.warn('income layers', e); }
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
       const fa = r.failAges || [];
-      const faTxt = fa.length ? 'Of the futures that failed, half did so before age ' + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : 'No simulated future ran out.';
+      const faTxt = fa.length ? (r.ruinLabel ? 'Of the futures that were cut, half were cut before age ' : 'Of the futures that ran out, half did so before age ') + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : (r.ruinLabel && (r.ruin.mc || 0) > 0 ? 'No simulated future ran out; the cuts are counted above.' : 'No simulated future ran out.');
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
         + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
         + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
         + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
         + leftRowHtml(oneAnswer(r, p)) + cutsRowHtml(oneAnswer(r, p))
-        + '<tr><td>When it failed</td><td>' + faTxt + '</td></tr>'
+        + '<tr><td>' + (r.ruinLabel ? 'When it was cut' : 'When it ran out') + '</td><td>' + faTxt + '</td></tr>'
         + '</tbody></table></div><div class="without-cuts"></div>';
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
         h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp || drawNetFromPlan(p), 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
@@ -8489,7 +8489,7 @@
       document.getElementById('ssFfParams').style.display = id === 'floor-and-flex' ? 'block' : 'none';
       // A ladder plan has no risk-mix, no own-funds tagging, no valves, no HODL, no UFPLS mechanics — hide that machinery
       // (the parts marked data-pnv-only). The settings every engine reads stay in view, each with a note when a strategy ignores it.
-      for (const sec of pnvOnlySections(document)) sec.style.display = isLadder ? 'none' : ''; paintSettingUseNotes(document, id);
+      for (const sec of pnvOnlySections(document)) sec.style.display = isLadder ? 'none' : ''; paintSettingUseNotes(document, id); if (typeof window.syncIsaHoldUI === 'function') window.syncIsaHoldUI('ss');
       // Switching strategy invalidates any run cards from the previous one — clear them.
       for (const rid of ['strategyRunResults', 'histResults', 'scenResults']) {
         const el = document.getElementById(rid);
@@ -8537,7 +8537,7 @@
     }
     window.miniPotChanged = function (refresh = true) {
       const sipp = +document.getElementById('miniSipp')?.value || 0, isa = +document.getElementById('miniIsa')?.value || 0, pol = document.getElementById('miniIsaPolicy')?.value;
-      const pe = document.getElementById('ssIsaPolicy'); if (pe && pol) pe.value = pol;
+      const pe = document.getElementById('ssIsaPolicy'); if (pe && pol) { pe.value = pol; if (typeof window.syncIsaHoldUI === 'function') window.syncIsaHoldUI('ss'); }
       const ib = document.getElementById('ssIsaBalance'); if (ib) ib.value = isa;
       const note = document.getElementById('miniPotNote'); if (note) note.textContent = 'Buys with ' + gbp(sipp) + (isa ? (pol === 'hold' ? ' — the ' + gbp(isa) + ' ISA is held aside' : ' + ' + gbp(isa) + ' ISA') : '') + '. Saved with the strategy; the Pots & Valves allocation is untouched.';
       const echo = document.getElementById('giltPotEcho'); if (echo) echo.textContent = gbp(sipp) + (isa ? (pol === 'hold' ? ' — ISA ' + gbp(isa) + ' held aside' : ' + ISA ' + gbp(isa)) : '');
@@ -9203,7 +9203,7 @@
         intro: 'The full index-linked ladder, with a single rule bolted on: if equities ever close 30% below their all-time high, the rungs funding the years above the cut age (75 by default) are sold — whatever the gilt price — and the proceeds buy the equity fund in the crash. If the trigger never fires, this IS the full ladder. The trade: the certain leftover of the ladder is exchanged for a high chance of a much larger one, at the risk that a 1929 arriving late cuts the rotated years.',
         machine: (r, p) => ({ fn: (d, f) => giltLadderSvg(d.plan, f), d: { plan: r.plan } }),
         dials: (prm, s) => dial('Keep rungs to age (the floor)', 'rotateCutAge', 'type="number" min="65" max="88"', prm.rotateCutAge || 75) + dial('Trigger: % below the all-time high', 'rotateTrigger', 'type="number" min="20" max="50" step="5"', prm.rotateTrigger || 30) + dial('Cash years first', 'cashYears', 'type="number" min="0" max="5"', prm.cashYears ?? 3),
-        verdict: (r, p) => '<strong>The floor to ' + r.signature.rotateCutAge + ' never fails.</strong> The rotation block is ' + r.signature.soldRungs + ' rungs worth ' + gbp(Math.round(r.signature.blockValueToday)) + ' today, covering ' + gbp(Math.round(r.signature.blockIncome)) + ' of income above ' + r.signature.rotateCutAge + '. The trigger fired in ' + pctText((r.signature.triggeredShare || 0) * 100) + ' of futures; the rotated years were cut in <strong>' + pctText(r.ruin.mc, 1, RUIN_BARS) + '</strong> of futures (' + pctText(r.ruin.hist, 1) + ' of real histories). Typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + ' — against ' + gbp(Math.round(r.signature.spare)) + ' if the trigger never fires and the plain ladder runs out the clock.',
+        verdict: (r, p) => '<strong>The floor to ' + r.signature.rotateCutAge + ' never fails.</strong> The rotation block is ' + r.signature.soldRungs + ' rungs worth ' + gbp(Math.round(r.signature.blockValueToday)) + ' today, covering ' + gbp(Math.round(r.signature.blockIncome)) + ' of income above ' + r.signature.rotateCutAge + '. The trigger fired in ' + pctText((r.signature.triggeredShare || 0) * 100) + ' of futures; the rotated years were cut in <strong>' + pctText(r.ruin.mc, 1, RUIN_BARS) + '</strong> of futures (' + pctText(r.ruin.hist, 1) + ' of real histories). Typically left at the end: ' + gbp(Math.round(r.terminal.p50)) + (Math.abs(r.terminal.p50 - r.signature.spare) < 1 ? ', what the plain ladder leaves too' : ' — against ' + gbp(Math.round(r.signature.spare)) + ' if the trigger never fires and the plain ladder runs out the clock') + '; in the best 1 in 10 futures, ' + gbp(Math.round(r.terminal.p90)) + '.',
         decades: () => '',
         shines: ['Never triggers → identical to the full ladder: every year bought, nothing to decide', 'The dry powder is not cash — it earns its real yield while it waits, so waiting costs nothing', 'Buying equities 30%+ down has beaten holding the long rungs in every historical trigger episode fired before 65 (16 of 16; 14 of 16 fired later — both failures are 1929–30)'],
         fails: ['A 1929-scale collapse arriving after 65: the sleeve never recovers and the rotated years are cut (the floor and State Pension still pay)', 'The rule only works if it is followed — selling the floor early, or not selling on the day, are both worse than either pure strategy', 'Bootstrapped futures, which cannot see the trigger, put the cut risk near the untriggered odds — treat that as the honest floor'],
@@ -9374,10 +9374,10 @@
       if (note) {
         const recycle = document.getElementById(prefix + 'BandFillRecycle')?.checked;
         note.style.display = hold ? '' : 'none';
-        note.textContent = hold ? 'ISA on hold: nothing new is moved into it. Bed-and-ISA is switched off and a cash lump sum\'s £20,000 ISA slice stays in the taxable account instead (an inherited ISA still joins it). Money in a held ISA is only used once the SIPP and the taxable account have both run out.'
+        note.textContent = hold ? 'ISA on hold: nothing new is moved into it. Bed-and-ISA is switched off and a cash lump sum\'s £20,000 ISA slice stays in the taxable account instead (an inherited ISA still joins it). ' + heldIsaNote(window._ssStrategy || 'pots-and-valves')
           + (recycle ? ' Band-fill recycling is ON: the recycled money lands in this held ISA and will not be drawn either — turn one of them off unless that is what you want.' : '') : '';
       }
-      if (prefix === 'ss' && typeof renderExtraIncomes === 'function' && window._ssWindfalls) renderExtraIncomes();
+      if (prefix === 'ss' && typeof renderExtraIncomes === 'function' && window._ssWindfalls) renderExtraIncomes(); if (prefix === 'ss' && window._ssStrategy) paintSettingUseNotes(document, window._ssStrategy);
     };
     function readGiaFields(prefix) {
       const v = (id) => document.getElementById(prefix + id)?.value;
@@ -9533,7 +9533,7 @@
         const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
         window._hhLast = { cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
         if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
-        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a || offsets.b) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Lasts" means paid in full (for Floor to an age: never cut).</p>';
+        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a || offsets.b) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
         out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote })

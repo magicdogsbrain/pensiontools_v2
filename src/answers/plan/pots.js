@@ -323,7 +323,7 @@ export function derivedLines(v, s, { stopBlanked = false } = {}) {
   if (s.isaFunds) lines.push({ id: 'isa.funds', slots: {} });
   else if (!v.isaGrowth) lines.push({ id: 'isa.fixed', slots: {} });
   else lines.push({ id: v.isaGrowth === 'invested' ? 'isa.invested' : 'isa.cash', slots: {} });
-  lines.push({ id: 'isa.use.' + v.isaUse, slots: {} });
+  lines.push({ id: 'isa.use.' + v.isaUse + (v.isaUse === 'hold' && s.bought ? 'Bought' : ''), slots: {} });   // a bought strategy never draws a held ISA
   if (s.locked && !s.hasChargesKey) lines.push({ id: 'charges.locked', slots: {} });
   else if (v.charges > 0) lines.push({ id: 'charges.some', slots: { pct: String(v.charges) } });
   else lines.push({ id: 'charges.none', slots: {} });
@@ -361,7 +361,7 @@ export function potsOf(entries, id, { today, typed = null } = {}) {
   const stopBlanked = c.ok && saved.later && !c.values.stopSipp && !c.values.stopIsa && !!saved.par && saved.par.source === 'override';
   const derived = derivedLines(v, saved, { stopBlanked });
   const useNotes = {};
-  if (saved.bought) useNotes.isaGrowth = 'isaGrowthBought';
+  if (saved.bought) useNotes.isaGrowth = v.isaUse === 'hold' ? 'isaGrowthBoughtHeld' : 'isaGrowthBought';   // a held ISA is left out, not spent
   if (saved.pinned) { useNotes.pension = 'pinned'; useNotes.isa = 'pinned'; }
   if (saved.isaFunds) useNotes.isaGrowth = 'isaFunds';
   if (saved.locked && !saved.hasChargesKey) useNotes.charges = 'chargesLocked';

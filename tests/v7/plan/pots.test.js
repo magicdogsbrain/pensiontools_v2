@@ -109,7 +109,7 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     expect(v.notUsed).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
     expect(v.useNotes).toMatchObject({ pension: 'pinned', isa: 'pinned', isaGrowth: 'isaGrowthLocked' });   // locked before the choice: that note wins over the bought one
     expect(v.derived.map((d) => d.id)).toContain('pots.pinned');
-    expect(v.derived.map((d) => d.id)).toContain('isa.use.hold');
+    expect(v.derived.map((d) => d.id)).toContain('isa.use.holdBought');   // a ladder never draws its held ISA: no "rescue" line
     const old = savedPots(entryOf(C['06-pre-6.4-no-timing']).plan, { today: TODAY });
     expect(old.hasChargesKey).toBe(false);
     expect(old.hasIsaGrowthKey).toBe(false);

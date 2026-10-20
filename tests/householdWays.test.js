@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { stressTestStrategy, planFromSettings, futuresOf } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
-import { runHouseholdWays, combineHouseholdStrategies, compactStrategyResult, POOLED_TAX_UPLIFT } from '../src/services/HouseholdService.js';
+import { runHouseholdWays, combineHouseholdStrategies, compactStrategyResult, POOLED_TAX_UPLIFT, heldIsaOf } from '../src/services/HouseholdService.js';
 import { householdDrawSplit, comparisonFigures } from '../src/services/HouseholdDraw.js';
 import { STRATEGY_IDS } from '../src/strategies/registry.js';
 import { trimResult } from '../src/services/PlanDocument.js';
@@ -67,6 +67,20 @@ describe('both ways through the one test', () => {
     expect(typeof fig.betterOff90).toBe('number');
     expect(fig.tax.whole.together).toBeLessThan(fig.tax.whole.own);
   }, 120000);
+
+  it('what you would have left, combined, counts an ISA a bought strategy holds aside — the test\'s wealth leaves it out (sweep 20 Oct 2026)', () => {
+    expect(heldIsaOf({ isaHold: true, isa: 80000 }, 'gilt-rotation')).toBe(80000);
+    expect(heldIsaOf({ isaHold: true, isa: 80000 }, 'full-il-gilt')).toBe(80000);
+    expect(heldIsaOf({ isaHold: true, isa: 80000 }, 'pots-and-valves')).toBe(0);   // the P&V engine carries it in its own pots
+    expect(heldIsaOf({ isaHold: false, isa: 80000 }, 'gilt-rotation')).toBe(0);
+    const w = (v) => [v, v, v];
+    const rA = { survivedMc: [true], samples: { wealth: [w(500000)] }, cones: { wealth: { p50: w(500000) } } };
+    const rB = { survivedMc: [true], samples: { wealth: [w(200000)] }, cones: { wealth: { p50: w(200000) } } };
+    expect(combineHouseholdStrategies(rA, rB).potFan[1].p50).toBe(700000);
+    const c = combineHouseholdStrategies(rA, rB, { heldA: 80000 });
+    expect(c.potFan.map((f) => f.p50)).toEqual([780000, 780000, 780000]);
+    expect(c.jointSuccess).toBe(1);
+  });
 
   it('the pooled verdict: a future where one pot is empty counts when the other has enough left for that share (a quarter higher for tax)', () => {
     const years = 5;

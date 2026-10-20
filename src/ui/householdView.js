@@ -6,7 +6,7 @@
  *  - splitSectionHtml: the headline at the top of the tab ("Drawing together saves about £X a year in tax…"), the
  *    cost to the smaller pot, the two-column table, the closing line, the 2028 and ladder notes, the limit controls and
  *    the three choices (Use this split / Make copies / Keep things as they are).
- *  - verdictSectionHtml: the household verdict first (when one pot is empty the other pays), each pot's own reading second.
+ *  - verdictSectionHtml: the household verdict first (when one plan falls short the other pays), each plan's own reading second.
  *  - the timeline, what's-left, what-to-do, survivor and care sections, moved here from the inline script unchanged in
  *    substance.
  */
@@ -28,9 +28,9 @@ export function householdVerdictHtml(r) {
   const head = isOnCourse(share) ? 'On course together' : share >= 0.7 ? 'Not on course yet, together' : 'At risk, together';
   let s = '<strong>' + head + ':</strong> the household\'s money lasts ' + esc(ten.words) + '.';
   if (r.pooled) {
-    s += ' When one pot is empty, the other pays that share; the household runs out only when both have.';
+    s += ' When one plan falls short (its money runs out, or a strategy that cuts instead cuts it), the other pays that share; the household falls short only when both have.';
     const covered = (r.pooled.coveredByA || 0) + (r.pooled.coveredByB || 0);
-    if (covered > 0 && r.pooled.fromAgeMedian) s += ' In ' + covered + ' of ' + r.runs.toLocaleString('en-GB') + ' futures one pot ran out and the other paid, typically from age ' + r.pooled.fromAgeMedian + (r.pooled.fromAgeEarliest && r.pooled.fromAgeEarliest !== r.pooled.fromAgeMedian ? ' (from ' + r.pooled.fromAgeEarliest + ' at the earliest)' : '') + '.';
+    if (covered > 0 && r.pooled.fromAgeMedian) s += ' In ' + covered + ' of ' + r.runs.toLocaleString('en-GB') + ' futures one plan fell short and the other paid, typically from age ' + r.pooled.fromAgeMedian + (r.pooled.fromAgeEarliest && r.pooled.fromAgeEarliest !== r.pooled.fromAgeMedian ? ' (from ' + r.pooled.fromAgeEarliest + ' at the earliest)' : '') + '.';
   } else {
     s += ' ' + jointVerdictHtml(share);
   }
@@ -38,7 +38,7 @@ export function householdVerdictHtml(r) {
 }
 
 /**
- * The verdict section: the household first, then each pot on its own and the two as separate plans.
+ * The verdict section: the household first, then each plan on its own and the two as separate plans.
  * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string }} o
  */
 export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '' }) {
@@ -46,9 +46,9 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
   html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r) + '</div>';
   html += '<table><tbody>'
-    + '<tr><td>The household together (when one pot is empty, the other pays)</td><td><strong>' + inTen(share) + '</strong></td></tr>'
-    + '<tr><td>' + esc(ownName) + '\'s pot on its own</td><td><strong>' + inTen(r.successA) + '</strong> <span class="hint">(' + pctFmt(r.successA) + ')</span></td></tr>'
-    + '<tr><td>' + esc(pName) + '\'s pot on its own</td><td><strong>' + inTen(r.successB) + '</strong> <span class="hint">(' + pctFmt(r.successB) + ')</span></td></tr>'
+    + '<tr><td>The household together (when one plan falls short, the other pays)</td><td><strong>' + inTen(share) + '</strong></td></tr>'
+    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td><strong>' + inTen(r.successA) + '</strong> <span class="hint">(' + pctFmt(r.successA) + ')</span></td></tr>'
+    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td><strong>' + inTen(r.successB) + '</strong> <span class="hint">(' + pctFmt(r.successB) + ')</span></td></tr>'
     + '<tr><td>Both plans, each lasting on its own</td><td><strong>' + inTen(r.jointSuccess) + '</strong> <span class="hint">(' + pctFmt(r.jointSuccess) + ')</span></td></tr>'
     + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '');
   html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
@@ -82,7 +82,7 @@ export function timelineSectionHtml(rows, ownName, pName, thisYear) {
 
 /** What you'd have left, combined (the potFan). */
 export function wealthSectionHtml(potFan, thisYear) {
-  let html = '<div class="settings-section"><div class="section-title">What you\'d have left, combined <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(both pots + ISAs, today\'s money)</span></div>';
+  let html = '<div class="settings-section"><div class="section-title">What you\'d have left, combined <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(everything both plans hold — pensions, ISAs, gilts not yet repaid — today\'s money)</span></div>';
   html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>If markets are poor</th><th>Typical</th><th>If markets are strong</th></tr></thead><tbody>';
   for (let y = 0; y < potFan.length; y += 5) {
     const f = potFan[y];
@@ -148,11 +148,11 @@ export function survivorResultHtml({ res, survivorName, deceasedName, years, spe
     + '<li>' + s + ' inherits about <strong>' + gbp(inh.middling.total) + '</strong> in a middling case, <strong>' + gbp(inh.bad.total) + '</strong> in a bad case (the worst 1 in 10), today\'s money — what ' + d + '\'s own plan (' + esc(strategyNames.deceased || '') + ') has left then' + held + '.</li>'
     + '<li>' + s + ' then spends <strong>' + gbp(res.spending.gross) + ' a year before tax</strong> (about ' + gbp(res.spending.net) + ' after tax), today\'s money — ' + Math.round(spendPct) + '% of what you both spend after tax.</li>'
     + '<li>' + s + '\'s plan runs on its own strategy (' + esc(strategyNames.survivor || '') + ') with the inheritance arriving that year.</li></ul>'
-    + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares ' + d + '\'s plan started with; gilts still held count at what they cost; the bad case sets ' + d + '\'s worst 1 in 10 against every one of ' + s + '\'s futures, not future by future.</p>';
+    + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares ' + d + '\'s plan started with; gilts still held count at the value they would reach if interest rates did not move; the bad case sets ' + d + '\'s worst 1 in 10 against every one of ' + s + '\'s futures, not future by future.</p>';
 }
 
 /**
- * The care check's result (HouseholdService.runCareCheck): the household verdict first (when one pot is empty the other
+ * The care check's result (HouseholdService.runCareCheck): the household verdict first (when one plan falls short the other
  * pays, 6.25.0), with care and without, then both plans each lasting on its own.
  */
 export function careResultHtml({ res, name, years, startIn, annualCost }) {
@@ -162,7 +162,7 @@ export function careResultHtml({ res, name, years, startIn, annualCost }) {
   return '<div class="alert ' + onCourseAlertClass(withIt) + '" id="hhCareVerdict">With ' + esc(name) + ' needing care from ' + startIn + ' year' + (startIn === 1 ? '' : 's') + ' from now for ' + years + ' year' + (years === 1 ? '' : 's')
     + ' (' + gbp(annualCost) + ' a year after tax, ' + gbp(res.totalCareCost) + ' in all, today\'s money): <strong>the household\'s money lasts ' + esc(futuresOutOfTen(withIt).words) + '</strong> — '
     + esc(futuresOutOfTen(without).words) + ' without care.</div>'
-    + '<p class="hint">' + (res.care.pooled ? 'When one pot is empty, the other pays that share. ' : '') + 'Both plans each lasting on its own: ' + inTen(res.care.jointSuccess) + ' with care, ' + inTen(res.baseline.jointSuccess) + ' without. '
+    + '<p class="hint">' + (res.care.pooled ? 'When one plan falls short, the other pays that share. ' : '') + 'Both plans each lasting on its own: ' + inTen(res.care.jointSuccess) + ' with care, ' + inTen(res.baseline.jointSuccess) + ' without. '
     + 'A stress check, not advice. The cost is added in full on top of normal spending, as a one-off cost of ' + gbp(res.totalCareGross) + ' before tax in all; no means-testing modelled.</p>';
 }
 

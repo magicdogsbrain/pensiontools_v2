@@ -264,6 +264,13 @@ describe('L1 — the words of a result, and the run key', () => {
     const g = verdictOf(fakeResult('full-il-gilt'), saved);
     expect(g.sub.id).toBe('lasts.subContract');
     expect(g.history.contract).toBe(true);
+    // what a failed history IS, by strategy: ran out; cut (a rotation never runs out); a lean year (Floor & flex)
+    expect(v.history.failKind).toBe('ran-out');
+    const rot = verdictOf({ ...fakeResult('gilt-rotation'), a: oneAnswer({ ...R, strategyId: 'gilt-rotation', ruinLabel: 'cut', cuts: null }, P) }, saved);
+    expect(rot.history.failKind).toBe('cut');
+    expect(verdictOf({ ...fakeResult('floor-and-flex'), a: oneAnswer({ ...R, strategyId: 'floor-and-flex', ruinLabel: 'lean', cuts: null }, P) }, saved).history.failKind).toBe('lean');
+    for (const k of ['lead', 'leadCut', 'leadLean']) expect(LASTS.history[k]).toContain('{ranOut}');
+    expect(LASTS.history.leadCut).not.toMatch(/ran out/);
     // the cuts switched off, as set
     const off = verdictOf(fakeResult('pots-and-valves', { ran: { family: true, cutsOn: false, cutPct: 20, months: 3 } }), saved);
     expect(off.rows.map((r) => r.id)).toEqual(['left', 'cuts.some', 'ran.cutsOff']);

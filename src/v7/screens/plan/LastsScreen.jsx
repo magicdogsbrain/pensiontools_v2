@@ -65,7 +65,7 @@ function History({ v, onChange, readonly }) {
   return (
     <section class="plan-section lasts-history" data-section="history">
       <h3>{H.title}</h3>
-      <p class="note">{h.contract ? H.leadContract : fill(H.lead, { histories: h.histories, ranOut: h.histRanOut })}</p>
+      <p class="note">{h.contract ? H.leadContract : fill(h.failKind === 'cut' ? H.leadCut : h.failKind === 'lean' ? H.leadLean : H.lead, { histories: h.histories, ranOut: h.histRanOut })}</p>
       {h.worst.length > 0 && <><h4>{H.worstTitle}</h4><p class="note">{H.worstLead}</p><ul class="plan-lines" data-testid="plan.lasts.worst">{h.worst.map((r, i) => <StartRow key={i} r={r} />)}</ul></>}
       {h.named.length > 0 && <><h4>{H.namedTitle}</h4><p class="note">{H.namedLead}</p><ul class="plan-lines" data-testid="plan.lasts.named">{h.named.map((r, i) => <StartRow key={i} r={r} />)}</ul></>}
       <p class="note">{H.scenarios}</p>

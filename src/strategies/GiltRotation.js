@@ -15,6 +15,7 @@
  */
 import { getRtr, bootstrapPaths } from './ladderEngine.js';
 import { monthlyChargeFactor } from '../services/Charges.js';
+import { accretedValue, yearsToMaturity, ladderWealthByYear } from './GiltLadderPlan.js';
 
 /**
  * Split a buildGiltLadder plan at cutAge.
@@ -35,14 +36,6 @@ export function splitLadderAtAge(plan, cutAge) {
   return { keptYears, soldYears: actuallySoldYears, soldOrders, blockCostToday, soldIncomeTotal };
 }
 
-/** Per-rung accreted value t years from now, real terms: cost grows toward `pays` at its own implied real yield. */
-function accretedValue(order, yearsFromNow, yearsToMaturity) {
-  const T = Math.max(0.1, yearsToMaturity);
-  const y = Math.pow(order.pays / Math.max(1, order.cost), 1 / T) - 1;   // implied real yield at purchase
-  const t = Math.min(yearsFromNow, T);
-  return order.cost * Math.pow(1 + y, t);
-}
-
 /**
  * Run the rotation over one monthly real-TR series.
  * @param {number[]} series  monthly index, series[off] is month 0
@@ -51,7 +44,7 @@ function accretedValue(order, yearsFromNow, yearsToMaturity) {
  * @returns {{ wealth:number[], income:number[], failAge:number|null, triggeredYear:number|null, paidShort:number }}
  */
 export function runRotationPath(series, off, ctx) {
-  const { N, startAge, cutAge, trigger, split, keptWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
+  const { N, startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
   const chargeM = Number.isFinite(ctx.chargeM) && ctx.chargeM > 0 && ctx.chargeM <= 1 ? ctx.chargeM : 1;
   let ath = series[off], sleeve = 0, rotated = false, triggeredMonth = null;
   const wealth = [], income = [];
@@ -87,8 +80,10 @@ export function runRotationPath(series, off, ctx) {
       if (paid < need - 1) { paidShort += need - paid; if (failAge == null) failAge = age; }
     }
     income.push(paid + spAtY(y) + otherAtY(y));
-    // wealth: kept rungs left to pay + (sleeve if rotated, else the block's accreted value)
-    const blockVal = rotated ? sleeve : split.soldOrders.reduce((s, o) => s + accretedValue(o, y, o.yearsToMaturity), 0);
+    // wealth: kept rungs left to pay + (sleeve if rotated, else the block's years not yet paid, as the full ladder holds
+    // them). Until 6.34.0 an unfired block stayed at its full accreted value after its rungs had paid out, so a future
+    // that never rotated ended with the block's whole income on top of what the full ladder leaves.
+    const blockVal = rotated ? sleeve : blockWealthByYear[y];
     wealth.push(keptWealthByYear[y] + blockVal);
   }
   return { wealth, income, failAge, triggeredYear: triggeredMonth == null ? null : Math.floor(triggeredMonth / 12), paidShort, owed };
@@ -99,18 +94,13 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   const split = splitLadderAtAge(plan, cutAge);
   // years to maturity per sold order (from the plan's first tax year)
   const firstTY = plan.firstTaxYear;
-  // Both ends in UTC: `matures` is an ISO date (midnight UTC), so the 6 April it is measured from must be
-  // too — a local 6 April is an hour (UK) to half a day (elsewhere) off, which moved the cones by a few pounds
-  // between time zones.
-  for (const o of split.soldOrders) o.yearsToMaturity = Math.max(0.1, (Date.parse(o.matures) - Date.UTC(firstTY - 1, 3, 6)) / (365.25 * 864e5));
-  const keptSet = new Set(split.soldOrders.map((o) => o.tidm));
-  const costByYear = {}; for (const o of plan.orders) if (!keptSet.has(o.tidm)) for (const Y of o.taxYears) costByYear[Y] = (costByYear[Y] || 0) + o.cost / o.taxYears.length;
-  const keptWealthByYear = [];
-  for (let y = 0; y <= N; y++) {
-    let w = plan.spare;
-    for (const yr of plan.years) if (yr.Y >= firstTY + y && !keptSet.has(yr.from)) w += yr.from === 'cash' ? yr.need : (costByYear[yr.Y] || 0);
-    keptWealthByYear.push(w);
-  }
+  // Both ends in UTC (yearsToMaturity): a local 6 April is an hour (UK) to half a day (elsewhere) off, which moved the
+  // cones by a few pounds between time zones.
+  for (const o of split.soldOrders) o.yearsToMaturity = yearsToMaturity(o, firstTY);
+  // The rungs kept are valued as the full ladder values them (accreted, never at cost); the sold block on its own below.
+  const keptWealthByYear = ladderWealthByYear(plan, N, new Set(split.soldOrders.map((o) => o.tidm)));
+  const fullWealthByYear = ladderWealthByYear(plan, N);
+  const blockWealthByYear = fullWealthByYear.map((w, y) => w - keptWealthByYear[y]);   // never fired: the full ladder exactly
   const needAt = (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? yr.need : 0; };
   // The whole point of the rotation is RUNWAY: proceeds must have years to grow before the sold
   // years start drawing. Firing late is selling the floor into the fire, and the sweep in
@@ -119,7 +109,7 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   // cut; cut−8y: 0.7%). So the trigger disarms `rotateDisarmYears` (default 8) before the
   // block's first draw. A rotation foregone is not a failure — it is simply the full ladder.
   const disarm = p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8;
-  return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, needAt,
+  return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt,
     chargeM: monthlyChargeFactor(p.chargesPct),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
     otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,

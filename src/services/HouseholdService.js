@@ -112,6 +112,11 @@ export function scheduleOf(settings) {
   return Array.from({ length: n }, () => +settings.baseSalary || 0);
 }
 
+/** The ISA a bought strategy holds aside, outside its own test's wealth (untouched, holding its real value); 0 otherwise. */
+export function heldIsaOf(p, strategyId) {
+  return p && !PNV_ENGINE.includes(strategyId || 'pots-and-valves') && p.isaHold ? Math.max(0, +p.isa || 0) : 0;
+}
+
 /**
  * What a plan leaves at its plan year y, read from its own test: the median and the worst 1 in 10 of the TOTAL wealth
  * the test carries (cones.wealth p50 / p10 — never a median pension plus a median ISA), today's money. A bought strategy
@@ -123,7 +128,7 @@ export function scheduleOf(settings) {
 export function leftAtYear(r, p, strategyId, y) {
   const w = r.cones.wealth;
   const i = Math.max(0, Math.min(Math.round(y), w.p50.length - 1));
-  const held = !PNV_ENGINE.includes(strategyId) && p.isaHold ? Math.max(0, +p.isa || 0) : 0;
+  const held = heldIsaOf(p, strategyId);
   const pot = Math.max(0, +p.pot || 0), isa = Math.max(0, +p.isa || 0);
   const isaShare = held > 0 || pot + isa <= 0 ? 0 : isa / (pot + isa);
   const split = (v) => { const rest = Math.max(0, v); const toIsa = held + rest * isaShare; return { total: rest + held, isa: toIsa, pension: rest + held - toIsa }; };
@@ -241,7 +246,8 @@ export function runCareCheck({ setA, setB, who = 'A', startYear = 15, years = 3,
     return out;
   };
   const nA = needs && needs.a, nB = needs && needs.b;
-  const opts = (careA, careB) => ({ needA: careA ? addCare(nA) : nA, needB: careB ? addCare(nB) : nB, startAgeA: A.p.startAge, startAgeB: B.p.startAge });
+  const opts = (careA, careB) => ({ needA: careA ? addCare(nA) : nA, needB: careB ? addCare(nB) : nB, startAgeA: A.p.startAge, startAgeB: B.p.startAge,
+    heldA: heldIsaOf(A.p, idOf(setA)), heldB: heldIsaOf(B.p, idOf(setB)) });
   const baseline = combineHouseholdStrategies(A.r, B.r, opts(false, false));
   const withIt = who === 'B' ? combineHouseholdStrategies(A.r, C.r, opts(false, true)) : combineHouseholdStrategies(C.r, B.r, opts(true, false));
   return {
@@ -271,8 +277,9 @@ export function runCareCheck({ setA, setB, who = 'A', startYear = 15, years = 3,
  * covers it if the wealth it had left at its end is at least the empty plan's draw need from t to its end — counted a
  * quarter higher for the tax the payer's own bands add. A future marked not survived for a cut (money left, income
  * short) is covered whenever the other plan lasted. Without needs or read-outs the pooled share is the paired one.
- * @param {{ needA?: number[], needB?: number[], startAgeA?: number, startAgeB?: number }} [opts]  each plan's draw need
- *   by plan year (gross, today's money, net of its own guaranteed income) and the age its year 0 is
+ * @param {{ needA?: number[], needB?: number[], startAgeA?: number, startAgeB?: number, heldA?: number, heldB?: number }} [opts]  each plan's draw need
+ *   by plan year (gross, today's money, net of its own guaranteed income) and the age its year 0 is; heldA / heldB: an ISA
+ *   each plan holds aside (heldIsaOf), added to every year of the combined figure
  */
 export function combineHouseholdStrategies(rA, rB, opts = {}) {
   const sa = rA.survivedMc || [true], sb = rB.survivedMc || [true];
@@ -286,10 +293,13 @@ export function combineHouseholdStrategies(rA, rB, opts = {}) {
   const m = (wa.length === 1 || wb.length === 1) ? Math.max(wa.length, wb.length) : Math.min(wa.length, wb.length);
   const years = Math.max(wa[0] ? wa[0].length : 0, wb[0] ? wb[0].length : 0);
   const pct = (arr, q) => { const s2 = [...arr].sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * s2.length))]; };
+  // An ISA a bought strategy holds aside is outside its test's wealth: added as the plan holds it (leftAtYear), so the
+  // combined figure is everything both plans hold (sweep 20 Oct 2026 — it was left out of a ladder plan's side).
+  const held = Math.max(0, +opts.heldA || 0) + Math.max(0, +opts.heldB || 0);
   const potFan = [];
   for (let y = 0; y < years; y++) {
     const vals = [];
-    for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0)); }
+    for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0) + held); }
     potFan.push({ year: y, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90) });
   }
   const pooled = pooledVerdict(rA, rB, sa, sb, n, opts, bc);
@@ -345,7 +355,7 @@ export function runHouseholdWays(ways, needs, idA, idB, test) {
     const A = test(x.settingsA, x.cfgA, idA), B = test(x.settingsB, x.cfgB, idB);
     const nd = (needs && needs[w]) || {};
     out[w] = {
-      combined: (A.r.affordable && B.r.affordable) ? combineHouseholdStrategies(A.r, B.r, { needA: nd.a, needB: nd.b, startAgeA: A.p.startAge, startAgeB: B.p.startAge }) : null,
+      combined: (A.r.affordable && B.r.affordable) ? combineHouseholdStrategies(A.r, B.r, { needA: nd.a, needB: nd.b, startAgeA: A.p.startAge, startAgeB: B.p.startAge, heldA: heldIsaOf(A.p, idA), heldB: heldIsaOf(B.p, idB) }) : null,
       rA: compactStrategyResult(A.r), rB: compactStrategyResult(B.r)
     };
   }

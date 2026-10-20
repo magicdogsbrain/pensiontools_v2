@@ -97,6 +97,40 @@ export function buildGiltLadder(p) {
   };
 }
 
+/** Years from the plan's first 6 April to a rung's maturity. Both ends in UTC: `matures` is an ISO date (midnight UTC). */
+export function yearsToMaturity(order, firstTaxYear) {
+  return Math.max(0.1, (Date.parse(order.matures) - Date.UTC(firstTaxYear - 1, 3, 6)) / (365.25 * 864e5));
+}
+
+/** A rung's value t years into the plan, today's money: its cost grows toward what it pays at the real yield its price implied (yields unchanged). */
+export function accretedValue(order, yearsFromNow, yearsToMat) {
+  const T = Math.max(0.1, yearsToMat);
+  const y = Math.pow(order.pays / Math.max(1, order.cost), 1 / T) - 1;   // implied real yield at purchase
+  return order.cost * Math.pow(1 + y, Math.min(yearsFromNow, T));
+}
+
+/**
+ * What the ladder still holds at the start of each plan year 0..N, today's money: the spare, the cash years not yet paid,
+ * and each unpaid year's share of its rung at the rung's accreted value — a rung is worth its cost on the day it is bought
+ * and what it pays on the day it matures, so it is never counted at cost while it is held (sweep 20 Oct 2026). `skip`
+ * leaves out rungs by TIDM (the rotation's sold block, valued on its own).
+ */
+export function ladderWealthByYear(plan, N, skip = null) {
+  const byTidm = new Map(plan.orders.map((o) => [o.tidm, o]));
+  const out = [];
+  for (let y = 0; y <= N; y++) {
+    let w = plan.spare;
+    for (const yr of plan.years) {
+      if (yr.Y < plan.firstTaxYear + y || yr.from === 'none' || (skip && skip.has(yr.from))) continue;
+      if (yr.from === 'cash') { w += yr.cost ?? yr.need; continue; }
+      const o = byTidm.get(yr.from);
+      if (o) w += accretedValue(o, y, yearsToMaturity(o, plan.firstTaxYear)) * (yr.need / Math.max(1, o.pays));
+    }
+    out.push(w);
+  }
+  return out;
+}
+
 /**
  * What the rungs of an EXISTING ladder would cost to buy today — a comparison, never the plan (6.13.5).
  *

@@ -44,24 +44,38 @@ const NOT_USED = 'Not used by this way of drawing';
  * The note beside a shared setting for a strategy: '' when the engine uses it as it says; otherwise plain words
  * beginning "Not used by this way of drawing".
  */
-export function settingUseNote(strategyId, key) {
+export function settingUseNote(strategyId, key, { isaHold = false } = {}) {
   if (!isBoughtStrategy(strategyId)) return '';
   switch (key) {
     case 'gia':
       return NOT_USED + ' — a lump sum buys the next years of income instead of being moved into the ISA or the pension, so your earnings and bed-and-ISA do not come into it.';
     case 'isaGrowth':
-      return NOT_USED + ' once it is running — it spends the ISA as part of its own pot. Until the day you stop, it still sets how your ISA grows.';
+      return isaHold
+        ? NOT_USED + ' once it is running — it leaves the held ISA out, untouched. Until the day you stop, it still sets how your ISA grows.'
+        : NOT_USED + ' once it is running — it spends the ISA as part of its own pot. Until the day you stop, it still sets how your ISA grows.';
     default:
       return '';   // the plan's length, the taxable account and charges: used by every strategy
   }
 }
 
+/**
+ * What happens to a held ISA under `strategyId` (sweep 20 Oct 2026): the Pots & Valves engines draw it last; a bought
+ * strategy leaves it out of what it buys and never draws it (stressTest availablePot).
+ */
+export function heldIsaNote(strategyId) {
+  return isBoughtStrategy(strategyId)
+    ? 'This way of drawing leaves a held ISA out: it buys nothing with it and never draws from it.'
+    : 'Money in a held ISA is only used once the SIPP and the taxable account have both run out.';
+}
+
 /** Write the notes beside the shared settings for `strategyId`. Returns the notes it wrote, by key. */
 export function paintSettingUseNotes(doc, strategyId) {
   const out = {};
+  const policy = doc && doc.getElementById ? doc.getElementById('ssIsaPolicy') : null;
+  const opts = { isaHold: !!policy && policy.value === 'hold' };
   for (const [key, id] of Object.entries(SHARED_SETTINGS)) {
     const el = doc && doc.getElementById ? doc.getElementById(id) : null;
-    const text = settingUseNote(strategyId, key);
+    const text = settingUseNote(strategyId, key, opts);
     out[key] = text;
     if (el) { el.textContent = text; el.style.display = text ? '' : 'none'; }
   }

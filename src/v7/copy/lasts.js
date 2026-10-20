@@ -37,6 +37,8 @@ export const LASTS = {
   history: {
     title: 'What if you had retired into a bad year?',
     lead: 'The same {histories} real starts the test counted, {ranOut} of which ran out. These are where the figure above comes from, not a second figure.',
+    leadCut: 'The same {histories} real starts the test counted. The plan was cut in {ranOut} of them; it never runs out. These are where the figure above comes from, not a second figure.',
+    leadLean: 'The same {histories} real starts the test counted, {ranOut} of which had a lean year. The bills were paid in every one. These are where the figure above comes from, not a second figure.',
     leadContract: 'Every year of this plan is bought by contract, so no start year can run it out.',
     worstTitle: 'The hardest starts in the record — an unfair test',
     worstLead: 'Nobody retires into the worst month of 150 years on purpose, and the test counts every one of them all the same. Read these as the edge of what has ever happened, not as what will happen.',

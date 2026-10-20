@@ -67,6 +67,7 @@ export const POTS = {
   useNotes: {
     pinned: 'This way of drawing is sized on its own pot and ISA figures, set with the way of drawing (in the planner); the figure here is what the plan holds today.',
     isaGrowthBought: 'Not used by this way of drawing once it is running: it spends the ISA as part of its own pot. Until the day you stop, it still sets how your ISAs grow.',
+    isaGrowthBoughtHeld: 'Not used by this way of drawing once it is running: it leaves the held ISA out, untouched. Until the day you stop, it still sets how your ISAs grow.',
     isaFunds: 'Follows the ISA funds in your list of funds to test, set with the way of drawing and mix.',
     isaGrowthLocked: 'A fixed 3% a year: this plan was locked before this choice was added. Unlocking it offers the choice.',
     chargesLocked: 'None: this plan was locked before charges were added. Unlocking it sets 0.5% a year.'
@@ -90,6 +91,7 @@ export const POTS = {
     'isa.use.minimiseEarlyTax': 'The ISA tops up your income before you pay higher-rate tax.',
     'isa.use.maximiseLongevity': 'The ISA is spread evenly across the years to your State Pension.',
     'isa.use.hold': 'The ISA is held, never drawn for income, and nothing new is moved into it; it still rescues the plan if the pension runs out.',
+    'isa.use.holdBought': 'The ISA is held aside: this way of drawing buys nothing with it and never draws from it, and nothing new is moved into it.',
     'charges.some': 'Charges of {pct}% a year come off your funds and cash every month — not off gilts you hold directly, annuities, or final-salary and State Pensions.',
     'charges.none': 'No charges come off: 0% a year.',
     'charges.locked': 'No charges come off: this plan was locked before charges were added.',

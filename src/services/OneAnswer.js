@@ -135,7 +135,10 @@ export function oneAnswer(r, p) {
     worst12: num(r.worst12 && r.worst12.min),
     coverage: r.coverage == null ? null : num(r.coverage),
     cuts: r.cuts || null,
-    cutLabel: r.ruinLabel || null
+    cutLabel: r.ruinLabel || null,
+    // What a failed future IS for this strategy (sweep 20 Oct 2026): the money ran out; the plan was cut (a floor to an
+    // age, a rotation — neither runs out); or a lean year (Floor & flex — the bills are always paid).
+    failKind: !r.ruinLabel ? 'ran-out' : r.strategyId === 'floor-and-flex' ? 'lean' : 'cut'
   };
 }
 

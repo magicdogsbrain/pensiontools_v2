@@ -86,7 +86,7 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
           expect(Number.isFinite(c.p50[y])).toBe(true);
         }
       }
-      // Year 0 wealth = everything the plan holds (ladders count their unpaid rungs at cost)
+      // Year 0 wealth = everything the plan holds (ladders count their unpaid rungs at cost on the day they are bought)
       expect(r.cones.wealth.p50[0]).toBeCloseTo(p.pot + p.isa, -3);
       expect(r.cones.wealth.p10[0]).toBeCloseTo(r.cones.wealth.p90[0], -3);
       // Spaghetti sample: a handful of the SAME futures the cone is made of, same length, inside the cone's outer envelope

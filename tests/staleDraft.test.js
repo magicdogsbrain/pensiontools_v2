@@ -78,7 +78,7 @@ describe('startYearChoices: the start-year drop-down is never blank', () => {
 describe('plan export helpers', () => {
   it('the file is <plan-name>-<YYYY-MM-DD>.json, safe as a file name, dated by the local day', () => {
     expect(planExportFileName('My plan', new Date(2026, 8, 30))).toBe('My-plan-2026-09-30.json');
-    expect(planExportFileName('  Alex & Jo: 80k/65k "ladder"  ', new Date(2027, 0, 5))).toBe('Alex-Jo-80k65k-ladder-2027-01-05.json');
+    expect(planExportFileName('  Alex & Jo: 70k/55k "ladder"  ', new Date(2027, 0, 5))).toBe('Alex-Jo-70k55k-ladder-2027-01-05.json');
     expect(planExportFileName('', new Date(2026, 8, 30))).toBe('plan-2026-09-30.json');
     expect(planExportFileName('../../etc', new Date(2026, 8, 30))).toBe('etc-2026-09-30.json');
   });

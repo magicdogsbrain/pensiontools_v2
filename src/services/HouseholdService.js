@@ -61,7 +61,7 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     const yA = c - offA, yB = c - offB;
     // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired.
     // Someone already retired whose ladder starts next April is drawing the run-up from their SIPP cash —
-    // their need counts from today (6.12.5; Alex, 16 Sep 2026: "Household seems to think I'm still working").
+    // their need counts from today (6.12.5; a user, 16 Sep 2026: "Household seems to think I'm still working").
     const workingA = yA < 0 && !isRetired(setA), workingB = yB < 0 && !isRetired(setB);
     const needA = (!workingA && yA <= durA) ? targetForYear(setA, Math.max(0, yA)) : 0;
     const needB = (!workingB && yB <= durB) ? targetForYear(setB, Math.max(0, yB)) : 0;

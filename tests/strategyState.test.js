@@ -54,7 +54,7 @@ describe('cleanParams / activeParams', () => {
   });
 });
 
-// Alex-like plan on Floor to an age, with a borrowed floor on record and the Stress "funds to test" list.
+// A plan on Floor to an age, with a borrowed floor on record and the Stress "funds to test" list.
 const fundsA = [{ ticker: 'TR29', value: 39690, wrapper: 'SIPP', units: 36000 }, { ticker: 'VWRP', value: 60000, wrapper: 'ISA' }];
 const base = {
   strategyId: 'floor-to-age', allocMode: 'funds', taggedFunds: fundsA, equityMin: 300000, bondMin: 800000, cashTarget: 79422,
@@ -142,7 +142,7 @@ describe('switchStrategy', () => {
 });
 
 describe('sortLegacyParams — a pre-6.13.0 flat bag sorted into per-strategy stashes', () => {
-  // Alex-like legacy plan: active full-il-gilt, but the bag still holds Floor-to-age and rotation dials from earlier tries
+  // A legacy plan: active full-il-gilt, but the bag still holds Floor-to-age and rotation dials from earlier tries
   const legacy = {
     strategyId: 'full-il-gilt', allocMode: 'funds', taggedFunds: fundsA, equityMin: 1,
     strategyParams: { cashYears: 3, bridgeCash: 50000, sippTotal: 1179422, isaTotal: 60000, floorToAge: 80, borrowedFloor: { soldAt: '2026-09-01' }, rotateCutAge: 75, ladderYears: undefined }

@@ -12,5 +12,11 @@
  *           unfired rotation block is its unpaid years only (it was counted again after paying out).
  *   6.35.0  Full gilt ladder / ladder + rotation: strategyParams.spareGrowth puts the money left over in a world-equity
  *           fund on the test's own futures (never drawn for income); absent = kept, holding its value, as before.
+ *   6.36.0  Ladder + rotation with the money left over in shares: that money fills a year the rotated block cannot pay
+ *           before the year counts as cut. Kept (no setting): not drawn, as before. Every ladder + rotation: nothing is drawn
+ *           past the plan's last bought year (it drew one more, and could count it as cut), and the sleeve is valued at
+ *           the start of each year like the rungs beside it (it was a year ahead); the sleeve pays only the years whose
+ *           gilts were sold (a gilt straddling the cut age is kept and pays by contract); futuresMc.failYear is the
+ *           first cut year (read from wealth, a kept spare hid every cut).
  */
-export const ENGINE_VERSION = '6.35.0';
+export const ENGINE_VERSION = '6.36.0';

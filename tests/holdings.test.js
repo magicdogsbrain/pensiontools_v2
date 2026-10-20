@@ -7,7 +7,7 @@ import { buildAccumulationPath, buildPlanDocument, whereAmI } from '../src/servi
 import { whereAmIHtml } from '../src/ui/components/PlanDocumentView.js';
 import { deriveTiming } from '../src/services/PlanTiming.js';
 
-// Sam-like saver: LifeStrategy 80 in the SIPP, a world tracker in the ISA, some cash; contributes into VLS80.
+// A saver: LifeStrategy 80 in the SIPP, a world tracker in the ISA, some cash; contributes into VLS80.
 const ledger = [
   { ticker: 'VLS80', value: 300000, wrapper: 'SIPP', ocf: 0.22, contribution: 1500 },
   { ticker: 'VWRP', value: 100000, wrapper: 'ISA', ocf: 0.22 },
@@ -116,7 +116,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(buildAccumulationPath({ settings: { ...settings, retired: true, retireAge: null }, timing: deriveTiming({ ...settings, retired: true, retireAge: null }, NOW), accumulation, holdings })).toBeNull();
   });
   it('whereAmI reads the latest pot record against the path', () => {
-    const doc = buildPlanDocument({ planName: 'Sam Real', settings, p: null, r: null, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
+    const doc = buildPlanDocument({ planName: 'Sam Example', settings, p: null, r: null, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
     expect(doc.accumulation.path.length).toBe(3);
     expect(doc.holdingsAtLock.lines.length).toBe(3);
     const later = new Date(2027, 8, 10);   // a year on
@@ -132,7 +132,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(h).toContain('locked path');
   });
   it('without a record it asks for one; today\'s holdings record stands in when passed', () => {
-    const doc = buildPlanDocument({ planName: 'Sam Real', settings, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
+    const doc = buildPlanDocument({ planName: 'Sam Example', settings, accumulation, holdings, lockedAt: NOW.toISOString(), now: NOW });
     const w = whereAmI(doc, { today: new Date(2027, 0, 10) });
     expect(w.saving.actual).toBeNull();
     expect(whereAmIHtml(w)).toMatch(/Record this month's pot/);
@@ -143,7 +143,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(whereAmIHtml(w2)).toContain('holdings as of 5 January 2027');   // UK words, never an ISO stamp (ukDates.js)
   });
   it('locked with no pot on record: the strip and the document ask for the pot instead of comparing with nothing', () => {
-    const doc = buildPlanDocument({ planName: 'Sam Real', settings, accumulation, lockedAt: NOW.toISOString(), now: NOW });
+    const doc = buildPlanDocument({ planName: 'Sam Example', settings, accumulation, lockedAt: NOW.toISOString(), now: NOW });
     expect(doc.accumulation.potNow).toBeNull();
     const w = whereAmI(doc, { today: new Date(2027, 0, 10) });
     expect(w.saving.pathMissing).toBe(true);

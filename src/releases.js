@@ -37,6 +37,35 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '6.36.0', date: '2026-10-20', engineVersion: '6.36.0',
+    title: 'Gilt ladder + rotation: money left over in shares pays a year before it is cut',
+    summary: 'On the gilt ladder + rotation with "Money left over" set to "Invested in shares", that money now pays any rotated year the sleeve cannot, and the year counts as cut only once it is spent. Until now the test never drew it, so a cut was counted even with the money there. On a test plan with £518,811 left over, the chance of a cut fell from 13% of futures to about 1%, and from 4.3% of real histories to none. Older slips in the rotation are also put right. It drew one year past the end of the plan. On some cut ages it paid one year twice. It valued its sleeve a year ahead of the gilts beside it. And the couples check treated its cut futures as never cut.',
+    changes: [
+      'Gilt ladder + rotation with "Money left over: Invested in shares": a rotated year the sleeve cannot pay is paid from that money first. The chance of a cut, the strategy page, "Will it last?", History and the cones all count it. What is left in a bad case is lower, because that money has been spent. Money left over that is kept, holding its value, is still never drawn, as before.',
+      'The setting\'s help, the strategy page and a plan document locked with the setting say so. A document locked under 6.35.0 still says the money is never drawn, as it was locked.'
+    ],
+    corrections: [
+      'Gilt ladder + rotation drew one more year than the plan has. A 30-year plan buys ages 60 to 89, but the rotation also drew for age 90 and could count that year as cut. It now stops with the plan. On a test plan with the money left over kept, the chance of a cut fell from 13% of futures to 11.8% (4.3% to 3.6% of real histories).',
+      'Gilt ladder + rotation: once the trigger had fired, what the plan held each year counted the sleeve after that year\'s growth and draw, a year ahead of the gilts beside it, and "left at the end" was a year after the plan ended. Both are now counted at the start of each year, like the gilts. Mid-plan, the cone of what would be left is narrower. At the end, the typical amount can be higher (a test plan: £133,523 to £157,283) and the best 1 in 10 lower (another: £2,345,969 to £2,217,483), because the extra year\'s draw and growth are both gone.',
+      'Gilt ladder + rotation: when a gilt pays two years either side of the cut age, it is kept, not sold, so its year above the cut age is still paid by contract. The sleeve paid that year as well, and could count it as cut. It now pays only the years whose gilts it sold. On a test plan cut at 73, with both fixes, the chance of a cut fell from 10.5% of futures to 7.8% (4.7% to 2.5% of real histories). At the default cut age of 75 the test plans were not affected.',
+      'Household couples comparison, "if one plan falls short, can the other carry it?": a gilt ladder + rotation that was cut was read as never cut, because what it held never reached nothing (its kept money left over is not drawn). So every cut future counted as carried by the other plan. Each future now says the year it was first cut, and the other plan has to cover the rest of the need from then.',
+      'Stress tester and Strategies, on a gilt ladder with "Invested in shares": the note on what the ladder is bought from said the money left over "is counted at its value today, not grown", and left it out of where the charges come off. It now says the money is in shares, and that the charges come off it too.',
+      'Household → add a plan: the example name in the box is now an invented one.'
+    ],
+    effects: {
+      stress: ['Gilt ladder + rotation: the chance of a cut is a little lower, and the cone of what is left reads at the start of each year. With the money left over in shares, the chance of a cut can be much lower.'],
+      strategies: ['Gilt ladder + rotation, as above. Other strategies unchanged.'],
+      decision: ['None. Locked plans and their documents are unchanged.'],
+      household: ['A gilt ladder + rotation in the couples comparison moves with its own test. If one plan is a gilt ladder + rotation, the chance the other carries it can be lower: its cut futures are no longer counted as carried.'],
+      accumulation: [],
+      budget: []
+    },
+    actions: [],
+    notes: [
+      'Money left over that is kept is still never drawn for a rotated year, so with "Kept" the chance of a cut leaves it out. Engine 6.36.0.'
+    ]
+  },
+  {
     version: '6.35.0', date: '2026-10-20', engineVersion: '6.35.0',
     title: 'A gilt ladder\'s money left over can go into shares',
     summary: 'The full gilt ladder and the ladder + rotation buy every year of your income, and until now whatever was left after buying it was kept, holding its value. A new setting, Stress tester → Settings → "Money left over", can put it in shares instead: a world-equity fund, charged like your other funds, run through the same histories and futures as everything else. It is never drawn for income, so your income and the chance the plan lasts do not change; what you would have left rides the market — more in most futures, less in a bad one. In the Household couples comparison, money freed when a gilt ladder is asked to draw less joins it. Plans without the setting read exactly as before.',
@@ -1162,7 +1191,7 @@ export const RELEASES = [
   {
     version: '6.10.1', date: '2026-09-10', engineVersion: '6.4.0',
     title: 'Stage always shown; ladder CSV without pot targets; printable PDFs',
-    summary: 'Three fixes from Alex: a plan whose next-step banner had been dismissed never got its life stage worked out (so the Accumulation tab stayed visible for a retiree and the chip said only "locked"); the Tax Years CSV carried Pots & Valves targets and a rebalance column for gilt-ladder plans; and the Decision PDFs printed the app\'s dark colours and its buttons, which came out illegible on an iPad.',
+    summary: 'Three fixes reported by a user: a plan whose next-step banner had been dismissed never got its life stage worked out (so the Accumulation tab stayed visible for a retiree and the chip said only "locked"); the Tax Years CSV carried Pots & Valves targets and a rebalance column for gilt-ladder plans; and the Decision PDFs printed the app\'s dark colours and its buttons, which came out illegible on an iPad.',
     changes: ['The plan chip names the stage: "🔒 locked · Bridge to the plan start · 7 months to go". Click it for why, and what the stage does to the tabs.'],
     corrections: [
       'The life stage is now worked out on every load, whether or not the next-step banner is dismissed. Retirees no longer see the Accumulation tab (its figures were derived from the Budget and My funds, never entered).',

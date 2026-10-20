@@ -40,7 +40,8 @@ export function splitLadderAtAge(plan, cutAge) {
  * The money left over after the ladder is bought (`plan.spare`), when the plan puts it in the growth part
  * (strategyParams.spareGrowth, 6.35.0): a world-equity fund on the same real total-return series as the rotation's
  * sleeve, charged like it. Its value at the START of each plan year 0..N, so year 0 is the spare itself, as every
- * ladder figure counts it. It is never drawn for income: the ladder pays the income; this is what is left over.
+ * ladder figure counts it. The ladder pays the income; this is what is left over. On the ladder + rotation it also
+ * fills a year the rotated block cannot pay before that year counts as cut (6.36.0; runRotationPath).
  * Without the setting the spare is held at its real value (absent = the old behaviour).
  */
 export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
@@ -78,9 +79,20 @@ export function runRotationPath(series, off, ctx) {
   const spareFlat = ctx.spareGrowth ? ctx.spare : 0;
   let spare = spareFlat;
   const wealth = [], income = [];
-  let failAge = null, paidShort = 0, owed = 0;
+  let failAge = null, paidShort = 0, owed = 0, lastPaid = 0;
   for (let y = 0; y <= N; y++) {
-    const spareNow = spare;   // the start of the plan year, as the ladder's own figures count it
+    // wealth[y] is the start of plan year y, as the ladder's own figures count it: kept rungs left to pay + the sleeve if
+    // rotated (else the block's years not yet paid, as the full ladder holds them) + the spare. Until 6.36.0 the sleeve
+    // was counted after the year's growth and draw — a year ahead of the rungs beside it.
+    const spareNow = spare, blockVal = rotated ? sleeve : blockWealthByYear[y];
+    if (y === N) {
+      // The end of the plan: its last bought year was N − 1. Nothing more is drawn (until 6.36.0 the rotation drew a
+      // year no rung was bought for, and could count it as cut); the income point repeats the last year's, as the full
+      // ladder's does.
+      income.push(lastPaid + spAtY(y) + otherAtY(y));
+      wealth.push(keptWealthByYear[y] + blockVal - spareFlat + spareNow);
+      break;
+    }
     // walk this plan year's months
     for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) {
       if (spareFlat) { spare *= series[off + m + 1] / series[off + m]; if (chargeM !== 1) spare *= chargeM; }
@@ -101,9 +113,15 @@ export function runRotationPath(series, off, ctx) {
     const age = startAge + y;
     const need = needAt(y);
     let paid = need;                                   // contracted while the rung is still owned
-    if (age > cutAge) {
+    // Only the years the sold block paid for are the sleeve's. A gilt paying two years either side of the cut age is
+    // never sold (splitLadderAtAge), so its year above the cut is still paid by contract; until 6.36.0 the sleeve paid
+    // that year as well, and could count it as cut.
+    if (ctx.soldAges ? ctx.soldAges.has(age) : age > cutAge) {
       if (rotated) {
         const take = Math.min(sleeve, need); sleeve -= take; paid = take;
+        // The money left over in shares (6.36.0) fills what the sleeve cannot pay before the year counts as cut. Kept
+        // (no setting) it is not drawn, as before.
+        if (spareFlat && paid < need) { const fill = Math.min(spare, need - paid); spare -= fill; paid += fill; }
       } else {
         // not rotated (yet): the rung is still owned and pays by contract
         paid = need;
@@ -111,11 +129,10 @@ export function runRotationPath(series, off, ctx) {
       owed += need;
       if (paid < need - 1) { paidShort += need - paid; if (failAge == null) failAge = age; }
     }
+    lastPaid = paid;
     income.push(paid + spAtY(y) + otherAtY(y));
-    // wealth: kept rungs left to pay + (sleeve if rotated, else the block's years not yet paid, as the full ladder holds
-    // them). Until 6.34.0 an unfired block stayed at its full accreted value after its rungs had paid out, so a future
-    // that never rotated ended with the block's whole income on top of what the full ladder leaves.
-    const blockVal = rotated ? sleeve : blockWealthByYear[y];
+    // Until 6.34.0 an unfired block stayed at its full accreted value after its rungs had paid out, so a future that
+    // never rotated ended with the block's whole income on top of what the full ladder leaves.
     wealth.push(keptWealthByYear[y] + blockVal - spareFlat + spareNow);
   }
   return { wealth, income, failAge, triggeredYear: triggeredMonth == null ? null : Math.floor(triggeredMonth / 12), paidShort, owed };
@@ -142,6 +159,7 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   // block's first draw. A rotation foregone is not a failure — it is simply the full ladder.
   const disarm = p.params?.rotateDisarmYears > 0 ? p.params.rotateDisarmYears : 8;
   return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt,
+    soldAges: new Set(split.soldYears.map((yr) => yr.age)),
     spareGrowth: !!(p.params && p.params.spareGrowth) && plan.spare > 0, spare: plan.spare,
     chargeM: monthlyChargeFactor(p.chargesPct),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),

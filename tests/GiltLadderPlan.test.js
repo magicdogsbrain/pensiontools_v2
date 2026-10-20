@@ -3,7 +3,7 @@ import { buildGiltLadder, spreadFor, ladderWealthByYear, accretedValue, yearsToM
 import { activeLinkers } from '../src/services/LinkerUniverse.js';
 import { rotationPathsCtx, runRotationPath } from '../src/strategies/GiltRotation.js';
 
-// The user's own plan (26 Aug 2026): £35k bridge, 3 cash years at £80k, £65k to 67, £45k to 74, £40k to 91.
+// A ladder plan: £35k bridge, 3 cash years at £80k, £65k to 67, £45k to 74, £40k to 91.
 const amountAtAge = (age) => age <= 59 ? 80000 : age <= 67 ? 65000 : age <= 74 ? 45000 : 40000;
 const base = { pot: 1212000, startAge: 57, durationYears: 35, amountAtAge, spAnnual: 12480, spStartAge: 67, spFirstYearRatio: 8 / 12,
   firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 3, bridgeCash: 35000, todayIso: '2026-08-26' };

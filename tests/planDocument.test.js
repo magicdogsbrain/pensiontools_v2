@@ -6,7 +6,7 @@ import { planFromSettings } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
 
 const NOW = new Date(2026, 8, 9);
-// Alex-like plan: retired, starts 2027/28, steps 83,650 → 68,650 at 60 → 48,650 at 70, DB £3,650, SP 17 Apr 2037,
+// A plan: retired, starts 2027/28, steps 83,650 → 68,650 at 60 → 48,650 at 70, DB £3,650, SP 17 Apr 2037,
 // £90k pension lump in plan year 1, gilt ladder + rotation on a pinned SIPP total.
 const settings = {
   currentAge: 56, currentAgeAsOf: '2026-09-09', retired: true, firstTaxYear: 2027, shapeAgeNow: 57, duration: 35,
@@ -33,7 +33,7 @@ const r = {
 };
 
 describe('buildPlanDocument', () => {
-  const doc = buildPlanDocument({ planName: 'Alex Real', settings, p, r, lockedAt: '2026-09-09T18:00:00.000Z', now: NOW, budgetGross: 70000, essentials: 40000 });
+  const doc = buildPlanDocument({ planName: 'Alex Example', settings, p, r, lockedAt: '2026-09-09T18:00:00.000Z', now: NOW, budgetGross: 70000, essentials: 40000 });
   it('is plain JSON with no functions and modest size', () => {
     const s = JSON.stringify(doc);
     expect(s).not.toMatch(/=>|function/);
@@ -106,7 +106,7 @@ describe('buildPlanDocument', () => {
 });
 
 describe('whereAmI', () => {
-  const doc = buildPlanDocument({ planName: 'Alex Real', settings, p, r, now: NOW });
+  const doc = buildPlanDocument({ planName: 'Alex Example', settings, p, r, now: NOW });
   it('September 2026 is a bridge month, step 1, pot compared with the contract path', () => {
     const w = whereAmI(doc, { today: NOW, history: [{ date: '2026-09', taxYear: '26/27', sipp: 7000, other: 305, equity: 0, bond: 912960, cash: 216461 }] });
     expect(w.bridge).toBe(true);
@@ -141,10 +141,10 @@ describe('whereAmI', () => {
 });
 
 describe('planDocumentHtml', () => {
-  const doc = buildPlanDocument({ planName: 'Alex <Real>', settings, p, r, now: NOW });
+  const doc = buildPlanDocument({ planName: 'Alex <Example>', settings, p, r, now: NOW });
   it('renders every section, escapes, and uses the injected renderers', () => {
     const h = planDocumentHtml(doc, { strategyCard: () => '<div class="card">CARD</div>', staircaseSvg: () => '<svg>STAIRS</svg>', whereAmI: '<div>WHERE</div>' });
-    expect(h).toContain('Alex &lt;Real&gt;');
+    expect(h).toContain('Alex &lt;Example&gt;');
     expect(h).toContain('1. Timeline');
     expect(h).toContain('2. Strategy');
     expect(h).toContain('3. Portfolio');
@@ -178,7 +178,7 @@ describe('holdingsAtLock — what you HELD, apart from what the strategy was tes
     { wrapper: 'SIPP', ticker: 'TR30', name: 'IL Treasury 2030', sedol: 'B4PTCY7', units: 35000, value: 38584, ocf: null, contribution: null, subClass: 'indexLinked', kind: 'gilt', asOf: '2026-09-01' },
     { wrapper: 'isa', ticker: 'vwrp', name: null, sedol: null, units: null, value: 60000, ocf: 0.22, contribution: null, subClass: null, kind: null, asOf: null }
   ] };
-  const doc = buildPlanDocument({ planName: 'Alex Real', settings, p, r, holdings, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW });
+  const doc = buildPlanDocument({ planName: 'Alex Example', settings, p, r, holdings, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW });
   it('every strategy carries the snapshot, normalised; the document version moved', () => {
     expect(doc.version).toBeGreaterThanOrEqual(2);   // 2 from 6.13.0 (this snapshot); 3 from 6.22.0 (the ISA choice, the saving path)
     expect(doc.holdingsAtLock.updatedAt).toBe('2026-09-09');
@@ -209,7 +209,7 @@ describe('holdingsAtLock — what you HELD, apart from what the strategy was tes
     expect(planDocumentHtml(legacy)).toContain('written before holdings were recorded');
   });
   it('a record refreshed AFTER the lock is titled as what you hold now, not what you held at lock (6.13.0)', () => {
-    const later = buildPlanDocument({ planName: 'Alex Real', settings, p, r, holdings: { ...holdings, updatedAt: '2026-09-20' }, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW });
+    const later = buildPlanDocument({ planName: 'Alex Example', settings, p, r, holdings: { ...holdings, updatedAt: '2026-09-20' }, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW });
     const h = planDocumentHtml(later);
     expect(h).toContain('What you hold (recorded 20 September 2026, after the plan was locked on 9 September 2026)');
     expect(h).not.toContain('What you held when the plan was locked');

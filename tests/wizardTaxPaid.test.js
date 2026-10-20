@@ -3,8 +3,8 @@ vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, 
 import { calculateMonthlyBreakdown, buildTaxYearConfig } from '../src/services/TaxYearWizardService.js';
 import { calcDecisionPWA } from '../src/services/legacyDecision.js';
 
-// Alex, September 2026: five £7,000 SIPP payments + five DB scheme £281.40 received (gross £33,907),
-// PAYE already deducted £8,475 (payslip to-date £7,912.40 + DB scheme £562.80). Target £81,375 incl. £3,377 DB.
+// Alex, September 2026: five £7,000 SIPP payments + five DB payments of £281.40 received (gross £33,907),
+// PAYE already deducted £8,475 (payslip to-date £7,912.40 + DB £562.80). Target £81,375 incl. £3,377 DB.
 const base = { targetSalary: 81375, brl: 50270, pa: 12570, other: 3377, statePension: 0, isaSavingsAllocation: 0, remainingMonths: 7, grossIncomeToDate: 33907, isTaxEfficient: false };
 
 describe('State Pension in its first year: the monthly payment from its start month, not the partial year spread over twelve (6.11.0)', () => {

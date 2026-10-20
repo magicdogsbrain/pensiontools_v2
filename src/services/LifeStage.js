@@ -12,7 +12,7 @@
 import { deriveTiming, taxYearLabel, taxYearStartOf, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
 import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 
-export const APPROACHING_YEARS = 5;   // how far out "approaching retirement" starts (Alex, 10 Sep 2026)
+export const APPROACHING_YEARS = 5;   // how far out "approaching retirement" starts (owner's call, 10 Sep 2026)
 
 export const STAGES = Object.freeze({
   saving: {

@@ -94,6 +94,18 @@ describe('a gilt-ladder plan: the line says what the ladder is bought from', () 
       if (!('chargesPct' in S)) expect(text).toContain('locked before charges were added');
     });
   }
+  it('with the money left over in shares, the line says so (not "not grown"), and that the charges come off it; the rotation adds that it fills a cut year', () => {
+    const S0 = { ...corpus('03-gilt-ladder-runup.json').stressTool.settings, chargesPct: 0.25 };
+    for (const id of ['full-il-gilt', 'gilt-rotation']) {
+      const S = { ...S0, strategyId: id, strategyParams: { ...(S0.strategyParams || {}), spareGrowth: true } };
+      const text = plain(startSummaryHtml(S, {}));
+      expect(text).not.toContain('not grown');
+      expect(text).toContain('invested in shares (your Money left over setting), so what you would have left rides the market');
+      expect(text).toContain('the money left over in shares');
+      if (id === 'gilt-rotation') expect(text).toContain('it pays a rotated year the sleeve cannot, before that year counts as cut');
+      else expect(text).not.toContain('rotated year');
+    }
+  });
   it('a growth strategy keeps its own line', () => {
     const S = { ...corpus('03-gilt-ladder-runup.json').stressTool.settings, strategyId: 'pots-and-valves' };
     expect(plain(startSummaryHtml(S, {}))).toContain('Starting balances come from your Settings (Fund Minimums)');

@@ -524,14 +524,14 @@
    "where": null,
    "headline": {
     "affordable": true,
-    "ruinHist": 7.38,
-    "ruinMc": 15.8,
-    "coverage": 98.21,
+    "ruinHist": 6.95,
+    "ruinMc": 15.2,
+    "coverage": 98.42,
     "worst12Min": 11773,
     "worst12Median": 34000,
     "terminalP10": 117991,
-    "terminalP50": 133523,
-    "terminalP90": 1912799,
+    "terminalP50": 157283,
+    "terminalP90": 1903019,
     "spentMedian": 1382000,
     "guaranteedToAge": "75 by contract whatever happens; above that, contract until the trigger fires (67% of futures rotate)",
     "cone": {
@@ -544,9 +544,9 @@
      ],
      "wealthP10": [
       969980,
-      756042,
-      560228,
-      279614,
+      763752,
+      564489,
+      306417,
       117991
      ],
      "wealthP50": [
@@ -554,14 +554,14 @@
       782388,
       616856,
       399909,
-      133523
+      157283
      ],
      "wealthP90": [
       969980,
-      870703,
-      868067,
-      1068426,
-      1912799
+      846523,
+      826768,
+      1028856,
+      1903019
      ],
      "incomeP50": [
       46000,

@@ -4,7 +4,7 @@
  * directly — the Household tab's survivor and care checks did until the household sweep, and so modelled every plan as
  * a growth portfolio whatever its strategy: a gilt ladder's inheritance came out about double what the ladder leaves.
  *
- * This walks every module under src/ and index.html's inline script and fails on a direct call to the engine —
+ * This walks every module under src/ (.js and the V7 screens' .jsx) and index.html's inline script and fails on a direct call to the engine —
  * `.simulate(`, `monteCarloReturns(`, or `getStrategy('pots-and-valves').engine` — outside the files below.
  */
 import { describe, it, expect } from 'vitest';
@@ -48,15 +48,17 @@ function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {
     const f = join(dir, name);
     if (statSync(f).isDirectory()) walk(f, acc);
-    else if (/\.js$/.test(name)) acc.push(f);
+    else if (/\.jsx?$/.test(name)) acc.push(f);
   }
   return acc;
 }
 
 describe('one test only: nothing outside the one test runs the engine directly', () => {
-  it('src/**/*.js', () => {
+  it('src/**/*.{js,jsx}', () => {
     const bad = [];
-    for (const f of walk(join(ROOT, 'src'))) {
+    const files = walk(join(ROOT, 'src'));
+    expect(files.some((f) => f.endsWith('.jsx'))).toBe(true);   // the V7 screens are walked too
+    for (const f of files) {
       const rel = relative(ROOT, f).split('\\').join('/');
       if (ALLOW[rel]) continue;
       bad.push(...offences(rel, readFileSync(f, 'utf8')));

@@ -64,10 +64,14 @@ function ladderLine(s, locked) {
   const from = L.pinned ? 'the pension total in this strategy\'s own settings' : 'the total of your <strong>Settings</strong> fund boxes';
   let text = `This plan's way of drawing is the ${name}: every run buys the ladder from ${fmt(L.used)} — your pension, ${fmt(L.pension)} (${from})`;
   if (L.isa > 0) text += L.held ? `. Your ISA (${fmt(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${fmt(L.isa)}`;
-  text += '. The split into shares, bonds and cash in Settings does not apply to the gilts. Money left over after buying the ladder is counted at its value today, not grown.';
+  // The money left over (strategyParams.spareGrowth, 6.35.0; on the rotation it fills a cut year from 6.36.0).
+  const grown = !!(s.strategyParams && s.strategyParams.spareGrowth), rot = s.strategyId === 'gilt-rotation';
+  text += '. The split into shares, bonds and cash in Settings does not apply to the gilts. Money left over after buying the ladder is '
+    + (grown ? 'invested in shares (your <strong>Money left over</strong> setting), so what you would have left rides the market' + (rot ? '; it pays a rotated year the sleeve cannot, before that year counts as cut.' : '.') : 'counted at its value today, not grown.');
   if (hasStoredCharges(s)) {
     const pct = chargesPctOf(s);
-    text += pct > 0 ? ` Fund and platform charges of ${formatChargesPct(pct)}% a year come off the cash years${s.strategyId === 'gilt-rotation' ? ' and, after a rotation, the share fund' : ''}; not off the gilts.` : ' No fund or platform charges are taken off (0% in <strong>Settings</strong>).';
+    const off = ['the cash years', ...(grown ? ['the money left over in shares'] : []), ...(rot ? ['after a rotation, the share fund'] : [])];
+    text += pct > 0 ? ` Fund and platform charges of ${formatChargesPct(pct)}% a year come off ${off.length > 1 ? off.slice(0, -1).join(', ') + ' and' + (rot ? ', ' : ' ') + off[off.length - 1] : off[0]}; not off the gilts.` : ' No fund or platform charges are taken off (0% in <strong>Settings</strong>).';
   } else if (locked === true) {
     text += ' No fund or platform charges are taken off: this plan was locked before charges were added.';
   }

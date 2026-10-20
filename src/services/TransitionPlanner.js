@@ -116,7 +116,7 @@ export function targetHoldings(doc, { today = new Date(), params = null, runUpMo
     if (!running && bridgeCash > 0) {
       const t0 = Array.isArray(d.timeline) && d.timeline[0] ? d.timeline[0] : null;
       // The person's ACTUAL monthly draw when the Decision tool knows it (this tax year's expected SIPP payment, or the
-      // last recorded month) — else the plan's year-0 draw. Alex draws £7,000, not the £6,667 the first step implies.
+      // last recorded month) — else the plan's year-0 draw. A plan drawing £7,000 draws that, not the £6,667 the first step implies.
       const monthly = num(runUpMonthly) > 0 ? num(runUpMonthly) : (t0 ? Math.max(0, (num(t0.gross) - num(t0.sp) - num(t0.other)) / 12) : 0);
       const startTs = Date.UTC(firstTaxYear || thisTY + 1, 3, 6);
       const months = Math.max(0, Math.round((startTs - today.getTime()) / (30.44 * 86400000)));

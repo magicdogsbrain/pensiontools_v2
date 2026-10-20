@@ -56,9 +56,10 @@ export function sampleOf(seriesList, years, n = 80) {
  * or when the future is marked not survived for a cut rather than an empty pot (Floor & Flex's lean year, Floor to an
  * age's smaller income). A read-out of the runs each test already made, never a second test.
  */
-export function futuresOf(wealthList, survived, terminals) {
+export function futuresOf(wealthList, survived, terminals, failYears = null) {
   const failYear = wealthList.map((w, i) => {
     if (survived[i] !== false) return null;
+    if (failYears) return failYears[i] ?? null;   // a strategy that knows the year it was cut says so (the rotation)
     const y = (w || []).findIndex((v) => !(v > 1));
     return y >= 0 ? y : null;
   });
@@ -691,19 +692,22 @@ function rotationTest(p, configs) {
   const histTerm = hist.map((r) => r.wealth[N]).sort((a, b) => a - b);
   const worstInc = mc.map((r) => Math.min(...r.income.slice(0, N))).sort((a, b) => a - b);
   const owed = mc[0] ? mc[0].owed : 0;
-  const coverage = 100 * (1 - (mc.reduce((s2, r) => s2 + r.paidShort, 0) / Math.max(1, mc.length * Math.max(1, owed))) * (owed / Math.max(1, mc[0] ? mc[0].income.reduce((a, b) => a + b, 0) : 1)));
+  const coverage = 100 * (1 - (mc.reduce((s2, r) => s2 + r.paidShort, 0) / Math.max(1, mc.length * Math.max(1, owed))) * (owed / Math.max(1, mc[0] ? mc[0].income.slice(0, N).reduce((a, b) => a + b, 0) : 1)));   // the plan's N years (point N repeats the last)
   const triggeredShare = mc.filter((r) => r.triggeredYear != null).length / Math.max(1, mc.length);
   return {
     affordable: true, plan,
     ruin: { hist: ruinOf(hist), mc: ruinOf(mc) },
-    ruinLabel: 'chance the rotated years (after ' + cutAge + ') are cut — the floor to ' + cutAge + ' and the State Pension never fail',
+    ruinLabel: 'chance the rotated years (after ' + cutAge + ') are cut' + (ctx.spareGrowth ? ' once the money left over in shares is spent' : '') + ' — the floor to ' + cutAge + ' and the State Pension never fail',
     worst12: { min: q(worstInc, 0.0), median: q(worstInc, 0.5) },
     guaranteedToAge: cutAge + ' by contract whatever happens; above that, contract until the trigger fires (' + pctText(triggeredShare * 100) + ' of futures rotate)',
     terminal: { p10: q(terminals, 0.1), p50: q(terminals, 0.5), p90: q(terminals, 0.9), histMedian: q(histTerm, 0.5) },
     cones: { wealth: coneOf(wealthList, N), income: coneOf(incomeList, N) },
     samples: { wealth: sampleOf(wealthList, N), income: sampleOf(incomeList, N) },
     survivedMc: mc.map((r) => r.failAge == null),
-    futuresMc: futuresOf(wealthList, mc.map((r) => r.failAge == null), mc.map((r) => r.wealth[N])),
+    // The year each future was first cut, from the path itself: what is left never reaches nothing when the money left
+    // over is kept (it is not drawn), so reading it from wealth said "never cut" and the couples check counted every cut
+    // future as covered (until 6.36.0).
+    futuresMc: futuresOf(wealthList, mc.map((r) => r.failAge == null), mc.map((r) => r.wealth[N]), mc.map((r) => (r.failAge == null ? null : r.failAge - p.startAge))),
     coverage: Math.max(0, Math.min(100, coverage)),
     failAges,
     signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, spareGrowth: !!ctx.spareGrowth, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },

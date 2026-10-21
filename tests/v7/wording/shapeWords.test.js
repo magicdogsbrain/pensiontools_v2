@@ -22,7 +22,7 @@ function strings(obj, path = '', out = []) {
 const SLOTS = {
   amount: '£2,130', income: '£1,046', pots: '£1,084', age: '75', age75: '75', age85: '85', pct: '85', budgetPct: '71', n: '4', gap: '6 years', younger: 'younger',
   from: '62', to: '94', floor: ', not below your budget’s essentials of £1,800 a month',
-  list: '£2,500 a month from 62, £2,130 from 75 and £1,750 from 85'
+  list: '£2,500 a month from 62, £2,130 from 75 and £1,750 from 85', label: 'New roof', years: '3'
 };
 const filled = (s) => s.replace(/\{(\w+)\}/g, (m, k) => (k in SLOTS ? SLOTS[k] : m));
 const SCOPES = ['all', 'first', 'planner', 'saver', 'retired'];

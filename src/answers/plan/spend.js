@@ -372,21 +372,44 @@ export function stepLines(rows, ageNow, duration, bands) {
   });
 }
 
-/** The picture (8.2): one bar a year from the compiled schedule, the pensions' part lighter, the budget's essentials dashed. */
-export function chartOf(rows, schedule, saved) {
+/**
+ * The picture (8.2; way-and-mix.md 5): one bar a year from the compiled schedule, the pensions' part lighter (the layers while
+ * the steps are set), the budget's essentials dashed and its total a mark at the left (a guide), lump sums and one-off costs
+ * as marks at their ages (`costs`: the cards as typed, else as saved), and the first age the income you get anyway pays
+ * more than the step (`floorFrom`, the planner's own "held there" note, said while the steps are set).
+ */
+export function chartOf(rows, schedule, saved, costs = null) {
   const { ageNow, duration, bands, ss, timing, now } = saved;
   const ess = saved.budget.essentials;
+  let floorFrom = null;
   const years = Array.from({ length: duration }, (_, y) => {
     const gross = schedule[y] || 0;
     const value = monthlyNet(gross, bands);
-    const floor = Math.min(gross, guaranteedAtYear(ss, timing, ageNow, y, now));
+    const guaranteed = guaranteedAtYear(ss, timing, ageNow, y, now);
+    const floor = Math.min(gross, guaranteed);
     const income = monthlyNet(floor, bands);
+    if (floorFrom === null && guaranteed > amountAtAge(cleanSteps(rows), ageNow + y, rows.length ? +rows[0].amount : 0) + 0.5) floorFrom = { age: ageNow + y, amount: monthlyNet(guaranteed, bands) };
     return { age: ageNow + y, partnerAge: null, value, income, pots: Math.max(0, value - income), below: ess != null && value < ess - 0.005 };
   });
   const firstBelow = years.find((y) => y.below);
+  const endAge = ageNow + duration - 1;
+  const marks = [];
+  for (const w of (Array.isArray(ss.windfalls) ? ss.windfalls : [])) {
+    if (!isObj(w) || !(num(w.amount) > 0) || num(w.year) == null) continue;
+    const age = ageNow + Math.round(num(w.year));
+    if (age >= ageNow && age <= endAge) marks.push({ kind: 'in', age, amount: r0(w.amount), label: typeof w.label === 'string' && w.label ? w.label : 'Lump sum', years: 1 });
+  }
+  for (const c of (Array.isArray(costs) ? costs : saved.costs)) {
+    if (!c || !(num(c.amount) > 0) || num(c.atAge) == null) continue;
+    const age = Math.round(num(c.atAge));
+    if (age >= ageNow && age <= endAge) marks.push({ kind: 'out', age, amount: r0(c.amount), label: typeof c.label === 'string' && c.label ? c.label : 'One-off cost', years: Math.max(1, Math.round(num(c.years) || 1)) });
+  }
+  marks.sort((a, b) => a.age - b.age || (a.kind === 'in' ? -1 : 1));
   return {
-    chart: { unit: 'perMonth', years, essentials: ess, layers: true, couple: false, gap: null, bands: { goSlow: 75, noGo: 85 }, list: stepLines(rows, ageNow, duration, bands) },
-    below: firstBelow ? { age: firstBelow.age, amount: ess } : null
+    chart: { unit: 'perMonth', years, essentials: ess, layers: true, couple: false, gap: null, bands: { goSlow: 75, noGo: 85 }, list: stepLines(rows, ageNow, duration, bands),
+      budgetMark: saved.budget.workedOut && saved.budget.total > 0 ? saved.budget.total : null, marks },
+    below: firstBelow ? { age: firstBelow.age, amount: ess } : null,
+    floorFrom
   };
 }
 
@@ -482,7 +505,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const rows = c.ok ? c.shape : saved.plainSteps;
   const schedule = c.ok ? c.schedule : saved.schedule;
   const costs = c.ok ? c.lists.costs.cards.map((card) => ({ ...card.values, years: card.values.years == null ? 1 : card.values.years, gross: null })) : saved.costs;
-  const { chart, below } = chartOf(rows, schedule, saved);
+  const { chart, below, floorFrom } = chartOf(rows, schedule, saved, costs);
   const derived = derivedLines(rows, schedule, costs, saved);
   const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   const p = editable && c.ok ? spendPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
@@ -493,6 +516,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
     firstGross: pounds(firstGross), firstGrossSaved: pounds(saved.first.amount), firstMonthly: pounds(firstMonthly),
     budget: { workedOut: saved.budget.workedOut, total: saved.budget.total != null ? pounds(saved.budget.total) : null, totalValue: saved.budget.total, essentials: saved.budget.essentials != null ? pounds(saved.budget.essentials) : null, at: saved.budget.at },
     fields, lists, errors: c.errors, ok: c.ok, derived, chart, below: below ? { age: below.age, amount: pounds(below.amount) } : null,
+    floorFrom: floorFrom ? { age: floorFrom.age, amount: pounds(floorFrom.amount) } : null,
     notUsed: notUsedBy(saved.strategyId), floorAndFlex: saved.strategyId === 'floor-and-flex', partners, suggestion: sug,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     // the one sentence the toast says after a save

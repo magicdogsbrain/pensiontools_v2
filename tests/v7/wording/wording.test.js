@@ -246,7 +246,8 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|triedWords|ownWords)\}/g, 'in 9 futures out of 10').replace(/\{name\}/g, 'Full index-linked gilt ladder')
       .replace(/\{(pot|isa|shares|bonds|cash|diversifiers|amount|typical|bad|withBad|withoutBad)\}/g, '£250,000').replace(/\{pct\}/g, '92').replace(/\{(years|runs|n|line)\}/g, '15').replace(/\{ms\}/g, '4.6').replace(/\{s\}/g, 's')
-      .replace(/\{(div|list|text|why|category|ticker|held|row|level)\}/g, 'balanced').replace(/\{(on|tent)\}/g, 'on').replace(/\{value\}/g, '3');
+      .replace(/\{(div|list|text|why|category|ticker|held|row|level)\}/g, 'balanced').replace(/\{(on|tent)\}/g, 'on').replace(/\{value\}/g, '3')
+      .replace(/\{(read|recognised|unrecognised|unknown)\}/g, '2').replace(/\{(total|recognisedTotal|unrecognisedTotal|unknownTotal)\}/g, '£53,600');
     const hits = [];
     const all = strings(MIX).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(MIX)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`mix.js ${where} — ${h}`);

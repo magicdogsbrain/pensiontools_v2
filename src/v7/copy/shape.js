@@ -140,6 +140,12 @@ export const SHAPE = {
     key: 'Lighter: your State Pension and other pensions, after tax. Darker: from your pension and savings.',
     keyShapeOnly: 'Each bar is one year of your life.',
     keyEssentials: 'Dashed: your budget’s essentials (a guide).',
+    /** The budget's total as a mark and the lump sums and one-off costs at their ages (way-and-mix.md 5). */
+    keyBudget: 'The short line at the left: your budget’s total, {amount} a month (a guide).',
+    keyMarks: 'A triangle pointing up: a lump sum arriving that year; pointing down: a one-off cost leaving.',
+    markIn: 'At {age}: {label}, {amount} arrives.',
+    markOut: 'At {age}: {label}, {amount} on top of that year.',
+    markOutYears: 'From {age}: {label}, {amount} a year on top, for {years} years.',
     bands: { goGo: 'go-go', goSlow: 'go-slow', noGo: 'no-go' },
     axis: 'Your age',
     axisCouple: 'Your age (your partner is {gap} {younger})',

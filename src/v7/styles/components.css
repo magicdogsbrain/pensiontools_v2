@@ -533,3 +533,9 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .mix-cell-words { margin: 0; font-weight: 650; }
 .mix-cell .btn { margin-top: 4px; }
 @media (max-width: 743px) { .mix-funds-section { margin-left: 0; } .mix-level-amounts { margin-left: 0; } }
+/* the income picture's rows that ride along (way-and-mix.md 5): the budget's total as a mark, lump sums and one-off costs at their ages */
+.shape-plot .budget-mark { stroke: var(--chart-guide); stroke-width: 3; stroke-dasharray: 2 2; }
+.shape-plot .mark line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: .8; }
+.shape-plot .mark polygon { fill: var(--text); }
+.shape-plot .mark-out polygon { fill: var(--chart-below); }
+.shape-marks { margin: 0 0 6px; font-size: var(--size-small); }

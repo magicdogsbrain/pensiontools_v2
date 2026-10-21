@@ -1,0 +1,2191 @@
+{
+  "route": {
+    "screen": "plan",
+    "q": null,
+    "step": "lasts",
+    "planId": "AlexWay01",
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.40.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "in",
+    "email": "someone@example.com",
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": {
+    "status": "read",
+    "source": "account",
+    "readAt": "14:03",
+    "list": [
+      {
+        "plan": {
+          "id": "AlexWay01",
+          "budgetTool": {
+            "settings": {
+              "currentAge": 61,
+              "currentAgeAsOf": "2026-08-14",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": false,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": true,
+              "retirementAge": 63,
+              "sharedWithPartner": false,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-08-14T10:05:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "baseSalary": 38000,
+              "bedAndIsa": true,
+              "bondMin": 200000,
+              "cashTarget": 50000,
+              "consecutiveLimit": 3,
+              "duration": 35,
+              "equityMin": 250000,
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "isaBalance": 0,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "spStartDate": null,
+              "spWeeklyAmount": 0,
+              "statePension": 0,
+              "statePensionYear": 0,
+              "targetSchedule": [
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                32000,
+                31680,
+                31363.2,
+                31049.568,
+                30739.07232,
+                30431.681596799997,
+                30127.364780832,
+                29826.091133023678,
+                29527.830221693443,
+                29232.551919476507,
+                28940.226400281743,
+                28650.824136278923,
+                28364.315894916137,
+                28080.67273596697,
+                27799.866008607303,
+                27521.86734852123,
+                27246.648675036016,
+                26974.182188285657,
+                26704.4403664028,
+                26437.395962738774,
+                26173.022003111386,
+                25911.29178308027
+              ],
+              "taxableMix": "equity",
+              "taxableStart": 0
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation"
+          ],
+          "isActive": true,
+          "journey": [
+            {
+              "at": "2026-08-14T10:05:00.000Z",
+              "label": "Retired, designing the plan",
+              "stage": "draft-retired"
+            }
+          ],
+          "lastModified": "2026-08-14T10:05:00.000Z",
+          "planDetails": {
+            "description": "First go at a drawdown plan",
+            "name": "Alex’s plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "pots-and-valves",
+            "lockedAt": "2026-08-14T10:05:00.000Z",
+            "params": {}
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "risk",
+              "bandFillRecycle": false,
+              "baseSalary": 38000,
+              "bedAndIsa": true,
+              "bondMin": 210000,
+              "brl": 50270,
+              "cashTarget": 70000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 61,
+              "currentAgeAsOf": "2026-08-14",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 33,
+              "equityGlideEnabled": false,
+              "equityMin": 420000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "phases",
+              "incomeSteps": [
+                {
+                  "amount": 38000,
+                  "fromAge": 63
+                },
+                {
+                  "amount": 32000,
+                  "decline": 1,
+                  "fromAge": 75
+                }
+              ],
+              "isaBalance": 45000,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": null,
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": null,
+              "retired": true,
+              "shapeAgeNow": 63,
+              "spStartDate": "14 March 2032",
+              "spWeeklyAmount": 221.2,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "pots-and-valves",
+              "strategyParams": {},
+              "strategyState": {},
+              "subAsset": null,
+              "taggedFunds": [],
+              "targetSchedule": [
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                32000,
+                31680,
+                31363.2,
+                31049.568,
+                30739.07232,
+                30431.681596799997,
+                30127.364780832,
+                29826.091133023678,
+                29527.830221693443,
+                29232.551919476507,
+                28940.226400281743,
+                28650.824136278923,
+                28364.315894916137,
+                28080.67273596697,
+                27799.866008607303,
+                27521.86734852123,
+                27246.648675036016,
+                26974.182188285657,
+                26704.4403664028,
+                26437.395962738774,
+                26173.022003111386,
+                25911.29178308027
+              ],
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      }
+    ],
+    "usedUp": false,
+    "view": {
+      "today": "2026-09-30",
+      "rows": [
+        {
+          "id": "other",
+          "rows": [
+            {
+              "id": "AlexWay01",
+              "name": "Alex’s plan",
+              "stageKey": "draft-retired",
+              "line": {
+                "id": "draft-retired",
+                "slots": {}
+              },
+              "locked": false,
+              "lockedOn": null,
+              "madeOn": null,
+              "shownAsSaved": false,
+              "linked": false,
+              "lastModified": "2026-08-14T10:05:00.000Z"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "found": true,
+        "id": "AlexWay01",
+        "name": "Alex’s plan",
+        "stageKey": "draft-retired",
+        "retired": true,
+        "saver": false,
+        "line": {
+          "id": "draft-retired",
+          "slots": {}
+        },
+        "locked": false,
+        "lockedOn": null,
+        "readonly": false,
+        "source": "account",
+        "steps": [
+          {
+            "id": "plan",
+            "optional": false,
+            "listed": true,
+            "state": "current",
+            "done": true,
+            "result": {
+              "id": "plan.retired",
+              "parts": [
+                "Retired. ",
+                {
+                  "key": "yearly",
+                  "kind": "money"
+                },
+                " a year before tax"
+              ],
+              "text": "Retired. £38,000 a year before tax"
+            },
+            "figures": {
+              "yearly": 38000,
+              "ageToday": 61,
+              "years": 33,
+              "ageEnd": 95,
+              "step0": 38000,
+              "stepAge0": 63,
+              "step1": 32000,
+              "stepAge1": 75,
+              "sipp": 700000,
+              "isa": 45000,
+              "gia": 0,
+              "shares": 420000,
+              "bonds": 210000,
+              "cash": 70000,
+              "spWeekly": 221,
+              "mixShares": 420000,
+              "mixBonds": 210000,
+              "mixCash": 70000
+            },
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lasts",
+                "href": "#/plan/AlexWay01/lasts",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              {
+                "id": "pricesToday",
+                "slots": {}
+              }
+            ],
+            "sections": [
+              {
+                "id": "about",
+                "lines": [
+                  {
+                    "id": "about.age",
+                    "slots": {
+                      "asOf": "14 August 2026"
+                    },
+                    "sentence": {
+                      "id": "about.age",
+                      "parts": [
+                        {
+                          "key": "ageToday",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "61"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": "14 August 2026",
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.retired",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.retired",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.firstYear",
+                    "slots": {
+                      "year": "2027/28"
+                    },
+                    "sentence": {
+                      "id": "about.firstYear",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.runs",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.runs",
+                      "parts": [
+                        {
+                          "key": "years",
+                          "kind": "count"
+                        },
+                        " years, to age ",
+                        {
+                          "key": "ageEnd",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "33 years, to age 95"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "about",
+                "sub": "about",
+                "href": "#/plan/AlexWay01/about"
+              },
+              {
+                "id": "pays",
+                "lines": [
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge0",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step0",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 63: £38,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge1",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step1",
+                          "kind": "money"
+                        },
+                        " a year before tax",
+                        ", falling 1% a year"
+                      ],
+                      "text": "From age 75: £32,000 a year before tax, falling 1% a year"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "spend",
+                "sub": "spend",
+                "href": "#/plan/AlexWay01/spend"
+              },
+              {
+                "id": "pots",
+                "lines": [
+                  {
+                    "id": "pots.pension",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.pension",
+                      "parts": [
+                        {
+                          "key": "sipp",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£700,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.split",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.split",
+                      "parts": [
+                        {
+                          "key": "shares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "bonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "cash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£420,000 shares, £210,000 bonds, £70,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.isa",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.isa",
+                      "parts": [
+                        {
+                          "key": "isa",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£45,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "pots",
+                "href": "#/plan/AlexWay01/pots"
+              },
+              {
+                "id": "income",
+                "lines": [
+                  {
+                    "id": "pots.statePension",
+                    "slots": {
+                      "from": "14 March 2032"
+                    },
+                    "sentence": {
+                      "id": "pots.statePension",
+                      "parts": [
+                        {
+                          "key": "spWeekly",
+                          "kind": "money"
+                        },
+                        " a week"
+                      ],
+                      "text": "£221 a week"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "income",
+                "href": "#/plan/AlexWay01/income"
+              },
+              {
+                "id": "way",
+                "lines": [
+                  {
+                    "id": "way.strategy",
+                    "slots": {
+                      "strategy": "pots-and-valves"
+                    },
+                    "sentence": {
+                      "id": "way.strategy",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "way",
+                "sub": "way",
+                "href": "#/plan/AlexWay01/way",
+                "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.heldSplit",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.heldSplit",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.amounts",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.amounts",
+                      "parts": [
+                        {
+                          "key": "mixShares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "mixBonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "mixCash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£420,000 shares, £210,000 bonds, £70,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.sleeveOff",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.sleeveOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.tentOff",
+                    "slots": {
+                      "years": "13"
+                    },
+                    "sentence": {
+                      "id": "mix.tentOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexWay01/mix",
+                "lockedButton": "tryMix"
+              }
+            ],
+            "options": [
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              }
+            ],
+            "allOptions": [
+              {
+                "id": "inc.streams",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.lump-sums",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.extra-spends",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.final-salary-rises",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "rises",
+                    "v": "lpi5",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "inc.state-pension-old",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 12000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "fromYear",
+                    "v": 12,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bands",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "pa",
+                    "v": 12570,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "brl",
+                    "v": 50270,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "hrl",
+                    "v": 125140,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "tax.mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "inflates",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.tax-free-cash",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "drawdown",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.ufpls-years",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "years",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "thenRest",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.band-fill",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.earnings",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.reserve",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "amount",
+                    "v": 25000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.diversifiers",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "amount",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.bond-tent",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "endgame",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-use",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "use",
+                    "v": "minimiseEarlyTax",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-growth",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "grows",
+                    "v": "cash",
+                    "kind": "choice"
+                  },
+                  {
+                    "k": "fixedRate",
+                    "v": 3,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "floor",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.charges",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0.5,
+                    "kind": "pct"
+                  }
+                ]
+              },
+              {
+                "id": "pots.funds-to-test",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "draw.cadence",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "monthly",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "timing.stale-draft",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "year",
+                    "v": 0,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "lock.lock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "locked",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "at",
+                    "v": "",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "by",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "lock.unlock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "times",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "last",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "month.seeded",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "from",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.configured",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "stress",
+                    "v": true,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "decision",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.declining",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "folded",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.old-names",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "present",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.risk-mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.start-date",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "date",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              }
+            ],
+            "journey": [
+              {
+                "stage": "draft-retired",
+                "on": "14 August 2026",
+                "arrival": false
+              }
+            ],
+            "pastVersions": 0,
+            "lockedOn": null,
+            "hasDocument": false,
+            "documentOn": null,
+            "unlockDefaults": []
+          },
+          {
+            "id": "budget",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "budget.none",
+              "parts": [
+                "Not worked out. A guide only"
+              ],
+              "text": "Not worked out. A guide only"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeBudget",
+                "place": "budget",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "budget.guide"
+            ]
+          },
+          {
+            "id": "lock",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "lock.notLocked",
+              "parts": [
+                "Not locked"
+              ],
+              "text": "Not locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [],
+            "notes": [
+              "lock.what"
+            ],
+            "locked": false,
+            "lockedOn": null,
+            "saver": false,
+            "strategyId": "pots-and-valves",
+            "bought": false,
+            "hasDocument": false
+          },
+          {
+            "id": "hold",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "hold.none",
+              "parts": [
+                "Not recorded yet"
+              ],
+              "text": "Not recorded yet"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeHold",
+                "place": "hold",
+                "slots": {}
+              }
+            ],
+            "notes": []
+          },
+          {
+            "id": "move",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "move.notSet",
+              "parts": [
+                "Set when the plan is locked"
+              ],
+              "text": "Set when the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "openMove",
+                "place": "move",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "move.optional"
+            ]
+          }
+        ],
+        "subSteps": [
+          {
+            "id": "about",
+            "under": "plan"
+          },
+          {
+            "id": "income",
+            "under": "plan"
+          },
+          {
+            "id": "spend",
+            "under": "plan"
+          },
+          {
+            "id": "pots",
+            "under": "plan"
+          },
+          {
+            "id": "lasts",
+            "under": "plan"
+          },
+          {
+            "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
+            "under": "plan"
+          }
+        ],
+        "current": "plan",
+        "answerStale": null,
+        "next": {
+          "id": "P.draft",
+          "slots": {
+            "month": "September 2026",
+            "monthName": "September",
+            "nextMonth": "October",
+            "year": "2026/27",
+            "stop": "April 2027",
+            "savedYear": ""
+          },
+          "button": {
+            "id": "lasts",
+            "href": "#/plan/AlexWay01/lasts",
+            "slots": {}
+          }
+        },
+        "askLinks": [
+          "c"
+        ],
+        "forId": "AlexWay01",
+        "forStep": "lasts",
+        "lasts": {
+          "found": true,
+          "id": "AlexWay01",
+          "name": "Alex’s plan",
+          "locked": false,
+          "lockedOn": null,
+          "readonly": false,
+          "editable": true,
+          "source": {
+            "kind": "saved",
+            "at": "14 August 2026"
+          },
+          "strategyId": "pots-and-valves",
+          "bought": false,
+          "family": true,
+          "endAge": 95,
+          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+          "document": null,
+          "fields": [
+            {
+              "path": "cutsOn",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": true,
+              "shown": "yes",
+              "saved": "yes",
+              "error": null
+            },
+            {
+              "path": "cutAfterMonths",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "3",
+              "saved": "3",
+              "error": null
+            },
+            {
+              "path": "cutPct",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "20",
+              "saved": "20",
+              "error": null
+            },
+            {
+              "path": "deeperAfterMonths",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "12",
+              "saved": "12",
+              "error": null
+            },
+            {
+              "path": "buffer",
+              "type": "money",
+              "options": null,
+              "applies": true,
+              "shown": "15000",
+              "saved": "15000",
+              "error": null
+            },
+            {
+              "path": "reserveOn",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": true,
+              "shown": "no",
+              "saved": "no",
+              "error": null
+            },
+            {
+              "path": "reserveAmount",
+              "type": "money",
+              "options": null,
+              "applies": false,
+              "shown": "25000",
+              "saved": "25000",
+              "error": null
+            }
+          ],
+          "errors": {},
+          "ok": true,
+          "derived": [
+            {
+              "id": "cuts.staged",
+              "slots": {
+                "months": "3",
+                "half": "10",
+                "first": "12",
+                "full": "20",
+                "buffer": "£15,000"
+              }
+            },
+            {
+              "id": "reserve.off",
+              "slots": {}
+            }
+          ],
+          "notUsed": [],
+          "partners": [],
+          "changed": false,
+          "patch": {},
+          "previous": {},
+          "savedLine": {
+            "id": "lasts",
+            "slots": {
+              "pct": "20",
+              "months": "3",
+              "reserve": "no reserve"
+            }
+          },
+          "draftKey": "{\"try.way\":\"floor-to-age\",\"try.years\":\"30\",\"try.isaPolicy\":\"hold\"}",
+          "verdict": {
+            "ok": true,
+            "verdict": "yes",
+            "share": 0.981,
+            "chancePct": 98.1,
+            "figures": {
+              "chancePct": 98.1,
+              "typicalLeft": 679233,
+              "badCaseLeft": 151745,
+              "goodCaseLeft": 2839263,
+              "futures": 1000,
+              "histories": 717,
+              "histRanOutN": 0,
+              "years": 33,
+              "cutN": 739,
+              "cutPerYear": 3008,
+              "cutYears": 7,
+              "cutTotal": 20707,
+              "worstCut": 143212
+            },
+            "id": "lasts.headline",
+            "slots": {
+              "words": "in more than 9 futures out of 10"
+            },
+            "sub": {
+              "id": "lasts.sub",
+              "slots": {
+                "pct": "98.1",
+                "futures": "1,000",
+                "histories": "717",
+                "years": "33",
+                "toAge": "95"
+              }
+            },
+            "rows": [
+              {
+                "id": "left",
+                "slots": {
+                  "typical": "£679,233",
+                  "bad": "£151,745",
+                  "good": "£2,839,263"
+                }
+              },
+              {
+                "id": "cuts.some",
+                "slots": {
+                  "n": "739",
+                  "of": "1,000",
+                  "ranOut": " (19 of them later ran out)",
+                  "perYear": "£3,008",
+                  "years": "7",
+                  "s": "s",
+                  "total": "£20,707",
+                  "worst": "£143,212"
+                }
+              },
+              {
+                "id": "ran.cuts",
+                "slots": {
+                  "pct": "20",
+                  "months": "3",
+                  "s": "s"
+                }
+              }
+            ],
+            "strategyId": "pots-and-valves",
+            "history": {
+              "worst": [
+                {
+                  "when": "May 1965",
+                  "label": null,
+                  "unfair": true,
+                  "lowest": "£23,664",
+                  "left": "£52,703",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "31",
+                    "s": "s",
+                    "total": "£121,132"
+                  }
+                },
+                {
+                  "when": "January 1966",
+                  "label": null,
+                  "unfair": true,
+                  "lowest": "£23,664",
+                  "left": "£56,311",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "30",
+                    "s": "s",
+                    "total": "£121,924"
+                  }
+                },
+                {
+                  "when": "January 1965",
+                  "label": null,
+                  "unfair": true,
+                  "lowest": "£23,664",
+                  "left": "£51,687",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "29",
+                    "s": "s",
+                    "total": "£114,712"
+                  }
+                },
+                {
+                  "when": "November 1965",
+                  "label": null,
+                  "unfair": true,
+                  "lowest": "£23,880",
+                  "left": "£67,335",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "29",
+                    "s": "s",
+                    "total": "£118,883"
+                  }
+                },
+                {
+                  "when": "November 1964",
+                  "label": null,
+                  "unfair": true,
+                  "lowest": "£23,880",
+                  "left": "£62,484",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "28",
+                    "s": "s",
+                    "total": "£112,181"
+                  }
+                }
+              ],
+              "named": [
+                {
+                  "when": "1929",
+                  "label": "the Great Depression",
+                  "unfair": false,
+                  "lowest": "£26,102",
+                  "left": "£386,955",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "20",
+                    "s": "s",
+                    "total": "£75,956"
+                  }
+                },
+                {
+                  "when": "1937",
+                  "label": "the 1937 slump",
+                  "unfair": false,
+                  "lowest": "£26,173",
+                  "left": "£367,228",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "17",
+                    "s": "s",
+                    "total": "£86,551"
+                  }
+                },
+                {
+                  "when": "1966",
+                  "label": "the 1966 start — the worst a retiree has had",
+                  "unfair": false,
+                  "lowest": "£23,664",
+                  "left": "£56,311",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "30",
+                    "s": "s",
+                    "total": "£121,924"
+                  }
+                },
+                {
+                  "when": "1973",
+                  "label": "the 1970s inflation",
+                  "unfair": false,
+                  "lowest": "£26,173",
+                  "left": "£211,910",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "19",
+                    "s": "s",
+                    "total": "£93,641"
+                  }
+                },
+                {
+                  "when": "2000",
+                  "label": "the dot-com bust and the lost decade",
+                  "unfair": false,
+                  "lowest": null,
+                  "left": null,
+                  "id": "hist.tooShort",
+                  "slots": {
+                    "year": "2000",
+                    "lastStart": "1990"
+                  }
+                },
+                {
+                  "when": "2008",
+                  "label": "the 2008 crisis",
+                  "unfair": false,
+                  "lowest": null,
+                  "left": null,
+                  "id": "hist.tooShort",
+                  "slots": {
+                    "year": "2008",
+                    "lastStart": "1990"
+                  }
+                }
+              ],
+              "histRanOut": "0",
+              "failKind": "ran-out",
+              "histories": "717",
+              "contract": false
+            }
+          },
+          "documentVerdict": null,
+          "note": null,
+          "levers": {
+            "spendMore": {
+              "status": "off",
+              "lines": [],
+              "problem": null,
+              "reason": null
+            },
+            "work": {
+              "status": "off",
+              "lines": [],
+              "problem": null,
+              "reason": null
+            },
+            "fall": {
+              "status": "off",
+              "lines": [],
+              "problem": null,
+              "reason": null
+            },
+            "compare": null,
+            "workDraft": {
+              "yearly": "",
+              "years": ""
+            }
+          },
+          "try": {
+            "fields": [
+              {
+                "path": "try.way",
+                "type": "choice",
+                "options": [
+                  "pots-and-valves",
+                  "buckets-in-order",
+                  "ladder-and-ratchet",
+                  "bridge-and-engine",
+                  "floor-and-flex",
+                  "floor-the-schedule",
+                  "floor-to-age",
+                  "full-il-gilt",
+                  "gilt-rotation"
+                ],
+                "applies": true,
+                "shown": "floor-to-age",
+                "saved": "pots-and-valves",
+                "error": null
+              },
+              {
+                "path": "try.pot",
+                "type": "money",
+                "options": null,
+                "applies": true,
+                "shown": "700000",
+                "saved": "700000",
+                "error": null
+              },
+              {
+                "path": "try.isa",
+                "type": "money",
+                "options": null,
+                "applies": true,
+                "shown": "45000",
+                "saved": "45000",
+                "error": null
+              },
+              {
+                "path": "try.isaPolicy",
+                "type": "choice",
+                "options": [
+                  "saved",
+                  "hold"
+                ],
+                "applies": true,
+                "shown": "hold",
+                "saved": "saved",
+                "error": null
+              },
+              {
+                "path": "try.incomeMode",
+                "type": "choice",
+                "options": [
+                  "shape",
+                  "flat"
+                ],
+                "applies": true,
+                "shown": "shape",
+                "saved": "shape",
+                "error": null
+              },
+              {
+                "path": "try.income",
+                "type": "money",
+                "options": null,
+                "applies": false,
+                "shown": "2743",
+                "saved": "2743",
+                "error": null
+              },
+              {
+                "path": "try.years",
+                "type": "count",
+                "options": null,
+                "applies": true,
+                "shown": "30",
+                "saved": "33",
+                "error": null
+              },
+              {
+                "path": "try.cuts",
+                "type": "choice",
+                "options": [
+                  "saved",
+                  "on",
+                  "off"
+                ],
+                "applies": true,
+                "shown": "saved",
+                "saved": "saved",
+                "error": null
+              },
+              {
+                "path": "try.cutPct",
+                "type": "count",
+                "options": null,
+                "applies": true,
+                "shown": "",
+                "saved": null,
+                "error": null
+              },
+              {
+                "path": "try.cutEsc",
+                "type": "count",
+                "options": null,
+                "applies": true,
+                "shown": "",
+                "saved": null,
+                "error": null
+              }
+            ],
+            "errors": {},
+            "ok": true,
+            "run": {
+              "way": "floor-to-age",
+              "pot": 700000,
+              "isa": 45000,
+              "isaPolicy": "hold",
+              "incomeMode": "shape",
+              "income": 0,
+              "years": 30,
+              "cuts": "saved",
+              "cutPct": "",
+              "cutEsc": ""
+            },
+            "status": "failed",
+            "reason": null,
+            "result": null,
+            "patch": {},
+            "kept": null,
+            "same": true
+          }
+        }
+      }
+    }
+  },
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": "AlexWay01",
+      "values": {
+        "try.way": "floor-to-age",
+        "try.years": "30",
+        "try.isaPolicy": "hold"
+      },
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    }
+  },
+  "lasts": {
+    "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+    "status": "done",
+    "reason": null,
+    "result": {
+      "strategyId": "pots-and-valves",
+      "ran": {
+        "family": true,
+        "cutsOn": true,
+        "cutPct": 20,
+        "months": 3
+      },
+      "priced": null,
+      "a": {
+        "strategyId": "pots-and-valves",
+        "chancePct": 98.1,
+        "share": 0.981,
+        "outOfTen": {
+          "n": 10,
+          "words": "in more than 9 futures out of 10"
+        },
+        "futures": 1000,
+        "histories": 717,
+        "years": 33,
+        "histStrideMonths": 2,
+        "histRanOutPct": 0,
+        "histRanOutN": 0,
+        "typicalLeft": 679232.794030698,
+        "badCaseLeft": 151744.89979562565,
+        "goodCaseLeft": 2839263.292882285,
+        "worst12": 23664.032293122073,
+        "coverage": 99.7429292929293,
+        "cuts": {
+          "futures": 1000,
+          "cutN": 739,
+          "cutPct": 73.9,
+          "ranOutN": 19,
+          "typicalCutPerYear": 3008,
+          "typicalCutYears": 7,
+          "typicalCutTotal": 20707,
+          "worstCutTotal": 143212
+        },
+        "cutLabel": null,
+        "failKind": "ran-out"
+      },
+      "reason": null,
+      "history": {
+        "worst": [
+          {
+            "year": 1965,
+            "month": 5,
+            "s": 1132,
+            "failed": false,
+            "failAge": null,
+            "terminal": 52703.14383427395,
+            "worst12": 23664.032293122073,
+            "protMonths": 355,
+            "cutYears": 31,
+            "cutReal": 121132.08220241935,
+            "unfair": true
+          },
+          {
+            "year": 1966,
+            "month": 1,
+            "s": 1140,
+            "failed": false,
+            "failAge": null,
+            "terminal": 56310.676572656346,
+            "worst12": 23664.03229312218,
+            "protMonths": 354,
+            "cutYears": 30,
+            "cutReal": 121923.74886908603,
+            "unfair": true
+          },
+          {
+            "year": 1965,
+            "month": 1,
+            "s": 1128,
+            "failed": false,
+            "failAge": null,
+            "terminal": 51686.96001930601,
+            "worst12": 23664.03229312226,
+            "protMonths": 343,
+            "cutYears": 29,
+            "cutReal": 114712.19667697225,
+            "unfair": true
+          },
+          {
+            "year": 1965,
+            "month": 11,
+            "s": 1138,
+            "failed": false,
+            "failAge": null,
+            "terminal": 67334.75116458623,
+            "worst12": 23879.825750628414,
+            "protMonths": 342,
+            "cutYears": 29,
+            "cutReal": 118883.34079580546,
+            "unfair": true
+          },
+          {
+            "year": 1964,
+            "month": 11,
+            "s": 1126,
+            "failed": false,
+            "failAge": null,
+            "terminal": 62484.3945175135,
+            "worst12": 23879.82575062858,
+            "protMonths": 331,
+            "cutYears": 28,
+            "cutReal": 112180.66363733548,
+            "unfair": true
+          }
+        ],
+        "named": [
+          {
+            "year": 1929,
+            "label": "the Great Depression",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 386955.254841676,
+            "worst12": 26101.70072415287,
+            "protMonths": 207,
+            "cutYears": 20,
+            "cutReal": 75956.21471850573
+          },
+          {
+            "year": 1937,
+            "label": "the 1937 slump",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 367228.16339738376,
+            "worst12": 26173.022003111386,
+            "protMonths": 197,
+            "cutYears": 17,
+            "cutReal": 86551.15273827323
+          },
+          {
+            "year": 1966,
+            "label": "the 1966 start — the worst a retiree has had",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 56310.676572656346,
+            "worst12": 23664.03229312218,
+            "protMonths": 354,
+            "cutYears": 30,
+            "cutReal": 121923.74886908603
+          },
+          {
+            "year": 1973,
+            "label": "the 1970s inflation",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 211909.98560138835,
+            "worst12": 26173.0220031114,
+            "protMonths": 222,
+            "cutYears": 19,
+            "cutReal": 93640.65503027807
+          },
+          {
+            "year": 2000,
+            "label": "the dot-com bust and the lost decade",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1990
+          },
+          {
+            "year": 2008,
+            "label": "the 2008 crisis",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1990
+          }
+        ]
+      },
+      "stored": null,
+      "basis": {
+        "today": "2026-09-30",
+        "engine": "one-test"
+      }
+    },
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": {
+      "status": "failed",
+      "boxes": {
+        "way": "floor-to-age",
+        "pot": 700000,
+        "isa": 45000,
+        "isaPolicy": "hold",
+        "incomeMode": "shape",
+        "income": 0,
+        "years": 30,
+        "cuts": "saved",
+        "cutPct": "",
+        "cutEsc": ""
+      },
+      "result": null,
+      "ms": null,
+      "reason": null
+    },
+    "kept": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null
+  }
+}

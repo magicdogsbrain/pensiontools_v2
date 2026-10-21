@@ -491,6 +491,74 @@ async function buildPlanStates({ today }) {
   states['way-locked-tried'] = stateOn('SamLocked02', [...ran('SamLocked02'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, ...tried('SamLocked02', 'floor-to-age', { floorToAge: 82 })]);
   states['way-unaffordable'] = stateOn('AlexFresh03', [...ran('AlexFresh03'), { type: A.WAY_OPEN, id: 'full-il-gilt' }], { open: ['waysMore'] });
   states['way-shown-as-saved'] = stateOn('AlexWay01', [], { newer: true });
+
+  /**
+   * "The mix" (research/v7/way-and-mix.md 3, 7) and Try a change on a plan (4): tests/v7/states/plan/mix-*.json and
+   * lasts-try-*.json — each a state on #/plan/<id>/mix or …/lasts holding ONE plan (Alex's Pots & Valves draft, corpus 02; Sam's
+   * locked Buckets plan, corpus 04; Alex's rotation plan, corpus 07, a bought way), what was typed, and the runs held: the
+   * plan's own test (lastsRun.js runLasts), the slice's and the tent's try (mixRun.js runMixTry), the eight cells
+   * (runMixCompare), a change tried (runTry) — all at the engine's own 1,000 futures. Nothing hand-made.
+   */
+  const { runLasts, runTry } = await import('../../../src/answers/plan/lastsRun.js');
+  const { runMixTry, runMixCompare } = await import('../../../src/answers/plan/mixRun.js');
+  const buckets = plant(C['04-buckets-running'], 'SamBuckets04', 'Sam’s plan');
+  const rotation = plant(C['07-pre-6.13-flat-params'], 'AlexRotation05', 'Alex’s rotation plan');
+  const oneOf = (id) => [alex, sam, fresh, buckets, rotation].map((p) => entryOf(p, today)).find((e) => e.plan.id === id);
+  const lastsRuns = new Map();
+  const lastsOf = (id) => { if (!lastsRuns.has(id)) lastsRuns.set(id, runLasts(oneOf(id).plan, { today })); return lastsRuns.get(id); };
+  /** A state on a step of ONE plan (the plans read as an account), what was typed laid over it, then the actions; the reading refreshed as the plan source does. */
+  const stateOne = (id, step, actions = [], { open = [], newer = false, typed = {}, asked = false } = {}) => {
+    const entry = oneOf(id);
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + id + '/' + step) });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'someone@example.com' } });
+    s = reduce(s, { type: A.PLANS_SET, list: [newer ? { ...entry, newer: true } : entry], source: 'account', readAt: '14:03' });
+    for (const [path, value] of Object.entries(typed)) s = reduce(s, { type: A.PLAN_EDIT, planId: id, path, value });
+    if (asked) { s = reduce(s, { type: A.PLAN_SAVE, planId: id }); s = { ...s, ui: { ...s.ui, saving: null } }; }
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    const key = runKeyOf(entry.plan);
+    for (const a of actions) { s = reduce(s, typeof a === 'function' ? a(key, s) : a); s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) }); }
+    for (const x of open) s = reduce(s, { type: A.UI_TOGGLE, id: x });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    return s;
+  };
+  const held = (id) => [(key) => ({ type: A.LASTS_WORKING, key }), (key) => ({ type: A.LASTS_DONE, key, result: lastsOf(id) })];
+  const baseOf = (id) => { const a = lastsOf(id).a; return a ? { share: a.share, chancePct: a.chancePct, typicalLeft: a.typicalLeft, badCaseLeft: a.badCaseLeft } : null; };
+  const mixTried = (id, kind, { withBase = true, ms = 480 } = {}) => [(key) => ({ type: A.MIX_TRY, key, kind }), (key) => ({ type: A.MIX_TRIED, key, kind, result: runMixTry(oneOf(id).plan, { today, kind, base: withBase ? baseOf(id) : null }), ms })];
+  const compared = (id, ms = 3900) => [(key) => ({ type: A.MIX_COMPARE, key }), (key) => ({ type: A.MIX_COMPARED, key, result: runMixCompare(oneOf(id).plan, { today }), ms })];
+  const PASTE = 'Investment,Units,Value\nVanguard FTSE All-World UCITS ETF,500,£52,600.00\nA fund of my own,10,£1,000\nTotal,,£53,600';
+  states['mix-first'] = stateOne('AlexWay01', 'mix');
+  states['mix-level'] = stateOne('AlexWay01', 'mix', [], { typed: { held: 'level', level: 'balanced', sleeve: 'yes' } });
+  states['mix-split-problem'] = stateOne('AlexWay01', 'mix', [], { typed: { shares: '70' }, asked: true });
+  states['mix-funds'] = stateOne('AlexWay01', 'mix', [], { typed: { held: 'funds', 'funds.ids': 'n1,n2', 'funds.n1.ticker': 'VWRP', 'funds.n1.value': '300,000', 'funds.n2.ticker': 'ZZZZ', 'funds.n2.value': '50,000', 'funds.n2.wrapper': 'ISA' }, asked: true });
+  states['mix-funds-ok'] = stateOne('AlexWay01', 'mix', [], { typed: { held: 'funds', 'funds.ids': 'n1,n2', 'funds.n1.ticker': 'VWRP', 'funds.n1.value': '300,000', 'funds.n2.ticker': 'ZZZZ', 'funds.n2.value': '50,000', 'funds.n2.wrapper': 'ISA', 'funds.n2.category': 'gold', search: 'vang' } });
+  states['mix-paste'] = stateOne('AlexWay01', 'mix', [], { typed: { held: 'funds', 'paste.text': PASTE, 'paste.2.what': 'bonds' }, open: ['mixPaste'] });
+  states['mix-example'] = stateOne('AlexWay01', 'mix', [], { open: ['mixExample'] });
+  states['mix-sleeve-tried'] = stateOne('AlexWay01', 'mix', [...held('AlexWay01'), ...mixTried('AlexWay01', 'sleeve')]);
+  states['mix-tent-tried'] = stateOne('AlexWay01', 'mix', mixTried('AlexWay01', 'tent', { withBase: false, ms: 960 }));
+  states['mix-try-working'] = stateOne('AlexWay01', 'mix', [(key) => ({ type: A.MIX_TRY, key, kind: 'tent' })]);
+  states['mix-try-failed'] = stateOne('AlexWay01', 'mix', [(key) => ({ type: A.MIX_TRY, key, kind: 'sleeve' }), (key) => ({ type: A.MIX_TRY_FAILED, key, kind: 'sleeve' })]);
+  states['mix-compare-working'] = stateOne('AlexWay01', 'mix', [(key) => ({ type: A.MIX_COMPARE, key }), (key) => ({ type: A.MIX_COMPARE_PROGRESS, key, done: 3, total: 8 })]);
+  states['mix-compared'] = stateOne('AlexWay01', 'mix', compared('AlexWay01'));
+  states['mix-pick'] = stateOne('AlexWay01', 'mix', [...compared('AlexWay01'), { type: A.MIX_PICK, cell: { key: 'balanced', tent: true } }]);
+  states['mix-compare-failed'] = stateOne('AlexWay01', 'mix', [(key) => ({ type: A.MIX_COMPARE, key }), (key) => ({ type: A.MIX_COMPARE_FAILED, key, reason: 'noWorker' })]);
+  states['mix-locked'] = stateOne('SamBuckets04', 'mix', [...held('SamBuckets04'), ...compared('SamBuckets04'), ...mixTried('SamBuckets04', 'sleeve')]);
+  states['mix-bought'] = stateOne('AlexRotation05', 'mix');
+  states['mix-shown-as-saved'] = stateOne('AlexWay01', 'mix', [], { newer: true });
+  // Try a change on "Does it last?" (4): the plan's own test held, then the boxes opened, tried, kept
+  const TRIED_TYPED = { 'try.way': 'floor-to-age', 'try.years': '30', 'try.isaPolicy': 'hold' };
+  const runBoxes = (s, id) => s.plans.view.page.lasts.try.run;
+  const tryDone = (id, { ms = 520 } = {}) => [(key, s) => ({ type: A.TRY_RUN, boxes: runBoxes(s, id) }), (key, s) => ({ type: A.TRY_DONE, key, boxes: s.lasts.tried.boxes, result: runTry(oneOf(id).plan, { today, boxes: s.lasts.tried.boxes }), ms })];
+  states['lasts-try-closed'] = stateOne('AlexWay01', 'lasts', held('AlexWay01'));
+  states['lasts-try-open'] = stateOne('AlexWay01', 'lasts', held('AlexWay01'), { open: ['tryOpen'] });
+  states['lasts-try-working'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), (key, s) => ({ type: A.TRY_RUN, boxes: runBoxes(s, 'AlexWay01') })], { typed: TRIED_TYPED });
+  states['lasts-try-tried'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), ...tryDone('AlexWay01')], { typed: TRIED_TYPED });
+  states['lasts-try-none'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), ...tryDone('AlexWay01')]);
+  states['lasts-try-confirm'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), ...tryDone('AlexWay01')], { typed: TRIED_TYPED, open: ['tryConfirm'] });
+  states['lasts-try-kept'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), ...tryDone('AlexWay01'), { type: A.TRY_KEPT, planId: 'AlexWay01', id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Alex’s plan · tried', where: 'account' }], { typed: TRIED_TYPED });
+  states['lasts-try-failed'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), (key, s) => ({ type: A.TRY_RUN, boxes: runBoxes(s, 'AlexWay01') }), (key, s) => ({ type: A.TRY_FAILED, key, boxes: s.lasts.tried.boxes })], { typed: TRIED_TYPED });
+  states['lasts-try-problem'] = stateOne('AlexWay01', 'lasts', held('AlexWay01'), { typed: { 'try.years': 'abc', 'try.pot': '' }, open: ['tryOpen'], asked: true });
+  states['lasts-try-locked'] = stateOne('SamBuckets04', 'lasts', [...held('SamBuckets04'), ...tryDone('SamBuckets04')], { typed: { 'try.way': 'pots-and-valves', 'try.years': '28' } });
   return { states };
 }
 
@@ -500,7 +568,8 @@ if (QUESTION === 'plan') {
   if (whole) {
     writeFileSync(join(target, '_made-with.json'), JSON.stringify({
       note: 'Written by tests/v7/states/build-states.mjs --question plan. Do not edit by hand.',
-      today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)'], patched: []
+      today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', runs: ['src/answers/plan/waysRun.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/mixRun.js'],
+      plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)', 'tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)', 'tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)'], patched: []
     }, null, 2) + '\n');
   }
   console.log(`${names.length} states written to ${target}/`);

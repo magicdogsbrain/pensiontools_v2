@@ -121,6 +121,79 @@ export const LASTS = {
   },
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
   saving: 'Saving…',
+  /** Try a change on a plan (research/v7/way-and-mix.md 4): the planner's whole Try, beside the three levers. */
+  try: {
+    title: 'Try a change of your own',
+    lead: 'Change any of these and try it: the same one test on a copy of your plan, over its full length. Nothing is kept until you press “Use this” or keep it as a separate plan.',
+    fields: {
+      'try.way':        { label: 'The way the money is taken' },
+      'try.pot':        { label: 'The pension pot, in pounds', help: 'The shares, bonds and cash are scaled to this figure in their saved proportions; a slice of gold and trend funds is left as it is.' },
+      'try.isa':        { label: 'The ISA, in pounds' },
+      'try.isaPolicy':  { label: 'The ISA', options: { saved: 'As saved', hold: 'Held back, never drawn for income' } },
+      'try.incomeMode': { label: 'The income', options: { shape: 'As shaped, step by step', flat: 'A flat figure every year' } },
+      'try.income':     { label: 'A month after tax, at today’s prices', help: 'The plan saves it as a figure a year before tax, through its own tax sum.' },
+      'try.years':      { label: 'How many years the plan runs (5 to 45)' },
+      'try.cuts':       { label: 'Cuts in a slump', options: { saved: 'As saved', on: 'On', off: 'Off: pay the plan in full until it runs out' } },
+      'try.cutPct':     { label: 'How deep the cut is, % (blank: as saved)' },
+      'try.cutEsc':     { label: 'Months at half the cut before the whole cut (blank: as saved)' }
+    },
+    errors: {
+      'try.way':        { required: 'Choose a way.', notAnOption: 'One of the nine, please.' },
+      'try.pot':        { required: 'Type the pot, for example 500,000.', notANumber: 'Figures only, like 500,000.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
+      'try.isa':        { notANumber: 'Figures only, like 50,000, or 0.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
+      'try.isaPolicy':  { notAnOption: 'One of the two, please.' },
+      'try.incomeMode': { notAnOption: 'One of the two, please.' },
+      'try.income':     { required: 'Type the figure a month, for example 2,000.', notANumber: 'Figures only, like 2,000.', tooLow: 'At least £1.', tooHigh: 'Up to £50,000 a month, please.' },
+      'try.years':      { required: 'How many years, for example 35.', notANumber: 'Whole years, please, like 35.', tooLow: 'At least 5 years.', tooHigh: 'Up to 45 years, please.' },
+      'try.cuts':       { notAnOption: 'One of the three, please.' },
+      'try.cutPct':     { notANumber: 'A whole percent, please, like 20.', tooLow: 'A percent of 0 or more.', tooHigh: 'Up to 60%, please.' },
+      'try.cutEsc':     { notANumber: 'Whole months, please, like 12.', tooLow: 'A number of months of 0 or more.', tooHigh: 'Up to 60 months, please.' }
+    },
+    buttons: { open: 'Try a change of your own', tryIt: 'Try it', use: 'Use this', keep: 'Keep as a separate plan', close: 'Put it away', again: 'Try again', yes: 'Use it', notNow: 'Not now', openIt: 'Open it', lock: 'Lock this plan?' },
+    working: 'Trying it…',
+    failed: 'Sorry, that could not be tried. Nothing has changed.',
+    noWorker: 'This browser cannot run the test in the background, so a change cannot be tried here.',
+    problems: 'Have a look at the boxes marked above.',
+    stale: 'The boxes have moved since this was tried: press “Try it” again for the new figures.',
+    ran: 'Tried in 1 run.',
+    ranTimed: 'Tried in 1 run ({s} s).',
+    differentTitle: 'What’s different',
+    none: 'This is your plan as saved, run through {way}.',
+    diffs: {
+      way: 'The way the money is taken: {way} (the plan: {old}).',
+      pot: 'The pension pot: {pot} (the plan: {old}).',
+      isa: 'The ISA: {isa} (the plan: {old}).',
+      isaPolicy: 'The ISA: {policy} (the plan: {old}).',
+      income: 'A flat income of {income} a year before tax{steps}.',
+      incomeSteps: ' instead of your steps',
+      years: '{years} years (the plan: {old}).',
+      cuts: 'Cuts in a slump: {on}.',
+      cutPct: 'The cut: {pct}% (the plan: {old}%).',
+      cutEsc: 'Months at half the cut: {months} (the plan: {old}).'
+    },
+    policies: { hold: 'held back, never drawn for income', bridge: 'drawn as the plan is set', minimiseEarlyTax: 'used to keep early tax down', maximiseLongevity: 'used to make the money last', saved: 'as saved' },
+    onOff: { on: 'on', off: 'off' },
+    confirm: {
+      title: 'Use this?',
+      body: 'Your plan changes in {n} way{s}, as listed under “What’s different”; the rest stays as saved.',
+      undo: 'You can undo this straight away.'
+    },
+    kept: {
+      inAccount: 'Kept as ‘{name}’ in your account.',
+      inWindow: 'Kept as ‘{name}’ in this browser window.',
+      unlocked: 'The copy is not locked: lock it when it is right.'
+    },
+    keepProblems: {
+      full: 'Without an account this browser keeps three plans, and it holds three. Sign in to keep more.',
+      unverified: 'Confirm your email address first, then keep it.',
+      failed: 'Sorry, the copy could not be kept. Nothing has changed.',
+      storage: 'This browser would not keep the copy. Nothing has changed.',
+      usedUp: 'Your free time without an account is used up. Sign in to keep this.',
+      nobody: 'Sign in to keep a copy. Nothing has changed.',
+      noRun: 'Try it first, then keep it.'
+    },
+    toast: { try: 'Saved. Your plan changed in {n} way{s}. The test is running again on the saved plan.' }
+  },
   /** The three levers of "Will it last?" on a saved plan (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7). */
   levers: {
     title: 'Try a change',

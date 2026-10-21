@@ -27,6 +27,13 @@
  *   WAY_IDS, WAY_DIALS, RANK_BYS, WAY_WRITES
  *                      "How the money is taken" (way-and-mix.md 2; road-to-7.md step 8a): the nine ways, each one's dials
  *                      (one set), the orders of the table, and the ONLY field paths "Use this way of drawing" may write
+ *   MIX_FIELDS, MIX_LISTS, MIX_WRITES, isMixPath
+ *                      "The mix" (way-and-mix.md 3; road-to-7.md step 8b): how the pension is held (a level, your own split,
+ *                      the funds to test), the diversifiers sleeve, the bond tent, the funds as cards, the paste's boxes, and
+ *                      the ONLY field paths "Save the mix" and "Use this mix" may write
+ *   TRY_FIELDS, TRY_WRITES, isTryPath
+ *                      Try a change on a plan (way-and-mix.md 4): the boxes beside the three levers on "Does it last?", and
+ *                      the paths "Use this" may write — the union of the steps' own lists, none of its own
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -450,9 +457,113 @@ export const WAY_WRITES = Object.freeze([
   'strategy'
 ]);
 
+// ---- "The mix" (research/v7/way-and-mix.md 3; road-to-7.md step 8b): the sixth editing step ------------------------------
+
+export const MIX_SUB_STEP = 'mix';
+/** The three levels (GlidepathService.RISK_PRESETS / DIVERSIFIER_PRESETS), in the planner's order. */
+export const MIX_LEVELS = Object.freeze(['cautious', 'balanced', 'adventurous']);
+/** How the pension is held (3.2a): a risk level, your own split, the funds to test. */
+export const MIX_HOLDS = Object.freeze(['level', 'split', 'funds']);
+/** Where a fund line is held (the planner's funds rows know SIPP and ISA; its paste offers the taxable account too). */
+export const MIX_WRAPPERS = Object.freeze(['SIPP', 'ISA', 'GIA']);
+/** The answers to "What is this?" on a pasted line the tool could not recognise (HoldingsPaste.CATEGORY_CHOICES, by key). */
+export const MIX_WHATS = Object.freeze(['shares', 'bonds', 'cash', 'diversifiers', 'unknown']);
+/** The four pots of a split, in the order they are drawn: each a whole percent, the four kept to 100. */
+export const MIX_SPLIT = Object.freeze(['shares', 'bonds', 'diversifiers', 'cash']);
+
+/**
+ * The boxes (3.2), in the order they are drawn. `when` as the other lists. The split's four boxes are drawn while "your own
+ * split" is chosen; the level while "a risk level" is; the tent's endgame while the tent is on with a funds list (the
+ * reading decides that: mix.js checkMix applies). The diversifiers sleeve is a box for a level and a split; for a funds
+ * list it is read from the tags.
+ */
+export const MIX_FIELDS = Object.freeze([
+  { path: 'held',         type: 'choice',  options: MIX_HOLDS, required: true },
+  { path: 'level',        type: 'choice',  options: MIX_LEVELS, required: true, when: { held: 'level' } },
+  { path: 'shares',       type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'bonds',        type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'diversifiers', type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'cash',         type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'sleeve',       type: 'choice',  options: YES_NO, default: 'no' },
+  { path: 'tent',         type: 'choice',  options: YES_NO, default: 'no' },
+  { path: 'endgame',      type: 'choice',  options: MIX_LEVELS, default: 'balanced', when: { tent: 'yes' } }
+].map(Object.freeze));
+export const MIX_PATHS = Object.freeze(MIX_FIELDS.map((f) => f.path));
+
+/** The funds to test (3.2c) as cards, like the income step's lists: "funds.ids", "funds.<id>.<field>". */
+export const MIX_LISTS = Object.freeze({
+  funds: Object.freeze({ fields: Object.freeze([
+    { path: 'ticker',   type: 'text',   max: 12, required: false },
+    { path: 'name',     type: 'text',   max: 80, required: false },
+    { path: 'value',    type: 'money',  min: 1, max: 50000000, required: true },
+    { path: 'wrapper',  type: 'choice', options: MIX_WRAPPERS, default: 'SIPP' },
+    { path: 'category', type: 'text',   max: 40, required: false }
+  ].map(Object.freeze)) })
+});
+export const MIX_LIST_IDS = Object.freeze(Object.keys(MIX_LISTS));
+/** The boxes of a paste (3.2c): the text, where the lines are held, and "What is this?" by pasted line number. */
+export const MIX_PASTE_PATHS = Object.freeze(['paste.text', 'paste.wrapper']);
+const PASTE_WHAT = /^paste\.(\d{1,3})\.what$/;
+
+/** The paths of "The mix" a draft may hold: the boxes, the search box, the paste's boxes, a list's order, a card's boxes. */
+export function isMixPath(path) {
+  const p = String(path);
+  if (MIX_PATHS.includes(p) || p === 'search' || MIX_PASTE_PATHS.includes(p) || PASTE_WHAT.test(p)) return true;
+  const parts = p.split('.');
+  if (parts.length === 2) return MIX_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
+  if (parts.length !== 3) return false;
+  const list = MIX_LISTS[parts[0]];
+  return !!list && isCardId(parts[1]) && list.fields.some((f) => f.path === parts[2]);
+}
+
+/**
+ * Every dotted field path "The mix" may change (3.3): the four amounts, the sub-class mix, the mode and the funds list, the
+ * ISA a funds list fills, the bond tent and its endgame, and the active way's stash as the planner's switch stashes it.
+ */
+export const MIX_WRITES = Object.freeze([
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.subAsset',
+  'stressTool.settings.allocMode',
+  'stressTool.settings.taggedFunds',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.equityGlideEnabled',
+  'stressTool.settings.glideEndgame',
+  'stressTool.settings.strategyState'
+]);
+
+// ---- Try a change on a plan (research/v7/way-and-mix.md 4): the boxes on "Does it last?" ------------------------------------
+
+/** The ISA policy a try may name: as saved, or hold it back (the planner's third, "draw as configured", is not offered). */
+export const TRY_ISA_POLICIES = Object.freeze(['saved', 'hold']);
+export const TRY_INCOME_MODES = Object.freeze(['shape', 'flat']);
+export const TRY_CUTS = Object.freeze(['saved', 'on', 'off']);
+/**
+ * The boxes of a try (4), in the order they are drawn, each "try.<name>" in the plan draft beside the lasts step's own
+ * dials: the way, the pot, the ISA, the ISA policy, the income as shaped or a flat figure A MONTH AFTER TAX (the planner's
+ * box is a year before tax: the reading converts through the plan's own tax sum), the years, the cuts, how deep and the
+ * escalation months (a blank depth or months is "as saved").
+ */
+export const TRY_FIELDS = Object.freeze([
+  { path: 'try.way',        type: 'choice',  options: WAY_IDS, required: true },
+  { path: 'try.pot',        type: 'money',   min: 0, max: 50000000, required: true },
+  { path: 'try.isa',        type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'try.isaPolicy',  type: 'choice',  options: TRY_ISA_POLICIES, default: 'saved' },
+  { path: 'try.incomeMode', type: 'choice',  options: TRY_INCOME_MODES, default: 'shape' },
+  { path: 'try.income',     type: 'money',   min: 1, max: 50000, required: true, when: { 'try.incomeMode': 'flat' } },
+  { path: 'try.years',      type: 'count',   min: 5, max: 45, required: true },
+  { path: 'try.cuts',       type: 'choice',  options: TRY_CUTS, default: 'saved' },
+  { path: 'try.cutPct',     type: 'count',   min: 0, max: 60, required: false },
+  { path: 'try.cutEsc',     type: 'count',   min: 0, max: 60, required: false }
+].map(Object.freeze));
+export const TRY_PATHS = Object.freeze(TRY_FIELDS.map((f) => f.path));
+export const isTryPath = (path) => TRY_PATHS.includes(String(path));
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -470,5 +581,12 @@ export const INCOME_WRITES = Object.freeze([
 ]);
 
 /** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES });
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...BOOKKEEPING_WRITES])]);
+/**
+ * "Use this" on a tried change (way-and-mix.md 4): ONE write of exactly the fields that differ, composed from the existing
+ * lists — the way through WAY_WRITES, the pots and the ISA through POTS_WRITES, the income through SPEND_WRITES (the
+ * income shape lives on "What you spend"), the years through ABOUT_WRITES, the cuts through LASTS_WRITES. No path of its own.
+ */
+export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
+
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES });
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...BOOKKEEPING_WRITES])]);

@@ -124,6 +124,31 @@ export function levelOfMix(settings) {
 }
 
 /**
+ * The cells of "Compare allocations" / "Which mix lasts best?" (index.html runCompareStrategiesUI's grid, lifted pure in
+ * 6.41.0 — research/v7/way-and-mix.md 3.2e, 6; the planner's button runs the six it always ran, the preview the eight):
+ * the plan's own mix with the tent off and on (`own`), then the three levels with the tent off and on — each a copy of the
+ * settings with the three £ amounts re-split from the pot the planner sums (shares + bonds + cash; a diversifiers sleeve
+ * is left as it is, as the planner's grid leaves it) and `equityGlideEnabled` set. Here, beside the presets, so the
+ * preview's "Use this mix" writes the very amounts a cell ran with without reaching the engine.
+ * @param {object} settings   the Stress settings as read
+ * @param {{ own?: boolean }} o
+ * @returns {Array<{ key: 'own'|'cautious'|'balanced'|'adventurous', tent: boolean, settings: object }>}
+ */
+export function mixCells(settings, { own = false } = {}) {
+  const s = settings || {};
+  const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  const cells = [];
+  if (own) for (const tent of [false, true]) cells.push({ key: 'own', tent, settings: { ...s, strategyId: s.strategyId || 'pots-and-valves', equityGlideEnabled: tent } });
+  for (const key of MIX_LEVELS) {
+    const preset = RISK_PRESETS[key];
+    for (const tent of [false, true]) {
+      cells.push({ key, tent, settings: { ...s, strategyId: s.strategyId || 'pots-and-valves', equityMin: Math.round(pot * preset.equity), bondMin: Math.round(pot * preset.bond), cashTarget: Math.round(pot * preset.cash), equityGlideEnabled: tent } });
+    }
+  }
+  return cells;
+}
+
+/**
  * The equity share of the GROWTH sleeve (equity+bond) for a given year under the
  * tent, or null when the tent is off. MUST match the inline formula the Stress
  * engine uses so both engines agree month-by-month.

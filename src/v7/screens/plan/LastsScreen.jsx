@@ -18,9 +18,12 @@ import { planView, planLastsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { LASTS } from '../../copy/lasts.js';
+import { WAY } from '../../copy/way.js';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
+/** A figure to the pound with its commas, from a number the reading gives (the reading's own pounds(), written again for the diff lines). */
+const pounds = (n) => '£' + String(Math.abs(Math.round(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 function Head({ view }) {
   return (
@@ -169,8 +172,111 @@ function Lever({ kind, lv, dispatch, workDraft }) {
   );
 }
 
-/** "Try a change": the three levers, once the plan's own test is held (never before: a lever is tried against it). */
-function Levers({ L, dispatch }) {
+const seconds = (ms) => (Math.round((ms || 0) / 100) / 10).toFixed(1);
+const wayName = (id) => WAY.names[id] || id;
+
+/**
+ * Try a change of your own (research/v7/way-and-mix.md 4): the planner's whole Try — the boxes, "Try it", the tried verdict as
+ * the plan's own band, "What's different", "Use this" (unlocked only, with its confirm) and "Keep as a separate plan".
+ */
+function TryChange({ L, planId, dispatch, sourceText }) {
+  const T = LASTS.try;
+  const t = L.try;
+  if (!t) return null;
+  const field = (path) => t.fields.find((f) => f.path === path);
+  // the boxes carry no source line: each starts at the plan's own figure, and a locked plan's "Fixed when…" is said once, above
+  const F = (path, more = {}) => (
+    <EditField step="lasts" f={field(path)} words={{ ...T.fields[path], options: T.fields[path].options || (path === 'try.way' ? WAY.names : undefined) }} errors={T.errors[path]} source={null} planId={planId} dispatch={dispatch} {...more} />
+  );
+  void sourceText;
+  const r = t.result;
+  const tryIt = () => { if (t.ok && t.run) dispatch({ type: 'lasts/tryRun', boxes: t.run }); else dispatch({ type: 'plan/save', planId }); };
+  const close = () => { dispatch({ type: 'lasts/tryClose' }); if (t.open) dispatch({ type: 'ui/toggle', id: 'tryOpen' }); };
+  const policy = (p) => T.policies[p] || (p == null ? T.policies.saved : p);
+  const diffLine = (d) => {
+    const s = d.slots;
+    if (d.id === 'way') return fill(T.diffs.way, { way: wayName(s.way), old: wayName(s.old) });
+    if (d.id === 'pot' || d.id === 'isa') return fill(T.diffs[d.id], { pot: pounds(s.pot), isa: pounds(s.isa), old: pounds(s.old) });
+    if (d.id === 'isaPolicy') return fill(T.diffs.isaPolicy, { policy: policy(s.policy), old: policy(s.old) });
+    if (d.id === 'income') return fill(T.diffs.income, { income: pounds(s.income), steps: s.steps ? T.diffs.incomeSteps : '' });
+    if (d.id === 'cuts') return fill(T.diffs.cuts, { on: T.onOff[s.on ? 'on' : 'off'] });
+    return fill(T.diffs[d.id] || '', s);
+  };
+  const kept = t.kept;
+  const keepProblem = L.problem && T.keepProblems[L.problem] ? T.keepProblems[L.problem] : null;
+  return (
+    <section class="plan-section lasts-try" data-section="try" data-testid="plan.lasts.try" data-try-status={t.status} data-open={t.open ? '1' : '0'}>
+      <h3>{T.title}</h3>
+      <p class="note">{T.lead}</p>
+      {!t.open && <div class="actions-row"><Button testid="plan.lasts.try.open" kind="primary" onClick={() => dispatch({ type: 'ui/toggle', id: 'tryOpen' })} {...keepFocus}>{T.buttons.open}</Button></div>}
+      {t.open && (
+        <>
+          <div class="try-boxes">
+            {F('try.way')}
+            {F('try.pot')}
+            {F('try.isa')}
+            {F('try.isaPolicy')}
+            {F('try.incomeMode', { nested: { flat: F('try.income') } })}
+            {F('try.years')}
+            {F('try.cuts')}
+            {F('try.cutPct')}
+            {F('try.cutEsc')}
+          </div>
+          <div class="actions-row">
+            <Button testid="plan.lasts.try.run" kind="primary" onClick={tryIt} disabled={t.status === 'working'} {...keepFocus}>{T.buttons.tryIt}</Button>
+            <Button testid="plan.lasts.try.close" kind="quiet" onClick={close} {...keepFocus}>{T.buttons.close}</Button>
+          </div>
+        </>
+      )}
+      {!t.ok && (L.draft.asked || Object.keys(t.errors).some((p) => L.draft.touched.includes(p))) && <p class="notice" role="alert" data-testid="plan.lasts.try.problems">{T.problems}</p>}
+      {t.status === 'working' && <p class="working-note" role="status" data-testid="plan.lasts.try.working">{T.working}</p>}
+      {t.status === 'failed' && (
+        <div class="notice" role="alert" data-testid="plan.lasts.try.failed">
+          <p>{t.reason === 'noWorker' ? T.noWorker : T.failed}</p>
+        </div>
+      )}
+      {r && (
+        <div class="try-result" data-testid="plan.lasts.try.result" data-stale={r.stale ? '1' : '0'}>
+          {r.stale && <p class="note" data-testid="plan.lasts.try.stale">{T.stale}</p>}
+          <Band v={r.verdict} stale={r.stale} testid="plan.lasts.try.band" />
+          <p class="plan-source" data-testid="plan.lasts.try.ran">{r.ms != null ? fill(T.ranTimed, { s: seconds(r.ms) }) : T.ran}</p>
+          <h4>{T.differentTitle}</h4>
+          {r.none ? <p class="note" data-testid="plan.lasts.try.none">{fill(T.none, { way: wayName(r.way) })}</p>
+            : <ul class="plan-lines" data-testid="plan.lasts.try.diffs">{r.diffs.map((d, i) => <li key={i} class="plan-line" data-diff={d.id}>{diffLine(d)}</li>)}</ul>}
+          {!r.stale && (
+            <div class="actions-row">
+              {r.canUse && !t.confirm && <Button testid="plan.lasts.try.use" kind="primary" onClick={() => dispatch({ type: 'ui/toggle', id: 'tryConfirm' })} disabled={!!L.saving} {...keepFocus}>{T.buttons.use}</Button>}
+              <Button testid="plan.lasts.try.keep" kind="plain" onClick={() => dispatch({ type: 'lasts/tryKeep', planId })} disabled={!!L.saving} {...keepFocus}>{T.buttons.keep}</Button>
+            </div>
+          )}
+          {r.canUse && t.confirm && !r.stale && (
+            <div class="notice lock-confirm" role="region" aria-label={T.confirm.title} data-testid="plan.lasts.try.confirmBox">
+              <h3>{T.confirm.title}</h3>
+              <p>{fill(T.confirm.body, { n: String(r.diffs.length), s: r.diffs.length === 1 ? '' : 's' })}</p>
+              <p>{T.confirm.undo}</p>
+              <div class="actions-row">
+                <Button testid="plan.lasts.try.confirm" kind="primary" onClick={() => dispatch({ type: 'plan/useTry', planId })} {...keepFocus}>{T.buttons.yes}</Button>
+                <Button testid="plan.lasts.try.notNow" kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'tryConfirm' })} {...keepFocus}>{T.buttons.notNow}</Button>
+              </div>
+            </div>
+          )}
+          {L.saving && (L.saving.kind === 'try' || L.saving.kind === 'tryKeep') && <p class="working-note" role="status" data-testid="plan.lasts.try.saving">{LASTS.saving}</p>}
+          {keepProblem && <p class="notice" role="alert" data-testid="plan.lasts.try.keepProblem" data-problem={L.problem}>{keepProblem}</p>}
+        </div>
+      )}
+      {kept && (
+        <p class="notice" role="status" data-testid="plan.lasts.try.kept">
+          {fill(kept.where === 'window' ? T.kept.inWindow : T.kept.inAccount, { name: kept.name })} {T.kept.unlocked}{' '}
+          <a href={href.plan(kept.id, 'plan')} data-testid="plan.lasts.try.openKept">{T.buttons.openIt}</a>{' · '}
+          <a href={href.plan(kept.id, 'lock')} data-testid="plan.lasts.try.lock">{T.buttons.lock}</a>
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** "Try a change": the three levers, once the plan's own test is held (never before: a lever is tried against it); then the change of your own. */
+function Levers({ L, planId, dispatch, sourceText }) {
   const run = L.run || { status: 'idle' };
   const v = L.verdict;
   const lv = L.levers;
@@ -184,6 +290,7 @@ function Levers({ L, dispatch }) {
       <ul class="lever-list" data-levers>
         {['spendMore', 'work', 'fall'].map((kind) => <Lever key={kind} kind={kind} lv={lv[kind]} dispatch={dispatch} workDraft={lv.workDraft} />)}
       </ul>
+      <TryChange L={L} planId={planId} dispatch={dispatch} sourceText={sourceText} />
     </section>
   );
 }
@@ -217,6 +324,7 @@ const toastText = (toast) => {
   if (toast.kind === 'undone') return LASTS.toast.undone;
   if (toast.kind === 'unchanged') return LASTS.toast.unchanged;
   if (!toast.line) return LASTS.toast.savedShort;
+  if (toast.line.id === 'try') return fill(LASTS.try.toast.try, { n: toast.line.slots.n, s: toast.line.slots.n === '1' ? '' : 's' });
   return fill(LASTS.toast[toast.line.id] || LASTS.toast.savedShort, toast.line.slots);
 };
 
@@ -251,7 +359,7 @@ export function LastsScreen(state, dispatch) {
     </>
   );
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
-  const answer = <><Answer L={L} onChange={onChange} dispatch={dispatch} view={view} /><Levers L={L} dispatch={dispatch} /></>;
+  const answer = <><Answer L={L} onChange={onChange} dispatch={dispatch} view={view} /><Levers L={L} planId={planId} dispatch={dispatch} sourceText={sourceText} /></>;
 
   // A locked plan, or one shown as saved: the result, then the dials read-only (10.5).
   if (!L.editable) {

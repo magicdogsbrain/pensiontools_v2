@@ -27,6 +27,7 @@ import { SpendScreen as SpendPlan } from './plan/SpendScreen.jsx';
 import { PotsScreen } from './plan/PotsScreen.jsx';
 import { LastsScreen } from './plan/LastsScreen.jsx';
 import { WayScreen } from './plan/WayScreen.jsx';
+import { MixScreen } from './plan/MixScreen.jsx';
 import { LockScreen } from './plan/LockScreen.jsx';
 
 export const SCREENS = {
@@ -61,6 +62,8 @@ export const SCREENS = {
   'plan.lasts': LastsScreen,
   // "How the money is taken": the nine ways on this plan (research/v7/way-and-mix.md 2)
   'plan.way': WayScreen,
+  // "The mix" (research/v7/way-and-mix.md 3)
+  'plan.mix': MixScreen,
   // "Lock the plan", the rail step made real (research/v7/road-to-7.md step 6)
   'plan.lock': LockScreen
 };

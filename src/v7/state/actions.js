@@ -114,7 +114,28 @@ export const A = Object.freeze({
   WAY_TRIED:       'ways/tried',       // { key, id, values, result, ms }    the way's figures (waysRun.js runWay); dropped if the key or the values are stale
   WAY_TRY_FAILED:  'ways/tryFailed',   // { key, id, values, reason? }       the try failed ('noWorker': no worker)
   WAY_RANK:        'ways/rankBy',      // { by }                             the table's order: lasts | left | score | coverage
-  PLAN_WAY:        'plan/useWay'       // { planId, id }                     "Use it" confirmed: saving { kind: 'way', way: id }; the one write file switches the plan
+  PLAN_WAY:        'plan/useWay',      // { planId, id }                     "Use it" confirmed: saving { kind: 'way', way: id }; the one write file switches the plan
+
+  // ---- "The mix" (research/v7/way-and-mix.md 3): the sleeve's and the tent's try, "Which mix lasts best?", "Use this mix" ----
+  MIX_TRY:         'mix/try',          // { key, kind: 'sleeve' | 'tent' }   try the sleeve or the tent the other way on the plan of this key (the effect runs it)
+  MIX_TRIED:       'mix/tried',        // { key, kind, result, ms }          the try's figures (mixRun.js runMixTry); dropped if the key is stale
+  MIX_TRY_FAILED:  'mix/tryFailed',    // { key, kind, reason? }             the try failed ('noWorker': no worker)
+  MIX_TRY_CLOSE:   'mix/tryClose',     // { kind }                           put the try away
+  MIX_COMPARE:     'mix/compare',      // { key }                            run the eight cells on the plan of this key (the effect runs it)
+  MIX_COMPARE_PROGRESS: 'mix/compareProgress', // { key, done, total }       ignored unless the key is the one under way
+  MIX_COMPARED:    'mix/compared',     // { key, result, ms }                the cells (mixRun.js runMixCompare); dropped if the key is stale
+  MIX_COMPARE_FAILED: 'mix/compareFailed', // { key, reason? }               the comparison failed
+  MIX_PICK:        'mix/pick',         // { cell: { key, tent } | null }     the cell "Use this mix" is asked about (the confirm shows for it); null closes it
+  PLAN_MIX:        'plan/useMix',      // { planId, cell }                   "Use it" confirmed: saving { kind: 'mix', cell }; the one write file writes the cell's mix
+
+  // ---- Try a change on a plan (research/v7/way-and-mix.md 4): the planner's whole Try on "Does it last?" --------------------
+  TRY_RUN:         'lasts/tryRun',     // { boxes }                          "Try it": the boxes as checked (lasts.js tryBoxesForRun); the effect runs runTry on the plan of the run held
+  TRY_DONE:        'lasts/tryDone',    // { key, boxes, result, ms }         the tried verdict (lastsRun.js runTry); dropped if the key or the boxes are stale
+  TRY_FAILED:      'lasts/tryFailed',  // { key, boxes, reason? }            the try failed ('noWorker': no worker)
+  TRY_CLOSE:       'lasts/tryClose',   // {}                                 put the try away (the boxes stay as typed)
+  PLAN_TRY:        'plan/useTry',      // { planId }                         "Use this" confirmed: saving { kind: 'try' }; ONE write of the fields that differ
+  TRY_KEEP:        'lasts/tryKeep',    // { planId }                         "Keep as a separate plan": saving { kind: 'tryKeep' }; the one write file makes the copy
+  TRY_KEPT:        'lasts/tryKept'     // { planId, id, name, where }        the copy is made (in the account, or this window)
 });
 
 /**
@@ -140,4 +161,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog
   'lockConfirm', 'unlockConfirm', 'documentConfirm',
   // "How the money is taken" (way-and-mix.md 2): the confirm of "Use this way of drawing", and "More columns"
-  'wayConfirm', 'waysMore']);
+  'wayConfirm', 'waysMore',
+  // "The mix" (way-and-mix.md 3): the paste box, the example list; Try a change (4): the boxes (closed until asked), the confirm of "Use this"
+  'mixPaste', 'mixExample', 'tryOpen', 'tryConfirm']);

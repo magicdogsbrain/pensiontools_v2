@@ -17,9 +17,15 @@
  * (or leverFailed) files its figures under the run's key. A lever not tried costs nothing; a lever's run is ended when the
  * plan changes under it (the key moves), and its result is dropped by the reducer. Nothing is written.
  *
- *   startLastsRunner({ store, client }) → stop()
+ * Try a change (research/v7/way-and-mix.md 4): on lasts/tryRun (state.lasts.tried 'working' with its boxes) the boxes run
+ * in the worker on the plan of the run held (client.try: lastsRun.js runTry on trySettings' copy), and lasts/tryDone (or
+ * tryFailed) files the verdict under the run's key and the boxes; a try whose key or boxes moved is dropped. Nothing is written.
+ *
+ *   startLastsRunner({ store, client, now }) → stop()
  *     client.lasts(plan, env, onProgress)   the worker client; rejects with code NO_WORKER when none can start
  *     client.lever(plan, env, onProgress)   the same, for one lever: env = { today, lever }
+ *     client.try(plan, env, onProgress)     the same, for a tried change: env = { today, boxes }
+ *     now()                                 the clock, for the cost said on screen only
  */
 import { A } from '../state/actions.js';
 import { NO_WORKER } from './workerClient.js';
@@ -38,7 +44,7 @@ function wanted(state) {
   return entry ? { key: L.runKey, plan: entry.plan } : null;
 }
 
-export function startLastsRunner({ store, client }) {
+export function startLastsRunner({ store, client, now = () => 0 }) {
   let stopped = false;
   let run = 0;
   let underWay = null;        // the key being worked on
@@ -107,7 +113,42 @@ export function startLastsRunner({ store, client }) {
     if (action && action.type === A.LASTS_WORKING && leversUnderWay.size && [...leversUnderWay.values()].some((k) => k !== action.key)) { client.stop('lever'); leversUnderWay.clear(); }
   });
 
+  // Try a change (research/v7/way-and-mix.md 4): the boxes tried on the plan of the run held, in the worker's 'try' lane
+  // (client.try: lastsRun.js runTry on trySettings' copy); a stale answer is dropped; the plan changing under it ends it.
+  let tryUnderWay = null;                                    // { key, boxes }
+  async function tryBoxes(key, boxes, plan) {
+    const t0 = now();
+    const mine = () => !stopped && tryUnderWay && tryUnderWay.key === key && JSON.stringify(tryUnderWay.boxes) === JSON.stringify(boxes);
+    tryUnderWay = { key, boxes };
+    try {
+      if (typeof client.try !== 'function') throw Object.assign(new Error('no try lane'), { code: NO_WORKER });
+      const result = await client.try(plan, { today: store.getState().env.today, boxes });
+      if (!mine()) return;
+      if (!result || typeof result !== 'object') throw new Error('no result');
+      store.dispatch({ type: A.TRY_DONE, key, boxes, result, ms: now() - t0 });
+    } catch (e) {
+      if (mine()) store.dispatch({ type: A.TRY_FAILED, key, boxes, reason: e && e.code === NO_WORKER ? 'noWorker' : null });
+    } finally {
+      if (mine()) tryUnderWay = null;
+    }
+  }
+  const offTries = store.subscribe((state, action) => {
+    if (stopped || !action) return;
+    const L = state.lasts;
+    if (action.type === A.TRY_RUN) {
+      const t = L && L.tried;
+      if (!t || t.status !== 'working') return;
+      const w = wanted(state);
+      if (!w || w.key !== L.key) return;
+      if (tryUnderWay && tryUnderWay.key === L.key && JSON.stringify(tryUnderWay.boxes) === JSON.stringify(t.boxes)) return;
+      if (tryUnderWay) client.stop('try');
+      tryBoxes(L.key, t.boxes, w.plan);
+    } else if ((action.type === A.LASTS_WORKING || action.type === A.TRY_CLOSE) && tryUnderWay && (action.type === A.TRY_CLOSE || tryUnderWay.key !== action.key)) {
+      client.stop('try'); tryUnderWay = null;
+    }
+  });
+
   const off = store.subscribe(check);
   check(store.getState());
-  return () => { stopped = true; off(); offLevers(); clearSlow(); if (underWay) client.stop('lasts'); if (leversUnderWay.size) client.stop('lever'); underWay = null; leversUnderWay.clear(); };
+  return () => { stopped = true; off(); offLevers(); offTries(); clearSlow(); if (underWay) client.stop('lasts'); if (leversUnderWay.size) client.stop('lever'); if (tryUnderWay) client.stop('try'); underWay = null; leversUnderWay.clear(); tryUnderWay = null; };
 }

@@ -274,7 +274,29 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([key, id, values]) => ({ type: A.WAY_TRY_FAILED, key, id, values })),
   fc.constantFrom('lasts', 'left', 'score', 'coverage').map((by) => ({ type: A.WAY_RANK, by })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('floor-to-age', 'gilt-rotation')).map(([planId, id]) => ({ type: A.PLAN_WAY, planId, id })),
-  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.strategyId': 'pots-and-valves' }, line: { id: 'way', slots: { way: 'floor-to-age' } }, op: 'way' }))
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.strategyId': 'pots-and-valves' }, line: { id: 'way', slots: { way: 'floor-to-age' } }, op: 'way' })),
+  // "The mix" (way-and-mix.md 3.2): the sleeve's and the tent's try, the eight cells, the cell picked, "Use this mix"
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRY, key, kind })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRIED, key, kind, result: { kind, on: true, affordable: true, a: { share: 0.9 } }, ms: 400 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRY_FAILED, key, kind })),
+  fc.constantFrom('sleeve', 'tent').map((kind) => ({ type: A.MIX_TRY_CLOSE, kind })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARE, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 8 })).map(([key, done]) => ({ type: A.MIX_COMPARE_PROGRESS, key, done, total: 8 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARED, key, result: { cells: [{ key: 'own', tent: false, affordable: true, share: 0.9 }] }, ms: 3000 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARE_FAILED, key })),
+  fc.constantFrom(null, { key: 'own', tent: false }, { key: 'balanced', tent: true }).map((cell) => ({ type: A.MIX_PICK, cell })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ key: 'own', tent: true }, { key: 'cautious', tent: false })).map(([planId, cell]) => ({ type: A.PLAN_MIX, planId, cell })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.equityMin': 1 }, line: { id: 'use', slots: { key: 'balanced', tent: 'on' } }, op: 'mix' })),
+  // Try a change on a plan (way-and-mix.md 4): the boxes tried, "Use this", the copy kept
+  fc.constant({ type: A.TRY_RUN, boxes: { way: 'pots-and-valves', pot: 500000 } }),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.TRY_DONE, key, boxes: { way: 'pots-and-valves', pot: 500000 }, result: { strategyId: 'pots-and-valves', a: { share: 0.9 } }, ms: 500 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.TRY_FAILED, key, boxes: { way: 'pots-and-valves', pot: 500000 } })),
+  fc.constant({ type: A.TRY_CLOSE }),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TRY, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEEP, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEPT, planId, id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'One · tried', where: 'account' })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.duration': 30 }, line: { id: 'try', slots: { n: '2' } }, op: 'try' })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('full', 'unverified')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
 );
 
 describe('any sequence of actions', () => {
@@ -296,7 +318,7 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'mix', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.ways.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);

@@ -21,7 +21,8 @@ import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
-import { RISK_PRESETS, MIX_LEVELS } from '../services/GlidepathService.js';
+import { mixCells } from '../services/GlidepathService.js';
+export { mixCells };
 
 
 /**
@@ -202,33 +203,12 @@ export function compareAll(p, ids = Object.keys(STRATEGY_NAMES), { onProgress = 
 }
 
 /**
- * The cells of "Compare allocations" / "Which mix lasts best?" (index.html runCompareStrategiesUI's grid, lifted pure in
- * 6.41.0 — research/v7/way-and-mix.md 3.2e, 6; the planner's button runs the six it always ran, the preview the eight):
- * the plan's own mix with the tent off and on (`own`), then the three levels with the tent off and on — each a copy of the
- * settings with the three £ amounts re-split from the pot the planner sums (shares + bonds + cash; a diversifiers sleeve
- * is left as it is, as the planner's grid leaves it) and `equityGlideEnabled` set.
- * @param {object} settings   the Stress settings as read
- * @param {{ own?: boolean }} o
- * @returns {Array<{ key: 'own'|'cautious'|'balanced'|'adventurous', tent: boolean, settings: object }>}
- */
-export function mixCells(settings, { own = false } = {}) {
-  const s = settings || {};
-  const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
-  const cells = [];
-  if (own) for (const tent of [false, true]) cells.push({ key: 'own', tent, settings: { ...s, strategyId: s.strategyId || 'pots-and-valves', equityGlideEnabled: tent } });
-  for (const key of MIX_LEVELS) {
-    const preset = RISK_PRESETS[key];
-    for (const tent of [false, true]) {
-      cells.push({ key, tent, settings: { ...s, strategyId: s.strategyId || 'pots-and-valves', equityMin: Math.round(pot * preset.equity), bondMin: Math.round(pot * preset.bond), cashTarget: Math.round(pot * preset.cash), equityGlideEnabled: tent } });
-    }
-  }
-  return cells;
-}
-
-/**
- * Every cell of mixCells through the one test (stressTestStrategy on the plan `planFor` builds from the cell's settings —
- * the caller's plan builder, so this file reads no engine config of its own). Pure and synchronous: `onProgress(i, n, cell)`
- * before each run; the caller paces the screen.
+ * "Compare allocations" / "Which mix lasts best?" (index.html runCompareStrategiesUI's grid, lifted pure in 6.41.0 —
+ * research/v7/way-and-mix.md 3.2e, 6): every cell of GlidepathService.mixCells (the plan's own mix with the tent off and
+ * on when `own`, then the three levels with the tent off and on) through the one test — stressTestStrategy on the plan
+ * `planFor` builds from the cell's settings (the caller's plan builder, so this file reads no engine config of its own).
+ * The planner's button runs the six it always ran through its worker; the preview runs the eight here. Pure and
+ * synchronous: `onProgress(i, n, cell)` before each run; the caller paces the screen.
  * @returns {Array<{ key, tent, settings, p: object, r: object }>}
  */
 export function compareMixes(settings, { own = true, onProgress = null, planFor } = {}) {

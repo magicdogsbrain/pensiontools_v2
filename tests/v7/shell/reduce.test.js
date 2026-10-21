@@ -267,7 +267,7 @@ describe('any sequence of actions', () => {
     const seen = new Set(fc.sample(anyAction, 2000).map((a) => a.type));
     const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND];
     // the spending shape's actions (shape/*) are A's, B's and C's alike: generated over the three in reduce.ab.test.js
-    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\//.test(t) || t === A.DRAFT_ONWARD);
+    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\/|^lasts\/lever/.test(t) || t === A.DRAFT_ONWARD);
     expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t)).sort());
   });
   it('the state survives JSON; plan never changes and the session is always a known kind', () => {

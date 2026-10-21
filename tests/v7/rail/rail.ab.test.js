@@ -15,6 +15,7 @@ import { BUILT } from '../../../src/v7/rail/questions.js';
 import { NEXT_A } from '../../../src/v7/rail/a.js';
 import { NEXT_B } from '../../../src/v7/rail/b.js';
 import { NEXT_C } from '../../../src/v7/rail/c.js';
+import { NEXT_D } from '../../../src/v7/rail/d.js';
 import { parse, format, href, screenName } from '../../../src/v7/router/routes.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { initialState } from '../../../src/v7/state/initial.js';
@@ -26,7 +27,7 @@ import { ANSWERS } from '../../../src/answers/index.js';
 import { fresh, run, set, route, at, typedA, typedB, typedC, resultA, resultB, answered, carriedBy, TODAY } from '../shell/_open.js';
 
 const Q = ['a', 'b', 'c'];
-const SCREENS = ['front', 'soon', 'notBuilt', ...Q.flatMap((q) => BUILT[q].steps.filter((s) => s.built).map((s) => `${q}.${s.id}`))];
+const SCREENS = ['front', 'soon', 'notBuilt', ...[...Q, 'd'].flatMap((q) => BUILT[q].steps.filter((s) => s.built).map((s) => `${q}.${s.id}`))];
 const goTo = (state, address) => reduce(state, { type: A.ROUTE_SET, route: parse(address) });
 const text = (step) => partsText(step.result.parts, step.source);
 const next = (s) => railFor(s).next.id;
@@ -43,8 +44,8 @@ function linksFrom(state) {
 
 describe('the tables', () => {
   it('each question\'s next sentences are tried in its own order, and each has a rule', () => {
-    expect(NEXT_ORDER).toEqual({ a: NEXT_A, b: NEXT_B, c: NEXT_C });
-    for (const q of Q) expect(Object.keys(NEXT_RULES[q]).sort()).toEqual([...NEXT_ORDER[q]].sort());
+    expect(NEXT_ORDER).toEqual({ a: NEXT_A, b: NEXT_B, c: NEXT_C, d: NEXT_D });
+    for (const q of [...Q, 'd']) expect(Object.keys(NEXT_RULES[q]).sort()).toEqual([...NEXT_ORDER[q]].sort());
     expect(NEXT_RULES.c).toBe(NEXT);
   });
   it('every "needs" names a field of the question\'s list, or the answer', () => {
@@ -54,7 +55,7 @@ describe('the tables', () => {
     }
   });
   it('the front door leads A and B to their numbers step', () => {
-    expect(frontDoor().filter((q) => q.built).map((q) => [q.id, q.href])).toEqual([['a', '#/a/numbers'], ['b', '#/b/numbers'], ['c', '#/c/numbers']]);
+    expect(frontDoor().filter((q) => q.built).map((q) => [q.id, q.href])).toEqual([['a', '#/a/numbers'], ['b', '#/b/numbers'], ['c', '#/c/numbers'], ['d', '#/d/numbers']]);
   });
 });
 
@@ -68,7 +69,7 @@ describe('L1 — every step of every question can be reached from the front door
       seen.add(address);
       for (const link of linksFrom(goTo(fresh(), address))) queue.push(link);
     }
-    const wanted = [href.front(), ...Q.flatMap((q) => BUILT[q].steps.map((s) => href.step(q, s.id))), ...['d', 'e', 'f'].map((q) => href.soon(q))];
+    const wanted = [href.front(), ...[...Q, 'd'].flatMap((q) => BUILT[q].steps.map((s) => href.step(q, s.id))), ...['e', 'f'].map((q) => href.soon(q))];
     expect([...seen].sort()).toEqual(wanted.sort());
   });
 });
@@ -167,7 +168,7 @@ describe('the next sentence, state by state (first match wins)', () => {
     expect(railFor(answered(s, 'a', resultA({ verdict: 'close' }))).next.button).toBe(null);
     expect(railFor(answered(s, 'a', resultA({ verdict: 'yes' }))).next.button).toEqual({ labelId: 'a.action.keep', href: '#/a/keep' });
     expect(railFor(answered(s, 'a', resultA({ kind: 'noneWorked', verdict: 'no', earliestYes: null }))).next.button).toEqual({ labelId: 'a.next.c', action: { type: A.DRAFT_CARRY, from: 'a', to: 'c' } });
-    expect(railFor(at(typedA(fresh(), { age: '70', stop: '70' }), 'a', 'answer')).next.button).toEqual({ labelId: 'a.action.willItLast', href: '#/soon/d' });
+    expect(railFor(at(typedA(fresh(), { age: '70', stop: '70' }), 'a', 'answer')).next.button).toEqual({ labelId: 'a.action.willItLast', href: '#/d/numbers' });
     const key = currentKey(s, 'a');
     expect(railFor(run(s, { type: A.ANSWER_WORKING, q: 'a', inputsKey: key }, { type: A.ANSWER_FAILED, q: 'a', inputsKey: key })).next.button)
       .toEqual({ labelId: 'a.action.retry', action: { type: A.ANSWER_RETRY, q: 'a' } });
@@ -175,7 +176,7 @@ describe('the next sentence, state by state (first match wins)', () => {
     expect(railFor(at(typedB(), 'b', 'numbers')).next.button).toEqual({ labelId: 'b.action.show', action: { type: A.DRAFT_ASK, q: 'b' } });
     expect(railFor(answered(b, 'b', resultB())).next.button).toEqual({ labelId: 'b.action.together', href: '#/b/choices' });
     expect(railFor(answered(b, 'b', resultB({ onCourse: true }))).next.button).toEqual({ labelId: 'b.action.keep', href: '#/b/keep' });
-    expect(railFor(at(typedB(fresh(), { age: '70', stop: '70' }), 'b', 'answer')).next.button).toEqual({ labelId: 'b.action.willItLast', href: '#/soon/d' });
+    expect(railFor(at(typedB(fresh(), { age: '70', stop: '70' }), 'b', 'answer')).next.button).toEqual({ labelId: 'b.action.willItLast', href: '#/d/numbers' });
     // On the keep step itself: name it and save — no button to the step on screen; an answer that cannot be saved
     // (the stand-in results here have no inputs) leads back to it.
     expect(railFor(at(answered(b, 'b', resultB({ onCourse: true })), 'b', 'keep')).next).toEqual({ id: 'b.keep', button: { labelId: 'b.action.back', href: '#/b/answer' } });

@@ -15,6 +15,7 @@
  *   A                                          Stop at {shown age} · £{spend} a month   ("From {age}" in the retired view)
  *   B                                          Stop at {age} · £{spend} a month · paying £{pay-in now}  (the last part
  *                                              left out when nothing goes in, or when the name would pass 50 characters)
+ *   D                                          From {you.age} · £{spend} a month (· working to {age} when work is tried and it fits)
  *   A couple                                   "Stop at {you} and {partner}" / "From {you} and {partner}", the partner's
  *                                              age on the same date
  * A and B name the spending the person tried (a name describes the try, not a promise); C names the careful figure.
@@ -140,11 +141,23 @@ function suggestB(inputs, result) {
   return withPaying(apart || `Stop at ${agesText(youAge, partnerAge)}${tail}`, result);
 }
 
-const SUGGEST = { c: suggestC, a: suggestA, b: suggestB };
+/**
+ * D (research/v7/answer-D.md 10): the spend tried, from today — "From 68 · £2,100 a month"; a couple "From 70 and 66 ·
+ * £2,800 a month"; with work kept " · working to 71" when it fits in 50 characters.
+ */
+function suggestD(inputs, result) {
+  if (!result.spend || !isNum(result.spend.perMonth)) return '';
+  const couple = coupleOf(inputs);
+  const base = `From ${agesText(inputs.you.age, couple ? inputs.partner.age : null)}${PLAN_NAME.sep}${tenner(result.spend.perMonth)} a month`;
+  const work = result.work && isNum(result.work.toAge) ? `${base}${PLAN_NAME.sep}working to ${whole(result.work.toAge)}` : base;
+  return chars(work) > PLAN_NAME.suggestMax ? base : work;
+}
+
+const SUGGEST = { c: suggestC, a: suggestA, b: suggestB, d: suggestD };
 
 /**
  * The name the box is filled with.
- * @param {'c'|'a'|'b'} source
+ * @param {'c'|'a'|'b'|'d'} source
  * @param {object} [inputs]   the checked inputs (result.inputs when left out)
  * @param {object} result     the answer
  * @returns {string}          '' when result.status is not 'ok' (nothing to save)

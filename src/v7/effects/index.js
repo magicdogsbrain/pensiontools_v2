@@ -1,5 +1,5 @@
 /**
- * The effects — the only code in V7 that touches the outside (address, worker, session storage, the plan seed in
+ * The effects — the only code in V7 that touches the outside (address, worker, session storage, the activity stamp in
  * local storage, the page's own attributes). startEffects(store, …) starts them all; main.jsx calls it once.
  *
  *   startEffects(store, { win, client, local }) → { client, stop }
@@ -8,11 +8,10 @@
 import { A } from '../state/actions.js';
 import { readyMark } from '../state/select.js';
 import { startAddress } from './address.js';
-import { startDraftStore, sessionStore } from './draftStore.js';
+import { startDraftStore, sessionStore, localStore } from './draftStore.js';
 import { startRunner } from './run.js';
 import { startLastsRunner } from './lasts.js';
 import { createWorkerClient } from './workerClient.js';
-import { startPlanSeed, localStore } from './planSeed.js';
 import { startActivity } from './activity.js';
 import { startOpenPlace } from './openPlace.js';
 
@@ -46,26 +45,20 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // "Does it last?" (research/v7/editing-in-v7.md 10.4): a saved plan's one test, in the worker only, on that step only —
   // no page fallback, so the engine's chunk is the worker's alone and the plan pages' own chunk does not carry it
   stops.push(startLastsRunner({ store, client }));
-  // "Save this as a plan": the seed in localStorage, then today's planner in this tab (save-as-plan.md Contract C.2)
-  stops.push(startPlanSeed(store, {
-    storage: localStore(win),
-    session: sessionStore(win),
-    go: (address) => win.location.assign(address),
-    onShow: (fn) => {
-      const shown = (e) => { if (e && e.persisted) fn(); };
-      win.addEventListener('pageshow', shown);
-      return () => win.removeEventListener('pageshow', shown);
-    }
-  }));
 
-  // The saved plans, read-only (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every
-  // page; the hand-over to the planner; and the plan source — the one Firebase file — loaded only on the plan pages.
+  // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
+  // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where
+  // the plans are needed: the plan pages, "Keep this as a plan?" (road-to-7.md step 7: the preview makes the plan itself,
+  // so a keep under way loads it too) and "Will it last?" (answer-D.md: a plan in the account is D's way in).
   stops.push(startActivity(win, { storage: localStore(win) }));
   stops.push(startOpenPlace(store, { session: sessionStore(win), go: (address) => win.location.assign(address) }));
   let planSource = null;
   const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan');
+  const onKeepPage = (state) => state.route && state.route.screen === 'step' && (state.route.step === 'keep' || state.route.q === 'd');
+  const keeping = (state) => !!state.keep && Object.values(state.keep).some((k) => k && k.saving);
+  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state);
   const loadPlanSource = (state) => {
-    if (planSource || !onPlanPage(state)) return;
+    if (planSource || !needsPlans(state)) return;
     planSource = import('./planSource.js')
       // the worker client goes with it: the lock's write runs the plan's own test in the worker first (road-to-7.md step 6)
       .then((m) => { const stop = m.startPlanSource(store, { win, local: localStore(win), session: sessionStore(win), client }); stops.push(stop); return stop; })

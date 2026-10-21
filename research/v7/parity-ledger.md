@@ -4,7 +4,7 @@ Generated from `tests/v7/parity/ledger.json` by `node tests/v7/parity/write-md.m
 the ledger and run the script. `tests/v7/parity/ledger.test.js` fails when a key today's app saves has no row,
 when a row says built but names no file, when a row is retired without a reason, and when this page is out of date.
 
-Checked against 6.20.2 on 2026-10-02.
+Checked against 6.20.2 on 2026-10-21.
 
 **The owner's rule (2 Oct 2026):** "We NEED to have the same or better optionally than V6. We MUST offer as many steps and tapers as V6! ... In general - optional it must be at least v6. We must have Gogo, goslow and nogo years."
 
@@ -18,12 +18,12 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 82 | 62 | 17 | 0 | 3 |
+| Built | 86 | 66 | 17 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
 | Designed | 36 | 34 | 0 | 2 | 0 |
 | Planned | 46 | 38 | 0 | 2 | 6 |
-| Retired | 10 | 3 | 0 | 0 | 7 |
-| **All** | 174 | 137 | 17 | 4 | 16 |
+| Retired | 11 | 3 | 0 | 0 | 8 |
+| **All** | 179 | 141 | 17 | 4 | 17 |
 
 Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1**.
 
@@ -31,7 +31,7 @@ Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1*
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 74 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 73 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 7 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -39,7 +39,7 @@ Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1*
 | `s4-open-plan` | V7 opens a saved plan, read-only, with a “Your plan” rail for every life stage (built 17 Oct 2026, your-plan.md) (square-one audit §5 item 4) | 12 |
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
-| `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 0 |
+| `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 6 |
 | `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 48 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
@@ -58,6 +58,7 @@ Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1*
 | **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Shown in V7 from s4 (src/answers/plan/read.js: the stage changes with their dates under “Your plan”). | `s4-open-plan` | `plan.journey` |
 | **Finding your way on a phone** | A bottom bar (Budget, Stress, Strategies, Decide) and a More menu for the other tabs. | index.html:2235-2240, 8250-8284; mobileMenu.js | Everyone | **Built**: `src/v7/components/Rail.jsx`. The rail is one line under the header that opens as a sheet. The locked plan's rail on a phone is designed (rail-screens-language.md §1.7). | `done` | — |
 | **Open the planner on a plan, page and section** | A one-off note in this window that tells the planner which plan, page and section to open next, with the way back to the preview; and which plan this window’s planner is on (the account’s open plan is not moved). The old one-off tab note (pt_open_tab, the demo link’s) is read by the same module. | src/services/OpenPlace.js; src/ui/components/OpenPlace.js; ScenarioRepository.getActiveScenarioAsync (the window pin); index.html showMainApp | Everyone | **Built**: `src/v7/effects/openPlace.js`, `src/services/OpenPlace.js`, `src/ui/components/OpenPlace.js`. “Change this” on V7’s plan pages (research/v7/your-plan.md 5): the planner presses the page’s own button so its loader runs and every box fills; the partner’s plan opens in that window only. | `s4-open-plan` | `browser.pt_open_place` `browser.pt_open_plan` `browser.pt_open_tab` |
+| **"I'm retired. Will it last?" (question D)** | The retired person's way in: one short form (stopped, age, what is left, the tax-free part, savings, what you take a month; a partner who has also stopped), the verdict at what you take with the band in full, and three levers tried on the answer's own lives. Someone with a plan is shown the way to its own test first. | SetupWizard.js "I'm already drawing" door; the Stress tester's settings (index.html) | Retired | **Built**: `src/answers/d/answer.js`, `src/answers/d/schema.js`, `src/v7/screens/d/NumbersScreen.jsx`, `src/v7/screens/d/AnswerScreen.jsx`, `src/v7/rail/d.js` | `s7-d` | — |
 
 ## Budget
 
@@ -212,6 +213,9 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 | **Compare allocations and apply the best split** | Searches the share, bond and cash split for Pots & Valves and offers to apply it. | Stress → "Compare allocations (Pots & Valves)" (index.html:6683-6834) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | — |
 | **Drawdown schedule and the ISA bridge table** | Year by year: what is drawn from the pension and ISA, tax, and what is left; for a bought strategy its own schedule (income middle and 1 in 10). | Stress → Drawdown (index.html:2882, 7168, 13216-13240) | Approaching, retired | **Planned** (no V7 design yet): A's "What pays the bills before my State Pension starts?" (rail-screens-language.md §1.5) is a summary, not built. | `s8-e` | — |
 | **The glidepath picture** | Draws the pots' floors running down over the plan at an assumed inflation. | Stress → Glidepath (index.html:2925-2945) | Approaching, retired | **Planned** (no V7 design yet) | `s8-e` | — |
+| **"Could I spend more?"** | The careful amount beside what you take (more, about, or less), and the band in full — on D's form from the answer's band; on a saved plan's "Does it last?" the most the plan's income can be scaled by and still last in 9 futures out of 10, a bounded search of at most seven runs of the one test, the cost said. | New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings | Retired | **Built**: `src/answers/d/answer.js`, `src/answers/plan/lastsRun.js`, `src/v7/screens/d/AnswerScreen.jsx`, `src/v7/screens/plan/LastsScreen.jsx` | `s7-d` | — |
+| **"Would some work help?"** | Pay a year for 1 to 5 years from today: on D's form A's part-time mechanism at a stop of today (one verdict, one band, a verdict for each year); on a saved plan a row of the planner's own extra incomes from the plan's first year, one run, the field named. | New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings | Retired | **Built**: `src/answers/d/answer.js`, `src/answers/plan/lastsRun.js`, `src/v7/screens/d/AnswerScreen.jsx`, `src/v7/screens/plan/LastsScreen.jsx` | `s7-d` | — |
+| **"What if shares fell by a fifth?"** | The shares part of each pot cut by a fifth and the test run again on the same futures: on D's form the pots typed in, scaled; on a saved plan the pension's shares, an ISA invested like the pension, a taxable account in shares, a saver's projected pot — one run, the mix kept. | New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings | Retired | **Built**: `src/answers/d/answer.js`, `src/answers/plan/lastsRun.js`, `src/v7/screens/d/AnswerScreen.jsx`, `src/v7/screens/plan/LastsScreen.jsx` | `s7-d` | — |
 
 ## Lock and the plan document
 
@@ -280,7 +284,8 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 |---|---|---|---|---|---|---|
 | **Your plans: switch, new, duplicate, rename** | A menu of plans: open one, start a new one, duplicate one, rename it and describe it. | Header plan menu (index.html:2205-2221) | Everyone | **Planned**: Plan menu in V7's shell (square-one-audit.md §5 item 9). | `s9-switch` | `plan.isActive` `plan.planDetails` `planDetails.name` `planDetails.description` |
 | **Download a plan** | Saves a copy of the plan (JSON) on your own computer. | Plan menu → Download this plan (PlanExport.js) | Everyone | **Planned**: Plan menu in V7's shell. | `s9-switch` | — |
-| **Save a V7 answer as a new plan** | A V7 answer becomes a named plan in today's planner; a couple's becomes two linked plans; the answer it came from is kept with it. | NewPlanFromSeed.js; PlanSeed.js (6.18.0) | Everyone | **Built**: `src/answers/keep/planSeed.js`, `src/v7/effects/planSeed.js`, `src/v7/components/KeepPanel.jsx`, `src/services/PlanSeed.js` | `done` | `plan.fromAnswer` `browser.pt_v7_plan_seed` `browser.pt_v7_plan_receipt` |
+| **Keep a V7 answer as a new plan** | A V7 answer becomes a named plan made by the preview itself, in the account (one addDoc) or in this browser window without one; a couple's becomes two linked plans; the answer it came from is kept with it; "Lock this plan?" follows. (6.39.0: the seed hand-over to the planner is retired.) | NewPlanFromSeed.js; PlanSeed.js (6.18.0); the preview's own create from 6.39.0 | Everyone | **Built**: `src/answers/keep/planSeed.js`, `src/answers/keep/planCreate.js`, `src/services/PlanFromSeed.js`, `src/v7/effects/planWrite.js`, `src/v7/components/KeepPanel.jsx` | `s7-d` | `plan.fromAnswer` |
+| **The seed left for the planner, and its receipt** | Until 6.38.0 the preview wrote a seed to the browser (pt_v7_plan_seed) and opened the planner at #new-plan, which made the plan and left a receipt (pt_v7_plan_receipt) for the preview to read on coming back. | src/services/PlanSeed.js, src/ui/components/NewPlanFromSeed.js (the planner's reader, kept for one release) | Everyone | **Retired**: Retired in 6.39.0 (road-to-7.md step 7): the preview makes the plan itself, through its one write file, so it no longer writes a seed or reads a receipt; nothing is left in the browser for a day. The planner's own reader of a seed stays for one release and is removed with the switch to 7.0. | `s7-d` | `browser.pt_v7_plan_seed` `browser.pt_v7_plan_receipt` |
 | **What's new** | A once-only pop-up for each minor release, and every release listed on a page. | Version chip; Strategies → What's new (src/releases.js) | Everyone | **Planned**: What's new in V7's shell (square-one-audit.md §5 item 9). | `s9-switch` | `profile.lastSeenVersion` `browser.pt_lastSeenVersion` |
 | **Sign in and out** | Email and password or Google, a verified email, and signing out after an hour idle across tabs. | AuthPanel.js; index.html:5640-5700 | Everyone | **Planned**: Must exist in V7 at the switch (data protection; square-one-audit.md §4). | `s9-switch` | `browser.pt_lastActivity` |
 | **Delete the account, or reset** | Deletes the account and every plan, or deletes all data and starts again. | Header: Delete Account, Reset (index.html:2228-2231) | Everyone | **Planned**: Must exist in V7 at the switch (data protection). | `s9-switch` | — |
@@ -335,7 +340,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.dotted:planDetails.name` | Copies under dotted names | Retired |
 | `plan.dotted:stressTool.settings` | Copies under dotted names | Retired |
 | `plan.enabledTools` | Which tools a plan shows | Retired |
-| `plan.fromAnswer` | Save a V7 answer as a new plan | Built |
+| `plan.fromAnswer` | Keep a V7 answer as a new plan | Built |
 | `plan.holdings` | What you hold | Designed |
 | `plan.household` | The partner's linked plan | Built |
 | `plan.id` | The plan's own fields | Planned |
@@ -761,8 +766,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `browser.pt_open_place`: this window only; no figures, no name; deleted when read or after ten minutes | Open the planner on a plan, page and section | Built |
 | `browser.pt_open_plan`: this window only: the plan this window’s planner is on; nothing written to any plan | Open the planner on a plan, page and section | Built |
 | `browser.pt_open_tab` | Open the planner on a plan, page and section | Built |
-| `browser.pt_v7_plan_receipt` | Save a V7 answer as a new plan | Built |
-| `browser.pt_v7_plan_seed` | Save a V7 answer as a new plan | Built |
+| `browser.pt_v7_plan_receipt` | The seed left for the planner, and its receipt | Retired |
+| `browser.pt_v7_plan_seed` | The seed left for the planner, and its receipt | Retired |
 
 ## The spending shape: not yet in V7 (6 of 24)
 
@@ -862,6 +867,7 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Whether a line's panels were left open**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost.
 - **Copy settings between the two tools**: One plan has one set of settings (usability audit decision 9; retired in today's planner in 6.23.0). V7 keeps one plan and tries changes without saving them (rail-screens-language.md §1.6), so there are no two tools to copy between. Owner: approved (owner, 17 Oct 2026, usability audit decision 9).
 - **Where a copy came from**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched.
+- **The seed left for the planner, and its receipt**: Retired in 6.39.0 (road-to-7.md step 7): the preview makes the plan itself, through its one write file, so it no longer writes a seed or reads a receipt; nothing is left in the browser for a day. The planner's own reader of a seed stays for one release and is removed with the switch to 7.0.
 - **Which tools a plan shows**: V7 has no tool tabs: the rail shows the steps the plan's stage needs, so there is nothing to switch on or off. Owner: to confirm.
 - **The old "Declining with age" spending profile**: Retired in 6.2.1: "Declining with age" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset "Slowly less" (src/answers/shared/shape.js slowlyLess, today's smileToSteps).
 - **Old names of the three pot floors**: Renamed before 6.15.0 to equityMin, bondMin and cashTarget; kept beside the new names on old plans and read only to fill a missing new one.

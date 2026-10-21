@@ -329,3 +329,61 @@ export function verdictOf(result, saved) {
     history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
   };
 }
+
+// ---- the three levers (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7) -----------------------------------------
+
+export const LEVER_KINDS = Object.freeze(['spendMore', 'work', 'fall']);
+
+/**
+ * What the screen draws for the levers on "Does it last?": one entry per lever — its status ('off', 'working', 'invalid',
+ * 'failed', 'done'), and when done its lines (ids into copy/lasts.js levers.lines, with slots) — and, on a locked plan with a
+ * document, the ONE comparison line (3.9): the document's figure, today's, the same plan on a different day; never a
+ * suggestion to unlock. `levers` is state.lasts.levers; `verdict` today's run in words (verdictOf); `documentVerdict` the
+ * document's; `workDraft` the work lever's boxes as typed.
+ */
+export function leverViews(levers, { verdict = null, documentVerdict = null, lockedOn = null, workDraft = null } = {}) {
+  const L = levers && typeof levers === 'object' ? levers : {};
+  const baseChance = verdict && verdict.ok ? pctText(verdict.chancePct, 1, CHANCE_BARS).replace(/%$/, '') : null;
+  const out = {};
+  for (const kind of LEVER_KINDS) {
+    const x = L[kind];
+    if (!x) { out[kind] = { status: 'off', lines: [], problem: null, reason: null }; continue; }
+    if (x.status !== 'done' || !x.result) { out[kind] = { status: x.status, lines: [], problem: x.status === 'invalid' ? x.reason : null, reason: x.status === 'failed' ? x.reason : null }; continue; }
+    out[kind] = { status: 'done', lines: leverLines(kind, x.result, baseChance), problem: null, reason: null, runs: x.result.runs };
+  }
+  const anyDone = LEVER_KINDS.some((k) => out[k].status === 'done');
+  const compare = anyDone && documentVerdict && documentVerdict.ok && baseChance !== null
+    ? { id: 'locked', slots: { date: lockedOn || '', docChance: pctText(documentVerdict.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), chance: baseChance } }
+    : null;
+  return { ...out, compare, workDraft: workDraft || { yearly: '', years: '' } };
+}
+
+const chanceOf = (a) => (a ? pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, '') : '');
+const lastedWordsOf = (a) => (a ? futuresOutOfTen(a.share).words : '');
+
+/** One lever's result (lastsRun.js runLever) in lines: ids into copy/lasts.js levers.lines, with slots. */
+export function leverLines(kind, r, baseChance) {
+  if (!r || typeof r !== 'object') return [];
+  const lines = [];
+  if (!r.ok) {
+    lines.push({ id: r.reason === 'unaffordable' ? 'unaffordable' : 'leverNo', slots: {} });
+    return lines;
+  }
+  if (kind === 'spendMore') {
+    if (r.evenHalf) lines.push({ id: 'spendMore.evenHalf', slots: { baseChance: chanceOf(r.base) } });
+    else if (r.capped) lines.push({ id: 'spendMore.capped', slots: { perMonth: pounds(r.perMonth), chance: chanceOf(r.at), typical: pounds(r.at.typicalLeft) } });
+    else if (r.perMonth > 0) lines.push({ id: 'spendMore.more', slots: { perMonth: pounds(r.perMonth), chance: chanceOf(r.at), typical: pounds(r.at.typicalLeft), baseChance: chanceOf(r.base) } });
+    else if (r.perMonth < 0) lines.push({ id: 'spendMore.less', slots: { perMonth: pounds(-r.perMonth), chance: chanceOf(r.at), baseChance: chanceOf(r.base) } });
+    else lines.push({ id: r.base && r.base.lasts ? 'spendMore.none' : 'spendMore.noneShort', slots: { baseChance: chanceOf(r.base) } });
+    lines.push({ id: 'runs', slots: { runs: String(r.runs), s: r.runs === 1 ? '' : 's' } });
+    return lines;
+  }
+  if (kind === 'work') {
+    lines.push({ id: 'work.line', slots: { yearly: pounds(r.yearly), years: String(r.years), s: r.years === 1 ? '' : 's', words: lastedWordsOf(r.at), chance: chanceOf(r.at), typical: pounds(r.at.typicalLeft), baseChance: baseChance || '' } });
+    lines.push({ id: 'work.how', slots: { years: String(r.years), s: r.years === 1 ? '' : 's' } });
+    return lines;
+  }
+  lines.push({ id: 'fall.line', slots: { potBefore: pounds(r.potBefore), potAfter: pounds(r.potAfter), words: lastedWordsOf(r.at), chance: chanceOf(r.at), typical: pounds(r.at.typicalLeft), baseChance: baseChance || '' } });
+  lines.push({ id: 'fall.how', slots: {} });
+  return lines;
+}

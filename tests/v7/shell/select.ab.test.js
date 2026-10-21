@@ -13,6 +13,7 @@ import {
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
+import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { alreadyStopped } from '../../../src/answers/shared/schemaParts.js';
 import { fresh, run, set, at, typedA, typedB, typedC, resultA, resultB, answered } from './_open.js';
 
@@ -21,7 +22,7 @@ const states = (s, q) => Object.fromEntries(stepStates(s, q).map((x) => [x.id, x
 
 describe('the tables', () => {
   it('SCHEMAS holds the three input lists', () => {
-    expect(SCHEMAS).toEqual({ c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B });
+    expect(SCHEMAS).toEqual({ c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D });
   });
   it('STEP_DETAIL and DETAIL_ORDER as the brief', () => {
     expect(STEP_DETAIL).toEqual({ a: { answer: 'chart', ages: 'all' }, b: { answer: 'answer', choices: 'grid' } });

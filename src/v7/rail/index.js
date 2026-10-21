@@ -3,11 +3,12 @@
  * decides any of this.
  *
  *   railFor(state) → {
- *     question: 'a' | 'b' | 'c',
+ *     question: 'a' | 'b' | 'c' | 'd',
  *     steps: [ { id, state: 'current' | 'done' | 'open', optional, built, end, href,
  *                result: null | Sentence,     // numbers: what was typed; spend (A, B): the figure in use; answer: the
  *                                             // careful amount (C), the verdict (A), the pay-in or number (B); A's ages:
- *                                             // the earliest age that worked; keep: "Saved" once the planner took it
+ *                                             // the earliest age that worked; D: the verdict at what you take; keep:
+ *                                             // "Kept" once a plan was made from here
  *                source: null | object } ],   // the object the keys of `result.parts` are paths into
  *     position: { n, of },
  *     next: { id, button: null | { labelId, href } | { labelId, action } }
@@ -17,8 +18,8 @@
  * { question: null, steps: [], position: null, next: null }.
  *
  * Exactly one step is 'current'; exactly one next sentence applies — the first match in the question's order
- * (NEXT_C, NEXT_A, NEXT_B). A and B have the budget step ('a.spend', 'b.spend': the numbers are there, the spending is
- * not); every question has its "Save this as a plan?" step ('c.keep', 'a.keep', 'b.keep'). A button never leads to the
+ * (NEXT_C, NEXT_A, NEXT_B, NEXT_D). A and B have the budget step ('a.spend', 'b.spend': the numbers are there, the spending is
+ * not); every question has its "Keep this as a plan?" step ('c.keep', 'a.keep', 'b.keep', 'd.keep'). A button never leads to the
  * step on screen. Labels and the sentences themselves are words: they are in copy/<q>.js under the same ids.
  * No step is ever blocked. The rail never shows a number the answer function did not produce (the numbers step shows
  * what was typed), never counts down to anything, and never reads the old app's life stages.
@@ -27,6 +28,7 @@ import { QUESTIONS, BUILT } from './questions.js';
 import { NEXT_C } from './c.js';
 import { NEXT_A } from './a.js';
 import { NEXT_B } from './b.js';
+import { NEXT_D } from './d.js';
 import { href } from '../router/routes.js';
 import { A } from '../state/actions.js';
 import { parsedDraft, isCurrent, stepStates, needsRun, appliedPaths, isRetired, SPEND_STEP, SPEND_PATHS, numbersDone, figureInUse, keepView } from '../state/select.js';
@@ -121,9 +123,25 @@ const NEXT_B_RULES = {
   'b.onCourse':  () => true
 };
 
+/**
+ * Question D (research/v7/answer-D.md 3; road-to-7.md step 7): one form, so no spend step; the verdict sentences read the
+ * answer's verdict at what you take. Someone still working is told so in the box's own sentence ('d.fix').
+ */
+const NEXT_D_RULES = {
+  'd.failed':    (state) => state.answers.d.status === 'failed',
+  'd.working':   (state) => running(state, 'd'),
+  'd.blank':     (state) => missingNeeds(state, 'd'),
+  'd.fix':       (state) => !parsedDraft(state, 'd').ok,
+  'd.ready':     (state) => !answeredNow(state, 'd'),
+  'd.keep':      onKeep('d'),
+  'd.yes':       (state) => resultOf(state, 'd').verdict === 'yes',
+  'd.close':     (state) => resultOf(state, 'd').verdict === 'close',
+  'd.no':        () => true
+};
+
 /** Each question's next sentences: the rules, and the order they are tried in. */
-export const NEXT_RULES = { c: NEXT, a: NEXT_A_RULES, b: NEXT_B_RULES };
-export const NEXT_ORDER = { c: NEXT_C, a: NEXT_A, b: NEXT_B };
+export const NEXT_RULES = { c: NEXT, a: NEXT_A_RULES, b: NEXT_B_RULES, d: NEXT_D_RULES };
+export const NEXT_ORDER = { c: NEXT_C, a: NEXT_A, b: NEXT_B, d: NEXT_D };
 
 /**
  * A hand-over (step 4 brief 4.11, screens-A-B.md 5) as a button: one action, draft/carry, which fills the target's
@@ -131,8 +149,8 @@ export const NEXT_ORDER = { c: NEXT_C, a: NEXT_A, b: NEXT_B };
  */
 export const carryButton = (from, to) => ({ labelId: `${from}.next.${to}`, action: { type: A.DRAFT_CARRY, from, to } });
 
-/** "Will it last?" — question D, not in the preview yet. */
-const TO_D = (q) => () => ({ labelId: `${q}.action.willItLast`, href: href.soon('d') });
+/** "Will it last?" — question D (road-to-7.md step 7): its first step, where someone with a plan is shown the way to its own test. */
+const TO_D = (q) => () => ({ labelId: `${q}.action.willItLast`, href: href.step('d', 'numbers') });
 /** "What would you spend?" — the spend step; no button on the step itself. */
 const TO_SPEND = (q) => (state) => (onStep(state, q, 'spend') ? null : { labelId: `${q}.action.spend`, href: href.step(q, 'spend') });
 
@@ -156,7 +174,13 @@ const BUTTONS = {
   'b.keep':      KEEP_BUTTON('b'),
   'b.choices':   () => ({ labelId: 'b.action.back', href: href.step('b', 'answer') }),
   'b.short':     () => ({ labelId: 'b.action.together', href: href.step('b', 'choices') }),
-  'b.onCourse':  () => ({ labelId: 'b.action.keep', href: href.step('b', 'keep') })
+  'b.onCourse':  () => ({ labelId: 'b.action.keep', href: href.step('b', 'keep') }),
+  'd.failed':    () => ({ labelId: 'd.action.retry', action: { type: A.ANSWER_RETRY, q: 'd' } }),
+  'd.ready':     () => ({ labelId: 'd.action.show', action: { type: A.DRAFT_ASK, q: 'd' } }),
+  'd.keep':      KEEP_BUTTON('d'),
+  'd.yes':       () => ({ labelId: 'd.action.keep', href: href.step('d', 'keep') }),
+  'd.close':     () => ({ labelId: 'd.action.keep', href: href.step('d', 'keep') }),
+  'd.no':        () => ({ labelId: 'd.action.keep', href: href.step('d', 'keep') })
 };
 /** On a step that is not in the preview yet there is nothing to try again, show or keep: a button there leads back to the answer. */
 const BACK_TO_ANSWER = (q) => ({ labelId: `${q}.action.back`, href: href.step(q, 'answer') });
@@ -194,6 +218,9 @@ function numbersResult(state, q) {
     else if (p && p.has === 'yes' && p.kind === 'split' && typeof p.own === 'number' && typeof p.employer === 'number') {
       parts.push(', ', { key: 'inputs.you.payIn.own', kind: 'money' }, ' + ', { key: 'inputs.you.payIn.employer', kind: 'money' }, ' a month in');
     }
+  } else if (q === 'd') {
+    // what you take a month, as typed (a level's figure is the answer's, not the form's)
+    if (inputs.spend && inputs.spend.kind !== 'level' && typeof inputs.spend.amount === 'number') parts.push(', ', { key: 'inputs.spend.amount', kind: 'money' }, ' a month');
   }
   if (inputs.household === 'couple') parts.push(' and a partner');
   return { result: sentence(`${q}.rail.numbers`, parts, source), source };
@@ -262,16 +289,25 @@ function spendResult(state, q) {
   return { result: sentence(`${q}.rail.spend`, parts, source), source };
 }
 
-/** The keep step, once the planner has taken a plan saved from here: "Saved". */
+/** D: "Yes at £2,100 a month" / "Close at …" / "Not at …" — the answer's verdict at what you take. */
+function answerResultD(state) {
+  const r = shownResult(state, 'd');
+  if (!r || !['yes', 'close', 'no'].includes(r.verdict) || !r.spend || typeof r.spend.perMonth !== 'number') return NONE;
+  const lead = r.verdict === 'yes' ? 'Yes at ' : r.verdict === 'close' ? 'Close at ' : 'Not at ';
+  return { result: sentence('d.rail.answer', [lead, { key: 'spend.perMonth', kind: 'money' }, ' a month'], r), source: r };
+}
+
+/** The keep step, once a plan was made from here (road-to-7.md step 7: the preview makes it itself): "Kept". */
 function keepResult(state, q) {
   const k = state.keep && state.keep[q];
-  return k && k.back === 'taken' ? { result: sentence(`${q}.rail.keep`, ['Saved'], {}), source: null } : NONE;
+  return k && k.made ? { result: sentence(`${q}.rail.keep`, ['Kept'], {}), source: null } : NONE;
 }
 
 const SHORT = {
   c: { numbers: (s) => numbersResult(s, 'c'), answer: answerResultC, keep: (s) => keepResult(s, 'c') },
   a: { numbers: (s) => numbersResult(s, 'a'), spend: (s) => spendResult(s, 'a'), answer: answerResultA, ages: agesResultA, keep: (s) => keepResult(s, 'a') },
-  b: { numbers: (s) => numbersResult(s, 'b'), spend: (s) => spendResult(s, 'b'), answer: answerResultB, keep: (s) => keepResult(s, 'b') }
+  b: { numbers: (s) => numbersResult(s, 'b'), spend: (s) => spendResult(s, 'b'), answer: answerResultB, keep: (s) => keepResult(s, 'b') },
+  d: { numbers: (s) => numbersResult(s, 'd'), answer: answerResultD, keep: (s) => keepResult(s, 'd') }
 };
 
 export function railFor(state) {
@@ -287,7 +323,7 @@ export function railFor(state) {
   const id = NEXT_ORDER[q].find((x) => NEXT_RULES[q][x](state));
   const here = question.steps.find((s) => s.id === route.step);
   const found = BUTTONS[id] ? (here && !here.built ? BACK_TO_ANSWER(q) : BUTTONS[id](state)) : null;
-  // A button never leads to the step already on screen (the keep step's own "Save this as a plan").
+  // A button never leads to the step already on screen (the keep step's own "Keep this as a plan").
   const button = found && found.href && found.href === href.step(q, route.step) ? null : found;
   return {
     question: q,

@@ -1,13 +1,14 @@
 /**
  * The draft store: what was typed is kept in THIS TAB only — sessionStorage, key pt_v7_draft. The answer is never
- * kept (it is worked out again after a reload). The one other key V7 writes is the plan seed, by effects/planSeed.js,
+ * kept (it is worked out again after a reload). The other keys V7 writes are the window's plans (effects/planWrite.js)
+ * and the activity stamp (effects/activity.js),
  * and only when a person presses "Save as a plan".
  *
  *   loadDraft(storage)            → { c: { values, touched, asked, revealed }, a, b: { …, carriedFrom, spendHow, skipNoted },
  *                                     budget?, kept? } or null
  *   saveDraft(storage, draft)     → true if it was written. `draft` is state.draft, with (optionally) `budget`: the
- *                                   household's budget sheet, and `kept`: { [q]: { name, sent } } — the name box as
- *                                   typed and the last save sent from this tab (so coming back can say "Saved as …")
+ *                                   household's budget sheet, and `kept`: { [q]: { name, made } } — the name box as
+ *                                   typed and the last plan made from this window (so a reload still says "Kept as …")
  *   draftOf(state)                → what saveDraft is given for a state
  *   startDraftStore(store, storage) → stop()      writes whenever the draft, the budget or a save changes
  *   sessionStore(win)             → the tab's storage, or null if the browser will not hand it over
@@ -25,6 +26,16 @@ export const DRAFT_KEY = 'pt_v7_draft';
 export function sessionStore(win = window) {
   try {
     const s = win.sessionStorage;
+    return s && typeof s.getItem === 'function' ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The browser's localStorage, or null if it will not hand it over (the activity stamp and the free-time count read it). */
+export function localStore(win = window) {
+  try {
+    const s = win.localStorage;
     return s && typeof s.getItem === 'function' ? s : null;
   } catch {
     return null;
@@ -72,7 +83,7 @@ function clean(kept) {
   const saves = {};
   for (const q of Object.keys(SCHEMAS)) {
     const k = keptKeep(kept.kept, q);
-    if (k.name !== null || k.sent !== null) saves[q] = { name: k.name, sent: k.sent };
+    if (k.name !== null || k.made !== null) saves[q] = { name: k.name, made: k.made };
   }
   if (Object.keys(saves).length) out.kept = saves;
   return Object.keys(out).length ? out : null;
@@ -82,7 +93,7 @@ const QUESTION = (k) => k in SCHEMAS;
 const isEmpty = (draft) => Object.entries(draft || {}).every(([k, d]) => {
   if (k === 'budget') return !d;
   if (k === 'plan') return !d || !d.id || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked);
-  if (k === 'kept') return !d || Object.values(d).every((x) => !x || (x.name === null && x.sent === null));
+  if (k === 'kept') return !d || Object.values(d).every((x) => !x || (x.name === null && x.made === null));
   if (!QUESTION(k)) return true;
   return !d || (Object.keys(d.values || {}).length === 0 && (d.touched || []).length === 0 && !d.asked && !d.spendHow);
 });
@@ -90,7 +101,7 @@ const isEmpty = (draft) => Object.entries(draft || {}).every(([k, d]) => {
 /** What the store keeps of a state: the drafts, the budget sheet, and each question's name box and last save. */
 export function draftOf(state) {
   const kept = {};
-  for (const [q, k] of Object.entries(state.keep || {})) if (k && (typeof k.name === 'string' || k.sent)) kept[q] = { name: typeof k.name === 'string' ? k.name : null, sent: k.sent || null };
+  for (const [q, k] of Object.entries(state.keep || {})) if (k && (typeof k.name === 'string' || k.made)) kept[q] = { name: typeof k.name === 'string' ? k.name : null, made: k.made || null };
   return { ...state.draft, ...(state.budget ? { budget: state.budget } : {}), ...(Object.keys(kept).length ? { kept } : {}) };
 }
 

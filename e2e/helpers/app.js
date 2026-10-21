@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { SCHEMA_C } from '../../src/answers/c/schema.js';
 import { SCHEMA_A } from '../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../src/answers/b/schema.js';
+import { SCHEMA_D } from '../../src/answers/d/schema.js';
 import { QUESTIONS, OPEN, BUILT as BUILT_QUESTIONS } from '../../src/v7/rail/questions.js';
 import { parse, screenName } from '../../src/v7/router/routes.js';
 import { CARRY } from '../../src/v7/state/carry.js';
@@ -110,7 +111,7 @@ export const ADDRESSES = [
   { hash: '#/plans', screen: 'plans' },                   // the saved plans (research/v7/your-plan.md): nobody signed in here
   { hash: '#/soon/c', screen: 'front' },
   // Step 4: A's and B's addresses, once they are open (brief 4.12). A built question is never "soon".
-  ...['a', 'b'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [
+  ...['a', 'b', 'd'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [
     ...BUILT_QUESTIONS[q].steps.map((s) => ({ hash: `#/${q}/${s.id}`, screen: s.built ? `${q}.${s.id}` : 'notBuilt' })),
     { hash: `#/${q}/numbers?focus=you.age`, screen: `${q}.numbers` },
     { hash: `#/soon/${q}`, screen: 'front' }
@@ -333,7 +334,7 @@ export async function checkScreenOnPage(page) {
 
 // ---- the page as a person uses it --------------------------------------------------------------------------
 
-export const SCHEMAS = Object.freeze({ c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B });
+export const SCHEMAS = Object.freeze({ c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D });
 const FIELDS = Object.fromEntries(Object.entries(SCHEMAS).map(([q, s]) => [q, new Map(s.fields.map((f) => [f.path, f]))]));
 
 class V7Page {
@@ -343,7 +344,7 @@ class V7Page {
     this.base = (build === 'prod' ? PROD : TEST) + '/v7/';
     this.q = q;                                            // the question the boxes belong to: 'c' | 'a' | 'b'
     this.counts = { clicks: 0, fields: new Set(), screens: [] };
-    this.typedBy = { c: {}, a: {}, b: {} };                // what this test typed, by question and field path — the engine check's inputs
+    this.typedBy = { c: {}, a: {}, b: {}, d: {} };         // what this test typed, by question and field path — the engine check's inputs
     this.app = page.locator('#app');
   }
 
@@ -454,7 +455,7 @@ class V7Page {
     const q = this.q;
     const f = FIELDS[q].get(path);
     if (!f) throw new Error(`no such field of question ${q}: ${path}`);
-    if (q !== 'c') {
+    if (q === 'a' || q === 'b') {
       const screen = await this.screen();
       if (f.group === 'spend' && screen === `${q}.numbers`) await this.toSpend(q);
       else if (f.group !== 'spend' && screen === `${q}.spend`) { await this.rail('numbers'); await this.note(); }
@@ -479,7 +480,7 @@ class V7Page {
 
   /** Several fields of the numbers step, in the order of the input list. `take` (the try-a-change row) is never on that step: a journey sets it on the answer. */
   async fill(values, opts) {
-    // A and B: the spending last — it is the next step's (the budget step)
+    // A and B: the spending last — it is the next step's (the budget step); D's spending is on its one form
     const fields = [...SCHEMAS[this.q].fields].sort((x, y) => (x.group === 'spend') - (y.group === 'spend'));
     for (const f of fields) if (f.group !== 'try' && Object.prototype.hasOwnProperty.call(values, f.path)) await this.set(f.path, values[f.path], opts);
   }
@@ -580,15 +581,17 @@ const FALLBACK = {
   // B4 — young: 25, £5,000, £300 in, stop at 67 on £2,000.
   B4: { 'you.age': '25', 'you.pot': '5000', 'you.payIn.total': '300', 'stop.age': '67', 'spend.amount': '2000' },
   // B5 — a couple: 50 and 48, £200,000 and £80,000, £900 and £300 in, stop at 62 on £3,200.
-  B5: { household: 'couple', 'you.age': '50', 'you.pot': '200000', 'you.payIn.total': '900', 'stop.age': '62', 'spend.amount': '3200', 'partner.age': '48', 'partner.pot': '80000', 'partner.payIn.total': '300' }
+  B5: { household: 'couple', 'you.age': '50', 'you.pot': '200000', 'you.payIn.total': '900', 'stop.age': '62', 'spend.amount': '3200', 'partner.age': '48', 'partner.pot': '80000', 'partner.payIn.total': '300' },
+  // D1 — "I'm retired. Will it last?" (research/v7/answer-D.md 1): 68, £300,000 left, the tax-free part not had, £40,000 of savings, £2,100 a month.
+  D1: { 'you.age': '68', 'you.pot': '300000', 'you.taxFreeTaken': 'no', savings: '40000', 'spend.amount': '2100' }
 };
 const FIXTURE_FILES = {
   F1: 'c/F1-forum-guest.json', F2: 'c/F2-couple.json', F3: 'c/F3-retired.json',
   A1: 'a/A1-stop-soon.json', A2: 'a/A2-couple-before-57.json', A3: 'a/A3-forced-out.json', A4: 'a/A4-from-savings.json',
   B1: 'b/B1-my-number.json', B2: 'b/B2-coast.json', B3: 'b/B3-late-start.json', B4: 'b/B4-young.json', B5: 'b/B5-couple.json'
 };
-/** The question a fixture belongs to, from its name: F → C, A → A, B → B. */
-export const questionOf = (name) => ({ F: 'c', A: 'a', B: 'b' })[String(name)[0]] || 'c';
+/** The question a fixture belongs to, from its name: F → C, A → A, B → B, D → D. */
+export const questionOf = (name) => ({ F: 'c', A: 'a', B: 'b', D: 'd' })[String(name)[0]] || 'c';
 
 function flat(obj, prefix = '', out = {}) {
   for (const [k, v] of Object.entries(obj || {})) {
@@ -627,7 +630,7 @@ export function fixtureTyping(name) {
 
 /** The fields a question needs before its answer step can run, among those that apply to what is typed (brief 4.1: A four, B five). */
 export function mustFill(q, typed) {
-  const need = { a: ['you.age', 'you.pot', 'stop.age', 'spend.amount'], b: ['you.age', 'you.pot', 'you.payIn.total', 'stop.age', 'spend.amount'], c: ['you.pot', 'you.age'] }[q];
+  const need = { a: ['you.age', 'you.pot', 'stop.age', 'spend.amount'], b: ['you.age', 'you.pot', 'you.payIn.total', 'stop.age', 'spend.amount'], c: ['you.pot', 'you.age'], d: ['you.age', 'you.pot', 'you.taxFreeTaken', 'spend.amount'] }[q];
   // A spending level picked instead of an amount: the amount box does not apply, the level is the typed thing.
   return need.map((p) => (p === 'spend.amount' && typed['spend.kind'] === 'level' ? 'spend.level' : p));
 }

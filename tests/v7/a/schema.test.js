@@ -561,13 +561,13 @@ describe('the shell\'s data for question A', () => {
 
   it('the step lists of A and B exist beside C\'s, and the questions open to a visitor derive from OPEN', async () => {
     const { STEP_LISTS, OPEN, QUESTIONS, BUILT } = await import('../../../src/v7/rail/questions.js');
-    expect(Object.keys(STEP_LISTS).sort()).toEqual(['a', 'b', 'c']);
+    expect(Object.keys(STEP_LISTS).sort()).toEqual(['a', 'b', 'c', 'd']);
     expect(STEP_LISTS.a.id).toBe('a');
     expect(STEP_LISTS.b.id).toBe('b');
     for (const id of OPEN) expect(STEP_LISTS[id], id).toBeDefined();
     expect(OPEN).toContain('c');
     expect(QUESTIONS.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
-    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(OPEN.filter((id) => ['a', 'b', 'c'].includes(id)));
+    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(OPEN.filter((id) => ['a', 'b', 'c', 'd'].includes(id)));
     expect(Object.keys(BUILT)).toEqual([...OPEN]);
   });
 
@@ -616,7 +616,7 @@ describe('the shell\'s data for question A', () => {
 
   it('answerA is registered under ANSWERS.a with SCHEMA_A', async () => {
     const { ANSWERS } = await import('../../../src/answers/index.js');
-    expect(Object.keys(ANSWERS).sort()).toEqual(['a', 'b', 'c']);
+    expect(Object.keys(ANSWERS).sort()).toEqual(['a', 'b', 'c', 'd']);
     expect(ANSWERS.a.schema).toBe(SCHEMA_A);
     expect(ANSWERS.a.answer).toBe(answerA);
     expect(ANSWERS.b.schema).toBe(SCHEMA_B);

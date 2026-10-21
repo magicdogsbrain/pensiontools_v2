@@ -18,7 +18,7 @@ export const B = {
     spend:   { label: 'What would you spend?', short: 'What you spend' },
     answer:  { label: 'Am I on course, and what should I pay in?', short: 'What to pay in' },
     choices: { label: 'What if I stop later, or pay in more, or both?', short: 'Two levers together' },
-    keep:    { label: 'Save this as a plan?', short: 'Save as a plan' }
+    keep:    { label: 'Keep this as a plan?', short: 'Keep as a plan' }
   },
 
   rail: {
@@ -40,7 +40,7 @@ export const B = {
     'b.fix':      'Next: check the figure marked below.',
     'b.fix.unmarked': 'Next: fill in the box that is still empty, then press "Show what I need".',
     'b.ready':    'Next: press "Show what I need".',
-    'b.keep':     'Next: check the name, then press "Save as a plan".',
+    'b.keep':     'Next: check the name, then press "Keep as a plan".',
     /** b.keep when this answer cannot be saved. */
     'b.keep.not': 'Next: back to your answer.',
     /** On the grid step itself (two levers together). */
@@ -56,8 +56,8 @@ export const B = {
   buttons: {
     show: 'Show what I need',
     retry: 'Try again',
-    keep: 'Save this as a plan',
-    keepNotYet: 'Save this as a plan (not in the preview yet)',
+    keep: 'Keep this as a plan',
+    keepNotYet: 'Keep this as a plan (not in the preview yet)',
     /** The numbers step's button: on to the spend step (draft/onward). */
     onward: 'Next: what you would spend',
     /** The rail's button to the spend step. */
@@ -312,7 +312,7 @@ export const B = {
     'stop.kind': {
       label: 'When do you stop work?',
       options: { age: 'At an age', already: 'I’ve already stopped' },
-      errors: { 'already-needs-partner': 'If you have stopped, "What is that a month?" is the question for you.' }
+      errors: { 'already-needs-partner': 'If you have stopped, "Will it last?" is the question for you.' }
     },
     'stop.age': {
       label: 'The age you would stop work',

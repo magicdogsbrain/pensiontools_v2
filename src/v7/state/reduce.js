@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, emptyPlanDraft, keptPlanDraft, emptyLasts } from './initial.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
@@ -44,9 +44,8 @@ const withAnswer = (state, q, answer) => ({ ...state, answers: { ...state.answer
 const keepOf = (state, q) => (state.keep && state.keep[q]) || emptyKeep();
 const withKeep = (state, q, keep) => ({ ...state, keep: { ...(state.keep || {}), [q]: keep } });
 const onStepOf = (route, q, step) => !!route && route.screen === 'step' && route.q === q && route.step === step;
-const KEEP_PROBLEMS = ['empty', 'tooLong', 'storage', 'notReady'];
-/** What V7 can know of a save it sent, on coming back (KEEP_BACK). */
-const KEEP_BACKS = ['waiting', 'taken', 'declined', 'notMade'];
+/** Why a keep did not make a plan (effects/planWrite.js): the box's two, and the store's. */
+const KEEP_PROBLEMS = ['empty', 'tooLong', 'notReady', 'full', 'usedUp', 'unverified', 'storage', 'failed', 'partial'];
 
 /**
  * Leaving A's or B's spend step with the "you are skipping the budget" note on screen: it has now been shown, and is
@@ -628,8 +627,63 @@ export function reduce(state, action) {
     case A.LASTS_WORKING: {
       if (typeof action.key !== 'string' || !action.key) return refuse('lasts/working: needs a key');
       const L = state.lasts || emptyLasts();
-      // the old result stays (greyed on the screen) while the new run is under way for another key
-      return { ...state, lasts: { ...L, key: action.key, status: 'working', reason: null, progress: null, slow: false } };
+      // the old result stays (greyed on the screen) while the new run is under way for another key; the levers tried on the
+      // old plan go (they were its), the work lever's boxes stay as typed
+      const levers = L.key === action.key ? L.levers || {} : {};
+      return { ...state, lasts: { ...L, key: action.key, status: 'working', reason: null, progress: null, slow: false, levers } };
+    }
+    // ---- the three levers of "Does it last?" (research/v7/answer-D.md 3.9; road-to-7.md step 7): try only, nothing kept ----
+    case A.LEVER_TYPE: {
+      if (action.field !== 'yearly' && action.field !== 'years') return refuse('lasts/leverType: the field is yearly or years');
+      const L = state.lasts || emptyLasts();
+      const value = typeof action.value === 'string' ? action.value : action.value == null ? '' : String(action.value);
+      const workDraft = { ...(L.workDraft || { yearly: '', years: '' }), [action.field]: value };
+      // a change of the figures puts the work lever's last try away (its figures were for other figures): the boxes stay open
+      const levers = { ...(L.levers || {}) };
+      if (levers.work && levers.work.status !== 'working') levers.work = { status: 'open', lever: { kind: 'work' }, result: null, reason: null };
+      return { ...state, lasts: { ...L, workDraft, levers } };
+    }
+    case A.LEVER_TRY: {
+      if (!LEVER_KINDS.includes(action.kind)) return refuse(`lasts/leverTry: no lever called "${action.kind}"`);
+      const L = state.lasts || emptyLasts();
+      // a lever is tried on the plan whose one test is held: never before it is, never on a stale one
+      if (!L.key || L.status !== 'done') return state;
+      const levers = { ...(L.levers || {}) };
+      if (levers[action.kind] && levers[action.kind].status === 'working') return state;
+      let lever = { kind: action.kind };
+      if (action.kind === 'work') {
+        // the first press opens the two boxes; the next tries what is typed in them
+        if (!levers.work) { levers.work = { status: 'open', lever, result: null, reason: null }; return { ...state, lasts: { ...L, levers } }; }
+        const d = L.workDraft || { yearly: '', years: '' };
+        const yearly = typedNumber(d.yearly);
+        const years = typedNumber(d.years);
+        const okYearly = yearly !== null && yearly >= 1 && yearly <= 200000;
+        const okYears = years !== null && Number.isInteger(years) && years >= 1 && years <= 5;
+        if (!okYearly || !okYears) { levers.work = { status: 'invalid', lever, result: null, reason: !okYearly ? 'yearly' : 'years' }; return { ...state, lasts: { ...L, levers } }; }
+        lever = { kind: 'work', yearly, years };
+      }
+      levers[action.kind] = { status: 'working', lever, result: null, reason: null };
+      return { ...state, lasts: { ...L, levers } };
+    }
+    case A.LEVER_DONE: {
+      const L = state.lasts || emptyLasts();
+      const x = L.levers && L.levers[action.kind];
+      if (action.key !== L.key || !x || x.status !== 'working') return state;                                            // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('lasts/leverDone: needs a result');
+      return { ...state, lasts: { ...L, levers: { ...L.levers, [action.kind]: { ...x, status: 'done', result: action.result } } } };
+    }
+    case A.LEVER_FAILED: {
+      const L = state.lasts || emptyLasts();
+      const x = L.levers && L.levers[action.kind];
+      if (action.key !== L.key || !x || x.status !== 'working') return state;                                            // stale
+      return { ...state, lasts: { ...L, levers: { ...L.levers, [action.kind]: { ...x, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } } } };
+    }
+    case A.LEVER_CLOSE: {
+      const L = state.lasts || emptyLasts();
+      if (!L.levers || !L.levers[action.kind]) return state;
+      const levers = { ...L.levers };
+      delete levers[action.kind];
+      return { ...state, lasts: { ...L, levers } };
     }
     case A.LASTS_PROGRESS: {
       const L = state.lasts || emptyLasts();
@@ -688,7 +742,7 @@ export function reduce(state, action) {
       return sheet === (state.budget || null) ? state : { ...state, budget: sheet };
     }
 
-    // ---- "Save this as a plan" ----------------------------------------------------------------------------------
+    // ---- "Keep this as a plan" (road-to-7.md step 7: the one write file makes the plan) --------------------------
     case A.KEEP_NAME: {
       if (!draft) return refuse(`keep/name: no question "${q}"`);
       const k = keepOf(state, q);
@@ -704,31 +758,20 @@ export function reduce(state, action) {
       if (!view.check.ok) return withKeep(state, q, { ...k, problem: view.check.problem });
       return withKeep(state, q, { ...k, saving: true, problem: null });
     }
-    case A.KEEP_SENT: {
-      if (!draft) return refuse(`keep/sent: no question "${q}"`);
-      if (typeof action.name !== 'string' || typeof action.createdAt !== 'string') return refuse('keep/sent: a name and a time');
-      // The box goes back to following the answer: the next try gets its own name ("Try something else and save that too").
-      return withKeep(state, q, { ...keepOf(state, q), name: null, saving: false, problem: null, sent: { name: action.name, createdAt: action.createdAt }, back: null });
+    case A.KEEP_MADE: {
+      // The one write file made the plan (effects/planWrite.js): in the account, or in this window. The box goes back to
+      // following the answer: the next try gets its own name ("Try something else and keep that too").
+      if (!draft) return refuse(`keep/made: no question "${q}"`);
+      const made = cleanMade(action);
+      if (!made) return refuse('keep/made: needs an id, a name and where');
+      return withKeep(state, q, { ...keepOf(state, q), name: null, saving: false, problem: null, partnerKept: null, made });
     }
     case A.KEEP_FAILED: {
       if (!draft) return refuse(`keep/failed: no question "${q}"`);
-      const problem = KEEP_PROBLEMS.includes(action.problem) ? action.problem : 'storage';
-      return withKeep(state, q, { ...keepOf(state, q), saving: false, problem });
-    }
-    case A.KEEP_BACK: {
-      // Coming back to V7, what became of the seed this tab sent (effects/planSeed.js seedOutcome): still 'waiting' in
-      // the planner; 'taken' — a plan was made, under `name` (the planner's final name: it may have been changed there,
-      // or given " (2)"); 'declined' ("Not now"); 'notMade' (the planner could not use it, or a sign-out deleted it).
-      // 'gone' (found too old and deleted unused) and 'unknown' (gone with no word from the planner): the save is
-      // forgotten and nothing is claimed — "Saved as" is said only on the planner's word.
-      if (!draft) return refuse(`keep/back: no question "${q}"`);
-      const k = keepOf(state, q);
-      if (!k.sent) return state;
-      if (action.outcome === 'gone' || action.outcome === 'unknown') return withKeep(state, q, { ...k, sent: null, back: null });
-      if (!KEEP_BACKS.includes(action.outcome)) return state;
-      const made = action.outcome === 'taken' && typeof action.name === 'string' && action.name.length > 0 && action.name.length <= 200 ? action.name : null;
-      if (k.back === action.outcome && (!made || made === k.sent.name)) return state;
-      return withKeep(state, q, { ...k, back: action.outcome, ...(made ? { sent: { ...k.sent, name: made } } : {}) });
+      const problem = KEEP_PROBLEMS.includes(action.problem) ? action.problem : 'failed';
+      // a couple whose partner's plan was made but not yours: the name it was kept under, for the sentence
+      const partnerKept = problem === 'partial' && typeof action.name === 'string' ? action.name.slice(0, 200) : null;
+      return withKeep(state, q, { ...keepOf(state, q), saving: false, problem, partnerKept });
     }
 
     case A.SHAPE_STEP:
@@ -762,12 +805,11 @@ export function reduce(state, action) {
         const a = copy.answers[id] && typeof copy.answers[id] === 'object' ? copy.answers[id] : {};
         answers[id] = { ...emptyAnswerFor(id), ...a };
       }
-      // "Save this as a plan": the name and the last save as draftStore would keep them, and what was found on coming back.
+      // "Keep this as a plan": the name and the last plan made as draftStore would keep them, and a problem.
       const keep = {};
       for (const id of Object.keys(state.draft).filter((k) => k !== 'plan')) {
         const k = copy.keep && typeof copy.keep === 'object' ? copy.keep[id] : null;
-        keep[id] = { ...keptKeep(copy.keep, id), back: k && KEEP_BACKS.includes(k.back) ? k.back : null,
-          problem: k && KEEP_PROBLEMS.includes(k.problem) ? k.problem : null };
+        keep[id] = { ...keptKeep(copy.keep, id), problem: k && KEEP_PROBLEMS.includes(k.problem) ? k.problem : null };
       }
       return {
         route: tidyRoute(copy.route),
@@ -785,7 +827,10 @@ export function reduce(state, action) {
         keep,
         // a named plan state may carry the one test's result for its plan (editing-in-v7.md 10): a key with a plain result
         lasts: copy.lasts && typeof copy.lasts === 'object' && typeof copy.lasts.key === 'string' && ['working', 'done', 'failed'].includes(copy.lasts.status)
-          ? { key: copy.lasts.key, status: copy.lasts.status, reason: copy.lasts.reason === 'noWorker' ? 'noWorker' : null, result: copy.lasts.result && typeof copy.lasts.result === 'object' ? copy.lasts.result : null, progress: copy.lasts.progress && typeof copy.lasts.progress === 'object' ? { done: Number(copy.lasts.progress.done) || 0, total: Number(copy.lasts.progress.total) || 0 } : null, slow: copy.lasts.slow === true }
+          ? { key: copy.lasts.key, status: copy.lasts.status, reason: copy.lasts.reason === 'noWorker' ? 'noWorker' : null, result: copy.lasts.result && typeof copy.lasts.result === 'object' ? copy.lasts.result : null, progress: copy.lasts.progress && typeof copy.lasts.progress === 'object' ? { done: Number(copy.lasts.progress.done) || 0, total: Number(copy.lasts.progress.total) || 0 } : null, slow: copy.lasts.slow === true,
+            // the levers tried (road-to-7.md step 7), each cleaned; the work lever's boxes as typed
+            levers: Object.fromEntries(LEVER_KINDS.map((k) => [k, cleanLever(copy.lasts.levers && copy.lasts.levers[k])]).filter(([, v]) => v)),
+            workDraft: { yearly: copy.lasts.workDraft && typeof copy.lasts.workDraft.yearly === 'string' ? copy.lasts.workDraft.yearly : '', years: copy.lasts.workDraft && typeof copy.lasts.workDraft.years === 'string' ? copy.lasts.workDraft.years : '' } }
           : emptyLasts(),
         ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
       };

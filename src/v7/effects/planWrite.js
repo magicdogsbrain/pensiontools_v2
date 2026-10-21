@@ -39,16 +39,43 @@
  *   Without a worker (client.document rejects with NO_WORKER) the lock and the new version are refused ('noWorker'): the
  *   document is never built from a lesser run.
  *
- * The names imported from the Firebase package are `doc` and `updateDoc` and nothing else; the boundary test
- * (tests/v7/boundaries.test.js) fails on any other, anywhere V7 can reach.
+ * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
+ * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
+ *   - the seed is built from the answer on screen (answers/keep/planSeed.js buildPlanSeed), the plan documents from it
+ *     exactly as the planner makes them (answers/keep/planCreate.js plansFromSeed → services/PlanFromSeed.js seedToScenario,
+ *     the lifted mapping), each brought up to date by today's own upgrade and checked (planProblems: nothing Firestore
+ *     refuses; never locked) before anything is written;
+ *   - signed in (email confirmed), the plans read: the account's plans are read again first (the names, and whether this
+ *     is the first plan); then ONE addDoc per plan on users/{uid}/scenarios — the partner's plan first for a couple, then
+ *     yours with the link to it (household.partnerScenarioId). If yours cannot be made the partner's plan stays: V7
+ *     never deletes ('partial' says so). `isActive` is true only for the first plan in the account; no other plan's
+ *     flag is ever touched. Not confirmed: 'unverified'. The plans not readable: 'failed'.
+ *   - nobody signed in: the window's plans (pt_guest_scenarios), with ids as the planner's guest store gives them
+ *     ('guest-' and eight random characters), written back as ONE setItem with every other plan byte-identical; refused
+ *     when the window holds its three plans already ('full': services/GuestPlans.js guestHasRoom, the example plan not
+ *     counted; a couple needs room for two), or when the free time is used up ('usedUp');
+ *   - then keep/made (the plan's id, name and where it is: the panel says "Kept as …" and offers its lock step) and the
+ *     plans read again. There is no Undo for a plan made: the planner's own menu removes a plan.
+ * A keep pressed before this file was loaded (it comes with the plan source) is picked up at start.
+ *
+ * The names imported from the Firebase package are `doc`, `updateDoc`, `addDoc` and `collection` and nothing else; the
+ * boundary test (tests/v7/boundaries.test.js) fails on any other, anywhere V7 can reach, and holds `updateDoc` and
+ * `addDoc` to one call each in this file.
  *
  *   GUEST_PLANS_KEY     'pt_guest_scenarios' (the one V7 file that may write it)
  *   TOAST_MS            how long the Undo toast stays
- *   startPlanWrite(store, { win, session, local, now, fb, client, handles }) → stop()
+ *   KEEP_WAIT_MS        how long a keep waits for the sign-in check and the plans before giving up ('failed')
+ *   guestPlanId(rand, taken)   a window plan's id, as the planner's guest store makes them, not among `taken`
+ *   startPlanWrite(store, { win, session, local, now, fb, client, handles, rand }) → stop()
  */
-import { doc, updateDoc } from 'firebase/firestore/lite';
+import { doc, updateDoc, addDoc, collection } from 'firebase/firestore/lite';
 import { A } from '../state/actions.js';
+import { keepView } from '../state/select.js';
 import { parse, href } from '../router/routes.js';
+import { buildPlanSeed } from '../../answers/keep/planSeed.js';
+import { plansFromSeed, withPartnerId, planProblems } from '../../answers/keep/planCreate.js';
+import { upgradeScenario } from '../../firebase/scenarioMigration.js';
+import { guestOwnPlans, GUEST_MAX_PLANS } from '../../services/GuestPlans.js';
 import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
@@ -63,7 +90,22 @@ import { NO_WORKER } from './workerClient.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
 export const TOAST_MS = 15000;
+export const KEEP_WAIT_MS = 20000;
 const ALLOWED = new Set(ALL_WRITES);
+const BASE36 = '0123456789abcdefghijklmnopqrstuvwxyz';
+
+/** A window plan's id as the planner's guest store makes them: 'guest-' and eight characters of base 36, not among `taken`. */
+export function guestPlanId(rand, taken = new Set()) {
+  for (let tries = 0; tries < 1000; tries++) {
+    let id = 'guest-';
+    for (let i = 0; i < 8; i++) id += BASE36[Math.min(35, Math.floor(rand() * 36))];
+    if (!taken.has(id)) return id;
+  }
+  throw new Error('planWrite: no free id');
+}
+
+/** The name a plan was kept under, as the readers take it (answers/plan/read.js nameOf). */
+const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
 
 /** The patch checked against the declared paths: anything else is a fault in the code, never sent. */
 function declaredOnly(data) {
@@ -78,12 +120,13 @@ function declaredOnly(data) {
  * @param {Storage|null} [o.session]   sessionStorage (this window's plans)
  * @param {Storage|null} [o.local]     localStorage (the free-time count)
  * @param {() => Date} [o.now]
- * @param {{ doc, updateDoc }|null} [o.fb]   the two Firebase functions (the tests hand in fakes); the real ones otherwise
+ * @param {{ doc, updateDoc, addDoc, collection }|null} [o.fb]   the four Firebase functions (the tests hand in fakes); the real ones otherwise
  * @param {{ document }|null} [o.client]     the worker client: the lock's and the new version's run (none: 'noWorker')
  * @param {() => { db, user, reread }} o.handles   planSource's Firestore handle, signed-in user and "read the account again"
+ * @param {() => number} [o.rand]           the window plans' ids (the tests hand in their own)
  */
-export function startPlanWrite(store, { win = null, session = null, local = null, now = () => new Date(), fb = null, client = null, handles }) {
-  const F = fb || { doc, updateDoc };
+export function startPlanWrite(store, { win = null, session = null, local = null, now = () => new Date(), fb = null, client = null, handles, rand = Math.random }) {
+  const F = fb || { doc, updateDoc, addDoc, collection };
   let stopped = false;
   let busy = false;
   let timer = null;
@@ -281,7 +324,144 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
 
+  // ---- "Keep this as a plan" (road-to-7.md step 7): a NEW plan, in the account or in this window -----------------------
+
+  const keepFail = (q, problem, name = null) => dispatch({ type: A.KEEP_FAILED, q, problem, ...(name ? { name } : {}) });
+
+  /** Where a new plan goes, once the sign-in check and the plans are in: the account or this window; a problem; or null while not yet known. */
+  function placeForNew(state) {
+    const k = state.session.kind;
+    if (k === 'unverified') return { problem: 'unverified' };
+    if (k !== 'in' && k !== 'nobody') return null;
+    const plans = state.plans;
+    if (!plans) return null;
+    if (plans.status === 'failed') return { problem: 'failed' };
+    if (plans.status !== 'read') return null;
+    const h = handles() || {};
+    if (k === 'in') return h.user && h.db && plans.source === 'account' ? { kind: 'account', plans, db: h.db, uid: h.user.uid, reread: h.reread } : null;
+    if (plans.source !== 'window') return null;
+    if (isBlocked(readMinutes(local))) return { problem: 'usedUp' };
+    return { kind: 'window', plans };
+  }
+
+  /** The place, as soon as it is known — or 'failed' after KEEP_WAIT_MS (the sign-in check never answered). */
+  function whenPlaced() {
+    return new Promise((resolve) => {
+      const first = placeForNew(store.getState());
+      if (first) { resolve(first); return; }
+      let off = null;
+      let t = null;
+      const done = (v) => { if (off) off(); off = null; if (t && win) win.clearTimeout(t); resolve(v); };
+      off = store.subscribe((state) => { if (stopped) { done({ problem: 'failed' }); return; } const p = placeForNew(state); if (p) done(p); });
+      if (win && typeof win.setTimeout === 'function') t = win.setTimeout(() => done({ problem: 'failed' }), KEEP_WAIT_MS);
+    });
+  }
+
+  /** A plan document ready to be written: brought up to date by today's own upgrade, nothing Firestore refuses, never locked. */
+  function readyPlan(plan, at) {
+    const u = upgradeScenario(plan, { now: at });
+    if (u.error || u.newer || !u.scenario || typeof u.scenario !== 'object') throw new Error('planWrite: the plan would not upgrade');
+    const p = u.scenario;
+    if (isLockedSettings(p.decisionTool && p.decisionTool.settings)) throw new Error('planWrite: a new plan is never locked');
+    const problems = planProblems(p);
+    if (problems.length) throw new Error('planWrite: ' + problems[0]);
+    return p;
+  }
+
+  /** The ONE create: addDoc on users/{uid}/scenarios; the new document's id. */
+  async function add(coll, plan) {
+    const ref = await F.addDoc(coll, plan);
+    if (!ref || typeof ref.id !== 'string' || !ref.id) throw new Error('planWrite: no id');
+    return ref.id;
+  }
+
+  /** The account: the partner's plan first (a couple), then yours with the link; the partner's stays if yours fails. */
+  async function createInAccount(place, made, at) {
+    const coll = F.collection(place.db, 'users', place.uid, 'scenarios');
+    let partnerId = null;
+    if (made.partner) {
+      try { partnerId = await add(coll, readyPlan(made.partner, at)); } catch { return { problem: 'failed' }; }
+      if (stopped) return { problem: 'failed' };
+    }
+    try {
+      const id = await add(coll, readyPlan(partnerId ? withPartnerId(made.yours, partnerId) : made.yours, at));
+      return { id, partnerId };
+    } catch {
+      return partnerId ? { problem: 'partial', name: made.names.partner } : { problem: 'failed' };
+    }
+  }
+
+  /** This window: the new plan(s) appended to pt_guest_scenarios, written back as one setItem; every other plan byte-identical. */
+  function createInWindow(made, at) {
+    if (!session) return { problem: 'storage' };
+    let text = null;
+    try { text = session.getItem(GUEST_PLANS_KEY); } catch { return { problem: 'storage' }; }
+    let stored = [];
+    if (text) { try { stored = JSON.parse(text); } catch { return { problem: 'storage' }; } }
+    if (!Array.isArray(stored)) return { problem: 'storage' };
+    const taken = new Set(stored.map((p) => (p && p.id != null ? String(p.id) : '')));
+    const next = stored.slice();
+    let partnerId = null;
+    let yours;
+    try {
+      if (made.partner) { partnerId = guestPlanId(rand, taken); taken.add(partnerId); next.push({ ...readyPlan(made.partner, at), id: partnerId }); }
+      yours = readyPlan(partnerId ? withPartnerId(made.yours, partnerId) : made.yours, at);
+    } catch { return { problem: 'failed' }; }
+    const id = guestPlanId(rand, taken);
+    next.push({ ...yours, id });
+    const out = JSON.stringify(next);
+    try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) return { problem: 'storage' }; } catch { return { problem: 'storage' }; }
+    return { id, partnerId };
+  }
+
+  async function keep(q) {
+    const k0 = store.getState().keep && store.getState().keep[q];
+    if (!k0 || !k0.saving) return;
+    const v0 = keepView(store.getState(), q);
+    if (!v0.can || !v0.check.ok) { keepFail(q, 'notReady'); return; }
+    let place = await whenPlaced();
+    if (stopped) return;
+    if (place.problem) { keepFail(q, place.problem); return; }
+    if (place.kind === 'account') {
+      // the account as stored, read just before the create: the names taken, and whether this is the first plan
+      try { await place.reread(); } catch { /* the read failed: the copy in memory is the best there is */ }
+      if (stopped) return;
+      place = placeForNew(store.getState()) || place;
+      if (place.problem) { keepFail(q, place.problem); return; }
+    }
+    const state = store.getState();
+    const view = keepView(state, q);
+    if (!view.can || !view.check.ok) { keepFail(q, 'notReady'); return; }
+    const at = now();
+    const plans = place.plans.list.map((e) => e.plan);
+    let made;
+    try {
+      const seed = buildPlanSeed({
+        source: q, result: state.answers[q].result, env: state.env, name: { suggested: view.suggested, chosen: view.check.name },
+        budget: state.budget || null, spendHow: (state.draft[q] && state.draft[q].spendHow) || null, createdAt: at.toISOString()
+      });
+      // this window holds three plans of its own at most (the example not counted); a couple needs room for two
+      if (place.kind === 'window' && guestOwnPlans(plans).length + (seed.household === 'couple' ? 2 : 1) > GUEST_MAX_PLANS) { keepFail(q, 'full'); return; }
+      made = plansFromSeed(seed, { now: at, takenNames: plans.map(nameOf).filter(Boolean), first: plans.length === 0 });
+    } catch {
+      keepFail(q, 'notReady');
+      return;
+    }
+    const done = place.kind === 'account' ? await createInAccount(place, made, at) : createInWindow(made, at);
+    if (stopped) return;
+    if (done.problem) { keepFail(q, done.problem, done.name || null); return; }
+    dispatch({ type: A.KEEP_MADE, q, id: done.id, name: made.names.yours, where: place.kind, partnerId: done.partnerId, partnerName: done.partnerId ? made.names.partner : null, separate: view.separate === true });
+    dispatch({ type: A.PLANS_READING });
+  }
+
+  // one keep at a time, each after the last; a keep that throws is told as 'failed' (the figures are still there)
+  let keeps = Promise.resolve();
+  const queueKeep = (q) => { keeps = keeps.then(() => keep(q)).catch(() => keepFail(q, 'failed')); };
+  // a keep pressed before this file was loaded (it comes with the plan source): picked up now
+  for (const [q, k] of Object.entries(store.getState().keep || {})) if (k && k.saving) queueKeep(q);
+
   const off = store.subscribe((state, action) => {
+    if (action.type === A.KEEP_SAVE) { const k = state.keep && state.keep[action.q]; if (k && k.saving) queueKeep(action.q); return; }
     if (busy) return;
     const s = state.ui.saving;
     if (!s) return;

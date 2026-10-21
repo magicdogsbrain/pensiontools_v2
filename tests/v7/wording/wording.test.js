@@ -19,6 +19,7 @@ import * as common from '../../../src/v7/copy/common.js';
 import { C } from '../../../src/v7/copy/c.js';
 import { A } from '../../../src/v7/copy/a.js';
 import { B } from '../../../src/v7/copy/b.js';
+import { D } from '../../../src/v7/copy/d.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { ABOUT } from '../../../src/v7/copy/about.js';
 import { INCOME } from '../../../src/v7/copy/income.js';
@@ -30,7 +31,7 @@ import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
   const real = await vi.importActual('../../../src/v7/rail/questions.js');
-  const OPEN = Object.freeze(['a', 'b', 'c']);
+  const OPEN = Object.freeze(['a', 'b', 'c', 'd']);
   return { ...real, OPEN, QUESTIONS: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) })),
     BUILT: Object.fromEntries(OPEN.map((id) => [id, real.STEP_LISTS[id]])) };
 });
@@ -169,7 +170,9 @@ describe('the words in src/v7/copy/', () => {
   it('"Does it last?" (lasts.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fifth editing step is a plan page too (editing-in-v7.md 10): a retired person's and a saver's plan are both shown it
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    // the levers' slots (road-to-7.md step 7): money, a chance, the cost in runs, a plural
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{words\}/g, 'in 9 futures out of 10')
+      .replace(/\{(perMonth|potBefore|potAfter|yearly)\}/g, '£25,000').replace(/\{(chance|baseChance|docChance)\}/g, '92.7').replace(/\{runs\}/g, '7').replace(/\{s\}/g, 's')
       .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
       .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')
       .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves');
@@ -229,7 +232,15 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
   });
 
-  it.each([['a', A], ['b', B]])('question %s: no slot the screen does not fill; no "error", "failed" or "calculate"', (q, words) => {
+  it('question d: every string passes in every scope D is shown in — retired included (answer-D.md: never a countdown, never "when you retire")', () => {
+    const scopes = ['all', 'first', 'planner', 'retired'];
+    const hits = [];
+    const whole = strings(D).map(([, s]) => filled(s)).join('\n');
+    for (const [where, s] of strings(D)) for (const h of bannedHits(filled(s), scopes, { context: whole })) hits.push(`d.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+  });
+
+  it.each([['a', A], ['b', B], ['d', D]])('question %s: no slot the screen does not fill; no "error", "failed" or "calculate"', (q, words) => {
     const slots = new Set();
     for (const [, s] of strings(words)) for (const m of s.matchAll(/\{([a-zA-Z]+)\}/g)) slots.add(m[1]);
     for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words'], slot).toContain(slot);
@@ -273,7 +284,8 @@ describe('the words in src/v7/copy/', () => {
 describe.each([
   ['c', ['all', 'first', 'planner', 'retired', 'result']],
   ['a', ['all', 'first', 'planner', 'retired', 'result', 'saver']],
-  ['b', ['all', 'first', 'planner', 'retired', 'result', 'saver']]
+  ['b', ['all', 'first', 'planner', 'retired', 'result', 'saver']],
+  ['d', ['all', 'first', 'planner', 'retired', 'result']]
 ])('the sentence templates (src/answers/%s/sentences.js), read as text', (q, scopes) => {
   const file = join(ROOT, `src/answers/${q}/sentences.js`);
   const source = existsSync(file) ? readFileSync(file, 'utf8') : '';
@@ -325,7 +337,7 @@ describe('couples who stop work in different years: one set of words in all thre
 });
 
 describe('every drawn state', () => {
-  const names = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(ROOT, 'tests/v7/states', q)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => `${q}/${f.slice(0, -5)}`));
+  const names = ['c', 'a', 'b', 'd'].flatMap((q) => readdirSync(join(ROOT, 'tests/v7/states', q)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => `${q}/${f.slice(0, -5)}`));
   const load = (name) => JSON.parse(readFileSync(join(ROOT, 'tests/v7/states', `${name}.json`), 'utf8'));
 
   it.each(names)('%s holds no banned word, by its scope', (name) => {
@@ -352,7 +364,8 @@ describe('every drawn state', () => {
 
   it('a person who has already stopped work is never given a stop-work word or a length of time to wait', () => {
     const retired = /when you retire|until you retire|when you stop work|years to go|months to go|plan starts|countdown|to retirement|\bin \d+ (years|months)\b/i;
-    for (const name of names.filter((n) => load(n).route.q === 'c')) expect(visibleText(renderScreen(load(name))), name).not.toMatch(retired);
+    // C and D are for people who have stopped: every state of theirs
+    for (const name of names.filter((n) => ['c', 'd'].includes(load(n).route.q))) expect(visibleText(renderScreen(load(name))), name).not.toMatch(retired);
     // A and B: the retired view, and stopping now (the stop at today's age), are drawn under the same rules
     for (const name of ['a/answer-retired', 'a/answer-stop-now', 'b/answer-retired']) {
       const state = load(name);
@@ -363,7 +376,7 @@ describe('every drawn state', () => {
 
   it('no length of time to wait anywhere in A or B, working or not', () => {
     const wait = /\b\d+ (more )?(years?|months?) (to go|until|till|before|from now)\b|\bin \d{1,2} years\b/i;
-    for (const name of names.filter((n) => !n.startsWith('c/'))) {
+    for (const name of names.filter((n) => n.startsWith('a/') || n.startsWith('b/'))) {
       expect(scopesFor(load(name)), name).toContain('saver');
       expect(visibleText(renderScreen(load(name))), name).not.toMatch(wait);
     }

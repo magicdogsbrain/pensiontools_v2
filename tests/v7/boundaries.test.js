@@ -16,12 +16,14 @@
  *         src/strategies and src/data.
  *     3b. Firebase: exactly two V7 files import a `firebase` package, each by its own names — src/v7/effects/planSource.js
  *         (reads: firebase/app, firebase/auth, firebase/firestore/lite, read-only names) and src/v7/effects/planWrite.js
- *         (writes: firebase/firestore/lite, `doc` and `updateDoc` only). Every other name fails.
- *     3c. Write words: `updateDoc` appears in planWrite.js only (once, in its one write); setDoc, addDoc, deleteDoc,
- *         writeBatch and runTransaction appear nowhere V7 can reach. V7 can update fields of a plan that exists; it cannot
- *         create, delete or replace one.
+ *         (writes: firebase/firestore/lite, `doc`, `updateDoc`, `addDoc` and `collection` only). Every other name fails.
+ *     3c. Write words: `updateDoc` appears in planWrite.js only (once, in its one write), and so does `addDoc` (once, in its
+ *         one create — road-to-7.md step 7: "Keep this as a plan" makes a NEW plan itself; the rule widened by this one
+ *         name on 21 Oct 2026); setDoc, deleteDoc, writeBatch and runTransaction appear nowhere V7 can reach. V7 can
+ *         update fields of a plan that exists and add a new one; it cannot delete or replace one.
  *     3d. Browser storage: only named effects files touch it, each only the keys its row allows; the window's plans
- *         (pt_guest_scenarios) are read by planSource.js with getItem only and written by planWrite.js only.
+ *         (pt_guest_scenarios) are read by planSource.js with getItem only and written by planWrite.js only. The hand-over
+ *         seed (pt_v7_plan_seed) and its receipt are retired: no V7 file names them or imports their keys.
  *     3e. Field paths: planWrite.js checks every patch against the declared list (src/answers/plan/schema.js ALL_WRITES)
  *         before its one write; the effect's own test drives it with random boxes and plans (tests/v7/plan/planWrite.test.js).
  *     3f. The lock: planWrite.js imports the guard (services/LockedPlanGuard.js) and calls it before its one write.
@@ -231,17 +233,18 @@ const FIREBASE_FILES = {
     'firebase/firestore/lite': ['getFirestore', 'collection', 'getDocs']
   },
   [WRITE_FILE]: {
-    'firebase/firestore/lite': ['doc', 'updateDoc']
+    'firebase/firestore/lite': ['doc', 'updateDoc', 'addDoc', 'collection']
   }
 };
-/** Never, anywhere V7 can reach: V7 cannot create, delete or replace a plan, nor write two at once. */
-const NEVER_WORDS = /\b(setDoc|addDoc|deleteDoc|writeBatch|runTransaction)\b/;
+/** Never, anywhere V7 can reach: V7 cannot delete or replace a plan, nor write two at once. */
+const NEVER_WORDS = /\b(setDoc|deleteDoc|writeBatch|runTransaction)\b/;
 /** The one write word, in the one write file only. */
 const WRITE_WORD = /\bupdateDoc\b/g;
+/** The one create word (road-to-7.md step 7), in the one write file only. */
+const CREATE_WORD = /\baddDoc\b/g;
 /** The effects that may touch browser storage (3d), and the keys each may name. */
 const STORAGE_FILES = {
-  'src/v7/effects/planSeed.js':   { keys: ['pt_v7_plan_seed', 'pt_v7_plan_receipt'], names: ['localStorage'] },
-  'src/v7/effects/draftStore.js': { keys: ['pt_v7_draft'], names: ['sessionStorage'] },
+  'src/v7/effects/draftStore.js': { keys: ['pt_v7_draft'], names: ['sessionStorage', 'localStorage'] },
   'src/v7/effects/activity.js':   { keys: ['pt_lastActivity'], names: [] },
   'src/v7/effects/planSource.js': { keys: ['pt_guest_scenarios'], names: [] },
   'src/v7/effects/planWrite.js':  { keys: ['pt_guest_scenarios'], names: [] },
@@ -364,10 +367,9 @@ describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the 
       for (const n of names) expect(allowed, `${file} imports ${n} from ${pkg}`).toContain(n);
     }
   });
-  it('the writer imports exactly doc and updateDoc; the reader imports neither', () => {
-    expect(namesImportedFrom(read(WRITE_FILE), 'firebase/firestore/lite').sort()).toEqual(['doc', 'updateDoc']);
-    expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain('updateDoc');
-    expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain('doc');
+  it('the writer imports exactly doc, updateDoc, addDoc and collection; the reader imports none of the write names', () => {
+    expect(namesImportedFrom(read(WRITE_FILE), 'firebase/firestore/lite').sort()).toEqual(['addDoc', 'collection', 'doc', 'updateDoc']);
+    for (const n of ['updateDoc', 'doc', 'addDoc']) expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain(n);
   });
   it('the full firestore package (with its cache and its writes) is never reached', () => {
     for (const f of REACHED) for (const t of targetsOf(f)) expect(t, `${f} imports ${t}`).not.toBe('firebase/firestore');
@@ -379,14 +381,53 @@ describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the 
   });
 });
 
-describe('rule 3c — the one write word in the one write file; never a create, delete or replace', () => {
+describe('rule 3c — the one write word and the one create word in the one write file; never a delete or replace', () => {
   it.each(REACHED)('%s', (file) => {
     const code = codeOf(file);
     const never = NEVER_WORDS.exec(code);
     expect(never && never[0], `${file} contains ${never && never[0]}`).toBeFalsy();
     const writes = code.match(WRITE_WORD) || [];
-    if (file === WRITE_FILE) expect(writes.length, 'the import, the default and the one call').toBe(3);
-    else expect(writes.length, `${file} contains updateDoc`).toBe(0);
+    const creates = code.match(CREATE_WORD) || [];
+    if (file === WRITE_FILE) {
+      expect(writes.length, 'the import, the default and the one call').toBe(3);
+      expect(creates.length, 'the import, the default and the one call').toBe(3);
+    } else {
+      expect(writes.length, `${file} contains updateDoc`).toBe(0);
+      expect(creates.length, `${file} contains addDoc`).toBe(0);
+    }
+  });
+  it('the create (road-to-7.md step 7): one addDoc call site, on users/{uid}/scenarios, of a plan the planner\'s own mapping made, upgraded and checked first; never a delete of a partner plan made', () => {
+    const code = strip(read(WRITE_FILE), { keepStrings: true });
+    expect((code.match(/F\.addDoc\(/g) || []).length).toBe(1);
+    expect((code.match(/F\.collection\(/g) || []).length).toBe(1);
+    expect(code).toMatch(/F\.collection\(place\.db, 'users', place\.uid, 'scenarios'\)/);
+    expect(targetsOf(WRITE_FILE)).toContain('src/answers/keep/planCreate.js');
+    expect(targetsOf(WRITE_FILE)).toContain('src/answers/keep/planSeed.js');
+    expect(targetsOf(WRITE_FILE)).toContain('src/firebase/scenarioMigration.js');
+    expect(targetsOf(WRITE_FILE)).toContain('src/services/GuestPlans.js');
+    for (const n of ['plansFromSeed', 'withPartnerId', 'planProblems']) expect(namesImportedFrom(read(WRITE_FILE), '../../answers/keep/planCreate.js')).toContain(n);
+    expect(namesImportedFrom(read(WRITE_FILE), '../../firebase/scenarioMigration.js')).toEqual(['upgradeScenario']);
+    // the planner's mapping, lifted pure: the create reaches seedToScenario through PlanFromSeed.js, never the repositories or PlanSeed.js
+    expect(REACHED).toContain('src/services/PlanFromSeed.js');
+    expect(REACHED).not.toContain('src/services/PlanSeed.js');
+    expect(REACHED).not.toContain('src/storage/ScenarioRepository.js');
+    // V7 never deletes: no remove of a plan anywhere the writer can reach
+    expect(code).not.toMatch(/removeItem\(\s*GUEST_PLANS_KEY/);
+    expect(codeOf(WRITE_FILE)).not.toMatch(/\bdeleteScenario|\bremove\s*\(/);
+  });
+  it('the planner\'s mapping lifted into services/PlanFromSeed.js is pure, and the repositories and PlanSeed.js keep their names as re-exports', () => {
+    const f = 'src/services/PlanFromSeed.js';
+    for (const t of targetsOf(f)) expect((under(t, 'src/storage') && !PURE_EXCEPTIONS.includes(t)) || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false);
+    const code = codeOf(f);
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
+    expect(targetsOf('src/services/PlanSeed.js')).toContain(f);
+    expect(targetsOf('src/storage/ScenarioRepository.js')).toContain(f);
+    const seed = strip(read('src/services/PlanSeed.js'), { keepStrings: true });
+    for (const n of ['seedToScenario', 'checkSeed', 'uniqueName', 'checkPlanName', 'targetAtAge', 'compressSteps']) expect(seed).toMatch(new RegExp('export \\{[^}]*\\b' + n + '\\b'));
+    const repo = strip(read('src/storage/ScenarioRepository.js'), { keepStrings: true });
+    for (const n of ['getDefaultTaxYears', 'getDefaultBudget']) expect(repo).toMatch(new RegExp('export \\{[^}]*\\b' + n + '\\b'));
+    expect(repo).toMatch(/export function getDefaultScenario\(/);
+    expect(repo).toMatch(/export function defaultStrategyBlock\(/);
   });
   it('3e, 3f: the writer checks every patch against the declared paths and the lock guard before its one write', () => {
     const code = strip(read(WRITE_FILE), { keepStrings: true });
@@ -428,8 +469,17 @@ describe('rule 3d — browser storage: only the named effects, only their keys',
     expect(writer).not.toMatch(/removeItem\(\s*GUEST_PLANS_KEY/);
     for (const f of V7.filter((x) => x !== WRITE_FILE)) expect(strip(read(f), { keepStrings: true }), f).not.toMatch(/setItem\(\s*GUEST_PLANS_KEY|setItem\(\s*['"]pt_guest_scenarios/);
   });
-  it('the plan seed\'s key appears in V7 only through the seed module', () => {
-    for (const file of V7) expect(strip(read(file), { keepStrings: true }), file).not.toMatch(/pt_v7_plan_seed/);
+  it('the hand-over seed is retired (road-to-7.md step 7): its key, its receipt, its address and its effect appear nowhere in V7', () => {
+    expect(existsSync(join(ROOT, 'src/v7/effects/planSeed.js'))).toBe(false);
+    for (const file of V7) {
+      const code = strip(read(file), { keepStrings: true });
+      expect(code, file).not.toMatch(/pt_v7_plan_seed|pt_v7_plan_receipt|#new-plan/);
+      for (const n of ['SEED_KEY', 'RECEIPT_KEY', 'NEW_PLAN_HASH', 'SEED_MAX_AGE_MS']) expect(namesImportedFrom(read(file), '../../answers/keep/planSeed.js'), `${file} imports ${n}`).not.toContain(n);
+    }
+    // the seed module keeps its names for the planner's own reader (untouched this release); V7 takes only the builder
+    const v7Importers = V7.filter((f) => targetsOf(f).includes('src/answers/keep/planSeed.js'));
+    expect(v7Importers.sort()).toEqual(['src/v7/effects/planWrite.js', 'src/v7/state/select.js']);
+    expect(namesImportedFrom(read(WRITE_FILE), '../../answers/keep/planSeed.js')).toEqual(['buildPlanSeed']);
   });
 });
 
@@ -464,9 +514,10 @@ describe('the words stay out of the code that calculates, and the other way roun
 });
 
 describe('the budget is a guide, never an input (research/v7/budget-step.md "The rule")', () => {
-  const ANSWER_CODE = ANSWERS.filter((f) => ['a', 'b', 'c', 'shared'].some((d) => under(f, `src/answers/${d}`)));
+  const ANSWER_CODE = ANSWERS.filter((f) => ['a', 'b', 'c', 'd', 'shared'].some((d) => under(f, `src/answers/${d}`)));
   it('found the answer code it is meant to read', () => {
     expect(ANSWER_CODE).toContain('src/answers/a/answer.js');
+    expect(ANSWER_CODE).toContain('src/answers/d/answer.js');
     expect(ANSWER_CODE).toContain('src/answers/shared/toEngine.js');
     expect(ANSWER_CODE).not.toContain('src/answers/keep/budgetSheet.js');
   });
@@ -481,8 +532,8 @@ describe('the budget is a guide, never an input (research/v7/budget-step.md "The
     const run = codeOf('src/v7/effects/run.js');
     expect(run, 'the runner never reads state.budget').not.toMatch(/\.budget\b/);
   });
-  it('only effects/planSeed.js writes the plan seed; localStorage is named by it and by the activity effect alone', () => {
+  it('localStorage is handed over by draftStore.js alone (the activity stamp and the free-time count read it); no V7 file writes a seed to it', () => {
     const naming = V7.filter((f) => /\blocalStorage\b/.test(codeOf(f)));
-    expect(naming).toEqual(['src/v7/effects/planSeed.js']);
+    expect(naming).toEqual(['src/v7/effects/draftStore.js']);
   });
 });

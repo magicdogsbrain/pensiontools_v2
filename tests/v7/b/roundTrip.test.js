@@ -14,7 +14,7 @@ import { money } from '../../../src/answers/shared/format.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
   const real = await vi.importActual('../../../src/v7/rail/questions.js');
-  const OPEN = Object.freeze(['a', 'b', 'c']);
+  const OPEN = Object.freeze(['a', 'b', 'c', 'd']);
   return { ...real, OPEN, QUESTIONS: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) })),
     BUILT: Object.fromEntries(OPEN.map((id) => [id, real.STEP_LISTS[id]])) };
 });

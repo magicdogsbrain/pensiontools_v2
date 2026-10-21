@@ -12,12 +12,13 @@
 import { QUESTION_A } from './a.js';
 import { QUESTION_B } from './b.js';
 import { QUESTION_C } from './c.js';
+import { QUESTION_D } from './d.js';
 
 /** Every question's step list that exists, by id. */
-export const STEP_LISTS = { a: QUESTION_A, b: QUESTION_B, c: QUESTION_C };
+export const STEP_LISTS = { a: QUESTION_A, b: QUESTION_B, c: QUESTION_C, d: QUESTION_D };
 
-/** The questions open to a visitor. Joining up (step 4 brief 5): ['a', 'b', 'c']. */
-export const OPEN = Object.freeze(['a', 'b', 'c']);
+/** The questions open to a visitor. Joining up (step 4 brief 5): ['a', 'b', 'c']; D with road-to-7.md step 7. */
+export const OPEN = Object.freeze(['a', 'b', 'c', 'd']);
 
 export const QUESTIONS = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) }));
 

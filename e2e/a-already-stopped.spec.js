@@ -1,8 +1,9 @@
 /**
  * B2 — a couple who stop work in different years (research/v7/couples-different-years.md 9.7 B2), on the PUBLISHED
  * build, end to end: the one who has stopped fills in "When can I afford to stop work?" with "I've already stopped", sees
- * "Yes — your partner could stop at 56", saves it as a plan, and finds both plans in today's planner — each starting at
- * its own stop, both ending in the same tax year — with the Household tab saying when the partner's plan begins.
+ * "Yes — your partner could stop at 56", keeps it as a plan (the preview makes the two plans itself, in this window:
+ * road-to-7.md step 7), and finds both plans in today's planner — each starting at its own stop, both ending in the same
+ * tax year — with the Household tab saying when the partner's plan begins.
  *
  * The household is made up (round, generic figures; fixture A5): you 56, stopped and drawing, £500,000 in a pension;
  * your partner 55 with £450,000, £850 a month going in, stopping next year at 56; £60,000 of savings; £3,500 a month.
@@ -12,7 +13,7 @@
  * signs in and no real account or data is touched.
  */
 import { test, expect, v7, waitsFor, NEEDS, PROD, TODAY, FINAL_ENV, expectHeadlineA } from './helpers/app.js';
-import { SEED_WORDS, householdStartWords } from '../src/services/PlanSeed.js';
+import { householdStartWords } from '../src/services/PlanSeed.js';
 import { SEED_VERSION } from '../src/answers/keep/planSeed.js';
 import { suggestedPlanName } from '../src/answers/shared/planName.js';
 import { APART } from '../src/answers/shared/household.js';
@@ -58,19 +59,22 @@ test.describe('B2 — "I\'ve already stopped": your partner\'s answer, saved as 
     }, { answer: () => answer });
 
     const suggested = () => suggestedPlanName('a', answer.inputs, answer);
-    await app.step('"Save this as a plan": the name suggested is the partner\'s stop', async () => {
+    await app.step('"Keep this as a plan": the name suggested is the partner\'s stop', async () => {
       const box = app.id('a.keep.name');
       await box.scrollIntoViewIfNeeded();
       await expect(box).toHaveValue(suggested());
       expect(suggested()).toBe('Partner stops at 56 · £3,500 a month');
     }, { answer: () => answer });
 
-    await test.step('today\'s planner, without an account: the name confirmed, and two plans made', async () => {
+    await test.step('"Keep as a plan": the preview makes the two plans in this window; today\'s planner, without an account, opens on them', async () => {
       await app.click('a.action.save');
-      await page.waitForURL((u) => u.origin === PROD && !u.pathname.startsWith('/v7/'));
-      await page.getByRole('button', { name: SEED_WORDS.carryOn }).click();
-      await page.getByRole('button', { name: SEED_WORDS.save }).click();
-      await expect(page.locator('#seedNote')).toBeVisible({ timeout: 60_000 });
+      const note = app.id('a.keep.made');
+      await expect(note).toBeVisible({ timeout: 60_000 });
+      await expect(note).toContainText(`Kept as ‘${suggested()}’ in this browser window. Your partner’s part is in ‘${suggested()} · partner’.`);
+      await page.goto(PROD + '/');
+      await expect(page.locator('#landingTryGuest')).toBeVisible();
+      await page.locator('#landingTryGuest').click();
+      await expect(page.locator('#mainApp')).toBeVisible();
       await expect(page.locator('#guestBanner')).toBeVisible();
     });
 

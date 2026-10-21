@@ -20,7 +20,7 @@ const NAMES = [
   'front-door', 'numbers-blank', 'numbers-half-typed-with-an-error', 'numbers-couple-open', 'numbers-more-open',
   'answer-nothing-entered', 'answer-working', 'answer-first', 'answer-F1', 'answer-F2', 'answer-F3', 'answer-updating',
   'answer-take', 'answer-small-pot', 'answer-pensions-only', 'answer-pensions-only-later', 'answer-nothing', 'answer-assumed-open', 'answer-failed',
-  'soon-d', 'not-built-ways', 'not-found',
+  'soon-e', 'not-built-ways', 'not-found',
   // still paying in (the owner's 55-year-old, 1 Oct 2026); the same with the start left alone; the closed years
   'numbers-paying-in', 'answer-paying-in', 'answer-paying-in-default', 'answer-closed-years',
   // a couple who stop work in different years: one stopped, from now; the other stopping next year (6.20.0, B1)
@@ -105,8 +105,14 @@ describe('the front door', () => {
       expect(el.textContent).not.toContain(FRONT.notYet);
     }
   });
-  it('the three that are not built are honest links to "not in the preview yet"', () => {
-    for (const id of ['d', 'e', 'f']) {
+  it('D opens its numbers step (road-to-7.md step 7)', () => {
+    const el = one(root, 'front.q.d');
+    const link = el.tagName === 'A' ? el : el.querySelector('a');
+    expect(link.getAttribute('href')).toBe('#/d/numbers');
+    expect(el.textContent).not.toContain(FRONT.notYet);
+  });
+  it('the two that are not built are honest links to "not in the preview yet"', () => {
+    for (const id of ['e', 'f']) {
       const el = one(root, `front.q.${id}`);
       const link = el.tagName === 'A' ? el : el.querySelector('a');
       expect(link.getAttribute('href')).toBe(`#/soon/${id}`);
@@ -431,8 +437,8 @@ describe('what does it pay a month? (the answer step)', () => {
       const next = root.querySelector('[data-region="next"]');
       // "Already stopped?" leads for someone taking the money now with the State Pension already paid (F3); "Still working?" otherwise.
       const stopped = result.inputs.start.kind === 'now' && result.phases[0].statePension > 0;
-      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/soon/d', A_LINK, B_LINK] : [A_LINK, B_LINK, '#/soon/d']);
-      // "Save this as a plan" follows "What next?", at the foot of the answer, with the name filled in (save-as-plan.md)
+      expect([...next.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(stopped ? ['#/d/numbers', A_LINK, B_LINK] : [A_LINK, B_LINK, '#/d/numbers']);
+      // "Keep this as a plan" follows "What next?", at the foot of the answer, with the name filled in (save-as-plan.md)
       const keep = root.querySelector('[data-region="keep"]');
       expect(keep.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
       expect(one(root, 'c.keep.name').value).toMatch(/^(From|Stop at) \d+/);
@@ -588,16 +594,16 @@ describe('try a change', () => {
 
 describe('not built yet', () => {
   it('soon: one sentence, a link to the current version, and a way back', () => {
-    const state = load('soon-d');
+    const state = load('soon-e');
     const root = renderScreen(state);
     expect(root.querySelector('[data-screen]').getAttribute('data-screen')).toBe('soon');
-    expect(root.querySelector('h1').textContent).toBe(FRONT.questions.find((q) => q.id === 'd').ask);
+    expect(root.querySelector('h1').textContent).toBe(FRONT.questions.find((q) => q.id === 'e').ask);
     expect(root.textContent).toContain(SOON.line);
     const links = [...root.querySelector('main').querySelectorAll('a')].map((a) => a.getAttribute('href'));
     expect(links).toEqual(['../', '#/']);
   });
-  it.each(['e', 'f'])('soon/%s draws too', (q) => {
-    const s = load('soon-d');
+  it.each(['f'])('soon/%s draws too', (q) => {
+    const s = load('soon-e');
     s.route.q = q;
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);

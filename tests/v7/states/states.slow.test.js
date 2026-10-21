@@ -11,12 +11,13 @@ import { join } from 'node:path';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { answerC } from '../../../src/answers/c/answer.js';
+import { answerD } from '../../../src/answers/d/answer.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { parseDraft } from '../../../src/answers/shared/validate.js';
 
-const ANSWER = { a: answerA, b: answerB };
+const ANSWER = { a: answerA, b: answerB, d: answerD };
 
-for (const q of ['a', 'b']) {
+for (const q of ['a', 'b', 'd']) {
   const dir = join(process.cwd(), 'tests/v7/states', q);
   const names = readdirSync(dir).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => f.slice(0, -5)).sort();
   const withResult = names.filter((n) => JSON.parse(readFileSync(join(dir, `${n}.json`), 'utf8')).answers[q].result);
@@ -25,7 +26,7 @@ for (const q of ['a', 'b']) {
     it('there are states with answers to check', () => expect(withResult.length).toBeGreaterThan(8));
     it.each(withResult)('%s', (name) => {
       const r = JSON.parse(readFileSync(join(dir, `${name}.json`), 'utf8')).answers[q].result;
-      const env = { today: r.basis.today, futures: r.basis.futures, seed: r.basis.seed, trace: false, detail: r.basis.detail };
+      const env = { today: r.basis.today, futures: r.basis.futures, seed: r.basis.seed, trace: false, ...(r.basis.detail ? { detail: r.basis.detail } : {}) };
       expect(ANSWER[q](r.inputs, env)).toEqual(r);
     }, 120000);
   });

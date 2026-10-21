@@ -14,12 +14,17 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES } from '../../../src/answers/plan/schema.js';
+import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, LOCK_FLAG_WRITES } from '../../../src/answers/plan/schema.js';
 import { applyPatch, boxesOf, checkAbout } from '../../../src/answers/plan/about.js';
 import { checkIncome } from '../../../src/answers/plan/income.js';
 import { checkSpend, savedSpend } from '../../../src/answers/plan/spend.js';
 import { checkPots, savedPots } from '../../../src/answers/plan/pots.js';
 import { checkLasts, savedLasts } from '../../../src/answers/plan/lasts.js';
+import { runForDocument } from '../../../src/answers/plan/lastsRun.js';
+import { lockPatch, unlockPatch, documentPatch, LOCKED_BY } from '../../../src/answers/plan/lock.js';
+import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
+import { isLockedSettings } from '../../../src/services/LockedPlanGuard.js';
+import { NO_WORKER } from '../../../src/v7/effects/workerClient.js';
 import { KEY_MINUTES } from '../../../src/services/GuestMeter.js';
 import { corpus, entryOf, TODAY, noon } from './_plans.js';
 
@@ -52,9 +57,9 @@ function fakeLite({ fail = false } = {}) {
  * A page on a plan's about step with the plans read: signed in (source 'account') or nobody (source 'window', the text in
  * sessionStorage). `handles` is what planSource would hand in; `reread` swaps in `rereadList` when given.
  */
-function page({ raws, planId, session = 'in', typed = {}, local = storage(), sessionStore = null, fb = fakeLite(), rereadList = null, win = null }) {
+function page({ raws, planId, session = 'in', typed = {}, local = storage(), sessionStore = null, fb = fakeLite(), rereadList = null, win = null, client = null, step = 'about' }) {
   const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
-  store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/' + planId + '/about') });
+  store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/' + planId + '/' + step) });
   store.dispatch({ type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'a@b.c' : null } });
   const list = upgradedList(raws, noon(TODAY));
   const source = session === 'in' ? 'account' : 'window';
@@ -69,10 +74,11 @@ function page({ raws, planId, session = 'in', typed = {}, local = storage(), ses
     reread: () => { rereads.push(1); if (rereadList) store.dispatch({ type: A.PLANS_SET, list: upgradedList(rereadList, noon(TODAY)), source: 'account', readAt: '14:04' }); return Promise.resolve(); }
   });
   const sess = sessionStore || storage(session === 'in' ? {} : { [GUEST_PLANS_KEY]: JSON.stringify(raws) });
-  const stop = startPlanWrite(store, { win, session: sess, local, now: () => new Date(TODAY + 'T14:03:00.000Z'), fb, handles });
+  const stop = startPlanWrite(store, { win, session: sess, local, now: () => new Date(TODAY + 'T14:03:00.000Z'), fb, client, handles });
   // the plan source's own reading after every change (the page does this itself; the tests keep it in step by hand)
   store.subscribe((state) => { if (state.plans && state.plans.status === 'read' && !state.plans.view) store.dispatch({ type: A.PLANS_VIEW, view: viewFor(state) }); });
-  return { store, fb, session: sess, local, rereads, stop, save: () => store.dispatch({ type: A.PLAN_SAVE, planId }), undo: () => store.dispatch({ type: A.PLAN_UNDO, planId }) };
+  return { store, fb, session: sess, local, rereads, stop, save: () => store.dispatch({ type: A.PLAN_SAVE, planId }), undo: () => store.dispatch({ type: A.PLAN_UNDO, planId }),
+    lock: () => store.dispatch({ type: A.PLAN_LOCK, planId }), unlock: () => store.dispatch({ type: A.PLAN_UNLOCK, planId }), newVersion: () => store.dispatch({ type: A.PLAN_DOCUMENT, planId }) };
 }
 
 const SAVER = C['10-couple-b'];           // unlocked, stopping at 62 (approaching)
@@ -648,7 +654,239 @@ describe('property: whatever is typed, every path written is declared, and the p
     }), { numRuns: 60 });
   });
   it('the declared list is the four steps\' and the stamp, nothing more', () => {
-    expect(ALL_WRITES.length).toBe(ABOUT_WRITES.length + INCOME_WRITES.length + SPEND_WRITES.length + POTS_WRITES.length + LASTS_WRITES.length + 1);
+    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, 'lastModified']).size);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
+  });
+});
+
+
+// ---- "Lock the plan" (research/v7/road-to-7.md step 6): the same one write, three more kinds ------------------------------
+
+/** The run every lock shares, once per plan: what the worker would send back (lastsRun.js runForDocument on the plan as read). */
+const runs = new Map();
+const runOf = (plan) => { const k = String(plan.id); if (!runs.has(k)) runs.set(k, runForDocument(plan, { today: TODAY })); return runs.get(k); };
+/** A fake worker client: the real run in Node, as the worker would hand it back; records what it was asked. */
+function fakeClient({ reject = null } = {}) {
+  const asked = [];
+  return { asked, document: (plan, env) => { asked.push({ id: plan.id, env }); if (reject) return Promise.reject(reject); return Promise.resolve(runOf(plan)); } };
+}
+const planOf = (raw) => upgradeScenario(raw, { now: noon(TODAY) }).scenario;
+const stripOf = (plan, paths) => { const out = copy(plan); for (const path of paths) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
+
+describe('the lock (road-to-7.md step 6): the run in the worker, then ONE write of the declared paths, past the guard; the page moves to "Your plan as locked"; Undo is the exact reverse', { timeout: 120_000 }, () => {
+  const DRAFT = C['02-pnv-draft'];
+  it('an account: the client is asked once with the date and the budget\'s essentials; one updateDoc of exactly lockPatch\'s paths plus lastModified; plan/saved with op lock and the moment; plans/reading; the route is the plan step', async () => {
+    const client = fakeClient();
+    const p = page({ raws: [DRAFT, LOCKED], planId: DRAFT.id, step: 'lock', client });
+    const actions = [];
+    p.store.subscribe((s, a) => actions.push(a.type));
+    p.lock(); await tick(12);
+    expect(client.asked).toEqual([{ id: DRAFT.id, env: { today: TODAY, essentials: 0 } }]);
+    expect(p.rereads.length, 'read again before the write').toBe(1);
+    expect(p.fb.writes.length).toBe(1);
+    expect(p.fb.writes[0].path).toBe('users/u1/scenarios/' + DRAFT.id);
+    const data = p.fb.writes[0].data;
+    const want = lockPatch(planOf(DRAFT), { now: new Date(STAMP), run: runOf(planOf(DRAFT)), entries: [] });
+    expect(data).toEqual({ ...want.patch, lastModified: STAMP });
+    for (const k of Object.keys(data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k), k).toBe(true);
+    for (const k of LOCK_FLAG_WRITES) expect(data).toHaveProperty(k);
+    expect(data['decisionTool.settings.lockedBy']).toBe(LOCKED_BY);
+    expect(data.planDocument.version).toBe(3);
+    expect(actions).toContain(A.PLAN_SAVED);
+    expect(actions).toContain(A.PLANS_READING);
+    expect(actions).toContain(A.ROUTE_SET);
+    expect(p.store.getState().route).toEqual({ screen: 'plan', q: null, step: 'plan', planId: DRAFT.id, focus: null });
+    const ui = p.store.getState().ui;
+    expect(ui.saving).toBe(null);
+    expect(ui.toast).toMatchObject({ planId: DRAFT.id, kind: 'saved', op: 'lock', lockedAt: STAMP, line: { id: 'locked', slots: { date: '2 October 2026' } } });
+    expect(ui.toast.previous).toEqual({ ...want.previous, lastModified: DRAFT.lastModified });
+    expect(p.session.calls.filter(([c]) => c === 'setItem')).toEqual([]);
+    // Undo, on the plan as now stored (locked by this page at that moment): one more updateDoc of the reversal, absent keys as null
+    const written = applyPatch(planOf(DRAFT), data);
+    expect(isLockedSettings(written.decisionTool.settings)).toBe(true);
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.undo(); await tick(12);
+    expect(p.fb.writes.length).toBe(2);
+    const back = p.fb.writes[1].data;
+    for (const k of Object.keys(back)) expect(k === 'lastModified' || LOCK_WRITES.includes(k), k).toBe(true);
+    expect(back['decisionTool.settings.locked']).toBe(want.previous['decisionTool.settings.locked'] === undefined ? null : want.previous['decisionTool.settings.locked']);
+    expect(back['decisionTool.settings.lockedAt']).toBe(null);
+    expect(back['decisionTool.settings.lockedBy']).toBe(null);
+    expect(back.planDocument).toBe(null);
+    expect(back['decisionTool.planOfRecord']).toBe(null);
+    expect(back.lastModified).toBe(DRAFT.lastModified);
+    expect(p.store.getState().ui.toast).toEqual({ planId: DRAFT.id, kind: 'undone', previous: null, line: null, op: 'lock' });
+    p.stop();
+  });
+  it('without an account: the window\'s plan folded with the same patch, the other plan byte-identical, the text otherwise identical; Undo byte for byte, the keys the plan did not have deleted', async () => {
+    const client = fakeClient();
+    const p = page({ raws: [LOCKED, DRAFT], planId: DRAFT.id, step: 'lock', session: 'nobody', client });
+    const before = p.session.raw(GUEST_PLANS_KEY);
+    p.lock(); await tick(12);
+    expect(p.fb.writes).toEqual([]);
+    expect(p.rereads).toEqual([]);
+    const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+    expect(JSON.stringify(after[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
+    expect(after[1].decisionTool.settings.locked).toBe(true);
+    expect(after[1].decisionTool.settings.lockedBy).toBe(LOCKED_BY);
+    expect(after[1].planDocument.lockedAt).toBe(STAMP);
+    expect(after[1].decisionTool.planOfRecord.savedAt).toBe(STAMP);
+    expect(stripOf(after[1], [...LOCK_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[1], [...LOCK_WRITES, 'lastModified']));
+    expect(p.session.calls.filter(([c]) => c === 'setItem').map(([, k]) => k)).toEqual([GUEST_PLANS_KEY]);
+    expect(p.store.getState().route.step).toBe('plan');
+    p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
+    p.undo(); await tick(12);
+    expect(JSON.stringify(JSON.parse(p.session.raw(GUEST_PLANS_KEY))[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
+    expect(JSON.stringify(JSON.parse(p.session.raw(GUEST_PLANS_KEY))[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
+    p.stop();
+  });
+  it('refused, nothing written: a locked plan; no client; a client with no worker; a run that fails; the free time used up; a plan shown as saved; a plan locked elsewhere since the page opened', async () => {
+    const locked = page({ raws: [LOCKED], planId: LOCKED.id, step: 'lock', client: fakeClient() });
+    locked.lock(); await tick(12);
+    expect(locked.fb.writes).toEqual([]);
+    expect(locked.store.getState().ui.saveProblem).toEqual({ planId: LOCKED.id, problem: 'locked' });
+    const none = page({ raws: [DRAFT], planId: DRAFT.id, step: 'lock', client: null });
+    none.lock(); await tick(12);
+    expect(none.fb.writes).toEqual([]);
+    expect(none.store.getState().ui.saveProblem.problem).toBe('noWorker');
+    const noWorker = page({ raws: [DRAFT], planId: DRAFT.id, step: 'lock', client: fakeClient({ reject: Object.assign(new Error('none'), { code: NO_WORKER }) }) });
+    noWorker.lock(); await tick(12);
+    expect(noWorker.store.getState().ui.saveProblem.problem).toBe('noWorker');
+    const broken = page({ raws: [DRAFT], planId: DRAFT.id, step: 'lock', client: fakeClient({ reject: new Error('boom') }) });
+    broken.lock(); await tick(12);
+    expect(broken.fb.writes).toEqual([]);
+    expect(broken.store.getState().ui.saveProblem.problem).toBe('failed');
+    const used = page({ raws: [DRAFT], planId: DRAFT.id, step: 'lock', session: 'nobody', client: fakeClient(), local: storage({ [KEY_MINUTES]: '180' }) });
+    const before = used.session.raw(GUEST_PLANS_KEY);
+    used.lock(); await tick(12);
+    expect(used.session.raw(GUEST_PLANS_KEY)).toBe(before);
+    expect(used.store.getState().ui.saveProblem.problem).toBe('usedUp');
+    const newer = page({ raws: [{ ...copy(DRAFT), schemaVersion: 999 }], planId: DRAFT.id, step: 'lock', client: fakeClient() });
+    newer.lock(); await tick(12);
+    expect(newer.store.getState().ui.saveProblem.problem).toBe('readonly');
+    const lockedNow = copy(DRAFT);
+    lockedNow.decisionTool.settings = { ...lockedNow.decisionTool.settings, locked: true, lockedAt: '2026-10-02T13:00:00.000Z', lockedBy: 'locked from Stress settings' };
+    const elsewhere = page({ raws: [DRAFT], planId: DRAFT.id, step: 'lock', client: fakeClient(), rereadList: [lockedNow] });
+    elsewhere.lock(); await tick(12);
+    expect(elsewhere.fb.writes).toEqual([]);
+    expect(elsewhere.store.getState().ui.saveProblem.problem).toBe('locked');
+  });
+  it('an undo claiming to reverse a lock is refused unless the stored plan is locked by this page at that very moment', async () => {
+    // locked elsewhere (another label): the reversal is not this page's
+    const lockedElsewhere = copy(DRAFT);
+    lockedElsewhere.decisionTool.settings = { ...lockedElsewhere.decisionTool.settings, locked: true, lockedAt: STAMP, lockedBy: 'locked from Stress settings' };
+    const p = page({ raws: [lockedElsewhere], planId: DRAFT.id, step: 'plan', client: fakeClient() });
+    p.store.dispatch({ type: A.PLAN_SAVED, planId: DRAFT.id, previous: { 'decisionTool.settings.locked': false, 'decisionTool.settings.lockedAt': undefined, 'decisionTool.settings.lockedBy': undefined, planDocument: undefined }, line: null, op: 'lock', lockedAt: STAMP });
+    p.undo(); await tick(12);
+    expect(p.fb.writes).toEqual([]);
+    expect(p.store.getState().ui.saveProblem.problem).toBe('locked');
+    // locked by the preview, but at another moment
+    const other = copy(lockedElsewhere);
+    other.decisionTool.settings.lockedBy = LOCKED_BY; other.decisionTool.settings.lockedAt = '2026-10-02T13:00:00.000Z';
+    const q = page({ raws: [other], planId: DRAFT.id, step: 'plan', client: fakeClient() });
+    q.store.dispatch({ type: A.PLAN_SAVED, planId: DRAFT.id, previous: { 'decisionTool.settings.locked': false, 'decisionTool.settings.lockedAt': undefined, 'decisionTool.settings.lockedBy': undefined, planDocument: undefined }, line: null, op: 'lock', lockedAt: STAMP });
+    q.undo(); await tick(12);
+    expect(q.fb.writes).toEqual([]);
+    expect(q.store.getState().ui.saveProblem.problem).toBe('locked');
+    // the reversal carrying a setting of its own is refused
+    const mine = copy(other); mine.decisionTool.settings.lockedAt = STAMP;
+    const r = page({ raws: [mine], planId: DRAFT.id, step: 'plan', client: fakeClient() });
+    r.store.dispatch({ type: A.PLAN_SAVED, planId: DRAFT.id, previous: { 'decisionTool.settings.locked': false, 'decisionTool.settings.lockedAt': undefined, 'decisionTool.settings.lockedBy': undefined, planDocument: undefined, 'stressTool.settings.duration': 30 }, line: null, op: 'lock', lockedAt: STAMP });
+    r.undo(); await tick(12);
+    expect(r.fb.writes).toEqual([]);
+    expect(r.store.getState().ui.saveProblem.problem).toBe('locked');
+  });
+});
+
+describe('the unlock and the new version (road-to-7.md step 6): one write each to a locked plan, the guard\'s own allowance', { timeout: 120_000 }, () => {
+  const BUCKETS = C['04-buckets-running'];
+  it('the unlock on an account: exactly unlockPatch\'s paths plus lastModified; the toast with op unlock; Undo re-locks the now-unlocked plan with the document back', async () => {
+    const p = page({ raws: [BUCKETS], planId: BUCKETS.id, step: 'plan' });
+    p.unlock(); await tick(12);
+    expect(p.rereads.length).toBe(1);
+    expect(p.fb.writes.length).toBe(1);
+    const data = p.fb.writes[0].data;
+    const want = unlockPatch(planOf(BUCKETS), { now: new Date(STAMP) });
+    expect(data).toEqual({ ...want.patch, lastModified: STAMP });
+    for (const k of Object.keys(data)) expect(k === 'lastModified' || UNLOCK_WRITES.includes(k), k).toBe(true);
+    expect(data['decisionTool.settings.locked']).toBe(false);
+    expect(data.planDocument).toBe(null);
+    expect(data.planDocumentArchive[data.planDocumentArchive.length - 1].archivedAt).toBe(STAMP);
+    expect(p.store.getState().ui.toast).toMatchObject({ planId: BUCKETS.id, kind: 'saved', op: 'unlock', line: { id: 'unlocked' } });
+    const written = applyPatch(planOf(BUCKETS), data);
+    expect(isLockedSettings(written.decisionTool.settings)).toBe(false);
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.undo(); await tick(12);
+    expect(p.fb.writes.length).toBe(2);
+    expect(p.fb.writes[1].data['decisionTool.settings.locked']).toBe(true);
+    expect(p.fb.writes[1].data.planDocument).toEqual(planOf(BUCKETS).planDocument);
+    expect(p.store.getState().ui.toast).toEqual({ planId: BUCKETS.id, kind: 'undone', previous: null, line: null, op: 'unlock' });
+    p.stop();
+  });
+  it('the unlock without an account: the text differs only in the declared keys; the other plan byte-identical; refused on an unlocked plan (notLocked)', async () => {
+    const DRAFT = C['02-pnv-draft'];
+    const p = page({ raws: [DRAFT, BUCKETS], planId: BUCKETS.id, step: 'plan', session: 'nobody' });
+    const before = p.session.raw(GUEST_PLANS_KEY);
+    p.unlock(); await tick(12);
+    expect(p.fb.writes).toEqual([]);
+    const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+    expect(JSON.stringify(after[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
+    expect(after[1].decisionTool.settings.locked).toBe(false);
+    expect(after[1].decisionTool.settings.unlockCount).toBe((+BUCKETS.decisionTool.settings.unlockCount || 0) + 1);
+    expect(after[1].planDocument).toBe(null);
+    expect(stripOf(after[1], [...UNLOCK_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[1], [...UNLOCK_WRITES, 'lastModified']));
+    const draft = page({ raws: [DRAFT], planId: DRAFT.id, step: 'plan' });
+    draft.unlock(); await tick(12);
+    expect(draft.fb.writes).toEqual([]);
+    expect(draft.store.getState().ui.saveProblem.problem).toBe('notLocked');
+  });
+  it('a new version on an account: the client asked, exactly documentPatch\'s paths plus lastModified, the settings untouched; Undo puts the old document back; refused on an unlocked plan and without a worker', async () => {
+    const client = fakeClient();
+    const p = page({ raws: [BUCKETS], planId: BUCKETS.id, step: 'plan', client });
+    p.newVersion(); await tick(12);
+    expect(client.asked.length).toBe(1);
+    expect(p.fb.writes.length).toBe(1);
+    const data = p.fb.writes[0].data;
+    const want = documentPatch(planOf(BUCKETS), { now: new Date(STAMP), run: runOf(planOf(BUCKETS)), entries: [] });
+    expect(data).toEqual({ ...want.patch, lastModified: STAMP });
+    expect(Object.keys(data).sort()).toEqual([...DOCUMENT_WRITES, 'lastModified'].sort());
+    expect(data.planDocument.note).toBe('document refreshed');
+    expect(data.planDocument.lockedAt).toBe(BUCKETS.decisionTool.settings.lockedAt);
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'document', line: { id: 'newVersion' } });
+    const written = applyPatch(planOf(BUCKETS), data);
+    expect(written.decisionTool.settings).toEqual(planOf(BUCKETS).decisionTool.settings);
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.undo(); await tick(12);
+    expect(p.fb.writes[1].data.planDocument).toEqual(planOf(BUCKETS).planDocument);
+    expect(p.fb.writes[1].data.planDocumentArchive).toEqual(planOf(BUCKETS).planDocumentArchive === undefined ? null : planOf(BUCKETS).planDocumentArchive);
+    const DRAFT = C['02-pnv-draft'];
+    const draft = page({ raws: [DRAFT], planId: DRAFT.id, step: 'plan', client: fakeClient() });
+    draft.newVersion(); await tick(12);
+    expect(draft.fb.writes).toEqual([]);
+    expect(draft.store.getState().ui.saveProblem.problem).toBe('notLocked');
+    const none = page({ raws: [BUCKETS], planId: BUCKETS.id, step: 'plan', client: null });
+    none.newVersion(); await tick(12);
+    expect(none.fb.writes).toEqual([]);
+    expect(none.store.getState().ui.saveProblem.problem).toBe('noWorker');
+    p.stop();
+  });
+  it('property: over every unlocked corpus plan, on the account path and the window path, the lock writes only the declared paths; the other plan in the window is byte-identical; the text differs nowhere else', async () => {
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), fc.boolean(), async (raw, account) => {
+      const p = page({ raws: [raw, LOCKED], planId: raw.id, step: 'lock', session: account ? 'in' : 'nobody', client: fakeClient() });
+      const before = p.session.raw(GUEST_PLANS_KEY);
+      p.lock(); await tick(12);
+      if (account) {
+        expect(p.fb.writes.length).toBe(1);
+        for (const k of Object.keys(p.fb.writes[0].data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k), k).toBe(true);
+      } else {
+        expect(p.fb.writes).toEqual([]);
+        const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+        expect(JSON.stringify(after[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
+        expect(after[0].decisionTool.settings.locked).toBe(true);
+        expect(stripOf(after[0], [...LOCK_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[0], [...LOCK_WRITES, 'lastModified']));
+      }
+      p.stop();
+    }), { numRuns: 24 });
   });
 });

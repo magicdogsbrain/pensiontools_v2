@@ -320,6 +320,35 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
   });
 });
 
+describe('"Lock the plan" — the commit\'s pure parts, lifted out of the repositories (research/v7/road-to-7.md step 6)', () => {
+  it('services/PlanCommit.js is pure: no repository, no Firebase, no clock, no window; the walk reaches it and never PlanLock.js or the repositories', () => {
+    const f = 'src/services/PlanCommit.js';
+    expect(REACHED).toContain(f);
+    expect(REACHED).toContain('src/answers/plan/lock.js');
+    for (const t of targetsOf(f)) expect(under(t, 'src/storage') || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false);
+    const code = codeOf(f);
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
+    for (const never of ['src/services/PlanLock.js', 'src/storage/ScenarioRepository.js', 'src/storage/DecisionRepository.js', 'src/ui/savingPathForLock.js']) expect(REACHED, never).not.toContain(never);
+    // the repositories and PlanLock keep their names as re-exports over the service
+    expect(targetsOf('src/storage/ScenarioRepository.js')).toContain(f);
+    expect(targetsOf('src/storage/DecisionRepository.js')).toContain(f);
+    expect(targetsOf('src/services/PlanLock.js')).toContain(f);
+    const repo = strip(read('src/storage/ScenarioRepository.js'), { keepStrings: true });
+    for (const n of ['seedDecisionFromStress', 'unlockPatchesOf', 'getDefaultDecisionSettings', 'sharedBudgetView']) expect(repo).toMatch(new RegExp('export \\{[^}]*\\b' + n + '\\b'));
+    expect(strip(read('src/storage/DecisionRepository.js'), { keepStrings: true })).toMatch(/export \{ decisionSettingsChecksum \}/);
+    expect(strip(read('src/services/PlanLock.js'), { keepStrings: true })).toMatch(/planOfRecordFor\(s, new Date\(\)\)/);
+  });
+  it('the lock\'s writer is reached from the one write file only, and the guard imports the pure service (not the other way round)', () => {
+    const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lock.js'));
+    expect(importers).toEqual([WRITE_FILE]);
+    expect(targetsOf('src/services/LockedPlanGuard.js')).toContain('src/services/PlanCommit.js');
+    expect(targetsOf('src/services/PlanCommit.js')).not.toContain('src/services/LockedPlanGuard.js');
+    // the writer takes the worker client from the plan source and never makes a worker of its own
+    expect(codeOf(WRITE_FILE)).not.toMatch(/\bWorker\b/);
+    expect(strip(read(WRITE_FILE), { keepStrings: true })).toMatch(/client\.document\(/);
+  });
+});
+
 describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the writer, each by its own names', () => {
   it('only planSource.js and planWrite.js import a firebase package, and nothing in src/answers does', () => {
     const naming = [...V7, ...ANSWERS].filter((f) => targetsOf(f).some((t) => t === 'firebase' || t.startsWith('firebase/')));

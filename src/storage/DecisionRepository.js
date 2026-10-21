@@ -11,6 +11,7 @@ import { spendingSmileFactor } from '../services/SpendingModel.js';
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from '../constants.js';
 import { DECISION_ASSUMED_CPI } from '../services/InflationModel.js';
 import { simpleHash } from '../utils/MathUtils.js';
+import { decisionSettingsChecksum } from '../services/PlanCommit.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import {
   getActiveDecisionSettings,
@@ -222,21 +223,9 @@ export function generateDecisionChecksum(db) {
  * @param {object} settings - Decision settings
  * @returns {string} Stable checksum
  */
-function stableSort(v) {
-  if (Array.isArray(v)) return v.map(stableSort);
-  if (v && typeof v === 'object') return Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = stableSort(v[k]); return o; }, {});
-  return v;
-}
-
-export function decisionSettingsChecksum(settings) {
-  if (!settings) return '';
-  // Lock bookkeeping is volatile: it must never move the checksum (an unlock alone would otherwise
-  // mark every entry as "under previous settings").
-  const { locked, lockedAt, lockedBy, unlockedAt, unlockCount, ...planDefining } = settings;
-  // Key-order independent: Firestore hands objects back with keys in a different order from the
-  // in-memory object they were saved from, and JSON.stringify would hash them differently.
-  return simpleHash(stableSort(planDefining));
-}
+// The Decision settings' checksum lives in services/PlanCommit.js since 6.38.0 (the plan of record is built in the preview
+// too); its name is kept here, unchanged, for everything that imports it from the repository.
+export { decisionSettingsChecksum };
 
 /**
  * Gets settings from the database (sync - uses cache)

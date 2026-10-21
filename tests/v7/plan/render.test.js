@@ -71,7 +71,8 @@ describe('every committed plan, every step, three dates (T5)', () => {
           const state = stateWith(entries, '#/plan/' + e.plan.id + (step ? '/' + step : ''), { today });
           const { root, text } = draw(state);
           const pg = planPage(entries, e.plan.id, step, { today });
-          expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan');
+          // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js); every other step the plan page
+          expect(root.querySelector('main').getAttribute('data-screen')).toBe(step === 'lock' ? 'plan.lock' : 'plan');
           for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
           // the rail: one current step, a link per listed step, the next sentence
           const rail = root.querySelector('[data-region="rail"]');

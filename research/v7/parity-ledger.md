@@ -18,9 +18,9 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 78 | 58 | 17 | 0 | 3 |
+| Built | 82 | 62 | 17 | 0 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 40 | 38 | 0 | 2 | 0 |
+| Designed | 36 | 34 | 0 | 2 | 0 |
 | Planned | 46 | 38 | 0 | 2 | 6 |
 | Retired | 10 | 3 | 0 | 0 | 7 |
 | **All** | 174 | 137 | 17 | 4 | 16 |
@@ -217,15 +217,15 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Lock the plan and make the plan document** | Freezes the settings of both tools and writes the plan as committed; the first Decision record also locks it. | Stress → Settings → "Lock plan & create the plan document" (index.html:3636, 8510-8541; PlanLock.js) | Approaching, locked | **Designed**: research/v7/rail-screens-language.md §1.5. E's "lock" step; A and B (and later D) end with "Lock this plan?" (square-one-audit.md §5 item 5). | `s5-lock` | `decision.locked` `decision.lockedAt` `decision.lockedBy` |
-| **Unlock to change the plan** | Unlocking keeps the plan document as a past version (last ten) and counts the unlocks. | Lock banner "Unlock to edit" (index.html:13070-13090) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "Unlock to change the plan" keeps the document as a past version. | `s5-lock` | `decision.unlockedAt` `decision.unlockCount` `plan.planDocumentArchive` `plan.decisionTool.planOfRecordArchive` |
-| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. Shown in V7 from s4 (src/answers/plan/read.js: the “Your plan as locked” step reads the document’s timing, steps, pots, strategy and assumptions; printing and past versions stay in the planner). | `s4-open-plan` | `plan.planDocument` |
+| **Lock the plan and make the plan document** | Freezes the settings of both tools and writes the plan as committed; the first Decision record also locks it. | Stress → Settings → "Lock plan & create the plan document" (index.html:3636, 8510-8541; PlanLock.js) | Approaching, locked | **Built**: `src/v7/screens/plan/LockScreen.jsx`, `src/answers/plan/lock.js`, `src/v7/effects/planWrite.js`, `src/services/PlanCommit.js`. Built (6.38.0, road-to-7.md step 6): "Lock the plan" is a rail step with its own screen (#/plan/<id>/lock) — what the lock fixes, what stays changeable, what you get, a saver’s line, one button and a confirm on the page. The lock is the planner’s commitPlanLock field for field in ONE write: the Decision tool seeded from the Stress settings, the flags (lockedBy "locked in the preview"), the plan of record, the plan document built by the planner’s own buildPlanDocument on the plan’s one test run in the preview’s worker, and the journey; Undo within the toast’s time. The first Decision record still locks it on the classic page. | `s5-lock` | `decision.locked` `decision.lockedAt` `decision.lockedBy` |
+| **Unlock to change the plan** | Unlocking keeps the plan document as a past version (last ten) and counts the unlocks. | Lock banner "Unlock to edit" (index.html:13070-13090) | Locked plans | **Built**: `src/v7/screens/plan/PlanScreen.jsx`, `src/answers/plan/lock.js`, `src/services/LockedPlanGuard.js`. Built (6.38.0): offered once, on "Your plan as locked" (owner question 4(a)), with a confirm that says what unlocking keeps. The write is the planner’s unlockPlan field for field in ONE write — the document and the plan of record each into its archive (ten kept), the flag off, the unlock dated and counted — plus the defaults a plan locked before a setting existed gets (unlockPatchesOf), which the lock guard now allows with the unlock and only then. | `s5-lock` | `decision.unlockedAt` `decision.unlockCount` `plan.planDocumentArchive` `plan.decisionTool.planOfRecordArchive` |
+| **The plan document** | The plan as committed: timeline, steps, the strategy's verdict, pots and assumptions; printed or saved as a PDF; refreshed on demand. | Decision → Plan document (index.html:2700-2706; PlanDocument.js, PlanDocumentView.js) | Locked plans | **Built**: `src/answers/plan/read.js`, `src/answers/plan/lock.js`, `src/answers/plan/lastsRun.js`, `src/v7/screens/plan/PlanScreen.jsx`. Built (6.38.0): written by the lock in the preview with the planner’s own buildPlanDocument (equal to the planner’s to the byte, tests/v7/plan/lastsRun.test.js); "Your plan as locked" opens on four sentences read from it — the money before and after tax by age, the State Pension and whether it is assumed, the bad case, the rules for cutting income; "Write a new version from today’s settings" with a confirm that keeps the current document as a past version. Printing and the PDF stay on the classic page. | `s4-open-plan` | `plan.planDocument` |
 | **The ladder card** | For a locked gilt plan: what arrives when, what has been bought, and what the same gilts would cost today, as a comparison only. | Plan document and strategy page (LadderPosition.js) | Locked plans with a ladder | **Designed**: research/v7/rail-screens-language.md §1.6. The "Your plan" and "Moving to your plan's mix" stations ("6 of 18 gilts bought"). Shown in V7 from s4 (src/answers/plan/read.js: “Moving to your plan’s mix” counts the rungs bought from the document’s ladder). | `s4-open-plan` | — |
 | **The plan of record** | The drawdown and glidepath projection frozen when the Decision plan locked: a yardstick that does not move. | ScenarioRepository.saveActivePlanOfRecord | Nobody sees it directly | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s4-open-plan` | `plan.decisionTool.planOfRecord` |
 | **Where you are** | Reads the recorded months against the document: took this, the plan said that. | Plan document strip (PlanDocument.whereAmI) | Locked plans | **Built**: `src/answers/plan/read.js`, `src/services/PlanReading.js`. Built, reading (6.26): the “Where you are” step reads whereAmI on the plan document with the planner’s own inputs (PlanReading.whereAmIInputs); the ladder from the document only; dates, never a countdown. | `s4-open-plan` | — |
 | **Arrival check** | The first month after a plan locked while saving reaches its stop: your pot against the plan's, then carry on or unlock and plan again. | LifeStage.js:136-147; index.html:6023-6033 | Locked savers at their stop | **Designed**: research/v7/rail-screens-language.md §1.6. P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. Shown in V7 from s4 (src/answers/plan/read.js: P.arrive asks for the first month after the stop; the comparison itself is the planner’s). | `s4-open-plan` | — |
 | **"Saved by a newer version"** | A plan saved by a newer version of the app is shown read-only, with a reload button. | planNewerBanner (index.html; storage/schema.js) | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/screens/plan/PlanScreen.jsx`. Built, reading (6.26): P.readonly — a plan saved by a newer version, or one whose upgrade failed, is shown as saved with no Change buttons. The reload button is the planner’s. | `s4-open-plan` | `plan.schemaVersion` |
-| **Nothing changes a locked plan** | Every button that writes settings refuses on a locked plan and says where the unlock is; records, holdings and the budget stay editable. | LockedPlanGuard.js (6.20.2, in progress) | Locked plans | **Designed**: research/v7/rail-screens-language.md §1.6. "What a locked plan can and cannot do on the rail". | `s1-safety` | — |
+| **Nothing changes a locked plan** | Every button that writes settings refuses on a locked plan and says where the unlock is; records, holdings and the budget stay editable. | LockedPlanGuard.js (6.20.2, in progress) | Locked plans | **Built**: `src/services/LockedPlanGuard.js`, `src/v7/effects/planWrite.js`, `tests/v7/plan/planWrite.test.js`. Built (6.38.0): every write the preview makes passes the planner’s own guard on the plan as stored (lockedPlanWriteRefusal); the unlock is allowed only as an unlock and only with the defaults an unlock gives; a locked plan’s settings change nowhere in V7, and the one allowance — Undo of a lock this page just made — is proved the exact reverse of that lock. | `s1-safety` | — |
 
 ## Month by month (the Decision tool) and tax years
 
@@ -326,7 +326,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.decisionTool.cadence` | How often you draw | Designed |
 | `plan.decisionTool.history` | Record a month | Designed |
 | `plan.decisionTool.planOfRecord` | The plan of record | Planned |
-| `plan.decisionTool.planOfRecordArchive` | Unlock to change the plan | Designed |
+| `plan.decisionTool.planOfRecordArchive` | Unlock to change the plan | Built |
 | `plan.decisionTool.settings` | The parts a plan is kept in | Planned |
 | `plan.decisionTool.taxYears` | Set up a tax year | Designed |
 | `plan.dotted:decisionTool.history` | Copies under dotted names | Retired |
@@ -343,8 +343,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.journey` | Journey: when the plan moved between stages | Planned |
 | `plan.lastModified` | The plan's own fields | Planned |
 | `plan.planDetails` | Your plans: switch, new, duplicate, rename | Planned |
-| `plan.planDocument` | The plan document | Designed |
-| `plan.planDocumentArchive` | Unlock to change the plan | Designed |
+| `plan.planDocument` | The plan document | Built |
+| `plan.planDocumentArchive` | Unlock to change the plan | Built |
 | `plan.schemaVersion` | "Saved by a newer version" | Built |
 | `plan.strategy` | The plan's strategy block | Planned |
 | `plan.stressTool` | The parts a plan is kept in | Planned |
@@ -461,9 +461,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.isaDrawdownStrategy` | How the ISA is used | Built |
 | `decision.isaMin` | How the ISA and savings grow, and the ISA's floor | Built |
 | `decision.isaReturn` | How the ISA and savings grow, and the ISA's floor | Built |
-| `decision.locked` | Lock the plan and make the plan document | Designed |
-| `decision.lockedAt` | Lock the plan and make the plan document | Designed |
-| `decision.lockedBy` | Lock the plan and make the plan document | Designed |
+| `decision.locked` | Lock the plan and make the plan document | Built |
+| `decision.lockedAt` | Lock the plan and make the plan document | Built |
+| `decision.lockedBy` | Lock the plan and make the plan document | Built |
 | `decision.protectionEscalateMonths` | Cuts in a slump | Built |
 | `decision.protectionFactor` | Cuts in a slump | Built |
 | `decision.recoveryBuffer` | Cuts in a slump | Built |
@@ -486,8 +486,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.taxableStart` | A taxable account (GIA) | Built |
 | `decision.ufplsThenPcls` | Tax-free part for some years, then the rest into the ISA | Built |
 | `decision.ufplsYears` | Tax-free part for some years, then the rest into the ISA | Built |
-| `decision.unlockCount` | Unlock to change the plan | Designed |
-| `decision.unlockedAt` | Unlock to change the plan | Designed |
+| `decision.unlockCount` | Unlock to change the plan | Built |
+| `decision.unlockedAt` | Unlock to change the plan | Built |
 | `decision.windfalls` | One-off lump sums | Designed |
 
 ### `taxYear`: decisionTool.taxYears[year]: one tax year's set-up

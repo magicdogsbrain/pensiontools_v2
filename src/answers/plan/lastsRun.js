@@ -14,6 +14,14 @@
  *     history: { worst: OneAnswer.worstStarts(…), named: NamedStarts.namedStartRows(…) },
  *     stored: { a, note } | null      a locked plan: the document's figure and the one line of 6.24.0 when today's differs
  *   }
+ *   runForDocument(plan, { today, essentials, onProgress }) → { p, r, savingPath, basis }
+ *     the run the plan document is built from on a lock, or on "Write a new version from today's settings" (6.38.0,
+ *     research/v7/road-to-7.md step 6): index.html buildPlanDocumentNow's run, line for line — the same effective settings,
+ *     the plan built WITH the budget's essentials (strategyPlanFor's second argument, index.html _shapeRefs), the strategy run
+ *     live (never the document's own: a new version re-prices a ladder at today's bundled curve, as the planner's does at
+ *     the day's prices), `p` and `r` trimmed as PlanDocument.buildPlanDocument trims them (trimPlan, trimResult: no samples,
+ *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (src/ui/savingPathForLock.js:
+ *     absent unless the plan stops later). The document itself is built on the page (answers/plan/lock.js) with these.
  *
  * Plain data in, plain data out (the plan after the in-memory upgrade; the result through cloneSafe in the worker). No
  * live gilt or share prices are loaded: a ladder is priced on the bundled curve (10.1). Pure but for the engine's own
@@ -26,6 +34,10 @@ import { realYieldForYear } from '../../services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../services/OneAnswer.js';
 import { namedStartRows } from '../../services/NamedStarts.js';
 import { documentLadder } from '../../services/LadderPosition.js';
+import { normaliseHoldings, emptyHoldings } from '../../services/HoldingsRecord.js';
+import { trimPlan, trimResult } from '../../services/PlanDocument.js';
+import { deriveTiming } from '../../services/PlanTiming.js';
+import { buildSavingPath } from '../../services/SavingPath.js';
 import { dateOf } from './dates.js';
 import { FAMILY } from './lasts.js';
 
@@ -33,9 +45,49 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 
-/** index.html strategyPlanFor: the plan every screen runs, built from the settings the planner's loader reads. */
-export function planFor(settings, now) {
-  return planFromSettings(settings, simulationConfigFromSettings({}, settings), { yieldForYear: realYieldForYear, startAge: +settings.shapeAgeNow || 57, now });
+/**
+ * index.html strategyPlanFor: the plan every screen runs, built from the settings the planner's loader reads. The one test
+ * passes no essentials (oneTestFor: essentialsAnnual undefined); the plan document's run passes the budget's (buildPlanDocumentNow).
+ */
+export function planFor(settings, now, essentialsAnnual = undefined) {
+  return planFromSettings(settings, simulationConfigFromSettings({}, settings), { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now });
+}
+
+/** What the planner hands the document builder for the Accumulation tool (ScenarioRepository.getActiveAccumulation): its settings, {} for none. */
+export const documentAccumulationOf = (plan) => (plan && plan.accumulationTool && plan.accumulationTool.settings) || {};
+/** … and for what you hold (ScenarioRepository.getActiveHoldings): the record normalised, the empty record for none. */
+export const documentHoldingsOf = (plan) => (plan && plan.holdings && typeof plan.holdings === 'object' ? normaliseHoldings(plan.holdings) : emptyHoldings());
+
+/**
+ * src/ui/savingPathForLock.js, without its lazy import: a saver's path on the saving-years engine, undefined for a plan that
+ * is not stopping later (buildPlanDocument then draws the FCA path, as before 6.22.0).
+ */
+export function savingPathFor({ settings, accumulation = null, holdings = null, now }) {
+  const timing = deriveTiming(settings || {}, now);
+  if (timing.mode !== 'future' || !(timing.currentAge > 0)) return undefined;
+  return buildSavingPath({ settings, timing, accumulation, holdings, now });
+}
+
+/**
+ * The run a plan document is built from (index.html buildPlanDocumentNow): see the header.
+ * @param {object} plan   a saved plan, brought up to date in memory
+ * @param {{ today: string, essentials?: number, onProgress?: Function }} o   `essentials`: the budget's essentials a year
+ *   before tax (lock.js shapeRefsOf), 0 or absent for none — the plan is then built as the one test builds it
+ */
+export function runForDocument(plan, { today, essentials = 0, onProgress = null } = {}) {
+  const now = dateOf(today);
+  const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
+  const settings = effectiveStressSettings(plan, { now });
+  const strategyId = settings.strategyId || 'pots-and-valves';
+  const ess = +essentials > 0 ? +essentials : undefined;
+  tell(0, 2);
+  const p = planFor(settings, now, ess);
+  const r = stressTestStrategy(strategyId, p);
+  tell(1, 2);
+  // what the planner hands in (index.html buildPlanDocumentNow): the Accumulation tool's settings ({} for none) and the
+  // holdings record normalised (ScenarioRepository.getActiveAccumulation, getActiveHoldings)
+  const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now });
+  return plain({ p: trimPlan(p), r: trimResult(r), savingPath, basis: { today, engine: 'one-test', essentials: ess || 0 } });
 }
 
 /**

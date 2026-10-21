@@ -28,7 +28,7 @@
  *   GUEST_PLANS_KEY                     'pt_guest_scenarios' (getItem only, never setItem)
  *   viewFor(state)                      the reading for a state: { today, rows, page } (page: the route's plan and step)
  *   upgradedList(raws, now)             the entries the readers take: [{ plan, newer, failed }]
- *   startPlanSource(store, { win, local, session, now, fb, fbWrite }) → stop()
+ *   startPlanSource(store, { win, local, session, now, fb, fbWrite, client }) → stop()
  *
  * Editing (research/v7/editing-in-v7.md 1): the ONE file that writes a plan, effects/planWrite.js, is started from here with
  * this file's Firestore handle and signed-in user (no second Firebase app) and a way to read the account's plans again just
@@ -118,8 +118,9 @@ export function viewFor(state) {
  * @param {Storage|null} o.session    sessionStorage (the window's plans, the seed's receipt)
  * @param {() => Date} [o.now]
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
+ * @param {object} [o.client]         the worker client (effects/workerClient.js): the lock runs the plan's own test in it before its one write
  */
-export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null }) {
+export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, client = null }) {
   const F = fb || { initializeApp, getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut, getFirestore, collection, getDocs, isFirebaseConfigured };
   const stops = [];
   let user = undefined;          // undefined: not known yet; null: nobody
@@ -213,7 +214,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
 
   // Editing (editing-in-v7.md 1): the one write file, with this file's handle, user and a fresh read before an account write.
   stops.push(startPlanWrite(store, {
-    win, session, local, now, fb: fbWrite,
+    win, session, local, now, fb: fbWrite, client,
     handles: () => ({ db, user: user || null, reread: () => (user && db ? readAccount() : Promise.resolve()) })
   }));
 

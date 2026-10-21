@@ -84,13 +84,14 @@ export const href = {
 
 /**
  * The name of the screen a route draws — the value of data-screen (brief 4.9):
- * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan' | 'plan.about' | 'plan.income' | … | 'plan.lasts'. An unknown address draws the front door.
+ * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan' | 'plan.about' | 'plan.income' | … | 'plan.lasts' | 'plan.lock'. An unknown address draws the front door.
  */
 export function screenName(r) {
   if (!r || r.screen === 'front' || r.screen === 'notFound') return 'front';
   if (r.screen === 'soon') return 'soon';
   if (r.screen === 'plans') return 'plans';
-  if (r.screen === 'plan') return r.step && PLAN_SUB_STEPS.includes(r.step) ? 'plan.' + r.step : 'plan';
+  // the editing sub-steps each draw their own screen; so does the "Lock the plan" rail step (road-to-7.md step 6: 'plan.lock')
+  if (r.screen === 'plan') return r.step && (PLAN_SUB_STEPS.includes(r.step) || r.step === 'lock') ? 'plan.' + r.step : 'plan';
   const step = BUILT[r.q] && BUILT[r.q].steps.find((s) => s.id === r.step);
   if (!step) return 'front';
   return step.built ? `${r.q}.${r.step}` : 'notBuilt';

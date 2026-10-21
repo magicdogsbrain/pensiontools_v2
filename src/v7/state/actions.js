@@ -83,6 +83,12 @@ export const A = Object.freeze({
   PLAN_UNDO_DONE:  'plan/undoDone',    // { planId }                         put back; the toast says so
   PLAN_TOAST_CLOSE: 'plan/toastClose', // {}                                 the toast goes (its time is up, or Close)
 
+  // ---- "Lock the plan" in V7 (research/v7/road-to-7.md step 6): the lock, the unlock (once, on "Your plan as locked") and
+  // "Write a new version from today's settings" — each ONE write through effects/planWrite.js, past the lock guard ------
+  PLAN_LOCK:       'plan/lock',        // { planId }                         "Lock it" confirmed: saving { kind: 'lock' }; the plan's test runs in the worker, then one write
+  PLAN_UNLOCK:     'plan/unlock',      // { planId }                         "Unlock it" confirmed: saving { kind: 'unlock' }
+  PLAN_DOCUMENT:   'plan/newVersion',  // { planId }                         "Write the new version" confirmed: saving { kind: 'document' }
+
   // ---- "Does it last?": the one test of a saved plan, run in the preview (research/v7/editing-in-v7.md 10.4) ---------
   LASTS_WORKING:   'lasts/working',    // { key }                            the run for this key (lasts.js runKeyOf) is under way; an old result stays greyed
   LASTS_PROGRESS:  'lasts/progress',   // { key, done, total }               ignored unless the key is the one under way
@@ -111,4 +117,6 @@ export const ACTION_TYPES = Object.freeze(Object.values(A));
  * The ids `ui/toggle` accepts: C's, and A's and B's blocks (split, partTime, pots, levers, chart); the spending shape's
  * block and its table of every year (shape, shapeYears).
  */
-export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears', 'allOptions', 'allLines']);
+export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears', 'allOptions', 'allLines',
+  // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog
+  'lockConfirm', 'unlockConfirm', 'documentConfirm']);

@@ -2458,10 +2458,16 @@
         "decision.lockedAt",
         "decision.lockedBy"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.5",
       "step": "s5-lock",
-      "note": "E's \"lock\" step; A and B (and later D) end with \"Lock this plan?\" (square-one-audit.md §5 item 5)."
+      "note": "Built (6.38.0, road-to-7.md step 6): \"Lock the plan\" is a rail step with its own screen (#/plan/<id>/lock) — what the lock fixes, what stays changeable, what you get, a saver’s line, one button and a confirm on the page. The lock is the planner’s commitPlanLock field for field in ONE write: the Decision tool seeded from the Stress settings, the flags (lockedBy \"locked in the preview\"), the plan of record, the plan document built by the planner’s own buildPlanDocument on the plan’s one test run in the preview’s worker, and the journey; Undo within the toast’s time. The first Decision record still locks it on the classic page.",
+      "files": [
+        "src/v7/screens/plan/LockScreen.jsx",
+        "src/answers/plan/lock.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/PlanCommit.js"
+      ]
     },
     {
       "id": "lock.unlock",
@@ -2477,10 +2483,15 @@
         "plan.planDocumentArchive",
         "plan.decisionTool.planOfRecordArchive"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s5-lock",
-      "note": "\"Unlock to change the plan\" keeps the document as a past version."
+      "note": "Built (6.38.0): offered once, on \"Your plan as locked\" (owner question 4(a)), with a confirm that says what unlocking keeps. The write is the planner’s unlockPlan field for field in ONE write — the document and the plan of record each into its archive (ten kept), the flag off, the unlock dated and counted — plus the defaults a plan locked before a setting existed gets (unlockPatchesOf), which the lock guard now allows with the unlock and only then.",
+      "files": [
+        "src/v7/screens/plan/PlanScreen.jsx",
+        "src/answers/plan/lock.js",
+        "src/services/LockedPlanGuard.js"
+      ]
     },
     {
       "id": "lock.document",
@@ -2493,10 +2504,16 @@
       "keys": [
         "plan.planDocument"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s4-open-plan",
-      "note": "The \"Your plan\" station reads the document only, never live settings. A plan locked while saving from 6.22.0 holds a version 3 saving path drawn on V7's saving-years engine (SavingPath.js): 1,000 futures, pension and ISA, the middle line and the 1-in-10 bad and good lines. Shown in V7 from s4 (src/answers/plan/read.js: the “Your plan as locked” step reads the document’s timing, steps, pots, strategy and assumptions; printing and past versions stay in the planner)."
+      "note": "Built (6.38.0): written by the lock in the preview with the planner’s own buildPlanDocument (equal to the planner’s to the byte, tests/v7/plan/lastsRun.test.js); \"Your plan as locked\" opens on four sentences read from it — the money before and after tax by age, the State Pension and whether it is assumed, the bad case, the rules for cutting income; \"Write a new version from today’s settings\" with a confirm that keeps the current document as a past version. Printing and the PDF stay on the classic page.",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/answers/plan/lock.js",
+        "src/answers/plan/lastsRun.js",
+        "src/v7/screens/plan/PlanScreen.jsx"
+      ]
     },
     {
       "id": "lock.ladder-card",
@@ -2588,10 +2605,15 @@
       "whereV6": "LockedPlanGuard.js (6.20.2, in progress)",
       "who": "Locked plans",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
       "step": "s1-safety",
-      "note": "\"What a locked plan can and cannot do on the rail\"."
+      "note": "Built (6.38.0): every write the preview makes passes the planner’s own guard on the plan as stored (lockedPlanWriteRefusal); the unlock is allowed only as an unlock and only with the defaults an unlock gives; a locked plan’s settings change nowhere in V7, and the one allowance — Undo of a lock this page just made — is proved the exact reverse of that lock.",
+      "files": [
+        "src/services/LockedPlanGuard.js",
+        "src/v7/effects/planWrite.js",
+        "tests/v7/plan/planWrite.test.js"
+      ]
     },
     {
       "id": "month.entry",

@@ -4,7 +4,7 @@
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
-import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays } from '../services/OneAnswer.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -140,10 +140,8 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
  * @param {{ scored: Array<{id, r, sc}>, names, colors, rankBy: 'lasts'|'left'|'score'|'coverage', more: boolean, volFloorPct, unaffordable: Array<{id,name,reason}>, cutsWords }} o
  */
 export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more = false, volFloorPct = 3, unaffordable = [], cutsWords = '' }) {
-  const rows = scored.map((x) => { const share = Math.max(0, Math.min(1, (100 - (+x.r.ruin.mc || 0)) / 100)); return { ...x, share, lasts: null }; });
+  const rows = rankWays(scored, rankBy);   // the share and the order (OneAnswer.rankWays, 6.40.0): one ranking for the planner and V7
   for (const x of rows) { x.lasts = futuresWords(x.share); }
-  const keyOf = (x) => rankBy === 'left' ? (+x.r.terminal.p50 || 0) : rankBy === 'score' ? (x.sc ? x.sc.vac : 0) : rankBy === 'coverage' ? (x.sc ? x.sc.coverageRatio : 0) : x.share * 1000 + (+x.r.coverage || 0);
-  rows.sort((a, b) => keyOf(b) - keyOf(a));
   const btn = (k, label) => '<button type="button" class="risk-btn' + (rankBy === k ? ' active' : '') + '" style="padding:3px 10px;font-size:12px;" data-on-click="setCmpRank(\'' + k + '\')">' + label + '</button>';
   let h = '<div class="card"><h2>Which strategy? — ranked on your plan</h2>'
     + '<p class="hint" style="margin:0 0 8px;">All ' + (scored.length + unaffordable.length) + ' ran <strong>your</strong> plan (pot, ISA policy, income shape, State Pension, full length) through the <strong>same one test</strong> — every real stretch of markets since 1871 and 1,000 possible futures' + (cutsWords ? ', ' + esc(cutsWords) : '') + '. The first column is the one figure every screen shows for your own strategy. What each one costs you to live with — a cut, a cliff, a bumpy pot — is yours to weigh; the columns beside it are the trade-offs.</p>'

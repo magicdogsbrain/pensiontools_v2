@@ -183,6 +183,20 @@ export function earlierTestNote(storedR, liveR) {
 }
 
 /**
+ * The Strategies ranking's orders (6.40.0, research/v7/way-and-mix.md 6): the keys of the planner's ranking card
+ * (ui/oneAnswerView.js rankingCardHtml), lifted so the card and V7's "How the money is taken" rank one way. Rows are
+ * [{ id, r, sc }] — `r` a strategy result (ruin.mc, terminal.p50, coverage), `sc` its score (scoreStrategy: vac,
+ * coverageRatio) or null; every row is kept and gains `share` (the share of futures paid in full). `by`: 'lasts' (the
+ * default — the share, ties by coverage), 'left' (typically left), 'score', 'coverage'. A stable sort, highest first.
+ */
+export function rankWays(rows, by = 'lasts') {
+  const out = (rows || []).map((x) => { const share = Math.max(0, Math.min(1, (100 - (+x.r.ruin.mc || 0)) / 100)); return { ...x, share }; });
+  const keyOf = (x) => by === 'left' ? (+x.r.terminal.p50 || 0) : by === 'score' ? (x.sc ? x.sc.vac : 0) : by === 'coverage' ? (x.sc ? x.sc.coverageRatio : 0) : x.share * 1000 + (+x.r.coverage || 0);
+  out.sort((a, b) => keyOf(b) - keyOf(a));
+  return out;
+}
+
+/**
  * The Strategies ranking: by how many futures out of 10 each strategy lasts (the share of futures the plan is paid in
  * full), ties broken by the share of the plan's years it paid for. Rows: [{ id, r }] → [{ id, r, share, lasts }].
  */

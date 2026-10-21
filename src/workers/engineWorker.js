@@ -6,7 +6,7 @@
  * once per worker so ladder prices match the main thread.
  */
 import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../strategies/stressTest.js';
-import { deriveCompareConfigs } from '../strategies/compareRunner.js';
+import { compareAll } from '../strategies/compareRunner.js';
 import { runSurvivorCheck, runCareCheck, runHouseholdWays } from '../services/HouseholdService.js';
 import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
 import { loadLiveEquity } from '../services/EquityIndex.js';
@@ -28,14 +28,9 @@ self.onmessage = async (e) => {
     await giltsReady;
     if (type === 'overview') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
-      const configs = deriveCompareConfigs(p);
-      const ids = Object.keys(STRATEGY_NAMES);
-      const strategies = {};
-      for (let i = 0; i < ids.length; i++) {
-        self.postMessage({ id, progress: { i, n: ids.length, name: STRATEGY_NAMES[ids[i]] } });
-        strategies[ids[i]] = stressTestStrategy(ids[i], p, configs);
-      }
-      self.postMessage({ id, result: cloneSafe({ p, all: { configs, strategies } }) });
+      // the one loop over the nine (compareRunner.compareAll, 6.40.0): the configs derived once, progress before each way
+      const all = compareAll(p, Object.keys(STRATEGY_NAMES), { onProgress: (i, n, sid) => self.postMessage({ id, progress: { i, n, name: STRATEGY_NAMES[sid] } }) });
+      self.postMessage({ id, result: cloneSafe({ p, all }) });
     } else if (type === 'strategy') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
       self.postMessage({ id, result: cloneSafe({ p, r: stressTestStrategy(payload.strategyId, p) }) });

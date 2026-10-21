@@ -20,7 +20,7 @@ import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
-import { stressTestAll } from './stressTest.js';
+import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
 
 
 /**
@@ -177,6 +177,27 @@ export function deriveCompareConfigs(p) {
   } : null;
 
   return { END, lr, ff, fs: fsc, fa, be, beAffordable: beE0 > 0, beCost, beBridgeAge: bridgeAge, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
+}
+
+/**
+ * Every way of drawing through the one test on ONE plan (6.40.0, research/v7/way-and-mix.md 6): the loop that was
+ * index.html cmpRun's inline fallback and the engine worker's 'overview' job, lifted so the planner's Overview, its worker
+ * and V7's "How the money is taken" run one function. The configs are derived once from the plan, so every way reads the
+ * ACTIVE way's parameter bag, as the compare always has; `ids` run in the order given (STRATEGY_NAMES's by default);
+ * `onProgress(i, n, id)` is called before each way. Pure and synchronous: the caller paces the screen.
+ * @param {object} p   planFromSettings's plan
+ * @param {string[]} [ids]
+ * @param {{ onProgress?: (i: number, n: number, id: string) => void, configs?: object }} [o]
+ * @returns {{ configs: object, strategies: Record<string, object> }}
+ */
+export function compareAll(p, ids = Object.keys(STRATEGY_NAMES), { onProgress = null, configs = null } = {}) {
+  const cfgs = configs || deriveCompareConfigs(p);
+  const strategies = {};
+  for (let i = 0; i < ids.length; i++) {
+    if (typeof onProgress === 'function') onProgress(i, ids.length, ids[i]);
+    strategies[ids[i]] = stressTestStrategy(ids[i], p, cfgs);
+  }
+  return { configs: cfgs, strategies };
 }
 
 /** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */

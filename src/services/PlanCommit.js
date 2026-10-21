@@ -7,6 +7,10 @@
  *   from storage/DecisionRepository.js   decisionSettingsChecksum
  *   from services/PlanLock.js            the body of buildPlanOfRecord, as planOfRecordFor(decisionSettings, now)
  *
+ * The strategy switch (6.40.0, "How the money is taken" in the preview: research/v7/way-and-mix.md 6), lifted the same way
+ * out of index.html — restoredParamsFor, the dial reading of useSpecStrategy (dialParams) and switchStressStrategy's patch
+ * (switchPatch); the planner calls them, so V7's "Use this way of drawing" writes the fields the planner's switch writes.
+ *
  * Each repository keeps its name as a re-export, so nothing the planner calls changes (the precedent:
  * services/SimulationConfig.js lifted out of StressRepository.js in 6.31.0).
  *
@@ -20,6 +24,8 @@ import { simpleHash } from '../utils/MathUtils.js';
 import { generateDrawdownSchedule } from './DrawdownService.js';
 import { generateGlidepathSchedule } from './GlidepathService.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
+import { switchStrategy, cleanParams, allowedKeys } from './StrategyState.js';
+import { tagPortfolio, allocationFromTags } from './PortfolioTagger.js';
 
 /**
  * Default decision settings for a new scenario
@@ -211,4 +217,62 @@ export function planOfRecordFor(s, now) {
       .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
     glidepath: generateGlidepathSchedule(s, assumedCpi).map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
   };
+}
+
+// ---- the strategy switch (index.html restoredParamsFor, useSpecStrategy, switchStressStrategy; 6.40.0) ------------------
+
+/** The params a strategy page starts from: the active bag cleaned when it is this strategy's, else its stash, else nothing. */
+export function restoredParamsFor(s, id) {
+  if (s.strategyId === id) return cleanParams(id, s.strategyParams || {});
+  return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
+}
+
+/**
+ * A strategy page's dial bag read as the switch reads it (index.html useSpecStrategy): every key the strategy may keep
+ * (StrategyState.allowedKeys — the planner's page listed eleven by hand and so dropped the rotation's disarm years, the
+ * ladder's trigger mode, the floor's age and the spare's growth: a correction, 6.40.0), `sleeveRatePct` as the sleeve's
+ * rate, and the Pots & Valves family's cut dials (protectionOn, cutPct, consecutiveLimit) as the Stress keys they set.
+ * @returns {{ params: object, patch: object }}
+ */
+export function dialParams(id, dials) {
+  const d = dials && typeof dials === 'object' ? dials : {};
+  const params = {};
+  for (const k of allowedKeys(id)) if (d[k] != null) params[k] = d[k];
+  if (d.sleeveRatePct != null) params.sleeveRate = d.sleeveRatePct / 100;
+  const patch = {};
+  if (d.protectionOn != null) patch.disableProtection = !d.protectionOn;
+  if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100;
+  if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit;
+  return { params, patch };
+}
+
+/**
+ * The strategy switch as ONE patch of the Stress settings (index.html switchStressStrategy, line for line): the outgoing
+ * strategy stashed and this one's own inputs restored (StrategyState.switchStrategy), the dials on top (dialParams, then
+ * `extraParams` as the planner's callers pass them), the params cleaned to the keys the strategy may keep; when the
+ * restored "funds" list is the allocation the engine reads, the pots re-derived from it (the DOM-free twin of
+ * rebuildCustomAllocFromFunds) unless the extra patch sets them; then the extra patch. Also the root `strategy` block as
+ * ScenarioRepository.setActiveStrategy writes it, dated `at` (an ISO string; null when the caller writes none).
+ * @param {object} settings   the Stress settings as read
+ * @param {string} id         the strategy switched to
+ * @param {object} [dials]    a strategy page's dial bag (dialParams)
+ * @param {{ savedAt?: string|null, at?: string|null, extraParams?: object, extraPatch?: object }} [o]
+ * @returns {{ settings: object, strategyParams: object, strategy: { id, params, lockedAt, engineVersion } }}
+ */
+export function switchPatch(settings, id, dials = {}, { savedAt = null, at = null, extraParams = {}, extraPatch = {} } = {}) {
+  const s = settings || {};
+  const cur = restoredParamsFor(s, id);
+  const { params: dialled, patch: cutPatch } = dialParams(id, dials);
+  const sw = switchStrategy(s, id, { savedAt });
+  const strategyParams = cleanParams(id, { ...sw.strategyParams, ...cur, ...dialled, ...(extraParams || {}) });
+  const patch = { ...cutPatch, ...(extraPatch || {}) };
+  // A restored "funds" list IS the allocation the engine reads: re-derive equityMin/bondMin/cashTarget/subAsset
+  // from it (DOM-free twin of rebuildCustomAllocFromFunds) so the run does not keep the outgoing strategy's pots.
+  let allocPatch = {};
+  const restoredList = (sw.taggedFunds || []).filter((f) => f && f.ticker && +f.value > 0);
+  if (sw.allocMode === 'funds' && restoredList.length && !('equityMin' in patch)) {
+    try { const t = tagPortfolio(restoredList); const a = allocationFromTags(t); allocPatch = { equityMin: a.equityStart, bondMin: a.bondStart, cashTarget: a.cashStart, diversifierStart: a.diversifierStart || 0, subAsset: a.subAsset || null, isaBalance: Math.round(t.isaTotal || 0) }; } catch (e) { allocPatch = {}; }
+  }
+  const out = { strategyId: id, strategyParams, strategyState: sw.strategyState, allocMode: sw.allocMode, taggedFunds: sw.taggedFunds, ...allocPatch, ...patch };
+  return { settings: out, strategyParams, strategy: { id, params: { ...strategyParams }, lockedAt: at, engineVersion: ENGINE_VERSION } };
 }

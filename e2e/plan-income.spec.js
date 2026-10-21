@@ -131,7 +131,8 @@ test.describe('"Money that comes in anyway", without an account', () => {
     await expect(page.getByTestId('plan.plan.edit.income')).toHaveText('Change this here');
 
     // the planner, in the same window, on the way-of-drawing section: its own boxes hold the new values
-    await page.getByTestId('plan.plan.change.way').click();
+    // since 6.40.0 the way section's "Change" opens the way step inside the preview (way-and-mix.md 2.1); "Everything else" still hands over
+    await page.getByTestId('plan.plan.change.else').click();
     await page.waitForURL((u) => new URL(u).pathname === '/' || new URL(u).pathname === '/index.html');
     await expect(page.locator('#landingTryGuest')).toBeVisible();
     await page.locator('#landingTryGuest').click();

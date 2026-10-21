@@ -170,6 +170,9 @@ describe('the cards (cardsOf)', () => {
     expect(done.verdict.chancePct).toBe(77);
     const moved = cardsOf(reading, held({ open: 'floor-to-age', dials: { 'floor-to-age': { floorToAge: '84' } }, tried: { 'floor-to-age': { status: 'done', values: { floorToAge: 82 }, result: triedR, reason: null, ms: 180 } } })).cards.find((x) => x.id === 'floor-to-age');
     expect(moved).toMatchObject({ needsRun: true, stale: true });
+    // a try that failed for these values is never asked for again by itself: the failure is said, a dial moved asks anew
+    const failed = cardsOf(reading, held({ open: 'floor-to-age', dials: { 'floor-to-age': { floorToAge: '82' } }, tried: { 'floor-to-age': { status: 'failed', values: { floorToAge: 82 }, result: null, reason: null, ms: null } } })).cards.find((x) => x.id === 'floor-to-age');
+    expect(failed).toMatchObject({ needsRun: false, stale: true, tried: { status: 'failed' } });
     const bad = cardsOf(reading, held({ open: 'floor-to-age', dials: { 'floor-to-age': { floorToAge: 'x' } } })).cards.find((x) => x.id === 'floor-to-age');
     expect(bad).toMatchObject({ needsRun: false, ok: false, values: null });
     expect(bad.dials[0].error).toBe('notANumber');

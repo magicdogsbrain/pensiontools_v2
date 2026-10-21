@@ -4073,7 +4073,7 @@
 
     // Import additional services
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
-    import { generateGlidepathSchedule, RISK_PRESETS, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';
+    import { generateGlidepathSchedule, RISK_PRESETS, DIVERSIFIER_PRESETS, nearestPresetKey, mixFromLevel, levelOfMix, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';   // the mix as a level and back, lifted pure (6.41.0)
     import { resetStressSettings, invalidateStressCache, createSimulationConfigFromSettings } from './src/storage/StressRepository.js';
     import {
       invalidateScenarioCache,
@@ -4096,7 +4096,10 @@
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
     // no tool reaches around the interface). The optimiser runs the plan's own strategy.
     import { getStrategy } from './src/strategies/registry.js';
-    import { tagPortfolio, allocationFromTags } from './src/services/PortfolioTagger.js';
+    import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
+    import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
+    import { trySettingsOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
+    import { tryDifferencesOf } from './src/answers/plan/lasts.js';   // … and its "What's different" list (6.41.0)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
       initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
@@ -4160,7 +4163,7 @@
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
-    import { compareAll } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0)
+    import { compareAll, mixCells } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
     import { rotationStatus } from './src/services/RotationStatus.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
@@ -6062,7 +6065,10 @@
       if (sel && !sel.options.length) sel.innerHTML = Object.entries(STRATEGY_NAMES).map(([id, n]) => '<option value="' + id + '">' + budEsc(n) + '</option>').join('');
       if (sel) sel.value = s.strategyId || 'pots-and-valves';
       const sp = s.strategyParams || {};
-      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0)));
+      // the pot box starts at the figure the what-if rescales the pots by and "What's different" reads (the pension's shares,
+      // bonds and cash; a diversifiers sleeve is left as it is) — until 6.41.0 it started at the sum WITH the sleeve, so an
+      // untouched what-if on a plan with a sleeve moved the pots and said the pot differed
+      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));
       document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
@@ -6075,26 +6081,40 @@
       document.getElementById('tryUseBtn').style.display = 'none';
       refreshNumberOverlays();
     };
-    function tryStrategySettings(s) {
-      const c = JSON.parse(JSON.stringify(s));
-      const id = document.getElementById('tryStrategy').value || 'pots-and-valves';
-      const pot = +document.getElementById('tryPot').value || 0;
-      const isa = +document.getElementById('tryIsa').value || 0;
-      const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
-      const scale = oldPot > 0 ? pot / oldPot : 0;
-      if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
-      else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
-      c.isaBalance = isa;
-      c.strategyId = id;
-      c.strategyParams = { ...restoredParamsFor(s, id), sippTotal: pot, isaTotal: isa };   // the tried strategy's own dials, never the active strategy's bag (6.13.0)
-      const pol = document.getElementById('tryIsaPolicy').value; if (pol) c.isaDrawdownStrategy = pol; else if (document.getElementById('tryIsaPolicy').selectedIndex === 2) c.isaDrawdownStrategy = 'bridge';
-      if (document.getElementById('tryIncomeMode').value === 'flat') { c.baseSalary = +document.getElementById('tryIncome').value || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
-      c.duration = Math.max(5, Math.min(45, +document.getElementById('tryYears').value || s.duration || 35));   // the plan's full length (the engines run to 45 years), no 35-year cap (audit problem 1)
-      const cuts = document.getElementById('tryCuts').value; if (cuts) c.disableProtection = cuts === 'off';
-      const cp = document.getElementById('tryCutPct').value; if (cp !== '') c.protectionMult = 1 - (+cp) / 100;
-      const ce = document.getElementById('tryCutEsc').value; if (ce !== '') c.protectionEscalateMonths = Math.max(0, +ce);
-      return c;
+    // The boxes of the what-if card as the lifted function takes them (answers/plan/lastsRun.js trySettingsOf, 6.41.0): the
+    // ISA policy's third option ("Draw as configured", value '') is 'draw'; a blank cut depth or months is "as saved".
+    function readTryBoxes() {
+      const pol = document.getElementById('tryIsaPolicy');
+      const cuts = document.getElementById('tryCuts').value;
+      return {
+        way: document.getElementById('tryStrategy').value || 'pots-and-valves',
+        pot: +document.getElementById('tryPot').value || 0,
+        isa: +document.getElementById('tryIsa').value || 0,
+        isaPolicy: pol.value ? pol.value : (pol.selectedIndex === 2 ? 'draw' : 'saved'),
+        incomeMode: document.getElementById('tryIncomeMode').value === 'flat' ? 'flat' : 'shape',
+        income: +document.getElementById('tryIncome').value || 0,
+        years: +document.getElementById('tryYears').value || 0,
+        cuts: cuts === 'on' || cuts === 'off' ? cuts : 'saved',
+        cutPct: document.getElementById('tryCutPct').value,
+        cutEsc: document.getElementById('tryCutEsc').value
+      };
     }
+    function tryStrategySettings(s) {
+      return trySettingsOf(s, readTryBoxes());   // the what-if copy, lifted pure (6.41.0): the preview's Try runs the same function
+    }
+    // "What's different", the planner's words for each line the lifted list gives (answers/plan/lasts.js tryDifferencesOf):
+    // the six it always said, and the three it left out until 6.41.0 — the ISA policy, the cut depth, the escalation months.
+    const TRY_DIFF_WORDS = {
+      way: (d) => 'strategy ' + STRATEGY_NAMES[d.slots.way] + ' (plan: ' + STRATEGY_NAMES[d.slots.old] + ')',
+      pot: (d) => 'pot ' + gbp(d.slots.pot) + ' (plan: ' + gbp(d.slots.old) + ')',
+      isa: (d) => 'ISA ' + gbp(d.slots.isa),
+      isaPolicy: (d) => 'ISA ' + (d.slots.policy === 'hold' ? 'held (powder dry)' : d.slots.policy === 'bridge' ? 'drawn as configured' : (d.slots.policy || 'as saved')) + ' (plan: ' + (d.slots.old === 'hold' ? 'held' : d.slots.old || 'drawn') + ')',
+      income: (d) => 'flat income ' + gbp(d.slots.income) + (d.slots.steps ? ' instead of your steps' : ''),
+      years: (d) => d.slots.years + ' years (plan: ' + d.slots.old + ')',
+      cuts: (d) => 'spending cuts ' + (d.slots.on ? 'on' : 'off'),
+      cutPct: (d) => 'cut depth ' + d.slots.pct + '% (plan: ' + d.slots.old + '%)',
+      cutEsc: (d) => 'first-stage months ' + d.slots.months + ' (plan: ' + d.slots.old + ')'
+    };
     window.runTryStrategyUI = async function () {
       const out = document.getElementById('tryResults');
       const s = await getStressSettingsAsync();
@@ -6114,14 +6134,8 @@
           p = strategyPlanFor(c); r = stressTestStrategy(c.strategyId, p);
         }
         _tryLast = { id: c.strategyId, params: c.strategyParams };
-        const diff = [];
-        if (c.strategyId !== (s.strategyId || 'pots-and-valves')) diff.push('strategy ' + STRATEGY_NAMES[c.strategyId] + ' (plan: ' + STRATEGY_NAMES[s.strategyId || 'pots-and-valves'] + ')');
-        const oldPot = (s.strategyParams?.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
-        if (Math.abs(((c.strategyParams.sippTotal) || 0) - oldPot) > 1) diff.push('pot ' + gbp(c.strategyParams.sippTotal) + ' (plan: ' + gbp(oldPot) + ')');
-        if (Math.abs((c.isaBalance || 0) - (s.strategyParams?.isaTotal ?? s.isaBalance ?? 0)) > 1) diff.push('ISA ' + gbp(c.isaBalance));
-        if (c.incomeShape === 'level' && s.incomeShape === 'phases') diff.push('flat income ' + gbp(c.baseSalary) + ' instead of your steps');
-        if (c.duration !== (s.duration || 35)) diff.push(c.duration + ' years (plan: ' + (s.duration || 35) + ')');
-        if (c.disableProtection !== s.disableProtection && c.strategyId === 'pots-and-valves') diff.push('spending cuts ' + (c.disableProtection ? 'off' : 'on'));
+        // "What's different": the lifted list (answers/plan/lasts.js tryDifferencesOf, 6.41.0) in the planner's words
+        const diff = tryDifferencesOf(s, c).map((d) => TRY_DIFF_WORDS[d.id](d));
         out.innerHTML = (diff.length ? '<div class="alert alert-warning" style="font-size:12px;"><strong>What-if, not your plan:</strong> ' + budEsc(diff.join(' · ')) + '. Nothing has been saved.</div>' : '<div class="alert alert-info" style="font-size:12px;">This is your plan as saved, run through ' + budEsc(STRATEGY_NAMES[c.strategyId]) + '.</div>')
           + strategyResultCard(r, p);
         document.getElementById('tryUseBtn').style.display = '';
@@ -6299,14 +6313,8 @@
     // Allocation is picked with ONE of three preset buttons (no sliders). The chosen preset is the
     // ENDGAME mix; the engine runs on three £ fund minimums derived as Pot × each %. Every element id
     // is `<p>` + a fixed suffix where p = 'ss' | 'ds' | 'wiz', so one implementation drives all three.
-    // 4-bucket presets used when the Diversifiers sleeve is switched on. Same risk NAMES, but each
-    // becomes a 4-way split adding gold + trend/macro (held FLAT like cash — the tent glides only
-    // equity↔bond). Weights from docs/asset-class-research.md.
-    const DIVERSIFIER_PRESETS = {
-      cautious:    { key: 'cautious',    label: 'Cautious',    equity: 0.30, bond: 0.45, diversifiers: 0.12, cash: 0.13 },
-      balanced:    { key: 'balanced',    label: 'Balanced',    equity: 0.50, bond: 0.30, diversifiers: 0.15, cash: 0.05 },
-      adventurous: { key: 'adventurous', label: 'Adventurous', equity: 0.65, bond: 0.15, diversifiers: 0.15, cash: 0.05 }
-    };
+    // The 4-bucket presets used when the Diversifiers sleeve is switched on (DIVERSIFIER_PRESETS) live in
+    // services/GlidepathService.js since 6.41.0, beside RISK_PRESETS, so the preview's "The mix" reads the same table.
     function diversifiersOn(p) {
       const el = document.getElementById(p + 'Diversifiers');
       return !!(el && el.checked);
@@ -6326,18 +6334,7 @@
       const table = diversifiersOn(p) ? DIVERSIFIER_PRESETS : RISK_PRESETS;
       return table[key] || table.balanced;
     }
-    // Nearest preset over whichever bucket set is active (4-way when a diversifier weight is present).
-    function nearestPresetKey(eq, bd, csh, dv) {
-      dv = dv || 0;
-      const table = dv > 0.001 ? DIVERSIFIER_PRESETS : RISK_PRESETS;
-      let best = 'balanced', bestD = Infinity;
-      for (const k in table) {
-        const pr = table[k];
-        const d = (pr.equity - eq) ** 2 + (pr.bond - bd) ** 2 + ((pr.diversifiers || 0) - dv) ** 2 + (pr.cash - csh) ** 2;
-        if (d < bestD) { bestD = d; best = k; }
-      }
-      return best;
-    }
+    // Nearest preset over whichever bucket set is active: GlidepathService.nearestPresetKey (lifted, 6.41.0).
     window.renderModelPortfolio = function (p) {
       const box = document.getElementById(p + 'ModelPortfolio');
       if (!box) return;
@@ -6527,43 +6524,27 @@
         return a;
       }
       const pot = +document.getElementById(p + 'Pot').value || 0;
-      const preset = activePreset(p);
-      const alloc = {
-        equityMin: Math.round(pot * preset.equity),
-        bondMin: Math.round(pot * preset.bond),
-        cashTarget: Math.round(pot * preset.cash)
-      };
-      // Diversifiers sleeve: emit the pot + opt into sub-asset modelling so the engine runs the
-      // 4-bucket path. Absent when the sleeve is off → legacy 3-bucket config, unchanged.
-      const dv = preset.diversifiers || 0;
-      if (dv > 0) {
-        alloc.diversifierStart = Math.round(pot * dv);
-        alloc.subAsset = {};
-      }
-      return alloc;
+      // Pot × the chosen preset's split, the sleeve's pot and the 4-bucket opt-in when it is on: GlidepathService.mixFromLevel (lifted, 6.41.0)
+      return mixFromLevel(pot, activePreset(p).key, { diversifiers: diversifiersOn(p) });
     };
     // Populate the control from three saved £ fund minimums: set the pot and select the nearest preset.
     // With sliders gone there are no custom splits, so a saved split that isn't exactly a preset is
     // matched to the nearest one — and we SAY SO (a no-op Save would otherwise rewrite it unseen).
     window.writeAlloc = function(p, equityMin, bondMin, cashTarget, diversifierStart) {
       const dvStart = +diversifierStart || 0;
-      const pot = (+equityMin || 0) + (+bondMin || 0) + (+cashTarget || 0) + dvStart;
+      // the saved mix read back as a level: GlidepathService.levelOfMix (lifted, 6.41.0) — the pot, the shares, the nearest preset over the right table, how far off
+      const m = levelOfMix({ equityMin, bondMin, cashTarget, diversifierStart });
+      const { pot, key, preset, fractions: fr, eqPct, bdPct } = m;
       document.getElementById(p + 'Pot').value = Math.round(pot);
       // Restore the Diversifiers toggle from whether a sleeve was saved (set BEFORE picking the
       // preset so activePreset resolves against the right 3-way / 4-way table).
       const divEl = document.getElementById(p + 'Diversifiers');
       if (divEl) divEl.checked = dvStart > 0;
-      const eqPct = pot > 0 ? Math.round((+equityMin || 0) / pot * 100) : 50;
-      const bdPct = pot > 0 ? Math.round((+bondMin || 0) / pot * 100) : 40;
-      const fr = { equity: pot > 0 ? (+equityMin || 0) / pot : 0.5, bond: pot > 0 ? (+bondMin || 0) / pot : 0.4, cash: pot > 0 ? (+cashTarget || 0) / pot : 0.1, diversifiers: pot > 0 ? dvStart / pot : 0 };
-      const key = pot > 0 ? nearestPresetKey(fr.equity, fr.bond, fr.cash, fr.diversifiers) : 'balanced';
-      const preset = (dvStart > 0 ? DIVERSIFIER_PRESETS : RISK_PRESETS)[key];
       // A saved split that is not a preset is KEPT as "Custom" — it used to be snapped to the nearest
       // risk level and the snap was then persisted by the next Save (a £60k diversifier sleeve became
       // £123k that way). Choosing a risk card (setRiskPreset) is the only thing that replaces it.
-      const off = Math.max(Math.abs(preset.equity - fr.equity), Math.abs(preset.bond - fr.bond), Math.abs(preset.cash - fr.cash), Math.abs((preset.diversifiers || 0) - fr.diversifiers));
       const prevSaved = window._customAlloc[p] && window._customAlloc[p].savedSplit ? window._customAlloc[p] : null;
-      if (pot > 0 && off > 0.01) {
+      if (m.custom) {
         window._customAlloc[p] = { label: 'Custom \u2014 your saved split', ...fr, equityMin: +equityMin || 0, bondMin: +bondMin || 0, cashTarget: +cashTarget || 0, diversifierStart: dvStart, savedSplit: true, glideEndgame: prevSaved ? prevSaved.glideEndgame : null };
         document.querySelectorAll('#' + p + 'Risks .risk-card').forEach(b => b.classList.remove('active'));
         updateAllocDisplay(p);
@@ -6604,30 +6585,10 @@
       const n = parseFloat(String(el.value).replace(/[^0-9.]/g, ''));
       el.value = (isNaN(n) || n === 0) ? '' : formatWithSpaces(n);
     };
-    // --- Fuzzy fund search (ticker OR company name; most-probable ranking, not just prefix) --------
-    function fuzzyFundScore(q, ticker, name) {
-      q = q.toLowerCase().trim();
-      if (!q) return 0;
-      const t = ticker.toLowerCase(), n = name.toLowerCase();
-      if (t === q) return 1000;
-      if (t.startsWith(q)) return 900 - (t.length - q.length);
-      const words = n.split(/[^a-z0-9]+/).filter(Boolean);
-      if (words.some(w => w.startsWith(q))) return 820;
-      if (t.includes(q)) return 720;
-      if (n.includes(q)) return 660 - Math.min(50, n.indexOf(q));
-      // subsequence match (chars appear in order) — the "fuzzy" fallback
-      const sub = str => { let i = 0; for (const c of str) { if (c === q[i]) i++; if (i === q.length) return true; } return false; };
-      if (sub(t)) return 360;
-      if (sub(n)) return 300;
-      return 0;
-    }
+    // --- Fuzzy fund search (ticker OR company name; most-probable ranking, not just prefix): FundCatalogue.searchFunds
+    // (lifted, 6.41.0), over the LIVE catalogue (an admin override when present, the bundled list otherwise). --------
     function searchFunds(query, limit = 8) {
-      return activeFundCatalogue()
-        .map(f => ({ f, s: fuzzyFundScore(query, f.ticker, f.name) }))
-        .filter(x => x.s > 0)
-        .sort((a, b) => b.s - a.s || a.f.ticker.localeCompare(b.f.ticker))
-        .slice(0, limit)
-        .map(x => x.f);
+      return searchFundsIn(query, limit, activeFundCatalogue());
     }
     window.showFundSearch = function(p, query) {
       const box = document.getElementById(p + 'FundSearchResults');
@@ -6764,31 +6725,21 @@
     // Build the custom allocation from the current tagged funds (no toast/side-effects). The fund list
     // drives the plan directly, so this runs on every add/edit/remove while in "My funds" mode.
     function rebuildCustomAllocFromFunds(p) {
-      const holdings = funds(p).filter(f => f.ticker && f.value > 0);
-      if (!holdings.length) { delete window._customAlloc[p]; return null; }
-      const t = tagPortfolio(holdings);
-      const alloc = allocationFromTags(t);
+      // the rows tagged and rolled up, the custom allocation, the pot and the ISA the list sets: PortfolioTagger.mixFromFunds (lifted, 6.41.0)
+      const m = mixFromFunds(funds(p));
+      if (!m) { delete window._customAlloc[p]; return null; }
       const prev = window._customAlloc[p] || {};
-      window._customAlloc[p] = {
-        label: 'Funds to test',
-        equity: t.total ? t.buckets.shares / t.total : 0,
-        bond: t.total ? t.buckets.bonds / t.total : 0,
-        diversifiers: t.total ? t.buckets.diversifiers / t.total : 0,
-        cash: t.total ? t.buckets.cash / t.total : 0,
-        equityMin: alloc.equityStart, bondMin: alloc.bondStart, cashTarget: alloc.cashStart,
-        diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null,
-        glideEndgame: prev.glideEndgame || null   // preserve the chosen tent endgame across edits
-      };
+      window._customAlloc[p] = { ...m.custom, glideEndgame: prev.glideEndgame || null };   // preserve the chosen tent endgame across edits
       // Set Pot/ISA and REFRESH their number-format overlays (they don't update on a programmatic
       // value change, which left the Pot showing a stale formatted number, e.g. "1 105 000").
       // Pot = the taxable side only; ISA-wrapped value fills the separate ISA balance below.
       const potEl = document.getElementById(p + 'Pot');
-      if (potEl) { potEl.value = Math.round(t.total - t.isaTotal); if (potEl._updateOverlay) potEl._updateOverlay(); }
-      const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = (alloc.diversifierStart || 0) > 0;
+      if (potEl) { potEl.value = m.pot; if (potEl._updateOverlay) potEl._updateOverlay(); }
+      const divEl = document.getElementById(p + 'Diversifiers'); if (divEl) divEl.checked = m.diversifiers;
       // Unconditional: removing the last ISA-wrapped fund must clear the derived figure too.
       const isaEl = document.getElementById(p + 'IsaBalance');
-      if (isaEl) { isaEl.value = Math.round(t.isaTotal || 0); if (isaEl._updateOverlay) isaEl._updateOverlay(); }
-      return t;
+      if (isaEl) { isaEl.value = m.isaBalance; if (isaEl._updateOverlay) isaEl._updateOverlay(); }
+      return m.tagged;
     }
     // Legacy handler (kept for any remaining "Apply" button); the fund list now auto-applies.
     window.applyTaggedPortfolio = function(p) {
@@ -6946,22 +6897,18 @@
         if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan runs <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, which has no split to sweep — all ' + strategyCountWord() + ' strategies, compared on your plan through the same test, are in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
         done(); return;
       }
-      const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
       const order = ['cautious', 'balanced', 'adventurous'];
       const grid = {};
       try {
         let n = 0;
-        for (const key of order) {
-          const preset = RISK_PRESETS[key];
-          grid[key] = {};
-          for (const tent of [false, true]) {
-            const alloc = { ...s, strategyId: s.strategyId || 'pots-and-valves', equityMin: Math.round(pot * preset.equity), bondMin: Math.round(pot * preset.bond), cashTarget: Math.round(pot * preset.cash), equityGlideEnabled: tent };
-            let r;
-            try { r = (await runInWorker('strategy', { settings: alloc, cfg: createSimulationConfigFromSettings({}, alloc), strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
-            catch (e) { console.warn('engine worker unavailable, running inline', e); r = stressTestStrategy(alloc.strategyId, strategyPlanFor(alloc)); }
-            grid[key][tent ? 'tent' : 'flat'] = r;
-            say('Running the one test on six splits… ' + (++n) + ' of 6');
-          }
+        // the six cells (the three levels, tent off and on, each the settings re-split from the pot): compareRunner.mixCells (lifted, 6.41.0)
+        for (const cell of mixCells(s, { own: false })) {
+          const alloc = cell.settings;
+          let r;
+          try { r = (await runInWorker('strategy', { settings: alloc, cfg: createSimulationConfigFromSettings({}, alloc), strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
+          catch (e) { console.warn('engine worker unavailable, running inline', e); r = stressTestStrategy(alloc.strategyId, strategyPlanFor(alloc)); }
+          (grid[cell.key] = grid[cell.key] || {})[cell.tent ? 'tent' : 'flat'] = r;
+          say('Running the one test on six splits… ' + (++n) + ' of 6');
         }
         if (resultsDiv) resultsDiv.innerHTML = allocationGridHtml(grid, RISK_PRESETS, order);
       } catch (e) { console.error('compare allocations', e); if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-danger">Could not compare: ' + budEsc(e.message) + '</div>'; }

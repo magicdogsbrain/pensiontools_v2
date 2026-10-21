@@ -49,6 +49,81 @@ export const RISK_PRESETS = {
 };
 
 /**
+ * 4-bucket presets used when the Diversifiers sleeve is switched on (index.html DIVERSIFIER_PRESETS, lifted here in
+ * 6.41.0 so the preview's "The mix" reads the same table — research/v7/way-and-mix.md 3.2a, 6). Same risk NAMES, but
+ * each becomes a 4-way split adding gold + trend/macro (held FLAT like cash — the tent glides only equity↔bond).
+ * Weights from docs/asset-class-research.md.
+ */
+export const DIVERSIFIER_PRESETS = {
+  cautious:    { key: 'cautious',    label: 'Cautious',    equity: 0.30, bond: 0.45, diversifiers: 0.12, cash: 0.13 },
+  balanced:    { key: 'balanced',    label: 'Balanced',    equity: 0.50, bond: 0.30, diversifiers: 0.15, cash: 0.05 },
+  adventurous: { key: 'adventurous', label: 'Adventurous', equity: 0.65, bond: 0.15, diversifiers: 0.15, cash: 0.05 }
+};
+/** The three levels, in the planner's order (its risk cards; the Compare allocations grid). */
+export const MIX_LEVELS = Object.freeze(['cautious', 'balanced', 'adventurous']);
+
+/** Nearest preset over whichever bucket set is active (4-way when a diversifier weight is present) — index.html nearestPresetKey, lifted. */
+export function nearestPresetKey(eq, bd, csh, dv) {
+  dv = dv || 0;
+  const table = dv > 0.001 ? DIVERSIFIER_PRESETS : RISK_PRESETS;
+  let best = 'balanced', bestD = Infinity;
+  for (const k in table) {
+    const pr = table[k];
+    const d = (pr.equity - eq) ** 2 + (pr.bond - bd) ** 2 + ((pr.diversifiers || 0) - dv) ** 2 + (pr.cash - csh) ** 2;
+    if (d < bestD) { bestD = d; best = k; }
+  }
+  return best;
+}
+
+/**
+ * The three (or four) £ fund minimums the engine uses for a pot held at a risk level: Pot × the chosen preset's split
+ * (index.html readAlloc's preset branch, lifted; the planner calls it). With the Diversifiers sleeve on, the 4-way table:
+ * the sleeve's pot and `subAsset: {}` opt the engine into the 4-bucket path; absent when the sleeve is off → the legacy
+ * 3-bucket config, unchanged.
+ * @param {number} pot
+ * @param {'cautious'|'balanced'|'adventurous'} level   an unknown level reads as balanced, as the planner's activePreset does
+ * @param {{ diversifiers?: boolean }} o
+ * @returns {{ equityMin: number, bondMin: number, cashTarget: number, diversifierStart?: number, subAsset?: object }}
+ */
+export function mixFromLevel(pot, level, { diversifiers = false } = {}) {
+  const table = diversifiers ? DIVERSIFIER_PRESETS : RISK_PRESETS;
+  const preset = table[level] || table.balanced;
+  const p = +pot || 0;
+  const alloc = {
+    equityMin: Math.round(p * preset.equity),
+    bondMin: Math.round(p * preset.bond),
+    cashTarget: Math.round(p * preset.cash)
+  };
+  const dv = preset.diversifiers || 0;
+  if (dv > 0) {
+    alloc.diversifierStart = Math.round(p * dv);
+    alloc.subAsset = {};
+  }
+  return alloc;
+}
+
+/**
+ * A saved mix read back as a risk level (index.html writeAlloc's arithmetic, lifted; the planner calls it): the pot, each
+ * pot's share, the nearest preset over the right table (4-way when a sleeve was saved), how far off it is, and whether the
+ * split is a level at all (`custom`: more than a percentage point off every preset — the planner's "Custom — your saved
+ * split", kept exactly as saved, never snapped). `eqPct`/`bdPct` are the whole percents the planner's note shows.
+ * @param {{ equityMin?: number, bondMin?: number, cashTarget?: number, diversifierStart?: number }} settings
+ */
+export function levelOfMix(settings) {
+  const s = settings || {};
+  const equityMin = +s.equityMin || 0, bondMin = +s.bondMin || 0, cashTarget = +s.cashTarget || 0;
+  const dvStart = +s.diversifierStart || 0;
+  const pot = equityMin + bondMin + cashTarget + dvStart;
+  const eqPct = pot > 0 ? Math.round(equityMin / pot * 100) : 50;
+  const bdPct = pot > 0 ? Math.round(bondMin / pot * 100) : 40;
+  const fr = { equity: pot > 0 ? equityMin / pot : 0.5, bond: pot > 0 ? bondMin / pot : 0.4, cash: pot > 0 ? cashTarget / pot : 0.1, diversifiers: pot > 0 ? dvStart / pot : 0 };
+  const key = pot > 0 ? nearestPresetKey(fr.equity, fr.bond, fr.cash, fr.diversifiers) : 'balanced';
+  const preset = (dvStart > 0 ? DIVERSIFIER_PRESETS : RISK_PRESETS)[key];
+  const off = Math.max(Math.abs(preset.equity - fr.equity), Math.abs(preset.bond - fr.bond), Math.abs(preset.cash - fr.cash), Math.abs((preset.diversifiers || 0) - fr.diversifiers));
+  return { pot: Math.round(pot), diversifiers: dvStart > 0, key, preset, fractions: fr, off, custom: pot > 0 && off > 0.01, eqPct, bdPct, cashPct: Math.max(0, 100 - eqPct - bdPct) };
+}
+
+/**
  * The equity share of the GROWTH sleeve (equity+bond) for a given year under the
  * tent, or null when the tent is off. MUST match the inline formula the Stress
  * engine uses so both engines agree month-by-month.

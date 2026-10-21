@@ -330,6 +330,39 @@ export function verdictOf(result, saved) {
   };
 }
 
+// ---- "What's different" (research/v7/way-and-mix.md 4, 9.4; index.html runTryStrategyUI's list, lifted) -------------------
+
+/**
+ * Every box of a try that differs from the plan as saved, one line each, as ids with slots (the planner's own six, then the
+ * three it left out — the ISA policy, the cut depth and the escalation months — a correction in 6.41.0; the planner's alert
+ * now says them too). `s` the settings as read, `c` the copy trySettingsOf made from them.
+ *   way        { way, old }                   pot  { pot, old }       isa  { isa, old }      isaPolicy { policy, old }
+ *   income     { income (a year before tax) } years { years, old }   cuts { on }            cutPct { pct, old }
+ *   cutEsc     { months, old }
+ * The planner's `cuts` line was said for Pots & Valves only; Buckets in order runs the same cuts, so it is said for both
+ * (a correction). The planner's `income` line was said only when the plan has steps; a flat try of a flat plan at another
+ * figure is a difference too, so it is said then as well (a correction).
+ */
+export function tryDifferencesOf(s, c) {
+  const diff = [];
+  const sid = s.strategyId || 'pots-and-valves';
+  if (c.strategyId !== sid) diff.push({ id: 'way', slots: { way: c.strategyId, old: sid } });
+  const oldPot = (s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
+  const newPot = (c.strategyParams && c.strategyParams.sippTotal) || 0;
+  if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
+  const oldIsa = (s.strategyParams && s.strategyParams.isaTotal != null) ? s.strategyParams.isaTotal : (s.isaBalance != null ? s.isaBalance : 0);
+  if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
+  const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
+  if (policy(c) !== policy(s)) diff.push({ id: 'isaPolicy', slots: { policy: policy(c), old: policy(s) } });
+  if (c.incomeShape === 'level' && (s.incomeShape === 'phases' || r0(c.baseSalary) !== r0(s.baseSalary))) diff.push({ id: 'income', slots: { income: r0(c.baseSalary), steps: s.incomeShape === 'phases' } });
+  if (c.duration !== (s.duration || 35)) diff.push({ id: 'years', slots: { years: c.duration, old: s.duration || 35 } });
+  if (c.disableProtection !== s.disableProtection && FAMILY.includes(c.strategyId)) diff.push({ id: 'cuts', slots: { on: !c.disableProtection } });
+  if (cutPctOf(c.protectionMult) !== cutPctOf(s.protectionMult)) diff.push({ id: 'cutPct', slots: { pct: cutPctOf(c.protectionMult), old: cutPctOf(s.protectionMult) } });
+  const esc = (x) => (num(x.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS);
+  if (esc(c) !== esc(s)) diff.push({ id: 'cutEsc', slots: { months: esc(c), old: esc(s) } });
+  return diff;
+}
+
 // ---- the three levers (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7) -----------------------------------------
 
 export const LEVER_KINDS = Object.freeze(['spendMore', 'work', 'fall']);

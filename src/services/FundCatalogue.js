@@ -255,3 +255,32 @@ const GROUPS = [
 export const DEFAULT_FUND_CATALOGUE = Object.freeze(
   GROUPS.flat().sort((a, b) => a.ticker.localeCompare(b.ticker))
 );
+
+// --- Fuzzy fund search (ticker OR company name; most-probable ranking, not just prefix) — index.html fuzzyFundScore and
+// searchFunds, lifted pure in 6.41.0 so the preview's "The mix" searches the bundled list the same way (research/v7/
+// way-and-mix.md 3.2c); the planner calls searchFunds with its live catalogue. --------------------------------------------
+export function fuzzyFundScore(q, ticker, name) {
+  q = q.toLowerCase().trim();
+  if (!q) return 0;
+  const t = ticker.toLowerCase(), n = name.toLowerCase();
+  if (t === q) return 1000;
+  if (t.startsWith(q)) return 900 - (t.length - q.length);
+  const words = n.split(/[^a-z0-9]+/).filter(Boolean);
+  if (words.some(w => w.startsWith(q))) return 820;
+  if (t.includes(q)) return 720;
+  if (n.includes(q)) return 660 - Math.min(50, n.indexOf(q));
+  // subsequence match (chars appear in order) — the "fuzzy" fallback
+  const sub = str => { let i = 0; for (const c of str) { if (c === q[i]) i++; if (i === q.length) return true; } return false; };
+  if (sub(t)) return 360;
+  if (sub(n)) return 300;
+  return 0;
+}
+/** The best `limit` matches of a query in a catalogue (the bundled one unless the caller hands in its own). */
+export function searchFunds(query, limit = 8, catalogue = DEFAULT_FUND_CATALOGUE) {
+  return catalogue
+    .map(f => ({ f, s: fuzzyFundScore(query, f.ticker, f.name) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s || a.f.ticker.localeCompare(b.f.ticker))
+    .slice(0, limit)
+    .map(x => x.f);
+}

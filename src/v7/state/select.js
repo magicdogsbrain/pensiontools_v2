@@ -757,3 +757,31 @@ export function planView(state) {
   if (!r || r.screen !== 'plan' || !page || page.forId !== r.planId || (page.forStep || null) !== (r.step || null)) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
   return { ...page, status: 'read' };
 }
+
+/**
+ * The lock, the unlock and a new version of the document (research/v7/road-to-7.md step 6): what the route's plan page
+ * draws beside its reading — a write under way for THIS plan (ui.saving: lock | unlock | document, or an editing step's save),
+ * the problem of the last one, the toast with Undo, and which confirm step is open (ui.open: lockConfirm, unlockConfirm,
+ * documentConfirm). Nothing worked out here.
+ */
+export function planActionsView(state) {
+  const r = state.route;
+  const id = r && r.screen === 'plan' && r.planId ? r.planId : null;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  return {
+    id,
+    saving: id && ui.saving && ui.saving.planId === id ? ui.saving : null,
+    problem: id && ui.saveProblem && ui.saveProblem.planId === id ? ui.saveProblem.problem : null,
+    toast: id && ui.toast && ui.toast.planId === id ? ui.toast : null,
+    confirm: open.includes('lockConfirm') ? 'lock' : open.includes('unlockConfirm') ? 'unlock' : open.includes('documentConfirm') ? 'document' : null
+  };
+}
+
+/** "Lock the plan" (road-to-7.md step 6): the plan page's reading of the lock step (read.js lockStep), with the actions above. */
+export function planLockView(state) {
+  const v = planView(state);
+  if (!v.found) return v;
+  const step = v.steps.find((s) => s.id === 'lock') || null;
+  return { ...v, lock: step, ...planActionsView(state) };
+}

@@ -13,30 +13,18 @@ import {
   getDecisionSettingsAsync, saveDecisionSettings, getHistoryAsync, getAllTaxYearsAsync, decisionSettingsChecksum
 } from '../storage/DecisionRepository.js';
 import { getActivePlanOfRecord, saveActivePlanOfRecord, archivePlanOfRecord, archivePlanDocument } from '../storage/ScenarioRepository.js';
-import { generateDrawdownSchedule } from './DrawdownService.js';
-import { generateGlidepathSchedule } from './GlidepathService.js';
-import { ENGINE_VERSION } from '../strategies/version.js';
+import { planOfRecordFor, PLAN_OF_RECORD_CPI } from './PlanCommit.js';
 
-export const PLAN_OF_RECORD_CPI = 0.04;   // decision-side assumed CPI: slightly pessimistic by design
+export { PLAN_OF_RECORD_CPI };
 
-/** A frozen projection of the current Decision settings — the yardstick "plan vs actual" uses. */
+/**
+ * A frozen projection of the current Decision settings — the yardstick "plan vs actual" uses. The body is
+ * PlanCommit.planOfRecordFor (6.38.0: the preview's lock builds the same record, byte for byte); this reads the settings
+ * when none are given and hands in the clock.
+ */
 export async function buildPlanOfRecord(settings) {
   const s = settings || await getDecisionSettingsAsync();
-  const assumedCpi = PLAN_OF_RECORD_CPI;
-  return {
-    savedAt: new Date().toISOString(),
-    engineVersion: ENGINE_VERSION,
-    assumedCpi,
-    baseSalary: s.baseSalary,
-    settingsChecksum: decisionSettingsChecksum(s),
-    // Frozen bands by default: the Decision tool draws to the tax-year wizard's fixed BRL, so a plan of
-    // record with inflating bands drifted above the actual draw every year (persona test B34).
-    // No fund and platform charges on the yardstick (6.19.0, D6): it is built from the Decision settings, frozen at lock,
-    // and "plan vs actual" reads it as it was — so 0 explicitly, whatever the settings carry.
-    drawdown: generateDrawdownSchedule({ ...s, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, s.duration || 35, assumedCpi, undefined, { chargesPct: 0 })
-      .map((r) => ({ year: r.year, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) })),
-    glidepath: generateGlidepathSchedule(s, assumedCpi).map((r) => ({ year: r.year, totalMin: Math.round(r.totalMin) }))
-  };
+  return planOfRecordFor(s, new Date());
 }
 
 /** What depends on the settings right now. Pure facts; the unlock modal is built from this. */

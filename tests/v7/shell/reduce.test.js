@@ -243,11 +243,16 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'endAge')).map(([planId, path]) => ({ type: A.PLAN_TOUCH, planId, path })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, {}, { 'stressTool.settings.duration': 32 })).map(([planId, previous]) => ({ type: A.PLAN_SAVED, planId, previous, line: { id: 'runsTo', slots: { endAge: 93, years: 32 } } })),
-  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly', 'notLocked', 'noWorker', 'noRun')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO_DONE, planId })),
   fc.constant({ type: A.PLAN_TOAST_CLOSE }),
+  // "Lock the plan" (road-to-7.md step 6): the lock, the unlock, a new version; a lock's toast with its moment
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_LOCK, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNLOCK, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_DOCUMENT, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('lock', 'unlock', 'document')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'decisionTool.settings.locked': false }, line: { id: 'locked', slots: { date: '2 October 2026' } }, op, lockedAt: '2026-10-02T14:03:00.000Z' })),
   // "Does it last?" (editing-in-v7.md 10.4): the one test's result for one plan, by its run key
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_WORKING, key })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 2 })).map(([key, done]) => ({ type: A.LASTS_PROGRESS, key, done, total: 2 })),

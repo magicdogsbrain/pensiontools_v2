@@ -24,6 +24,10 @@
  *      and the count of unlocks goes up (isUnlock). While the plan stays locked, its lock record (locked, lockedAt,
  *      lockedBy, unlockedAt, unlockCount) does not move — so a copy that merely says "not locked", from a tab that
  *      loaded the plan before it was locked, cannot lift the lock by being saved.
+ *    - Stress, WITH the unlock and only then (6.38.0, the preview's one-write unlock): the defaults a plan locked before a
+ *      setting existed gets on unlock — the charge (6.19.0) and how the ISA grows (6.22.0), exactly as PlanCommit.unlockPatchesOf
+ *      gives them for the stored settings. The planner writes them in a second save after its unlock; the preview sends
+ *      them in the same write (lockedPlanWriteRefusal). Any other Stress key, or either key at another value, is refused.
  *    - Decision: the one-off rewrite of the old "Declining with age" spending profile (v6.2.1, made on load by
  *      DecisionRepository.loadDecisionDBAsync and saved with the next tax-year save), and only when it is exactly
  *      that rewrite (isDecliningBake).
@@ -46,6 +50,7 @@
  */
 import { TIMING_PIN_KEYS } from './PlanTiming.js';
 import { spendingSmileFactor } from './SpendingModel.js';
+import { unlockPatchesOf } from './PlanCommit.js';
 
 export const PLAN_LOCKED_CODE = 'plan-locked';
 /** What the person is told when a write is refused. Plain, and says where the unlock is. */
@@ -203,8 +208,13 @@ export function lockedPlanWriteRefusal(plan, data, stressDefaults) {
   if (!isLockedSettings(before.decision) || !writeTouchesLockedParts(data)) return null;
   const after = lockedPartsAfter(plan, data);
   const orDefaults = (s) => (s === undefined ? stressDefaults : s);
+  // With the unlock, and only then: the Stress defaults an unlock gives the plan (unlockPatchesOf), at exactly those values.
+  const onUnlock = isUnlock(before.decision, after.decision) ? (unlockPatchesOf(orDefaults(before.stress)) || {}) : {};
+  const stressNext = orDefaults(after.stress);
+  const stressBad = (lockedWriteRefusal('stress', { locked: true, stored: orDefaults(before.stress), next: stressNext }) || [])
+    .filter((k) => !(k in onUnlock && isObj(stressNext) && text(stressNext[k]) === text(onUnlock[k])));
   const bad = [
-    ...(lockedWriteRefusal('stress', { locked: true, stored: orDefaults(before.stress), next: orDefaults(after.stress) }) || []).map((k) => 'stress.' + k),
+    ...stressBad.map((k) => 'stress.' + k),
     ...(lockedWriteRefusal('decision', { locked: true, stored: before.decision, next: after.decision }) || []).map((k) => 'decision.' + k),
     ...(text(before.strategy) !== text(after.strategy) ? ['strategy'] : [])
   ];

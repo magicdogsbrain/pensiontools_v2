@@ -94,7 +94,8 @@ test.describe('the saved plans, without an account', () => {
     // every link on the plan pages leads inside the preview or to the planner
     const links = await page.locator('#app a[href]').evaluateAll((els) => els.map((el) => el.getAttribute('href')));
     for (const href of links) expect(href).toMatch(/^(#\/|\.\.\/)/);
-    for (const href of links.filter((h) => h.startsWith('#/'))) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers']).toContain(screenName(parse(href)));
+    // (the rail's "Lock the plan" step draws its own screen since 6.38.0: road-to-7.md step 6)
+    for (const href of links.filter((h) => h.startsWith('#/'))) expect(['front', 'plans', 'plan', 'plan.lock', 'c.numbers', 'a.numbers', 'b.numbers']).toContain(screenName(parse(href)));
 
     // a reload: the plans are read again from the window, nothing kept in the page's own storage
     await page.reload();

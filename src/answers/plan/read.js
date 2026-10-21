@@ -19,7 +19,11 @@ import { saverPotOf } from '../../services/SaverReading.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
 import { optionsFor } from './options.js';
-import { answerAge } from './about.js';
+import { answerAge, bandsOf, netOf } from './about.js';
+import { isBought } from './pots.js';
+import { savedLasts } from './lasts.js';
+import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
+import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween } from './dates.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
@@ -170,6 +174,22 @@ function whereStep(C) {
     const parts = [count('months'), ' month' + (inc.recorded === 1 ? '' : 's') + ' recorded in ' + w.taxYear + ': ', money('drawn'), ' taken before tax'];
     if (inc.planned != null) { figures.planned = r0(inc.planned); parts.push('; the plan says ', money('planned'), ' for the year'); }
     result = sentence('where.retired', parts, figures);
+    // like with like (v6-usability-audit.md 2.6): what was taken in the months recorded against what the plan said for those
+    // months — the document's figure for the year, a twelfth a month (whereAmI's perMonth), times the months recorded —
+    // and the difference, said as less, more or the same; "because income was cut" only when a recorded month says the
+    // cut was on (the record's own inProtection flag), never a reckoning of its own
+    if (inc.recorded > 0 && inc.perMonth != null) {
+      const said = r0(inc.perMonth) * inc.recorded;
+      const diff = r0(inc.drawn) - said;
+      const key = String(C.ty % 100).padStart(2, '0') + '/' + String((C.ty + 1) % 100).padStart(2, '0');
+      const cutMonths = historyAscending(plan).filter((h) => h && h.taxYear === key && h.inProtection === true).length;
+      figures.said = said; figures.diff = Math.abs(diff); figures.cutMonths = cutMonths;
+      const head = [money('drawn'), ' taken; the plan said ', money('said'), ' for ' + (inc.recorded === 1 ? 'that month' : 'those months') + '; '];
+      const id = diff < 0 ? (cutMonths > 0 ? 'where.compareLessCut' : 'where.compareLess') : diff > 0 ? 'where.compareMore' : 'where.compareSame';
+      const tail = diff < 0 ? (cutMonths > 0 ? [money('diff'), ' less because income was cut in ' + (cutMonths === inc.recorded ? (cutMonths === 1 ? 'it' : 'all of them') : cutMonths + ' of them')] : [money('diff'), ' less than the plan said'])
+        : diff > 0 ? [money('diff'), ' more than the plan said'] : ['the same as the plan said'];
+      lines.push(line(id, [...head, ...tail], figures, sourceOf('record', null, now), { months: String(inc.recorded), cutMonths: String(cutMonths) }));
+    }
     lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (inc.planned != null) lines.push(line('where.planned', [money('planned')], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
@@ -223,6 +243,46 @@ function planStep(C) {
   } else if (first) {
     result = sentence('plan.noAge', [money('yearly'), ' a year before tax'], figures);
   } else result = sentence('plan.nothing', ['No figures yet'], figures);
+
+  // "Your plan as locked" opens on sentences (v6-usability-audit.md 2.6): the money before and after tax by age (the
+  // document's steps, after tax through the planner's own tax sum at the plan's own thresholds), the State Pension and
+  // whether it is assumed, the bad case (the worst 1 in 10, from the document's own verdict) and the rules for cutting
+  // income (the settings the lock froze, or "no cuts" for a bought strategy). The document only, never a live run.
+  if (locked && doc) {
+    const bands = bandsOf(doc.assumptions && num(doc.assumptions.pa) != null ? { pa: doc.assumptions.pa, brl: doc.assumptions.brl, hrl: doc.assumptions.hrl } : ss);
+    steps.forEach((st, i) => {
+      figures['saysGross' + i] = st.amount; figures['saysNet' + i] = Math.round(netOf(st.amount, bands) / 12);
+      const parts = [];
+      if (st.fromAge != null) { figures['saysAge' + i] = st.fromAge; parts.push('From age ', age('saysAge' + i), ': '); }
+      parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax');
+      if (st.taxYear) parts.push(' (tax year ' + st.taxYear + ')');
+      lines.push(line('says.pays', parts, figures, src));
+    });
+    const sp = doc.layers && doc.layers.sp;
+    const dp = doc.strategy && doc.strategy.p;
+    if (sp && num(sp.annual) > 0) { figures.saysSp = r0(sp.annual); figures.saysSpAge = r0(sp.fromAge); lines.push(line('says.sp', ['State Pension: ', money('saysSp'), ' a year from age ', age('saysSpAge')], figures, src)); }
+    else if (dp && dp.spAssumed && num(dp.spAnnual) > 0) { figures.saysSp = r0(dp.spAnnual); const at = (num(dp.startAge) || 0) + (num(dp.spStartYear) || 0); figures.saysSpAge = at; lines.push(line('says.spAssumed', ['State Pension: assumed, ', money('saysSp'), ' a year from age ', age('saysSpAge'), ', because no State Pension figure was entered'], figures, src)); }
+    else lines.push(line('says.noSp', ['No State Pension in this plan'], figures, src));
+    const dr = doc.strategy && doc.strategy.r;
+    const a = dr && typeof dr === 'object' ? oneAnswer(dr, dp || {}) : null;
+    if (a) {
+      figures.saysBad = r0(a.badCaseLeft); figures.saysTypical = r0(a.typicalLeft);
+      if (doc.strategy.contract) lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+      else lines.push(line('says.bad', ['Your plan lasts ' + futuresOutOfTen(a.share).words + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+    }
+    const sl = savedLasts(plan, { today: now.toISOString().slice(0, 10) });
+    const v = sl.values;
+    if (sl.bought) lines.push(line('says.cutsBought', ['Income cuts: none. ' + (sl.strategyId === 'floor-and-flex' ? 'The treats flex instead' : 'This way of drawing pays the plan in full until it cannot')], figures, src));
+    else if (v.cutsOn !== 'yes') lines.push(line('says.cutsOff', ['Income cuts: none. The plan is paid in full until the money runs out'], figures, src));
+    else {
+      figures.saysBuffer = r0(v.buffer || 0); figures.saysMonths = v.cutAfterMonths; figures.saysCut = v.cutPct; figures.saysHalf = Math.round(v.cutPct / 2); figures.saysFirst = v.deeperAfterMonths;
+      const parts = ['Income cuts: in a slump, after ', count('saysMonths'), ' month' + (v.cutAfterMonths === 1 ? '' : 's') + ' in a row below the plan’s line, income is cut by '];
+      if (v.deeperAfterMonths > 0) parts.push(count('saysHalf'), '% for ', count('saysFirst'), ' months and by ', count('saysCut'), '% if the slump lasts');
+      else parts.push(count('saysCut'), '%');
+      parts.push('; the cut ends once the pots are ', money('saysBuffer'), ' above the line again, and missed income is made up later');
+      lines.push(line('says.cuts', parts, figures, src));
+    }
+  }
 
   // About you
   const about = [];
@@ -328,7 +388,11 @@ function planStep(C) {
   else if (!readonly) buttons.push(link('lasts', '#/plan/' + plan.id + '/lasts'));
   const journey = Array.isArray(plan.journey) ? plan.journey.filter((j) => j && j.stage).map((j) => ({ stage: j.stage, on: dayWords(j.at), arrival: /arrival/i.test(String(j.note || '')) })) : [];
   const pastVersions = Array.isArray(plan.planDocumentArchive) ? plan.planDocumentArchive.length : 0;
-  return { done: stage.key !== 'unknown', result, figures, lines, buttons, notes, sections, options, allOptions, journey, pastVersions, lockedOn: locked ? dayWords(lockedAt) : null };
+  // the unlock's confirm (road-to-7.md step 6): the defaults a plan locked before a setting existed gets on unlocking (PlanCommit.unlockPatchesOf)
+  const up = locked ? (unlockPatchesOf(ss) || {}) : {};
+  const unlockDefaults = [...('chargesPct' in up ? [{ id: 'charges', value: String(up.chargesPct) }] : []), ...('isaGrowth' in up ? [{ id: 'isa', value: String(up.isaGrowth) }] : [])];
+  return { done: stage.key !== 'unknown', result, figures, lines, buttons, notes, sections, options, allOptions, journey, pastVersions, lockedOn: locked ? dayWords(lockedAt) : null,
+    hasDocument: !!doc, documentOn: doc ? dayWords(doc.createdAt || doc.lockedAt || lockedAt) : null, unlockDefaults };
 }
 
 /** This month's pot (2.3 `pot`). */
@@ -393,11 +457,25 @@ function budgetStep(C) {
   return { done: workedOut, result, figures, lines, buttons: [button('changeBudget', 'budget')], notes: ['budget.guide'] };
 }
 
-/** Lock the plan (2.3 `lock`): on an unlocked plan only. */
+/**
+ * Lock the plan (2.3 `lock`; road-to-7.md step 6): its own screen in V7 (src/v7/screens/plan/LockScreen.jsx). On an unlocked
+ * plan: what the lock fixes, what stays changeable, what you get — said by the screen from copy/lock.js; the facts here are
+ * whether the person is still saving, the way of drawing and whether it buys its income (the cut rules line). On a locked
+ * plan (the address opened by hand, R7): "Locked {date}" and the way to "Your plan as locked".
+ */
 function lockStep(C) {
+  const { plan, stage, locked, ss } = C;
+  const saver = SAVER_STAGES.includes(stage.key);
+  const strategyId = stratId(plan, ss);
+  const bought = isBought(strategyId);
+  const figures = {};
+  if (locked) {
+    const lockedOn = dayWords(lockedAtOf(plan));
+    return { done: true, result: sentence('lock.locked', ['Locked ' + lockedOn], figures), figures, lines: [], buttons: [link('seeLocked', '#/plan/' + plan.id + '/plan')], notes: [], locked: true, lockedOn, saver, strategyId, bought, hasDocument: !!plan.planDocument };
+  }
   const notes = ['lock.what'];
-  if (SAVER_STAGES.includes(C.stage.key)) notes.push('lock.saver');
-  return { done: false, result: sentence('lock.notLocked', ['Not locked'], {}), figures: {}, lines: [], buttons: [button('lockIt', 'lock')], notes };
+  if (saver) notes.push('lock.saver');
+  return { done: false, result: sentence('lock.notLocked', ['Not locked'], figures), figures, lines: [], buttons: [], notes, locked: false, lockedOn: null, saver, strategyId, bought, hasDocument: false };
 }
 
 /** What you hold (2.3 `hold`). */

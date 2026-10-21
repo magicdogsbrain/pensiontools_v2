@@ -7,7 +7,10 @@
  * plan on the reference machine.
  */
 import { describe, it, expect } from 'vitest';
-import { runLasts, planFor } from '../../../src/answers/plan/lastsRun.js';
+import { runLasts, planFor, runForDocument, savingPathFor, documentAccumulationOf, documentHoldingsOf } from '../../../src/answers/plan/lastsRun.js';
+import { buildPlanDocument, trimPlan, trimResult } from '../../../src/services/PlanDocument.js';
+import { savingPathForLock } from '../../../src/ui/savingPathForLock.js';
+import { lockPatch } from '../../../src/answers/plan/lock.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
 import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
@@ -96,5 +99,60 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
     changed.stressTool.settings.consecutiveLimit = 4;
     const a = runLasts(plan, { today: TODAY }).a, b = runLasts(changed, { today: TODAY }).a;
     expect([a.chancePct, a.typicalLeft, a.cuts && a.cuts.typicalCutPerYear]).not.toEqual([b.chancePct, b.typicalLeft, b.cuts && b.cuts.typicalCutPerYear]);
+  });
+});
+
+
+/**
+ * "Lock the plan" (research/v7/road-to-7.md step 6): the document the preview writes equals the planner's buildPlanDocument on
+ * the same plan — index.html buildPlanDocumentNow's run (strategyPlanFor with the budget's essentials, stressTestStrategy live,
+ * savingPathForLock) built with the same clock — to the byte, trimPlan and trimResult applied the same way.
+ */
+describe('the document\'s run in the preview equals the planner\'s document, to the byte', { timeout: 180_000 }, () => {
+  async function plannerDocument(plan, { essentials = 0, budgetGross = 0, lockedAt, lockedBy }) {
+    const s = effectiveStressSettings(plan, { now });
+    const sid = s.strategyId || 'pots-and-valves';
+    const ess = essentials > 0 ? essentials : undefined;
+    // index.html strategyPlanFor(settings, essentialsOverride) + stressTestStrategy, the same clock
+    const p = planFromSettings(s, createSimulationConfigFromSettings({}, s), { yieldForYear: realYieldForYear, essentialsAnnual: ess, startAge: +s.shapeAgeNow || 57, now });
+    const r = stressTestStrategy(sid, p);
+    const accumulation = (plan.accumulationTool && plan.accumulationTool.settings) || {};
+    const savingPath = await savingPathForLock({ settings: s, accumulation, holdings: documentHoldingsOf(plan), now });
+    return buildPlanDocument({ planName: plan.planDetails.name || 'My plan', holdings: documentHoldingsOf(plan), settings: s, p, r, lockedAt, lockedBy, budgetGross, essentials, journey: plan.journey || [], accumulation, now, savingPath });
+  }
+  for (const [name, raw] of Object.entries(C)) {
+    if (isLocked(raw)) continue;
+    it(`${name}: lockPatch's document is the planner's`, async () => {
+      const plan = entryOf(raw).plan;
+      const run = runForDocument(plan, { today: TODAY });
+      expect(JSON.parse(JSON.stringify(run))).toEqual(run);
+      expect(run.p).toEqual(trimPlan(run.p));
+      expect(run.r).toEqual(trimResult(run.r));
+      const P = lockPatch(plan, { now, run, entries: [{ plan }] });
+      const theirs = await plannerDocument(plan, { lockedAt: P.lockedAt, lockedBy: 'locked in the preview' });
+      expect(P.patch.planDocument).toEqual(theirs);
+      expect(JSON.stringify(P.patch.planDocument)).toBe(JSON.stringify(theirs));
+    });
+  }
+  it('with the budget\'s essentials (a plan with a budget line): the plan is built with them, as strategyPlanFor builds it for the document and not for the one test', async () => {
+    const plan = entryOf(C['02-pnv-draft']).plan;
+    const withBudget = JSON.parse(JSON.stringify(plan));
+    withBudget.budgetTool.settings = { ...withBudget.budgetTool.settings, lines: [{ id: 'l1', heading: 'Home', label: 'Rent', annual: 30000, tier: 'essential' }] };
+    const P = lockPatch(withBudget, { now, run: runForDocument(withBudget, { today: TODAY, essentials: 34358 }), entries: [{ plan: withBudget }] });
+    const theirs = await plannerDocument(withBudget, { essentials: 34358, budgetGross: 34358, lockedAt: P.lockedAt, lockedBy: 'locked in the preview' });
+    // the plan's essentials line reaches p (planFromSettings essentialsAnnual) and the layers
+    expect(P.patch.planDocument.strategy.p.essentialsAnnual).toBe(34358);
+    expect(P.patch.planDocument.layers.essentials).toBe(34358);
+    expect(P.patch.planDocument.strategy).toEqual(theirs.strategy);
+    const one = runLasts(withBudget, { today: TODAY });
+    expect(one.a).toBeTruthy();
+  });
+  it('a saver\'s run carries the saving path the planner draws (10), none for a plan already retired (02)', () => {
+    const saver = entryOf(C['10-couple-b']).plan;
+    const run = runForDocument(saver, { today: TODAY });
+    expect(run.savingPath).toBeTruthy();
+    expect(run.savingPath.version).toBe(3);
+    expect(savingPathFor({ settings: effectiveStressSettings(saver, { now }), accumulation: documentAccumulationOf(saver), holdings: documentHoldingsOf(saver), now })).toEqual(run.savingPath);
+    expect('savingPath' in runForDocument(entryOf(C['02-pnv-draft']).plan, { today: TODAY })).toBe(false);
   });
 });

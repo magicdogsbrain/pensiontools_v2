@@ -67,7 +67,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   const loadPlanSource = (state) => {
     if (planSource || !onPlanPage(state)) return;
     planSource = import('./planSource.js')
-      .then((m) => { const stop = m.startPlanSource(store, { win, local: localStore(win), session: sessionStore(win) }); stops.push(stop); return stop; })
+      // the worker client goes with it: the lock's write runs the plan's own test in the worker first (road-to-7.md step 6)
+      .then((m) => { const stop = m.startPlanSource(store, { win, local: localStore(win), session: sessionStore(win), client }); stops.push(stop); return stop; })
       .catch(() => { store.dispatch({ type: A.PLANS_FAILED }); return () => {}; });
   };
   loadPlanSource(store.getState());

@@ -26,7 +26,12 @@ import { isPlanEditPath } from '../../answers/plan/schema.js';
 /** The plan draft (editing-in-v7.md 4, 7.2): what was typed into an editing step for ONE plan; gone when the plan changes. */
 const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
 const withPlanDraft = (state, plan) => ({ ...state, draft: { ...state.draft, plan } });
-const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly'];
+const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly',
+  // the lock (road-to-7.md step 6): not locked (an unlock or a new version on an unlocked plan), no worker to run the plan's
+  // test in, the test gave nothing to write
+  'notLocked', 'noWorker', 'noRun'];
+/** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document. */
+const PLAN_OPS = [null, 'lock', 'unlock', 'document'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -573,10 +578,14 @@ export function reduce(state, action) {
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     case A.PLAN_SAVED: {
-      const { planId, previous = null, line = null } = action;
+      const { planId, previous = null, line = null, op = null, lockedAt = null } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/saved: needs a plan id');
+      if (!PLAN_OPS.includes(op)) return refuse(`plan/saved: "${op}" is not a write it knows`);
       const hasPrevious = !!previous && typeof previous === 'object' && Object.keys(previous).length > 0;
-      const toast = hasPrevious ? { planId, kind: 'saved', previous, line: line && typeof line === 'object' ? line : null } : { planId, kind: 'unchanged', previous: null, line: null };
+      // the lock's toast remembers the moment of the lock (lockedAt): Undo is allowed only as the exact reverse of that lock
+      const marks = op ? { op, ...(op === 'lock' && typeof lockedAt === 'string' ? { lockedAt } : {}) } : {};
+      const toast = hasPrevious ? { planId, kind: 'saved', previous, line: line && typeof line === 'object' ? line : null, ...marks }
+        : { planId, kind: 'unchanged', previous: null, line: null, ...marks };
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
     }
     case A.PLAN_SAVE_FAILED: {
@@ -592,12 +601,25 @@ export function reduce(state, action) {
     case A.PLAN_UNDO: {
       const t = state.ui.toast;
       if (!t || t.kind !== 'saved' || t.planId !== action.planId || state.ui.saving) return state;
-      return { ...state, ui: { ...state.ui, saving: { planId: t.planId, kind: 'undo', previous: t.previous }, toast: { ...t, kind: 'undoing' } } };
+      const marks = t.op ? { op: t.op, ...(t.lockedAt ? { lockedAt: t.lockedAt } : {}) } : {};
+      return { ...state, ui: { ...state.ui, saving: { planId: t.planId, kind: 'undo', previous: t.previous, ...marks }, toast: { ...t, kind: 'undoing' } } };
     }
     case A.PLAN_UNDO_DONE: {
       const t = state.ui.toast;
       if (!t || t.planId !== action.planId) return { ...state, ui: { ...state.ui, saving: null } };
-      return { ...state, ui: { ...state.ui, saving: null, toast: { planId: t.planId, kind: 'undone', previous: null, line: null } } };
+      return { ...state, ui: { ...state.ui, saving: null, toast: { planId: t.planId, kind: 'undone', previous: null, line: null, ...(t.op ? { op: t.op } : {}) } } };
+    }
+    // ---- the lock, the unlock and a new version of the document (road-to-7.md step 6): one write each, the effect runs it ----
+    case A.PLAN_LOCK:
+    case A.PLAN_UNLOCK:
+    case A.PLAN_DOCUMENT: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
+      if (state.ui.saving) return state;
+      const kind = action.type === A.PLAN_LOCK ? 'lock' : action.type === A.PLAN_UNLOCK ? 'unlock' : 'document';
+      // the confirm step closes with the press
+      const open = state.ui.open.filter((id) => !['lockConfirm', 'unlockConfirm', 'documentConfirm'].includes(id));
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TOAST_CLOSE:
       return state.ui.toast === null ? state : { ...state, ui: { ...state.ui, toast: null } };

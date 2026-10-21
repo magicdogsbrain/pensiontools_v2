@@ -6,6 +6,9 @@
  *   { id, type: 'init', today }                     { id, ready: true, historyEnd, engineVersion }
  *   { id, type: 'answer', q: 'c', inputs, env }     { id, progress: { done, total } } …  then  { id, result }  or  { id, error }
  *   { id, type: 'lasts', plan, env: { today } }     the same shape: a saved plan's one test (answers/plan/lastsRun.js, loaded lazily)
+ *   { id, type: 'document', plan, env: { today, essentials } }
+ *                                                   the same shape: the run a plan document is built from on a lock or a new
+ *                                                   version (lastsRun.js runForDocument, the same lazy chunk; road-to-7.md step 6)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -39,10 +42,11 @@ function historyEndOf(answers) {
  */
 const loadLasts = () => import('../../answers/plan/lastsRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
-  const runLasts = async (msg, post, id) => {
+  /** `lasts` and `document` share the lazy chunk: the one test, or the run the plan document is built from. */
+  const runLazy = async (msg, post, id, which) => {
     const env = { ...(msg.env || {}) };
     if (!env.today && today) env.today = today;
     let lastStep = -1;
@@ -52,10 +56,11 @@ export function createHandler(answers = ANSWERS, { lasts = null } = {}) {
       lastStep = step;
       post({ id, progress: { done, total } });
     };
-    const fn = lasts || (await loadLasts()).runLasts;
-    const result = fn(msg.plan, { today: env.today, onProgress });
+    const fn = which === 'document' ? (document || (await loadLasts()).runForDocument) : (lasts || (await loadLasts()).runLasts);
+    const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress }) : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };
+  const runLasts = (msg, post, id) => runLazy(msg, post, id, 'lasts');
   return function handle(msg, post) {
     const id = msg && msg.id;
     try {
@@ -68,6 +73,11 @@ export function createHandler(answers = ANSWERS, { lasts = null } = {}) {
       if (msg.type === 'lasts') {
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error('lasts: no plan');
         runLasts(msg, post, id).catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'document') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('document: no plan');
+        runLazy(msg, post, id, 'document').catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'answer') {

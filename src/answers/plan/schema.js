@@ -21,6 +21,9 @@
  *   LASTS_FIELDS, LASTS_WRITES, isLastsPath
  *                      the fifth step, "Does it last?" (editing-in-v7.md 10): the spending cuts in a slump and the emergency
  *                      reserve, and the ONLY field paths it may write (the run itself writes nothing)
+ *   DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES
+ *                      "Lock the plan" (road-to-7.md step 6): the ONLY field paths the lock, the unlock and "Write a new
+ *                      version from today's settings" may write — the planner's own, field for field
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -294,6 +297,68 @@ export const LASTS_WRITES = Object.freeze([
   'stressTool.settings.hodlValue'
 ]);
 
+// ---- "Lock the plan" (research/v7/road-to-7.md step 6; your-plan.md 1.3, 7; v6-usability-audit.md 2.6) ---------------------
+
+export const LOCK_STEP = 'lock';
+
+/**
+ * Every key the Decision tool's seed from the Stress settings may set or change (services/PlanCommit.js seedDecisionFromStress:
+ * the planner's own default Decision settings and the keys the seed sets explicitly), listed by hand — the seed is written as
+ * one dotted path per key that changes, and a test proves the seed never produces a key outside this list.
+ */
+export const DECISION_SEED_KEYS = Object.freeze([
+  'accessMethod', 'allocMode', 'bandFillRecycle', 'baseSalary', 'bedAndIsa', 'bondMin', 'cashTarget', 'configured',
+  'consecutiveLimit', 'disableProtection', 'diversifierStart', 'duration', 'equityGlideEnabled', 'equityMin', 'firstTaxYear',
+  'giaTaxBand', 'glideEndgame', 'incomeShape', 'incomeSteps', 'isaBalance', 'isaDrawdownStrategy', 'isaMin', 'isaReturn',
+  'protectionEscalateMonths', 'protectionFactor', 'recoveryBuffer', 'relevantEarnings', 'seededFrom', 'shapeAgeNow',
+  'spStartDate', 'spWeeklyAmount', 'spendingProfile', 'statePension', 'statePensionYear', 'strategyId', 'strategyParams',
+  'subAsset', 'taggedFunds', 'taxableMix', 'taxableStart', 'ufplsThenPcls', 'ufplsYears', 'windfalls'
+]);
+
+/** The lock's own keys: the flag, its date and who made it (PlanLock.lockPlanIfNeeded), each a dotted path. */
+export const LOCK_FLAG_WRITES = Object.freeze([
+  'decisionTool.settings.locked',
+  'decisionTool.settings.lockedAt',
+  'decisionTool.settings.lockedBy'
+]);
+
+/**
+ * Every dotted field path the lock may write (index.html commitPlanLock, field for field): the Decision tool seeded from the
+ * Stress settings, the lock's flags, the plan of record (the planner's yardstick for its records, one map), the plan document
+ * (one map) and the journey (the stage change the lock causes).
+ */
+export const LOCK_WRITES = Object.freeze([
+  ...DECISION_SEED_KEYS.map((k) => 'decisionTool.settings.' + k),
+  ...LOCK_FLAG_WRITES,
+  'decisionTool.planOfRecord',
+  'planDocument',
+  'journey'
+]);
+
+/**
+ * Every dotted field path the unlock may write (PlanLock.unlockPlan + ScenarioRepository.archivePlanDocument /
+ * archivePlanOfRecord, and the defaults of PlanCommit.unlockPatchesOf): the document and the plan of record each into its
+ * archive (the last ten kept) and cleared, the flag off, the unlock dated and counted, and the Stress defaults a plan locked
+ * before a setting existed gets.
+ */
+export const UNLOCK_WRITES = Object.freeze([
+  'planDocumentArchive',
+  'planDocument',
+  'decisionTool.planOfRecordArchive',
+  'decisionTool.planOfRecord',
+  'decisionTool.settings.locked',
+  'decisionTool.settings.unlockedAt',
+  'decisionTool.settings.unlockCount',
+  'stressTool.settings.chargesPct',
+  'stressTool.settings.isaGrowth'
+]);
+
+/** "Write a new version from today's settings" (index.html createPlanDocumentNow): the current document archived, a new one written. */
+export const DOCUMENT_WRITES = Object.freeze([
+  'planDocumentArchive',
+  'planDocument'
+]);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
   return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path);
@@ -314,5 +379,5 @@ export const INCOME_WRITES = Object.freeze([
 ]);
 
 /** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES });
-export const ALL_WRITES = Object.freeze([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...BOOKKEEPING_WRITES]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES });
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...BOOKKEEPING_WRITES])]);

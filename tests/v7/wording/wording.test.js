@@ -25,6 +25,7 @@ import { INCOME } from '../../../src/v7/copy/income.js';
 import { SPEND } from '../../../src/v7/copy/spend.js';
 import { POTS } from '../../../src/v7/copy/pots.js';
 import { LASTS } from '../../../src/v7/copy/lasts.js';
+import { LOCK } from '../../../src/v7/copy/lock.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -182,6 +183,23 @@ describe('the words in src/v7/copy/', () => {
     expect(LASTS.verdict['lasts.headline']).toBe('Your plan lasts {words}.');
     expect(LASTS.rows.left).toContain('a bad case (the worst 1 in 10)');
     expect(strings(LASTS).some(([, s]) => /worst of 1,000|worst case/i.test(s))).toBe(false);
+  });
+  it('"Lock the plan" (lock.js): every string passes in every scope a plan page is shown in; no slot left unfilled; no jargon for the plan of record', () => {
+    // the lock step, the unlock's confirm and the new version are plan pages (road-to-7.md step 6): a retired person's and a saver's plan alike
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{versions\}/g, '10').replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{charges\}/g, '0.5')
+      .replace(/\{which\}/g, 'fund and platform charges of 0.5% a year');
+    const hits = [];
+    const all = strings(LOCK).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(LOCK)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lock.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(LOCK)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|plan of record|yardstick|checksum|Firestore)\b/i);
+    for (const [where, s] of strings(LOCK)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    for (const [where, s] of strings(LOCK.buttons)) expect(s, where).not.toMatch(/^run\b/i);
+    // the lock is offered once, on its own step; the unlock once, on "Your plan as locked"; never a browser dialog's words
+    expect(LOCK.buttons.lock).toBe('Lock this plan');
+    expect(LOCK.unlock.button).toBe('Unlock this plan');
+    expect(strings(LOCK).some(([, s]) => /\b(OK|Cancel)\b/.test(s))).toBe(false);
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

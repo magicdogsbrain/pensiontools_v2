@@ -24,6 +24,7 @@ import { IncomeScreen } from './plan/IncomeScreen.jsx';
 import { SpendScreen as SpendPlan } from './plan/SpendScreen.jsx';
 import { PotsScreen } from './plan/PotsScreen.jsx';
 import { LastsScreen } from './plan/LastsScreen.jsx';
+import { LockScreen } from './plan/LockScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -50,5 +51,7 @@ export const SCREENS = {
   'plan.income': IncomeScreen,
   'plan.spend': SpendPlan,
   'plan.pots': PotsScreen,
-  'plan.lasts': LastsScreen
+  'plan.lasts': LastsScreen,
+  // "Lock the plan", the rail step made real (research/v7/road-to-7.md step 6)
+  'plan.lock': LockScreen
 };

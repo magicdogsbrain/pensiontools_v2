@@ -4,12 +4,74 @@
  * uses". Nothing typeable; nothing worked out here (state/select.js planView). "Change this" leaves for the planner by
  * the hand-over (plan/change); without an account the warning says what to press there.
  */
-import { PlanRail, PlanLine, PlanSentence, PlanButtons, fill, Button, LinkButton, Money } from '../../components/index.js';
-import { planView, plansView } from '../../state/select.js';
+import { PlanRail, PlanLine, PlanSentence, PlanButtons, UndoToast, fill, Button, LinkButton, Money } from '../../components/index.js';
+import { planView, plansView, planActionsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
+import { LOCK } from '../../copy/lock.js';
 
 const w = PLAN.page;
+const keepFocus = { onMouseDown: (e) => e.preventDefault() };
+
+/**
+ * On "Your plan as locked" only (owner question 4(a); road-to-7.md step 6): the one place V7 offers to unlock, and "Write a
+ * new version from today's settings" — each a quiet button, a confirm step on the page, one write (effects/planWrite.js).
+ */
+function LockedActions({ step, view, acts, dispatch }) {
+  const planId = view.id;
+  const saving = acts.saving && (acts.saving.kind === 'unlock' || acts.saving.kind === 'document') ? acts.saving.kind : null;
+  const problem = acts.problem ? (LOCK.problems[acts.problem] || LOCK.problems.failed) : null;
+  const versions = String(step.pastVersions || 0);
+  const hasDocument = !!step.hasDocument;
+  const toggle = (id) => dispatch({ type: 'ui/toggle', id });
+  return (
+    <section class="plan-section locked-actions" data-region="locked-actions" data-saving={saving || ''}>
+      <p class="note" data-testid="plan.unlock">{w.unlock}</p>
+      {saving === 'unlock' && <p class="working" role="status" data-testid="plan.plan.unlocking">{LOCK.unlock.working}</p>}
+      {saving === 'document' && <div class="working" role="status" data-testid="plan.plan.writing"><p class="working-title">{LOCK.document.working}</p><progress aria-label={LOCK.working.progress} /></div>}
+      {!saving && !view.readonly && acts.confirm !== 'unlock' && acts.confirm !== 'document' && (
+        <div class="actions-row">
+          <Button testid="plan.plan.unlock" kind="quiet" onClick={() => toggle('unlockConfirm')} {...keepFocus}>{LOCK.unlock.button}</Button>
+          <Button testid="plan.plan.newVersion" kind="quiet" onClick={() => toggle('documentConfirm')} {...keepFocus}>{hasDocument ? LOCK.document.button : LOCK.document.firstButton}</Button>
+        </div>
+      )}
+      {!saving && !view.readonly && acts.confirm === 'unlock' && (
+        <div class="notice lock-confirm" role="region" aria-label={LOCK.unlock.title} data-testid="plan.plan.unlockConfirm">
+          <h3>{LOCK.unlock.title}</h3>
+          <p>{fill(LOCK.unlock.keeps, { versions: '10' })}</p>
+          <p>{LOCK.unlock.means}</p>
+          {step.unlockDefaults && step.unlockDefaults.length > 0 && <p>{fill(LOCK.unlock.defaults, { which: step.unlockDefaults.map((d) => (d.id === 'charges' ? fill(LOCK.unlock.defaultsCharges, { charges: d.value }) : LOCK.unlock.defaultsIsa)).join(' and ') })}</p>}
+          <div class="actions-row">
+            <Button testid="plan.plan.unlockConfirm.yes" kind="primary" onClick={() => dispatch({ type: 'plan/unlock', planId })} {...keepFocus}>{LOCK.unlock.confirm}</Button>
+            <Button testid="plan.plan.unlockConfirm.no" kind="quiet" onClick={() => toggle('unlockConfirm')} {...keepFocus}>{LOCK.unlock.keep}</Button>
+          </div>
+        </div>
+      )}
+      {!saving && !view.readonly && acts.confirm === 'document' && (
+        <div class="notice lock-confirm" role="region" aria-label={hasDocument ? LOCK.document.title : LOCK.document.firstTitle} data-testid="plan.plan.documentConfirm">
+          <h3>{hasDocument ? LOCK.document.title : LOCK.document.firstTitle}</h3>
+          <p>{hasDocument ? fill(LOCK.document.keeps, { date: step.documentOn || view.lockedOn || '', versions: '10' }) : LOCK.document.first}</p>
+          <p>{LOCK.document.means}</p>
+          <p>{LOCK.document.nothingElse}</p>
+          <div class="actions-row">
+            <Button testid="plan.plan.documentConfirm.yes" kind="primary" onClick={() => dispatch({ type: 'plan/newVersion', planId })} {...keepFocus}>{hasDocument ? LOCK.document.confirm : LOCK.document.firstConfirm}</Button>
+            <Button testid="plan.plan.documentConfirm.no" kind="quiet" onClick={() => toggle('documentConfirm')} {...keepFocus}>{hasDocument ? LOCK.document.keep : LOCK.document.notNow}</Button>
+          </div>
+        </div>
+      )}
+      {problem && <p class="notice" role="alert" data-testid="plan.plan.problem" data-problem={acts.problem}>{problem}</p>}
+      {step.pastVersions > 0 && <p class="note">{fill(w.pastVersions, { n: versions })}</p>}
+    </section>
+  );
+}
+
+const toastText = (toast) => {
+  if (toast.kind === 'undone') return LOCK.toast.undone;
+  if (toast.kind === 'unchanged') return LOCK.toast.unchanged;
+  const line = toast.line;
+  if (line && LOCK.toast[line.id]) return fill(LOCK.toast[line.id], line.slots);
+  return LOCK.toast.locked;
+};
 
 function Section({ section, view, onChange }) {
   const title = PLAN.sections[section.id];
@@ -86,6 +148,9 @@ export function PlanScreen(state, dispatch) {
   const step = view.steps.find((s) => s.id === view.current) || view.steps[0];
   const stepName = step.id === 'plan' && view.locked ? PLAN.steps.plan.locked : PLAN.steps[step.id].label;
   const allOpen = state.ui.open.includes('allOptions');
+  // the lock's, the unlock's and the new version's state for THIS plan (the toast after a lock lands here, "Your plan as locked")
+  const acts = planActionsView(state);
+  const lockToast = acts.toast && acts.toast.op && (acts.toast.op === 'lock' || acts.toast.op === 'unlock' || acts.toast.op === 'document') ? acts.toast : null;
   return {
     question: null,
     rail: <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />,
@@ -112,8 +177,7 @@ export function PlanScreen(state, dispatch) {
             <>
               {step.sections.map((sec) => <Section key={sec.id} section={sec} view={{ figures: step.figures, lockedOn: view.lockedOn, readonly: view.readonly }} onChange={onChange} />)}
               <Options step={step} view={{ lockedOn: view.lockedOn, readonly: view.readonly }} open={allOpen} dispatch={dispatch} onChange={onChange} />
-              {view.locked && <p class="note" data-testid="plan.unlock">{w.unlock}</p>}
-              {view.locked && step.pastVersions > 0 && <p class="note">{fill(w.pastVersions, { n: String(step.pastVersions) })}</p>}
+              {view.locked && <LockedActions step={step} view={view} acts={acts} dispatch={dispatch} />}
               {step.journey && step.journey.length > 0 && (
                 <div class="plan-journey">
                   <h3>{w.journeyTitle}</h3>
@@ -127,6 +191,8 @@ export function PlanScreen(state, dispatch) {
         <div class="actions-row">
           <LinkButton testid="plan.toPlans" kind="quiet" href={href.plans()}>{PLAN.list.toPlans}</LinkButton>
         </div>
+        <UndoToast prefix="plan.plan" toast={lockToast} text={lockToast ? toastText(lockToast) : ''} words={LOCK.buttons}
+          onUndo={() => dispatch({ type: 'plan/undo', planId: view.id })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
       </>
     )
   };

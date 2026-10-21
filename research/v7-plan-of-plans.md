@@ -218,3 +218,15 @@ editing in V7 → …). Work leaner from here: direct edits and small agent coun
 The owner: "Review where we are and move completely to v7. Go through all steps necessary to get there." Road steps 1–5
 are shipped (6.23.0–6.31.0) and the strategy-blind sweep is done (6.32.0–6.37.0). The plan for the rest — steps 6 to 11
 and the switch, one release each, with the gates and the decisions taken — is `research/v7/road-to-7.md`.
+
+Progress: **step 6 shipped as 6.38.0 (21 Oct 2026)** — "Lock the plan" is a V7 step; the lock is the planner's own in one
+write (lockedBy "locked in the preview"); the unlock is offered once on "Your plan as locked"; "Write a new version";
+the four opening sentences; "Where you are" like with like. The pure parts of the lock live in `src/services/PlanCommit.js`.
+Step 7 (D, and V7 makes its own plans) started the same day.
+
+Progress: **step 7 shipped as 6.39.0 (21 Oct 2026)** — "I'm retired. Will it last?" (D) is open at `#/d/numbers`: one
+form, the verdict at what you take with the band ("Could I spend more?"), and two levers tried on the answer's own
+futures ("Would some work help?", "What if shares fell by a fifth?"); the same three levers are a "Try a change" section
+of every saved plan's "Does it last?", run in the worker on a copy; "Keep this as a plan" makes the plan in the preview
+itself (one `addDoc` per plan in the account, or this window's list) and the seed hand-over effect is retired. The
+planner's mapping of a seed lives pure in `src/services/PlanFromSeed.js`. Next: step 8 (way, then mix and Try).

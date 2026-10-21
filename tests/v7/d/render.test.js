@@ -18,6 +18,7 @@ import { KEEP } from '../../../src/v7/copy/keep.js';
 import { LAYOUT_D } from '../../../src/v7/screens/d/NumbersScreen.jsx';
 import { SHORT } from '../../../src/v7/screens/a/AnswerScreen.jsx';
 import { reduce } from '../../../src/v7/state/reduce.js';
+import { VERSION } from '../../../src/constants.js';
 import { A as ACT } from '../../../src/v7/state/actions.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { dWayIn, keepView } from '../../../src/v7/state/select.js';
@@ -51,7 +52,7 @@ describe('D: the named states', () => {
     expect(Object.keys(s.draft)).toContain('d');
     expect(s.route).toMatchObject({ screen: 'step', q: 'd' });
     expect(s.env.today).toBe('2026-09-30');
-    expect(s.env.appVersion).toBe('6.38.0');
+    expect(s.env.appVersion).toBe(VERSION);                 // the states are restamped at every release
     // D's draft is C's shape: no saving-years fields (no carriedFrom, no spendHow)
     expect(Object.keys(s.draft.d).sort()).toEqual(['asked', 'revealed', 'touched', 'values']);
   });

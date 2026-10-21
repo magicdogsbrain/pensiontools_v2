@@ -88,12 +88,15 @@ and an explanation line against a locked plan, never suggests unlocking, include
 
 - **D is the retired person's way in.** From the front door: with a plan in the account or window, D opens it at
   `#/plan/<id>/lasts` (a list to pick from when there are several). With no plan, D's short first form — age, stopped
-  when, the pots, what comes in anyway, what you take a month — then the answer, then Keep.
+  when, the pots, what comes in anyway, what you take a month — then the answer, then Keep. As built (21 Oct): with a plan, D's form is
+  headed by a "You have a plan already" block linking each plan's own test rather than a redirect (the front door does
+  not load the plan source); the spending is on the one form, so D's rail is numbers → answer → keep.
 - **"Does it last?" gains D's three levers**, try-only, run in the worker on a copy of the plan: "Could I spend more?"
   (the most the plan pays and still lasts in 9 futures out of 10), "Would some work help?" (£X a month for N years),
   "What if shares fell by a fifth?". On a locked plan the levers run against today and the document's figure stays
   beside them.
-- **V7 makes a plan itself.** Rule 3c of the boundary test widens by one name: `planWrite.js` may `setDoc` a NEW plan id
+- **V7 makes a plan itself.** Rule 3c of the boundary test widens by one name — `addDoc` (chosen over `setDoc` on 21 Oct:
+  it cannot replace an existing document by construction): `planWrite.js` may `addDoc` a NEW plan
   under the account (create only — a property test proves the id is fresh and no existing plan changes), or add one to
   this window's list (up to three without an account). Keep for A, B, C and D goes through it; the seed hand-over to the
   planner (`src/v7/effects/planSeed.js`, `#new-plan`) is retired. One way to make a plan.

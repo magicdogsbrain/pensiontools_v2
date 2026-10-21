@@ -29,7 +29,8 @@ import { corpus, entryOf, TODAY, noon } from './_plans.js';
 const C = corpus();
 const now = noon(TODAY);
 const PINS = join(process.cwd(), 'tests', 'v7', 'plan', 'tryIdentity.pins.json');
-const sha = (v) => createHash('sha1').update(JSON.stringify(v)).digest('hex').slice(0, 16);
+// numbers to a millionth: V8 versions differ in the last digit of a few float results (Node 20 vs 24 on fixture 06), and the pin is about what Try runs, not float noise
+const sha = (v) => createHash('sha1').update(JSON.stringify(v, (k, x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x * 1e6) / 1e6 : x))).digest('hex').slice(0, 16);
 const r0 = (v) => Math.round(v || 0);
 const ROWS = ['none', 'way', 'pot', 'isa', 'isaPolicy', 'income', 'years', 'cuts', 'cutPct', 'cutEsc', 'all'];
 // the cuts are said as a difference for the family only (their depth and months whenever the figure differs, as the planner says them)

@@ -237,3 +237,14 @@ ranks them, each with every dial the planner shows anywhere (one set of defaults
 drawing" is the planner's switch field for field in one write; "More columns" keeps the score. The compare loop, the
 ranking and the switch are lifted pure (`compareAll`, `rankWays`, `switchPatch`) and the planner calls them. Next: 8b —
 the mix, Try a change, the income picture rows (6.41.0).
+
+**Step 8b shipped as 6.41.0 (21 Oct).** "The mix" (`#/plan/<id>/mix`) for the Pots & Valves family: a risk level, your
+own split or the funds to test (typed through the bundled search or pasted with "What is this?" and "Left out, and
+why"); the slice and the bond tent each with "What it does in a bad case"; "Which mix lasts best?" (eight runs) with
+"Use this mix" as one write of the eleven mix fields. "Try a change of your own" on "Does it last?" is the planner's
+whole Try in plain words with "What's different", "Use this" (one write of only the fields that differ) and "Keep as a
+separate plan" through the one create. The income picture draws the rows of money that comes in anyway, the budget mark
+and the lump-sum marks. Lifted pure and called by the planner: `mixFromLevel`, `levelOfMix`, `mixCells`, `mixFromFunds`,
+`searchFunds`, `compareMixes`, `trySettingsOf`, `tryDifferencesOf`. Gate 8b (`tests/v7/plan/tryIdentity.test.js`) holds
+the tried copy and verdict to the planner's on the twelve fixtures. Twelve ledger rows flipped to built under `s8-mix`.
+Next: 9 — the household step (6.42.0).

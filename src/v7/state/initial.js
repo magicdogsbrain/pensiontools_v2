@@ -134,8 +134,30 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     ways:    emptyWays(),                            // "How the money is taken": the nine ways on ONE plan, page memory only (way-and-mix.md 2)
     mix:     emptyMix(),                             // "The mix": the tries and the comparison on ONE plan, page memory only (way-and-mix.md 3)
     household: emptyHousehold(),                     // "Your household": the pooled run, the survivor and care questions on ONE pair, page memory only (road-to-7.md step 9)
+    move:    emptyMove(),                            // "Moving to your plan's mix": the one run on the held mix for ONE plan, and the index the watch reads, page memory only (step 10)
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
+}
+
+/**
+ * Nothing of "Moving to your plan's mix" held (holdings-and-move.md §3.3, §3.7): `key` is lasts.js runKeyOf of the plan the one run on
+ * the held mix is for; `status` 'idle' | 'working' | 'done' | 'failed'; `result` moveRun.js runHeld's; `index` the equity index the
+ * effect fetched for the rotation watch ({ level, ath, asOf, symbol, athDate }, or null) — page data, not a plan's, so it outlives the plans.
+ */
+export const emptyMove = () => ({ key: null, status: 'idle', result: null, ms: null, reason: null, index: null });
+const MOVE_STATUS = ['idle', 'working', 'done', 'failed'];
+/** The index figures, cleaned (state/replace may draw them): two positive numbers and the day. */
+export function cleanIndex(x) {
+  if (!x || typeof x !== 'object' || !(+x.level > 0) || !(+x.ath > 0)) return null;
+  return { level: +x.level, ath: +x.ath, asOf: typeof x.asOf === 'string' ? x.asOf : null, symbol: typeof x.symbol === 'string' ? x.symbol : null, athDate: typeof x.athDate === 'string' ? x.athDate : null };
+}
+/** The move's slice, cleaned. */
+export function cleanMove(x) {
+  if (!x || typeof x !== 'object') return emptyMove();
+  const status = MOVE_STATUS.includes(x.status) ? x.status : 'idle';
+  const key = typeof x.key === 'string' && x.key ? x.key : null;
+  const st = key ? status : 'idle';
+  return { key, status: st, result: st === 'done' && x.result && typeof x.result === 'object' ? x.result : null, ms: st === 'done' && Number.isFinite(x.ms) ? x.ms : null, reason: st === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null, index: cleanIndex(x.index) };
 }
 
 /**

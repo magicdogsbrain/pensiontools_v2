@@ -4120,7 +4120,7 @@
     import { namedStartRows } from './src/services/NamedStarts.js';
     import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
-    import { LADDER_DEFAULTS } from './src/strategies/GiltLadderPlan.js';
+    import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
 
     // Import math utils for optimization
     import { seededRng } from './src/utils/MathUtils.js';
@@ -4155,18 +4155,17 @@
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
-    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress } from './src/services/TransitionPlanner.js';
+    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { parsePaste, matchRows, mergeLedger, categorise } from './src/services/HoldingsPaste.js';
+    import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
-    import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
+    import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
     import { compareAll, mixCells } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
-    import { rotationStatus } from './src/services/RotationStatus.js';
+    import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
-    import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
     // De-inlined decision engine (was inline calcDecisionPWA).
@@ -5854,9 +5853,10 @@
       // 6.11.3: a gilt that pays nothing is not an order. Its years are covered without a rung — a lump sum
       // expected later (a house sale, an inheritance) or other income pays them — so it is left off the sheet
       // and explained below, instead of a £0 row with a £20 fee.
-      const liveOrders = plan.orders.filter((o) => o.pays > 0);
+      // The rows are GiltLadderPlan.orderSheetRows's (6.43.0): the rungs that pay, numbered from 1 (cash is row 1 above, so each prints n + 1)
+      const liveOrders = orderSheetRows(plan);
       const coveredYears = (plan.years || []).filter((y) => y.from !== 'cash' && y.from !== 'none' && !(y.need > 0));
-      liveOrders.forEach((o, i) => { h += '<tr><td>' + (i + 2) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures)) + '</td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td>' + gbp(Math.round(o.cost)) + '<br><span class="hint">+ accrued + fee</span></td></tr>'; });
+      liveOrders.forEach((o) => { h += '<tr><td>' + (o.n + 1) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures)) + '</td><td>' + gbp(o.pays) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong>' + o.nominal.toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td>' + gbp(o.cost) + '<br><span class="hint">+ accrued + fee</span></td></tr>'; });
       h += '<tr><td colspan="9"><strong>Total</strong> (' + liveOrders.length + ' gilts + cash)</td><td><strong>' + gbp(Math.round(plan.total)) + '</strong></td></tr></tbody></table></div>';
       if (coveredYears.length) {
         const lumps = (window._ssWindfalls || []).filter((w) => w && w.amount > 0 && w.year != null);
@@ -5875,15 +5875,14 @@
     // are the rungs to SELL (from splitLadderAtAge); proceeds are indicative sell-side (spread
     // subtracted, fee subtracted) — the buy-side `cost` field must NOT be shown as proceeds.
     function giltSellTicketHtml(plan, { orders, title } = {}) {
-      const rows = orders || plan.orders;
-      const sellProceeds = (o) => { const spread = o.spread ?? 0.004; return Math.max(0, (o.pays * (o.cleanPrice ?? 100) / 100) * (1 - spread) - 20); };
+      const ticket = sellTicketRows(orders || plan.orders);   // RotationStatus.js, the one ticket both apps print (6.43.0)
+      const rows = ticket.rows;
       let h = '<div class="section-title" style="font-size:13px;margin-top:10px;">' + budEsc(title || 'Rotation sell ticket') + '</div>';
       h += '<div class="alert alert-warning" style="font-size:12px;"><strong>Illustration, not advice.</strong> Sell BY UNITS, not by amount: the number of units is the nominal figure below (1 unit = £1 nominal; tickets sometimes count £0.01 units — 74,200 nominal is then 7,420,000). The consideration you are quoted will include accrued interest on top of the clean-price figure here. Prices move: the proceeds column is indicative, from delayed prices.</div>';
       h += '<div class="table-scroll-container"><table><thead><tr><th>#</th><th>Sell</th><th>SEDOL</th><th>Ticker</th><th>Matures</th><th>Units to sell <span class="hint">(nominal £)</span></th><th>Approx proceeds</th><th>Income given up (today\'s £)</th><th>For tax years</th></tr></thead><tbody>';
-      let tot = 0, inc = 0;
-      rows.forEach((o, i) => { const pr = sellProceeds(o); tot += pr; inc += o.pays;
-        h += '<tr><td>' + (i + 1) + '</td><td>' + budEsc((o.name || '').replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures || '')) + '</td><td><strong>' + Math.round(o.nominal).toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span></td><td>' + gbp(Math.round(pr)) + '<br><span class="hint">+ accrued − fee</span></td><td>' + gbp(Math.round(o.pays)) + '</td><td>' + (o.taxYears || []).map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + '</td></tr>'; });
-      h += '<tr><td colspan="6"><strong>Total</strong> (' + rows.length + ' gilts)</td><td><strong>' + gbp(Math.round(tot)) + '</strong></td><td><strong>' + gbp(Math.round(inc)) + '</strong></td><td></td></tr></tbody></table></div>';
+      rows.forEach((o) => {
+        h += '<tr><td>' + o.n + '</td><td>' + budEsc((o.name || '').replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td>' + budEsc(ukMonth(o.matures || '')) + '</td><td><strong>' + o.nominal.toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span></td><td>' + gbp(Math.round(o.proceeds)) + '<br><span class="hint">+ accrued − fee</span></td><td>' + gbp(o.pays) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + '</td></tr>'; });
+      h += '<tr><td colspan="6"><strong>Total</strong> (' + rows.length + ' gilts)</td><td><strong>' + gbp(Math.round(ticket.proceeds)) + '</strong></td><td><strong>' + gbp(Math.round(ticket.income)) + '</strong></td><td></td></tr></tbody></table></div>';
       h += '<p class="hint" style="margin-top:6px;">Every rung NOT on this ticket stays. The proceeds buy the world-equity fund the same day — the point of the rule is not to negotiate with it.</p>';
       return h;
     }
@@ -7457,11 +7456,13 @@
     window.applyPasteHoldings = async function () {
       const ctx = window._pasteCtx; if (!ctx || !ctx.matched) return;
       if (ctx.p === 'hold') {
-        // What you hold: saved straight to the plan record (6.13.0) — no Save Settings, no lock involved.
+        // What you hold: saved straight to the plan record (6.13.0) — no Save Settings, no lock involved. The paste applied
+        // is HoldingsPaste.applyPaste's (6.43.0): the rows as previewed, the person's answers by line, merged and stamped.
         const rec = window._holdingsDraft || emptyHoldings();
-        const merged = mergeLedger(rec.lines || [], ctx.matched, { wrapper: ctx.wrapper });
+        const answers = {}; for (const m of ctx.matched) if (m && m.category) answers[m.line] = m.category;
+        const merged = applyPaste(rec, ctx.parsed.rows, answers, ctx.wrapper, { today: new Date(), orders: ctx.orders });
         document.getElementById('pasteHoldingsOverlay')?.remove();
-        try { await persistHoldings({ ...rec, lines: merged.ledger }, 'paste'); showToast('What you hold updated: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added.', 'success', 6000); }
+        try { await persistHoldings(merged.record, 'paste'); showToast('What you hold updated: ' + merged.updated.length + ' updated, ' + merged.added.length + ' added.', 'success', 6000); }
         catch (e) { showToast('Could not save what you hold: ' + e.message, 'error'); }
         return;
       }
@@ -7510,9 +7511,7 @@
     async function persistHoldings(rec, source) {
       const planNow = await getActiveScenarioId();
       if (window._holdingsDraftFor && planNow && window._holdingsDraftFor !== planNow) { await loadTransitionUI(); throw new Error('the plan changed — the Transition tab has been reloaded, please redo the edit'); }
-      const out = normaliseHoldings({ ...rec, source: source || rec.source || 'typed' });
-      out.updatedAt = out.lines.length ? todayIso() : null;   // "when the lines were last recorded" — no lines, no date
-      if (!out.lines.length) out.source = 'none';
+      const out = stampHoldings(rec, new Date(), source);   // "when the lines were last recorded" — no lines, no date (HoldingsRecord.js, the one stamp)
       await saveActiveHoldings(out);
       window._holdingsDraft = JSON.parse(JSON.stringify(out)); window._holdingsLines = (out.lines || []).slice();
       try { await loadTransitionUI(); } catch (e) { /* view optional */ }
@@ -7522,19 +7521,19 @@
     }
     window.updHolding = function (i, k, v) {
       const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return;
-      d.lines[i][k] = (k === 'value' || k === 'units' || k === 'ocf' || k === 'contribution') ? (v === '' ? null : +v) : v;
       // Fires on change (leaving the box): save at once, like Remove and Paste, so nothing is lost on a tab change.
-      persistHoldings(d, d.source === 'paste' || d.source === 'imported' ? d.source : 'typed').catch(function (e) { showToast('Could not save what you hold: ' + e.message, 'error'); });
+      // The record after the edit is HoldingsRecord.holdingsWith's (6.43.0: the one function both apps change the record with).
+      persistHoldings(holdingsWith(d, { kind: 'edit', index: i, field: k, value: v }, { today: new Date() })).catch(function (e) { showToast('Could not save what you hold: ' + e.message, 'error'); });
     };
-    window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines) return; d.lines.splice(i, 1); await persistHoldings(d); };
+    window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return; await persistHoldings(holdingsWith(d, { kind: 'remove', index: i }, { today: new Date() })); };
     window.addHoldingLine = async function () {
       // The card's inline add row (hlTicker/hlName/hlWrapper/hlValue/hlUnits) when filled in; else an empty editable row.
       const d = window._holdingsDraft || (window._holdingsDraft = emptyHoldings());
       const g = (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
       const ticker = g('hlTicker'), name = g('hlName'), wrapper = g('hlWrapper') || 'SIPP', value = g('hlValue'), units = g('hlUnits');
       const line = { wrapper, ticker: ticker.toUpperCase(), name, sedol: null, units: units === '' ? null : +units, value: value === '' ? null : +value, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
+      if (ticker || name) { await persistHoldings(holdingsWith(d, { kind: 'add', line }, { today: new Date() })); return; }   // a filled row saves at once (HoldingsRecord.holdingsWith, 6.43.0)
       d.lines.push(line);
-      if (ticker || name) { await persistHoldings(d, d.source === 'paste' || d.source === 'imported' ? d.source : 'typed'); return; }   // a filled row saves at once
       await loadTransitionUI(d);   // an empty row to type into, kept until Save
     };
     window.saveHoldingsUI = async function () {
@@ -7544,9 +7543,8 @@
     window.pasteHoldings = function () { openPasteHoldings('hold'); };
     window.toggleTransitionDone = async function (key, checked) {
       try {
-        const tr = await getActiveTransition(); const done = { ...(tr.done || {}) };
-        if (checked) done[key] = new Date().toISOString().slice(0, 10); else delete done[key];
-        await saveActiveTransition({ ...tr, done });
+        const tr = await getActiveTransition();
+        await saveActiveTransition(checked ? tickMove(tr, key, new Date().toISOString().slice(0, 10)) : untickMove(tr, key));   // TransitionPlanner.js, the one tick both apps make (6.43.0)
         await loadTransitionUI();
       } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
     };
@@ -8149,18 +8147,18 @@
       const cutAge = window._rotCutAge || 75;
       let blockLine = 'The long rungs are dry powder that earns its real yield while you hold it.';
       if (plan) {
+        // The block is RotationStatus.rotationBlock's (6.43.0): the rungs, the ages, the value at the prices at lock, the income
         try {
-          const sp = splitLadderAtAge(plan, cutAge);
-          if (sp.soldOrders.length) {
-            const val = sp.soldOrders.reduce((t, o) => t + (o.pays * (o.cleanPrice ?? 100) / 100), 0);
-            const ages = sp.soldYears.map((y) => y.age);
-            window._rotBlock = { orders: sp.soldOrders, ages: [Math.min(...ages), Math.max(...ages)] };
-            blockLine = 'The block: <strong>' + sp.soldOrders.length + ' rungs funding ages ' + Math.min(...ages) + '–' + Math.max(...ages) + '</strong>, worth about ' + gbp(Math.round(val)) + ' today, covering ' + gbp(Math.round(sp.soldIncomeTotal)) + ' of income. It earns its real yield while you wait — the waiting room pays you.';
+          const blk = rotationBlock(plan, cutAge);
+          if (blk) {
+            window._rotBlock = { orders: blk.orders, ages: blk.ages };
+            blockLine = 'The block: <strong>' + blk.rungs + ' rungs funding ages ' + blk.ages[0] + '–' + blk.ages[1] + '</strong>, worth about ' + gbp(Math.round(blk.value)) + ' today, covering ' + gbp(Math.round(blk.income)) + ' of income. It earns its real yield while you wait — the waiting room pays you.';
           }
         } catch (e) { /* generic prose */ }
       }
       const eq = equityProvenance();
-      const auto = eq ? '<p style="font-size:14px;margin:6px 0;"><strong>' + budEsc(eq.symbol) + ': ' + ((eq.level / eq.ath - 1) * 100).toFixed(1) + '% below its all-time high</strong> <span class="hint">(' + Math.round(eq.level).toLocaleString('en-GB') + ' on ' + budEsc(eq.date) + ' vs ' + Math.round(eq.ath).toLocaleString('en-GB') + ' on ' + budEsc(eq.athDate) + (eq.stale ? ' — DATA OVER A WEEK OLD' : '') + ')</span></p>' : '';
+      const mk = eq ? rotationMarket({ level: eq.level, ath: eq.ath }) : null;   // the market against the trigger (RotationStatus.js)
+      const auto = mk ? '<p style="font-size:14px;margin:6px 0;"><strong>' + budEsc(eq.symbol) + ': ' + (mk.drawdown * 100).toFixed(1) + '% below its all-time high</strong> <span class="hint">(' + Math.round(eq.level).toLocaleString('en-GB') + ' on ' + budEsc(eq.date) + ' vs ' + Math.round(eq.ath).toLocaleString('en-GB') + ' on ' + budEsc(eq.athDate) + (eq.stale ? ' — DATA OVER A WEEK OLD' : '') + ')</span></p>' : '';
       return '<div class="settings-section" style="margin-top:10px;">'
         + '<div class="section-title">Rotation watch</div>'
         + '<p style="font-size:14px;">' + blockLine + '</p>'
@@ -8172,7 +8170,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Index level (override)<input type="number" id="rotNow" style="width:130px;"></label>'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Its all-time high<input type="number" id="rotHigh" style="width:130px;"></label>'
         + '<button type="button" class="risk-btn" data-on-click="checkRotationTrigger()">Check the trigger</button></div>'
-        + '<div id="rotResult" style="margin-top:8px;">' + (eq && (eq.level / eq.ath - 1) <= -0.30 ? '<div class="alert alert-warning"><strong>The trigger is LIVE.</strong> Press "Check the trigger" for the sell ticket.</div>' : '') + '</div>'
+        + '<div id="rotResult" style="margin-top:8px;">' + (mk && mk.live ? '<div class="alert alert-warning"><strong>The trigger is LIVE.</strong> Press "Check the trigger" for the sell ticket.</div>' : '') + '</div>'
         + '<p class="hint" style="margin-top:6px;">Historical record for this rule: paid in full in 16 of 16 trigger episodes when fired before 65, '
         + '14 of 16 when fired at 67 or later (both failures are 1929-30). Bootstrapped futures, which cannot see the trigger at all, say 81-85%.</p>'
         + '</div>';
@@ -8229,10 +8227,10 @@
       const eq = equityProvenance();
       const now = +(document.getElementById('rotNow') || {}).value || (eq ? eq.level : 0);
       const high = +(document.getElementById('rotHigh') || {}).value || (eq ? eq.ath : 0);
-      if (!now || !high || high <= 0) { box.innerHTML = '<span class="hint">No index data — enter both figures.</span>'; return; }
-      const dd = now / high - 1;
-      const pct = (dd * 100).toFixed(1) + '%';
-      if (dd <= -0.30) {
+      const mk = rotationMarket({ level: now, ath: high });   // RotationStatus.js: the same reading the preview's watch gives (6.43.0)
+      if (!mk) { box.innerHTML = '<span class="hint">No index data — enter both figures.</span>'; return; }
+      const pct = (mk.drawdown * 100).toFixed(1) + '%';
+      if (mk.live) {
         let h = '<div class="alert alert-warning"><strong>Trigger is live: ' + pct + ' below the high.</strong> '
           + 'Sell the whole block at market, whatever the gilt price, and buy the equity fund with all of it. '
           + 'Do not tranche it and do not wait for a deeper fall — both tested worse.</div>';
@@ -8243,7 +8241,7 @@
         box.innerHTML = h;
       } else {
         box.innerHTML = '<div class="alert alert-info"><strong>' + pct + ' below the high — no action.</strong> '
-          + 'The trigger fires at ' + Math.round(high * 0.70).toLocaleString('en-GB') + ' (30% below). '
+          + 'The trigger fires at ' + mk.fireLevel.toLocaleString('en-GB') + ' (30% below). '
           + 'Until then the ladder runs as bought and the long rungs keep earning their real yield.</div>';
       }
     };

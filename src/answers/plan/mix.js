@@ -24,7 +24,8 @@ import { RISK_PRESETS, DIVERSIFIER_PRESETS, mixFromLevel, levelOfMix, mixCells }
 import { mixFromFunds } from '../../services/PortfolioTagger.js';
 import { SUB_ASSET_PROFILES, catalogueEntry, subClassOptionsByBucket } from '../../services/SubAssetModel.js';
 import { searchFunds } from '../../services/FundCatalogue.js';
-import { parsePaste, matchRows, mergeLedger, categorise, pasteSummary, CATEGORY_CHOICES } from '../../services/HoldingsPaste.js';
+import { CATEGORY_CHOICES } from '../../services/HoldingsPaste.js';
+import { readPasteText } from './paste.js';
 import { modelPortfolio } from '../../services/ModelPortfolios.js';
 import { stashStrategy } from '../../services/StrategyState.js';
 import { futuresOutOfTen, pctText, CHANCE_BARS, tenthsOutOfTen } from '../../services/OneAnswer.js';
@@ -284,25 +285,20 @@ export function checkMix(plan, typed, { today }) {
   return { ok: Object.keys(errors).length === 0, values, lists, errors, applies, held, sleeveOn, tentOn, want: S, funds, paste, saved };
 }
 
-/** The paste's reading: every line read, the ones recognised, "What is this?" for the rest, what was left out and why, and the edits that add them. */
+/**
+ * The paste's reading (shared with "What you hold" through paste.js readPasteText): every line read, the ones recognised,
+ * "What is this?" for the rest, what was left out and why, and the edits that add them to the funds cards.
+ */
 function readPaste(boxes, typed, fundsList, saved) {
   const textTyped = boxes['paste.text'];
   const wrapper = MIX_WRAPPERS.includes(boxes['paste.wrapper']) ? boxes['paste.wrapper'] : 'SIPP';
   if (blank(textTyped)) return { text: '', wrapper, rows: [], summary: null, leftOut: [], warnings: [], canAdd: false, edits: [] };
-  const parsed = parsePaste(textTyped);
-  const matched = matchRows(parsed.rows, { wrapper }).map((r) => {
-    const what = boxes[`paste.${r.line}.what`];
-    return r.match && r.match.kind === 'none' && MIX_WHATS.includes(what) ? categorise(r, what) : r;
-  });
-  const summary = pasteSummary({ parsed, matched });
-  const rows = matched.map((r) => ({
-    line: r.line, name: r.name || '', ticker: r.ticker || '', value: r.value, units: r.units,
-    match: r.match && r.match.kind !== 'none' ? { kind: r.match.kind, ticker: r.match.ticker || '', name: r.match.name || '', confidence: r.match.confidence } : null,
-    unrecognised: !!(r.match && r.match.kind === 'none' && !r.category), what: r.category || '', noValue: r.value == null
-  }));
+  const answers = {};
+  for (const [k, v] of Object.entries(boxes)) { const m = /^paste\.(\d+)\.what$/.exec(k); if (m && MIX_WHATS.includes(v)) answers[+m[1]] = v; }
   // the cards after the merge (HoldingsPaste.mergeLedger, the planner's own): a pasted line updates a line it matches, else is added
   const current = fundsList.cards.map((c) => c.row || { ticker: c.values.ticker || '', value: c.values.value || 0, wrapper: c.values.wrapper || 'SIPP', ...(c.values.name ? { name: c.values.name } : {}), ...(c.category ? { subClass: c.category } : {}) });
-  const merged = matched.length ? mergeLedger(current, matched, { wrapper }) : null;
+  const read = readPasteText(textTyped, { wrapper, answers, current });
+  const { rows, matched, merged } = read;
   const edits = [];
   if (merged) {
     const used = fundsList.ids.filter((x) => /^n\d+$/.test(x)).map((x) => +x.slice(1));
@@ -320,10 +316,7 @@ function readPaste(boxes, typed, fundsList, saved) {
     for (const r of rows) edits.push({ path: `paste.${r.line}.what`, value: '' });
   }
   void typed; void saved;
-  // the planner's reasons a line was left out, as ids the preview words itself (the planner says "holding")
-  const whyId = (why) => (/^a total line/.test(why) ? 'total' : /^a cash heading/.test(why) ? 'cashHeading' : /^no name/.test(why) ? 'noName' : /^no units or value/.test(why) ? 'noValue' : 'other');
-  const counts = { read: summary.pastedCount, total: pounds(summary.pastedTotal), recognised: summary.recognisedCount, recognisedTotal: pounds(summary.recognisedTotal), unrecognised: summary.unrecognised.length, unrecognisedTotal: pounds(summary.unrecognisedTotal), unknown: summary.unknownCount, unknownTotal: pounds(summary.unknownTotal) };
-  return { text: textTyped, wrapper, rows, counts, leftOut: (parsed.leftOut || []).map((x) => ({ line: x.line, text: x.text, why: whyId(x.why), raw: x.why })), warnings: parsed.warnings || [], canAdd: !!merged && matched.length > 0, edits };
+  return { text: textTyped, wrapper, rows, counts: read.counts, leftOut: read.leftOut, warnings: read.warnings, canAdd: !!merged && matched.length > 0, edits };
 }
 
 /**

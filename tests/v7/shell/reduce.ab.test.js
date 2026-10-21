@@ -183,6 +183,13 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, dismiss]) => ({ type: A.PLAN_DISMISS, planId, dismiss })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, share]) => ({ type: A.PLAN_BUDGET_SHARE, planId, share })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.SPLIT_KEPT, planId, ids: { a: 'Kq8LwT2mJv5PzYc9BnRd', b: 'guest-k3v9x1qa' }, names: { a: 'One — drawing together', b: 'Two — drawing together' }, where: 'window' })),
+  // "What you hold" and "Moving to your plan's mix" (road-to-7.md step 10)
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'add', line: { wrapper: 'ISA', ticker: 'VWRP' } }, { kind: 'remove', index: 0 })).map(([planId, change]) => ({ type: A.PLAN_HOLD, planId, change })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
+  fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),
+  fc.constantFrom(null, { level: 5000, ath: 7000, asOf: '2026-10-19' }).map((index) => ({ type: A.MOVE_INDEX, index })),
   // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
   saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
   fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),

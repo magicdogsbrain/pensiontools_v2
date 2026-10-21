@@ -63,7 +63,8 @@ function inPinnedShape(state, dir) {
   const ref = readdirSync(dir).filter((f) => f.endsWith('.json') && !f.startsWith('_') && f !== 'made-with.json')
     .map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8'))).find((x) => x && x.draft && x.route);
   if (!ref) return state;
-  const out = Object.fromEntries(Object.keys(ref).filter((k) => k in state).map((k) => [k, state[k]]));
+  // the reference's keys in its order, then any slice the state has that the reference predates (the move's, since 6.43.0)
+  const out = Object.fromEntries([...Object.keys(ref).filter((k) => k in state), ...Object.keys(state).filter((k) => !(k in ref))].map((k) => [k, state[k]]));
   out.draft = Object.fromEntries(Object.entries(state.draft).map(([q, d]) => [q, ref.draft[q]
     ? Object.fromEntries(Object.keys(ref.draft[q]).filter((k) => k in d).map((k) => [k, d[k]])) : d]));
   return out;
@@ -606,6 +607,55 @@ async function buildPlanStates({ today }) {
     (key, s) => ({ type: A.HH_CARE, key, boxes: cBoxes(s) }), (key, s) => ({ type: A.HH_CARE_DONE, key, boxes: s.household.care.boxes, result: runCare(equal[0].plan, equal[1].plan, { today, ...s.household.care.boxes }), ms: 2300 })]);
   states['household-who-pays'] = stateHh(equal, [], { open: ['hhWhoPays'], typed: { 'budget.shared': 'yes', 'budget.mySharePct': '60' } });
   states['household-unlinked'] = stateHh([entryOf(plant(C['09-couple-a'], 'AlexAlone08', 'Alex’s plan', { active: true }), today), entryOf(plant(C['02-pnv-draft'], 'AlexOther09', 'Alex’s other plan'), today)], [], { id: 'AlexAlone08', typed: { 'link.choice': 'AlexOther09' } });
+
+  /**
+   * "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §7; road-to-7.md step 10):
+   * tests/v7/states/plan/hold-*.json and move-*.json — each a state on #/plan/<id>/hold or …/move holding ONE plan: Alex's
+   * Pots & Valves draft with nothing recorded (corpus 02), the committed saver with new money a month (05), the pasted record
+   * (12), the locked ladder in its run-up (03, 8 lines, 23 rungs), the locked Buckets plan (04, whose record already holds its
+   * mix — "done"; and a copy with its shares line cut by a third, so there is something to buy and sell). Few and small, on
+   * purpose (holdings-and-move.md §7: well under half a megabyte in all): five files, and the reading (plans.view) left out of
+   * them — the render tests refresh it through viewFor as the plan source does on load; the locked record (hold-locked), the
+   * saver's move (move-saver), the unlocked plan's move (move-notLocked) and the done move (move-done) are made in the render
+   * tests from these by the reducer, as are the working, failed, confirm, fired-rotation and window states. The one run on
+   * the held mix (moveRun.js runHeld) is held in move-mix at the engine's own 1,000 futures.
+   */
+  const { runHeld } = await import('../../../src/answers/plan/moveRun.js');
+  const { runKeyOf: moveKeyOf } = await import('../../../src/answers/plan/move.js');
+  const holdEmpty = plant(C['02-pnv-draft'], 'AlexHold01', 'Alex’s plan', { active: true });
+  const holdSaver = plant(C['05-saver-committed'], 'SamSaver02', 'Sam’s plan');
+  const holdPasted = plant(C['12-lumpy-db-gia'], 'AlexPasted03', 'Alex’s plan');
+  const holdLadder = plant(C['03-gilt-ladder-runup'], 'SamLadder04', 'Sam’s plan');
+  const moveDone = plant(C['04-buckets-running'], 'SamBuckets05', 'Sam’s plan');
+  const moveMix = plant(C['04-buckets-running'], 'SamMoving06', 'Sam’s plan');
+  // a third of the shares line sold into cash: shares to buy back, cash to sell down (never a new fixture: derived here)
+  moveMix.holdings.lines[0].value = Math.round(moveMix.holdings.lines[0].value * 2 / 3);
+  moveMix.holdings.lines[2].value = Math.round(moveMix.holdings.lines[2].value + C['04-buckets-running'].holdings.lines[0].value / 3);
+  const HOLD_PASTE = 'Investment\tTicker\tUnits\tValue\niShares Core MSCI World\tSWDA\t3,150\t£284,000.00\nA fund of my own\t\t10\t£1,000\nTotal\t\t\t£285,000';
+  const stateHm = (raw, step, actions = [], { open = [], typed = {}, source = 'account', session = 'in', index = null } = {}) => {
+    const entry = entryOf(raw, today);
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + raw.id + '/' + step) });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'someone@example.com' : null } });
+    s = reduce(s, { type: A.PLANS_SET, list: [entry], source, readAt: '14:03' });
+    if (index) s = reduce(s, { type: A.MOVE_INDEX, index });
+    for (const [path, value] of Object.entries(typed)) s = reduce(s, { type: A.PLAN_EDIT, planId: raw.id, path, value });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    const key = moveKeyOf(entry.plan);
+    for (const a of actions) { s = reduce(s, typeof a === 'function' ? a(key, s, entry.plan) : a); s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) }); }
+    for (const x of open) s = reduce(s, { type: A.UI_TOGGLE, id: x });
+    // the reading is left out (it is the plan source's, recomputed on load); the tests refresh it with viewFor
+    const { view, ...plans } = s.plans; void view;
+    return { ...s, plans };
+  };
+  // the index the rotation watch reads: the bundled snapshot's figures as the effect would file them (the states carry no live file)
+  const INDEX = { level: 7690.73, ath: 7818.93, asOf: '2026-10-19', symbol: 'S&P 500 (price index)', athDate: '2026-10-06' };
+  states['hold-empty'] = stateHm(holdEmpty, 'hold', [], { typed: { 'add.text': 'vanguard all-world' } });
+  states['hold-typed'] = stateHm(holdSaver, 'hold');
+  states['hold-paste'] = stateHm(holdPasted, 'hold', [], { typed: { 'paste.text': HOLD_PASTE, 'paste.wrapper': 'SIPP', 'paste.2.what': 'bonds' }, open: ['holdPaste'] });
+  states['move-ladder'] = stateHm(holdLadder, 'move', [], { index: INDEX, open: ['moveExplained'] });
+  states['move-mix'] = stateHm(moveMix, 'move', [(key) => ({ type: A.MOVE_RUN, key }), (key, s, plan) => ({ type: A.MOVE_DONE, key, result: runHeld(plan, { today }), ms: 620 })], { index: INDEX });
+  void moveDone;
   return { states };
 }
 

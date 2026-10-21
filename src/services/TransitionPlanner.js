@@ -311,6 +311,22 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
     note: funded ? 'Funded by sales' + (contributions > 0 ? ' and contributions' : '') + '.' : 'Short by ' + Math.round(totalBuy - totalSell - contributions).toLocaleString('en-GB') + ' — the plan was priced on a bigger pot than the ledger holds, or holdings are missing from the ledger.' };
 }
 
+/**
+ * The tick-offs changed, as the planner's toggleTransitionDone changes them (6.43.0, lifted pure): the whole `transition`
+ * object with one key set to the day the order was placed, or taken off. Never deleteField: the object is written whole.
+ * @param {object|null} transition  the plan's `transition` ({ done: { [key]: 'YYYY-MM-DD' } }, or absent)
+ */
+export function tickMove(transition, key, dateIso) {
+  const t = transition && typeof transition === 'object' ? transition : { done: {} };
+  return { ...t, done: { ...(t.done && typeof t.done === 'object' ? t.done : {}), [key]: dateIso } };
+}
+export function untickMove(transition, key) {
+  const t = transition && typeof transition === 'object' ? transition : { done: {} };
+  const done = { ...(t.done && typeof t.done === 'object' ? t.done : {}) };
+  delete done[key];
+  return { ...t, done };
+}
+
 /** Progress and the next item, with tick-offs applied. */
 export function progress(diff, done = {}) {
   const items = [...diff.buy.map((b) => ({ ...b, action: 'buy' })), ...diff.sell.map((s) => ({ ...s, action: 'sell' }))];

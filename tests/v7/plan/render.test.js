@@ -71,9 +71,11 @@ describe('every committed plan, every step, three dates (T5)', () => {
           const state = stateWith(entries, '#/plan/' + e.plan.id + (step ? '/' + step : ''), { today });
           const { root, text } = draw(state);
           const pg = planPage(entries, e.plan.id, step, { today });
-          // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js), and so does "Your household" (step 9; householdRender.test.js, which holds its boxes to its own rules); every other step the plan page
-          expect(root.querySelector('main').getAttribute('data-screen')).toBe(step === 'lock' ? 'plan.lock' : step === 'household' ? 'plan.household' : 'plan');
-          if (step !== 'household') for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
+          // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js), and so do "Your household" (step 9; householdRender.test.js, which holds its boxes to its own rules),
+          // "What you hold" and "Moving to your plan's mix" (step 10; holdRender.test.js, moveRender.test.js); every other step the plan page
+          const own = { lock: 'plan.lock', household: 'plan.household', hold: 'plan.hold', move: 'plan.move' };
+          expect(root.querySelector('main').getAttribute('data-screen')).toBe(own[step] || 'plan');
+          if (step !== 'household' && step !== 'hold' && step !== 'move') for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
           // the rail: one current step, a link per listed step, the next sentence
           const rail = root.querySelector('[data-region="rail"]');
           if (!rail) problems.push(`${e.plan.id}: no rail`);
@@ -132,14 +134,20 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('[data-key="drawn"]').getAttribute('data-value')).toBe('13000');
     expect(text).toContain('From your plan as locked, 1 July 2026');
   });
-  it('03 What you hold and Moving to your plan\'s mix', () => {
+  it('03 What you hold and Moving to your plan\'s mix (their own screens since step 10; the plan page\'s panels keep the figures and link here)', () => {
     const hold = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/hold'));
+    expect(hold.root.querySelector('main').getAttribute('data-screen')).toBe('plan.hold');
     expect(hold.text).toContain('Pension £1,050,008, ISA £79,962');
     expect(hold.text).toContain('Updated 20 June 2026');
-    expect(hold.text).toContain('Check this figure: it is from 20 June 2026.');   // over three months old at 2 Oct 2026
     const move = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/move'));
     expect(move.text).toMatch(/\d+ of 23 gilts bought/);
     expect(move.text).toContain('Optional. Skipping it means what you hold may not match what the plan was tested on.');
+    // the rail's panels on the plan page: the record's figure with its date and the stale flag, and the links into the two steps (no hand-over to the planner)
+    const page = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/plan'));
+    const pg = planPage(entries, ladder.plan.id, 'plan', { today: TODAY });
+    expect(pg.steps.find((s) => s.id === 'hold').buttons).toEqual([{ id: 'changeHold', href: '#/plan/' + ladder.plan.id + '/hold', slots: {} }]);
+    expect(pg.steps.find((s) => s.id === 'move').buttons).toEqual([{ id: 'openMove', href: '#/plan/' + ladder.plan.id + '/move', slots: {} }]);
+    expect(page.root.querySelector('[data-testid="rail.plan.hold"]').getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/hold');
   });
   it('05 opens on This month\'s pot; Where you are reads the pot against the path; the lock is not offered again', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + saver.plan.id));

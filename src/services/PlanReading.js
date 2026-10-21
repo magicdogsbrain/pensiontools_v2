@@ -243,5 +243,5 @@ export function moveInputs(scenario, { now = new Date() } = {}) {
   const diff = diffHoldings(rec.lines || [], target);
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
-  return { target, diff, prog };
+  return { target, diff, prog, runUpMonthly, strategyParams: ss.strategyParams || null };
 }

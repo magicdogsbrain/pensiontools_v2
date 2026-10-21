@@ -154,7 +154,15 @@ export const A = Object.freeze({
   PLAN_SPLIT:      'plan/useSplit',       // { planId }                       "Use this split" confirmed: saving { kind: 'split' } (two writes, or two copies)
   PLAN_DISMISS:    'plan/keepAsIs',       // { planId, dismiss }              "Keep things as they are" (true) / "Show it again" (false): saving { kind: 'dismiss', dismiss }
   PLAN_BUDGET_SHARE: 'plan/shareBudget',  // { planId, share }                "Share this plan's budget" (true) / "Keep a separate budget" (false): saving { kind: 'budgetShare', share }
-  SPLIT_KEPT:      'household/splitKept'  // { planId, ids: { a, b }, names: { a, b }, where }   the copies are made (in the account, or this window)
+  SPLIT_KEPT:      'household/splitKept', // { planId, ids: { a, b }, names: { a, b }, where }   the copies are made (in the account, or this window)
+
+  // "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2.2, §3.3, §3.5, §3.7; road-to-7.md step 10)
+  PLAN_HOLD:       'plan/hold',           // { planId, change }               ONE change of the record (add | edit | remove | paste): saving { kind: 'hold', change }
+  PLAN_TICK:       'plan/tick',           // { planId, key, done }            a tick-off on the move (the whole transition object): saving { kind: 'tick', key, done }
+  MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
+  MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
+  MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
+  MOVE_INDEX:      'move/index'           // { index: { level, ath, asOf, symbol, athDate } | null }   the equity index the effect fetched for the rotation watch
 });
 
 /**
@@ -184,4 +192,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "The mix" (way-and-mix.md 3): the paste box, the example list; Try a change (4): the boxes (closed until asked), the confirm of "Use this"
   'mixPaste', 'mixExample', 'tryOpen', 'tryConfirm',
   // "Your household" (road-to-7.md step 9): the year-by-year tables, and the budget's who-pays block
-  'hhDetail', 'hhWhoPays']);
+  'hhDetail', 'hhWhoPays',
+  // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
+  'holdPaste', 'moveHow', 'moveSheet', 'moveExplained']);

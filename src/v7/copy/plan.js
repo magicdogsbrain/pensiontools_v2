@@ -273,8 +273,9 @@ export const PLAN = {
     changeBudget: 'Change this in the planner',
     /** The lock step reached on a locked plan (R7): the way to "Your plan as locked". */
     seeLocked: 'Your plan as locked',
-    changeHold: 'Change this in the planner',
-    openMove: 'Open it in the planner',
+    /** Into "What you hold" and "Moving to your plan's mix" inside V7 (road-to-7.md step 10). */
+    changeHold: 'Change this here',
+    openMove: 'Open it',
     openPartner: 'Open ‘{name}’',
     /** Into "Your household" inside V7 (road-to-7.md step 9): the two together, or the link. */
     checkTogether: 'Check the two plans together',

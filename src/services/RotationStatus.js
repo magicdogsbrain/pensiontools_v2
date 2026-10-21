@@ -17,6 +17,86 @@ import { planYearOf } from './PlanTiming.js';
 
 export const ROTATION_DEFAULTS = { cutAge: 75, triggerPct: 0.30, disarmYears: 8 };
 
+/** The dealing fee the sell ticket takes off each rung's proceeds, and the spread a rung carries when it names none. */
+export const SELL_FEE = 20;
+export const SELL_SPREAD = 0.004;
+
+/**
+ * Split a buildGiltLadder plan at cutAge (from src/strategies/GiltRotation.js, 6.43.0: the same function, here so the
+ * watch can be read without the engine; GiltRotation.js re-exports it).
+ * @returns {{ keptYears, soldYears, soldOrders, blockCostToday, soldIncomeTotal }}
+ */
+export function splitLadderAtAge(plan, cutAge) {
+  const soldYears = plan.years.filter((y) => y.age > cutAge && y.from !== 'cash' && y.from !== 'none');
+  const keptYears = plan.years.filter((y) => !soldYears.includes(y));
+  const soldTidms = new Set(soldYears.map((y) => y.from));
+  // A rung is sold only when EVERY year it funds is above the cut (never split one gilt's job).
+  const soldOrders = plan.orders.filter((o) => o.taxYears.every((Y) => {
+    const yr = plan.years.find((y) => y.Y === Y); return yr && yr.age > cutAge;
+  }) && soldTidms.has(o.tidm));
+  const soldSet = new Set(soldOrders.map((o) => o.tidm));
+  const actuallySoldYears = plan.years.filter((y) => soldSet.has(y.from));
+  const blockCostToday = soldOrders.reduce((s, o) => s + o.cost, 0);
+  const soldIncomeTotal = actuallySoldYears.reduce((s, y) => s + y.need, 0);
+  return { keptYears, soldYears: actuallySoldYears, soldOrders, blockCostToday, soldIncomeTotal };
+}
+
+/**
+ * The block the rotation would sell (index.html rotationWatchHtml, 6.43.0 lifted pure): the rungs whose every year funds
+ * ages above the cut, the ages they fund, what they are worth today at the prices at lock (pays × clean price / 100), and
+ * the income they would give up. Null when the plan has no such rung.
+ */
+export function rotationBlock(plan, cutAge) {
+  if (!plan || !Array.isArray(plan.years) || !Array.isArray(plan.orders)) return null;
+  const sp = splitLadderAtAge(plan, cutAge);
+  if (!sp.soldOrders.length) return null;
+  const value = sp.soldOrders.reduce((t, o) => t + (o.pays * (o.cleanPrice ?? 100) / 100), 0);
+  const ages = sp.soldYears.map((y) => y.age);
+  return { orders: sp.soldOrders, rungs: sp.soldOrders.length, ages: [Math.min(...ages), Math.max(...ages)], years: sp.soldYears.map((y) => +y.Y), value, income: sp.soldIncomeTotal };
+}
+
+/**
+ * The market against the trigger (index.html checkRotationTrigger, lifted pure): how far the index is below its high, the
+ * level the trigger fires at, and whether it is live. Null without both figures.
+ * @param {{ level, ath, asOf?, athDate?, symbol? }|null} index
+ */
+export function rotationMarket(index, triggerPct = ROTATION_DEFAULTS.triggerPct) {
+  const level = index ? +index.level : 0, ath = index ? +index.ath : 0;
+  if (!(level > 0) || !(ath > 0)) return null;
+  const drawdown = level / ath - 1;
+  return { level, ath, asOf: (index && (index.asOf || index.date)) || null, athDate: (index && index.athDate) || null, symbol: (index && index.symbol) || null, drawdown, fireLevel: Math.round(ath * (1 - triggerPct)), live: drawdown <= -triggerPct };
+}
+
+/**
+ * The sell ticket's rows (index.html giltSellTicketHtml, lifted pure): each rung of the block with the units to sell (the
+ * nominal), its proceeds at the prices at lock less the spread and the dealing fee, the income given up and the tax years
+ * it funded; the totals summed from the unrounded proceeds, as the planner sums them.
+ */
+export function sellTicketRows(orders) {
+  const rows = (Array.isArray(orders) ? orders : []).map((o, i) => ({
+    n: i + 1, name: String(o.name || ''), sedol: o.sedol || '', tidm: o.tidm || '', matures: o.matures || null,
+    nominal: Math.round(+o.nominal || 0), proceeds: Math.max(0, (o.pays * (o.cleanPrice ?? 100) / 100) * (1 - (o.spread ?? SELL_SPREAD)) - SELL_FEE),
+    pays: Math.round(+o.pays || 0), taxYears: Array.isArray(o.taxYears) ? o.taxYears.slice() : []
+  }));
+  return { rows, proceeds: rows.reduce((t, r) => t + r.proceeds, 0), income: rows.reduce((t, r) => t + r.pays, 0) };
+}
+
+/**
+ * The rotation watch, whole (research/v7/holdings-and-move.md §3.7): the status (armed / disarmed / fired), the block it
+ * would sell, the market against the trigger from the index figures handed in, and the sell ticket for the block. Null for
+ * a plan whose way is not the rotation. `today` is handed in; nothing here reads a clock or fetches.
+ * @param {object} doc  the plan document
+ * @param {{ today: Date, ageToday?: number|null, params?: object|null, index?: { level, ath, asOf }|null }} o
+ */
+export function rotationWatch(doc, { today, ageToday = null, params = null, index = null } = {}) {
+  const status = rotationStatus(doc, { today, ageToday, params });
+  if (!status) return null;
+  const plan = doc && doc.strategy && doc.strategy.r ? doc.strategy.r.plan : null;
+  const block = rotationBlock(plan, status.cutAge);
+  const market = rotationMarket(index, status.triggerPct);
+  return { ...status, block, market, ticket: block ? sellTicketRows(block.orders) : null };
+}
+
 const dateGB = (iso) => { const d = new Date(String(iso) + (String(iso).length === 10 ? 'T00:00:00Z' : '')); return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
 
 /**

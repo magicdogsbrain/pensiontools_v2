@@ -120,7 +120,8 @@ export function startOpenPlace(win = window) {
       }
     }
     addNote({ lead: W.opened, back: backHref(r.back), backLabel: W.back + ' (‘' + name + '’)', extra });
-    if (showStrategyPage && place.tab === 'strategies') win.setTimeout(() => { try { showStrategyPage('overview'); } catch (e) { /* optional */ } }, 400);
+    // a place may name the strategy page to open (the rotation watch's switch, 6.43.0); the overview otherwise
+    if (showStrategyPage && place.tab === 'strategies') win.setTimeout(() => { try { showStrategyPage(place.page || 'overview'); } catch (e) { /* optional */ } }, 400);
   }
 
   /**

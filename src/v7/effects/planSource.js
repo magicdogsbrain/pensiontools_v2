@@ -53,6 +53,8 @@ import { lastsOf, verdictOf, leverViews, tryViews, runKeyOf } from '../../answer
 import { wayOf, cardsOf } from '../../answers/plan/way.js';
 import { mixOf } from '../../answers/plan/mix.js';
 import { householdOf } from '../../answers/plan/household.js';
+import { holdOf } from '../../answers/plan/hold.js';
+import { moveOf } from '../../answers/plan/move.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -103,6 +105,17 @@ export function viewFor(state) {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
       page.household = { ...householdOf(plans.list, r.planId, { today, typed, H: state.household, source: plans.source }), draftKey: JSON.stringify(typed) };
+    }
+    // "What you hold" (road-to-7.md step 10; holdings-and-move.md §2): the record line by line, the add box, the paste read, with what was typed
+    if (r.step === 'hold') {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.hold = { ...holdOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
+    }
+    // "Moving to your plan's mix" (§3): the lists, the schedule, the sheet, the watch with the index the effect fetched (state.move.index), the one run held
+    if (r.step === 'move') {
+      const Mv = state.move || null;
+      page.move = { ...moveOf(plans.list, r.planId, { today, index: Mv ? Mv.index : null, M: Mv, source: plans.source }), draftKey: '{}' };
     }
     if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
@@ -223,7 +236,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

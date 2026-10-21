@@ -43,6 +43,8 @@ export const PLACES = Object.freeze({
   onCourse:  { tab: 'accumulation', sub: null,             section: 'acOnTrack',      needs: null },
   hold:      { tab: 'transition',   sub: null,             section: null,              needs: null },
   move:      { tab: 'transition',   sub: null,             section: null,              needs: null },
+  /** The rotation's guided switch (holdings-and-move.md §3.7, decision 7): the strategy page of the ladder + rotation, where the planner records the switch. `page` names the strategy page to open. */
+  rotation:  { tab: 'strategies',   sub: null,             section: 'stratPage',       needs: null, page: 'gilt-rotation' },
   budget:    { tab: 'budget',       sub: null,             section: null,              needs: null },
   household: { tab: 'household',    sub: null,             section: null,              needs: null },
   /** No plan: the planner's sign-in screen. A window holding plans made without an account goes through "keep this work". */

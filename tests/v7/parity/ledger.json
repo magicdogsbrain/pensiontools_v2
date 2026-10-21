@@ -151,6 +151,11 @@
       "short": "your household",
       "title": "Road step 9 (6.42.0): \"Your household\" in V7 — the partner's plan linked either way, the pooled verdict first and each plan alone, \"Who draws what\" with \"Use this split\" (copies when a plan is locked), the survivor and care questions in ages, one budget for the household with \"Keeping money separate?\", and the budget's who-pays (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10)",
       "source": "research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10"
+    },
+    "s10-hold": {
+      "short": "what you hold and the move",
+      "title": "Road step 10 (6.43.0): \"What you hold\" and \"Moving to your plan's mix\" in V7 — the one record line by line by account, typed or pasted with \"What is this?\" on every line, the move against the plan as locked with its tick-offs, the cash to hold, the schedule, the order sheet that waits for the person's own State Pension figure, and the rotation watch and ticket (research/v7/holdings-and-move.md; road-to-7.md step 10)",
+      "source": "research/v7/holdings-and-move.md; road-to-7.md step 10"
     }
   },
   "keyNotes": {
@@ -2485,10 +2490,13 @@
       "whereV6": "Strategies → Gilt ladders explained; Stress → Drawdown (index.html:2904-2916)",
       "who": "Approaching",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"move\" step."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "Built on \"Moving to your plan's mix\" for a ladder plan as a closed block, \"Gilt ladders explained\": the planner's four lines in the preview's words, with the worked example taken from this plan's own first rung (what it cost at lock, what it pays, when). The planner's calculator for an amount and a number of years stays on its Strategies page.",
+      "files": [
+        "src/v7/copy/move.js",
+        "src/v7/screens/plan/MoveScreen.jsx"
+      ]
     },
     {
       "id": "strat.order-sheet",
@@ -2499,10 +2507,15 @@
       "whereV6": "Strategy pages; gilt ladder pricing (index.html:6203-6250; GiltLadderPlan.js, LinkerUniverse.js)",
       "who": "Approaching, running",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"move\" step."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "Built on \"Moving to your plan's mix\" for a ladder plan: the plan document's rungs (GiltLadderPlan.orderSheetRows, lifted from the planner's giltOrderSheetHtml and now its rows too), their codes, maturities, what they pay and for which tax years, the units to order, the price and the cost at lock, and whether each is bought (read as the move reads it); never re-priced. When the document was sized on an assumed State Pension the units and the cost are held back behind \"Show the sheet anyway\" until the person's own figure is entered and the plan locked again.",
+      "files": [
+        "src/strategies/GiltLadderPlan.js",
+        "src/answers/plan/move.js",
+        "src/v7/screens/plan/MoveScreen.jsx",
+        "src/v7/copy/move.js"
+      ]
     },
     {
       "id": "strat.rotation-watch",
@@ -2513,10 +2526,16 @@
       "whereV6": "RotationStatus.js; strategy page; executeRotation (index.html:9385)",
       "who": "Running",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s8-e",
-      "note": "The locked rail's \"move\" station."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "Built on \"Moving to your plan's mix\" for the ladder + rotation: the watch (armed / disarmed / fired), the block it would sell with its ages, value at lock and income, the market against the trigger from the equity index the effect fetches (the bundled snapshot when the file cannot be read; the date said), and the sell ticket when the trigger is live (RotationStatus.rotationWatch, rotationBlock, rotationMarket, sellTicketRows — the planner's rotationWatchHtml and giltSellTicketHtml lifted, and re-pointed). The guided switch itself hands over to the planner (\"Make the switch in the planner\" → the strategy page): its write changes a locked plan's frozen settings, the planner's own one exception, and stays there until the owner rules on it for V7 (holdings-and-move.md decision 7).",
+      "files": [
+        "src/services/RotationStatus.js",
+        "src/answers/plan/move.js",
+        "src/v7/effects/move.js",
+        "src/v7/screens/plan/MoveScreen.jsx",
+        "src/v7/copy/move.js"
+      ]
     },
     {
       "id": "strat.assumptions",
@@ -2675,7 +2694,8 @@
       "keys": [],
       "status": "planned",
       "step": "s8-e",
-      "gap": true
+      "gap": true,
+      "note": "Not road step 10 (holdings-and-move.md §8): the glidepath picture is step 11's sweep."
     },
     {
       "id": "d.spend-more",
@@ -2810,10 +2830,14 @@
       "whereV6": "Plan document and strategy page (LadderPosition.js)",
       "who": "Locked plans with a ladder",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s4-open-plan",
-      "note": "The \"Your plan\" and \"Moving to your plan's mix\" stations (\"6 of 18 gilts bought\"). Shown in V7 from s4 (src/answers/plan/read.js: “Moving to your plan’s mix” counts the rungs bought from the document’s ladder)."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "The \"Your plan\" and \"Moving to your plan's mix\" stations (\"6 of 18 gilts bought\") have had their figures in V7 since s4 (read.js); since 6.43.0 the move station has its own screen: what has been bought rung by rung on the order sheet, what arrives when (the rungs' tax years), and the cash to hold now. What the same gilts would cost today, as a comparison only, is the planner's (repriceComparisonText) and is after 7.0 (holdings-and-move.md decision 10).",
+      "files": [
+        "src/answers/plan/read.js",
+        "src/answers/plan/move.js",
+        "src/v7/screens/plan/MoveScreen.jsx"
+      ]
     },
     {
       "id": "lock.plan-of-record",
@@ -3174,7 +3198,7 @@
       "status": "planned",
       "step": "s8-e",
       "gap": true,
-      "note": "V7 projects at a risk level while saving (savingRisk)."
+      "note": "V7 projects at a risk level while saving (savingRisk). Not road step 10 (holdings-and-move.md §8): a projection at the held mix is step 11's sweep."
     },
     {
       "id": "save.when-retire",
@@ -3271,10 +3295,18 @@
         "holdings.lines[].kind",
         "holdings.lines[].asOf"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"hold\" step and the locked rail's \"What you hold\" station (§1.6). The \"Holdings and the move\" sub-plan is not written (square-one-audit.md §5 item 6)."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "Built as \"What you hold\" (#/plan/<id>/hold): the one record line by line by account (Pension, ISA, Other account, Cash), typed through the bundled list or a gilt by its code, or pasted with \"What is this?\" on every line the page cannot place and \"Left out, and why\"; each change is one write of the whole record (hold.js holdPatch — HoldingsRecord.holdingsWith and HoldingsPaste.applyPaste, the planner's own handlers lifted), with Undo; editable on a locked plan (the record is what is true today). Never the funds a plan is tested on: nothing is copied either way. Gate: tests/v7/plan/holdIdentity.test.js (the record round-trips byte for byte).",
+      "files": [
+        "src/answers/plan/hold.js",
+        "src/answers/plan/paste.js",
+        "src/v7/screens/plan/HoldScreen.jsx",
+        "src/v7/copy/hold.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/HoldingsRecord.js",
+        "src/services/HoldingsPaste.js"
+      ]
     },
     {
       "id": "hold.move",
@@ -3287,10 +3319,18 @@
       "keys": [
         "plan.transition"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"move\" step, which says on its face that it is optional and what skipping it costs."
+      "status": "built",
+      "step": "s10-hold",
+      "note": "Built as \"Moving to your plan's mix\" (#/plan/<id>/move), for a locked plan only: \"Optional. Skipping it means…\" on its face, the status, what skipping it costs (one optional run on the mix as held for a pot plan — moveRun.js runHeld through the one test and OneAnswer; the tax years with no gilt bought for a ladder), the saver's rule (no lists until about five years out: where new money goes instead), the cash to hold now, Buy and Sell with a Done tick each (one write of the whole transition object: move.js tickPatch — TransitionPlanner.tickMove / untickMove), Already held, Left alone, the totals, When, and \"How to read this\". The target, the diff, the progress and the schedule are TransitionPlanner's through PlanReading.moveInputs, as the planner's page reads them.",
+      "files": [
+        "src/answers/plan/move.js",
+        "src/answers/plan/moveRun.js",
+        "src/v7/screens/plan/MoveScreen.jsx",
+        "src/v7/copy/move.js",
+        "src/v7/effects/move.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/TransitionPlanner.js"
+      ]
     },
     {
       "id": "couple.link",

@@ -87,7 +87,7 @@ test.describe('the saved plans, without an account', () => {
     }
     // the household step opens the partner's plan inside the preview; the saver opens on What you pay in
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/household'; });
-    await expect(page.locator('[data-region="plan-step"]')).toContainText('With ‘Saving plan’: still saving.');
+    await expect(page.getByTestId('plan.household.with')).toContainText('With ‘Saving plan’: still saving.');   // the household step draws its own screen since 6.42.0
     await page.getByTestId('plan.household.openPartner').click();
     await expect(page.getByTestId('plan.step.saving')).toBeVisible();
     await expect(page.locator('[data-region="plan-step"]')).toContainText('£600 a month from you, £450 from your employer');

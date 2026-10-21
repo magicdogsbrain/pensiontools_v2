@@ -212,3 +212,9 @@ example and up to three plans; a landing-page link to the preview; five retireme
 Edit Tools, headroom box → "+10%", Copy-between-tools); monthly entry asks for platform totals; the five "Your plan"
 questions as recommended. Order: the audit's section 4 road (fix release → one answer → who draws what → Your plan →
 editing in V7 → …). Work leaner from here: direct edits and small agent counts.
+
+## 12. The road to 7.0 (21 Oct 2026)
+
+The owner: "Review where we are and move completely to v7. Go through all steps necessary to get there." Road steps 1–5
+are shipped (6.23.0–6.31.0) and the strategy-blind sweep is done (6.32.0–6.37.0). The plan for the rest — steps 6 to 11
+and the switch, one release each, with the gates and the decisions taken — is `research/v7/road-to-7.md`.

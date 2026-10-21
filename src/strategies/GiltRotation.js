@@ -16,25 +16,10 @@
 import { getRtr, bootstrapPaths } from './ladderEngine.js';
 import { monthlyChargeFactor } from '../services/Charges.js';
 import { accretedValue, yearsToMaturity, ladderWealthByYear } from './GiltLadderPlan.js';
-
-/**
- * Split a buildGiltLadder plan at cutAge.
- * @returns {{ keptYears, soldYears, soldOrders, blockCostToday, soldIncomeTotal }}
- */
-export function splitLadderAtAge(plan, cutAge) {
-  const soldYears = plan.years.filter((y) => y.age > cutAge && y.from !== 'cash' && y.from !== 'none');
-  const keptYears = plan.years.filter((y) => !soldYears.includes(y));
-  const soldTidms = new Set(soldYears.map((y) => y.from));
-  // A rung is sold only when EVERY year it funds is above the cut (never split one gilt's job).
-  const soldOrders = plan.orders.filter((o) => o.taxYears.every((Y) => {
-    const yr = plan.years.find((y) => y.Y === Y); return yr && yr.age > cutAge;
-  }) && soldTidms.has(o.tidm));
-  const soldSet = new Set(soldOrders.map((o) => o.tidm));
-  const actuallySoldYears = plan.years.filter((y) => soldSet.has(y.from));
-  const blockCostToday = soldOrders.reduce((s, o) => s + o.cost, 0);
-  const soldIncomeTotal = actuallySoldYears.reduce((s, y) => s + y.need, 0);
-  return { keptYears, soldYears: actuallySoldYears, soldOrders, blockCostToday, soldIncomeTotal };
-}
+// The split of a ladder at the cut age lives with the rotation watch's pure reading (services/RotationStatus.js, 6.43.0),
+// so the preview's page can read the block without the engine; it keeps its name here for the engine and the planner.
+import { splitLadderAtAge } from '../services/RotationStatus.js';
+export { splitLadderAtAge };
 
 /**
  * The money left over after the ladder is bought (`plan.spare`), when the plan puts it in the growth part

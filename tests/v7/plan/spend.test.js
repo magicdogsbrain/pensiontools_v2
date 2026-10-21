@@ -420,7 +420,7 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
   it('"spend" sits under "plan" beside "about" and "income"; the address parses and formats; the screen is plan.spend', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household']);   // the household rail step draws its own screen (road-to-7.md step 9)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
     const r = parse('#/plan/AboutPlan01/spend');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'spend', planId: 'AboutPlan01', focus: null });
     expect(format(r)).toBe('#/plan/AboutPlan01/spend');
@@ -450,7 +450,7 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
     for (const p of SPEND_WRITES) expect(p).toMatch(/^(stressTool|decisionTool)\.settings\.[a-zA-Z]+$/);
     expect(SPEND_WRITES).toContain('stressTool.settings.targetSchedule');
     expect(SPEND_WRITES).toContain('decisionTool.settings.targetSchedule');
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'lastModified'])]);
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10)
   });
   it('a plan not in the list, and the partner link both ways', () => {
     expect(spendOf(entriesAt(TODAY), 'NoSuchPlan', { today: TODAY }).found).toBe(false);

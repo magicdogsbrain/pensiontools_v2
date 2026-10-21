@@ -315,6 +315,13 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, dismiss]) => ({ type: A.PLAN_DISMISS, planId, dismiss })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, share]) => ({ type: A.PLAN_BUDGET_SHARE, planId, share })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.SPLIT_KEPT, planId, ids: { a: 'Kq8LwT2mJv5PzYc9BnRd', b: 'guest-k3v9x1qa' }, names: { a: 'One — drawing together', b: 'Two — drawing together' }, where: 'account' })),
+  // "What you hold" and "Moving to your plan's mix" (road-to-7.md step 10)
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'add', line: { wrapper: 'ISA', ticker: 'VWRP' } }, { kind: 'edit', index: 0, field: 'value', value: '1' }, { kind: 'remove', index: 0 }, { kind: 'paste', text: 'a,1', wrapper: 'SIPP', answers: {} })).map(([planId, change]) => ({ type: A.PLAN_HOLD, planId, change })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
+  fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),
+  fc.constantFrom(null, { level: 5000, ath: 7000, asOf: '2026-10-19' }).map((index) => ({ type: A.MOVE_INDEX, index })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('link', 'split', 'dismiss', 'budgetShare')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'household.partnerScenarioId': null }, line: { id: 'linked', slots: {} }, op, others: [{ planId: 'p2', previous: { 'stressTool.settings.baseSalary': 1 } }] })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('noPartner', 'partial')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
 );
@@ -338,8 +345,9 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'household', 'keep', 'lasts', 'mix', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'household', 'keep', 'lasts', 'mix', 'move', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.household.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.move.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.ways.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);

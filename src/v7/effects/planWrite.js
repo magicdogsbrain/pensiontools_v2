@@ -62,6 +62,14 @@
  *   - `plan/save` on the household step: household.js whoPaysPatches — the budget's who-pays, written where the lines live
  *     (this plan, or the household's plan when the budget is shared), as the planner's Budget page saves it.
  *
+ * "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2.2, §3.8; road-to-7.md step 10), the
+ * same one write, two more kinds — the two writes the planner's guard leaves open on a LOCKED plan (what is true today, not the plan):
+ *   - `plan/hold` (kind 'hold'): answers/plan/hold.js holdPatch — ONE change of the record (a line added, edited or removed, a
+ *     paste merged: HoldingsRecord.holdingsWith / HoldingsPaste.applyPaste, the planner's own handlers lifted) written as the
+ *     whole `holdings` field, past the guard; Undo puts the previous record back whole.
+ *   - `plan/tick` (kind 'tick'): answers/plan/move.js tickPatch — one tick-off (TransitionPlanner.tickMove / untickMove) written
+ *     as the whole `transition` object (never deleteField), past the guard; Undo the same.
+ *
  * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
  * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
  *   - the seed is built from the answer on screen (answers/keep/planSeed.js buildPlanSeed), the plan documents from it
@@ -108,6 +116,8 @@ import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } fr
 import { wayPatch } from '../../answers/plan/way.js';
 import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
+import { holdPatch } from '../../answers/plan/hold.js';
+import { tickPatch } from '../../answers/plan/move.js';
 import { uniqueName } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
@@ -470,8 +480,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'unlock' || op === 'document') {
       // the reverse of an unlock goes to an unlocked plan; of a new version, to a locked plan whose settings it leaves alone
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays') {
-      // the household's writes (road-to-7.md step 9) go where the planner's go: the guard alone decides
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick') {
+      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10) go where the planner's go: the guard alone decides
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
     } else {
       // an editing step's undo: a locked plan is refused outright, as its save is
@@ -608,6 +618,44 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (stopped) return;
     dispatch({ type: A.SPLIT_KEPT, planId, ids: made.ids, names: { a: docs[0].name, b: docs[1].name }, where: place.kind });
     dispatch({ type: A.PLANS_READING });
+  }
+
+  // ---- "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2.2, §3.8; road-to-7.md step 10) ----
+
+  /**
+   * ONE change of the record (hold.js holdPatch: HoldingsRecord.holdingsWith / HoldingsPaste.applyPaste, the planner's own),
+   * written as the whole `holdings` field plus the stamp, past the guard — which lets it through on a locked plan, as the
+   * planner's own save does (LockedPlanGuard.js: what you hold is outside the lock). Undo puts the previous record back whole.
+   */
+  async function saveHold(planId, change) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const at = now();
+    const p = holdPatch(plan, change, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'hold' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /** One tick-off (move.js tickPatch: TransitionPlanner.tickMove / untickMove): the whole `transition` object plus the stamp, past the guard. */
+  async function tick(planId, key, done) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const at = now();
+    const p = tickPatch(plan, key, { today: state.env.today, done });
+    if (!p.ok) { fail(planId, p.errors.plan === 'notLocked' ? 'notLocked' : 'problems'); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'tick' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
 
   /** A copy of a plan with the split's settings (step 7's rule for a copy: never locked, nothing recorded, no document, record or archive). */
@@ -816,6 +864,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_SPLIT && s.kind === 'split') run(() => useSplit(s.planId));
     else if (action.type === A.PLAN_DISMISS && s.kind === 'dismiss') run(() => dismiss(s.planId, s.dismiss !== false));
     else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
+    else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
+    else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
   });
   return () => { stopped = true; off(); if (timer && win) win.clearTimeout(timer); };
 }

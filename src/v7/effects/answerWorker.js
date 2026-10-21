@@ -25,6 +25,8 @@
  *   { id, type: 'householdCare', plan, partner, env: { today, boxes } }
  *                                                   the same shape: a couple's two plans each way, pooled; the survivor and
  *                                                   the care questions (householdRun.js, loaded lazily; road-to-7.md step 9)
+ *   { id, type: 'moveHeld', plan, env: { today } }  the same shape: the one run on the mix as held (moveRun.js runHeld, loaded
+ *                                                   lazily; road-to-7.md step 10)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -63,8 +65,10 @@ const loadWays = () => import('../../answers/plan/waysRun.js');
 const loadMix = () => import('../../answers/plan/mixRun.js');
 /** "Your household" (road-to-7.md step 9): both plans each way, the survivor and the care questions, loaded lazily the same way. */
 const loadHousehold = () => import('../../answers/plan/householdRun.js');
+/** "Moving to your plan's mix" (road-to-7.md step 10): the one run on the mix as held, loaded lazily the same way. */
+const loadMove = () => import('../../answers/plan/moveRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
@@ -84,7 +88,8 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
           : which === 'mixTry' ? (mixTry || (await loadMix()).runMixTry) : which === 'mixCompare' ? (mixCompare || (await loadMix()).runMixCompare)
             : which === 'household' ? (household || (await loadHousehold()).runHousehold) : which === 'householdSurvivor' ? (householdSurvivor || (await loadHousehold()).runSurvivor)
               : which === 'householdCare' ? (householdCare || (await loadHousehold()).runCare)
-                : (lasts || (await loadLasts()).runLasts);
+                : which === 'moveHeld' ? (moveHeld || (await loadMove()).runHeld)
+                  : (lasts || (await loadLasts()).runLasts);
     const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress })
       : which === 'lever' ? fn(msg.plan, { today: env.today, lever: env.lever, onProgress })
         : which === 'try' ? fn(msg.plan, { today: env.today, boxes: env.boxes, onProgress })
@@ -147,6 +152,11 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       if (msg.type === 'mixCompare') {
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error('mixCompare: no plan');
         runLazy(msg, post, id, 'mixCompare').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'moveHeld') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('moveHeld: no plan');
+        runLazy(msg, post, id, 'moveHeld').catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'household' || msg.type === 'householdSurvivor' || msg.type === 'householdCare') {

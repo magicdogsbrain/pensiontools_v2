@@ -360,6 +360,9 @@ export function readyMark(state) {
   // "Your household" (road-to-7.md step 9): the pooled run, the survivor's or the care's under way is not ready
   const H = state.household;
   if (H && (H.status === 'working' || (H.survivor && H.survivor.status === 'working') || (H.care && H.care.status === 'working'))) busy = true;
+  // "Moving to your plan's mix" (step 10): the one run on the held mix under way is not ready
+  const Mv = state.move;
+  if (Mv && Mv.status === 'working') busy = true;
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
 }
 
@@ -375,6 +378,33 @@ export function planHouseholdView(state) {
   const show = (path) => v.draft.asked || v.draft.touched.includes(path);
   const cards = (list) => list.map((c) => ({ ...c, paidByError: show('budget.' + c.kind + '.' + c.id + '.paidBy') ? c.paidByError : null, shareError: show('budget.' + c.kind + '.' + c.id + '.mySharePct') ? c.shareError : null }));
   return { ...v, whoPays: { ...v.whoPays, lines: cards(v.whoPays.lines), oneOffs: cards(v.whoPays.oneOffs) }, detailOpen: open.includes('hhDetail'), whoPaysOpen: open.includes('hhWhoPays') };
+}
+
+/**
+ * "What you hold" (research/v7/holdings-and-move.md §2; road-to-7.md step 10): the plan source's reading of the step (page.hold:
+ * the lines by account, the add box, the paste read, the remove asked — worked out there with what was typed) with the open
+ * paste box (ui.open), the write's state (ui.saving kind 'hold'), the problem and the toast. A line's box shows its problem
+ * once left, as every editing step's do.
+ */
+export function planHoldView(state) {
+  const v = editView(state, 'hold');
+  if (!v.found) return v;
+  const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
+  const show = (path) => v.draft.asked || v.draft.touched.includes(path);
+  const groups = v.groups.map((g) => ({ ...g, lines: g.lines.map((l) => ({ ...l, fields: Object.fromEntries(Object.entries(l.fields).map(([k, f]) => [k, { ...f, error: f.error && show(f.path) ? f.error : null }])) })) }));
+  return { ...v, groups, pasteOpen: open.includes('holdPaste') || !!(v.paste && v.paste.text) };
+}
+
+/**
+ * "Moving to your plan's mix" (§3): the plan source's reading of the step (page.move, worked out there with the index the effect
+ * fetched and the one run held in state.move) with the open blocks (ui.open: how to read it, the sheet shown anyway, gilt ladders
+ * explained), the write's state (ui.saving kind 'tick'), the problem and the toast.
+ */
+export function planMoveView(state) {
+  const v = editView(state, 'move');
+  if (!v.found) return v;
+  const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
+  return { ...v, howOpen: open.includes('moveHow'), sheetOpen: open.includes('moveSheet'), explainedOpen: open.includes('moveExplained') };
 }
 
 // ---- the budget step (research/v7/budget-step.md) --------------------------------------------------------------------

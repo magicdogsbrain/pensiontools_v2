@@ -9,6 +9,7 @@
  * Client-side only. Pure: no DOM, no storage.
  */
 import { FUND_CATALOGUE } from './SubAssetModel.js';
+import { holdingsLines, holdingsWith } from './HoldingsRecord.js';
 
 const up = (s) => String(s || '').toUpperCase().trim();
 const SEDOL_RE = /^[B-DF-HJ-NP-TV-Z0-9]{6}\d$/i;          // 7 chars, last a check digit, no vowels
@@ -302,4 +303,25 @@ export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
   }
   const unseen = out.filter((l) => (l.wrapper || 'SIPP').toUpperCase() === wrapper && !seen.has(l));
   return { ledger: out, added, updated, unseen, skipped };
+}
+
+/**
+ * A paste applied to the record, exactly as the planner's paste overlay applies it (index.html applyPasteHoldings, the
+ * "what you hold" branch; 6.43.0, lifted pure): the parsed rows matched against the catalogue and the plan's order sheet,
+ * each line the person answered "What is this?" for categorised, the matches merged into the record's lines (mergeLedger:
+ * a line it recognises is updated, the rest added, a gilt and a fund never one line), and the record stamped as a paste.
+ * @param {object} record   the holdings record (any shape normaliseHoldings takes)
+ * @param {Array} rows      parsePaste(text).rows
+ * @param {object} answers  { [line number]: 'shares' | 'bonds' | 'cash' | 'diversifiers' | 'unknown' } for lines not recognised
+ * @param {string} wrapper  'SIPP' | 'ISA' | 'GIA' | 'CASH' — where these lines are held
+ * @param {{ today: string|Date, orders?: Array }} o   the day of the write; the plan document's order sheet to match gilts against
+ * @returns {{ record, matched, added, updated, unseen, skipped }}  `unseen`: lines of that wrapper the paste did not mention (sold?) — never removed here
+ */
+export function applyPaste(record, rows, answers = {}, wrapper = 'SIPP', { today, orders = [] } = {}) {
+  const matched = matchRows(Array.isArray(rows) ? rows : [], { orders: Array.isArray(orders) ? orders : [], wrapper }).map((r) => {
+    const key = answers && answers[r.line];
+    return r.match && r.match.kind === 'none' && key && CATEGORY_CHOICES.some((c) => c.key === key) ? categorise(r, key) : r;
+  });
+  const merged = mergeLedger(holdingsLines(record), matched, { wrapper });
+  return { record: holdingsWith(record, { kind: 'merge', lines: merged.ledger, source: 'paste' }, { today }), matched, added: merged.added, updated: merged.updated, unseen: merged.unseen, skipped: merged.skipped };
 }

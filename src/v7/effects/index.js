@@ -14,6 +14,7 @@ import { startLastsRunner } from './lasts.js';
 import { startWaysRunner } from './ways.js';
 import { startMixRunner } from './mix.js';
 import { startHouseholdRunner } from './household.js';
+import { startMoveRunner } from './move.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
 import { startOpenPlace } from './openPlace.js';
@@ -54,6 +55,9 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startMixRunner({ store, client, now: () => Date.now() }));
   // "Your household" (research/v7/road-to-7.md step 9): the pooled run, the survivor and the care questions, in the worker only, on that step only
   stops.push(startHouseholdRunner({ store, client, now: () => Date.now() }));
+  // "Moving to your plan's mix" (research/v7/holdings-and-move.md §3.3, §3.7): the one run on the held mix in the worker only, and the
+  // equity index fetched once for the rotation watch (the bundled snapshot when the file cannot be read), on that step only
+  stops.push(startMoveRunner({ store, client, now: () => Date.now(), fetchImpl: typeof win.fetch === 'function' ? win.fetch.bind(win) : null }));
 
   // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
   // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where

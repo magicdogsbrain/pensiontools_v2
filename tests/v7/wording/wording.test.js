@@ -30,6 +30,8 @@ import { LOCK } from '../../../src/v7/copy/lock.js';
 import { WAY } from '../../../src/v7/copy/way.js';
 import { MIX } from '../../../src/v7/copy/mix.js';
 import { HOUSEHOLD } from '../../../src/v7/copy/household.js';
+import { HOLD } from '../../../src/v7/copy/hold.js';
+import { MOVE } from '../../../src/v7/copy/move.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
 import { WAY_IDS, WAY_DIALS } from '../../../src/answers/plan/schema.js';
@@ -280,6 +282,29 @@ describe('the words in src/v7/copy/', () => {
     expect(HOUSEHOLD.survivor.headline).toContain('(the worst 1 in 10)');
     expect(HOUSEHOLD.verdict.ranUntimed).toBe('Tried in {runs} run{s}.');
     for (const [where, s] of strings(HOUSEHOLD)) expect(s, where).not.toMatch(/about £/);
+  });
+  it('"What you hold" (hold.js) and "Moving to your plan\'s mix" (move.js): every string passes in every scope a plan page is shown in (the record scope too); no slot left unfilled; never the planner\'s words; "Illustration, not advice" fixed', () => {
+    // both are plan pages (road-to-7.md step 10): a retired person's and a saver's plan alike; the record is a record (no "about £"); the move's run states an answer
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{(date|lockedOn|asOf|athOn|when|matures)\}/g, '1 July 2026').replace(/\{year\}/g, '2029/30').replace(/\{(words|ownWords)\}/g, 'in 9 futures out of 10')
+      .replace(/\{(pension|isa|gia|cash|total|recognisedTotal|unrecognisedTotal|unknownTotal|value|amount|monthly|annual|target|held|spare|short|buy|sell|cost|pays|income|proceeds|bad|typical|lump|summary|lots)\}/g, '£250,000')
+      .replace(/\{(shares|bonds|diversifiers|charge|trigger|below|pct|held)\}/g, '35').replace(/\{(level|ath|fireLevel|nominal)\}/g, '5,000')
+      .replace(/\{(lines|read|recognised|unrecognised|unknown|updated|added|n|months|rungs|bought|done|moves|years|year|from|to|cutAge|disarmAge|atAge|line|tranches|code|units)\}/g, '3')
+      .replace(/\{(name|text|list|parts|wrapper|store|word|ticker|symbol|label|reason|why|years|action|on|s|have|newMoney|sedol|bucket)\}/g, 'Vanguard FTSE All-World').replace(/\{ms\}/g, '4.6');
+    const hits = [];
+    for (const [file, words] of [['hold.js', HOLD], ['move.js', MOVE]]) {
+      const all = strings(words).map(([, s]) => slot(s)).join('\n');
+      for (const [where, s] of strings(words)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`${file} ${where} — ${h}`);
+      for (const [where, s] of strings(words)) expect(slot(s), `${file} ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|strategy|allocation|portfolio|transition|wrappers?|holdings|ledger|nominal|run-up|approx|MC|p10|p50|p90|FAILED)\b/i);
+      for (const [where, s] of strings(words)) expect(slot(s), `${file} ${where}`).not.toMatch(/\{\w+\}/);
+      for (const [where, s] of strings(words)) expect(s, `${file} ${where}`).not.toMatch(/about £|around £/i);
+    }
+    expect(hits).toEqual([]);
+    expect(MOVE.footer).toBe('Illustration, not advice. Nothing here places an order.');
+    expect(MOVE.optional).toBe('Optional. Skipping it means what you hold may not match what the plan was tested on.');
+    expect(MOVE.cost.ranUntimed).toBe('Tried in 1 run.');
+    expect(HOLD.lead).toContain('nothing here is copied from the plan');
+    expect(HOLD.line.removeConfirm).toContain('Nothing is sold; this only changes the record.');
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

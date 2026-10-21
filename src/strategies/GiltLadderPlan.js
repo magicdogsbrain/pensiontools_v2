@@ -14,6 +14,45 @@
  */
 
 import { isChargesPct } from '../services/Charges.js';
+import { targetHoldings, diffHoldings } from '../services/TransitionPlanner.js';
+import { holdingsLines } from '../services/HoldingsRecord.js';
+
+/**
+ * The order sheet's rows, as the planner's giltOrderSheetHtml prints them (6.43.0, lifted pure; research/v7/holdings-and-move.md
+ * §3.6, §5): every rung that pays (a gilt that pays nothing is not an order, 6.11.3), numbered from 1, with what to buy,
+ * its codes, when it matures, what it pays and for which tax years, the units to order (the nominal), the index ratio, the
+ * clean price and the cost — the document's figures at lock, never re-priced. With `holdings` and `today`, each row also
+ * says whether the rung is held ('bought'), partly ('part'), not yet ('not yet'), already paid out ('paid') or sold by the
+ * rotation ('sold'), read as the move reads it (TransitionPlanner: the same target and diff).
+ * @param {object} docOrPlan  the plan document (strategy.r.plan), or a buildGiltLadder plan itself
+ * @param {object|Array|null} [holdings]  the holdings record or its lines
+ * @param {{ today?: Date|null, params?: object|null, runUpMonthly?: number }} [o]  the day to read against (none: no `bought`)
+ */
+export function orderSheetRows(docOrPlan, holdings = null, { today = null, params = null, runUpMonthly = 0 } = {}) {
+  const d = docOrPlan || {};
+  const plan = d.strategy && d.strategy.r ? d.strategy.r.plan : (Array.isArray(d.orders) ? d : null);
+  if (!plan || !Array.isArray(plan.orders)) return [];
+  const live = plan.orders.filter((o) => o && +o.pays > 0);
+  let boughtOf = () => null;
+  if (today && d.strategy && d.strategy.r) {
+    const target = targetHoldings(d, { today, params, runUpMonthly });
+    const diff = diffHoldings(holdingsLines(holdings), target);
+    const up = (s) => String(s || '').toUpperCase().trim();
+    const keyOf = (o) => 'gilt:' + up(o.tidm || o.sedol || o.name);
+    const held = new Set(diff.hold.map((h) => h.key));
+    const part = new Set(diff.buy.filter((b) => +b.heldUnits > 0).map((b) => b.key));
+    const paid = new Set((target.paid || []).map((t) => t.key));
+    const sold = new Set((target.sold || []).map((t) => t.key));
+    boughtOf = (o) => { const k = keyOf(o); return paid.has(k) ? 'paid' : sold.has(k) ? 'sold' : held.has(k) ? 'bought' : part.has(k) ? 'part' : 'not yet'; };
+  }
+  return live.map((o, i) => ({
+    n: i + 1, name: String(o.name || ''), tidm: o.tidm || '', sedol: o.sedol || '', matures: o.matures || null,
+    pays: Math.round(+o.pays || 0), taxYears: Array.isArray(o.taxYears) ? o.taxYears.slice() : [],
+    nominal: +o.nominal > 0 ? Math.round(+o.nominal) : null, indexRatio: +o.indexRatio > 0 ? +o.indexRatio : null,
+    cleanPrice: o.cleanPrice != null && Number.isFinite(+o.cleanPrice) ? +o.cleanPrice : null, cost: Math.round(+o.cost || 0),
+    bought: boughtOf(o)
+  }));
+}
 
 // cashRealDrag: cash earns about inflation minus 1% (the FCA-prescribed assumption every other strategy in the
 // app runs on), so £1 of need k years out costs £1 × 1.01^k of cash today. Two cash years barely notice;

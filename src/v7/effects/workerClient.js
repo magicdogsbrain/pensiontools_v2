@@ -15,6 +15,7 @@
  *     household(plan, partner, env, onProgress)         → Promise<Result>   a couple's two plans each way, pooled (lane 'household'; road-to-7.md step 9): env = { today, limit }
  *     householdSurvivor(plan, partner, env, onProgress) → Promise<Result>   the survivor question (lane 'householdSurvivor'): env = { today, boxes }
  *     householdCare(plan, partner, env, onProgress)     → Promise<Result>   the care question (lane 'householdCare'): env = { today, boxes }
+ *     moveHeld(plan, env, onProgress)          → Promise<Result>       the one run on the mix as held (lane 'moveHeld'; road-to-7.md step 10): env = { today }
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
  *                                              is not given) is under way; those answers reject with code 'stopped'.
  *                                              Answers of other questions still under way are sent again, unchanged,
@@ -254,6 +255,8 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     household(plan, partner, env, onProgress) { return lane('household', plan, env, onProgress, { partner }); },
     householdSurvivor(plan, partner, env, onProgress) { return lane('householdSurvivor', plan, env, onProgress, { partner }); },
     householdCare(plan, partner, env, onProgress) { return lane('householdCare', plan, env, onProgress, { partner }); },
+    /** "Moving to your plan's mix" (road-to-7.md step 10): the one run on the mix as held, in its own lane 'moveHeld'. env = { today }. */
+    moveHeld(plan, env, onProgress) { return lane('moveHeld', plan, env, onProgress); },
 
     stop(q) {
       const ending = (e) => e.kind === 'answer' && (q === undefined || q === null || e.q === q);

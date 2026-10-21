@@ -107,3 +107,66 @@ export function holdingsSummary(rec) {
   }
   return { count: lines.length, total, byWrapper };
 }
+
+// ---- The record changed, as the planner's Transition handlers change it (6.43.0: lifted pure, research/v7/holdings-and-move.md §5) ----
+
+/** 'YYYY-MM-DD' of `today`: a date string as given, a Date as the planner's todayIso (its UTC calendar day). */
+const dayOf = (today) => (typeof today === 'string' ? today.slice(0, 10) : today instanceof Date ? today.toISOString().slice(0, 10) : null);
+
+/**
+ * The record as the planner's persistHoldings saves it: normalised with `source` (the record's own when none is given),
+ * dated `today` when it has lines and undated without, 'none' when the last line has gone. The one stamp both apps use.
+ * @param {object} record  any shape normaliseHoldings takes
+ * @param {string|Date} today  the day of the write (the effect's clock, handed in)
+ * @param {string|null} [source]  'typed' | 'paste' | 'imported'; null keeps the record's
+ */
+export function stampHoldings(record, today, source = null) {
+  const rec = record && typeof record === 'object' ? record : {};
+  const out = normaliseHoldings({ ...rec, source: source || rec.source || 'typed' });
+  out.updatedAt = out.lines.length ? dayOf(today) : null;
+  if (!out.lines.length) out.source = 'none';
+  return out;
+}
+
+/** The fields a typed edit may change on a line, and which of them are numbers (the planner's updHolding). */
+export const LINE_FIELDS = Object.freeze(['wrapper', 'ticker', 'name', 'sedol', 'units', 'value', 'ocf', 'contribution', 'subClass', 'kind', 'asOf']);
+export const LINE_NUMBER_FIELDS = Object.freeze(['value', 'units', 'ocf', 'contribution']);
+
+/** The source a typed change leaves: a pasted or imported record stays so (the planner's rule); anything else is typed. */
+const typedSource = (rec) => (rec && (rec.source === 'paste' || rec.source === 'imported') ? rec.source : 'typed');
+
+/**
+ * The next record after ONE change, exactly as the planner's handlers make it (index.html addHoldingLine, updHolding,
+ * removeHolding, and the paste's apply), stamped with `today`:
+ *   { kind: 'add', line }                      the line pushed (its identity checked by normaliseLine on the stamp)
+ *   { kind: 'edit', index, field, value }      one field of line `index`: a number field takes '' as null, else +value; text as given
+ *   { kind: 'remove', index }                  the line taken out; the source is kept
+ *   { kind: 'merge', lines, source }           the lines replaced (a paste's merged ledger), stamped with `source`
+ * Never writes; the record given is not changed. An index outside the record, or an unknown kind, throws.
+ */
+export function holdingsWith(record, change, { today } = {}) {
+  const rec = normaliseHoldings(record);
+  const c = change && typeof change === 'object' ? change : {};
+  const lines = rec.lines.map((l) => ({ ...l }));
+  if (c.kind === 'add') {
+    lines.push(c.line && typeof c.line === 'object' ? { ...c.line } : {});
+    return stampHoldings({ ...rec, lines }, today, typedSource(rec));
+  }
+  if (c.kind === 'edit') {
+    const i = +c.index;
+    if (!(i >= 0 && i < lines.length)) throw new Error('holdingsWith: no line ' + c.index);
+    if (!LINE_FIELDS.includes(c.field)) throw new Error('holdingsWith: no field ' + c.field);
+    lines[i][c.field] = LINE_NUMBER_FIELDS.includes(c.field) ? (c.value === '' || c.value == null ? null : +c.value) : c.value;
+    return stampHoldings({ ...rec, lines }, today, typedSource(rec));
+  }
+  if (c.kind === 'remove') {
+    const i = +c.index;
+    if (!(i >= 0 && i < lines.length)) throw new Error('holdingsWith: no line ' + c.index);
+    lines.splice(i, 1);
+    return stampHoldings({ ...rec, lines }, today, rec.source);
+  }
+  if (c.kind === 'merge') {
+    return stampHoldings({ ...rec, lines: Array.isArray(c.lines) ? c.lines : [] }, today, c.source || 'paste');
+  }
+  throw new Error('holdingsWith: no change called "' + c.kind + '"');
+}

@@ -35,6 +35,10 @@
  *                      Try a change on a plan (way-and-mix.md 4): the boxes beside the three levers on "Does it last?", and
  *                      the paths "Use this" may write — the union of the steps' own lists, none of its own
  *   HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, isHouseholdPath, LIMIT_KINDS, WHOS, PAID_BYS
+ *   HOLD_FIELDS, HOLD_WRITES, isHoldPath, HOLD_WRAPPERS, HOLD_WHATS, MOVE_WRITES, isMovePath
+ *                      "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md; road-to-7.md step 10):
+ *                      the add-a-line and paste boxes, and the ONLY field paths each may write — the whole record, the
+ *                      whole transition object, each as one field
  *                      "Your household" (road-to-7.md step 9): the limit on the smaller pot, the survivor and care questions in
  *                      ages, the budget's who-pays, and the ONLY field paths the step may write (the link, the dismissal, the
  *                      split's five keys, the budget shared, who pays)
@@ -625,9 +629,46 @@ export const HOUSEHOLD_WRITES = Object.freeze([
   'budgetTool.settings.derived'
 ]);
 
+// ---- "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2, §3; road-to-7.md step 10) -----
+
+export const HOLD_SUB_STEP = 'hold';
+export const MOVE_SUB_STEP = 'move';
+/** The four types of account a line is held in (HoldingsRecord.WRAPPERS), on screen Pension / ISA / Other account / Cash. */
+export const HOLD_WRAPPERS = Object.freeze(['SIPP', 'ISA', 'GIA', 'CASH']);
+/** "What is this?" / "Counted as" for a line the page cannot place (HoldingsPaste.CATEGORY_CHOICES, by key). */
+export const HOLD_WHATS = Object.freeze(['shares', 'bonds', 'cash', 'diversifiers', 'unknown']);
+/**
+ * The boxes of "What you hold", each "<block>.<name>" in the plan draft: the add-a-line box (the type of account, what is
+ * typed — a code, a name, a gilt's code or year, or "cash" —, the value and the units), the paste (its text and the type
+ * of account it is held in), and the line a Remove is asked about. A line's own boxes and a pasted line's "What is this?"
+ * are card paths (isHoldPath). Nothing here is saved by a Save button: each change is its own write (§2.2).
+ */
+export const HOLD_FIELDS = Object.freeze([
+  { path: 'add.wrapper',   type: 'choice', options: HOLD_WRAPPERS, default: 'SIPP' },
+  { path: 'add.text',      type: 'text',   max: 80 },
+  { path: 'add.value',     type: 'money',  min: 0, max: 50000000, required: false },
+  { path: 'add.units',     type: 'count',  min: 0, max: 100000000, required: false },
+  { path: 'paste.text',    type: 'text',   max: 200000 },
+  { path: 'paste.wrapper', type: 'choice', options: HOLD_WRAPPERS, default: 'SIPP' },
+  { path: 'remove.index',  type: 'count',  min: 0, max: 9999, required: false }
+].map(Object.freeze));
+export const HOLD_PATHS = Object.freeze(HOLD_FIELDS.map((f) => f.path));
+/** A line's boxes (line.<index>.<field>: the fields HoldingsRecord.LINE_FIELDS names) and a pasted line's answer (paste.<line>.what). */
+const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf)$|^paste\.\d{1,4}\.what$/;
+export const isHoldPath = (path) => HOLD_PATHS.includes(String(path)) || HOLD_CARD.test(String(path));
+/** The move step types nothing: its tick-offs are their own writes (§3.5), its one run writes nothing. */
+export const isMovePath = () => false;
+/**
+ * The ONLY field paths "What you hold" may change (§2.2): the whole record as ONE field in one write (the planner's
+ * saveActiveHoldings writes it whole too), and the planner's stamp.
+ */
+export const HOLD_WRITES = Object.freeze(['holdings', 'lastModified']);
+/** The ONLY field paths "Moving to your plan's mix" may change (§3.8): the whole `transition` object (its tick-offs) in one write, and the stamp. */
+export const MOVE_WRITES = Object.freeze(['transition', 'lastModified']);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -652,5 +693,6 @@ export const INCOME_WRITES = Object.freeze([
  */
 export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
 
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES });
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...BOOKKEEPING_WRITES])]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES });
+// the stamp stays last: the hold and move lists name it themselves (holdings-and-move.md §2.2, §3.8), so it is taken out of them here and put back with the bookkeeping
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BOOKKEEPING_WRITES])]);

@@ -517,7 +517,8 @@ function holdStep(C) {
     figures.lines = sum.count; figures.total = r0(sum.total);
     lines.push(line('hold.total', [money('total'), ' across ', count('lines'), ' line' + (sum.count === 1 ? '' : 's')], figures, src));
   } else result = sentence('hold.none', ['Not recorded yet'], figures);
-  return { done: has, result, figures, lines, buttons: [button('changeHold', 'hold')], notes: [] };
+  // "Change this here": the record is kept inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
+  return { done: has, result, figures, lines, buttons: [link('changeHold', '#/plan/' + plan.id + '/hold')], notes: [] };
 }
 
 /** Moving to your plan's mix (2.3 `move`). */
@@ -539,7 +540,8 @@ function moveStep(C) {
     result = sentence('move.moves', [count('movesDone'), ' of ', count('moves'), ' moves done'], figures);
   }
   if (m && m.diff && typeof m.diff.progressPct === 'number') { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
-  return { done, result, figures, lines, buttons: [button('openMove', 'move')], notes: ['move.optional'] };
+  // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
+  return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: ['move.optional'] };
 }
 
 /** Your household (2.3 `household`; 6). */

@@ -7,6 +7,8 @@
  *     lasts(plan, env, onProgress)             → Promise<Result>       a saved plan's one test (lane 'lasts'; editing-in-v7.md 10)
  *     document(plan, env, onProgress)          → Promise<Run>          the run a plan document is built from (lane 'document'; road-to-7.md step 6)
  *     lever(plan, env, onProgress)             → Promise<Result>       one of the three levers on a saved plan (lane 'lever'; road-to-7.md step 7)
+ *     ways(plan, env, onProgress)              → Promise<Result>       the nine ways of drawing on a saved plan (lane 'ways'; way-and-mix.md 2)
+ *     way(plan, env, onProgress)               → Promise<Result>       one way tried on its dials (lane 'way'): env = { today, way: { id, dials } }
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
  *                                              is not given) is under way; those answers reject with code 'stopped'.
  *                                              Answers of other questions still under way are sent again, unchanged,
@@ -183,6 +185,36 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
         const id = nextId++;
         const msg = { id, type: 'lever', plan: cloneSafe(plan), env: cloneSafe(env) };
         pending.set(id, { kind: 'answer', q: 'lever', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * "How the money is taken" (research/v7/way-and-mix.md 2.2): the nine ways on a saved plan in their own lane 'ways', and
+     * one way tried on its dials in the lane 'way' (so a stale try is stopped without ending the nine). The plan goes as
+     * data; the results come back as data (answers/plan/waysRun.js runWays, runWay). env = { today } / { today, way: { id, dials } }.
+     */
+    ways(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'ways', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'ways', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+    way(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'way', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'way', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
           reject(coded('the worker could not be reached', 'worker-error'));

@@ -131,12 +131,25 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     budget:  cleanSheet(draft && typeof draft === 'object' ? draft.budget : null),
     keep,
     lasts:   emptyLasts(),                           // "Does it last?": the one test's result for ONE plan, page memory only (editing-in-v7.md 10)
+    ways:    emptyWays(),                            // "How the money is taken": the nine ways on ONE plan, page memory only (way-and-mix.md 2)
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
 }
 
 /** No run of "Does it last?" held: `key` is lasts.js runKeyOf of the plan a result (or a run under way) is for. */
 export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
+/**
+ * No run of the nine ways held (way-and-mix.md 2.2): `key` as lasts'; `result` waysRun.js runWays's; `ran` { runs, ms } the cost
+ * said on screen; `open` the way whose card is open (null: the plan's own); `dials` text typed by way and key; `tried` by way:
+ * { status: 'working' | 'done' | 'failed', values, result, reason, ms } for the one way tried on its dials; `rankBy` the table's order.
+ */
+export const emptyWays = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false, ran: null, open: null, dials: {}, tried: {}, rankBy: 'lasts' });
+const TRY_STATUS = ['working', 'done', 'failed'];
+/** A tried way's entry, cleaned (state/replace may draw one). */
+export function cleanTried(x) {
+  if (!x || typeof x !== 'object' || !TRY_STATUS.includes(x.status)) return null;
+  return { status: x.status, values: x.values && typeof x.values === 'object' ? x.values : {}, result: x.status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, reason: x.status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null, ms: Number.isFinite(x.ms) ? x.ms : null };
+}
 /** The three levers of "Does it last?" (road-to-7.md step 7), and what a lever's entry may be. */
 export const LEVER_KINDS = Object.freeze(['spendMore', 'work', 'fall']);
 const LEVER_STATUS = ['open', 'working', 'done', 'failed', 'invalid'];

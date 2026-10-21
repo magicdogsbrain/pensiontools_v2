@@ -47,7 +47,7 @@ const TODAY = '2026-09-30';
 const FUTURES = Number(process.env.V7_STATES_FUTURES || 1000);
 const at = process.argv.indexOf('--question');
 const QUESTION = at === -1 ? 'c' : process.argv[at + 1];
-if (!['a', 'b', 'c', 'd'].includes(QUESTION)) throw new Error(`--question takes a, b, c or d, not ${QUESTION}`);
+if (!['a', 'b', 'c', 'd', 'plan'].includes(QUESTION)) throw new Error(`--question takes a, b, c, d or plan, not ${QUESTION}`);
 const argOf = (name) => { const i = process.argv.indexOf(name); return i === -1 ? null : process.argv[i + 1]; };
 const ONLY = argOf('--only') ? argOf('--only').split(',').map((x) => x.trim()).filter(Boolean) : null;
 const OUT = argOf('--out');
@@ -431,6 +431,80 @@ function buildDStates({ today, futures, inputsKey: keyOf }) {
   states['keep-no-answer'] = dState('keep', D1);
   states['keep-D1'] = answered('keep-D1', 'keep', D1, { kind: 'close' });
   return { states, patched: [], answer: 'src/answers/d/answer.js' };
+}
+
+/**
+ * The states of "How the money is taken" on a saved plan (research/v7/way-and-mix.md 2, 7): tests/v7/states/plan/way-*.json —
+ * each a whole V7 state on #/plan/<id>/way with the plans in page memory (Alex's Pots & Valves draft, corpus 02; Sam's locked
+ * gilt ladder, corpus 03; Alex's first plan, corpus 01, where three ways cannot be bought), the nine-way run held
+ * (waysRun.js runWays at the engine's own 1,000 futures) and the cards as the plan source reads them. Nothing hand-made.
+ *   npx -y node@20 tests/v7/states/build-states.mjs --question plan
+ */
+async function buildPlanStates({ today }) {
+  const { reduce } = await import('../../../src/v7/state/reduce.js');
+  const { A } = await import('../../../src/v7/state/actions.js');
+  const { viewFor } = await import('../../../src/v7/effects/planSource.js');
+  const { runWays, runWay } = await import('../../../src/answers/plan/waysRun.js');
+  const { runKeyOf } = await import('../../../src/answers/plan/way.js');
+  const { corpus, entryOf } = await import('../plan/_plans.js');
+  const C = corpus();
+  const plant = (raw, id, name, { active = false } = {}) => { const p = JSON.parse(JSON.stringify(raw)); p.id = id; p.planDetails = { ...(p.planDetails || {}), name }; p.isActive = active; delete p.household; return p; };
+  const alex = plant(C['02-pnv-draft'], 'AlexWay01', 'Alex’s plan', { active: true });
+  const sam = plant(C['03-gilt-ladder-runup'], 'SamLocked02', 'Sam’s plan');
+  const fresh = plant(C['01-fresh-default'], 'AlexFresh03', 'Alex’s first plan');
+  const entries = [alex, sam, fresh].map((p) => entryOf(p, today));
+  const planOf = (id) => entries.find((e) => e.plan.id === id).plan;
+  const runs = new Map();
+  const runOf = (id) => { if (!runs.has(id)) runs.set(id, runWays(planOf(id), { today })); return runs.get(id); };
+  /** A state on the way step of a plan, the plans read (an account), then the actions given; the reading refreshed as the plan source does. */
+  const stateOn = (id, actions = [], { open = [], newer = false } = {}) => {
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + id + '/way') });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'someone@example.com' } });
+    s = reduce(s, { type: A.PLANS_SET, list: entries.map((e) => (e.plan.id === id && newer ? { ...e, newer: true } : e)), source: 'account', readAt: '14:03' });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    const key = runKeyOf(planOf(id));
+    for (const a of actions) { s = reduce(s, typeof a === 'function' ? a(key, s) : a); s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) }); }
+    for (const x of open) s = reduce(s, { type: A.UI_TOGGLE, id: x });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    return s;
+  };
+  const ran = (id, ms = 4600) => [(key) => ({ type: A.WAYS_WORKING, key }), (key) => ({ type: A.WAYS_DONE, key, result: runOf(id), ms })];
+  const tried = (planId, id, values, ms = 180) => [(key) => ({ type: A.WAY_TRY, id, values }), (key) => ({ type: A.WAY_TRIED, key, id, values, result: runWay(planOf(planId), { today, id, dials: values }), ms })];
+  const states = {};
+  states['way-working'] = stateOn('AlexWay01', [(key) => ({ type: A.WAYS_WORKING, key }), (key) => ({ type: A.WAYS_PROGRESS, key, done: 3, total: 9 })]);
+  states['way-slow'] = stateOn('AlexWay01', [(key) => ({ type: A.WAYS_WORKING, key }), (key) => ({ type: A.WAYS_SLOW, key })]);
+  states['way-first'] = stateOn('AlexWay01', ran('AlexWay01'));
+  states['way-open-ladder'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'full-il-gilt' }]);
+  states['way-open-flex'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-and-flex' }]);
+  states['way-trying'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, { type: A.WAY_TRY, id: 'floor-to-age', values: { floorToAge: 82 } }]);
+  states['way-tried'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, ...tried('AlexWay01', 'floor-to-age', { floorToAge: 82 })]);
+  states['way-dial-problem'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: 'ninety' }]);
+  states['way-cuts-tried'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_DIAL, id: 'pots-and-valves', key: 'cutPct', value: '30' }, ...tried('AlexWay01', 'pots-and-valves', { protectionOn: 'yes', cutPct: 30, consecutiveLimit: 3 })]);
+  states['way-confirm'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, ...tried('AlexWay01', 'floor-to-age', { floorToAge: 82 })], { open: ['wayConfirm'] });
+  states['way-more'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_RANK, by: 'left' }], { open: ['waysMore'] });
+  states['way-saved'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.PLAN_SAVED, planId: 'AlexWay01', previous: { 'stressTool.settings.strategyId': 'pots-and-valves', lastModified: planOf('AlexWay01').lastModified }, line: { id: 'way', slots: { way: 'floor-to-age' } }, op: 'way' }]);
+  states['way-failed'] = stateOn('AlexWay01', [(key) => ({ type: A.WAYS_WORKING, key }), (key) => ({ type: A.WAYS_FAILED, key })]);
+  states['way-no-worker'] = stateOn('AlexWay01', [(key) => ({ type: A.WAYS_WORKING, key }), (key) => ({ type: A.WAYS_FAILED, key, reason: 'noWorker' })]);
+  states['way-try-failed'] = stateOn('AlexWay01', [...ran('AlexWay01'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, { type: A.WAY_TRY, id: 'floor-to-age', values: { floorToAge: 82 } }, (key) => ({ type: A.WAY_TRY_FAILED, key, id: 'floor-to-age', values: { floorToAge: 82 } })]);
+  states['way-locked'] = stateOn('SamLocked02', ran('SamLocked02'));
+  states['way-locked-tried'] = stateOn('SamLocked02', [...ran('SamLocked02'), { type: A.WAY_OPEN, id: 'floor-to-age' }, { type: A.WAY_DIAL, id: 'floor-to-age', key: 'floorToAge', value: '82' }, ...tried('SamLocked02', 'floor-to-age', { floorToAge: 82 })]);
+  states['way-unaffordable'] = stateOn('AlexFresh03', [...ran('AlexFresh03'), { type: A.WAY_OPEN, id: 'full-il-gilt' }], { open: ['waysMore'] });
+  states['way-shown-as-saved'] = stateOn('AlexWay01', [], { newer: true });
+  return { states };
+}
+
+if (QUESTION === 'plan') {
+  const { states } = await buildPlanStates({ today: TODAY });
+  const { target, whole, names } = writeStates(states, join(here, 'plan'));
+  if (whole) {
+    writeFileSync(join(target, '_made-with.json'), JSON.stringify({
+      note: 'Written by tests/v7/states/build-states.mjs --question plan. Do not edit by hand.',
+      today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)'], patched: []
+    }, null, 2) + '\n');
+  }
+  console.log(`${names.length} states written to ${target}/`);
+  process.exit(0);
 }
 
 if (QUESTION === 'd') {

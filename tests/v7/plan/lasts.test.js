@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { lastsOf, lastsPatch, applyPatch, boxesOf, savedLasts, checkLasts, runKeyOf, verdictOf, verdictWord, startRow, notUsedBy, cutPctOf, multOf, FAMILY, CONTRACT } from '../../../src/answers/plan/lasts.js';
-import { LASTS_FIELDS, LASTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, isLastsPath, isPlanEditPath, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES } from '../../../src/answers/plan/schema.js';
+import { LASTS_FIELDS, LASTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, isLastsPath, isPlanEditPath, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
@@ -299,9 +299,9 @@ describe('L1 — the words of a result, and the run key', () => {
 
 describe('L1 — the sub-step, the address and the plan page\'s links', () => {
   it('"lasts" sits under "plan" beside the other four; the address parses and formats; the screen is plan.lasts', () => {
-    expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts']);
-    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts']);
+    expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
+    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
     const r = parse('#/plan/abc/lasts');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'lasts', planId: 'abc', focus: null });
     expect(format(r)).toBe('#/plan/abc/lasts');
@@ -313,7 +313,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
     expect(isLastsPath('cuts.0.pct')).toBe(false);
     for (const k of LASTS_WRITES) { expect(k.startsWith('stressTool.settings.')).toBe(true); expect(ALL_WRITES).toContain(k); }
     expect(LASTS_WRITES.map((k) => k.split('.')[2]).sort()).toEqual([...KEYS].sort());
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, 'lastModified'])]);
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, 'lastModified'])]);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   for (const today of DATES) {

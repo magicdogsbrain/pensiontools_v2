@@ -17,7 +17,7 @@ import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
-import { deriveCompareConfigs } from './compareRunner.js';
+import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
@@ -832,10 +832,7 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
 
 /** All three on the identical plan (the Strategies compare). */
 export function stressTestAll(p) {
-  const configs = deriveCompareConfigs(p);
-  const strategies = {};
-  for (const id of Object.keys(STRATEGY_NAMES)) strategies[id] = stressTestStrategy(id, p, configs);
-  return { configs, strategies };
+  return compareAll(p);   // the one loop over the nine (compareRunner.compareAll, 6.40.0): the same configs, the same order
 }
 
 

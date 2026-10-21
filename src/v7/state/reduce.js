@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever } from './initial.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
@@ -21,7 +21,7 @@ import { budgetReduce, cleanSheet, newSheet } from './budget.js';
 import { parse, format } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS } from './initial.js';
-import { isPlanEditPath } from '../../answers/plan/schema.js';
+import { isPlanEditPath, WAY_IDS, RANK_BYS } from '../../answers/plan/schema.js';
 
 /** The plan draft (editing-in-v7.md 4, 7.2): what was typed into an editing step for ONE plan; gone when the plan changes. */
 const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
@@ -30,8 +30,8 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // the lock (road-to-7.md step 6): not locked (an unlock or a new version on an unlocked plan), no worker to run the plan's
   // test in, the test gave nothing to write
   'notLocked', 'noWorker', 'noRun'];
-/** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document. */
-const PLAN_OPS = [null, 'lock', 'unlock', 'document'];
+/** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4). */
+const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -536,9 +536,9 @@ export function reduce(state, action) {
       return { ...state, plans: { ...state.plans, view: { today: String(v.today), rows: v.rows, page: v.page && typeof v.page === 'object' ? v.page : null } } };
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null) return state;
-      // the plans leave the page's memory, and the one test's result with them (editing-in-v7.md 10.1)
-      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null) return state;
+      // the plans leave the page's memory, and the one test's result and the nine ways' with them (editing-in-v7.md 10.1; way-and-mix.md 2.2)
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -585,7 +585,9 @@ export function reduce(state, action) {
       const marks = op ? { op, ...(op === 'lock' && typeof lockedAt === 'string' ? { lockedAt } : {}) } : {};
       const toast = hasPrevious ? { planId, kind: 'saved', previous, line: line && typeof line === 'object' ? line : null, ...marks }
         : { planId, kind: 'unchanged', previous: null, line: null, ...marks };
-      return withPlanDraft({ ...state, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
+      // the way of drawing changed (way-and-mix.md 2.4): the one test's result was for the old way — it goes, and runs again on the saved plan
+      const lasts = op === 'way' ? emptyLasts() : state.lasts;
+      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
     }
     case A.PLAN_SAVE_FAILED: {
       const { planId, problem } = action;
@@ -713,6 +715,97 @@ export function reduce(state, action) {
       return { ...state, lasts: { ...L, status: 'idle' } };
     }
 
+    // ---- "How the money is taken": the nine ways on a saved plan, page memory only (research/v7/way-and-mix.md 2.2) ----------
+    case A.WAYS_WORKING: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('ways/working: needs a key');
+      const W = state.ways || emptyWays();
+      // another plan, or the plan saved under the run: the old cards, dials and tries go (they were the old plan's); the same key: a retry
+      const same = W.key === action.key;
+      return { ...state, ways: { ...(same ? W : emptyWays()), key: action.key, status: 'working', reason: null, result: same ? W.result : null, progress: null, slow: false, ran: same ? W.ran : null } };
+    }
+    case A.WAYS_PROGRESS: {
+      const W = state.ways || emptyWays();
+      if (action.key !== W.key || W.status !== 'working') return state;
+      return { ...state, ways: { ...W, progress: { done: Number(action.done) || 0, total: Number(action.total) || 0 } } };
+    }
+    case A.WAYS_DONE: {
+      const W = state.ways || emptyWays();
+      if (action.key !== W.key || W.status !== 'working') return state;                                                   // stale
+      if (!action.result || typeof action.result !== 'object' || !Array.isArray(action.result.ways)) return refuse('ways/done: needs a result');
+      const runs = action.result.ways.length;
+      return { ...state, ways: { ...W, status: 'done', result: action.result, progress: null, slow: false, ran: { runs, ms: Number.isFinite(action.ms) ? Math.max(0, Math.round(action.ms)) : null } } };
+    }
+    case A.WAYS_FAILED: {
+      const W = state.ways || emptyWays();
+      if (action.key !== W.key || W.status !== 'working') return state;                                                   // stale
+      return { ...state, ways: { ...W, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null, progress: null, slow: false } };
+    }
+    case A.WAYS_SLOW: {
+      const W = state.ways || emptyWays();
+      if (action.key !== W.key || W.status !== 'working' || W.slow) return state;
+      return { ...state, ways: { ...W, slow: true } };
+    }
+    case A.WAYS_RETRY: {
+      const W = state.ways || emptyWays();
+      if (W.status !== 'failed') return state;
+      return { ...state, ways: { ...W, status: 'idle' } };
+    }
+    case A.WAY_OPEN: {
+      const id = action.id == null ? null : String(action.id);
+      if (id !== null && !WAY_IDS.includes(id)) return refuse(`ways/open: no way called "${id}"`);
+      const W = state.ways || emptyWays();
+      if (W.open === id) return state;
+      // one card open at a time: the card closed puts its try away (its tried figures were for its dials as they were)
+      const tried = { ...(W.tried || {}) };
+      if (W.open !== null && W.open !== undefined) delete tried[W.open];
+      return { ...state, ways: { ...W, open: id, tried } };
+    }
+    case A.WAY_DIAL: {
+      const { id, key } = action;
+      if (!WAY_IDS.includes(id)) return refuse(`ways/dial: no way called "${id}"`);
+      if (typeof key !== 'string' || !key) return refuse('ways/dial: needs a dial');
+      const W = state.ways || emptyWays();
+      const value = typeof action.value === 'string' ? action.value : action.value == null ? '' : String(action.value);
+      const mine = { ...((W.dials || {})[id] || {}), [key]: value };
+      // a dial moved: the card's last try was for other values — it stays shown, greyed, until the new try comes
+      return { ...state, ways: { ...W, dials: { ...(W.dials || {}), [id]: mine } } };
+    }
+    case A.WAY_TRY: {
+      const { id, values } = action;
+      if (!WAY_IDS.includes(id)) return refuse(`ways/try: no way called "${id}"`);
+      if (!values || typeof values !== 'object') return refuse('ways/try: needs the values');
+      const W = state.ways || emptyWays();
+      if (!W.key || W.status !== 'done') return state;                                                                    // never before the nine are held
+      return { ...state, ways: { ...W, tried: { ...(W.tried || {}), [id]: { status: 'working', values, result: null, reason: null, ms: null } } } };
+    }
+    case A.WAY_TRIED: {
+      const W = state.ways || emptyWays();
+      const t = W.tried && W.tried[action.id];
+      if (action.key !== W.key || !t || t.status !== 'working' || JSON.stringify(action.values) !== JSON.stringify(t.values)) return state;   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('ways/tried: needs a result');
+      return { ...state, ways: { ...W, tried: { ...W.tried, [action.id]: { ...t, status: 'done', result: action.result, ms: Number.isFinite(action.ms) ? Math.max(0, Math.round(action.ms)) : null } } } };
+    }
+    case A.WAY_TRY_FAILED: {
+      const W = state.ways || emptyWays();
+      const t = W.tried && W.tried[action.id];
+      if (action.key !== W.key || !t || t.status !== 'working' || JSON.stringify(action.values) !== JSON.stringify(t.values)) return state;   // stale
+      return { ...state, ways: { ...W, tried: { ...W.tried, [action.id]: { ...t, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } } } };
+    }
+    case A.WAY_RANK: {
+      if (!RANK_BYS.includes(action.by)) return refuse(`ways/rankBy: no order called "${action.by}"`);
+      const W = state.ways || emptyWays();
+      if (W.rankBy === action.by) return state;
+      return { ...state, ways: { ...W, rankBy: action.by } };
+    }
+    case A.PLAN_WAY: {
+      const { planId, id } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/useWay: needs a plan id');
+      if (!WAY_IDS.includes(id)) return refuse(`plan/useWay: no way called "${id}"`);
+      if (state.ui.saving) return state;
+      const open = state.ui.open.filter((x) => x !== 'wayConfirm');
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'way', way: id }, saveProblem: null, toast: null } };
+    }
+
     case A.ENV_SET: {
       // Start-up and the test hook only. The date, the last month of market history and the version; never the build.
       const patch = action.patch || {};
@@ -832,6 +925,16 @@ export function reduce(state, action) {
             levers: Object.fromEntries(LEVER_KINDS.map((k) => [k, cleanLever(copy.lasts.levers && copy.lasts.levers[k])]).filter(([, v]) => v)),
             workDraft: { yearly: copy.lasts.workDraft && typeof copy.lasts.workDraft.yearly === 'string' ? copy.lasts.workDraft.yearly : '', years: copy.lasts.workDraft && typeof copy.lasts.workDraft.years === 'string' ? copy.lasts.workDraft.years : '' } }
           : emptyLasts(),
+        // a named plan state may carry the nine ways' result for its plan (way-and-mix.md 2.2): a key with a plain result, the cards' state
+        ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
+          ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,
+            progress: copy.ways.progress && typeof copy.ways.progress === 'object' ? { done: Number(copy.ways.progress.done) || 0, total: Number(copy.ways.progress.total) || 0 } : null, slow: copy.ways.slow === true,
+            ran: copy.ways.ran && typeof copy.ways.ran === 'object' ? { runs: Number(copy.ways.ran.runs) || 0, ms: Number.isFinite(copy.ways.ran.ms) ? copy.ways.ran.ms : null } : null,
+            open: WAY_IDS.includes(copy.ways.open) ? copy.ways.open : null,
+            dials: Object.fromEntries(Object.entries(copy.ways.dials && typeof copy.ways.dials === 'object' ? copy.ways.dials : {}).filter(([id, d]) => WAY_IDS.includes(id) && d && typeof d === 'object').map(([id, d]) => [id, Object.fromEntries(Object.entries(d).filter(([, v]) => typeof v === 'string'))])),
+            tried: Object.fromEntries(Object.entries(copy.ways.tried && typeof copy.ways.tried === 'object' ? copy.ways.tried : {}).filter(([id]) => WAY_IDS.includes(id)).map(([id, t]) => [id, cleanTried(t)]).filter(([, t]) => t)),
+            rankBy: RANK_BYS.includes(copy.ways.rankBy) ? copy.ways.rankBy : 'lasts' }
+          : emptyWays(),
         ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
       };
     }

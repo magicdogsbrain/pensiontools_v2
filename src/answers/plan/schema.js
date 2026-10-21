@@ -24,6 +24,9 @@
  *   DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES
  *                      "Lock the plan" (road-to-7.md step 6): the ONLY field paths the lock, the unlock and "Write a new
  *                      version from today's settings" may write — the planner's own, field for field
+ *   WAY_IDS, WAY_DIALS, RANK_BYS, WAY_WRITES
+ *                      "How the money is taken" (way-and-mix.md 2; road-to-7.md step 8a): the nine ways, each one's dials
+ *                      (one set), the orders of the table, and the ONLY field paths "Use this way of drawing" may write
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -359,6 +362,94 @@ export const DOCUMENT_WRITES = Object.freeze([
   'planDocument'
 ]);
 
+// ---- "How the money is taken" (research/v7/way-and-mix.md 2; road-to-7.md step 8a): the way of drawing -------------------
+
+export const WAY_SUB_STEP = 'way';
+
+/** The nine ways, in the planner's order (stressTest.js STRATEGY_NAMES: the order the cards run and the ranking breaks ties by). */
+export const WAY_IDS = Object.freeze(['pots-and-valves', 'buckets-in-order', 'ladder-and-ratchet', 'bridge-and-engine', 'floor-and-flex', 'floor-the-schedule', 'floor-to-age', 'full-il-gilt', 'gilt-rotation']);
+/** The orders of the cards' table (OneAnswer.rankWays): by futures out of 10 (the default), what is left, the score, coverage. */
+export const RANK_BYS = Object.freeze(['lasts', 'left', 'score', 'coverage']);
+
+/**
+ * The dials of each way (way-and-mix.md 2.3), ONE set: every dial the planner shows for the way anywhere (its Settings box
+ * or its strategy page), by the key the way keeps in its params — in dial units (a percent as a percent, a choice as a
+ * word). `type`: 'count' (a whole number), 'age', 'money', 'percent' (a number with `step`), 'number' (a decimal with
+ * `step`), 'choice' (`options`). The default of each is the ENGINE's — what runs when the key is absent — and travels
+ * with the run (waysRun.js dialDefaults), since some depend on the plan (the target income, the State Pension age); a
+ * `default` here is the plan-free one. The cut dials (`cut`) are the Stress keys of "Does it last?", drawn on the two
+ * ways of the Pots & Valves family and written through the switch as the planner's strategy page writes them.
+ */
+const CUT_DIALS = Object.freeze([
+  { key: 'protectionOn',     type: 'choice', options: ['yes', 'no'], default: 'yes', cut: true },
+  { key: 'cutPct',           type: 'percent', min: 0, max: 60, step: 5, default: 20, cut: true },
+  { key: 'consecutiveLimit', type: 'count',  min: 1, max: 24, default: 3, cut: true }
+].map(Object.freeze));
+const LADDER_DIALS = Object.freeze([
+  { key: 'cashYears',   type: 'count',  min: 0, max: 5, default: 2 },
+  { key: 'bridgeCash',  type: 'money',  min: 0, max: 50000000, default: 0 },
+  { key: 'spareGrowth', type: 'choice', options: ['kept', 'invested'], default: 'kept' }
+].map(Object.freeze));
+export const WAY_DIALS = Object.freeze({
+  'pots-and-valves': CUT_DIALS,
+  'buckets-in-order': Object.freeze([
+    { key: 'bucketBand', type: 'percent', min: 0, max: 50, step: 5, default: 10 },
+    ...CUT_DIALS
+  ]),
+  'ladder-and-ratchet': Object.freeze([
+    { key: 'ladderYears',   type: 'count',  min: 1, max: 44, default: null },          // min(15, half the plan), within 1 to N−1
+    { key: 'drawAnnual',    type: 'money',  min: 1, max: 10000000, default: null },    // the plan's target income
+    { key: 'triggerMode',   type: 'choice', options: ['band', 'calendar'], default: 'band' },
+    { key: 'bandThreshold', type: 'number', min: 1.05, max: 2, step: 0.05, default: 1.2 }
+  ].map(Object.freeze)),
+  'bridge-and-engine': Object.freeze([
+    { key: 'bridgeAge', type: 'age',   min: 56, max: 90, default: null },               // the State Pension age, else the start + min(10, N−1)
+    { key: 'cashYears', type: 'count', min: 0, max: 10, default: 3 }
+  ].map(Object.freeze)),
+  'floor-and-flex': Object.freeze([
+    { key: 'essentialsAnnual', type: 'money',   min: 1, max: 10000000, default: null },  // round(target × 0.55)
+    { key: 'horizonAge',       type: 'age',     min: 60, max: 105, default: null },      // the engine's: the plan's end
+    { key: 'sleeveRatePct',    type: 'percent', min: 1, max: 10, step: 0.25, default: 4 },
+    { key: 'ratchet',          type: 'choice',  options: ['off', 'extend', 'raise'], default: 'off' },
+    { key: 'treatsRule',       type: 'choice',  options: ['share', 'fixed'], default: 'share' }
+  ].map(Object.freeze)),
+  'floor-the-schedule': Object.freeze([]),
+  'floor-to-age': Object.freeze([
+    { key: 'floorToAge', type: 'age', min: 60, max: 95, default: 80 }
+  ].map(Object.freeze)),
+  'full-il-gilt': LADDER_DIALS,
+  'gilt-rotation': Object.freeze([
+    ...LADDER_DIALS,
+    { key: 'rotateCutAge',      type: 'age',     min: 65, max: 88, default: 75 },
+    { key: 'rotateTrigger',     type: 'percent', min: 20, max: 50, step: 5, default: 30 },
+    { key: 'rotateDisarmYears', type: 'count',   min: 1, max: 15, default: 8 }
+  ].map(Object.freeze))
+});
+
+/**
+ * Every dotted field path "Use this way of drawing" may change (way-and-mix.md 2.4): the planner's switch field for
+ * field — the strategy, its params, every way's stash, the mix's mode and funds list, the pots a restored funds list
+ * gives (switchPatch), the cut dials a Pots & Valves or Buckets card carries (the strategy page's own patch), and the
+ * root strategy block as ScenarioRepository.setActiveStrategy writes it.
+ */
+export const WAY_WRITES = Object.freeze([
+  'stressTool.settings.strategyId',
+  'stressTool.settings.strategyParams',
+  'stressTool.settings.strategyState',
+  'stressTool.settings.allocMode',
+  'stressTool.settings.taggedFunds',
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.subAsset',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.disableProtection',
+  'stressTool.settings.protectionMult',
+  'stressTool.settings.consecutiveLimit',
+  'strategy'
+]);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
   return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path);
@@ -379,5 +470,5 @@ export const INCOME_WRITES = Object.freeze([
 ]);
 
 /** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES });
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...BOOKKEEPING_WRITES])]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES });
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...BOOKKEEPING_WRITES])]);

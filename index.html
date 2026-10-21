@@ -4159,6 +4159,8 @@
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
+    import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
+    import { compareAll } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0)
     import { rotationStatus } from './src/services/RotationStatus.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { splitLadderAtAge } from './src/strategies/GiltRotation.js';
@@ -8910,15 +8912,8 @@
         return window._cmpCache;
       } catch (e) { console.warn('engine worker unavailable, running inline', e); }
       const p = strategyPlanFor(eff);
-      const configs = deriveCompareConfigs(p);
-      const strategies = {};
-      const ids = Object.keys(STRATEGY_NAMES);
-      for (let i = 0; i < ids.length; i++) {
-        say('Running ' + STRATEGY_NAMES[ids[i]] + ' (' + (i + 1) + ' of ' + ids.length + ')…');
-        await new Promise((r) => setTimeout(r, 30));
-        strategies[ids[i]] = stressTestStrategy(ids[i], p, configs);
-      }
-      const all = { configs, strategies };
+      // the one loop over the nine (compareRunner.compareAll, 6.40.0): the same configs, the same order; the progress words are said before each way
+      const all = compareAll(p, Object.keys(STRATEGY_NAMES), { onProgress: (i, n, sid) => say('Running ' + STRATEGY_NAMES[sid] + ' (' + (i + 1) + ' of ' + n + ')…') });
       window._cmpCache = { key, p, all, settings };
       return window._cmpCache;
     }
@@ -9003,24 +8998,15 @@
     window.setGiltDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; const box = document.getElementById('stratPage'); box.innerHTML = await fullGiltPageHtml(); };
     // ---- Strategy switch from a Strategies page or a what-if (6.13.0): stash the outgoing strategy's inputs, restore
     // this strategy's own (or start clean), then apply the dials on top. Nothing of the deselected strategy survives. ----
-    function restoredParamsFor(s, id) {
-      if (s.strategyId === id) return cleanParams(id, s.strategyParams || {});
-      return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
-    }
-    async function switchStressStrategy(id, extraParams = {}, extraPatch = {}) {
+    // The patch itself is PlanCommit.switchPatch (6.40.0): the stash, the restore, the dials on top and the allocation a
+    // restored funds list gives, lifted pure so V7's "Use this way of drawing" writes the same fields. `dials` are a
+    // strategy page's dial bag (window._stratDials: the way's keys, sleeveRatePct, protectionOn, cutPct, consecutiveLimit).
+    async function switchStressStrategy(id, extraParams = {}, extraPatch = {}, dials = {}) {
       const s = await getStressSettingsAsync();
-      const sw = switchStrategy(s, id, { savedAt: todayIso() });
-      const strategyParams = cleanParams(id, { ...sw.strategyParams, ...extraParams });
-      // A restored "funds" list IS the allocation the engine reads: re-derive equityMin/bondMin/cashTarget/subAsset
-      // from it (DOM-free twin of rebuildCustomAllocFromFunds) so the run does not keep the outgoing strategy's pots.
-      let allocPatch = {};
-      const restoredList = (sw.taggedFunds || []).filter((f) => f && f.ticker && +f.value > 0);
-      if (sw.allocMode === 'funds' && restoredList.length && !('equityMin' in extraPatch)) {
-        try { const t = tagPortfolio(restoredList); const a = allocationFromTags(t); allocPatch = { equityMin: a.equityStart, bondMin: a.bondStart, cashTarget: a.cashStart, diversifierStart: a.diversifierStart || 0, subAsset: a.subAsset || null, isaBalance: Math.round(t.isaTotal || 0) }; } catch (e) { allocPatch = {}; }
-      }
-      await saveStressSettings({ strategyId: id, strategyParams, strategyState: sw.strategyState, allocMode: sw.allocMode, taggedFunds: sw.taggedFunds, ...allocPatch, ...extraPatch });
-      window._ssStrategyState = sw.strategyState; window._ssSavedParams = { ...strategyParams }; window._ssStrategy = id;
-      window._taggedFunds.ss = (extraPatch.taggedFunds || sw.taggedFunds || []).map((f) => ({ ...f }));
+      const { settings: patch, strategyParams } = switchPatch(s, id, dials, { savedAt: todayIso(), extraParams, extraPatch });
+      await saveStressSettings(patch);
+      window._ssStrategyState = patch.strategyState; window._ssSavedParams = { ...strategyParams }; window._ssStrategy = id;
+      window._taggedFunds.ss = (extraPatch.taggedFunds || patch.taggedFunds || []).map((f) => ({ ...f }));
       return strategyParams;
     }
     window.useFullGiltStrategy = async function () {
@@ -9306,14 +9292,16 @@
     window.setSpecDial = async function (k, v) { window._stratDials[k] = v === '' ? undefined : +v; document.getElementById('stratPage').innerHTML = await specStrategyPageHtml(window._stratPage); };
     window._specFrame = 4;
     window.setSpecFrame = function (n) { window._specFrame = Math.max(1, Math.min(4, n)); const m = window._specMachine; if (!m) return; document.getElementById('specMachine').innerHTML = m.fn(m.d, window._specFrame); document.getElementById('specStepper').innerHTML = stepperHtml(m.frames, window._specFrame, 'setSpecFrame'); };
-    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const cur = restoredParamsFor(s, id); const prm = {}; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule', 'rotateCutAge', 'rotateTrigger']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100; const patch = {}; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, allocMode: 'risk' }); } if (d.protectionOn != null) patch.disableProtection = !d.protectionOn; if (d.cutPct != null) patch.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) patch.consecutiveLimit = d.consecutiveLimit; try { await setActiveStrategyChecked(id, {}); } catch (e) { return; } await switchStressStrategy(id, { ...cur, ...prm }, patch);  showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
+    // The dials go through PlanCommit.switchPatch (6.40.0): every key the way owns (the rotation's three included — the
+    // page used to copy only some) and the cut dials; the allocation dials stay the page's own and go as the extra patch.
+    window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const patch = {}; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, allocMode: 'risk' }); } try { await setActiveStrategyChecked(id, {}); } catch (e) { return; } await switchStressStrategy(id, {}, patch, d);  showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
     async function specStrategyPageHtml(id) {
       const spec = STRATEGY_PAGES[id];
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const prm = { ...restoredParamsFor(settings, id) }; for (const k of ['ladderYears', 'drawAnnual', 'bandThreshold', 'essentialsAnnual', 'horizonAge', 'bridgeAge', 'cashYears', 'bucketBand', 'treatsRule']) if (d[k] != null) prm[k] = d[k]; if (d.sleeveRatePct != null) prm.sleeveRate = d.sleeveRatePct / 100;
-      let over = { ...settings, strategyId: id, strategyParams: prm };   // the what-if names its own strategy: planFromSettings reads the dials as that strategy's (6.13.5)
-      if (d.protectionOn != null) over.disableProtection = !d.protectionOn; if (d.cutPct != null) over.protectionMult = 1 - d.cutPct / 100; if (d.consecutiveLimit != null) over.consecutiveLimit = d.consecutiveLimit;
+      const { params: dialled, patch: cutPatch } = dialParams(id, d);   // the same reading of the dials the switch makes (PlanCommit.dialParams, 6.40.0)
+      const prm = { ...restoredParamsFor(settings, id), ...dialled };
+      let over = { ...settings, strategyId: id, strategyParams: prm, ...cutPatch };   // the what-if names its own strategy: planFromSettings reads the dials as that strategy's (6.13.5)
       if (id === 'pots-and-valves' || id === 'buckets-in-order') over = applyAllocDials(over);
       const p = strategyPlanFor(over, prm.essentialsAnnual);
       const r = stressTestStrategy(id, p);

@@ -12,6 +12,10 @@
  *   { id, type: 'lever', plan, env: { today, lever } }
  *                                                   the same shape: one of the three levers of "Will it last?" on a saved plan
  *                                                   (lastsRun.js runLever, the same lazy chunk; road-to-7.md step 7)
+ *   { id, type: 'ways', plan, env: { today } }      the same shape: the nine ways of drawing on a saved plan (waysRun.js runWays,
+ *                                                   loaded lazily beside lastsRun.js; way-and-mix.md 2)
+ *   { id, type: 'way', plan, env: { today, way: { id, dials } } }
+ *                                                   the same shape: one way tried on its dials (waysRun.js runWay)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -44,11 +48,13 @@ function historyEndOf(answers) {
  * lazy module is imported from V7 (the tests hand in a fake to drive the handler without it).
  */
 const loadLasts = () => import('../../answers/plan/lastsRun.js');
+/** "How the money is taken" (way-and-mix.md 2.2): the nine ways, loaded lazily beside the one test (the same engine, one more door). */
+const loadWays = () => import('../../answers/plan/waysRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
-  /** `lasts` and `document` share the lazy chunk: the one test, or the run the plan document is built from. */
+  /** `lasts`, `document`, `lever`, `ways` and `way` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways. */
   const runLazy = async (msg, post, id, which) => {
     const env = { ...(msg.env || {}) };
     if (!env.today && today) env.today = today;
@@ -59,10 +65,12 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       lastStep = step;
       post({ id, progress: { done, total } });
     };
-    const fn = which === 'document' ? (document || (await loadLasts()).runForDocument) : which === 'lever' ? (lever || (await loadLasts()).runLever) : (lasts || (await loadLasts()).runLasts);
+    const fn = which === 'document' ? (document || (await loadLasts()).runForDocument) : which === 'lever' ? (lever || (await loadLasts()).runLever)
+      : which === 'ways' ? (ways || (await loadWays()).runWays) : which === 'way' ? (way || (await loadWays()).runWay) : (lasts || (await loadLasts()).runLasts);
     const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress })
       : which === 'lever' ? fn(msg.plan, { today: env.today, lever: env.lever, onProgress })
-        : fn(msg.plan, { today: env.today, onProgress });
+        : which === 'way' ? fn(msg.plan, { today: env.today, id: env.way.id, dials: env.way.dials, onProgress })
+          : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };
   const runLasts = (msg, post, id) => runLazy(msg, post, id, 'lasts');
@@ -89,6 +97,17 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error('lever: no plan');
         if (!msg.env || !msg.env.lever || typeof msg.env.lever !== 'object') throw new Error('lever: no lever');
         runLazy(msg, post, id, 'lever').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'ways') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('ways: no plan');
+        runLazy(msg, post, id, 'ways').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'way') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('way: no plan');
+        if (!msg.env || !msg.env.way || typeof msg.env.way !== 'object' || typeof msg.env.way.id !== 'string') throw new Error('way: no way');
+        runLazy(msg, post, id, 'way').catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'answer') {

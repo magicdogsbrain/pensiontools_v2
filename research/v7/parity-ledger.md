@@ -18,14 +18,14 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 86 | 66 | 17 | 0 | 3 |
+| Built | 100 | 79 | 17 | 1 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 36 | 34 | 0 | 2 | 0 |
-| Planned | 46 | 38 | 0 | 2 | 6 |
+| Designed | 25 | 23 | 0 | 2 | 0 |
+| Planned | 43 | 36 | 0 | 1 | 6 |
 | Retired | 11 | 3 | 0 | 0 | 8 |
 | **All** | 179 | 141 | 17 | 4 | 17 |
 
-Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **26** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
@@ -36,14 +36,15 @@ Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1*
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 7 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
 | `s2-saver-reading` | The saver's reading made trustworthy (square-one audit §5 item 2) | 0 |
-| `s4-open-plan` | V7 opens a saved plan, read-only, with a “Your plan” rail for every life stage (built 17 Oct 2026, your-plan.md) (square-one audit §5 item 4) | 12 |
-| `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 2 |
+| `s4-open-plan` | V7 opens a saved plan, read-only, with a “Your plan” rail for every life stage (built 17 Oct 2026, your-plan.md) (square-one audit §5 item 4) | 11 |
+| `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 3 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 6 |
-| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 48 |
+| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 35 |
 | `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
+| `s8-way` | Road step 8a (6.40.0): "How the money is taken" in V7 — the nine ways on this plan in the one verdict, each way's dials as one set, "Use this way of drawing" as the planner's switch (research/v7/way-and-mix.md 2) (research/v7/road-to-7.md step 8; way-and-mix.md 1, 2, 6, 8) | 13 |
 
 ## Ways in, and finding your way
 
@@ -55,7 +56,7 @@ Planned with no V7 design yet: **28** rows. Retired, waiting for the owner: **1*
 | **Guest mode: three active hours, reminders, then hand-over into an account** | A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up. | GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html) | Visitors | **Planned** (no V7 design yet): V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell. | `s9-switch` | `browser.pt_guest_minutes` `browser.pt_guest_nag_level` `browser.pt_guest_handoff` `browser.pt_guest_scenarios` |
 | **Next-step banner** | One sentence at the top saying what to do next for this plan, with a button, dismissable per plan. | index.html:8143-8196; NextStep.js | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/components/PlanRail.jsx`. Built, reading (6.26, your-plan.md 2.4): the one next sentence on “Your plan”, by stage, first match wins. Not dismissable: it is the rail’s own line, never a banner. | `s4-open-plan` | `browser.nextStepDismissed:` |
 | **Life stages lead the way** | Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it. | LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870) | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/copy/plan.js`. Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links. | `s4-open-plan` | — |
-| **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Shown in V7 from s4 (src/answers/plan/read.js: the stage changes with their dates under “Your plan”). | `s4-open-plan` | `plan.journey` |
+| **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Built**: `src/answers/plan/lock.js`, `src/answers/plan/read.js`. Built: the lock in V7 writes the journey since 6.38.0 (road-to-7.md step 6), and "Your plan" shows the stage changes with their dates ("How this plan got here"); the way step's plan page carries the same line. | `s5-lock` | `plan.journey` |
 | **Finding your way on a phone** | A bottom bar (Budget, Stress, Strategies, Decide) and a More menu for the other tabs. | index.html:2235-2240, 8250-8284; mobileMenu.js | Everyone | **Built**: `src/v7/components/Rail.jsx`. The rail is one line under the header that opens as a sheet. The locked plan's rail on a phone is designed (rail-screens-language.md §1.7). | `done` | — |
 | **Open the planner on a plan, page and section** | A one-off note in this window that tells the planner which plan, page and section to open next, with the way back to the preview; and which plan this window’s planner is on (the account’s open plan is not moved). The old one-off tab note (pt_open_tab, the demo link’s) is read by the same module. | src/services/OpenPlace.js; src/ui/components/OpenPlace.js; ScenarioRepository.getActiveScenarioAsync (the window pin); index.html showMainApp | Everyone | **Built**: `src/v7/effects/openPlace.js`, `src/services/OpenPlace.js`, `src/ui/components/OpenPlace.js`. “Change this” on V7’s plan pages (research/v7/your-plan.md 5): the planner presses the page’s own button so its loader runs and every box fills; the partner’s plan opens in that window only. | `s4-open-plan` | `browser.pt_open_place` `browser.pt_open_plan` `browser.pt_open_tab` |
 | **"I'm retired. Will it last?" (question D)** | The retired person's way in: one short form (stopped, age, what is left, the tax-free part, savings, what you take a month; a partner who has also stopped), the verdict at what you take with the band in full, and three levers tried on the answer's own lives. Someone with a plan is shown the way to its own test first. | SetupWizard.js "I'm already drawing" door; the Stress tester's settings (index.html) | Retired | **Built**: `src/answers/d/answer.js`, `src/answers/d/schema.js`, `src/v7/screens/d/NumbersScreen.jsx`, `src/v7/screens/d/AnswerScreen.jsx`, `src/v7/rail/d.js` | `s7-d` | — |
@@ -182,19 +183,19 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Pots & Valves** | One flexible portfolio in three pots; rules decide which pot pays each month, with floors that run down over the plan and cuts in a slump. | Stress → Settings → Income strategy; Strategies → Pots & Valves | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7's answers draw this way today, with the cuts off. | `s8-e` | `strategies.pots-and-valves` |
-| **Buckets in order** | Cash pays first, then bonds, then shares; surplus refills from above when it is more than a set band over its path. Dials: the band, and the pension and ISA totals. | Income strategy: Buckets in order (index.html:3170-3175) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.buckets-in-order` `strategyParams.buckets-in-order.bucketBand` `strategyParams.buckets-in-order.sippTotal` `strategyParams.buckets-in-order.isaTotal` |
-| **Ladder & Ratchet** | Buys index-linked gilts for the first years of income and rides the rest in shares, selling only when shares are well above their path or on a calendar. Dials: years bought, the income bolted on, the trigger, the band, the pension and ISA totals. | Income strategy: Ladder & Ratchet (index.html:3218-3256) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.ladder-and-ratchet` `strategyParams.ladder-and-ratchet.ladderYears` `strategyParams.ladder-and-ratchet.drawAnnual` `strategyParams.ladder-and-ratchet.triggerMode` `strategyParams.ladder-and-ratchet.bandThreshold` `strategyParams.ladder-and-ratchet.sippTotal` `strategyParams.ladder-and-ratchet.isaTotal` |
-| **Bridge & engine** | Every year to the bridge age (usually the State Pension) bought now, cash first then one gilt a year; the rest rides in shares untouched, then pays by withdrawals. Dials: the bridge age, years in cash, the pension and ISA totals. | Income strategy: Bridge & engine; Your pot (index.html:3166-3169) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.bridge-and-engine` `strategyParams.bridge-and-engine.bridgeAge` `strategyParams.bridge-and-engine.cashYears` `strategyParams.bridge-and-engine.sippTotal` `strategyParams.bridge-and-engine.isaTotal` |
-| **Floor & Flex** | Buys the essentials as a floor to an age with gilts; the rest is a flex sleeve paying a set share each year; booms can extend or raise the floor. Dials: essentials, the floor's end age, the sleeve rate, the treats rule, the ratchet, the pension and ISA totals. | Income strategy: Floor & Flex (index.html:3258-3296) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7 never fills the essentials from the budget (owner, 1 Oct 2026). | `s8-e` | `strategies.floor-and-flex` `strategyParams.floor-and-flex.essentialsAnnual` `strategyParams.floor-and-flex.horizonAge` `strategyParams.floor-and-flex.sleeveRate` `strategyParams.floor-and-flex.treatsRule` `strategyParams.floor-and-flex.ratchet` `strategyParams.floor-and-flex.sippTotal` `strategyParams.floor-and-flex.isaTotal` |
-| **Floor the schedule** | Buys the whole income shape, year by year, with index-linked gilts. Dials: the pension and ISA totals. | Income strategy: Floor the schedule | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.floor-the-schedule` `strategyParams.floor-the-schedule.sippTotal` `strategyParams.floor-the-schedule.isaTotal` |
-| **Floor to an age, then decide** | Buys the income shape to an age with gilts and leaves the decision about the years after it for later. After a rotation is carried out the plan moves here, keeping a record of the income it sold (the borrowed floor) and what it would cost today to buy back. Dials: the age, the borrowed floor, the pension and ISA totals. | Income strategy: Floor to an age; Your pot (index.html:3165) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.floor-to-age` `strategyParams.floor-to-age.floorToAge` `strategyParams.floor-to-age.borrowedFloor` `strategyParams.floor-to-age.sippTotal` `strategyParams.floor-to-age.isaTotal` |
-| **Full index-linked gilt ladder** | Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals. | Income strategy: Full index-linked gilt ladder (index.html:3184-3192) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.full-il-gilt` `strategyParams.full-il-gilt.cashYears` `strategyParams.full-il-gilt.bridgeCash` `strategyParams.full-il-gilt.spareGrowth` `strategyParams.full-il-gilt.sippTotal` `strategyParams.full-il-gilt.isaTotal` |
-| **Gilt ladder + rotation** | The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals. | Income strategy: Gilt ladder + rotation (index.html:3186-3189; strategies/GiltRotation.js) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "compare" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. | `s8-e` | `strategies.gilt-rotation` `strategyParams.gilt-rotation.cashYears` `strategyParams.gilt-rotation.bridgeCash` `strategyParams.gilt-rotation.rotateCutAge` `strategyParams.gilt-rotation.rotateTrigger` `strategyParams.gilt-rotation.rotateDisarmYears` `strategyParams.gilt-rotation.spareGrowth` `strategyParams.gilt-rotation.sippTotal` `strategyParams.gilt-rotation.isaTotal` |
-| **Choose the plan's strategy; switch and come back** | Picks one strategy for the plan; switching puts each strategy's own inputs away and brings them back when you return. | Income strategy buttons (index.html:3137-3148); StrategyState.js | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. E's "mix" and "compare" steps. | `s8-e` | `stress.strategyId` `stress.strategyParams` `stress.strategyState` `decision.strategyId` `decision.strategyParams` `strategyState.strategyParams` `strategyState.allocMode` `strategyState.taggedFunds` `strategyState.savedAt` |
-| **What a ladder or floor costs today, against your pot** | As the dials change: the cost of the gilts at today's real yields, what is left for shares, the first year's treats, and an illustrative ladder, or "not affordable". | refreshStrategyCosts (index.html:9729-9796) | Approaching, retired | **Planned** (no V7 design yet): Part of each strategy's dials in E's "compare" step; no V7 design draws it. | `s8-e` | — |
-| **Compare all nine on your plan** | Ranks the strategies on your plan by a score, paid in full, coverage and the worst 12 months. | Strategies → Overview (index.html:10146-10237) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.5. Owner's decision pending: one kind of verdict ("lasts in 9 futures out of 10") for all nine (square-one-audit.md §6 question 2). | `s8-e` | — |
-| **A page for each strategy** | For each strategy: how the machine works, its dials, three real starts in history, and how it fails. | Strategies → one page per strategy | Approaching, retired | **Planned** (no V7 design yet): E's outline names "compare" but no V7 design draws a page per strategy. | `s8-e` | — |
+| **Pots & Valves** | One flexible portfolio in three pots; rules decide which pot pays each month, with floors that run down over the plan and cuts in a slump. | Stress → Settings → Income strategy; Strategies → Pots & Valves | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0, way-and-mix.md 2): a card on "How the money is taken" with the one verdict on this plan, its cut dials (cut spending in bad runs, how deep, the months below the path), what can go wrong; the mix names the planner's Settings until "The mix" (8b). "Use this way of drawing" writes the planner's switch. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.pots-and-valves` |
+| **Buckets in order** | Cash pays first, then bonds, then shares; surplus refills from above when it is more than a set band over its path. Dials: the band, and the pension and ISA totals. | Income strategy: Buckets in order (index.html:3170-3175) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the refill band and the cut dials; the bond tent not used, said on the card; the pension and ISA totals are the plan's pots, never dials. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.buckets-in-order` `strategyParams.buckets-in-order.bucketBand` `strategyParams.buckets-in-order.sippTotal` `strategyParams.buckets-in-order.isaTotal` |
+| **Ladder & Ratchet** | Buys index-linked gilts for the first years of income and rides the rest in shares, selling only when shares are well above their path or on a calendar. Dials: years bought, the income bolted on, the trigger, the band, the pension and ISA totals. | Income strategy: Ladder & Ratchet (index.html:3218-3256) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the years bought up front, the income bolted on, when it buys more years (the band or every five years), the band — every dial the planner shows; the pots are the plan's. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.ladder-and-ratchet` `strategyParams.ladder-and-ratchet.ladderYears` `strategyParams.ladder-and-ratchet.drawAnnual` `strategyParams.ladder-and-ratchet.triggerMode` `strategyParams.ladder-and-ratchet.bandThreshold` `strategyParams.ladder-and-ratchet.sippTotal` `strategyParams.ladder-and-ratchet.isaTotal` |
+| **Bridge & engine** | Every year to the bridge age (usually the State Pension) bought now, cash first then one gilt a year; the rest rides in shares untouched, then pays by withdrawals. Dials: the bridge age, years in cash, the pension and ISA totals. | Income strategy: Bridge & engine; Your pot (index.html:3166-3169) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the age the years are bought to and the years paid from cash first; the pots are the plan's. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.bridge-and-engine` `strategyParams.bridge-and-engine.bridgeAge` `strategyParams.bridge-and-engine.cashYears` `strategyParams.bridge-and-engine.sippTotal` `strategyParams.bridge-and-engine.isaTotal` |
+| **Floor & Flex** | Buys the essentials as a floor to an age with gilts; the rest is a flex sleeve paying a set share each year; booms can extend or raise the floor. Dials: essentials, the floor's end age, the sleeve rate, the treats rule, the ratchet, the pension and ISA totals. | Income strategy: Floor & Flex (index.html:3258-3296) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the bills a year, the age they are paid to, what the rest pays out (1–10% in quarter steps — the engine's range, wider than the Settings box), the treats rule and the ratchet (kept with the plan; the one test runs the floor without it, said on the card). The bills are never filled from the budget. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.floor-and-flex` `strategyParams.floor-and-flex.essentialsAnnual` `strategyParams.floor-and-flex.horizonAge` `strategyParams.floor-and-flex.sleeveRate` `strategyParams.floor-and-flex.treatsRule` `strategyParams.floor-and-flex.ratchet` `strategyParams.floor-and-flex.sippTotal` `strategyParams.floor-and-flex.isaTotal` |
+| **Floor the schedule** | Buys the whole income shape, year by year, with index-linked gilts. Dials: the pension and ISA totals. | Income strategy: Floor the schedule | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card, no dials of its own (the income comes from the spending shape); the pots are the plan's. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.floor-the-schedule` `strategyParams.floor-the-schedule.sippTotal` `strategyParams.floor-the-schedule.isaTotal` |
+| **Floor to an age, then decide** | Buys the income shape to an age with gilts and leaves the decision about the years after it for later. After a rotation is carried out the plan moves here, keeping a record of the income it sold (the borrowed floor) and what it would cost today to buy back. Dials: the age, the borrowed floor, the pension and ISA totals. | Income strategy: Floor to an age; Your pot (index.html:3165) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the age the income is bought to; the borrowed floor is the rotation's record, written by its switch on the classic page, never a dial. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.floor-to-age` `strategyParams.floor-to-age.floorToAge` `strategyParams.floor-to-age.borrowedFloor` `strategyParams.floor-to-age.sippTotal` `strategyParams.floor-to-age.isaTotal` |
+| **Full index-linked gilt ladder** | Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals. | Income strategy: Full index-linked gilt ladder (index.html:3184-3192) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the years paid from cash first (0–5, default 2 — the engine's; the Settings box agrees), the cash kept to the first April and the money left over (kept or invested). **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.full-il-gilt` `strategyParams.full-il-gilt.cashYears` `strategyParams.full-il-gilt.bridgeCash` `strategyParams.full-il-gilt.spareGrowth` `strategyParams.full-il-gilt.sippTotal` `strategyParams.full-il-gilt.isaTotal` |
+| **Gilt ladder + rotation** | The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals. | Income strategy: Gilt ladder + rotation (index.html:3186-3189; strategies/GiltRotation.js) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the card with the ladder's three dials and the age the rungs are kept to, the escape (% below the all-time high) and the years before it is put away — all three run on the card (the planner's page copied only some of them: corrected through the same lift). The years from cash default to 2, the engine's (the planner's page said 3). **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `strategies.gilt-rotation` `strategyParams.gilt-rotation.cashYears` `strategyParams.gilt-rotation.bridgeCash` `strategyParams.gilt-rotation.rotateCutAge` `strategyParams.gilt-rotation.rotateTrigger` `strategyParams.gilt-rotation.rotateDisarmYears` `strategyParams.gilt-rotation.spareGrowth` `strategyParams.gilt-rotation.sippTotal` `strategyParams.gilt-rotation.isaTotal` |
+| **Choose the plan's strategy; switch and come back** | Picks one strategy for the plan; switching puts each strategy's own inputs away and brings them back when you return. | Income strategy buttons (index.html:3137-3148); StrategyState.js | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): "Use this way of drawing" on any card is the planner's switch field for field (services/PlanCommit.js switchPatch: the outgoing way stashed under strategyState, this way's own inputs restored or started clean, the dials typed on top, the pots re-derived from a restored funds list, the root strategy block) in ONE write past the lock guard, with Undo; the Decision copies travel with the lock's seed as before. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | `stress.strategyId` `stress.strategyParams` `stress.strategyState` `decision.strategyId` `decision.strategyParams` `strategyState.strategyParams` `strategyState.allocMode` `strategyState.taggedFunds` `strategyState.savedAt` |
+| **What a ladder or floor costs today, against your pot** | As the dials change: the cost of the gilts at today's real yields, what is left for shares, the first year's treats, and an illustrative ladder, or "not affordable". | refreshStrategyCosts (index.html:9729-9796) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): a bought way's card says what it costs of the pot today and what is left to grow, from the same run as its verdict, and re-says it as the dials move ("Tried in 1 run"); a way the pot cannot buy says the cost and the shortfall. The illustrative ladder stays on the classic page (the order sheet is step 10's). **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | — |
+| **Compare all nine on your plan** | Ranks the strategies on your plan by a score, paid in full, coverage and the worst 12 months. | Strategies → Overview (index.html:10146-10237) | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0): the nine on this plan through the one test (compareRunner.compareAll, the loop the planner's Overview runs), ranked by futures out of 10 with coverage breaking ties (OneAnswer.rankWays, the planner's own keys); the unaffordable last. "More columns" holds the planner's other columns (worst 12 months, years covered, coverage, spent over the plan, bumpiness, the score) and its other orders, never the default. **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | — |
+| **A page for each strategy** | For each strategy: how the machine works, its dials, three real starts in history, and how it fails. | Strategies → one page per strategy | Approaching, retired | **Built**: `src/answers/plan/waysRun.js`, `src/answers/plan/way.js`, `src/v7/screens/plan/WayScreen.jsx`, `src/v7/copy/way.js`, `src/services/PlanCommit.js`. Built (6.40.0) as the card: how it works (the way's promise in V7's words), its dials (every one the planner shows anywhere, one set of defaults — the engine's), what can go wrong. Planned, still: the three real starts in history stay a note on this row until the history view lands (way-and-mix.md 8). **Edited in V7**: `src/v7/screens/plan/WayScreen.jsx` | `s8-way` | — |
 | **Try this strategy in a copy of the plan** | Makes a copy of the plan on another strategy, with the pot totals carried over; the original is untouched. | "Try this strategy in a COPY of this plan" (index.html:3216-3217, 9707-9727) | Approaching, retired | **Designed**: research/v7/rail-screens-language.md §1.6. "Keep a try-a-change result as a separate plan". | `s8-e` | — |
 | **Gilt ladders explained, with a worked example** | What a gilt ladder is and what one costs today, for an amount and a number of years. | Strategies → Gilt ladders explained; Stress → Drawdown (index.html:2904-2916) | Approaching | **Designed**: research/v7/rail-screens-language.md §1.5. E's "move" step. | `s8-e` | — |
 | **Gilt order sheet** | Which gilts to buy and how many (SEDOLs and nominal amounts), priced at the latest prices. | Strategy pages; gilt ladder pricing (index.html:6203-6250; GiltLadderPlan.js, LinkerUniverse.js) | Approaching, running | **Designed**: research/v7/rail-screens-language.md §1.5. E's "move" step. | `s8-e` | — |
@@ -345,7 +346,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.household` | The partner's linked plan | Built |
 | `plan.id` | The plan's own fields | Planned |
 | `plan.isActive` | Your plans: switch, new, duplicate, rename | Planned |
-| `plan.journey` | Journey: when the plan moved between stages | Planned |
+| `plan.journey` | Journey: when the plan moved between stages | Built |
 | `plan.lastModified` | The plan's own fields | Planned |
 | `plan.planDetails` | Your plans: switch, new, duplicate, rename | Planned |
 | `plan.planDocument` | The plan document | Built |
@@ -426,9 +427,9 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.staleDraftDismissedFor` | "Update this draft to today" | Planned (no V7 design yet) |
 | `stress.statePension` | The old State Pension fields | Built |
 | `stress.statePensionYear` | The old State Pension fields | Built |
-| `stress.strategyId` | Choose the plan's strategy; switch and come back | Designed |
-| `stress.strategyParams` | Choose the plan's strategy; switch and come back | Designed |
-| `stress.strategyState` | Choose the plan's strategy; switch and come back | Designed |
+| `stress.strategyId` | Choose the plan's strategy; switch and come back | Built |
+| `stress.strategyParams` | Choose the plan's strategy; switch and come back | Built |
+| `stress.strategyState` | Choose the plan's strategy; switch and come back | Built |
 | `stress.subAsset` | Test on a list of funds | Designed |
 | `stress.taggedFunds` | Test on a list of funds | Designed |
 | `stress.targetSchedule` | The year-by-year figure every tool reads | Built |
@@ -482,8 +483,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.startDate` | The Decision tool's old start date | Retired |
 | `decision.statePension` | The old State Pension fields | Built |
 | `decision.statePensionYear` | The old State Pension fields | Built |
-| `decision.strategyId` | Choose the plan's strategy; switch and come back | Designed |
-| `decision.strategyParams` | Choose the plan's strategy; switch and come back | Designed |
+| `decision.strategyId` | Choose the plan's strategy; switch and come back | Built |
+| `decision.strategyParams` | Choose the plan's strategy; switch and come back | Built |
 | `decision.subAsset` | Test on a list of funds | Designed |
 | `decision.taggedFunds` | Test on a list of funds | Designed |
 | `decision.targetSchedule` | The year-by-year figure every tool reads | Built |
@@ -624,68 +625,68 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `strategyState.allocMode` | Choose the plan's strategy; switch and come back | Designed |
-| `strategyState.savedAt` | Choose the plan's strategy; switch and come back | Designed |
-| `strategyState.strategyParams` | Choose the plan's strategy; switch and come back | Designed |
-| `strategyState.taggedFunds` | Choose the plan's strategy; switch and come back | Designed |
+| `strategyState.allocMode` | Choose the plan's strategy; switch and come back | Built |
+| `strategyState.savedAt` | Choose the plan's strategy; switch and come back | Built |
+| `strategyState.strategyParams` | Choose the plan's strategy; switch and come back | Built |
+| `strategyState.taggedFunds` | Choose the plan's strategy; switch and come back | Built |
 
 ### `strategyParams`: stressTool.settings.strategyParams: the active strategy's dials, by strategy
 
 | Key | Row | V7 |
 |---|---|---|
-| `strategyParams.bridge-and-engine.bridgeAge`: the age the bridge is bought to (default 67) | Bridge & engine | Designed |
-| `strategyParams.bridge-and-engine.cashYears`: years paid from cash before the first gilt (default 3) | Bridge & engine | Designed |
-| `strategyParams.bridge-and-engine.isaTotal`: the ISA total this strategy may use | Bridge & engine | Designed |
-| `strategyParams.bridge-and-engine.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Bridge & engine | Designed |
-| `strategyParams.buckets-in-order.bucketBand`: how far above its path (%) a bucket must be before its surplus refills the next one (default 10) | Buckets in order | Designed |
-| `strategyParams.buckets-in-order.isaTotal`: the ISA total this strategy may use | Buckets in order | Designed |
-| `strategyParams.buckets-in-order.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Buckets in order | Designed |
-| `strategyParams.floor-and-flex.essentialsAnnual`: the essentials bought as a floor, £ a year before tax | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.horizonAge`: the age the floor is paid to (92, 95 or 100) | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.isaTotal`: the ISA total this strategy may use | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.ratchet`: off; extend the floor past its end age; or raise the floor when markets boom | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.sleeveRate`: the share of the flex sleeve paid out each year (3% to 5%, default 4%) | Floor & Flex | Designed |
-| `strategyParams.floor-and-flex.treatsRule`: treats as a share of the sleeve, or a fixed amount (the target less the essentials) | Floor & Flex | Designed |
-| `strategyParams.floor-the-schedule.isaTotal`: the ISA total this strategy may use | Floor the schedule | Designed |
-| `strategyParams.floor-the-schedule.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor the schedule | Designed |
-| `strategyParams.floor-to-age.borrowedFloor`: after a rotation: the income sold, kept to buy back later | Floor to an age, then decide | Designed |
-| `strategyParams.floor-to-age.floorToAge`: the age the schedule is bought to (default 80) | Floor to an age, then decide | Designed |
-| `strategyParams.floor-to-age.isaTotal`: the ISA total this strategy may use | Floor to an age, then decide | Designed |
-| `strategyParams.floor-to-age.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor to an age, then decide | Designed |
-| `strategyParams.full-il-gilt.bridgeCash`: pension cash held to pay until the first April | Full index-linked gilt ladder | Designed |
-| `strategyParams.full-il-gilt.cashYears`: years funded from cash before the first gilt (default 2) | Full index-linked gilt ladder | Designed |
-| `strategyParams.full-il-gilt.isaTotal`: the ISA total this strategy may use | Full index-linked gilt ladder | Designed |
-| `strategyParams.full-il-gilt.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Full index-linked gilt ladder | Designed |
-| `strategyParams.full-il-gilt.spareGrowth` | Full index-linked gilt ladder | Designed |
-| `strategyParams.gilt-rotation.bridgeCash`: pension cash held to pay until the first April | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.cashYears`: years funded from cash before the first gilt (default 2) | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.isaTotal`: the ISA total this strategy may use | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.rotateCutAge`: rungs paying for ages above this are the block sold in a rotation (default 75) | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.rotateDisarmYears`: how many years before the sold block starts paying the trigger switches off (default 8) | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.rotateTrigger`: how far shares must fall below their high to trigger a rotation, % (default 30) | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Gilt ladder + rotation | Designed |
-| `strategyParams.gilt-rotation.spareGrowth` | Gilt ladder + rotation | Designed |
-| `strategyParams.ladder-and-ratchet.bandThreshold`: how far above the path counts as well above (times the path, default 1.2) | Ladder & Ratchet | Designed |
-| `strategyParams.ladder-and-ratchet.drawAnnual`: the income bolted on, £ a year before tax (blank: the plan's target) | Ladder & Ratchet | Designed |
-| `strategyParams.ladder-and-ratchet.isaTotal`: the ISA total this strategy may use | Ladder & Ratchet | Designed |
-| `strategyParams.ladder-and-ratchet.ladderYears`: years of income bought up front with index-linked gilts (default 15) | Ladder & Ratchet | Designed |
-| `strategyParams.ladder-and-ratchet.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Ladder & Ratchet | Designed |
-| `strategyParams.ladder-and-ratchet.triggerMode`: "band": sell only well above the path; "calendar": review every 5 years | Ladder & Ratchet | Designed |
+| `strategyParams.bridge-and-engine.bridgeAge`: the age the bridge is bought to (default 67) | Bridge & engine | Built |
+| `strategyParams.bridge-and-engine.cashYears`: years paid from cash before the first gilt (default 3) | Bridge & engine | Built |
+| `strategyParams.bridge-and-engine.isaTotal`: the ISA total this strategy may use | Bridge & engine | Built |
+| `strategyParams.bridge-and-engine.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Bridge & engine | Built |
+| `strategyParams.buckets-in-order.bucketBand`: how far above its path (%) a bucket must be before its surplus refills the next one (default 10) | Buckets in order | Built |
+| `strategyParams.buckets-in-order.isaTotal`: the ISA total this strategy may use | Buckets in order | Built |
+| `strategyParams.buckets-in-order.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Buckets in order | Built |
+| `strategyParams.floor-and-flex.essentialsAnnual`: the essentials bought as a floor, £ a year before tax | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.horizonAge`: the age the floor is paid to (92, 95 or 100) | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.isaTotal`: the ISA total this strategy may use | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.ratchet`: off; extend the floor past its end age; or raise the floor when markets boom | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.sleeveRate`: the share of the flex sleeve paid out each year (3% to 5%, default 4%) | Floor & Flex | Built |
+| `strategyParams.floor-and-flex.treatsRule`: treats as a share of the sleeve, or a fixed amount (the target less the essentials) | Floor & Flex | Built |
+| `strategyParams.floor-the-schedule.isaTotal`: the ISA total this strategy may use | Floor the schedule | Built |
+| `strategyParams.floor-the-schedule.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor the schedule | Built |
+| `strategyParams.floor-to-age.borrowedFloor`: after a rotation: the income sold, kept to buy back later | Floor to an age, then decide | Built |
+| `strategyParams.floor-to-age.floorToAge`: the age the schedule is bought to (default 80) | Floor to an age, then decide | Built |
+| `strategyParams.floor-to-age.isaTotal`: the ISA total this strategy may use | Floor to an age, then decide | Built |
+| `strategyParams.floor-to-age.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Floor to an age, then decide | Built |
+| `strategyParams.full-il-gilt.bridgeCash`: pension cash held to pay until the first April | Full index-linked gilt ladder | Built |
+| `strategyParams.full-il-gilt.cashYears`: years funded from cash before the first gilt (default 2) | Full index-linked gilt ladder | Built |
+| `strategyParams.full-il-gilt.isaTotal`: the ISA total this strategy may use | Full index-linked gilt ladder | Built |
+| `strategyParams.full-il-gilt.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Full index-linked gilt ladder | Built |
+| `strategyParams.full-il-gilt.spareGrowth` | Full index-linked gilt ladder | Built |
+| `strategyParams.gilt-rotation.bridgeCash`: pension cash held to pay until the first April | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.cashYears`: years funded from cash before the first gilt (default 2) | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.isaTotal`: the ISA total this strategy may use | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.rotateCutAge`: rungs paying for ages above this are the block sold in a rotation (default 75) | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.rotateDisarmYears`: how many years before the sold block starts paying the trigger switches off (default 8) | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.rotateTrigger`: how far shares must fall below their high to trigger a rotation, % (default 30) | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Gilt ladder + rotation | Built |
+| `strategyParams.gilt-rotation.spareGrowth` | Gilt ladder + rotation | Built |
+| `strategyParams.ladder-and-ratchet.bandThreshold`: how far above the path counts as well above (times the path, default 1.2) | Ladder & Ratchet | Built |
+| `strategyParams.ladder-and-ratchet.drawAnnual`: the income bolted on, £ a year before tax (blank: the plan's target) | Ladder & Ratchet | Built |
+| `strategyParams.ladder-and-ratchet.isaTotal`: the ISA total this strategy may use | Ladder & Ratchet | Built |
+| `strategyParams.ladder-and-ratchet.ladderYears`: years of income bought up front with index-linked gilts (default 15) | Ladder & Ratchet | Built |
+| `strategyParams.ladder-and-ratchet.sippTotal`: the pension total this strategy buys with (blank: the allocation's total) | Ladder & Ratchet | Built |
+| `strategyParams.ladder-and-ratchet.triggerMode`: "band": sell only well above the path; "calendar": review every 5 years | Ladder & Ratchet | Built |
 
 ### `strategies`: the nine strategies a plan can run (one key per strategy)
 
 | Key | Row | V7 |
 |---|---|---|
-| `strategies.bridge-and-engine` | Bridge & engine | Designed |
-| `strategies.buckets-in-order` | Buckets in order | Designed |
-| `strategies.floor-and-flex` | Floor & Flex | Designed |
-| `strategies.floor-the-schedule` | Floor the schedule | Designed |
-| `strategies.floor-to-age` | Floor to an age, then decide | Designed |
-| `strategies.full-il-gilt` | Full index-linked gilt ladder | Designed |
-| `strategies.gilt-rotation` | Gilt ladder + rotation | Designed |
-| `strategies.ladder-and-ratchet` | Ladder & Ratchet | Designed |
-| `strategies.pots-and-valves` | Pots & Valves | Designed |
+| `strategies.bridge-and-engine` | Bridge & engine | Built |
+| `strategies.buckets-in-order` | Buckets in order | Built |
+| `strategies.floor-and-flex` | Floor & Flex | Built |
+| `strategies.floor-the-schedule` | Floor the schedule | Built |
+| `strategies.floor-to-age` | Floor to an age, then decide | Built |
+| `strategies.full-il-gilt` | Full index-linked gilt ladder | Built |
+| `strategies.gilt-rotation` | Gilt ladder + rotation | Built |
+| `strategies.ladder-and-ratchet` | Ladder & Ratchet | Built |
+| `strategies.pots-and-valves` | Pots & Valves | Built |
 
 ### `incomeSteps`: stressTool.settings.incomeSteps[]: one step of the income shape
 
@@ -803,8 +804,6 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Diversifiers sleeve: gold and trend/macro** (Your allocation: Diversifiers sleeve (index.html:3394-3397)). Step `s8-e`.
 - **Bond tent** (Your allocation: Bond tent (index.html:3452-3462)). Step `s8-e`.
 - **State Pension start date, typed from the forecast** (State Pension: SP Start Date (index.html:3550)). Step `s8-e`. V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.
-- **What a ladder or floor costs today, against your pot** (refreshStrategyCosts (index.html:9729-9796)). Step `s8-e`. Part of each strategy's dials in E's "compare" step; no V7 design draws it.
-- **A page for each strategy** (Strategies → one page per strategy). Step `s8-e`. E's outline names "compare" but no V7 design draws a page per strategy.
 - **"What is this doing?"** (Stress → Monte Carlo, Historical, Scenarios: "What is this doing?" (openStressExplainer)). Step `s8-e`. V7 says what each answer assumed (src/v7/components/Assumed.jsx); an explanation of each test needs E.
 - **Compare allocations and apply the best split** (Stress → "Compare allocations (Pots & Valves)" (index.html:6683-6834)). Step `s8-e`.
 - **Drawdown schedule and the ISA bridge table** (Stress → Drawdown (index.html:2882, 7168, 13216-13240)). Step `s8-e`. A's "What pays the bills before my State Pension starts?" (rail-screens-language.md §1.5) is a summary, not built.
@@ -860,6 +859,19 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Relevant UK earnings** (`src/v7/screens/plan/PotsScreen.jsx`): `stress.relevantEarnings` `decision.relevantEarnings`.
 - **Cuts in a slump** (`src/v7/screens/plan/LastsScreen.jsx`): `stress.consecutiveLimit` `stress.protectionMult` `stress.protectionEscalateMonths` `stress.recoveryBuffer` `stress.disableProtection` `decision.consecutiveLimit` `decision.protectionFactor` `decision.protectionEscalateMonths` `decision.recoveryBuffer` `decision.disableProtection`.
 - **Emergency reserve ("Break Glass HODL")** (`src/v7/screens/plan/LastsScreen.jsx`): `stress.hodlEnabled` `stress.hodlValue`.
+- **Pots & Valves** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.pots-and-valves`.
+- **Buckets in order** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.buckets-in-order` `strategyParams.buckets-in-order.bucketBand` `strategyParams.buckets-in-order.sippTotal` `strategyParams.buckets-in-order.isaTotal`.
+- **Ladder & Ratchet** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.ladder-and-ratchet` `strategyParams.ladder-and-ratchet.ladderYears` `strategyParams.ladder-and-ratchet.drawAnnual` `strategyParams.ladder-and-ratchet.triggerMode` `strategyParams.ladder-and-ratchet.bandThreshold` `strategyParams.ladder-and-ratchet.sippTotal` `strategyParams.ladder-and-ratchet.isaTotal`.
+- **Bridge & engine** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.bridge-and-engine` `strategyParams.bridge-and-engine.bridgeAge` `strategyParams.bridge-and-engine.cashYears` `strategyParams.bridge-and-engine.sippTotal` `strategyParams.bridge-and-engine.isaTotal`.
+- **Floor & Flex** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.floor-and-flex` `strategyParams.floor-and-flex.essentialsAnnual` `strategyParams.floor-and-flex.horizonAge` `strategyParams.floor-and-flex.sleeveRate` `strategyParams.floor-and-flex.treatsRule` `strategyParams.floor-and-flex.ratchet` `strategyParams.floor-and-flex.sippTotal` `strategyParams.floor-and-flex.isaTotal`.
+- **Floor the schedule** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.floor-the-schedule` `strategyParams.floor-the-schedule.sippTotal` `strategyParams.floor-the-schedule.isaTotal`.
+- **Floor to an age, then decide** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.floor-to-age` `strategyParams.floor-to-age.floorToAge` `strategyParams.floor-to-age.borrowedFloor` `strategyParams.floor-to-age.sippTotal` `strategyParams.floor-to-age.isaTotal`.
+- **Full index-linked gilt ladder** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.full-il-gilt` `strategyParams.full-il-gilt.cashYears` `strategyParams.full-il-gilt.bridgeCash` `strategyParams.full-il-gilt.spareGrowth` `strategyParams.full-il-gilt.sippTotal` `strategyParams.full-il-gilt.isaTotal`.
+- **Gilt ladder + rotation** (`src/v7/screens/plan/WayScreen.jsx`): `strategies.gilt-rotation` `strategyParams.gilt-rotation.cashYears` `strategyParams.gilt-rotation.bridgeCash` `strategyParams.gilt-rotation.rotateCutAge` `strategyParams.gilt-rotation.rotateTrigger` `strategyParams.gilt-rotation.rotateDisarmYears` `strategyParams.gilt-rotation.spareGrowth` `strategyParams.gilt-rotation.sippTotal` `strategyParams.gilt-rotation.isaTotal`.
+- **Choose the plan's strategy; switch and come back** (`src/v7/screens/plan/WayScreen.jsx`): `stress.strategyId` `stress.strategyParams` `stress.strategyState` `decision.strategyId` `decision.strategyParams` `strategyState.strategyParams` `strategyState.allocMode` `strategyState.taggedFunds` `strategyState.savedAt`.
+- **What a ladder or floor costs today, against your pot** (`src/v7/screens/plan/WayScreen.jsx`): —.
+- **Compare all nine on your plan** (`src/v7/screens/plan/WayScreen.jsx`): —.
+- **A page for each strategy** (`src/v7/screens/plan/WayScreen.jsx`): —.
 
 ## Retired, and why
 

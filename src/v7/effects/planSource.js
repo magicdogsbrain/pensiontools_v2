@@ -50,6 +50,7 @@ import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
 import { potsOf } from '../../answers/plan/pots.js';
 import { lastsOf, verdictOf, leverViews } from '../../answers/plan/lasts.js';
+import { wayOf, cardsOf } from '../../answers/plan/way.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -90,6 +91,11 @@ export function viewFor(state) {
   if (r && r.screen === 'plan' && r.planId) {
     page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), forId: r.planId, forStep: r.step || null };
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
+    // "How the money is taken" (way-and-mix.md 2.2): the reading, then the cards from the nine-way run held in page memory (state.ways)
+    if (r.step === 'way') {
+      const reading = wayOf(plans.list, r.planId, { today });
+      page.way = { ...reading, ...cardsOf(reading, state.ways) };
+    }
     if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
@@ -198,7 +204,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

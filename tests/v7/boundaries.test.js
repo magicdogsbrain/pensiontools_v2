@@ -279,7 +279,7 @@ describe('rule 3a — reach: every import from V7\'s entry points, walked', () =
 });
 
 describe('"Does it last?" — the engine reaches the worker lazily, and nowhere else (research/v7/editing-in-v7.md 10.4)', () => {
-  const ENGINE = ['src/strategies/stressTest.js', 'src/strategies/registry.js', 'src/services/OneAnswer.js', 'src/services/NamedStarts.js', 'src/services/SimulationConfig.js', 'src/answers/plan/lastsRun.js'];
+  const ENGINE = ['src/strategies/stressTest.js', 'src/strategies/registry.js', 'src/services/OneAnswer.js', 'src/services/NamedStarts.js', 'src/services/SimulationConfig.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/waysRun.js'];
   /** The walk by static imports only (no import(), no worker URL): what a chunk carries before anything lazy is asked for. */
   function staticReach(entries) {
     const seen = new Set(); const queue = [...entries];
@@ -304,9 +304,21 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     expect(REACHED).toContain('src/data/shiller.js');
   });
   it('the run is imported by the worker alone, and only with import(): no page fallback, so the plan pages\' chunk never carries the engine', () => {
+    // the nine ways' run (way-and-mix.md 2.2) shares the one test's plan builder, so it imports lastsRun.js — and is itself reached only by the worker's import()
     const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lastsRun.js'));
-    expect(importers).toEqual(['src/v7/effects/answerWorker.js']);
+    expect(importers.sort()).toEqual(['src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
     expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
+    const waysImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/waysRun.js'));
+    expect(waysImporters).toEqual(['src/v7/effects/answerWorker.js']);
+    expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/waysRun.js'), 'the worker imports the nine ways statically').toBe(false);
+    // the page's reading of the way step (way.js, loaded with the plan source) never reaches the engine — the one-answer words, as lasts.js, it may read
+    for (const f of ENGINE.filter((x) => x !== 'src/services/OneAnswer.js')) expect(staticReach(['src/answers/plan/way.js']).has(f), `way.js reaches ${f}`).toBe(false);
+  });
+  it('the nine ways\' run reads no clock of its own, and the effect that runs it names no browser storage', () => {
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf('src/answers/plan/waysRun.js')), `waysRun.js uses ${re}`).toBe(false);
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf('src/answers/plan/way.js')), `way.js uses ${re}`).toBe(false);
+    expect(/\b(localStorage|sessionStorage)\b/.test(codeOf('src/v7/effects/ways.js'))).toBe(false);
+    expect(strip(read('src/v7/effects/ways.js'), { keepStrings: true })).not.toMatch(/pt_[a-z_]+/);
   });
   it('the engine config moved out of the repository is pure: no repository, no Firebase, no clock, no window', () => {
     const f = 'src/services/SimulationConfig.js';

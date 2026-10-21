@@ -248,3 +248,12 @@ and the lump-sum marks. Lifted pure and called by the planner: `mixFromLevel`, `
 `searchFunds`, `compareMixes`, `trySettingsOf`, `tryDifferencesOf`. Gate 8b (`tests/v7/plan/tryIdentity.test.js`) holds
 the tried copy and verdict to the planner's on the twelve fixtures. Twelve ledger rows flipped to built under `s8-mix`.
 Next: 9 — the household step (6.42.0).
+
+**Step 9 shipped as 6.42.0 (21 Oct).** "Your household" (`#/plan/<id>/household`) draws its own screen: the partner's plan
+linked either way (written on this plan only, as the planner does); the pooled verdict first and each plan alone; Who draws
+what with "Use this split" (one write per unlocked plan of the five income-shape keys; copies through the one create when a
+plan is locked, linked to each other); "If one of you dies first" and "If one of you needs care" asked in ages on each plan's
+own test; one shared budget with "Keeping money separate?" and who-pays. Lifted pure and called by the planner: `splitWrites`,
+`splitCopyNames`, `copyUnlockWrite`, `shareBudgetWrite`, `stopSharingWrite`. Gate 9 (`tests/v7/plan/householdIdentity.test.js`)
+holds the pooled verdict, the split and the applied writes to the planner's on the couple fixtures and a derived unequal pair.
+Five ledger rows flipped to built under `s9-household`. Next: 10 — design `research/v7/holdings-and-move.md`, then build (6.43.0).

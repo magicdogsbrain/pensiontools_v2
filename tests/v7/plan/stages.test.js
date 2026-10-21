@@ -160,7 +160,7 @@ describe('the household pair shaped like the owner\'s (your-plan.md 1.5, 6)', ()
     expect(h.result.text).toBe('With ‘Saving plan’');
     expect(h.theirLine.id).toBe('saving');
     expect(h.buttons.find((b) => b.id === 'openPartner').href).toBe('#/plan/HouseSaver02');
-    expect(h.buttons.find((b) => b.id === 'checkTogether').planId).toBe('HouseLadder01');   // the plan that holds the link
+    expect(h.buttons.find((b) => b.id === 'checkTogether').href).toBe('#/plan/HouseLadder01/household');   // the two together, inside V7 (road-to-7.md step 9)
   });
   it('the working partner\'s plan opens on What you pay in; its household step points back at the ladder, retired', () => {
     const pg = planPage(entries, saver.id, null, { today: TODAY });
@@ -170,7 +170,7 @@ describe('the household pair shaped like the owner\'s (your-plan.md 1.5, 6)', ()
     const h = pg.steps.find((s) => s.id === 'household');
     expect(h.theirLine.id).toBe('bridge-ladder');
     expect(fill(PLAN.theirLines[h.theirLine.id], h.theirLine.slots)).toBe('retired. Their ladder pays from April 2027.');
-    expect(h.buttons.find((b) => b.id === 'checkTogether').planId).toBe('HouseLadder01');
+    expect(h.buttons.find((b) => b.id === 'checkTogether').href).toBe('#/plan/HouseSaver02/household');   // this plan's own household step, inside V7
   });
   it('a partner named but not in the account: "not in this account"; no link and one plan: no household step', () => {
     const alone = planPage([entryOf(ladder)], ladder.id, 'household', { today: TODAY });

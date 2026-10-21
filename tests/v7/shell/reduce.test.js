@@ -296,7 +296,27 @@ const anyAction = fc.oneof(
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEEP, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEPT, planId, id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'One · tried', where: 'account' })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.duration': 30 }, line: { id: 'try', slots: { n: '2' } }, op: 'try' })),
-  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('full', 'unverified')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('full', 'unverified')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  // "Your household" (road-to-7.md step 9): the pooled run by the pair's key and its limit, the survivor and care questions, the confirms, the writes, the copies kept
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_RUN, key, limit })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.integer({ min: 0, max: 4 })).map(([key, done]) => ({ type: A.HH_PROGRESS, key, done, total: 4 })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_DONE, key, limit, result: { ok: true, split: { applies: false }, own: { combined: { runs: 1000, jointSuccess: 0.9, successA: 0.9, successB: 0.95 } } }, ms: 1200 })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_FAILED, key, limit })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR_DONE, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 }, result: { affordable: true, who: 'a' }, ms: 900 })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR_FAILED, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE_DONE, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 }, result: { affordable: true, who: 'B' }, ms: 900 })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE_FAILED, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 } })),
+  fc.constantFrom('survivor', 'care').map((what) => ({ type: A.HH_CLOSE, what })),
+  fc.constantFrom(null, 'split', 'link', 'unlink', 'share', 'separate').map((what) => ({ type: A.HH_PICK, what })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, 'p2', 'Kq8LwT2mJv5PzYc9BnRd')).map(([planId, partnerId]) => ({ type: A.PLAN_LINK, planId, partnerId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SPLIT, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, dismiss]) => ({ type: A.PLAN_DISMISS, planId, dismiss })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, share]) => ({ type: A.PLAN_BUDGET_SHARE, planId, share })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.SPLIT_KEPT, planId, ids: { a: 'Kq8LwT2mJv5PzYc9BnRd', b: 'guest-k3v9x1qa' }, names: { a: 'One — drawing together', b: 'Two — drawing together' }, where: 'account' })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('link', 'split', 'dismiss', 'budgetShare')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'household.partnerScenarioId': null }, line: { id: 'linked', slots: {} }, op, others: [{ planId: 'p2', previous: { 'stressTool.settings.baseSalary': 1 } }] })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('noPartner', 'partial')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
 );
 
 describe('any sequence of actions', () => {
@@ -318,7 +338,8 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'mix', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'household', 'keep', 'lasts', 'mix', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.household.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.ways.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);

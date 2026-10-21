@@ -276,8 +276,9 @@ export const PLAN = {
     changeHold: 'Change this in the planner',
     openMove: 'Open it in the planner',
     openPartner: 'Open ‘{name}’',
-    checkTogether: 'Check the two plans together in the planner',
-    linkOne: 'Link one in the planner',
+    /** Into "Your household" inside V7 (road-to-7.md step 9): the two together, or the link. */
+    checkTogether: 'Check the two plans together',
+    linkOne: 'Link one',
     addAge: 'Add your age',
     updateIt: 'Update it',
     /** Into the editing step inside V7 (editing-in-v7.md 2). */

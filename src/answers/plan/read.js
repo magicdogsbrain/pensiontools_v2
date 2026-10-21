@@ -562,12 +562,13 @@ function householdStep(C) {
       lines.push({ id: 'household.partner', slots: { name: nameOf(e.plan) }, sentence: sentence('household.partner', [], figures), source: sourceOf('saved', null, now), theirLine: stageLine(st, e.plan, safeSettings(e.plan, now)), theirId: String(e.plan.id) });
       buttons.push(link('openPartner', '#/plan/' + e.plan.id, { name: nameOf(e.plan) }));
     }
-    const holder = mine && partners.some((e) => e.plan.id === mine) ? String(plan.id) : String(partners[0].plan.id);
-    buttons.push({ ...button('checkTogether', 'household'), planId: holder });
+    // the two together — the pooled verdict, who draws what, the survivor and care questions — inside V7 (road-to-7.md step 9)
+    buttons.push(link('checkTogether', '#/plan/' + plan.id + '/household'));
     return { done: true, result, figures, lines, buttons, notes: [], theirLine };
   }
-  if (missing) return { done: false, result: sentence('household.notInAccount', ['Your partner’s plan is not in this account'], figures), figures, lines, buttons: [button('linkOne', 'household')], notes: [] };
-  return { done: false, result: sentence('household.none', ['No partner’s plan is linked'], figures), figures, lines, buttons: [button('linkOne', 'household')], notes: [] };
+  const linkHere = link('linkOne', '#/plan/' + plan.id + '/household');
+  if (missing) return { done: false, result: sentence('household.notInAccount', ['Your partner’s plan is not in this account'], figures), figures, lines, buttons: [linkHere], notes: [] };
+  return { done: false, result: sentence('household.none', ['No partner’s plan is linked'], figures), figures, lines, buttons: [linkHere], notes: [] };
 }
 
 const BUILDERS = { month: monthStep, where: whereStep, plan: planStep, pot: potStep, saving: savingStep, budget: budgetStep, lock: lockStep, hold: holdStep, move: moveStep, household: householdStep };

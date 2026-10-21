@@ -13,6 +13,7 @@ import { startRunner } from './run.js';
 import { startLastsRunner } from './lasts.js';
 import { startWaysRunner } from './ways.js';
 import { startMixRunner } from './mix.js';
+import { startHouseholdRunner } from './household.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
 import { startOpenPlace } from './openPlace.js';
@@ -51,6 +52,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startWaysRunner({ store, client, now: () => Date.now() }));
   // "The mix" (research/v7/way-and-mix.md 3.2): the sleeve's and the tent's try and the eight cells, in the worker only, on that step only
   stops.push(startMixRunner({ store, client, now: () => Date.now() }));
+  // "Your household" (research/v7/road-to-7.md step 9): the pooled run, the survivor and the care questions, in the worker only, on that step only
+  stops.push(startHouseholdRunner({ store, client, now: () => Date.now() }));
 
   // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
   // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where

@@ -1,0 +1,4322 @@
+{
+  "route": {
+    "screen": "plan",
+    "q": null,
+    "step": "household",
+    "planId": "AlexCouple06",
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.41.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "in",
+    "email": "someone@example.com",
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": {
+    "status": "read",
+    "source": "account",
+    "readAt": "14:03",
+    "list": [
+      {
+        "plan": {
+          "id": "AlexCouple06",
+          "budgetTool": {
+            "settings": {
+              "currentAge": 64,
+              "currentAgeAsOf": "2026-08-22",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": true,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": true,
+              "retirementAge": 66,
+              "sharedWithPartner": true,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-08-22T15:00:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "baseSalary": 24000,
+              "bedAndIsa": true,
+              "bondMin": 200000,
+              "cashTarget": 50000,
+              "consecutiveLimit": 3,
+              "duration": 35,
+              "equityMin": 250000,
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "isaBalance": 0,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "spStartDate": null,
+              "spWeeklyAmount": 0,
+              "statePension": 0,
+              "statePensionYear": 0,
+              "targetSchedule": null,
+              "taxableMix": "equity",
+              "taxableStart": 0
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation",
+            "household"
+          ],
+          "isActive": true,
+          "journey": [
+            {
+              "at": "2026-08-22T15:00:00.000Z",
+              "label": "Retired, designing the plan",
+              "stage": "draft-retired"
+            }
+          ],
+          "lastModified": "2026-08-22T15:00:00.000Z",
+          "planDetails": {
+            "description": "Retired; drawing first",
+            "name": "Alex’s plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "pots-and-valves",
+            "lockedAt": "2026-08-22T15:00:00.000Z",
+            "params": {}
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "risk",
+              "bandFillRecycle": false,
+              "baseSalary": 70000,
+              "bedAndIsa": true,
+              "bondMin": 440000,
+              "brl": 50270,
+              "cashTarget": 120000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 64,
+              "currentAgeAsOf": "2026-08-22",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 30,
+              "equityGlideEnabled": false,
+              "equityMin": 840000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "flat",
+              "incomeSteps": [],
+              "isaBalance": 22000,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": null,
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": null,
+              "retired": true,
+              "shapeAgeNow": 66,
+              "spStartDate": "2 October 2028",
+              "spWeeklyAmount": 198.4,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "pots-and-valves",
+              "strategyParams": {},
+              "strategyState": {},
+              "subAsset": null,
+              "taggedFunds": [],
+              "targetSchedule": null,
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "household": {
+            "partnerScenarioId": "SamCouple07"
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      },
+      {
+        "plan": {
+          "id": "SamCouple07",
+          "accumulationTool": {
+            "settings": {
+              "currentAge": 58,
+              "employerMonthly": 210,
+              "escalationPct": 0,
+              "netMonthly": 400,
+              "potNow": 221000,
+              "retirementAge": 62,
+              "salary": 41000,
+              "schemeType": "ras"
+            }
+          },
+          "budgetTool": {
+            "settings": {
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-08-22",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": true,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": false,
+              "retirementAge": 62,
+              "sharedWithPartner": true,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-08-22T15:00:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "baseSalary": 18000,
+              "bedAndIsa": true,
+              "bondMin": 200000,
+              "cashTarget": 50000,
+              "consecutiveLimit": 3,
+              "duration": 35,
+              "equityMin": 250000,
+              "firstTaxYear": 2029,
+              "giaTaxBand": "basic",
+              "isaBalance": 0,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "spStartDate": null,
+              "spWeeklyAmount": 0,
+              "statePension": 0,
+              "statePensionYear": 0,
+              "targetSchedule": null,
+              "taxableMix": "equity",
+              "taxableStart": 0
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation",
+            "household"
+          ],
+          "isActive": false,
+          "journey": [
+            {
+              "at": "2026-08-22T15:00:00.000Z",
+              "label": "Approaching retirement",
+              "stage": "approaching"
+            }
+          ],
+          "lastModified": "2026-08-22T15:00:00.000Z",
+          "planDetails": {
+            "description": "Working to 62",
+            "name": "Sam’s plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "pots-and-valves",
+            "lockedAt": "2026-08-22T15:00:00.000Z",
+            "params": {}
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "risk",
+              "bandFillRecycle": false,
+              "baseSalary": 18000,
+              "bedAndIsa": true,
+              "bondMin": 60000,
+              "brl": 50270,
+              "cashTarget": 11000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-08-22",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 32,
+              "equityGlideEnabled": false,
+              "equityMin": 150000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2029,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "flat",
+              "incomeSteps": [],
+              "isaBalance": 9000,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": {
+                "isa": 9955,
+                "sipp": 278542,
+                "source": "accumulation"
+              },
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": 62,
+              "retired": false,
+              "shapeAgeNow": 62,
+              "spStartDate": "17 January 2035",
+              "spWeeklyAmount": 230.25,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "pots-and-valves",
+              "strategyParams": {},
+              "strategyState": {},
+              "subAsset": null,
+              "taggedFunds": [],
+              "targetSchedule": null,
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "household": {
+            "partnerScenarioId": "AlexCouple06"
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      }
+    ],
+    "usedUp": false,
+    "view": {
+      "today": "2026-09-30",
+      "rows": [
+        {
+          "id": "household",
+          "rows": [
+            {
+              "id": "AlexCouple06",
+              "name": "Alex’s plan",
+              "stageKey": "draft-retired",
+              "line": {
+                "id": "draft-retired",
+                "slots": {}
+              },
+              "locked": false,
+              "lockedOn": null,
+              "madeOn": null,
+              "shownAsSaved": false,
+              "linked": true,
+              "lastModified": "2026-08-22T15:00:00.000Z"
+            },
+            {
+              "id": "SamCouple07",
+              "name": "Sam’s plan",
+              "stageKey": "approaching",
+              "line": {
+                "id": "approaching",
+                "slots": {}
+              },
+              "locked": false,
+              "lockedOn": null,
+              "madeOn": null,
+              "shownAsSaved": false,
+              "linked": true,
+              "lastModified": "2026-08-22T15:00:00.000Z"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "found": true,
+        "id": "AlexCouple06",
+        "name": "Alex’s plan",
+        "stageKey": "draft-retired",
+        "retired": true,
+        "saver": false,
+        "line": {
+          "id": "draft-retired",
+          "slots": {}
+        },
+        "locked": false,
+        "lockedOn": null,
+        "readonly": false,
+        "source": "account",
+        "steps": [
+          {
+            "id": "plan",
+            "optional": false,
+            "listed": true,
+            "state": "done",
+            "done": true,
+            "result": {
+              "id": "plan.retired",
+              "parts": [
+                "Retired. ",
+                {
+                  "key": "yearly",
+                  "kind": "money"
+                },
+                " a year before tax"
+              ],
+              "text": "Retired. £70,000 a year before tax"
+            },
+            "figures": {
+              "yearly": 70000,
+              "ageToday": 64,
+              "years": 30,
+              "ageEnd": 95,
+              "step0": 70000,
+              "stepAge0": 66,
+              "sipp": 1400000,
+              "isa": 22000,
+              "gia": 0,
+              "shares": 840000,
+              "bonds": 440000,
+              "cash": 120000,
+              "spWeekly": 198,
+              "mixShares": 840000,
+              "mixBonds": 440000,
+              "mixCash": 120000
+            },
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lasts",
+                "href": "#/plan/AlexCouple06/lasts",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              {
+                "id": "pricesToday",
+                "slots": {}
+              }
+            ],
+            "sections": [
+              {
+                "id": "about",
+                "lines": [
+                  {
+                    "id": "about.age",
+                    "slots": {
+                      "asOf": "22 August 2026"
+                    },
+                    "sentence": {
+                      "id": "about.age",
+                      "parts": [
+                        {
+                          "key": "ageToday",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "64"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": "22 August 2026",
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.retired",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.retired",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.firstYear",
+                    "slots": {
+                      "year": "2027/28"
+                    },
+                    "sentence": {
+                      "id": "about.firstYear",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.runs",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.runs",
+                      "parts": [
+                        {
+                          "key": "years",
+                          "kind": "count"
+                        },
+                        " years, to age ",
+                        {
+                          "key": "ageEnd",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "30 years, to age 95"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "about",
+                "sub": "about",
+                "href": "#/plan/AlexCouple06/about"
+              },
+              {
+                "id": "pays",
+                "lines": [
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge0",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step0",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 66: £70,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "spend",
+                "sub": "spend",
+                "href": "#/plan/AlexCouple06/spend"
+              },
+              {
+                "id": "pots",
+                "lines": [
+                  {
+                    "id": "pots.pension",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.pension",
+                      "parts": [
+                        {
+                          "key": "sipp",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£1,400,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.split",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.split",
+                      "parts": [
+                        {
+                          "key": "shares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "bonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "cash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£840,000 shares, £440,000 bonds, £120,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.isa",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.isa",
+                      "parts": [
+                        {
+                          "key": "isa",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£22,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "pots",
+                "href": "#/plan/AlexCouple06/pots"
+              },
+              {
+                "id": "income",
+                "lines": [
+                  {
+                    "id": "pots.statePension",
+                    "slots": {
+                      "from": "2 October 2028"
+                    },
+                    "sentence": {
+                      "id": "pots.statePension",
+                      "parts": [
+                        {
+                          "key": "spWeekly",
+                          "kind": "money"
+                        },
+                        " a week"
+                      ],
+                      "text": "£198 a week"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "income",
+                "href": "#/plan/AlexCouple06/income"
+              },
+              {
+                "id": "way",
+                "lines": [
+                  {
+                    "id": "way.strategy",
+                    "slots": {
+                      "strategy": "pots-and-valves"
+                    },
+                    "sentence": {
+                      "id": "way.strategy",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "way",
+                "sub": "way",
+                "href": "#/plan/AlexCouple06/way",
+                "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.heldSplit",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.heldSplit",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.amounts",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.amounts",
+                      "parts": [
+                        {
+                          "key": "mixShares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "mixBonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "mixCash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£840,000 shares, £440,000 bonds, £120,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.sleeveOff",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.sleeveOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.tentOff",
+                    "slots": {
+                      "years": "10"
+                    },
+                    "sentence": {
+                      "id": "mix.tentOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexCouple06/mix",
+                "lockedButton": "tryMix"
+              }
+            ],
+            "options": [
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              }
+            ],
+            "allOptions": [
+              {
+                "id": "inc.streams",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.lump-sums",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.extra-spends",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.final-salary-rises",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "rises",
+                    "v": "lpi5",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "inc.state-pension-old",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 12000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "fromYear",
+                    "v": 12,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bands",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "pa",
+                    "v": 12570,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "brl",
+                    "v": 50270,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "hrl",
+                    "v": 125140,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "tax.mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "inflates",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.tax-free-cash",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "drawdown",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.ufpls-years",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "years",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "thenRest",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.band-fill",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.earnings",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.reserve",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "amount",
+                    "v": 25000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.diversifiers",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "amount",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.bond-tent",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "endgame",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-use",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "use",
+                    "v": "minimiseEarlyTax",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-growth",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "grows",
+                    "v": "cash",
+                    "kind": "choice"
+                  },
+                  {
+                    "k": "fixedRate",
+                    "v": 3,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "floor",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.charges",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0.5,
+                    "kind": "pct"
+                  }
+                ]
+              },
+              {
+                "id": "pots.funds-to-test",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "draw.cadence",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "monthly",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "timing.stale-draft",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "year",
+                    "v": 0,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "lock.lock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "locked",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "at",
+                    "v": "",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "by",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "lock.unlock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "times",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "last",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "month.seeded",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "from",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.configured",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "stress",
+                    "v": true,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "decision",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.declining",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "folded",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.old-names",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "present",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.risk-mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.start-date",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "date",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              }
+            ],
+            "journey": [
+              {
+                "stage": "draft-retired",
+                "on": "22 August 2026",
+                "arrival": false
+              }
+            ],
+            "pastVersions": 0,
+            "lockedOn": null,
+            "hasDocument": false,
+            "documentOn": null,
+            "unlockDefaults": []
+          },
+          {
+            "id": "budget",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "budget.none",
+              "parts": [
+                "Not worked out. A guide only"
+              ],
+              "text": "Not worked out. A guide only"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeBudget",
+                "place": "budget",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "budget.guide"
+            ]
+          },
+          {
+            "id": "lock",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "lock.notLocked",
+              "parts": [
+                "Not locked"
+              ],
+              "text": "Not locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [],
+            "notes": [
+              "lock.what"
+            ],
+            "locked": false,
+            "lockedOn": null,
+            "saver": false,
+            "strategyId": "pots-and-valves",
+            "bought": false,
+            "hasDocument": false
+          },
+          {
+            "id": "hold",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "hold.none",
+              "parts": [
+                "Not recorded yet"
+              ],
+              "text": "Not recorded yet"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeHold",
+                "place": "hold",
+                "slots": {}
+              }
+            ],
+            "notes": []
+          },
+          {
+            "id": "move",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "move.notSet",
+              "parts": [
+                "Set when the plan is locked"
+              ],
+              "text": "Set when the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "openMove",
+                "place": "move",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "move.optional"
+            ]
+          },
+          {
+            "id": "household",
+            "optional": true,
+            "listed": true,
+            "state": "current",
+            "done": true,
+            "result": {
+              "id": "household.with",
+              "parts": [
+                "With ‘Sam’s plan’"
+              ],
+              "text": "With ‘Sam’s plan’"
+            },
+            "figures": {},
+            "lines": [
+              {
+                "id": "household.partner",
+                "slots": {
+                  "name": "Sam’s plan"
+                },
+                "sentence": {
+                  "id": "household.partner",
+                  "parts": [],
+                  "text": ""
+                },
+                "source": {
+                  "kind": "saved",
+                  "at": null,
+                  "stale": false
+                },
+                "theirLine": {
+                  "id": "approaching",
+                  "slots": {}
+                },
+                "theirId": "SamCouple07"
+              }
+            ],
+            "buttons": [
+              {
+                "id": "openPartner",
+                "href": "#/plan/SamCouple07",
+                "slots": {
+                  "name": "Sam’s plan"
+                }
+              },
+              {
+                "id": "checkTogether",
+                "href": "#/plan/AlexCouple06/household",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "theirLine": {
+              "id": "approaching",
+              "slots": {}
+            }
+          }
+        ],
+        "subSteps": [
+          {
+            "id": "about",
+            "under": "plan"
+          },
+          {
+            "id": "income",
+            "under": "plan"
+          },
+          {
+            "id": "spend",
+            "under": "plan"
+          },
+          {
+            "id": "pots",
+            "under": "plan"
+          },
+          {
+            "id": "lasts",
+            "under": "plan"
+          },
+          {
+            "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
+            "under": "plan"
+          }
+        ],
+        "current": "household",
+        "answerStale": null,
+        "next": {
+          "id": "P.draft",
+          "slots": {
+            "month": "September 2026",
+            "monthName": "September",
+            "nextMonth": "October",
+            "year": "2026/27",
+            "stop": "April 2027",
+            "savedYear": ""
+          },
+          "button": {
+            "id": "lasts",
+            "href": "#/plan/AlexCouple06/lasts",
+            "slots": {}
+          }
+        },
+        "askLinks": [
+          "c"
+        ],
+        "forId": "AlexCouple06",
+        "forStep": "household",
+        "household": {
+          "found": true,
+          "id": "AlexCouple06",
+          "name": "Alex’s plan",
+          "locked": false,
+          "lockedOn": null,
+          "readonly": false,
+          "editable": true,
+          "source": "account",
+          "partner": {
+            "id": "SamCouple07",
+            "name": "Sam’s plan",
+            "locked": false,
+            "lockedOn": null,
+            "readonly": false,
+            "line": {
+              "id": "approaching",
+              "slots": {}
+            },
+            "configured": true,
+            "linkedBy": "both"
+          },
+          "missing": null,
+          "candidates": [
+            {
+              "id": "SamCouple07",
+              "name": "Sam’s plan",
+              "locked": false
+            }
+          ],
+          "names": {
+            "a": "Alex’s plan",
+            "b": "Sam’s plan"
+          },
+          "runKey": "AlexCouple06|2026-08-22T15:00:00.000Z|1azaftb|U+SamCouple07|2026-08-22T15:00:00.000Z|1k5mjcs|U",
+          "mode": "write",
+          "lockedNames": [],
+          "copyRoom": true,
+          "ages": {
+            "a": "64",
+            "b": "58"
+          },
+          "smaller": "b",
+          "fields": [
+            {
+              "path": "link.choice",
+              "type": "id",
+              "options": null,
+              "applies": true,
+              "shown": "",
+              "saved": "",
+              "error": null
+            },
+            {
+              "path": "limit.kind",
+              "type": "choice",
+              "options": [
+                "none",
+                "untilAge",
+                "keepAtLeast"
+              ],
+              "applies": true,
+              "shown": "none",
+              "saved": "none",
+              "error": null
+            },
+            {
+              "path": "limit.age",
+              "type": "age",
+              "options": null,
+              "applies": false,
+              "shown": "67",
+              "saved": "67",
+              "error": null
+            },
+            {
+              "path": "limit.amount",
+              "type": "money",
+              "options": null,
+              "applies": false,
+              "shown": "",
+              "saved": "",
+              "error": null
+            },
+            {
+              "path": "survivor.who",
+              "type": "choice",
+              "options": [
+                "a",
+                "b"
+              ],
+              "applies": true,
+              "shown": "a",
+              "saved": "a",
+              "error": null
+            },
+            {
+              "path": "survivor.atAge",
+              "type": "age",
+              "options": null,
+              "applies": true,
+              "shown": "74",
+              "saved": "74",
+              "error": null
+            },
+            {
+              "path": "survivor.spendPct",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "70",
+              "saved": "70",
+              "error": null
+            },
+            {
+              "path": "survivor.dbPct",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "50",
+              "saved": "50",
+              "error": null
+            },
+            {
+              "path": "care.who",
+              "type": "choice",
+              "options": [
+                "a",
+                "b"
+              ],
+              "applies": true,
+              "shown": "a",
+              "saved": "a",
+              "error": null
+            },
+            {
+              "path": "care.fromAge",
+              "type": "age",
+              "options": null,
+              "applies": true,
+              "shown": "79",
+              "saved": "79",
+              "error": null
+            },
+            {
+              "path": "care.years",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "3",
+              "saved": "3",
+              "error": null
+            },
+            {
+              "path": "care.cost",
+              "type": "money",
+              "options": null,
+              "applies": true,
+              "shown": "90000",
+              "saved": "90000",
+              "error": null
+            },
+            {
+              "path": "budget.shared",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": true,
+              "shown": "yes",
+              "saved": "yes",
+              "error": null
+            },
+            {
+              "path": "budget.mySharePct",
+              "type": "count",
+              "options": null,
+              "applies": true,
+              "shown": "50",
+              "saved": "50",
+              "error": null
+            }
+          ],
+          "errors": {},
+          "ok": true,
+          "run": {
+            "limit": null,
+            "survivor": {
+              "who": "a",
+              "atAge": 74,
+              "spendPct": 70,
+              "dbPct": 50
+            },
+            "care": {
+              "who": "a",
+              "fromAge": 79,
+              "years": 3,
+              "cost": 90000
+            }
+          },
+          "status": "done",
+          "reason": null,
+          "ms": 1400,
+          "progress": null,
+          "stale": false,
+          "runs": "4",
+          "unaffordable": null,
+          "verdict": {
+            "head": "close",
+            "share": 0.85,
+            "pct": "85",
+            "words": "in just under 9 futures out of 10",
+            "pooled": true,
+            "covered": {
+              "n": "8",
+              "of": "1000",
+              "from": "95",
+              "earliest": null
+            },
+            "rows": [
+              {
+                "id": "household",
+                "words": "in just under 9 futures out of 10",
+                "pct": "85"
+              },
+              {
+                "id": "a",
+                "name": "Alex’s plan",
+                "words": "in 8 futures out of 10",
+                "pct": "84"
+              },
+              {
+                "id": "b",
+                "name": "Sam’s plan",
+                "words": "in more than 9 futures out of 10",
+                "pct": "99"
+              },
+              {
+                "id": "both",
+                "words": "in 8 futures out of 10",
+                "pct": "84"
+              }
+            ],
+            "runs": "1000",
+            "shifted": true,
+            "weak": {
+              "name": "Alex’s plan",
+              "pct": "84"
+            }
+          },
+          "timeline": [
+            {
+              "year": "0",
+              "bridge": true,
+              "workingA": false,
+              "workingB": true,
+              "needA": "£70,000",
+              "needB": "£0",
+              "sp": "£0",
+              "other": "£0",
+              "draw": "£70,000"
+            },
+            {
+              "year": "1",
+              "bridge": true,
+              "workingA": false,
+              "workingB": true,
+              "needA": "£70,000",
+              "needB": "£0",
+              "sp": "£0",
+              "other": "£0",
+              "draw": "£70,000"
+            },
+            {
+              "year": "2",
+              "bridge": true,
+              "workingA": false,
+              "workingB": true,
+              "needA": "£70,000",
+              "needB": "£0",
+              "sp": "£0",
+              "other": "£0",
+              "draw": "£70,000"
+            },
+            {
+              "year": "3",
+              "bridge": false,
+              "workingA": false,
+              "workingB": true,
+              "needA": "£70,000",
+              "needB": "£0",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£59,683"
+            },
+            {
+              "year": "4",
+              "bridge": true,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£77,683"
+            },
+            {
+              "year": "5",
+              "bridge": true,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£77,683"
+            },
+            {
+              "year": "6",
+              "bridge": true,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£77,683"
+            },
+            {
+              "year": "7",
+              "bridge": true,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£77,683"
+            },
+            {
+              "year": "8",
+              "bridge": true,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£10,317",
+              "other": "£0",
+              "draw": "£77,683"
+            },
+            {
+              "year": "9",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "10",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "11",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "12",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "13",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "14",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "15",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "16",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "17",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "18",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "19",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "20",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "21",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "22",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "23",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "24",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "25",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "26",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "27",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "28",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "29",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "30",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "31",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "32",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£70,000",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£65,710"
+            },
+            {
+              "year": "33",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£0",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£0"
+            },
+            {
+              "year": "34",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£0",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£0"
+            },
+            {
+              "year": "35",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£0",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£0"
+            },
+            {
+              "year": "36",
+              "bridge": false,
+              "workingA": false,
+              "workingB": false,
+              "needA": "£0",
+              "needB": "£18,000",
+              "sp": "£22,290",
+              "other": "£0",
+              "draw": "£0"
+            }
+          ],
+          "left": [
+            {
+              "year": "0",
+              "p10": "£1,710,497",
+              "p50": "£1,710,497",
+              "p90": "£1,710,497"
+            },
+            {
+              "year": "5",
+              "p10": "£1,135,451",
+              "p50": "£1,637,804",
+              "p90": "£2,337,440"
+            },
+            {
+              "year": "10",
+              "p10": "£995,944",
+              "p50": "£1,616,891",
+              "p90": "£3,040,049"
+            },
+            {
+              "year": "15",
+              "p10": "£783,590",
+              "p50": "£1,461,865",
+              "p90": "£3,768,389"
+            },
+            {
+              "year": "20",
+              "p10": "£577,895",
+              "p50": "£1,496,851",
+              "p90": "£3,889,453"
+            },
+            {
+              "year": "25",
+              "p10": "£282,258",
+              "p50": "£1,451,003",
+              "p90": "£4,380,136"
+            },
+            {
+              "year": "30",
+              "p10": "£107,930",
+              "p50": "£1,402,189",
+              "p90": "£5,647,159"
+            }
+          ],
+          "split": {
+            "applies": true,
+            "unchanged": false,
+            "dismissed": false,
+            "fingerprint": "-591f55bd",
+            "mode": "write",
+            "lockedNames": [],
+            "smallerName": "Sam’s plan",
+            "biggerName": "Alex’s plan",
+            "untilAge": "67",
+            "saving": {
+              "year": "£4,933",
+              "until": "£29,595",
+              "whole": "£121,757"
+            },
+            "pots": {
+              "a": "£1,422,000",
+              "b": "£287,542"
+            },
+            "unused": {
+              "over": "£19,730",
+              "allowance": "£0",
+              "band": "most"
+            },
+            "cost": {
+              "together": "£193,583",
+              "own": "£256,443"
+            },
+            "betterOff": {
+              "amount": "£510,385",
+              "better": true
+            },
+            "tax": {
+              "firstYear": {
+                "own": "£16,518",
+                "together": "£11,586"
+              },
+              "until": {
+                "own": "£146,169",
+                "together": "£116,574"
+              },
+              "whole": {
+                "own": "£530,427",
+                "together": "£408,670"
+              }
+            },
+            "ages": "67 / 75 / 90",
+            "own": {
+              "a": "£1,415,786 / £1,312,638 / £944,250",
+              "b": "£256,443 / £270,388 / £332,170",
+              "lasts": "in just under 9 futures out of 10",
+              "left": "£1,418,654 / £256,249"
+            },
+            "together": {
+              "a": "£1,415,786 / £1,459,362 / £1,544,808",
+              "b": "£193,583 / £90,171 / £0",
+              "lasts": "in just under 9 futures out of 10",
+              "left": "£1,929,039 / £481,860"
+            },
+            "note2028": "",
+            "ladderNote": "",
+            "steps": {
+              "a": [
+                {
+                  "fromAge": "66",
+                  "amount": "£70,000"
+                },
+                {
+                  "fromAge": "68",
+                  "amount": "£50,270"
+                },
+                {
+                  "fromAge": "79",
+                  "amount": "£55,000"
+                }
+              ],
+              "b": [
+                {
+                  "fromAge": "62",
+                  "amount": "£32,798"
+                },
+                {
+                  "fromAge": "73",
+                  "amount": "£29,250"
+                },
+                {
+                  "fromAge": "91",
+                  "amount": "£18,000"
+                }
+              ]
+            }
+          },
+          "survivor": {
+            "status": "off"
+          },
+          "care": {
+            "status": "off"
+          },
+          "pick": null,
+          "kept": null,
+          "changes": [
+            {
+              "name": "Alex’s plan",
+              "from": "£70,000 a year",
+              "to": "£70,000 a year from 66, £50,270 from 68, £55,000 from 79",
+              "changed": true
+            },
+            {
+              "name": "Sam’s plan",
+              "from": "£18,000 a year",
+              "to": "£32,798 a year from 62, £29,250 from 73, £18,000 from 91",
+              "changed": true
+            }
+          ],
+          "budget": {
+            "from": null,
+            "to": false,
+            "shared": false
+          },
+          "whoPays": {
+            "shared": true,
+            "holderName": "Alex’s plan",
+            "readsShared": false,
+            "lines": [],
+            "oneOffs": []
+          },
+          "changed": false,
+          "writes": [],
+          "savedLine": {
+            "id": "whoPays",
+            "slots": {
+              "shared": "yes",
+              "share": "50"
+            }
+          },
+          "sids": {
+            "a": "pots-and-valves",
+            "b": "pots-and-valves"
+          },
+          "draftKey": "{}"
+        }
+      }
+    }
+  },
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": null,
+      "values": {},
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    }
+  },
+  "lasts": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "household": {
+    "key": "AlexCouple06|2026-08-22T15:00:00.000Z|1azaftb|U+SamCouple07|2026-08-22T15:00:00.000Z|1k5mjcs|U",
+    "status": "done",
+    "limit": null,
+    "reason": null,
+    "result": {
+      "ok": true,
+      "names": {
+        "a": "Alex’s plan",
+        "b": "Sam’s plan"
+      },
+      "offsets": {
+        "a": 2,
+        "b": 4
+      },
+      "split": {
+        "names": {
+          "a": "Alex’s plan",
+          "b": "Sam’s plan"
+        },
+        "smaller": "b",
+        "larger": "a",
+        "untilAge": 67,
+        "untilC": 9,
+        "steps": {
+          "a": [
+            {
+              "fromAge": 66,
+              "amount": 70000
+            },
+            {
+              "fromAge": 68,
+              "amount": 50270
+            },
+            {
+              "fromAge": 79,
+              "amount": 55000
+            }
+          ],
+          "b": [
+            {
+              "fromAge": 62,
+              "amount": 32798
+            },
+            {
+              "fromAge": 73,
+              "amount": 29250
+            },
+            {
+              "fromAge": 91,
+              "amount": 18000
+            }
+          ]
+        },
+        "schedules": {
+          "own": {
+            "a": [
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000,
+              70000
+            ],
+            "b": [
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              18000
+            ]
+          },
+          "together": {
+            "a": [
+              70000,
+              70000,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              50270,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985,
+              54999.999999999985
+            ],
+            "b": [
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              29250,
+              18000,
+              18000,
+              18000,
+              18000
+            ]
+          }
+        },
+        "unchanged": false,
+        "limit": null,
+        "applies": true,
+        "saving": {
+          "year": 4932.5,
+          "until": 29594.999999999985,
+          "whole": 121757.49999999994
+        },
+        "tax": {
+          "firstYear": {
+            "own": 16518,
+            "together": 11585.5,
+            "year": 4
+          },
+          "until": {
+            "own": 146169.3333333333,
+            "together": 116574.33333333333
+          },
+          "whole": {
+            "own": 530427.3333333333,
+            "together": 408669.8333333333
+          }
+        },
+        "pots": {
+          "a": 1422000,
+          "b": 287542
+        },
+        "needs": {
+          "own": {
+            "a": [
+              70000,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2,
+              59683.2
+            ],
+            "b": [
+              18000,
+              18000,
+              18000,
+              18000,
+              18000,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027,
+              6027
+            ]
+          },
+          "together": {
+            "a": [
+              70000,
+              59683.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              39953.2,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998,
+              44683.19999999998
+            ],
+            "b": [
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              32797.5,
+              20824.5,
+              20824.5,
+              20824.5,
+              20824.5,
+              20824.5,
+              20824.5,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              17277,
+              6027,
+              6027,
+              6027,
+              6027
+            ]
+          }
+        },
+        "unused": {
+          "over": 19730,
+          "allowanceUnused": 0,
+          "bandUnused": 32270,
+          "bandMost": true
+        },
+        "note2028": "",
+        "ladderNote": "",
+        "fingerprint": "-591f55bd"
+      },
+      "own": {
+        "combined": {
+          "runs": 1000,
+          "jointSuccess": 0.842,
+          "successA": 0.842,
+          "successB": 0.99,
+          "independenceAssumed": 0.83358,
+          "potFan": [
+            {
+              "year": 0,
+              "p10": 1710497,
+              "p50": 1710497,
+              "p90": 1710497
+            },
+            {
+              "year": 1,
+              "p10": 1460581.6982401586,
+              "p50": 1730822.503202987,
+              "p90": 1964467.744171124
+            },
+            {
+              "year": 2,
+              "p10": 1328230.3550387383,
+              "p50": 1725657.2476204946,
+              "p90": 2037629.5407694373
+            },
+            {
+              "year": 3,
+              "p10": 1319961.9827913132,
+              "p50": 1709913.7951185834,
+              "p90": 2035115.3691553136
+            },
+            {
+              "year": 4,
+              "p10": 1238069.774166126,
+              "p50": 1677169.7628161702,
+              "p90": 2171064.189647538
+            },
+            {
+              "year": 5,
+              "p10": 1135451.492029739,
+              "p50": 1637804.4392189253,
+              "p90": 2337439.5654112925
+            },
+            {
+              "year": 6,
+              "p10": 1069929.1994385165,
+              "p50": 1593835.661093456,
+              "p90": 2506415.2805441306
+            },
+            {
+              "year": 7,
+              "p10": 1092852.3501179216,
+              "p50": 1641082.7222610898,
+              "p90": 2462845.288216925
+            },
+            {
+              "year": 8,
+              "p10": 1065860.7862823398,
+              "p50": 1584318.0059846267,
+              "p90": 2604605.692184981
+            },
+            {
+              "year": 9,
+              "p10": 1025694.4178283892,
+              "p50": 1642718.4892319057,
+              "p90": 2989082.936298171
+            },
+            {
+              "year": 10,
+              "p10": 995944.0482066819,
+              "p50": 1616890.9955628852,
+              "p90": 3040048.950360774
+            },
+            {
+              "year": 11,
+              "p10": 948995.691787069,
+              "p50": 1542517.5986807735,
+              "p90": 3273183.9773626267
+            },
+            {
+              "year": 12,
+              "p10": 890004.705586483,
+              "p50": 1548559.6116559608,
+              "p90": 3380946.812578528
+            },
+            {
+              "year": 13,
+              "p10": 874552.1028067152,
+              "p50": 1532396.2764353217,
+              "p90": 3217905.052536145
+            },
+            {
+              "year": 14,
+              "p10": 767096.2305729134,
+              "p50": 1510272.0244367565,
+              "p90": 3200273.382179737
+            },
+            {
+              "year": 15,
+              "p10": 783589.8986980938,
+              "p50": 1461864.8536389128,
+              "p90": 3768389.206117844
+            },
+            {
+              "year": 16,
+              "p10": 757978.2597104202,
+              "p50": 1472277.820316405,
+              "p90": 3739026.823566615
+            },
+            {
+              "year": 17,
+              "p10": 725010.165168541,
+              "p50": 1418576.0641506372,
+              "p90": 4058424.1267470447
+            },
+            {
+              "year": 18,
+              "p10": 664869.9524514617,
+              "p50": 1485206.4612898831,
+              "p90": 3724414.129607576
+            },
+            {
+              "year": 19,
+              "p10": 650506.7716038437,
+              "p50": 1503140.0620883566,
+              "p90": 3570234.1172479982
+            },
+            {
+              "year": 20,
+              "p10": 577895.3029547933,
+              "p50": 1496850.7545380373,
+              "p90": 3889453.173884184
+            },
+            {
+              "year": 21,
+              "p10": 500548.3670925441,
+              "p50": 1533521.277960281,
+              "p90": 4160150.3382717054
+            },
+            {
+              "year": 22,
+              "p10": 427946.8837575413,
+              "p50": 1455108.3700917633,
+              "p90": 4668934.185563338
+            },
+            {
+              "year": 23,
+              "p10": 398152.57372325554,
+              "p50": 1576508.0556473958,
+              "p90": 4804084.8153258525
+            },
+            {
+              "year": 24,
+              "p10": 288704.9748910138,
+              "p50": 1495927.6464226195,
+              "p90": 4986423.812752082
+            },
+            {
+              "year": 25,
+              "p10": 282257.9641459038,
+              "p50": 1451002.9048653718,
+              "p90": 4380135.8311623745
+            },
+            {
+              "year": 26,
+              "p10": 256248.6057971521,
+              "p50": 1418653.8847339684,
+              "p90": 4257622.793338753
+            },
+            {
+              "year": 27,
+              "p10": 204738.89116829124,
+              "p50": 1534522.5271888347,
+              "p90": 4662233.263803721
+            },
+            {
+              "year": 28,
+              "p10": 177145.67397675497,
+              "p50": 1418812.4312879299,
+              "p90": 5059002.825873167
+            },
+            {
+              "year": 29,
+              "p10": 127269.100438253,
+              "p50": 1438366.8375224888,
+              "p90": 5172122.780785841
+            },
+            {
+              "year": 30,
+              "p10": 107929.67823980055,
+              "p50": 1402188.5242251065,
+              "p90": 5647159.232966354
+            },
+            {
+              "year": 31,
+              "p10": 106620.79864293481,
+              "p50": 1329766.8958561893,
+              "p90": 5912316.445095079
+            },
+            {
+              "year": 32,
+              "p10": 117419.93379993727,
+              "p50": 1358865.917000491,
+              "p90": 6034935.214266341
+            }
+          ],
+          "sampleFutures": 80,
+          "byStrategy": true,
+          "pooled": {
+            "success": 0.85,
+            "coveredByA": 0,
+            "coveredByB": 8,
+            "fromAgeMedian": 95,
+            "fromAgeEarliest": 95
+          }
+        },
+        "rA": {
+          "affordable": true,
+          "name": "Pots & Valves",
+          "ruin": {
+            "hist": 11.700680272108844,
+            "mc": 15.8
+          },
+          "terminal": {
+            "p10": 0,
+            "p50": 732552.858873843,
+            "p90": 4562935.92174833,
+            "histMedian": 726349.2823366048
+          },
+          "n": {
+            "hist": 735,
+            "mc": 1000
+          },
+          "cones": {
+            "wealth": {
+              "p10": [
+                1422000,
+                1229131.0817327881,
+                1140527.5480934603,
+                1095092.5778121778,
+                1014173.9690494821,
+                963040.7622913033,
+                922176.8489479613,
+                899373.0810149127,
+                841166.935462526,
+                815121.5479963549,
+                799406.3340357607,
+                744844.8458019189,
+                705472.960423706,
+                680276.840481202,
+                631651.0440232847,
+                606843.9497084747,
+                580147.15540528,
+                521448.24019007204,
+                491673.1179613311,
+                449865.94321235426,
+                412729.08210423175,
+                365578.2294914598,
+                317090.9731941245,
+                273249.7032693525,
+                227162.3380721957,
+                183367.53425301804,
+                143201.66875224723,
+                95244.42865868121,
+                51521.37320694296,
+                3074.576630572836,
+                0
+              ],
+              "p50": [
+                1422000,
+                1415786.336610529,
+                1413627.9604883497,
+                1413554.5568239244,
+                1402599.859487462,
+                1382466.662895813,
+                1367271.3901008323,
+                1355729.4398829858,
+                1328441.2603773032,
+                1312637.637286569,
+                1309688.5301578154,
+                1288731.990487309,
+                1258238.8060202638,
+                1243877.0958816672,
+                1218018.7200664713,
+                1182237.8914189383,
+                1162442.493148292,
+                1147464.6970649587,
+                1132609.4836036565,
+                1096365.3903381985,
+                1041136.154046525,
+                1022589.8923432195,
+                1002869.2901346509,
+                975080.2970129508,
+                944250.2894384933,
+                933499.4598034739,
+                876018.2253940619,
+                852836.4357559414,
+                796014.2620646855,
+                760408.0636235628,
+                749645.158501639
+              ]
+            }
+          }
+        },
+        "rB": {
+          "affordable": true,
+          "name": "Pots & Valves",
+          "ruin": {
+            "hist": 0,
+            "mc": 1
+          },
+          "terminal": {
+            "p10": 85118.91541310665,
+            "p50": 359499.9126505922,
+            "p90": 1388155.864865495,
+            "histMedian": 323408.77394589403
+          },
+          "n": {
+            "hist": 723,
+            "mc": 1000
+          },
+          "cones": {
+            "wealth": {
+              "p10": [
+                288497,
+                241782.46250752054,
+                219153.30505833478,
+                205397.925687401,
+                184818.41558218372,
+                169860.99771577935,
+                161701.8276535961,
+                161336.16643565972,
+                152914.54571436986,
+                154971.121238583,
+                154695.8376480658,
+                148308.66048759676,
+                146709.67360934863,
+                145423.59601288565,
+                143232.89656677964,
+                144095.57651612035,
+                143131.29595393495,
+                137636.66962222464,
+                137001.86082631646,
+                134361.87545721213,
+                130460.7141713022,
+                126642.91244094641,
+                120690.6050055528,
+                117112.39130921688,
+                114853.52430270716,
+                110122.51919694805,
+                110637.90099131837,
+                105720.09917340039,
+                103553.59056762706,
+                100232.18994591154,
+                96605.37761126675,
+                89874.91915781813,
+                87610.28113561409
+              ],
+              "p50": [
+                288497,
+                282881.747463679,
+                277701.014750362,
+                272183.8391754606,
+                264586.1593462706,
+                256442.78348675655,
+                249250.2158032463,
+                253716.7042466672,
+                256311.37053624162,
+                257880.60053408387,
+                262932.66695101565,
+                265212.55221088935,
+                267314.0586800223,
+                270387.5472037283,
+                270708.8009744298,
+                271725.6494465057,
+                274561.2078215991,
+                281747.17139954277,
+                287423.0702208429,
+                289558.9661476363,
+                290304.5896864435,
+                294362.61666820233,
+                299718.47696855734,
+                303086.5988005012,
+                310408.1346370036,
+                320953.31006907386,
+                331053.49932518514,
+                329046.86545074463,
+                332169.77322837163,
+                337150.37283786695,
+                347253.3062793244,
+                350448.4414238204,
+                361662.20502001897
+              ]
+            }
+          }
+        }
+      },
+      "together": {
+        "combined": {
+          "runs": 1000,
+          "jointSuccess": 0.159,
+          "successA": 0.986,
+          "successB": 0.159,
+          "independenceAssumed": 0.156774,
+          "potFan": [
+            {
+              "year": 0,
+              "p10": 1710497,
+              "p50": 1710497,
+              "p90": 1710497
+            },
+            {
+              "year": 1,
+              "p10": 1446094.6456286092,
+              "p50": 1715942.7910319045,
+              "p90": 1947460.7898115776
+            },
+            {
+              "year": 2,
+              "p10": 1300904.910781453,
+              "p50": 1700382.4860208698,
+              "p90": 2004062.8858811222
+            },
+            {
+              "year": 3,
+              "p10": 1296147.958974581,
+              "p50": 1688282.943876148,
+              "p90": 2002478.156508334
+            },
+            {
+              "year": 4,
+              "p10": 1213152.665962391,
+              "p50": 1668295.856974067,
+              "p90": 2139359.326020906
+            },
+            {
+              "year": 5,
+              "p10": 1126899.5226996592,
+              "p50": 1629072.2511294135,
+              "p90": 2304187.7744793743
+            },
+            {
+              "year": 6,
+              "p10": 1060521.0620978547,
+              "p50": 1594835.370718931,
+              "p90": 2479855.631867917
+            },
+            {
+              "year": 7,
+              "p10": 1096957.1184206042,
+              "p50": 1657549.1927008093,
+              "p90": 2438913.195666795
+            },
+            {
+              "year": 8,
+              "p10": 1066851.0769583764,
+              "p50": 1607630.638653426,
+              "p90": 2589360.4497786937
+            },
+            {
+              "year": 9,
+              "p10": 1019762.6214421199,
+              "p50": 1665721.345537771,
+              "p90": 3027898.7298792866
+            },
+            {
+              "year": 10,
+              "p10": 1000645.3981342723,
+              "p50": 1665573.4933193917,
+              "p90": 3085551.8703287016
+            },
+            {
+              "year": 11,
+              "p10": 946561.282883977,
+              "p50": 1600004.3179241833,
+              "p90": 3294276.444100361
+            },
+            {
+              "year": 12,
+              "p10": 899909.9898778591,
+              "p50": 1581831.559165588,
+              "p90": 3412320.606015576
+            },
+            {
+              "year": 13,
+              "p10": 888948.8238423042,
+              "p50": 1603420.142909456,
+              "p90": 3306671.963299914
+            },
+            {
+              "year": 14,
+              "p10": 818635.9405101816,
+              "p50": 1598580.8879672952,
+              "p90": 3274652.5477615017
+            },
+            {
+              "year": 15,
+              "p10": 843106.7221319329,
+              "p50": 1560247.2272476691,
+              "p90": 3794648.63969707
+            },
+            {
+              "year": 16,
+              "p10": 816855.1110798933,
+              "p50": 1584839.4364122546,
+              "p90": 3845959.2846871885
+            },
+            {
+              "year": 17,
+              "p10": 776456.4355299161,
+              "p50": 1526619.724268894,
+              "p90": 4081044.25779265
+            },
+            {
+              "year": 18,
+              "p10": 739606.7149734199,
+              "p50": 1620837.5912492853,
+              "p90": 3762584.303216908
+            },
+            {
+              "year": 19,
+              "p10": 733878.844642287,
+              "p50": 1697122.3372754918,
+              "p90": 3710424.4848163673
+            },
+            {
+              "year": 20,
+              "p10": 706321.4070904804,
+              "p50": 1668403.984899776,
+              "p90": 3926679.783987349
+            },
+            {
+              "year": 21,
+              "p10": 605470.753538859,
+              "p50": 1747922.9521294697,
+              "p90": 4142376.625564242
+            },
+            {
+              "year": 22,
+              "p10": 567591.1382664343,
+              "p50": 1672071.3742297762,
+              "p90": 4880895.199325571
+            },
+            {
+              "year": 23,
+              "p10": 542019.0408114106,
+              "p50": 1875627.571392996,
+              "p90": 4852831.352425008
+            },
+            {
+              "year": 24,
+              "p10": 473644.2964819813,
+              "p50": 1876654.9567369777,
+              "p90": 5167989.714776124
+            },
+            {
+              "year": 25,
+              "p10": 480519.2097232452,
+              "p50": 1910391.2273404885,
+              "p90": 4758555.165033654
+            },
+            {
+              "year": 26,
+              "p10": 481860.2760291653,
+              "p50": 1929038.6370345212,
+              "p90": 4970847.504198731
+            },
+            {
+              "year": 27,
+              "p10": 440238.1961139422,
+              "p50": 1875388.0412300641,
+              "p90": 5015446.031349291
+            },
+            {
+              "year": 28,
+              "p10": 398173.52401339816,
+              "p50": 1750675.862615272,
+              "p90": 5378889.197637923
+            },
+            {
+              "year": 29,
+              "p10": 363954.5206819184,
+              "p50": 1758414.433892097,
+              "p90": 5754536.373121326
+            },
+            {
+              "year": 30,
+              "p10": 375518.3563551148,
+              "p50": 1881904.852478117,
+              "p90": 6042753.044797081
+            },
+            {
+              "year": 31,
+              "p10": 375518.3563551148,
+              "p50": 1881904.852478117,
+              "p90": 6073764.785283363
+            },
+            {
+              "year": 32,
+              "p10": 375518.3563551148,
+              "p50": 1881904.852478117,
+              "p90": 6127987.852759761
+            }
+          ],
+          "sampleFutures": 80,
+          "byStrategy": true,
+          "pooled": {
+            "success": 0.876,
+            "coveredByA": 717,
+            "coveredByB": 0,
+            "fromAgeMedian": 81,
+            "fromAgeEarliest": 70
+          }
+        },
+        "rA": {
+          "affordable": true,
+          "name": "Pots & Valves",
+          "ruin": {
+            "hist": 0,
+            "mc": 1.4
+          },
+          "terminal": {
+            "p10": 306335.1565945705,
+            "p50": 1604748.1157170432,
+            "p90": 6265204.489178608,
+            "histMedian": 1535088.9678215045
+          },
+          "n": {
+            "hist": 735,
+            "mc": 1000
+          },
+          "cones": {
+            "wealth": {
+              "p10": [
+                1422000,
+                1229131.0817327881,
+                1140527.5480934603,
+                1110283.1442104317,
+                1043184.4406558368,
+                1007347.7852142652,
+                987657.0847638292,
+                976082.9993910337,
+                942364.6798782885,
+                919410.7778389683,
+                920940.3985170659,
+                871234.57426048,
+                854377.9366160206,
+                836277.7277022025,
+                802990.0819569388,
+                794223.2935426326,
+                788937.2608951904,
+                739519.4169483397,
+                715932.9213166384,
+                673397.3905745089,
+                641377.1998438672,
+                607778.7945723792,
+                571011.5416993373,
+                545779.948647681,
+                504174.7598997331,
+                470346.0520936996,
+                446521.84499161044,
+                415255.3153410139,
+                373854.3869962765,
+                339863.86997842847,
+                313298.8586578375
+              ],
+              "p50": [
+                1422000,
+                1415786.336610529,
+                1413627.9604883497,
+                1431518.3616075332,
+                1440429.6102672047,
+                1440791.2391404794,
+                1448470.1759032556,
+                1454415.871354106,
+                1457088.1894922184,
+                1459362.438993132,
+                1487274.0781632604,
+                1483498.3898652988,
+                1484221.9383489087,
+                1496006.5632502008,
+                1486763.361852566,
+                1477923.46815997,
+                1484933.1000882054,
+                1495107.7267395335,
+                1527333.8542181018,
+                1508501.625009498,
+                1504577.0164750435,
+                1494998.7016954161,
+                1528623.4016157163,
+                1530603.5787913764,
+                1544807.9227470248,
+                1594845.9439267293,
+                1601309.3978701676,
+                1566673.8813467177,
+                1565051.142823825,
+                1561811.2570434536,
+                1607757.0618965386
+              ]
+            }
+          }
+        },
+        "rB": {
+          "affordable": true,
+          "name": "Pots & Valves",
+          "ruin": {
+            "hist": 91.56293222683264,
+            "mc": 84.1
+          },
+          "terminal": {
+            "p10": 0,
+            "p50": 0,
+            "p90": 27510.33535315272,
+            "histMedian": 0
+          },
+          "n": {
+            "hist": 723,
+            "mc": 1000
+          },
+          "cones": {
+            "wealth": {
+              "p10": [
+                288497,
+                228440.08369424808,
+                193291.17172331773,
+                167279.7346051429,
+                137321.37756759376,
+                114197.22936233772,
+                89835.65698593332,
+                76393.91719383065,
+                60314.09250295299,
+                46751.61661818076,
+                30515.405972097215,
+                14272.012877472447,
+                2180.572693787669,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "p50": [
+                288497,
+                268359.2166263268,
+                250328.47902431956,
+                232678.50994437162,
+                214535.3403908718,
+                193583.4714845526,
+                174564.3998119527,
+                163001.70387603145,
+                150596.4658786691,
+                139164.20379264152,
+                127465.4895185182,
+                111687.3274931159,
+                101204.88045989853,
+                90170.82453475398,
+                77240.68406905257,
+                65271.529622296635,
+                52585.995713217126,
+                38565.81293903428,
+                26363.318019502512,
+                13239.853899057576,
+                1773.682152083627,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "fig": {
+        "ages": [
+          67,
+          75,
+          90
+        ],
+        "own": {
+          "lasts": {
+            "household": {
+              "n": 9,
+              "words": "in just under 9 futures out of 10"
+            },
+            "a": {
+              "n": 8,
+              "words": "in 8 futures out of 10"
+            },
+            "b": {
+              "n": 10,
+              "words": "in more than 9 futures out of 10"
+            },
+            "pooled": {
+              "success": 0.85,
+              "coveredByA": 0,
+              "coveredByB": 8,
+              "fromAgeMedian": 95,
+              "fromAgeEarliest": 95
+            },
+            "shareHousehold": 0.85
+          },
+          "potA": [
+            1415786.336610529,
+            1312637.637286569,
+            944250.2894384933
+          ],
+          "potB": [
+            256442.78348675655,
+            270387.5472037283,
+            332169.77322837163
+          ],
+          "left90": {
+            "p50": 1418653.8847339684,
+            "p10": 256248.6057971521
+          },
+          "smallerAtUntil": 256442.78348675655
+        },
+        "together": {
+          "lasts": {
+            "household": {
+              "n": 9,
+              "words": "in just under 9 futures out of 10"
+            },
+            "a": {
+              "n": 10,
+              "words": "in more than 9 futures out of 10"
+            },
+            "b": {
+              "n": 2,
+              "words": "in 2 futures out of 10"
+            },
+            "pooled": {
+              "success": 0.876,
+              "coveredByA": 717,
+              "coveredByB": 0,
+              "fromAgeMedian": 81,
+              "fromAgeEarliest": 70
+            },
+            "shareHousehold": 0.876
+          },
+          "potA": [
+            1415786.336610529,
+            1459362.438993132,
+            1544807.9227470248
+          ],
+          "potB": [
+            193583.4714845526,
+            90170.82453475398,
+            0
+          ],
+          "left90": {
+            "p50": 1929038.6370345212,
+            "p10": 481860.2760291653
+          },
+          "smallerAtUntil": 193583.4714845526
+        },
+        "tax": {
+          "firstYear": {
+            "own": 16518,
+            "together": 11585.5,
+            "year": 4
+          },
+          "until": {
+            "own": 146169.3333333333,
+            "together": 116574.33333333333
+          },
+          "whole": {
+            "own": 530427.3333333333,
+            "together": 408669.8333333333
+          }
+        },
+        "betterOff90": 510384.7523005528,
+        "cost": {
+          "own": 256442.78348675655,
+          "together": 193583.4714845526
+        }
+      },
+      "timeline": [
+        {
+          "year": 0,
+          "needA": 70000,
+          "needB": 0,
+          "need": 70000,
+          "spA": 0,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 0,
+          "workingA": false,
+          "workingB": true,
+          "drawNeed": 70000,
+          "bridge": true
+        },
+        {
+          "year": 1,
+          "needA": 70000,
+          "needB": 0,
+          "need": 70000,
+          "spA": 0,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 0,
+          "workingA": false,
+          "workingB": true,
+          "drawNeed": 70000,
+          "bridge": true
+        },
+        {
+          "year": 2,
+          "needA": 70000,
+          "needB": 0,
+          "need": 70000,
+          "spA": 0,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 0,
+          "workingA": false,
+          "workingB": true,
+          "drawNeed": 70000,
+          "bridge": true
+        },
+        {
+          "year": 3,
+          "needA": 70000,
+          "needB": 0,
+          "need": 70000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": true,
+          "drawNeed": 59683.2,
+          "bridge": false
+        },
+        {
+          "year": 4,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 77683.2,
+          "bridge": true
+        },
+        {
+          "year": 5,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 77683.2,
+          "bridge": true
+        },
+        {
+          "year": 6,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 77683.2,
+          "bridge": true
+        },
+        {
+          "year": 7,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 77683.2,
+          "bridge": true
+        },
+        {
+          "year": 8,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 0,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 10316.800000000001,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 77683.2,
+          "bridge": true
+        },
+        {
+          "year": 9,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 10,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 11,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 12,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 13,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 14,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 15,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 16,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 17,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 18,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 19,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 20,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 21,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 22,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 23,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 24,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 25,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 26,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 27,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 28,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 29,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 30,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 31,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 32,
+          "needA": 70000,
+          "needB": 18000,
+          "need": 88000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 65710.2,
+          "bridge": false
+        },
+        {
+          "year": 33,
+          "needA": 0,
+          "needB": 18000,
+          "need": 18000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 0,
+          "bridge": false
+        },
+        {
+          "year": 34,
+          "needA": 0,
+          "needB": 18000,
+          "need": 18000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 0,
+          "bridge": false
+        },
+        {
+          "year": 35,
+          "needA": 0,
+          "needB": 18000,
+          "need": 18000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 0,
+          "bridge": false
+        },
+        {
+          "year": 36,
+          "needA": 0,
+          "needB": 18000,
+          "need": 18000,
+          "spA": 10316.800000000001,
+          "spB": 11973,
+          "db": 0,
+          "other": 0,
+          "guaranteed": 22289.800000000003,
+          "workingA": false,
+          "workingB": false,
+          "drawNeed": 0,
+          "bridge": false
+        }
+      ],
+      "basis": {
+        "today": "2026-09-30",
+        "engine": "one-test",
+        "runs": 4
+      }
+    },
+    "progress": null,
+    "ms": 1400,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null
+  }
+}

@@ -133,8 +133,23 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     lasts:   emptyLasts(),                           // "Does it last?": the one test's result for ONE plan, page memory only (editing-in-v7.md 10)
     ways:    emptyWays(),                            // "How the money is taken": the nine ways on ONE plan, page memory only (way-and-mix.md 2)
     mix:     emptyMix(),                             // "The mix": the tries and the comparison on ONE plan, page memory only (way-and-mix.md 3)
+    household: emptyHousehold(),                     // "Your household": the pooled run, the survivor and care questions on ONE pair, page memory only (road-to-7.md step 9)
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
+}
+
+/**
+ * Nothing of "Your household" held (road-to-7.md step 9): `key` is household.js pairKeyOf of the two plans a result is for;
+ * `limit` the split's limit the run was asked with (null: none); `survivor` and `care` each { status: 'working' | 'done' |
+ * 'failed', boxes, result, ms, reason } or null; `pick` the confirm shown ('split' | 'link' | 'unlink' | 'share' | 'separate') or null.
+ */
+export const emptyHousehold = () => ({ key: null, status: 'idle', limit: null, reason: null, result: null, progress: null, ms: null, survivor: null, care: null, pick: null });
+export const HH_PICKS = Object.freeze(['split', 'link', 'unlink', 'share', 'separate']);
+const HH_STATUS = ['working', 'done', 'failed'];
+/** A survivor's or care's entry, cleaned (state/replace may draw one). */
+export function cleanHouseholdTry(x) {
+  if (!x || typeof x !== 'object' || !HH_STATUS.includes(x.status) || !x.boxes || typeof x.boxes !== 'object') return null;
+  return { status: x.status, boxes: x.boxes, result: x.status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, ms: Number.isFinite(x.ms) ? x.ms : null, reason: x.status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
 }
 
 /**

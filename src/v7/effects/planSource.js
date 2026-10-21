@@ -52,6 +52,7 @@ import { potsOf } from '../../answers/plan/pots.js';
 import { lastsOf, verdictOf, leverViews, tryViews, runKeyOf } from '../../answers/plan/lasts.js';
 import { wayOf, cardsOf } from '../../answers/plan/way.js';
 import { mixOf } from '../../answers/plan/mix.js';
+import { householdOf } from '../../answers/plan/household.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -96,6 +97,12 @@ export function viewFor(state) {
     if (r.step === 'way') {
       const reading = wayOf(plans.list, r.planId, { today });
       page.way = { ...reading, ...cardsOf(reading, state.ways) };
+    }
+    // "Your household" (road-to-7.md step 9): the partner, the other plans here, the boxes, the runs held in page memory (state.household), the writes
+    if (r.step === 'household') {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.household = { ...householdOf(plans.list, r.planId, { today, typed, H: state.household, source: plans.source }), draftKey: JSON.stringify(typed) };
     }
     if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
@@ -216,7 +223,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

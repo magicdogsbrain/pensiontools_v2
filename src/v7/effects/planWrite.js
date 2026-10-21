@@ -47,6 +47,21 @@
  *     'way' (the Undo toast; the reducer clears "Does it last?"'s result, which was the old way's) and the plans read again.
  *     Undo is an editing step's undo: the previous values back, byte-identical; a locked plan refused.
  *
+ * "Your household" (research/v7/road-to-7.md step 9), the same one write, four more kinds and the step's own save:
+ *   - `plan/linkPartner` (kind 'link'): answers/plan/household.js linkPatch — the partner link as the planner's
+ *     setHouseholdPartnerId writes it, on this plan only (null unlinks); past the guard (the link is outside the lock, as the
+ *     planner's own rule has it: LockedPlanGuard.js); then plan/saved with op 'link' and Undo.
+ *   - `plan/useSplit` (kind 'split'): household.js splitPatches — on two unlocked plans, ONE write per plan of exactly the
+ *     five keys the split's income shape changes (HouseholdSplitApply.settingsWithSchedule), each past the guard, the
+ *     partner's previous values riding on the toast (`others`) so Undo puts both back; when either plan is locked, a copy
+ *     of each with those settings through the ONE create (`add`), the copies linked to each other, never locked — the
+ *     planner's rule: a locked plan is never changed (applySplit's copies).
+ *   - `plan/keepAsIs` (kind 'dismiss'): household.js dismissPatch — "Keep things as they are" / "Show it again", on this plan.
+ *   - `plan/shareBudget` (kind 'budgetShare'): household.js shareBudgetPatches — "Share this plan's budget" / "Keep a separate
+ *     budget": the write on the PARTNER's plan, as ScenarioRepository.shareBudgetWith / stopSharingBudget write it.
+ *   - `plan/save` on the household step: household.js whoPaysPatches — the budget's who-pays, written where the lines live
+ *     (this plan, or the household's plan when the budget is shared), as the planner's Budget page saves it.
+ *
  * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
  * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
  *   - the seed is built from the answer on screen (answers/keep/planSeed.js buildPlanSeed), the plan documents from it
@@ -92,6 +107,7 @@ import { lastsPatch, tryPatch, tryCopyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
 import { wayPatch } from '../../answers/plan/way.js';
 import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
+import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
 import { uniqueName } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
@@ -219,6 +235,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const got = await placed(planId);
     if (!got) return;
     const { place, plan, state } = got;
+    if (state.route && state.route.screen === 'plan' && state.route.step === 'household') { await saveWhoPays(planId, place, plan, state); return; }
     const { step, patchOf } = stepOf(state);
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     const typed = pd ? pd.values : {};
@@ -425,11 +442,22 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     dispatch({ type: A.PLANS_READING });
   }
 
-  async function undo(planId, previous, op = null, lockedAt = null) {
+  async function undo(planId, previous, op = null, lockedAt = null, others = []) {
     const state = store.getState();
     const place = placeOf(state, planId);
     if (place.problem) { fail(planId, place.problem); return; }
     const plan = place.entry.plan;
+    // a write that touched the partner's plan too (road-to-7.md step 9): its previous values go back first, each past the guard
+    for (const o of Array.isArray(others) ? others : []) {
+      const op2 = placeOf(state, o.planId);
+      if (op2.problem) { fail(planId, op2.problem); return; }
+      const back2 = {};
+      for (const [k, v] of Object.entries(o.previous || {})) back2[k] = v === undefined && op2.kind === 'account' ? null : v;
+      if (!('lastModified' in back2) || back2.lastModified == null) back2.lastModified = now().toISOString();
+      const data2 = declaredOnly(back2);
+      if (lockedRefusal(op2.entry.plan, Object.fromEntries(Object.entries(data2).map(([k, v]) => [k, v === undefined ? null : v])))) { fail(planId, 'locked'); return; }
+      if (!(await send(op2, o.planId, data2))) return;
+    }
     // the previous values back: a key the plan did not have goes back as null on an account, and is deleted in the window's text
     const back = {};
     for (const [k, v] of Object.entries(previous || {})) back[k] = v === undefined && place.kind === 'account' ? null : v;
@@ -442,6 +470,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'unlock' || op === 'document') {
       // the reverse of an unlock goes to an unlocked plan; of a new version, to a locked plan whose settings it leaves alone
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays') {
+      // the household's writes (road-to-7.md step 9) go where the planner's go: the guard alone decides
+      if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
     } else {
       // an editing step's undo: a locked plan is refused outright, as its save is
       if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings) || lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
@@ -450,6 +481,167 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     dispatch({ type: A.PLAN_UNDO_DONE, planId });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  // ---- "Your household" (road-to-7.md step 9): the link, the split, "Keep things as they are", the budget shared, who pays ----
+
+  /** The partner's plan as read, from the list the page holds; null when none is linked (told as 'noPartner'). */
+  function partnerIn(state, plan) {
+    const e = partnerOf(state.plans.list, plan);
+    return e ? e.plan : null;
+  }
+
+  /** ONE write per plan of exactly the declared paths plus the stamp, each past the guard; the first plan's toast carries the others' previous values. */
+  async function sendAll(place, planId, writes, { line, op }) {
+    const at = now();
+    const plan = place.entry.plan;
+    const state = store.getState();
+    const stamped = [];
+    for (const w of writes) {
+      if (!Object.keys(w.patch).length) continue;
+      const pl = String(w.planId) === String(planId) ? place : placeOf(state, w.planId);
+      if (pl.problem) { fail(planId, pl.problem); return false; }
+      const data = declaredOnly({ ...w.patch, lastModified: at.toISOString() });
+      if (lockedRefusal(pl.entry.plan, data)) { fail(planId, 'locked'); return false; }
+      stamped.push({ place: pl, planId: String(w.planId), data, previous: { ...w.previous, lastModified: pl.entry.plan.lastModified } });
+    }
+    if (!stamped.length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line, op }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return true; }
+    for (const w of stamped) if (!(await send(w.place, w.planId, w.data))) return false;
+    const mine = stamped.find((w) => w.planId === String(planId));
+    const others = stamped.filter((w) => w.planId !== String(planId)).map((w) => ({ planId: w.planId, previous: w.previous }));
+    dispatch({ type: A.PLAN_SAVED, planId, previous: mine ? mine.previous : { lastModified: plan.lastModified }, line, op, others });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+    return true;
+  }
+
+  /** The partner link (the planner's setHouseholdPartnerId): this plan only; the partner named must be in the same store. */
+  async function link(planId, partnerId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    if (partnerId && !state.plans.list.some((e) => e && e.plan && String(e.plan.id) === String(partnerId))) { fail(planId, 'notHere'); return; }
+    const p = linkPatch(plan, partnerId);
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    await sendAll(place, planId, [{ planId: String(planId), patch: p.patch, previous: p.previous }], { line: p.line, op: 'link' });
+  }
+
+  /** "Keep things as they are" / "Show it again" (the planner's setHouseholdSplitDismissed): this plan, for this partner and this state of both. */
+  async function dismiss(planId, keep) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const partner = partnerIn(state, plan);
+    const H = state.household || {};
+    const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.household : null;
+    if (!partner || !page || !page.found) { fail(planId, 'noPartner'); return; }
+    const fingerprint = keep ? (H.key === page.runKey && H.status === 'done' && H.result && H.result.split ? H.result.split.fingerprint : null) : (page.split && page.split.fingerprint) || null;
+    if (keep && !fingerprint) { fail(planId, 'noRun'); return; }
+    const p = dismissPatch(plan, partner.id, fingerprint || '', { at: now().toISOString() }, keep);
+    await sendAll(place, planId, [{ planId: String(planId), patch: p.patch, previous: p.previous }], { line: p.line, op: 'dismiss' });
+  }
+
+  /** "Share this plan's budget" / "Keep a separate budget" (the planner's shareBudgetWith / stopSharingBudget): the write on the partner's plan. */
+  async function shareBudget(planId, share) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const partner = partnerIn(state, plan);
+    if (!partner) { fail(planId, 'noPartner'); return; }
+    // "Keep a separate budget" on THIS plan's own reading (it points at the partner's): the write is on this plan instead
+    const readsTheirs = plan.budgetTool && plan.budgetTool.sharedFrom === String(partner.id);
+    const p = !share && readsTheirs ? shareBudgetPatches(partner, plan, false, { source: partner }) : shareBudgetPatches(plan, partner, share, { source: plan });
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    await sendAll(place, planId, p.writes, { line: p.line, op: 'budgetShare' });
+  }
+
+  /** The budget's who-pays (the planner's saveBudget): the step's own save, written where the lines live. */
+  async function saveWhoPays(planId, place, plan, state) {
+    const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
+    const p = whoPaysPatches(plan, state.plans.list, pd ? pd.values : {}, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    await sendAll(place, planId, p.writes, { line: p.line, op: null });
+  }
+
+  /**
+   * "Use this split" (the planner's applySplit): on two unlocked plans one write each of the split's income shape; when
+   * either is locked, a copy of each through the ONE create, linked to each other, never locked, the originals untouched.
+   */
+  async function useSplit(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const partner = partnerIn(state, plan);
+    if (!partner) { fail(planId, 'noPartner'); return; }
+    const H = state.household || {};
+    const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.household : null;
+    if (!page || !page.found || H.key !== page.runKey || H.status !== 'done' || !H.result || !H.result.ok || !H.result.split || !H.result.split.applies) { fail(planId, 'noRun'); return; }
+    const p = splitPatches(plan, partner, H.result.split, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    if (p.mode === 'write') { await sendAll(place, planId, p.writes, { line: p.line, op: 'split' }); return; }
+    if (place.kind === 'account' && state.session.kind !== 'in') { fail(planId, 'unverified'); return; }
+    const plans = state.plans.list.map((e) => e.plan);
+    if (place.kind === 'window' && guestOwnPlans(plans).length + 2 > GUEST_MAX_PLANS) { fail(planId, 'full'); return; }
+    const at = now();
+    let docs;
+    try {
+      const taken = plans.map(nameOf).filter(Boolean);
+      docs = p.copies.map((c) => { const name = uniqueName(c.name, taken); taken.push(name); return { plan: copyPlanOf(c.source, c.settings, name, at), name }; });
+    } catch { fail(planId, 'failed'); return; }
+    let made;
+    if (place.kind === 'account') {
+      // the copies linked to each other: the first made without its link (its partner's id is not known yet), then the second with it, then the first's link as one write
+      let idA, idB;
+      try { idA = await add(scenariosOf(place), docs[0].plan); } catch { fail(planId, 'failed'); return; }
+      if (stopped) return;
+      try { idB = await add(scenariosOf(place), readyPlan({ ...docs[1].plan, household: { ...(docs[1].plan.household || {}), partnerScenarioId: idA } }, at)); } catch { fail(planId, 'partial'); return; }
+      if (stopped) return;
+      const link = declaredOnly({ 'household.partnerScenarioId': idB, lastModified: at.toISOString() });
+      let linked = false;
+      try { linked = await write(place, idA, link); } catch { linked = false; }
+      if (!linked) { fail(planId, 'partial'); return; }
+      made = { ids: { a: idA, b: idB } };
+    } else {
+      made = createPairInWindow(docs.map((d) => d.plan));
+      if (made.problem) { fail(planId, made.problem); return; }
+    }
+    if (stopped) return;
+    dispatch({ type: A.SPLIT_KEPT, planId, ids: made.ids, names: { a: docs[0].name, b: docs[1].name }, where: place.kind });
+    dispatch({ type: A.PLANS_READING });
+  }
+
+  /** A copy of a plan with the split's settings (step 7's rule for a copy: never locked, nothing recorded, no document, record or archive). */
+  function copyPlanOf(source, settings, name, at) {
+    const out = JSON.parse(JSON.stringify(source));
+    const { id, createdAt, lastModified, ...rest } = out; void id; void createdAt; void lastModified;
+    rest.stressTool = { ...(rest.stressTool || {}), settings };
+    rest.planDetails = { ...(rest.planDetails || {}), name };
+    rest.isActive = false;
+    if (rest.decisionTool) {
+      rest.decisionTool = { ...rest.decisionTool, settings: { ...(rest.decisionTool.settings || {}), locked: false }, history: [], taxYears: {} };
+      delete rest.decisionTool.settings.lockedAt; delete rest.decisionTool.settings.lockedBy; delete rest.decisionTool.settings.unlockedAt; delete rest.decisionTool.settings.unlockCount;
+      delete rest.decisionTool.planOfRecord; delete rest.decisionTool.planOfRecordArchive;
+    }
+    delete rest.planDocument; delete rest.planDocumentArchive; delete rest.journey;
+    delete rest.household;
+    const stamp = at.toISOString();
+    return readyPlan({ ...rest, createdAt: stamp, lastModified: stamp }, at);
+  }
+
+  /** This window: TWO plans appended to pt_guest_scenarios with guest ids, linked to each other, written back as one setItem; every other plan byte-identical. */
+  function createPairInWindow(pair) {
+    if (!session) return { problem: 'storage' };
+    let text = null;
+    try { text = session.getItem(GUEST_PLANS_KEY); } catch { return { problem: 'storage' }; }
+    let stored = [];
+    if (text) { try { stored = JSON.parse(text); } catch { return { problem: 'storage' }; } }
+    if (!Array.isArray(stored)) return { problem: 'storage' };
+    const taken = new Set(stored.map((p) => (p && p.id != null ? String(p.id) : '')));
+    const idA = guestPlanId(rand, taken); taken.add(idA);
+    const idB = guestPlanId(rand, taken);
+    const out = JSON.stringify([...stored, { ...pair[0], household: { partnerScenarioId: idB }, id: idA }, { ...pair[1], household: { partnerScenarioId: idA }, id: idB }]);
+    try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) return { problem: 'storage' }; } catch { return { problem: 'storage' }; }
+    return { ids: { a: idA, b: idB } };
   }
 
   // ---- "Keep this as a plan" (road-to-7.md step 7): a NEW plan, in the account or in this window -----------------------
@@ -612,7 +804,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!s) return;
     const run = (fn) => { busy = true; fn().catch(() => fail(s.planId, 'failed')).finally(() => { busy = false; }); };
     if (action.type === A.PLAN_SAVE && s.kind === 'save') run(() => save(s.planId));
-    else if (action.type === A.PLAN_UNDO && s.kind === 'undo') run(() => undo(s.planId, s.previous, s.op || null, s.lockedAt || null));
+    else if (action.type === A.PLAN_UNDO && s.kind === 'undo') run(() => undo(s.planId, s.previous, s.op || null, s.lockedAt || null, s.others || []));
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));
     else if (action.type === A.PLAN_UNLOCK && s.kind === 'unlock') run(() => unlock(s.planId));
     else if (action.type === A.PLAN_DOCUMENT && s.kind === 'document') run(() => newVersion(s.planId));
@@ -620,6 +812,10 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_MIX && s.kind === 'mix') run(() => useMix(s.planId, s.cell));
     else if (action.type === A.PLAN_TRY && s.kind === 'try') run(() => useTry(s.planId));
     else if (action.type === A.TRY_KEEP && s.kind === 'tryKeep') run(() => keepCopy(s.planId));
+    else if (action.type === A.PLAN_LINK && s.kind === 'link') run(() => link(s.planId, s.partnerId));
+    else if (action.type === A.PLAN_SPLIT && s.kind === 'split') run(() => useSplit(s.planId));
+    else if (action.type === A.PLAN_DISMISS && s.kind === 'dismiss') run(() => dismiss(s.planId, s.dismiss !== false));
+    else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
   });
   return () => { stopped = true; off(); if (timer && win) win.clearTimeout(timer); };
 }

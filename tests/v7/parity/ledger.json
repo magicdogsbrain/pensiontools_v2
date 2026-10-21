@@ -146,6 +146,11 @@
       "short": "the mix and Try a change",
       "title": "Road step 8b (6.41.0): \"The mix\" in V7 — a risk level, your own split or the funds to test, the slice of gold and trend funds and the bond tent each with \"What it does in a bad case\", \"Which mix lasts best?\" with \"Use this mix\"; Try a change of your own on \"Does it last?\" with \"What's different\", \"Use this\" and \"Keep as a separate plan\"; the income picture's rows, budget mark and lump-sum marks (research/v7/way-and-mix.md 3, 4, 5)",
       "source": "research/v7/road-to-7.md step 8; way-and-mix.md 3, 4, 5, 6, 7"
+    },
+    "s9-household": {
+      "short": "your household",
+      "title": "Road step 9 (6.42.0): \"Your household\" in V7 — the partner's plan linked either way, the pooled verdict first and each plan alone, \"Who draws what\" with \"Use this split\" (copies when a plan is locked), the survivor and care questions in ages, one budget for the household with \"Keeping money separate?\", and the budget's who-pays (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10)",
+      "source": "research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10"
     }
   },
   "keyNotes": {
@@ -636,10 +641,16 @@
         "budget.oneOffs[].paidBy",
         "budget.oneOffs[].mySharePct"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7's budget is the household's (budget-step.md)."
+      "status": "built",
+      "step": "s9-household",
+      "note": "Built as \"Who pays what\" on \"Your household\": the sharing flag and the budget-wide share, each line's and one-off's Me / Partner / Shared and its own share, written where the lines live (this plan, or the household's plan when the budget is shared) with the totals recomputed as the planner's Budget page saves them (household.js whoPaysPatches).",
+      "files": [
+        "src/answers/plan/household.js",
+        "src/answers/plan/householdRun.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx",
+        "src/v7/copy/household.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "budget.split-over-time",
@@ -3295,11 +3306,13 @@
       ],
       "status": "built",
       "files": [
+        "src/answers/plan/household.js",
         "src/answers/shared/household.js",
-        "src/services/PlanSeed.js"
+        "src/services/PlanSeed.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx"
       ],
       "step": "done",
-      "note": "Better: a couple's figures on the first screen; saving makes the two linked plans."
+      "note": "Better: a couple's figures on the first screen; saving makes the two linked plans. Since 6.42.0 a saved plan links or unlinks a partner's plan on \"Your household\" (household.partnerScenarioId on this plan, as the planner writes it; read either way); a plan in the other store cannot be linked and the step says so."
     },
     {
       "id": "couple.draw-split",
@@ -3312,10 +3325,16 @@
       "keys": [
         "household.splitDismissed"
       ],
-      "status": "designed",
-      "doc": "research/household-draw-split.md §6 (the couples answers use the same rule, the same two-column comparison, and carry the choice into a saved plan)",
-      "step": "done",
-      "note": "Built first in today's Household tab (6.25.0; usability audit §5 decision 5, option (a)). One rule in src/services so V7 shares it."
+      "status": "built",
+      "step": "s9-household",
+      "note": "Built as \"Who draws what\" on \"Your household\": the headline, the why, the cost and the two-column table in exact pounds, the limit on the smaller pot, \"Use this split\" as one write per unlocked plan of the five keys the income shape changes (copies through the one create when a plan is locked, linked to each other), \"Keep things as they are\" remembered for that pair until either plan changes; household.js splitPatches lifts applySplit's pure part (HouseholdSplitApply.splitWrites, splitCopyNames). Gate: tests/v7/plan/householdIdentity.test.js (the split and the writes equal the planner's to the pound).",
+      "files": [
+        "src/answers/plan/household.js",
+        "src/answers/plan/householdRun.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx",
+        "src/v7/copy/household.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "couple.one-budget",
@@ -3328,10 +3347,16 @@
       "keys": [
         "plan.budgetTool.sharedFrom"
       ],
-      "status": "designed",
-      "doc": "research/v7/v6-usability-audit.md §2.10 and §5 decision 5 (\"one budget, with 'Keeping money separate?' as an option\")",
-      "step": "done",
-      "note": "Built first in today's planner (6.25.0). A pointer field on the partner's plan; nothing changes in the shape of a budget."
+      "status": "built",
+      "step": "s9-household",
+      "note": "Built as \"One budget for the household\" on \"Your household\", with \"Keeping money separate?\" as the question: \"Share this plan's budget\" / \"Keep a separate budget\", the write on the partner's plan as the planner's shareBudgetWith / stopSharingBudget write it (PlanCommit.shareBudgetWrite, stopSharingWrite, lifted pure), with Undo.",
+      "files": [
+        "src/answers/plan/household.js",
+        "src/answers/plan/householdRun.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx",
+        "src/v7/copy/household.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "couple.joint",
@@ -3344,11 +3369,13 @@
       "keys": [],
       "status": "built",
       "files": [
+        "src/answers/plan/householdRun.js",
         "src/answers/shared/household.js",
-        "src/answers/shared/toEngine.js"
+        "src/answers/shared/toEngine.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx"
       ],
       "step": "done",
-      "note": "Every V7 answer is the household's; 6.20.0 adds couples who stop in different years."
+      "note": "Every V7 answer is the household's; 6.20.0 adds couples who stop in different years. Since 6.42.0 the two saved plans are checked together on \"Your household\" (#/plan/<id>/household): both through the one test each way, paired and pooled by the planner's combineHouseholdStrategies — the pooled verdict first, each plan alone second, the years and what is left combined (householdRun.js runHousehold). Gate: tests/v7/plan/householdIdentity.test.js."
     },
     {
       "id": "couple.survivor",
@@ -3359,9 +3386,16 @@
       "whereV6": "HouseholdService.js:163-237",
       "who": "Couples",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Gets a station at the switch (square-one-audit.md §5 item 9); \"today's planner keeps them\" until then (answer-D.md §8)."
+      "status": "built",
+      "step": "s9-household",
+      "note": "Built as \"If one of you dies first\" on \"Your household\" (#/plan/<id>/household): who, at what age (the planner's \"years from now\" said as an age), the share of the joint spending, the final-salary pension paid on; each plan through its own way of drawing (HouseholdService.runSurvivorCheck, the planner's own), try-only, the result kept and dated. Gate: tests/v7/plan/householdIdentity.test.js.",
+      "files": [
+        "src/answers/plan/household.js",
+        "src/answers/plan/householdRun.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx",
+        "src/v7/copy/household.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "couple.care",
@@ -3372,9 +3406,16 @@
       "whereV6": "HouseholdService.js:163-237",
       "who": "Couples",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Gets a station at the switch (square-one-audit.md §5 item 9)."
+      "status": "built",
+      "step": "s9-household",
+      "note": "Built as \"If one of you needs care\" on \"Your household\": who, from what age, for how many years, the cost a year after tax; the household with care and without, pooled (HouseholdService.runCareCheck, the planner's own), try-only, the result kept and dated. Gate: tests/v7/plan/householdIdentity.test.js.",
+      "files": [
+        "src/answers/plan/household.js",
+        "src/answers/plan/householdRun.js",
+        "src/v7/screens/plan/HouseholdScreen.jsx",
+        "src/v7/copy/household.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "acct.plans",

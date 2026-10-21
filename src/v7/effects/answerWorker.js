@@ -20,6 +20,11 @@
  *   { id, type: 'mixTry', plan, env: { today, kind, base } }
  *   { id, type: 'mixCompare', plan, env: { today } } the same shape: the mix's sleeve or tent the other way, and the eight cells
  *                                                   (mixRun.js runMixTry, runMixCompare, loaded lazily; way-and-mix.md 3.2)
+ *   { id, type: 'household', plan, partner, env: { today, limit } }
+ *   { id, type: 'householdSurvivor', plan, partner, env: { today, boxes } }
+ *   { id, type: 'householdCare', plan, partner, env: { today, boxes } }
+ *                                                   the same shape: a couple's two plans each way, pooled; the survivor and
+ *                                                   the care questions (householdRun.js, loaded lazily; road-to-7.md step 9)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -56,8 +61,10 @@ const loadLasts = () => import('../../answers/plan/lastsRun.js');
 const loadWays = () => import('../../answers/plan/waysRun.js');
 /** "The mix" (way-and-mix.md 3.2): the sleeve's and the tent's try and the eight cells, loaded lazily the same way. */
 const loadMix = () => import('../../answers/plan/mixRun.js');
+/** "Your household" (road-to-7.md step 9): both plans each way, the survivor and the care questions, loaded lazily the same way. */
+const loadHousehold = () => import('../../answers/plan/householdRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
@@ -75,13 +82,17 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       : which === 'try' ? (tryOne || (await loadLasts()).runTry)
         : which === 'ways' ? (ways || (await loadWays()).runWays) : which === 'way' ? (way || (await loadWays()).runWay)
           : which === 'mixTry' ? (mixTry || (await loadMix()).runMixTry) : which === 'mixCompare' ? (mixCompare || (await loadMix()).runMixCompare)
-            : (lasts || (await loadLasts()).runLasts);
+            : which === 'household' ? (household || (await loadHousehold()).runHousehold) : which === 'householdSurvivor' ? (householdSurvivor || (await loadHousehold()).runSurvivor)
+              : which === 'householdCare' ? (householdCare || (await loadHousehold()).runCare)
+                : (lasts || (await loadLasts()).runLasts);
     const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress })
       : which === 'lever' ? fn(msg.plan, { today: env.today, lever: env.lever, onProgress })
         : which === 'try' ? fn(msg.plan, { today: env.today, boxes: env.boxes, onProgress })
           : which === 'way' ? fn(msg.plan, { today: env.today, id: env.way.id, dials: env.way.dials, onProgress })
             : which === 'mixTry' ? fn(msg.plan, { today: env.today, kind: env.kind, base: env.base || null, onProgress })
-              : fn(msg.plan, { today: env.today, onProgress });
+              : which === 'household' ? fn(msg.plan, msg.partner, { today: env.today, limit: env.limit || null, onProgress })
+                : which === 'householdSurvivor' || which === 'householdCare' ? fn(msg.plan, msg.partner, { today: env.today, ...(env.boxes || {}), onProgress })
+                  : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };
   const runLasts = (msg, post, id) => runLazy(msg, post, id, 'lasts');
@@ -136,6 +147,13 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       if (msg.type === 'mixCompare') {
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error('mixCompare: no plan');
         runLazy(msg, post, id, 'mixCompare').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'household' || msg.type === 'householdSurvivor' || msg.type === 'householdCare') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error(msg.type + ': no plan');
+        if (!msg.partner || typeof msg.partner !== 'object') throw new Error(msg.type + ': no partner');
+        if (msg.type !== 'household' && (!msg.env || !msg.env.boxes || typeof msg.env.boxes !== 'object')) throw new Error(msg.type + ': no boxes');
+        runLazy(msg, post, id, msg.type).catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'answer') {

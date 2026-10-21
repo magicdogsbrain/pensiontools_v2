@@ -135,7 +135,26 @@ export const A = Object.freeze({
   TRY_CLOSE:       'lasts/tryClose',   // {}                                 put the try away (the boxes stay as typed)
   PLAN_TRY:        'plan/useTry',      // { planId }                         "Use this" confirmed: saving { kind: 'try' }; ONE write of the fields that differ
   TRY_KEEP:        'lasts/tryKeep',    // { planId }                         "Keep as a separate plan": saving { kind: 'tryKeep' }; the one write file makes the copy
-  TRY_KEPT:        'lasts/tryKept'     // { planId, id, name, where }        the copy is made (in the account, or this window)
+  TRY_KEPT:        'lasts/tryKept',    // { planId, id, name, where }        the copy is made (in the account, or this window)
+
+  // "Your household" (research/v7/road-to-7.md step 9): the pooled run, the survivor and care questions, the writes — page memory only
+  HH_RUN:          'household/run',       // { key, limit }                   run both plans each way on the pair of this key (the effect runs it); limit: the split's, or null
+  HH_PROGRESS:     'household/progress',  // { key, done, total }             ignored unless the key is the one under way
+  HH_DONE:         'household/done',      // { key, limit, result, ms }       the result (householdRun.js runHousehold), plain data; dropped if stale
+  HH_FAILED:       'household/failed',    // { key, limit, reason? }          the run failed ('noWorker': no worker)
+  HH_SURVIVOR:     'household/survivor',  // { key, boxes }                   the survivor question on these boxes (who, atAge, spendPct, dbPct)
+  HH_SURVIVOR_DONE: 'household/survivorDone',   // { key, boxes, result, ms }  dropped if the key or the boxes are stale
+  HH_SURVIVOR_FAILED: 'household/survivorFailed', // { key, boxes, reason? }
+  HH_CARE:         'household/care',      // { key, boxes }                   the care question on these boxes (who, fromAge, years, cost)
+  HH_CARE_DONE:    'household/careDone',  // { key, boxes, result, ms }
+  HH_CARE_FAILED:  'household/careFailed', // { key, boxes, reason? }
+  HH_CLOSE:        'household/close',     // { what: 'survivor' | 'care' }    put that result away
+  HH_PICK:         'household/pick',      // { what: 'split' | 'link' | 'unlink' | 'share' | 'separate' | null }   the confirm shown, or none
+  PLAN_LINK:       'plan/linkPartner',    // { planId, partnerId }            link (an id) or unlink (null): saving { kind: 'link', partnerId }
+  PLAN_SPLIT:      'plan/useSplit',       // { planId }                       "Use this split" confirmed: saving { kind: 'split' } (two writes, or two copies)
+  PLAN_DISMISS:    'plan/keepAsIs',       // { planId, dismiss }              "Keep things as they are" (true) / "Show it again" (false): saving { kind: 'dismiss', dismiss }
+  PLAN_BUDGET_SHARE: 'plan/shareBudget',  // { planId, share }                "Share this plan's budget" (true) / "Keep a separate budget" (false): saving { kind: 'budgetShare', share }
+  SPLIT_KEPT:      'household/splitKept'  // { planId, ids: { a, b }, names: { a, b }, where }   the copies are made (in the account, or this window)
 });
 
 /**
@@ -163,4 +182,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "How the money is taken" (way-and-mix.md 2): the confirm of "Use this way of drawing", and "More columns"
   'wayConfirm', 'waysMore',
   // "The mix" (way-and-mix.md 3): the paste box, the example list; Try a change (4): the boxes (closed until asked), the confirm of "Use this"
-  'mixPaste', 'mixExample', 'tryOpen', 'tryConfirm']);
+  'mixPaste', 'mixExample', 'tryOpen', 'tryConfirm',
+  // "Your household" (road-to-7.md step 9): the year-by-year tables, and the budget's who-pays block
+  'hhDetail', 'hhWhoPays']);

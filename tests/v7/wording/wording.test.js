@@ -29,6 +29,7 @@ import { LASTS } from '../../../src/v7/copy/lasts.js';
 import { LOCK } from '../../../src/v7/copy/lock.js';
 import { WAY } from '../../../src/v7/copy/way.js';
 import { MIX } from '../../../src/v7/copy/mix.js';
+import { HOUSEHOLD } from '../../../src/v7/copy/household.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
 import { WAY_IDS, WAY_DIALS } from '../../../src/answers/plan/schema.js';
@@ -258,6 +259,27 @@ describe('the words in src/v7/copy/', () => {
     expect(MIX.tries.lines['sleeve.withTried']).toContain('a bad case (the worst 1 in 10)');
     expect(MIX.tries.ran.one).toBe('Tried in 1 run.');
     expect(MIX.compare.ranUntimed).toBe('Tried in 8 runs.');
+  });
+  it('"Your household" (household.js): every string passes in every scope a plan page is shown in; no slot left unfilled; never the planner\'s words for the household', () => {
+    // the household step is a plan page (road-to-7.md step 9): a retired person's and a saver's plan alike; its verdict states the answer
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|withWords|withoutWords|middling|bad|bothWith|bothWithout)\}/g, 'in 9 futures out of 10')
+      .replace(/\{(name|a|b|small|big|deceased|survivor|names|wayA|wayB|way|store|where|value|line|from|to|reason|badReason)\}/g, 'Alex’s plan')
+      .replace(/\{(year|until|whole|over|allowance|band|together|own|amount|cost|total|totalGross|gross|net|inherit|heldIsa)\}/g, '£12,800')
+      .replace(/\{(untilAge|atAge|fromAge|from|earliest|ages|n|of|runs|years)\}/g, '67').replace(/\{pct\}/g, '92').replace(/\{ms\}/g, '4.6').replace(/\{s\}/g, 's')
+      .replace(/\{(better|is|held|steps)\}/g, 'better off').replace(/\{(share|shared)\}/g, 'yes');
+    const hits = [];
+    const all = strings(HOUSEHOLD).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(HOUSEHOLD)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`household.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(HOUSEHOLD)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|strategy|allocation|portfolio|DB|survivor spends|years from now|today's money|MC|p10|p50|p90|FAILED)\b/);
+    for (const [where, s] of strings(HOUSEHOLD)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    // the questions are asked in ages (2.10), the bad case said the one way, the cost of the runs where the figures are, never "about £" on a plan page
+    expect(HOUSEHOLD.fields['survivor.atAge'].label).toBe('At what age');
+    expect(HOUSEHOLD.fields['care.fromAge'].label).toBe('From what age');
+    expect(HOUSEHOLD.survivor.headline).toContain('(the worst 1 in 10)');
+    expect(HOUSEHOLD.verdict.ranUntimed).toBe('Tried in {runs} run{s}.');
+    for (const [where, s] of strings(HOUSEHOLD)) expect(s, where).not.toMatch(/about £/);
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

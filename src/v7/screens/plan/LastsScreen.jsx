@@ -308,7 +308,7 @@ function Derived({ L }) {
   );
 }
 
-function Partners({ L, onChange, readonly }) {
+function Partners({ L, readonly }) {
   if (!L.partners.length) return null;
   return (
     <section class="plan-section" data-section="partners">
@@ -316,7 +316,7 @@ function Partners({ L, onChange, readonly }) {
         <p class="note" key={p.id} data-testid="plan.lasts.partner">{fill(LASTS.partner, { name: p.name })} <a href={href.plan(p.id, 'lasts')}>{fill(LASTS.partnerLink, { name: p.name })}</a></p>
       ))}
       <p class="note">{LASTS.together}</p>
-      {!readonly && <div class="actions-row"><Button testid="plan.lasts.together" kind="quiet" onClick={() => onChange('household')}>{LASTS.togetherButton}</Button></div>}
+      {!readonly && <div class="actions-row"><LinkButton testid="plan.lasts.together" kind="quiet" href={href.plan(L.id, 'household')}>{LASTS.togetherButton}</LinkButton></div>}
     </section>
   );
 }

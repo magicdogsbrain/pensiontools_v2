@@ -313,15 +313,14 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
     expect(root.querySelector('[data-testid="plan.lasts.working"]')).toBe(null);
     expect(text).toContain('This plan is shown as it was saved and cannot be changed here. Nothing has been lost.');
   });
-  it('the household pair: each page names the other\'s plan, links to its own "Does it last?", and offers the two together in the planner', () => {
+  it('the household pair: each page names the other\'s plan, links to its own "Does it last?", and offers the two together on "Your household" inside V7 (6.42.0)', () => {
     const { ladder, saver } = household();
     const es = [entryOf(ladder), entryOf(saver)];
-    const { root, actions } = draw(lastsState(es, saver.id));
+    const { root } = draw(lastsState(es, saver.id));
     const partner = root.querySelector('[data-testid="plan.lasts.partner"]');
     expect(partner.textContent).toContain('Ladder plan’s plan is tested on Ladder plan’s plan.');
     expect(partner.querySelector('a').getAttribute('href')).toBe('#/plan/HouseLadder01/lasts');
-    root.querySelector('[data-testid="plan.lasts.together"]').click();
-    expect(actions.pop()).toEqual({ type: 'plan/change', planId: saver.id, place: 'household', back: '#/plan/' + saver.id + '/lasts' });
+    expect(root.querySelector('[data-testid="plan.lasts.together"]').getAttribute('href')).toBe('#/plan/' + saver.id + '/household');
     expect(draw(lastsState(es, ladder.id)).root.querySelector('[data-testid="plan.lasts.partner"] a').getAttribute('href')).toBe('#/plan/HouseSaver02/lasts');
   });
   it('a plan not in the account, and the window warning without an account', () => {

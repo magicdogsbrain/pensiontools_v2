@@ -81,3 +81,9 @@ the owner can overturn.
    `GiltRotation.js`, `ladderEngine.js` nor the market history).
 10. **`_made-with.json` is not rewritten** (the builder writes it only on a whole run); the hold and move render tests check the
     version and the futures it records, not its list of runs.
+11. **"Byte for byte" is read with the keys sorted.** The fixtures' records were written with their keys in alphabetical
+    order and `normaliseLine` builds a line in the planner's own field order; Firestore hands objects back in its own order
+    either way, so the gate compares the JSON of each object with its keys sorted (as the lock guard's own `text` does), and
+    the same object with a different key order is the same record.
+12. **The planner's `splitLadderAtAge` import in index.html was dropped** (it was only used by the rotation watch, now
+    `rotationBlock`); the comments that name it stay.

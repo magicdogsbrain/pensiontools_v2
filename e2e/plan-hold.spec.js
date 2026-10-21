@@ -118,11 +118,13 @@ test.describe('"What you hold", without an account', () => {
       await page.getByTestId(`${T}.paste.open`).click();
       await page.getByTestId(`${T}.paste.text`).fill(PASTE);
       await expect(page.locator(`[data-testid="${T}.paste.rows"] tbody tr`)).toHaveCount(node.paste.rows);
-      await expect(page.locator(`[data-testid="${T}.paste.rows"] tbody tr[data-unrecognised="1"]`)).toHaveCount(node.paste.unrecognised);
+      // one line the list does not know, not recognised until it is answered; the Node reading has the answer applied
+      await expect(page.locator(`[data-testid="${T}.paste.rows"] tbody tr[data-unrecognised="1"]`)).toHaveCount(1);
       await expect(page.locator(`[data-testid="${T}.paste.leftOut"] li`)).toHaveCount(node.paste.leftOut);
       await expect(page.locator(`[data-testid="${T}.paste.unseen"] li`)).toHaveCount(node.paste.unseen.length);
       await page.getByTestId(`${T}.paste.2.what`).selectOption('bonds');
-      await expect(page.locator(`[data-testid="${T}.paste.rows"] tbody tr[data-unrecognised="1"]`)).toHaveCount(0);
+      await expect(page.locator(`[data-testid="${T}.paste.rows"] tbody tr[data-unrecognised="1"]`)).toHaveCount(node.paste.unrecognised);
+      expect(node.paste.unrecognised).toBe(0);
       await expect(page.getByTestId(`${T}.paste.summary`)).toContainText(`updates ${node.paste.merged.updated} you already have and adds ${node.paste.merged.added}`);
       expect(await stored(page), 'reading the paste writes nothing').toBe(planted);
       await page.getByTestId(`${T}.paste.add`).click();

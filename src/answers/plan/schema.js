@@ -34,6 +34,10 @@
  *   TRY_FIELDS, TRY_WRITES, isTryPath
  *                      Try a change on a plan (way-and-mix.md 4): the boxes beside the three levers on "Does it last?", and
  *                      the paths "Use this" may write — the union of the steps' own lists, none of its own
+ *   HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, isHouseholdPath, LIMIT_KINDS, WHOS, PAID_BYS
+ *                      "Your household" (road-to-7.md step 9): the limit on the smaller pot, the survivor and care questions in
+ *                      ages, the budget's who-pays, and the ONLY field paths the step may write (the link, the dismissal, the
+ *                      split's five keys, the budget shared, who pays)
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -561,9 +565,69 @@ export const TRY_FIELDS = Object.freeze([
 export const TRY_PATHS = Object.freeze(TRY_FIELDS.map((f) => f.path));
 export const isTryPath = (path) => TRY_PATHS.includes(String(path));
 
+// ---- "Your household" (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) --------------------------
+
+export const HOUSEHOLD_SUB_STEP = 'household';
+/** A limit on the smaller pot (HouseholdDraw.limitFrom): none, keep it until an age, keep at least a sum in it. */
+export const LIMIT_KINDS = Object.freeze(['none', 'untilAge', 'keepAtLeast']);
+/** Who: this plan's person ('a') or the partner's ('b'). */
+export const WHOS = Object.freeze(['a', 'b']);
+/** Who pays a budget line (BudgetModel.myShareFactor): me, my partner, or shared. */
+export const PAID_BYS = Object.freeze(['me', 'partner', 'shared']);
+/**
+ * The boxes of the household step, in the order they are drawn, each "<block>.<name>" in the plan draft: the limit on
+ * the smaller pot (who draws what), the survivor question in ages, the care question in ages, and the budget's who-pays
+ * (the budget-wide share; each line's own is a card path, isHouseholdPath). The defaults are the planner's Household tab's
+ * (householdView.js): 10 years from now and 70% / 50% for the survivor, 15 years from now, 3 years and £90,000 for care —
+ * said here as ages, which the reading turns back into the planner's years.
+ */
+export const HOUSEHOLD_FIELDS = Object.freeze([
+  { path: 'link.choice',        type: 'id' },
+  { path: 'limit.kind',         type: 'choice', options: LIMIT_KINDS, default: 'none' },
+  { path: 'limit.age',          type: 'age',    min: 55, max: 100, required: true, when: { 'limit.kind': 'untilAge' } },
+  { path: 'limit.amount',       type: 'money',  min: 1, max: 50000000, required: true, when: { 'limit.kind': 'keepAtLeast' } },
+  { path: 'survivor.who',       type: 'choice', options: WHOS, default: 'a' },
+  { path: 'survivor.atAge',     type: 'age',    min: 18, max: 110, required: true },
+  { path: 'survivor.spendPct',  type: 'count',  min: 40, max: 100, required: true },
+  { path: 'survivor.dbPct',     type: 'count',  min: 0, max: 100, required: true },
+  { path: 'care.who',           type: 'choice', options: WHOS, default: 'a' },
+  { path: 'care.fromAge',       type: 'age',    min: 18, max: 110, required: true },
+  { path: 'care.years',         type: 'count',  min: 1, max: 15, required: true },
+  { path: 'care.cost',          type: 'money',  min: 1, max: 1000000, required: true },
+  { path: 'budget.shared',      type: 'choice', options: YES_NO, default: 'no' },
+  { path: 'budget.mySharePct',  type: 'count',  min: 0, max: 100, required: true, when: { 'budget.shared': 'yes' } }
+].map(Object.freeze));
+export const HOUSEHOLD_PATHS = Object.freeze(HOUSEHOLD_FIELDS.map((f) => f.path));
+/** A budget line's or one-off's own who-pays: budget.lines.<id>.paidBy / .mySharePct, budget.oneOffs.<id>.paidBy / .mySharePct. */
+const HOUSEHOLD_CARD = /^budget\.(lines|oneOffs)\.[A-Za-z0-9_-]{1,40}\.(paidBy|mySharePct)$/;
+export const isHouseholdPath = (path) => HOUSEHOLD_PATHS.includes(String(path)) || HOUSEHOLD_CARD.test(String(path));
+/**
+ * Every dotted field path "Your household" may change (road-to-7.md step 9), the planner's own keys: the partner link
+ * (ScenarioRepository.setHouseholdPartnerId), "Keep things as they are" (setHouseholdSplitDismissed), the split's income
+ * shape on each unlocked plan (HouseholdSplitApply.applySplit: settingsWithSchedule's five keys), one budget for the
+ * household (shareBudgetWith / stopSharingBudget: the pointer and the partner's own side), and the budget's who-pays
+ * (BudgetRepository.saveBudget: the sharing flag, the share, the lines and one-offs, and the totals it recomputes).
+ */
+export const HOUSEHOLD_WRITES = Object.freeze([
+  'household.partnerScenarioId',
+  'household.splitDismissed',
+  'stressTool.settings.incomeShape',
+  'stressTool.settings.incomeSteps',
+  'stressTool.settings.targetSchedule',
+  'stressTool.settings.baseSalary',
+  'stressTool.settings.spendingProfile',
+  'budgetTool.sharedFrom',
+  'budgetTool.settings',
+  'budgetTool.settings.sharedWithPartner',
+  'budgetTool.settings.mySharePct',
+  'budgetTool.settings.lines',
+  'budgetTool.settings.oneOffs',
+  'budgetTool.settings.derived'
+]);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -588,5 +652,5 @@ export const INCOME_WRITES = Object.freeze([
  */
 export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
 
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES });
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...BOOKKEEPING_WRITES])]);
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES });
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...BOOKKEEPING_WRITES])]);

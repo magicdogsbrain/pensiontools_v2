@@ -71,9 +71,9 @@ describe('every committed plan, every step, three dates (T5)', () => {
           const state = stateWith(entries, '#/plan/' + e.plan.id + (step ? '/' + step : ''), { today });
           const { root, text } = draw(state);
           const pg = planPage(entries, e.plan.id, step, { today });
-          // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js); every other step the plan page
-          expect(root.querySelector('main').getAttribute('data-screen')).toBe(step === 'lock' ? 'plan.lock' : 'plan');
-          for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
+          // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js), and so does "Your household" (step 9; householdRender.test.js, which holds its boxes to its own rules); every other step the plan page
+          expect(root.querySelector('main').getAttribute('data-screen')).toBe(step === 'lock' ? 'plan.lock' : step === 'household' ? 'plan.household' : 'plan');
+          if (step !== 'household') for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
           // the rail: one current step, a link per listed step, the next sentence
           const rail = root.querySelector('[data-region="rail"]');
           if (!rail) problems.push(`${e.plan.id}: no rail`);
@@ -199,12 +199,14 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
 describe('the household pair: the retired partner\'s plan and the working partner\'s', () => {
   const { ladder, saver } = household();
   const entries = [entryOf(ladder), entryOf(saver)];
-  it('the retired partner\'s household step names the saver and opens their plan inside V7', () => {
+  it('the retired partner\'s household step (its own screen since 6.42.0) names the saver and opens their plan inside V7; the plan page\'s household section links to it', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/HouseLadder01/household'));
+    expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.household');
     expect(text).toContain('With ‘Saving plan’: still saving.');
     expect(root.querySelector('[data-testid="plan.household.openPartner"]').getAttribute('href')).toBe('#/plan/HouseSaver02');
-    expect(root.querySelector('[data-testid="plan.household.checkTogether"]')).not.toBe(null);
-    for (const p of checkPlanPage(root, text, scopesOf('bridge'))) expect(p).toBe('');
+    expect(root.querySelector('[data-testid="plan.household.check"]')).not.toBe(null);
+    const pg = planPage(entries, 'HouseLadder01', 'plan', { today: TODAY });
+    expect(pg.steps.find((s) => s.id === 'household').buttons.find((b) => b.id === 'checkTogether').href).toBe('#/plan/HouseLadder01/household');
   });
   it('the working partner\'s plan: What you pay in first; the household step says the ladder pays from April 2027; no countdown', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/HouseSaver02'));
@@ -212,7 +214,8 @@ describe('the household pair: the retired partner\'s plan and the working partne
     expect(text).toContain('£600 a month from you, £450 from your employer');
     const h = draw(stateWith(entries, '#/plan/HouseSaver02/household'));
     expect(h.text).toContain('With ‘Ladder plan’: retired. Their ladder pays from April 2027.');
-    for (const p of checkPlanPage(h.root, h.text, scopesOf('saving'))) expect(p).toBe('');
+    expect(COUNTDOWN.test(h.words)).toBe(false);
+    expect(bannedHits(h.words, scopesOf('saving'))).toEqual([]);
   });
   it('the sign-out button shows while signed in on a plan page, and dispatches session/out', () => {
     const { root, actions } = draw(stateWith(entries, '#/plans'));

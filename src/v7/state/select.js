@@ -357,7 +357,24 @@ export function readyMark(state) {
   const M = state.mix;
   if (M && (M.compare.status === 'working' || Object.values(M.tries || {}).some((t) => t && t.status === 'working'))) busy = true;
   if (L && L.tried && L.tried.status === 'working') busy = true;
+  // "Your household" (road-to-7.md step 9): the pooled run, the survivor's or the care's under way is not ready
+  const H = state.household;
+  if (H && (H.status === 'working' || (H.survivor && H.survivor.status === 'working') || (H.care && H.care.status === 'working'))) busy = true;
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
+}
+
+/**
+ * "Your household" (road-to-7.md step 9): the plan source's reading of the step (page.household: the partner, the other plans
+ * here, the boxes, the runs in words, the writes — worked out there from state.household) with the open blocks (ui.open: the
+ * year-by-year tables, the who-pays block), the write's state, the problem and the toast.
+ */
+export function planHouseholdView(state) {
+  const v = editView(state, 'household');
+  if (!v.found) return v;
+  const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
+  const show = (path) => v.draft.asked || v.draft.touched.includes(path);
+  const cards = (list) => list.map((c) => ({ ...c, paidByError: show('budget.' + c.kind + '.' + c.id + '.paidBy') ? c.paidByError : null, shareError: show('budget.' + c.kind + '.' + c.id + '.mySharePct') ? c.shareError : null }));
+  return { ...v, whoPays: { ...v.whoPays, lines: cards(v.whoPays.lines), oneOffs: cards(v.whoPays.oneOffs) }, detailOpen: open.includes('hhDetail'), whoPaysOpen: open.includes('hhWhoPays') };
 }
 
 // ---- the budget step (research/v7/budget-step.md) --------------------------------------------------------------------

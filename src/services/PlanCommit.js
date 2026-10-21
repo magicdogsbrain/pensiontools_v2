@@ -173,6 +173,34 @@ export function sharedBudgetView(theirs, own, from) {
   return out;
 }
 
+// ---- One budget for the household (6.25.0), the pure parts (6.42.0: "Your household" in the preview, road-to-7.md step 9) ----
+// Lifted out of ScenarioRepository.shareBudgetWith / stopSharingBudget, which call them.
+
+/**
+ * "Share this plan's budget": the write on the PARTNER's plan — it reads this plan's budget from now on, keeping only its
+ * own side of who pays (its share starting as the complement of ours when it has none). Pure.
+ * @returns {object} the saveScenario map for the partner's plan
+ */
+export function shareBudgetWrite(scenario, partner) {
+  const mine = (scenario && scenario.budgetTool && scenario.budgetTool.settings) || {};
+  const theirs = ownSideOf(partner && partner.budgetTool && partner.budgetTool.settings);
+  if (theirs.mySharePct === undefined && Number.isFinite(+mine.mySharePct)) theirs.mySharePct = 100 - +mine.mySharePct;
+  return { 'budgetTool.sharedFrom': scenario.id, 'budgetTool.settings': theirs };
+}
+
+/**
+ * "Keep a separate budget": the write on the partner's plan — the pointer off, and its own copy of the lines as last read
+ * (the household's lines with its own side of who pays; without a source, what it holds). Pure.
+ * @param {object} partner   the plan that reads the household's budget
+ * @param {object|null} source   the plan it reads from (budgetSharedFromOf(partner)), when it is at hand
+ */
+export function stopSharingWrite(partner, source) {
+  const from = budgetSharedFromOf(partner);
+  let copy = (partner && partner.budgetTool && partner.budgetTool.settings) || {};
+  if (from && source && source.budgetTool && source.budgetTool.settings) { const { sharedFrom, ...view } = sharedBudgetView(source.budgetTool.settings, copy, from); void sharedFrom; copy = view; }
+  return { 'budgetTool.sharedFrom': null, 'budgetTool.settings': copy };
+}
+
 // ---- the Decision settings' checksum (storage/DecisionRepository.js) ---------------------------------------------------
 
 function stableSort(v) {

@@ -4148,7 +4148,7 @@
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
     import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHouseholdWays } from './src/services/HouseholdService.js';
+    import { runHouseholdWays } from './src/services/HouseholdService.js'; import { effectiveStressSettings } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
     import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
@@ -9440,8 +9440,9 @@
       try {
         const [scenarios, ownSettings, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
         const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
-        const partnerSettings = partner?.stressTool?.settings;
-        if (!partnerSettings || !partnerSettings.configured) {
+        // The partner's plan as its own tools read it (6.42.0): the Budget's age folded in and the settings brought up to date, as this plan's are
+        const partnerSettings = partner?.stressTool?.settings?.configured ? effectiveStressSettings(partner) : null;
+        if (!partnerSettings) {
           out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — switch to that plan, fill in its settings, then come back here.</div>';
           return;
         }

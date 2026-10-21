@@ -1,0 +1,11 @@
+{
+ "equal": {
+  "pooled": "1cbef9e95bd7ee85",
+  "survivor": "0c21b8fd524a443f",
+  "care": "9fccd96a8ce26d8b"
+ },
+ "unequal": {
+  "pooled": "2d0fbb27d27d155e",
+  "split": "e5f309cc9e2d5fbc"
+ }
+}

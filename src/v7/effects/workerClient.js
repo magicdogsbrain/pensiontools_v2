@@ -12,6 +12,9 @@
  *     try(plan, env, onProgress)               → Promise<Result>       a change tried on a saved plan (lane 'try'; way-and-mix.md 4): env = { today, boxes }
  *     mixTry(plan, env, onProgress)            → Promise<Result>       the mix's sleeve or tent the other way (lane 'mixTry'; way-and-mix.md 3.2): env = { today, kind, base }
  *     mixCompare(plan, env, onProgress)        → Promise<Result>       the eight cells of "Which mix lasts best?" (lane 'mixCompare'): env = { today }
+ *     household(plan, partner, env, onProgress)         → Promise<Result>   a couple's two plans each way, pooled (lane 'household'; road-to-7.md step 9): env = { today, limit }
+ *     householdSurvivor(plan, partner, env, onProgress) → Promise<Result>   the survivor question (lane 'householdSurvivor'): env = { today, boxes }
+ *     householdCare(plan, partner, env, onProgress)     → Promise<Result>   the care question (lane 'householdCare'): env = { today, boxes }
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
  *                                              is not given) is under way; those answers reject with code 'stopped'.
  *                                              Answers of other questions still under way are sent again, unchanged,
@@ -116,11 +119,11 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
   }
 
   /** One message in its own lane `q` (stop(q) ends it and nothing else); the plan and the env go as data. */
-  function lane(q, plan, env, onProgress) {
+  function lane(q, plan, env, onProgress, extra = null) {
     if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
     return new Promise((resolve, reject) => {
       const id = nextId++;
-      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env) };
+      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env), ...(extra ? cloneSafe(extra) : {}) };
       pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
       if (!post(msg)) {
         pending.delete(id);
@@ -247,6 +250,10 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     try(plan, env, onProgress) { return lane('try', plan, env, onProgress); },
     mixTry(plan, env, onProgress) { return lane('mixTry', plan, env, onProgress); },
     mixCompare(plan, env, onProgress) { return lane('mixCompare', plan, env, onProgress); },
+    /** "Your household" (road-to-7.md step 9): the pair, the survivor and the care question, each its own lane; the partner's plan goes as data beside the plan. */
+    household(plan, partner, env, onProgress) { return lane('household', plan, env, onProgress, { partner }); },
+    householdSurvivor(plan, partner, env, onProgress) { return lane('householdSurvivor', plan, env, onProgress, { partner }); },
+    householdCare(plan, partner, env, onProgress) { return lane('householdCare', plan, env, onProgress, { partner }); },
 
     stop(q) {
       const ending = (e) => e.kind === 'answer' && (q === undefined || q === null || e.q === q);

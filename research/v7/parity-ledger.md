@@ -18,20 +18,20 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 112 | 91 | 17 | 1 | 3 |
+| Built | 117 | 96 | 17 | 1 | 3 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
-| Designed | 18 | 16 | 0 | 2 | 0 |
-| Planned | 38 | 31 | 0 | 1 | 6 |
+| Designed | 16 | 14 | 0 | 2 | 0 |
+| Planned | 35 | 28 | 0 | 1 | 6 |
 | Retired | 11 | 3 | 0 | 0 | 8 |
 | **All** | 179 | 141 | 17 | 4 | 17 |
 
-Planned with no V7 design yet: **21** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **20** rows. Retired, waiting for the owner: **1**.
 
 ## The steps that deliver them
 
 | Step | What | Rows |
 |---|---|---|
-| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 73 |
+| `done` | Built in the /v7/ preview (plan of plans steps 3-5; 6.18.0-6.20.0) | 71 |
 | `now-spending-shape` | V7's spending shape, with every step and taper today's planner has (built in the /v7/ preview, 2 Oct 2026) (owner, 2 Oct 2026) | 0 |
 | `shape-next` | The spending shape's parts not built yet: one-off costs by age, lump sums and turning one into income, the layers, the budget's total and the floor note while the steps are set, the markers, and the motion (owner, 2 Oct 2026; the review of the built shape, 2 Oct 2026; spending-shape.md §15-§17) | 3 |
 | `s1-safety` | Safety fixes in today's app (square-one audit §5 item 1; 6.20.x) | 1 |
@@ -40,12 +40,13 @@ Planned with no V7 design yet: **21** rows. Retired, waiting for the owner: **1*
 | `s5-lock` | Lock from V7 (square-one audit §5 item 5) | 3 |
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 6 |
-| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 27 |
-| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 24 |
+| `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 26 |
+| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 22 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
 | `s8-way` | Road step 8a (6.40.0): "How the money is taken" in V7 — the nine ways on this plan in the one verdict, each way's dials as one set, "Use this way of drawing" as the planner's switch (research/v7/way-and-mix.md 2) (research/v7/road-to-7.md step 8; way-and-mix.md 1, 2, 6, 8) | 13 |
 | `s8-mix` | Road step 8b (6.41.0): "The mix" in V7 — a risk level, your own split or the funds to test, the slice of gold and trend funds and the bond tent each with "What it does in a bad case", "Which mix lasts best?" with "Use this mix"; Try a change of your own on "Does it last?" with "What's different", "Use this" and "Keep as a separate plan"; the income picture's rows, budget mark and lump-sum marks (research/v7/way-and-mix.md 3, 4, 5) (research/v7/road-to-7.md step 8; way-and-mix.md 3, 4, 5, 6, 7) | 12 |
+| `s9-household` | Road step 9 (6.42.0): "Your household" in V7 — the partner's plan linked either way, the pooled verdict first and each plan alone, "Who draws what" with "Use this split" (copies when a plan is locked), the survivor and care questions in ages, one budget for the household with "Keeping money separate?", and the budget's who-pays (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) | 5 |
 
 ## Ways in, and finding your way
 
@@ -79,7 +80,7 @@ Planned with no V7 design yet: **21** rows. Retired, waiting for the owner: **1*
 | **One-off and every-few-years costs** | Lists costs that come at an age or every few years (a car every 8 years, a roof). | Budget: One-off & periodic costs (index.html:3940-3946) | Savers, retired | **Built**: `src/v7/components/Budget.jsx`, `src/answers/keep/budgetSheet.js`. Shown as a guide beside the figure, not added to it (budget-step.md). | `done` | `budget.oneOffs` `budget.oneOffs[].id` `budget.oneOffs[].label` `budget.oneOffs[].amount` `budget.oneOffs[].atAge` `budget.oneOffs[].everyYears` |
 | **Horizon: age today, retirement age, plan to age** | The three ages the budget is worked over; whether you have retired; when the age was given. | Budget: Horizon (index.html:3842-3856) | Everyone | **Built**: `src/answers/shared/schemaParts.js`, `src/answers/a/schema.js`, `src/answers/b/schema.js`, `src/answers/plan/about.js`, `src/v7/screens/plan/AboutScreen.jsx`. V7 asks the ages once, in each question. On a saved plan, "About you and when" keeps the budget's copy in step as the planner's Save does (syncBudgetAgeFromTiming). **Edited in V7**: `src/v7/screens/plan/AboutScreen.jsx` | `done` | `budget.currentAge` `budget.retirementAge` `budget.endAge` `budget.retired` `budget.agesSetByUser` `budget.currentAgeAsOf` |
 | **Partner's age, retirement age, retired or not** | The partner's ages, kept on the budget for a couple. | Set-up wizard and Household → Create their plan (index.html:4900-4926, 10877-10887) | Couples | **Built**: `src/answers/shared/schemaParts.js`. V7 asks the partner's age and stop on the first screen (partnerStopFields). | `done` | `budget.partnerAge` `budget.partnerRetirementAge` `budget.partnerRetired` |
-| **Who pays: me, partner or shared, and my share** | For a couple, each line and one-off is paid by me, my partner or shared, with my share as a percentage (budget-wide or per line). | Budget: Sharing with a partner (index.html:3859-3883) | Couples | **Planned** (no V7 design yet): V7's budget is the household's (budget-step.md). | `s8-e` | `budget.sharedWithPartner` `budget.mySharePct` `budget.lines[].paidBy` `budget.lines[].mySharePct` `budget.oneOffs[].paidBy` `budget.oneOffs[].mySharePct` |
+| **Who pays: me, partner or shared, and my share** | For a couple, each line and one-off is paid by me, my partner or shared, with my share as a percentage (budget-wide or per line). | Budget: Sharing with a partner (index.html:3859-3883) | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/plan/householdRun.js`, `src/v7/screens/plan/HouseholdScreen.jsx`, `src/v7/copy/household.js`, `src/v7/effects/planWrite.js`. Built as "Who pays what" on "Your household": the sharing flag and the budget-wide share, each line's and one-off's Me / Partner / Shared and its own share, written where the lines live (this plan, or the household's plan when the budget is shared) with the totals recomputed as the planner's Budget page saves them (household.js whoPaysPatches). | `s9-household` | `budget.sharedWithPartner` `budget.mySharePct` `budget.lines[].paidBy` `budget.lines[].mySharePct` `budget.oneOffs[].paidBy` `budget.oneOffs[].mySharePct` |
 | **Who pays, changing over time** | My share of shared costs can change at an age, e.g. 70% until her pension starts at 63, then 50/50. | Budget: "Change who pays over time" (index.html:3876-3880; BudgetModel.budgetSharePctAtAge) | Couples | **Planned** (no V7 design yet) | `s8-e` | `budget.splitPhases` `budget.splitPhases[].fromAge` `budget.splitPhases[].mySharePct` |
 | **Headroom on top of the budget** | Adds a monthly margin on top of the budget's total when it becomes the plan's target. | Budget: Your spending need (index.html:12167-12170) | Savers, retired | **Retired**: Retired in today's planner too (6.23.0): the box is gone and the saved figure is no longer read; a "+10%" button beside "Use £X a month as my spending" gives the margin instead (usability audit decision 9). (Owner: approved (owner, 17 Oct 2026, usability audit decision 9)) | `done` | — |
 | **Use the budget's total as the spending figure** | Copies the budget's total into the plan's spending figure. | Budget: "Use as the start of my income shape" (index.html:12172-12200; BudgetToPlan.js) | Everyone | **Built**: `src/v7/state/budget.js`, `src/v7/state/reduce.js`, `src/v7/components/Budget.jsx`. Changed on purpose: one tap copies the total into the box and the person can change it; nothing else flows from the budget (owner, 1 Oct 2026). Today's button also writes the essentials into Floor & Flex. | `done` | — |
@@ -273,12 +274,12 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **The partner's linked plan** | Links this plan to the partner's own plan, or creates theirs and switches to it. | Household → The two plans (index.html:3766-3830) | Couples | **Built**: `src/answers/shared/household.js`, `src/services/PlanSeed.js`. Better: a couple's figures on the first screen; saving makes the two linked plans. | `done` | `plan.household` `household.partnerScenarioId` |
-| **Who draws what: drawing together, tax first** | The split of the household's after-tax spending that pays the least tax (the lower-taxed person fills their allowance and 20% band first; the other stays at or below the top of the 20% band where the money allows), year by year, with an optional limit on the smaller pot; the two-way comparison through the one test, the household verdict first; "Use this split" (copies when a plan is locked) and "Keep things as they are", remembered for that pair until either plan changes. | Household → Who draws what (index.html runHouseholdCheck; src/services/HouseholdDraw.js, HouseholdSplitApply.js, src/ui/householdView.js) | Couples | **Designed**: research/household-draw-split.md §6 (the couples answers use the same rule, the same two-column comparison, and carry the choice into a saved plan). Built first in today's Household tab (6.25.0; usability audit §5 decision 5, option (a)). One rule in src/services so V7 shares it. | `done` | `household.splitDismissed` |
-| **One budget for the household** | The partner's plan reads the household's budget from the plan it points at (the lines are the same on both plans); each plan keeps its own side of who pays and its own ages. The Household tab says which plan's budget is the household's and offers to share it; the Budget page says when it is shared. | Household → One budget for the household; Budget (index.html loadBudgetUI; src/storage/ScenarioRepository.js getActiveBudget / saveActiveBudget / shareBudgetWith) | Couples | **Designed**: research/v7/v6-usability-audit.md §2.10 and §5 decision 5 ("one budget, with 'Keeping money separate?' as an option"). Built first in today's planner (6.25.0). A pointer field on the partner's plan; nothing changes in the shape of a budget. | `done` | `plan.budgetTool.sharedFrom` |
-| **Will the money last for both of us?** | Runs the two plans together. | Household → Run the household check (HouseholdService.js) | Couples | **Built**: `src/answers/shared/household.js`, `src/answers/shared/toEngine.js`. Every V7 answer is the household's; 6.20.0 adds couples who stop in different years. | `done` | — |
-| **Survivor check** | What happens to the money if one of you dies. | HouseholdService.js:163-237 | Couples | **Planned**: Gets a station at the switch (square-one-audit.md §5 item 9); "today's planner keeps them" until then (answer-D.md §8). | `s9-switch` | — |
-| **Care-cost check** | Whether the money stands a spell of care costs for one of you. | HouseholdService.js:163-237 | Couples | **Planned**: Gets a station at the switch (square-one-audit.md §5 item 9). | `s9-switch` | — |
+| **The partner's linked plan** | Links this plan to the partner's own plan, or creates theirs and switches to it. | Household → The two plans (index.html:3766-3830) | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/shared/household.js`, `src/services/PlanSeed.js`, `src/v7/screens/plan/HouseholdScreen.jsx`. Better: a couple's figures on the first screen; saving makes the two linked plans. Since 6.42.0 a saved plan links or unlinks a partner's plan on "Your household" (household.partnerScenarioId on this plan, as the planner writes it; read either way); a plan in the other store cannot be linked and the step says so. | `done` | `plan.household` `household.partnerScenarioId` |
+| **Who draws what: drawing together, tax first** | The split of the household's after-tax spending that pays the least tax (the lower-taxed person fills their allowance and 20% band first; the other stays at or below the top of the 20% band where the money allows), year by year, with an optional limit on the smaller pot; the two-way comparison through the one test, the household verdict first; "Use this split" (copies when a plan is locked) and "Keep things as they are", remembered for that pair until either plan changes. | Household → Who draws what (index.html runHouseholdCheck; src/services/HouseholdDraw.js, HouseholdSplitApply.js, src/ui/householdView.js) | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/plan/householdRun.js`, `src/v7/screens/plan/HouseholdScreen.jsx`, `src/v7/copy/household.js`, `src/v7/effects/planWrite.js`. Built as "Who draws what" on "Your household": the headline, the why, the cost and the two-column table in exact pounds, the limit on the smaller pot, "Use this split" as one write per unlocked plan of the five keys the income shape changes (copies through the one create when a plan is locked, linked to each other), "Keep things as they are" remembered for that pair until either plan changes; household.js splitPatches lifts applySplit's pure part (HouseholdSplitApply.splitWrites, splitCopyNames). Gate: tests/v7/plan/householdIdentity.test.js (the split and the writes equal the planner's to the pound). | `s9-household` | `household.splitDismissed` |
+| **One budget for the household** | The partner's plan reads the household's budget from the plan it points at (the lines are the same on both plans); each plan keeps its own side of who pays and its own ages. The Household tab says which plan's budget is the household's and offers to share it; the Budget page says when it is shared. | Household → One budget for the household; Budget (index.html loadBudgetUI; src/storage/ScenarioRepository.js getActiveBudget / saveActiveBudget / shareBudgetWith) | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/plan/householdRun.js`, `src/v7/screens/plan/HouseholdScreen.jsx`, `src/v7/copy/household.js`, `src/v7/effects/planWrite.js`. Built as "One budget for the household" on "Your household", with "Keeping money separate?" as the question: "Share this plan's budget" / "Keep a separate budget", the write on the partner's plan as the planner's shareBudgetWith / stopSharingBudget write it (PlanCommit.shareBudgetWrite, stopSharingWrite, lifted pure), with Undo. | `s9-household` | `plan.budgetTool.sharedFrom` |
+| **Will the money last for both of us?** | Runs the two plans together. | Household → Run the household check (HouseholdService.js) | Couples | **Built**: `src/answers/plan/householdRun.js`, `src/answers/shared/household.js`, `src/answers/shared/toEngine.js`, `src/v7/screens/plan/HouseholdScreen.jsx`. Every V7 answer is the household's; 6.20.0 adds couples who stop in different years. Since 6.42.0 the two saved plans are checked together on "Your household" (#/plan/<id>/household): both through the one test each way, paired and pooled by the planner's combineHouseholdStrategies — the pooled verdict first, each plan alone second, the years and what is left combined (householdRun.js runHousehold). Gate: tests/v7/plan/householdIdentity.test.js. | `done` | — |
+| **Survivor check** | What happens to the money if one of you dies. | HouseholdService.js:163-237 | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/plan/householdRun.js`, `src/v7/screens/plan/HouseholdScreen.jsx`, `src/v7/copy/household.js`, `src/v7/effects/planWrite.js`. Built as "If one of you dies first" on "Your household" (#/plan/<id>/household): who, at what age (the planner's "years from now" said as an age), the share of the joint spending, the final-salary pension paid on; each plan through its own way of drawing (HouseholdService.runSurvivorCheck, the planner's own), try-only, the result kept and dated. Gate: tests/v7/plan/householdIdentity.test.js. | `s9-household` | — |
+| **Care-cost check** | Whether the money stands a spell of care costs for one of you. | HouseholdService.js:163-237 | Couples | **Built**: `src/answers/plan/household.js`, `src/answers/plan/householdRun.js`, `src/v7/screens/plan/HouseholdScreen.jsx`, `src/v7/copy/household.js`, `src/v7/effects/planWrite.js`. Built as "If one of you needs care" on "Your household": who, from what age, for how many years, the cost a year after tax; the household with care and without, pooled (HouseholdService.runCareCheck, the planner's own), try-only, the result kept and dated. Gate: tests/v7/plan/householdIdentity.test.js. | `s9-household` | — |
 
 ## Plan and account
 
@@ -327,7 +328,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.accumulationTool.settings` | The Accumulation planner's part of the plan | Built |
 | `plan.budgetTool` | Spending lines | Built |
 | `plan.budgetTool.settings` | The parts a plan is kept in | Planned |
-| `plan.budgetTool.sharedFrom` | One budget for the household | Designed |
+| `plan.budgetTool.sharedFrom` | One budget for the household | Built |
 | `plan.createdAt` | The plan's own fields | Planned |
 | `plan.decisionTool` | The parts a plan is kept in | Planned |
 | `plan.decisionTool.cadence` | How often you draw | Designed |
@@ -542,13 +543,13 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.lines[].hint` | Typical UK amounts as hints | Built |
 | `budget.lines[].id` | Spending lines | Built |
 | `budget.lines[].label` | Spending lines | Built |
-| `budget.lines[].mySharePct` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
-| `budget.lines[].paidBy` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
+| `budget.lines[].mySharePct` | Who pays: me, partner or shared, and my share | Built |
+| `budget.lines[].paidBy` | Who pays: me, partner or shared, and my share | Built |
 | `budget.lines[].period` | Spending lines | Built |
 | `budget.lines[].tier` | Essential or lifestyle, and the essentials total | Built |
 | `budget.lines[].toAge` | A line from or to an age | Planned |
 | `budget.lines[].wizGroup` | Lines grouped by heading | Built |
-| `budget.mySharePct` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
+| `budget.mySharePct` | Who pays: me, partner or shared, and my share | Built |
 | `budget.oneOffs` | One-off and every-few-years costs | Built |
 | `budget.oneOffs[].amount` | One-off and every-few-years costs | Built |
 | `budget.oneOffs[].atAge` | One-off and every-few-years costs | Built |
@@ -556,8 +557,8 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.oneOffs[].hint` | Typical UK amounts as hints | Built |
 | `budget.oneOffs[].id` | One-off and every-few-years costs | Built |
 | `budget.oneOffs[].label` | One-off and every-few-years costs | Built |
-| `budget.oneOffs[].mySharePct` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
-| `budget.oneOffs[].paidBy` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
+| `budget.oneOffs[].mySharePct` | Who pays: me, partner or shared, and my share | Built |
+| `budget.oneOffs[].paidBy` | Who pays: me, partner or shared, and my share | Built |
 | `budget.oneOffs[].tier` | Essential or lifestyle, and the essentials total | Built |
 | `budget.partnerAge` | Partner's age, retirement age, retired or not | Built |
 | `budget.partnerRetired` | Partner's age, retirement age, retired or not | Built |
@@ -565,7 +566,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.plsaTier` | National guide levels | Built |
 | `budget.retired` | Horizon: age today, retirement age, plan to age | Built |
 | `budget.retirementAge` | Horizon: age today, retirement age, plan to age | Built |
-| `budget.sharedWithPartner` | Who pays: me, partner or shared, and my share | Planned (no V7 design yet) |
+| `budget.sharedWithPartner` | Who pays: me, partner or shared, and my share | Built |
 | `budget.splitPhases` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].fromAge` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].mySharePct` | Who pays, changing over time | Planned (no V7 design yet) |
@@ -611,7 +612,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | Key | Row | V7 |
 |---|---|---|
 | `household.partnerScenarioId` | The partner's linked plan | Built |
-| `household.splitDismissed` | Who draws what: drawing together, tax first | Designed |
+| `household.splitDismissed` | Who draws what: drawing together, tax first | Built |
 
 ### `strategy`: strategy: the plan's strategy block
 
@@ -790,7 +791,6 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Guided walk-through** (Budget → Guided walk-through (index.html:12190-12600)). Step `s8-e`. V7's sheet covers the lines by heading on one page; the step-by-step walk-through with its tips has no V7 design.
 - **Break a line into sub-items** (Budget lines "break it down" (index.html:12488-12540)). Step `s8-e`.
 - **Sums in the amount boxes** (BudgetModel.evalAmountExpr). Step `s8-e`.
-- **Who pays: me, partner or shared, and my share** (Budget: Sharing with a partner (index.html:3859-3883)). Step `s8-e`. V7's budget is the household's (budget-step.md).
 - **Who pays, changing over time** (Budget: "Change who pays over time" (index.html:3876-3880; BudgetModel.budgetSharePctAtAge)). Step `s8-e`.
 - **Export and import the budget as a spreadsheet** (Budget: Export CSV / Import CSV (index.html:3912-3913; BudgetModel.budgetToCsv, parseBudgetCsv)). Step `s8-e`.
 - **Did you miss anything?** (Budget: "Did you miss anything?" (BudgetModel.missingSuggestions)). Step `s8-e`.

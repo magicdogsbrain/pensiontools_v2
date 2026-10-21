@@ -62,36 +62,66 @@ export function splitChanges(split, own, partner) {
 export async function applySplit({ own, partner, split, names, copyNames, repo, now = new Date() }) {
   const { mode } = splitWriteMode(own, partner, names);
   if (mode === 'write') {
-    const before = { a: own.stressTool?.settings, b: partner.stressTool?.settings };
-    await repo.saveScenario(own.id, { 'stressTool.settings': split.settings.a });
-    await repo.saveScenario(partner.id, { 'stressTool.settings': split.settings.b });
+    const w = splitWrites(own, partner, split);
+    await repo.saveScenario(w.a.id, w.a.write);
+    await repo.saveScenario(w.b.id, w.b.write);
     return {
       mode,
       undo: async () => {
-        await repo.saveScenario(own.id, { 'stressTool.settings': before.a });
-        await repo.saveScenario(partner.id, { 'stressTool.settings': before.b });
+        await repo.saveScenario(w.a.id, w.a.undo);
+        await repo.saveScenario(w.b.id, w.b.undo);
       }
     };
   }
-  const nameA = (copyNames && copyNames.a) || (split.names.a + ' — drawing together');
-  const nameB = (copyNames && copyNames.b) || (split.names.b + ' — drawing together');
+  const copyNamesOf = splitCopyNames(split, copyNames);
   const makeCopy = async (source, name, settings) => {
     const made = await repo.duplicateScenario(source.id, name, { carryHistory: false });
     const id = (made && made.id) || made;
     const copy = (await repo.loadScenario(id)) || {};
-    if (isLockedPlan(copy)) {
-      const d = copy.decisionTool.settings;
-      await repo.saveScenario(id, { 'decisionTool.settings': { ...d, locked: false, unlockedAt: now.toISOString(), unlockCount: (+d.unlockCount || 0) + 1 } });
-    }
+    const unlock = copyUnlockWrite(copy, now);
+    if (unlock) await repo.saveScenario(id, unlock);
     await repo.saveScenario(id, { 'stressTool.settings': settings });
     return id;
   };
-  const idA = await makeCopy(own, nameA, split.settings.a);
-  const idB = await makeCopy(partner, nameB, split.settings.b);
+  const idA = await makeCopy(own, copyNamesOf.a, split.settings.a);
+  const idB = await makeCopy(partner, copyNamesOf.b, split.settings.b);
   await repo.saveScenario(idA, { 'household.partnerScenarioId': idB });
   await repo.saveScenario(idB, { 'household.partnerScenarioId': idA });
-  return { mode, ids: { a: idA, b: idB }, names: { a: nameA, b: nameB } };
+  return { mode, ids: { a: idA, b: idB }, names: copyNamesOf };
 }
+
+// ---- The pure parts of applySplit (6.42.0, "Your household" in the preview: research/v7/road-to-7.md step 9) --------------
+// Lifted out of applySplit above so the preview's one write file writes exactly what the planner writes; applySplit calls them.
+
+/**
+ * Mode 'write': what each plan's write is, and the write that puts it back — the planner's own settings object with the
+ * split's income shape (the whole map, as applySplit has always written it). Pure.
+ * @returns {{ a: { id, write, undo }, b: { id, write, undo } }}
+ */
+export function splitWrites(own, partner, split) {
+  return {
+    a: { id: own.id, write: { 'stressTool.settings': split.settings.a }, undo: { 'stressTool.settings': own.stressTool?.settings } },
+    b: { id: partner.id, write: { 'stressTool.settings': split.settings.b }, undo: { 'stressTool.settings': partner.stressTool?.settings } }
+  };
+}
+
+/** Mode 'copies': the two copies' names — the person's, else "{name} — drawing together". Pure. */
+export function splitCopyNames(split, copyNames) {
+  return {
+    a: (copyNames && copyNames.a) || (split.names.a + ' — drawing together'),
+    b: (copyNames && copyNames.b) || (split.names.b + ' — drawing together')
+  };
+}
+
+/** A copy that came back locked (it carried records): the planner's own unlock bookkeeping as one write, else null. Pure. */
+export function copyUnlockWrite(copy, now) {
+  if (!isLockedPlan(copy)) return null;
+  const d = copy.decisionTool.settings;
+  return { 'decisionTool.settings': { ...d, locked: false, unlockedAt: now.toISOString(), unlockCount: (+d.unlockCount || 0) + 1 } };
+}
+
+/** The five keys settingsWithSchedule changes (HouseholdDraw.js): what a split write amounts to, key by key. */
+export const SPLIT_KEYS = Object.freeze(['incomeShape', 'incomeSteps', 'targetSchedule', 'baseSalary', 'spendingProfile']);
 
 /** "Keep things as they are": what is remembered on this plan, and whether it still holds for this pair as they stand now. */
 export function dismissalFor(partnerId, fingerprint, now = new Date()) {

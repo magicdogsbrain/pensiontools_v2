@@ -7,14 +7,16 @@
   "runs": [
     "src/answers/plan/waysRun.js",
     "src/answers/plan/lastsRun.js",
-    "src/answers/plan/mixRun.js"
+    "src/answers/plan/mixRun.js",
+    "src/answers/plan/householdRun.js"
   ],
   "plans": [
     "tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)",
     "tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)",
     "tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)",
     "tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)",
-    "tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)"
+    "tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)",
+    "tests/fixtures/plans/09-couple-a.json and 10-couple-b.json (Alex’s and Sam’s plans, the couple; the split pair with Alex’s pots four times over)"
   ],
   "patched": []
 }

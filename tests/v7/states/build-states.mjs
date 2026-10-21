@@ -559,6 +559,53 @@ async function buildPlanStates({ today }) {
   states['lasts-try-failed'] = stateOne('AlexWay01', 'lasts', [...held('AlexWay01'), (key, s) => ({ type: A.TRY_RUN, boxes: runBoxes(s, 'AlexWay01') }), (key, s) => ({ type: A.TRY_FAILED, key, boxes: s.lasts.tried.boxes })], { typed: TRIED_TYPED });
   states['lasts-try-problem'] = stateOne('AlexWay01', 'lasts', held('AlexWay01'), { typed: { 'try.years': 'abc', 'try.pot': '' }, open: ['tryOpen'], asked: true });
   states['lasts-try-locked'] = stateOne('SamBuckets04', 'lasts', [...held('SamBuckets04'), ...tryDone('SamBuckets04')], { typed: { 'try.way': 'pots-and-valves', 'try.years': '28' } });
+
+  /**
+   * "Your household" (research/v7/road-to-7.md step 9): tests/v7/states/plan/household-*.json — each a state on
+   * #/plan/<id>/household holding the couple (corpus 09 and 10 as Alex's and Sam's plans, linked both ways; for the split,
+   * Alex's pots four times over and £70,000 a year, as gate 9 derives them), the pooled run held (householdRun.js
+   * runHousehold at the engine's own 1,000 futures), the survivor's and the care's results, a locked partner (copies), a plan
+   * with no link. Few and small, on purpose: the working, failed, window, confirm and single-question states are made in the render test from these.
+   */
+  const { runHousehold, runSurvivor, runCare } = await import('../../../src/answers/plan/householdRun.js');
+  const { pairKeyOf } = await import('../../../src/answers/plan/household.js');
+  const couple = (unequal = false, { lockSam = false } = {}) => {
+    const alex = plant(C['09-couple-a'], 'AlexCouple06', 'Alex’s plan', { active: true });
+    const sam = plant(C['10-couple-b'], 'SamCouple07', 'Sam’s plan');
+    alex.household = { partnerScenarioId: 'SamCouple07' }; sam.household = { partnerScenarioId: 'AlexCouple06' };
+    if (unequal) { const st = alex.stressTool.settings; st.equityMin *= 4; st.bondMin *= 4; st.cashTarget *= 4; st.baseSalary = 70000; }
+    if (lockSam) sam.decisionTool.settings = { ...sam.decisionTool.settings, locked: true, lockedAt: '2026-09-01T00:00:00.000Z', lockedBy: 'planner' };
+    return [alex, sam].map((p) => entryOf(p, today));
+  };
+  const hhRuns = new Map();
+  /** A state on the household step of Alex's plan with the pair read (an account unless said), then the actions; the reading refreshed as the plan source does. */
+  const stateHh = (entries, actions = [], { open = [], typed = {}, source = 'account', session = 'in', id = 'AlexCouple06' } = {}) => {
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + id + '/household') });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'someone@example.com' : null } });
+    s = reduce(s, { type: A.PLANS_SET, list: entries, source, readAt: '14:03' });
+    for (const [path, value] of Object.entries(typed)) s = reduce(s, { type: A.PLAN_EDIT, planId: id, path, value });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    const key = entries.length > 1 ? pairKeyOf(entries[0].plan, entries[1].plan) : null;
+    for (const a of actions) { s = reduce(s, typeof a === 'function' ? a(key, s) : a); s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) }); }
+    for (const x of open) s = reduce(s, { type: A.UI_TOGGLE, id: x });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    return s;
+  };
+  const hhOf = (entries, tag) => { if (!hhRuns.has(tag)) hhRuns.set(tag, runHousehold(entries[0].plan, entries[1].plan, { today })); return hhRuns.get(tag); };
+  const ranHh = (entries, tag, ms = 1400) => [(key) => ({ type: A.HH_RUN, key, limit: null }), (key) => ({ type: A.HH_DONE, key, limit: null, result: hhOf(entries, tag), ms })];
+  const equal = couple(), unequal = couple(true), lockedPair = couple(true, { lockSam: true });
+  const sBoxes = (s) => s.plans.view.page.household.run.survivor, cBoxes = (s) => s.plans.view.page.household.run.care;
+  states['household-first'] = stateHh(equal);
+  states['household-ran'] = stateHh(equal, ranHh(equal, 'equal'), { open: ['hhDetail'] });
+  states['household-split'] = stateHh(unequal, ranHh(unequal, 'unequal'));
+  states['household-locked'] = stateHh(lockedPair, ranHh(lockedPair, 'locked'));
+  // the survivor's and the care's results in one state (the render test draws each; a working or failed one it makes from this)
+  states['household-questions'] = stateHh(equal, [...ranHh(equal, 'equal'),
+    (key, s) => ({ type: A.HH_SURVIVOR, key, boxes: sBoxes(s) }), (key, s) => ({ type: A.HH_SURVIVOR_DONE, key, boxes: s.household.survivor.boxes, result: runSurvivor(equal[0].plan, equal[1].plan, { today, ...s.household.survivor.boxes }), ms: 2100 }),
+    (key, s) => ({ type: A.HH_CARE, key, boxes: cBoxes(s) }), (key, s) => ({ type: A.HH_CARE_DONE, key, boxes: s.household.care.boxes, result: runCare(equal[0].plan, equal[1].plan, { today, ...s.household.care.boxes }), ms: 2300 })]);
+  states['household-who-pays'] = stateHh(equal, [], { open: ['hhWhoPays'], typed: { 'budget.shared': 'yes', 'budget.mySharePct': '60' } });
+  states['household-unlinked'] = stateHh([entryOf(plant(C['09-couple-a'], 'AlexAlone08', 'Alex’s plan', { active: true }), today), entryOf(plant(C['02-pnv-draft'], 'AlexOther09', 'Alex’s other plan'), today)], [], { id: 'AlexAlone08', typed: { 'link.choice': 'AlexOther09' } });
   return { states };
 }
 
@@ -568,8 +615,8 @@ if (QUESTION === 'plan') {
   if (whole) {
     writeFileSync(join(target, '_made-with.json'), JSON.stringify({
       note: 'Written by tests/v7/states/build-states.mjs --question plan. Do not edit by hand.',
-      today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', runs: ['src/answers/plan/waysRun.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/mixRun.js'],
-      plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)', 'tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)', 'tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)'], patched: []
+      today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', runs: ['src/answers/plan/waysRun.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js'],
+      plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)', 'tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)', 'tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)', 'tests/fixtures/plans/09-couple-a.json and 10-couple-b.json (Alex’s and Sam’s plans, the couple; the split pair with Alex’s pots four times over)'], patched: []
     }, null, 2) + '\n');
   }
   console.log(`${names.length} states written to ${target}/`);

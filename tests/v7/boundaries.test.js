@@ -279,7 +279,7 @@ describe('rule 3a — reach: every import from V7\'s entry points, walked', () =
 });
 
 describe('"Does it last?" — the engine reaches the worker lazily, and nowhere else (research/v7/editing-in-v7.md 10.4)', () => {
-  const ENGINE = ['src/strategies/stressTest.js', 'src/strategies/registry.js', 'src/services/OneAnswer.js', 'src/services/NamedStarts.js', 'src/services/SimulationConfig.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js'];
+  const ENGINE = ['src/strategies/stressTest.js', 'src/strategies/registry.js', 'src/services/OneAnswer.js', 'src/services/NamedStarts.js', 'src/services/SimulationConfig.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js'];
   /** The walk by static imports only (no import(), no worker URL): what a chunk carries before anything lazy is asked for. */
   function staticReach(entries) {
     const seen = new Set(); const queue = [...entries];
@@ -307,19 +307,22 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     // the nine ways' run (way-and-mix.md 2.2) and the mix's runs (3.2) share the one test's plan builder, so they import lastsRun.js — and are themselves
     // reached only by the worker's import(); so does the planner (index.html) for the what-if copy of the settings (trySettingsOf, 6.41.0)
     const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lastsRun.js'));
-    expect(importers.sort()).toEqual(['src/answers/plan/mixRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
+    expect(importers.sort()).toEqual(['src/answers/plan/householdRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
     expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
-    for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js']) {
+    for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js']) {
       const lazyImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes(lazy));
       expect(lazyImporters, lazy).toEqual(['src/v7/effects/answerWorker.js']);
       expect(staticReach(['src/v7/effects/answerWorker.js']).has(lazy), `the worker imports ${lazy} statically`).toBe(false);
     }
-    // the page's reading of the way step and the mix step (way.js, mix.js, loaded with the plan source) never reaches the engine — the one-answer words, as lasts.js, they may read
-    for (const page of ['src/answers/plan/way.js', 'src/answers/plan/mix.js']) for (const f of ENGINE.filter((x) => x !== 'src/services/OneAnswer.js')) expect(staticReach([page]).has(f), `${page} reaches ${f}`).toBe(false);
+    // the page's reading of the way step, the mix step and the household step (way.js, mix.js, household.js, loaded with the plan source) never reaches the engine — the one-answer words, as lasts.js, they may read
+    // the household's reading reaches the engine's CONFIG builder (SimulationConfig.js, pure arithmetic over settings, no engine) through the planner's pooling rule (HouseholdService.js, which the split's words need) — never the strategies, the one test's run or the market data
+    for (const page of ['src/answers/plan/way.js', 'src/answers/plan/mix.js', 'src/answers/plan/household.js']) for (const f of ENGINE.filter((x) => x !== 'src/services/OneAnswer.js' && !(page === 'src/answers/plan/household.js' && x === 'src/services/SimulationConfig.js'))) expect(staticReach([page]).has(f), `${page} reaches ${f}`).toBe(false);
+    expect(staticReach(['src/answers/plan/household.js']).has('src/strategies/stressTest.js')).toBe(false);
+    expect(staticReach(['src/answers/plan/household.js']).has('src/data/shiller.js')).toBe(false);
   });
   it('the nine ways\' run and the mix\'s read no clock of their own, and the effects that run them name no browser storage', () => {
-    for (const file of ['src/answers/plan/waysRun.js', 'src/answers/plan/way.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/mix.js']) for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf(file)), `${file} uses ${re}`).toBe(false);
-    for (const file of ['src/v7/effects/ways.js', 'src/v7/effects/mix.js']) {
+    for (const file of ['src/answers/plan/waysRun.js', 'src/answers/plan/way.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/mix.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/household.js']) for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf(file)), `${file} uses ${re}`).toBe(false);
+    for (const file of ['src/v7/effects/ways.js', 'src/v7/effects/mix.js', 'src/v7/effects/household.js']) {
       expect(/\b(localStorage|sessionStorage)\b/.test(codeOf(file)), file).toBe(false);
       expect(strip(read(file), { keepStrings: true }), file).not.toMatch(/pt_[a-z_]+/);
     }

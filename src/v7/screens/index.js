@@ -29,6 +29,7 @@ import { LastsScreen } from './plan/LastsScreen.jsx';
 import { WayScreen } from './plan/WayScreen.jsx';
 import { MixScreen } from './plan/MixScreen.jsx';
 import { LockScreen } from './plan/LockScreen.jsx';
+import { HouseholdScreen } from './plan/HouseholdScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -65,5 +66,7 @@ export const SCREENS = {
   // "The mix" (research/v7/way-and-mix.md 3)
   'plan.mix': MixScreen,
   // "Lock the plan", the rail step made real (research/v7/road-to-7.md step 6)
-  'plan.lock': LockScreen
+  'plan.lock': LockScreen,
+  // "Your household": the household rail step made real (research/v7/road-to-7.md step 9)
+  'plan.household': HouseholdScreen
 };

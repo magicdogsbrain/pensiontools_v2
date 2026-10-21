@@ -101,8 +101,8 @@ export const LASTS = {
   },
   partner: '{name}’s plan is tested on {name}’s plan.',
   partnerLink: 'Open ‘{name}’: does it last?',
-  together: 'The two plans together — who draws what, and whether the household lasts — are checked in the planner.',
-  togetherButton: 'Check the two plans together in the planner',
+  together: 'The two plans together — whether the household lasts when one pot pays for the other, who draws what, and what happens if one of you dies or needs care — are on ‘Your household’.',
+  togetherButton: 'Check the two plans together',
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   toast: {
     lasts: 'Saved. Cuts of up to {pct}% after {months} months; {reserve}. The test is running again on the saved plan.',

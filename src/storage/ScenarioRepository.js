@@ -31,7 +31,7 @@ import { deriveTiming } from '../services/PlanTiming.js';
 import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
-import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView } from '../services/PlanCommit.js';
+import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView, shareBudgetWrite, stopSharingWrite } from '../services/PlanCommit.js';
 import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario } from '../services/PlanFromSeed.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
@@ -784,10 +784,7 @@ export async function shareBudgetWith(partnerScenarioId) {
   if (!scenario || !partnerScenarioId || partnerScenarioId === scenario.id) throw new Error('No partner plan to share with');
   const partner = await loadScenario(partnerScenarioId);
   if (!partner) throw new Error('Partner plan not found');
-  const mine = scenario.budgetTool?.settings || {};
-  const theirs = ownSideOf(partner.budgetTool?.settings);
-  if (theirs.mySharePct === undefined && Number.isFinite(+mine.mySharePct)) theirs.mySharePct = 100 - +mine.mySharePct;
-  await saveScenario(partnerScenarioId, { 'budgetTool.sharedFrom': scenario.id, 'budgetTool.settings': theirs });
+  await saveScenario(partnerScenarioId, shareBudgetWrite(scenario, partner));   // the pure part lives in PlanCommit.js (6.42.0)
   invalidateScenarioCache();
 }
 /** The partner's plan keeps a separate budget again (its own copy of the lines as last read). */
@@ -795,9 +792,8 @@ export async function stopSharingBudget(partnerScenarioId) {
   const partner = await loadScenario(partnerScenarioId);
   if (!partner) return;
   const from = budgetSharedFromOf(partner);
-  let copy = partner.budgetTool?.settings || {};
-  if (from) { const source = await loadScenario(from); if (source?.budgetTool?.settings) { const { sharedFrom, ...view } = sharedBudgetView(source.budgetTool.settings, copy, from); copy = view; } }
-  await saveScenario(partnerScenarioId, { 'budgetTool.sharedFrom': null, 'budgetTool.settings': copy });
+  const source = from ? await loadScenario(from) : null;
+  await saveScenario(partnerScenarioId, stopSharingWrite(partner, source));   // the pure part lives in PlanCommit.js (6.42.0)
   invalidateScenarioCache();
 }
 

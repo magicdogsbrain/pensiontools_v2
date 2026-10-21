@@ -230,3 +230,10 @@ futures ("Would some work help?", "What if shares fell by a fifth?"); the same t
 of every saved plan's "Does it last?", run in the worker on a copy; "Keep this as a plan" makes the plan in the preview
 itself (one `addDoc` per plan in the account, or this window's list) and the seed hand-over effect is retired. The
 planner's mapping of a seed lives pure in `src/services/PlanFromSeed.js`. Next: step 8 (way, then mix and Try).
+
+Progress: **step 8 designed (`research/v7/way-and-mix.md`) and 8a shipped as 6.40.0 (21 Oct 2026)** — "How the money is
+taken" (`#/plan/<id>/way`) runs the nine ways of drawing on the plan in the one verdict, ranked as the planner's Overview
+ranks them, each with every dial the planner shows anywhere (one set of defaults, the engine's); "Use this way of
+drawing" is the planner's switch field for field in one write; "More columns" keeps the score. The compare loop, the
+ranking and the switch are lifted pure (`compareAll`, `rankWays`, `switchPatch`) and the planner calls them. Next: 8b —
+the mix, Try a change, the income picture rows (6.41.0).

@@ -2,7 +2,7 @@
   "note": "Written by tests/v7/states/build-states.mjs --question plan. Do not edit by hand.",
   "today": "2026-09-30",
   "futures": 1000,
-  "version": "6.39.0",
+  "version": "6.40.0",
   "run": "src/answers/plan/waysRun.js",
   "plans": [
     "tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)",

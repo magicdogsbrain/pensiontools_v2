@@ -108,7 +108,7 @@ export function startWaysRunner({ store, client, now = () => 0 }) {
     if (!W || W.key !== w.key || W.status !== 'done') return;
     // the page says a card needs a run: ask for it once its values have settled (the reducer marks the try under way); then run what the reducer holds
     if (!action || action.type !== A.WAY_TRY) {
-      const due = w.cards.find((c) => c.needsRun && c.values && !(W.tried && W.tried[c.id] && W.tried[c.id].status === 'working'));
+      const due = w.cards.find((c) => c.needsRun && c.values);
       if (!due) { clearSettle(); return; }
       const text = JSON.stringify(due.values);
       if (settle && settle.id === due.id && settle.text === text) return;

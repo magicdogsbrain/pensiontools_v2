@@ -229,7 +229,8 @@ export function cardsOf(reading, W) {
     const triedFor = t && t.values ? t.values : null;
     const sameTry = triedFor && c.ok ? dials.every((d) => text(c.values[d.key]) === text(triedFor[d.key])) : false;
     const isOpen = id === open;
-    const needsRun = isOpen && !!ran && c.ok && differs && !(t && (t.status === 'working' || sameTry));
+    // a try for THESE values, under way or done, satisfies the card; a try for other values (the dial moved under it) does not
+    const needsRun = isOpen && !!ran && c.ok && differs && !(t && sameTry && (t.status === 'working' || t.status === 'done'));
     const figures = shownResult && shownResult.affordable ? shownResult.a : null;
     const verdict = figures ? { word: verdictWord(figures.share), share: figures.share, chancePct: figures.chancePct, words: futuresOutOfTen(figures.share).words, typicalLeft: r0(figures.typicalLeft), badCaseLeft: r0(figures.badCaseLeft) } : null;
     const stale = !!(t && t.status === 'working') || (isOpen && differs && !(t && t.status === 'done' && sameTry));

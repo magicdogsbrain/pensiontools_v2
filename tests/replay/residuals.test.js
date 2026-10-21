@@ -215,7 +215,8 @@ describe('each strategy keeps its own inputs — the rest of R6.13.0-b', () => {
     const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
     expect(html).toContain("const over = { ...settings, strategyId: 'full-il-gilt', strategyParams:");
     expect(html).toContain("const over = { ...settings, strategyId: 'floor-to-age', strategyParams:");
-    expect(html).toContain('let over = { ...settings, strategyId: id, strategyParams: prm };');
+    // 6.40.0: the dials are read by PlanCommit.dialParams (the cut dials as the Stress keys they set), the way still named
+    expect(html).toContain('let over = { ...settings, strategyId: id, strategyParams: prm, ...cutPatch };');
   });
 
   it('R6.13.0-b — a bought strategy still gets its own dials and the shared pot totals', () => {

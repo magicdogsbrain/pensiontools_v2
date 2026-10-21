@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "asOf": "2026-10-02",
+  "asOf": "2026-10-21",
   "against": "6.20.2",
   "rule": {
     "date": "2 Oct 2026",
@@ -337,6 +337,25 @@
       ],
       "step": "s4-open-plan",
       "note": "“Change this” on V7’s plan pages (research/v7/your-plan.md 5): the planner presses the page’s own button so its loader runs and every box fills; the partner’s plan opens in that window only."
+    },
+    {
+      "id": "ways.question-d",
+      "area": "ways-in",
+      "kind": "option",
+      "name": "\"I'm retired. Will it last?\" (question D)",
+      "what": "The retired person's way in: one short form (stopped, age, what is left, the tax-free part, savings, what you take a month; a partner who has also stopped), the verdict at what you take with the band in full, and three levers tried on the answer's own lives. Someone with a plan is shown the way to its own test first.",
+      "whereV6": "SetupWizard.js \"I'm already drawing\" door; the Stress tester's settings (index.html)",
+      "who": "Retired",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/d/answer.js",
+        "src/answers/d/schema.js",
+        "src/v7/screens/d/NumbersScreen.jsx",
+        "src/v7/screens/d/AnswerScreen.jsx",
+        "src/v7/rail/d.js"
+      ],
+      "step": "s7-d"
     },
     {
       "id": "budget.lines",
@@ -2446,6 +2465,60 @@
       "gap": true
     },
     {
+      "id": "d.spend-more",
+      "area": "testing",
+      "kind": "option",
+      "name": "\"Could I spend more?\"",
+      "what": "The careful amount beside what you take (more, about, or less), and the band in full — on D's form from the answer's band; on a saved plan's \"Does it last?\" the most the plan's income can be scaled by and still last in 9 futures out of 10, a bounded search of at most seven runs of the one test, the cost said.",
+      "whereV6": "New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings",
+      "who": "Retired",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/d/answer.js",
+        "src/answers/plan/lastsRun.js",
+        "src/v7/screens/d/AnswerScreen.jsx",
+        "src/v7/screens/plan/LastsScreen.jsx"
+      ],
+      "step": "s7-d"
+    },
+    {
+      "id": "d.work",
+      "area": "testing",
+      "kind": "option",
+      "name": "\"Would some work help?\"",
+      "what": "Pay a year for 1 to 5 years from today: on D's form A's part-time mechanism at a stop of today (one verdict, one band, a verdict for each year); on a saved plan a row of the planner's own extra incomes from the plan's first year, one run, the field named.",
+      "whereV6": "New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings",
+      "who": "Retired",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/d/answer.js",
+        "src/answers/plan/lastsRun.js",
+        "src/v7/screens/d/AnswerScreen.jsx",
+        "src/v7/screens/plan/LastsScreen.jsx"
+      ],
+      "step": "s7-d"
+    },
+    {
+      "id": "d.fall",
+      "area": "testing",
+      "kind": "option",
+      "name": "\"What if shares fell by a fifth?\"",
+      "what": "The shares part of each pot cut by a fifth and the test run again on the same futures: on D's form the pots typed in, scaled; on a saved plan the pension's shares, an ISA invested like the pension, a taxable account in shares, a saver's projected pot — one run, the mix kept.",
+      "whereV6": "New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings",
+      "who": "Retired",
+      "keys": [],
+      "status": "built",
+      "files": [
+        "src/answers/d/answer.js",
+        "src/answers/plan/lastsRun.js",
+        "src/v7/screens/d/AnswerScreen.jsx",
+        "src/v7/screens/plan/LastsScreen.jsx"
+      ],
+      "step": "s7-d"
+    },
+    {
       "id": "lock.lock",
       "area": "lock",
       "kind": "option",
@@ -3136,23 +3209,38 @@
       "id": "acct.from-answer",
       "area": "plan-account",
       "kind": "option",
-      "name": "Save a V7 answer as a new plan",
-      "what": "A V7 answer becomes a named plan in today's planner; a couple's becomes two linked plans; the answer it came from is kept with it.",
-      "whereV6": "NewPlanFromSeed.js; PlanSeed.js (6.18.0)",
+      "name": "Keep a V7 answer as a new plan",
+      "what": "A V7 answer becomes a named plan made by the preview itself, in the account (one addDoc) or in this browser window without one; a couple's becomes two linked plans; the answer it came from is kept with it; \"Lock this plan?\" follows. (6.39.0: the seed hand-over to the planner is retired.)",
+      "whereV6": "NewPlanFromSeed.js; PlanSeed.js (6.18.0); the preview's own create from 6.39.0",
       "who": "Everyone",
       "keys": [
-        "plan.fromAnswer",
-        "browser.pt_v7_plan_seed",
-        "browser.pt_v7_plan_receipt"
+        "plan.fromAnswer"
       ],
       "status": "built",
       "files": [
         "src/answers/keep/planSeed.js",
-        "src/v7/effects/planSeed.js",
-        "src/v7/components/KeepPanel.jsx",
-        "src/services/PlanSeed.js"
+        "src/answers/keep/planCreate.js",
+        "src/services/PlanFromSeed.js",
+        "src/v7/effects/planWrite.js",
+        "src/v7/components/KeepPanel.jsx"
       ],
-      "step": "done"
+      "step": "s7-d"
+    },
+    {
+      "id": "acct.seed-hand-over",
+      "area": "plan-account",
+      "kind": "machinery",
+      "name": "The seed left for the planner, and its receipt",
+      "what": "Until 6.38.0 the preview wrote a seed to the browser (pt_v7_plan_seed) and opened the planner at #new-plan, which made the plan and left a receipt (pt_v7_plan_receipt) for the preview to read on coming back.",
+      "whereV6": "src/services/PlanSeed.js, src/ui/components/NewPlanFromSeed.js (the planner's reader, kept for one release)",
+      "who": "Everyone",
+      "keys": [
+        "browser.pt_v7_plan_seed",
+        "browser.pt_v7_plan_receipt"
+      ],
+      "status": "retired",
+      "reason": "Retired in 6.39.0 (road-to-7.md step 7): the preview makes the plan itself, through its one write file, so it no longer writes a seed or reads a receipt; nothing is left in the browser for a day. The planner's own reader of a seed stays for one release and is removed with the switch to 7.0.",
+      "step": "s7-d"
     },
     {
       "id": "acct.whats-new",

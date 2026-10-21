@@ -7,6 +7,11 @@
  * figure, today's test beside it, the dials read-only. Draws only: everything is the reading's (state/select.js
  * planLastsView: answers/plan/lasts.js through the plan source; the run's words from verdictOf there) and the run's
  * status is the state's (effects/lasts.js). No figure is worked out here.
+ *
+ * "Try a change" (research/v7/answer-D.md 3.9; road-to-7.md step 7): the three levers of "Will it last?" — "Could I spend
+ * more?", "Would some work help?" (pay a year and years, typed), "What if shares fell by a fifth?" — each tried on a copy of
+ * the plan in the worker on a press, its lines the reading's (leverViews), put away with one press; on a locked plan the
+ * document's figure stays above and ONE comparison line is said. Nothing here is written to the plan.
  */
 import { PlanRail, EditField, UndoToast, OutOfTenBar, fill, Button, LinkButton } from '../../components/index.js';
 import { planView, planLastsView } from '../../state/select.js';
@@ -122,6 +127,67 @@ function Answer({ L, onChange, dispatch, view }) {
   );
 }
 
+/** One lever: its button, or its lines (and "Put it away"); the work lever's two boxes. */
+function Lever({ kind, lv, dispatch, workDraft }) {
+  const T = LASTS.levers;
+  const on = lv.status !== 'off';
+  const tryIt = () => dispatch({ type: 'lasts/leverTry', kind });
+  const close = () => dispatch({ type: 'lasts/leverClose', kind });
+  const typeIn = (field) => (e) => dispatch({ type: 'lasts/leverType', field, value: e.currentTarget.value });
+  return (
+    <li class={`lever lever-${kind}`} data-lever={kind} data-lever-status={lv.status}>
+      <h3 class="lever-name">{T.names[kind]}</h3>
+      {kind === 'work' && on && (
+        <div class="try-row try-work">
+          <div class="field field-money"><label for="plan.lasts.lever.work.yearly">{T.work.yearly}</label>
+            <div class="box"><span class="prefix" aria-hidden="true">£</span><input type="text" inputmode="decimal" autocomplete="off" id="plan.lasts.lever.work.yearly" data-testid="plan.lasts.lever.work.yearly" name="plan.lasts.lever.work.yearly" value={workDraft.yearly} placeholder="12,000" aria-invalid={lv.problem === 'yearly' ? 'true' : undefined} onInput={typeIn('yearly')} /></div>
+            {lv.problem === 'yearly' && <p class="error" data-error-for="plan.lasts.lever.work.yearly">{T.invalid.yearly}</p>}
+          </div>
+          <div class="field field-count"><label for="plan.lasts.lever.work.years">{T.work.years}</label>
+            <div class="box"><input type="text" inputmode="numeric" autocomplete="off" id="plan.lasts.lever.work.years" data-testid="plan.lasts.lever.work.years" name="plan.lasts.lever.work.years" value={workDraft.years} placeholder="3" aria-invalid={lv.problem === 'years' ? 'true' : undefined} onInput={typeIn('years')} /></div>
+            {lv.problem === 'years' && <p class="error" data-error-for="plan.lasts.lever.work.years">{T.invalid.years}</p>}
+          </div>
+          <p class="note">{T.work.note}</p>
+        </div>
+      )}
+      {!on && <div class="actions-row"><Button testid={`plan.lasts.lever.${kind}`} kind="primary" onClick={tryIt}>{kind === 'work' ? T.names.work : T.buttons[kind]}</Button></div>}
+      {kind === 'work' && (lv.status === 'open' || lv.status === 'invalid') && <div class="actions-row"><Button testid="plan.lasts.lever.work.try" kind="primary" onClick={tryIt}>{T.buttons.work}</Button><Button testid="plan.lasts.lever.work.close" kind="quiet" onClick={close}>{T.buttons.close}</Button></div>}
+      {lv.status === 'working' && <p class="working-note" role="status" data-testid={`plan.lasts.lever.${kind}.working`}>{T.working}</p>}
+      {lv.status === 'failed' && (
+        <div class="notice" role="alert" data-testid={`plan.lasts.lever.${kind}.failed`}>
+          <p>{lv.reason === 'noWorker' ? T.noWorker : T.failed}</p>
+          <div class="actions-row">{lv.reason !== 'noWorker' && <Button testid={`plan.lasts.lever.${kind}.again`} kind="quiet" onClick={tryIt}>{T.buttons.again}</Button>}<Button testid={`plan.lasts.lever.${kind}.close`} kind="quiet" onClick={close}>{T.buttons.close}</Button></div>
+        </div>
+      )}
+      {lv.status === 'done' && (
+        <div class="lever-result" data-testid={`plan.lasts.lever.${kind}.result`}>
+          <ul class="plan-lines">{lv.lines.map((l, i) => <li key={i} class="plan-line" data-line={'lever.' + l.id}>{fill(T.lines[l.id] || '', l.slots)}</li>)}</ul>
+          <div class="actions-row"><Button testid={`plan.lasts.lever.${kind}.close`} kind="quiet" onClick={close}>{T.buttons.close}</Button></div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** "Try a change": the three levers, once the plan's own test is held (never before: a lever is tried against it). */
+function Levers({ L, dispatch }) {
+  const run = L.run || { status: 'idle' };
+  const v = L.verdict;
+  const lv = L.levers;
+  if (!lv || !v || !v.ok || run.status !== 'done' || !run.fresh) return null;
+  const T = LASTS.levers;
+  return (
+    <section class="plan-section lasts-levers" data-section="levers" data-testid="plan.lasts.levers">
+      <h2>{T.title}</h2>
+      <p class="note">{T.lead}</p>
+      {lv.compare && <p class="note" data-testid="plan.lasts.levers.locked">{fill(T.locked, lv.compare.slots)}</p>}
+      <ul class="lever-list" data-levers>
+        {['spendMore', 'work', 'fall'].map((kind) => <Lever key={kind} kind={kind} lv={lv[kind]} dispatch={dispatch} workDraft={lv.workDraft} />)}
+      </ul>
+    </section>
+  );
+}
+
 /** The derived figures (10.2): shown, never asked. */
 function Derived({ L }) {
   return (
@@ -185,7 +251,7 @@ export function LastsScreen(state, dispatch) {
     </>
   );
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
-  const answer = <Answer L={L} onChange={onChange} dispatch={dispatch} view={view} />;
+  const answer = <><Answer L={L} onChange={onChange} dispatch={dispatch} view={view} /><Levers L={L} dispatch={dispatch} /></>;
 
   // A locked plan, or one shown as saved: the result, then the dials read-only (10.5).
   if (!L.editable) {

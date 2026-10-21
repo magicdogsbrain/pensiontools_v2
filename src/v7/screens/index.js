@@ -16,6 +16,8 @@ import { AnswerScreen as AnswerB } from './b/AnswerScreen.jsx';
 import { ChoicesScreen } from './b/ChoicesScreen.jsx';
 import { SpendScreen as SpendA } from './a/SpendScreen.jsx';
 import { SpendScreen as SpendB } from './b/SpendScreen.jsx';
+import { NumbersScreen as NumbersD } from './d/NumbersScreen.jsx';
+import { AnswerScreen as AnswerD } from './d/AnswerScreen.jsx';
 import { keepScreen } from './KeepScreen.jsx';
 import { PlansScreen } from './plan/PlansScreen.jsx';
 import { PlanScreen } from './plan/PlanScreen.jsx';
@@ -41,6 +43,10 @@ export const SCREENS = {
   'b.answer': AnswerB,
   'b.choices': ChoicesScreen,
   'b.keep': keepScreen('b'),
+  // "Will it last?" (research/v7/answer-D.md; road-to-7.md step 7)
+  'd.numbers': NumbersD,
+  'd.answer': AnswerD,
+  'd.keep': keepScreen('d'),
   soon: Soon,
   notBuilt: NotBuilt,
   // the saved plans, read-only (research/v7/your-plan.md)

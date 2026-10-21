@@ -1,11 +1,11 @@
 /**
- * "Save this as a plan" in the shell (research/v7/save-as-plan.md, Contract C.2): when an answer can be saved, the
- * name box, the checks, the effect that writes the plan seed and opens the planner — and what V7 says on coming back.
+ * "Keep this as a plan" in the shell (research/v7/save-as-plan.md; road-to-7.md step 7 — the preview makes the plan itself):
+ * when an answer can be kept, the name box, the checks, what the reducer does when the one write file says the plan is
+ * made (keep/made) or could not be (keep/failed), what the draft store keeps of it, the rail's "Kept", and what the test
+ * hook may draw. The create itself — the plan written to the account or this window — is tests/v7/plan/planCreate.test.js.
  *
- * Safety rules checked here: the address V7 opens is exactly '../#new-plan' (no figure in it, ever); the seed is
- * written only under 'pt_v7_plan_seed', only after "Save as a plan", and is the contract's own (buildPlanSeed); a
- * browser that refuses storage gets a plain sentence and no navigation; V7 deletes any seed over a day old at start-up
- * and says "Saved as" only on the planner's receipt that it made the plan (review, 1 Oct 2026).
+ * Retired with step 7: the seed written to localStorage, the planner opened at ../#new-plan, the receipt read on coming
+ * back. tests/v7/boundaries.test.js holds that none of it is left anywhere in V7.
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../src/v7/rail/questions.js', async () => (await import('./_allOpen.js')).allOpen());
@@ -14,27 +14,27 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
-import { keepView } from '../../../src/v7/state/select.js';
+import { keepView, lockedPlanInAccount } from '../../../src/v7/state/select.js';
 import { createStore } from '../../../src/v7/effects/store.js';
-import { startPlanSeed, seedOutcome, purgeStale, PLANNER_ADDRESS, localStore } from '../../../src/v7/effects/planSeed.js';
 import { railFor } from '../../../src/v7/rail/index.js';
 import { startDraftStore, loadDraft, DRAFT_KEY } from '../../../src/v7/effects/draftStore.js';
-import { buildPlanSeed, SEED_KEY, RECEIPT_KEY, seedProblems } from '../../../src/answers/keep/planSeed.js';
-import { initialState } from '../../../src/v7/state/initial.js';
+import { initialState, cleanMade } from '../../../src/v7/state/initial.js';
 import { fakeStorage } from './_shell.js';
 import { TODAY } from './_open.js';
 
 const states = (q, name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${name}.json`), 'utf8'));
 /** A pinned answer state, through the reducer's own door (state/replace), as the test hook draws it. */
 const loaded = (q, name) => reduce(initialState({ today: TODAY, build: 'test' }), { type: A.STATE_REPLACE, state: states(q, name) });
-const NOW = new Date('2026-09-30T14:03:22.511Z');
+const run = (state, ...actions) => actions.reduce((s, a) => reduce(s, a), state);
+const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 (2)', where: 'account' };
 
-describe('when an answer can be saved', () => {
+describe('when an answer can be kept', () => {
   it('a final answer, for what is typed now, of status ok: the box holds the suggested name', () => {
     const v = keepView(loaded('a', 'answer-A1'), 'a');
-    expect(v).toMatchObject({ can: true, why: null, suggested: 'Stop at 60 · £1,900 a month', name: 'Stop at 60 · £1,900 a month', problem: null, saving: false });
+    expect(v).toMatchObject({ can: true, why: null, suggested: 'Stop at 60 · £1,900 a month', name: 'Stop at 60 · £1,900 a month', problem: null, saving: false, made: null, separate: false });
     expect(keepView(loaded('c', 'answer-F1'), 'c').name).toBe('From 58 · £1,350 a month');
     expect(keepView(loaded('b', 'answer-B1'), 'b').name).toBe('Stop at 60 · £2,000 a month · paying £700');
+    expect(keepView(loaded('d', 'answer-D1'), 'd').name).toBe('From 68 · £2,100 a month');
   });
   it('not while there is nothing, a first figure, or a figure for what was typed before; not for an answer of no pot', () => {
     expect(keepView(loaded('a', 'answer-nothing-entered'), 'a').why).toBe('noAnswer');
@@ -46,7 +46,9 @@ describe('when an answer can be saved', () => {
     expect(keepView(loaded('c', 'answer-pensions-only'), 'c').why).toBe('notOk');
     expect(keepView(loaded('c', 'answer-closed-years'), 'c').why).toBe('closedYears');
     expect(keepView(loaded('b', 'answer-out-of-reach'), 'b').why).toBe('notOk');
+    expect(keepView(loaded('d', 'answer-pensions-only'), 'd').why).toBe('notOk');
     expect(keepView(loaded('a', 'answer-no'), 'a').can).toBe(true);                       // a "no" is still a try
+    expect(keepView(loaded('d', 'answer-no'), 'd').can).toBe(true);
     const typedSince = reduce(loaded('a', 'answer-A1'), { type: A.DRAFT_SET, q: 'a', path: 'stop.age', value: '61' });
     expect(keepView(typedSince, 'a')).toMatchObject({ can: false, why: 'notCurrent', name: '' });
   });
@@ -55,6 +57,17 @@ describe('when an answer can be saved', () => {
     expect(keepView(s, 'a').name).toBe('The early one');
     s = reduce(s, { type: A.DRAFT_SET, q: 'a', path: 'stop.age', value: '61' });
     expect(s.keep.a.name).toBe('The early one');
+  });
+  it('D with a locked plan in the account keeps a separate plan (answer-D.md 3.8); the other questions do not', () => {
+    const locked = { plan: { id: 'Kq8LwT2mJv5PzYc9BnRd', planDetails: { name: 'Ladder' }, decisionTool: { settings: { locked: true } } }, newer: false, failed: false };
+    const open = { plan: { id: 'guest-k3v9x1qa', planDetails: { name: 'Open' }, decisionTool: { settings: { locked: false } } }, newer: false, failed: false };
+    const withPlans = (state, list) => run(state, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } }, { type: A.PLANS_SET, list, source: 'account', readAt: '14:03' });
+    expect(lockedPlanInAccount(loaded('d', 'answer-D1'))).toBe(null);
+    expect(lockedPlanInAccount(withPlans(loaded('d', 'answer-D1'), [open]))).toBe(false);
+    expect(lockedPlanInAccount(withPlans(loaded('d', 'answer-D1'), [open, locked]))).toBe(true);
+    expect(keepView(withPlans(loaded('d', 'answer-D1'), [locked]), 'd').separate).toBe(true);
+    expect(keepView(withPlans(loaded('d', 'answer-D1'), [open]), 'd').separate).toBe(false);
+    expect(keepView(withPlans(loaded('a', 'answer-A1'), [locked]), 'a').separate).toBe(false);
   });
 });
 
@@ -66,7 +79,7 @@ describe('keep/save checks first', () => {
     expect(long.keep.a.problem).toBe('tooLong');
     expect(reduce(long, { type: A.KEEP_NAME, q: 'a', value: 'Shorter' }).keep.a.problem).toBe(null);   // typing clears it
   });
-  it('an answer that cannot be saved is refused, never sent', () => {
+  it('an answer that cannot be kept is refused, never sent', () => {
     expect(reduce(loaded('a', 'answer-first'), { type: A.KEEP_SAVE, q: 'a' }).keep.a).toMatchObject({ problem: 'notReady', saving: false });
   });
   it('all right: saving, once — a second press while it is under way changes nothing', () => {
@@ -76,184 +89,77 @@ describe('keep/save checks first', () => {
   });
 });
 
-function run(state, ...actions) { return actions.reduce((s, a) => reduce(s, a), state); }
-
-/** A page: the store, the tab's storage and the browser's, the plan seed effect, and where it would go. */
-function page(state, { storage = fakeStorage(), session = fakeStorage(), now = () => NOW } = {}) {
-  const store = createStore(state, reduce);
-  const went = [];
-  const order = [];
-  const sessionWrites = session.writes;
-  const stopDraft = startDraftStore(store, session);
-  const stop = startPlanSeed(store, { storage, session, now, go: (a) => { order.push(`go:${sessionWrites.length}`); went.push(a); } });
-  return { store, storage, session, went, order, stop: () => { stop(); stopDraft(); } };
-}
-const settle = () => new Promise((r) => setTimeout(r, 0));
-
-describe('the effect: the seed, then the planner', () => {
-  it.each([['c', 'answer-F1'], ['c', 'answer-F2'], ['a', 'answer-A1'], ['a', 'answer-A2-couple'], ['b', 'answer-B1'], ['b', 'answer-B5-couple']])(
-    '%s %s: writes the contract\'s seed under its key, says it was sent, then opens ../#new-plan — and nothing else', async (q, name) => {
-      const p = page(loaded(q, name));
-      p.store.dispatch({ type: A.KEEP_NAME, q, value: '  My first   try ' });
-      p.store.dispatch({ type: A.KEEP_SAVE, q });
-      const text = p.storage.getItem(SEED_KEY);
-      expect(text).not.toBe(null);
-      const seed = JSON.parse(text);
-      const state = p.store.getState();
-      expect(seed).toEqual(buildPlanSeed({ source: q, result: state.answers[q].result, env: state.env, name: { suggested: keepView(loaded(q, name), q).suggested, chosen: 'My first try' },
-        budget: null, spendHow: null, createdAt: NOW.toISOString() }));
-      expect(seedProblems(seed)).toEqual([]);
-      expect(state.keep[q]).toMatchObject({ name: null, saving: false, problem: null, sent: { name: 'My first try', createdAt: NOW.toISOString() } });   // the next try gets its own name
-      expect(p.went).toEqual([]);                                     // not yet: after every listener has seen keep/sent
-      await settle();
-      expect(p.went).toEqual([PLANNER_ADDRESS]);
-      expect(PLANNER_ADDRESS).toBe('../#new-plan');
-      expect(/\d/.test(PLANNER_ADDRESS)).toBe(false);
-      expect(p.storage.writes).toEqual([SEED_KEY]);                   // the browser's storage: the seed and nothing else
-      // the tab had already kept the save before the page moved on, so coming back can say so
-      expect(loadDraft(p.session).kept[q].sent).toEqual({ name: 'My first try', createdAt: NOW.toISOString() });
-      expect(p.order).toEqual([`go:${p.session.writes.length}`]);
-      p.stop();
-    });
-  it('carries the budget sheet and how the spending was chosen — a passenger: the figures are the answer\'s', async () => {
-    let s = loaded('a', 'answer-A1');
-    s = run(s, { type: A.SPEND_HOW, q: 'a', how: 'lines' }, { type: A.BUDGET_LINE, id: 'l2', field: 'amount', value: '150' });
-    expect(keepView(s, 'a').can).toBe(true);                        // the sheet changed nothing the answer was worked out from
-    const p = page(s);
-    p.store.dispatch({ type: A.KEEP_SAVE, q: 'a' });
-    const seed = JSON.parse(p.storage.getItem(SEED_KEY));
-    expect(seed.spend).toMatchObject({ perMonth: 1900, from: 'budget', budgetSkipped: false });
-    expect(seed.budget.lines).toEqual([{ heading: 'home', label: 'Council tax', annual: 1800, period: 'mo', essential: true }]);
-    p.stop();
+describe('keep/made and keep/failed: what the one write file says', () => {
+  it('made: the plan\'s id, name and where it is are kept; the box goes back to following the answer; the rail says "Kept" and the step is done', () => {
+    const saving = reduce(loaded('a', 'answer-A1'), { type: A.KEEP_SAVE, q: 'a' });
+    const s = reduce(run(saving, { type: A.KEEP_NAME, q: 'a', value: 'Typed' }), { type: A.KEEP_MADE, q: 'a', ...MADE });
+    expect(s.keep.a).toEqual({ name: null, problem: null, saving: false, partnerKept: null, made: { ...MADE, partnerId: null, partnerName: null, separate: false } });
+    expect(keepView(s, 'a')).toMatchObject({ name: 'Stop at 60 · £1,900 a month', made: { id: MADE.id, name: 'Stop at 60 (2)', where: 'account' } });
+    const rail = railFor(s);
+    expect(rail.steps.find((x) => x.id === 'keep')).toMatchObject({ state: 'done', result: { text: 'Kept' } });
+    // a couple: the partner's plan beside it; D: a separate plan
+    const couple = reduce(loaded('a', 'answer-A2-couple'), { type: A.KEEP_MADE, q: 'a', ...MADE, partnerId: 'guest-k3v9x1qa', partnerName: 'Stop at 60 (2) · partner', where: 'window' });
+    expect(couple.keep.a.made).toEqual({ ...MADE, where: 'window', partnerId: 'guest-k3v9x1qa', partnerName: 'Stop at 60 (2) · partner', separate: false });
+    expect(reduce(loaded('d', 'answer-D1'), { type: A.KEEP_MADE, q: 'd', ...MADE, separate: true }).keep.d.made.separate).toBe(true);
   });
-  it('a browser that will not keep it: the plain sentence, no navigation, nothing in an address', async () => {
-    const refusing = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {}, writes: [] };
-    const p = page(loaded('a', 'answer-A1'), { storage: refusing });
-    p.store.dispatch({ type: A.KEEP_SAVE, q: 'a' });
-    await settle();
-    expect(p.store.getState().keep.a).toMatchObject({ saving: false, problem: 'storage', sent: null });
-    expect(p.went).toEqual([]);
-    const none = page(loaded('a', 'answer-A1'), { storage: null });
-    none.store.dispatch({ type: A.KEEP_SAVE, q: 'a' });
-    await settle();
-    expect(none.store.getState().keep.a.problem).toBe('storage');
-    expect(none.went).toEqual([]);
+  it('made with nothing to show for it is refused: an id, a name and where are needed; junk in them is dropped', () => {
+    const s = loaded('a', 'answer-A1');
+    expect(() => reduce(s, { type: A.KEEP_MADE, q: 'a', name: 'x', where: 'account' })).toThrow();
+    expect(() => reduce(s, { type: A.KEEP_MADE, q: 'a', id: 'p1', name: '', where: 'account' })).toThrow();
+    expect(() => reduce(s, { type: A.KEEP_MADE, q: 'a', id: 'p1', name: 'x', where: 'elsewhere' })).toThrow();
+    expect(() => reduce(s, { type: A.KEEP_MADE, q: 'a', id: 'no spaces here', name: 'x', where: 'account' })).toThrow();
+    expect(cleanMade({ id: 'p1', name: 'x', where: 'window', partnerId: 'bad id', partnerName: 'y' })).toEqual({ id: 'p1', name: 'x', where: 'window', partnerId: null, partnerName: null, separate: false });
+    expect(cleanMade(null)).toBe(null);
   });
-  it('nothing is written or opened unless "Save as a plan" was pressed', async () => {
-    const p = page(loaded('c', 'answer-F1'));
-    for (const a of [{ type: A.KEEP_NAME, q: 'c', value: 'x' }, { type: A.UI_TOGGLE, id: 'more' }, { type: A.ROUTE_SET, route: { screen: 'step', q: 'c', step: 'keep', planId: null, focus: null } }]) p.store.dispatch(a);
-    await settle();
-    expect(p.storage.writes).toEqual([]);
-    expect(p.went).toEqual([]);
+  it('failed: the problem is kept, saving ends, the box and the figures stay; an unknown problem reads as "failed"', () => {
+    const saving = reduce(loaded('b', 'answer-B1'), { type: A.KEEP_SAVE, q: 'b' });
+    for (const problem of ['notReady', 'full', 'usedUp', 'unverified', 'storage', 'failed']) {
+      const s = reduce(saving, { type: A.KEEP_FAILED, q: 'b', problem });
+      expect(s.keep.b).toMatchObject({ saving: false, problem, made: null, partnerKept: null });
+      expect(s.answers.b).toBe(saving.answers.b);
+    }
+    expect(reduce(saving, { type: A.KEEP_FAILED, q: 'b', problem: 'sideways' }).keep.b.problem).toBe('failed');
+    const partial = reduce(saving, { type: A.KEEP_FAILED, q: 'b', problem: 'partial', name: 'Ours · partner' });
+    expect(partial.keep.b).toMatchObject({ problem: 'partial', partnerKept: 'Ours · partner' });
+    expect(keepView(partial, 'b').partnerKept).toBe('Ours · partner');
+    // the next try clears it
+    expect(reduce(reduce(partial, { type: A.KEEP_SAVE, q: 'b' }), { type: A.KEEP_MADE, q: 'b', ...MADE }).keep.b.partnerKept).toBe(null);
   });
-  it('a window that will not hand over its storage', () => {
-    expect(localStore({ get localStorage() { throw new Error('SecurityError'); } })).toBe(null);
-    expect(localStore({})).toBe(null);
-    const s = fakeStorage();
-    expect(localStore({ localStorage: s })).toBe(s);
+  it('the retired actions are gone: keep/sent and keep/back are not actions the reducer knows', () => {
+    expect(A.KEEP_SENT).toBeUndefined();
+    expect(A.KEEP_BACK).toBeUndefined();
+    expect(() => reduce(loaded('a', 'answer-A1'), { type: 'keep/sent', q: 'a', name: 'x', createdAt: '2026-09-30T08:00:00.000Z' })).toThrow();
+    expect(() => reduce(loaded('a', 'answer-A1'), { type: 'keep/back', q: 'a', outcome: 'taken' })).toThrow();
   });
 });
 
-describe('coming back', () => {
-  const sentState = (createdAt = NOW.toISOString()) => {
-    const s = loaded('a', 'answer-A1');
-    return reduce(s, { type: A.KEEP_SENT, q: 'a', name: 'Stop at 60', createdAt });
-  };
-  /** This tab's session storage holding the planner's receipt for the seed sent at NOW. */
-  const receipt = (r, at = NOW.toISOString()) => fakeStorage({ [RECEIPT_KEY]: JSON.stringify({ [at]: r }) });
-  it('the seed still there, as sent: waiting in the planner', () => {
-    const storage = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: NOW.toISOString() }) });
-    expect(seedOutcome(storage, NOW.toISOString(), NOW.getTime() + 60_000)).toEqual({ outcome: 'waiting' });
-    const p = page(sentState(), { storage });
-    expect(p.store.getState().keep.a.back).toBe('waiting');
-    expect(keepView(p.store.getState(), 'a').back).toBe('waiting');
-  });
-  it('"Saved as …" only on the planner\'s word that it made the plan — under the name it was made with', () => {
-    expect(seedOutcome(fakeStorage(), NOW.toISOString(), NOW.getTime(), receipt({ outcome: 'made', name: 'Stop at 60 (2)' }))).toEqual({ outcome: 'taken', name: 'Stop at 60 (2)' });
-    const p = page(sentState(), { storage: fakeStorage(), session: receipt({ outcome: 'made', name: 'Stop at 60 (2)' }) });
-    expect(p.store.getState().keep.a).toMatchObject({ back: 'taken', sent: { name: 'Stop at 60 (2)', createdAt: NOW.toISOString() } });
-    expect(railFor(p.store.getState(), 'a').steps.find((x) => x.id === 'keep').state).toBe('done');
-  });
-  it('"Not now" in the planner (found 1 Oct 2026: V7 said "Saved as" and ticked the step): declined, and the step is not done', () => {
-    const p = page(sentState(), { storage: fakeStorage(), session: receipt({ outcome: 'declined' }) });
-    expect(p.store.getState().keep.a).toMatchObject({ back: 'declined', sent: { name: 'Stop at 60' } });
-    expect(railFor(p.store.getState(), 'a').steps.find((x) => x.id === 'keep').state).not.toBe('done');
-  });
-  it('figures the planner could not use, or a sign-out deleted: not made', () => {
-    for (const outcome of ['refused', 'cleared']) {
-      expect(seedOutcome(fakeStorage(), NOW.toISOString(), NOW.getTime(), receipt({ outcome }))).toEqual({ outcome: 'notMade' });
-      const p = page(sentState(), { storage: fakeStorage(), session: receipt({ outcome }) });
-      expect(p.store.getState().keep.a.back).toBe('notMade');
-    }
-  });
-  it('gone or replaced with no word from the planner: nothing is claimed either way, and the save is forgotten', () => {
-    expect(seedOutcome(fakeStorage(), NOW.toISOString(), NOW.getTime())).toEqual({ outcome: 'unknown' });
-    expect(seedOutcome(fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: '2026-09-30T15:00:00.000Z' }) }), NOW.toISOString(), NOW.getTime())).toEqual({ outcome: 'unknown' });
-    expect(seedOutcome(fakeStorage({ [SEED_KEY]: '{oops' }), NOW.toISOString(), NOW.getTime(), fakeStorage({ [RECEIPT_KEY]: '{oops' }))).toEqual({ outcome: 'unknown' });
-    expect(seedOutcome(null, NOW.toISOString(), NOW.getTime(), null)).toEqual({ outcome: 'unknown' });
-    const p = page(sentState(), { storage: fakeStorage() });
-    expect(p.store.getState().keep.a).toMatchObject({ back: null, sent: null });
-  });
-  it('a seed of its own over a day old is deleted, and nothing is claimed', () => {
-    const storage = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: NOW.toISOString() }) });
-    const later = NOW.getTime() + 24 * 60 * 60 * 1000 + 1;
-    expect(seedOutcome(storage, NOW.toISOString(), later)).toEqual({ outcome: 'gone' });
-    expect(storage.getItem(SEED_KEY)).toBe(null);
-    const again = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: NOW.toISOString() }) });
-    const p = page(sentState(), { storage: again, now: () => new Date(later) });
-    expect(p.store.getState().keep.a).toMatchObject({ sent: null, back: null });
-  });
-  it('a seed over a day old is deleted at start-up WHICHEVER tab wrote it (privacy: never used after a day); a fresh one is left', () => {
-    const old = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: '2026-08-31T09:00:00.000Z', people: [{ budget: 'Personal health' }] }) });
-    page(initialState({ today: TODAY, build: 'test' }), { storage: old });
-    expect(old.getItem(SEED_KEY)).toBe(null);
-    const junk = fakeStorage({ [SEED_KEY]: '{oops' });
-    page(initialState({ today: TODAY, build: 'test' }), { storage: junk });
-    expect(junk.getItem(SEED_KEY)).toBe(null);
-    const fresh = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: new Date(NOW.getTime() - 60_000).toISOString() }) });
-    const p = page(initialState({ today: TODAY, build: 'test' }), { storage: fresh });
-    expect(fresh.getItem(SEED_KEY)).not.toBe(null);
-    expect(fresh.writes).toEqual([]);
-    expect(purgeStale(null, NOW.getTime())).toBe(false);
-    p.stop();
-  });
-  it('a page shown again from the back-forward cache (no start-up) looks again', () => {
-    const storage = fakeStorage({ [SEED_KEY]: JSON.stringify({ createdAt: NOW.toISOString() }) });
+describe('the draft store keeps the name as typed and the plan made — so a reload still says "Kept as"', () => {
+  it('a reload keeps them, and nothing else of the answer', () => {
     const session = fakeStorage();
-    const store = createStore(sentState(), reduce);
-    let shown = null;
-    let stopped = false;
-    const stop = startPlanSeed(store, { storage, session, now: () => NOW, go: () => {}, onShow: (fn) => { shown = fn; return () => { stopped = true; }; } });
-    expect(store.getState().keep.a.back).toBe('waiting');
-    storage.removeItem(SEED_KEY);                                    // the planner took it meanwhile …
-    session.setItem(RECEIPT_KEY, JSON.stringify({ [NOW.toISOString()]: { outcome: 'made', name: 'Stop at 60' } }));   // … and said so
-    shown();
-    expect(store.getState().keep.a.back).toBe('taken');
-    stop();
-    expect(stopped).toBe(true);
-  });
-  it('a reload keeps the last save sent from this tab (the draft store), and nothing else of it', () => {
-    const session = fakeStorage();
-    const store = createStore(sentState(), reduce);
+    const store = createStore(reduce(loaded('a', 'answer-A1'), { type: A.KEEP_MADE, q: 'a', ...MADE }), reduce);
     startDraftStore(store, session);
     store.dispatch({ type: A.KEEP_NAME, q: 'a', value: 'Typed' });
     const kept = loadDraft(session);
-    expect(kept.kept).toEqual({ a: { name: 'Typed', sent: { name: 'Stop at 60', createdAt: NOW.toISOString() } } });
+    expect(kept.kept).toEqual({ a: { name: 'Typed', made: { ...MADE, partnerId: null, partnerName: null, separate: false } } });
     expect(session.getItem(DRAFT_KEY)).not.toMatch(/careful|middling|monthly|result|1,770|417982/);   // what was typed, never the answer's figures
     const back = initialState({ today: TODAY, build: 'test', draft: kept });
-    expect(back.keep.a).toEqual({ name: 'Typed', problem: null, saving: false, sent: { name: 'Stop at 60', createdAt: NOW.toISOString() }, back: null });
+    expect(back.keep.a).toEqual({ name: 'Typed', problem: null, saving: false, partnerKept: null, made: { ...MADE, partnerId: null, partnerName: null, separate: false } });
+    // the old shape of a kept save ({ sent }) is simply not read
+    const old = initialState({ today: TODAY, build: 'test', draft: { kept: { a: { name: 'Old', sent: { name: 'Old', createdAt: '2026-09-30T08:00:00.000Z' } } } } });
+    expect(old.keep.a).toEqual({ name: 'Old', problem: null, saving: false, partnerKept: null, made: null });
   });
 });
 
-describe('the test hook draws a state with its budget and its saves — cleaned as the tab\'s own store would be', () => {
-  it('state/replace keeps a sheet and a save, and drops what neither can hold', () => {
+describe('the test hook draws a state with its budget and its keeps — cleaned as the tab\'s own store would be', () => {
+  it('state/replace keeps a sheet and a plan made, and drops what neither can hold', () => {
     const s = states('a', 'answer-A1');
     s.budget = { version: 1, lines: [{ id: 'l1', heading: 'home', label: 'Council tax', amount: '150', period: 'mo', essential: true, starter: true, junk: 1 }], oneOffs: [], touched: [] };
-    s.keep = { a: { name: 'Mine', sent: { name: 'Mine', createdAt: '2026-09-30T14:00:00.000Z' }, back: 'taken', problem: 'storage', saving: true }, c: { back: 'sideways', problem: 'oops' } };
+    s.keep = { a: { name: 'Mine', made: { ...MADE, junk: 1 }, problem: 'storage', saving: true, sent: { name: 'x' } }, c: { back: 'sideways', problem: 'oops' } };
     const t = reduce(initialState({ today: TODAY, build: 'test' }), { type: A.STATE_REPLACE, state: s });
     expect(t.budget.lines).toEqual([{ id: 'l1', heading: 'home', label: 'Council tax', amount: '150', period: 'mo', essential: true, starter: true }]);
-    expect(t.keep.a).toEqual({ name: 'Mine', problem: 'storage', saving: false, sent: { name: 'Mine', createdAt: '2026-09-30T14:00:00.000Z' }, back: 'taken' });
-    expect(t.keep.c).toEqual({ name: null, problem: null, saving: false, sent: null, back: null });
-    expect(t.keep.b).toEqual({ name: null, problem: null, saving: false, sent: null, back: null });
+    expect(t.keep.a).toEqual({ name: 'Mine', problem: 'storage', saving: false, partnerKept: null, made: { ...MADE, partnerId: null, partnerName: null, separate: false } });
+    expect(t.keep.c).toEqual({ name: null, problem: null, saving: false, partnerKept: null, made: null });
+    expect(t.keep.b).toEqual({ name: null, problem: null, saving: false, partnerKept: null, made: null });
+    expect(t.keep.d).toEqual({ name: null, problem: null, saving: false, partnerKept: null, made: null });
   });
 });

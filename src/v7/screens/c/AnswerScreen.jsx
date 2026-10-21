@@ -43,7 +43,7 @@ function ToSaver({ q, dispatch, partner = false, children }) {
   return <LinkButton testid={`c.next.${q}`} href={partner ? href.step(q, 'numbers') : OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
 }
 
-/** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Save this as a plan" follows. */
+/** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Keep this as a plan" follows. */
 function WhatNext({ result, dispatch }) {
   const partner = partnerStillWorking(result);
   const working = (
@@ -59,7 +59,7 @@ function WhatNext({ result, dispatch }) {
     <div class="next-group" key="stopped" data-testid="c.next.stopped">
       <p class="next-prompt">{C.answer.stopped}</p>
       <ul class="next-list">
-        <li><LinkButton href={href.soon('d')}>{C.answer.willItLast}</LinkButton></li>
+        <li><LinkButton testid="c.next.d" href={href.step('d', 'numbers')}>{C.answer.willItLast}</LinkButton></li>
       </ul>
     </div>
   );

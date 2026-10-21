@@ -6,6 +6,7 @@
  *   npx -y node@20 tests/v7/states/build-states.mjs                  question C (futures: 1,000 — what the published page shows)
  *   npx -y node@20 tests/v7/states/build-states.mjs --question a     question A (states/a/), with src/answers/a/answer.js
  *   npx -y node@20 tests/v7/states/build-states.mjs --question b     question B
+ *   npx -y node@20 tests/v7/states/build-states.mjs --question d     question D (states/d/), with src/answers/d/answer.js
  *   V7_STATES_FUTURES=40 npx -y node@20 tests/v7/states/build-states.mjs
  *   … --only numbers-apart,answer-apart      writes only the states named (the others, and made-with.json, are left as
  *                                            they are): a new state is added without touching the pinned ones
@@ -33,6 +34,8 @@ import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
+import { SCHEMA_D } from '../../../src/answers/d/schema.js';
+import { answerD } from '../../../src/answers/d/answer.js';
 import { outOfTen } from '../../../src/answers/shared/format.js';
 import { verdictOf } from '../../../src/answers/shared/rules.js';
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';
@@ -44,7 +47,7 @@ const TODAY = '2026-09-30';
 const FUTURES = Number(process.env.V7_STATES_FUTURES || 1000);
 const at = process.argv.indexOf('--question');
 const QUESTION = at === -1 ? 'c' : process.argv[at + 1];
-if (!['a', 'b', 'c'].includes(QUESTION)) throw new Error(`--question takes a, b or c, not ${QUESTION}`);
+if (!['a', 'b', 'c', 'd'].includes(QUESTION)) throw new Error(`--question takes a, b, c or d, not ${QUESTION}`);
 const argOf = (name) => { const i = process.argv.indexOf(name); return i === -1 ? null : process.argv[i + 1]; };
 const ONLY = argOf('--only') ? argOf('--only').split(',').map((x) => x.trim()).filter(Boolean) : null;
 const OUT = argOf('--out');
@@ -327,6 +330,122 @@ function buildSaverStates(q, { today, futures, inputsKey: keyOf }) {
   return { states, patched: made, answer: `src/answers/${q}/answer.js` };
 }
 
+// =====================================================================================================================
+// Question D (research/v7/answer-D.md; road-to-7.md step 7): `--question d`, from the real answerD. As A and B: every
+// state's answer is worked out for what is typed; `expectKind` stops the script if the inputs no longer give the kind.
+// The households are made up (Alex and Sam): nobody's own.
+// =====================================================================================================================
+
+/** The design's worked example (answer-D.md 1): 68, £300,000 left, £40,000 of savings, the full State Pension, £2,100 a month. */
+const D1 = { 'you.age': '68', 'you.pot': '300,000', 'you.taxFreeTaken': 'no', savings: '40,000', 'spend.amount': '2,100' };
+/** A couple of 72 and 70, both stopped, one final-salary pension, the tax-free part had (answer-D.md 11.4 D2). */
+const D2 = { household: 'couple', 'you.age': '72', 'you.pot': '250,000', 'you.taxFreeTaken': 'yes', 'you.finalSalary.has': true, 'you.finalSalary.yearly': '8,000', 'you.finalSalary.fromAge': '65',
+  'partner.age': '70', 'partner.pot': '150,000', 'partner.taxFreeTaken': 'yes', savings: '30,000', 'spend.amount': '2,800' };
+/** 62, stopped, under State Pension age, an invested ISA larger than the pension (D3). */
+const D3 = { 'you.age': '62', 'you.pot': '120,000', 'you.taxFreeTaken': 'no', savings: '200,000', isaGrowth: 'invested', 'spend.amount': '2,000' };
+/** 53, stopped, the pension closed until 57, savings paying meanwhile (D5). */
+const D5 = { 'you.age': '53', 'you.pot': '250,000', 'you.taxFreeTaken': 'no', savings: '60,000', 'spend.amount': '1,800' };
+/** 66, thinking about work: £15,000 a year for 3 years (D7). */
+const D7 = { 'you.age': '66', 'you.pot': '220,000', 'you.taxFreeTaken': 'some', savings: '10,000', 'spend.amount': '2,200', 'work.has': true, 'work.yearly': '15,000', 'work.years': '3' };
+
+const KIND_D = {
+  yes: (r) => r.status === 'ok' && r.verdict === 'yes',
+  close: (r) => r.status === 'ok' && r.verdict === 'close',
+  no: (r) => r.status === 'ok' && r.verdict === 'no',
+  couple: (r) => r.status === 'ok' && r.inputs.household === 'couple',
+  invested: (r) => r.status === 'ok' && r.inputs.isaGrowth === 'invested',
+  closed: (r) => r.status === 'ok' && r.phases.some((ph) => ph.pensionOpen === false),
+  work: (r) => r.status === 'ok' && !!r.work && Array.isArray(r.work.byYears) && r.work.byYears.length > 0,
+  fall: (r) => r.status === 'ok' && !!r.fall,
+  guaranteedOnly: (r) => r.status === 'guaranteed-only'
+};
+
+function dState(step, values, extra = {}) {
+  const s = initialState({ today: TODAY, build: 'test' });
+  s.route = { screen: 'step', q: 'd', step, planId: null, focus: extra.focus || null };
+  s.draft.d.values = { ...values };
+  Object.assign(s.draft.d, extra.draft || {});
+  if (extra.open) s.ui.open = extra.open;
+  return s;
+}
+
+function buildDStates({ today, futures, inputsKey: keyOf }) {
+  const keyFor = (s) => {
+    const parsed = parseDraft(SCHEMA_D, s.draft.d.values, s.env);
+    if (!parsed.ok) throw new Error(`the draft does not parse: ${JSON.stringify(parsed.errors)}`);
+    return { parsed, key: keyOf(parsed.inputs, s.env) };
+  };
+  function answered(name, step, values, { status = 'final', kind = null, open = [], n = futures } = {}) {
+    const s = dState(step, values, { draft: { asked: true }, open });
+    const { parsed, key } = keyFor(s);
+    const result = answerD(parsed.inputs, { today, futures: n, seed: 0, trace: false });
+    if (kind && !KIND_D[kind](result)) throw new Error(`d/${name}: the inputs no longer give a "${kind}" answer — choose new inputs`);
+    s.answers.d = { ...s.answers.d, status, inputsKey: key, result };
+    return s;
+  }
+  const states = {};
+  states['numbers-blank'] = dState('numbers', {});
+  states['numbers-couple-open'] = dState('numbers', D2);
+  states['numbers-more-open'] = dState('numbers', D1, { open: ['more'] });
+  // "Not yet" under "Have you stopped work?": the box's own sentence points at "When can I afford to stop work?"
+  states['numbers-still-working'] = dState('numbers', { ...D1, stopped: 'notYet' }, { draft: { touched: ['stopped'] } });
+  // the way in (answer-D.md 3.10): a plan in this window — its own test is offered first
+  {
+    const s = dState('numbers', {});
+    s.session = { kind: 'nobody', email: null, signingOut: false };
+    s.plans = { status: 'read', source: 'window', readAt: '14:03', usedUp: false,
+      list: [{ plan: { id: 'guest-wayin001', planDetails: { name: 'Kept from a first answer' }, decisionTool: { settings: { locked: false } } }, newer: false, failed: false }] };
+    states['numbers-way-in'] = s;
+  }
+  states['answer-nothing-entered'] = dState('answer', {});
+  {
+    const s = answered('answer-working', 'answer', D1);
+    s.answers.d = { ...s.answers.d, status: 'working', result: null, progress: { done: 40, total: 100 } };
+    states['answer-working'] = s;
+  }
+  states['answer-first'] = answered('answer-first', 'answer', D1, { status: 'first', n: 100 });
+  states['answer-D1'] = answered('answer-D1', 'answer', D1, { kind: 'close' });
+  states['answer-yes'] = answered('answer-yes', 'answer', { ...D1, 'spend.amount': '1,800' }, { kind: 'yes' });
+  states['answer-no'] = answered('answer-no', 'answer', { ...D1, 'spend.amount': '2,600' }, { kind: 'no' });
+  states['answer-D2-couple'] = answered('answer-D2-couple', 'answer', D2, { kind: 'couple' });
+  states['answer-D3-invested'] = answered('answer-D3-invested', 'answer', D3, { kind: 'invested', open: ['madeOf'] });
+  states['answer-D5-closed'] = answered('answer-D5-closed', 'answer', D5, { kind: 'closed' });
+  states['answer-D7-work'] = answered('answer-D7-work', 'answer', D7, { kind: 'work' });
+  states['answer-fall'] = answered('answer-fall', 'answer', { ...D1, 'fall.has': true }, { kind: 'fall' });
+  states['answer-pensions-only'] = answered('answer-pensions-only', 'answer', { 'you.age': '68', 'you.pot': '0', 'you.taxFreeTaken': 'no', 'spend.amount': '900' }, { kind: 'guaranteedOnly' });
+  states['answer-assumed-open'] = answered('answer-assumed-open', 'answer', D1, { open: ['madeOf', 'assumed', 'allAssumed'] });
+  {
+    // What you take has just been changed: the old answer stays, greyed, while the new one is worked out.
+    const s = answered('answer-updating', 'answer', D1);
+    s.draft.d.values['spend.amount'] = '2,300';
+    const { key } = keyFor(s);
+    s.answers.d = { ...s.answers.d, status: 'working', inputsKey: key, progress: { done: 10, total: 100 } };
+    states['answer-updating'] = s;
+  }
+  {
+    const s = answered('answer-failed', 'answer', D1);
+    s.answers.d = { ...s.answers.d, status: 'failed', result: null };
+    states['answer-failed'] = s;
+  }
+  // "Keep this as a plan?" before there is an answer, and with one
+  states['keep-no-answer'] = dState('keep', D1);
+  states['keep-D1'] = answered('keep-D1', 'keep', D1, { kind: 'close' });
+  return { states, patched: [], answer: 'src/answers/d/answer.js' };
+}
+
+if (QUESTION === 'd') {
+  const { states, patched: made, answer } = buildDStates({ today: TODAY, futures: FUTURES, inputsKey });
+  const { target, whole, names } = writeStates(states, join(here, 'd'));
+  if (whole) {
+    writeFileSync(join(target, '_made-with.json'), JSON.stringify({
+      note: 'Written by tests/v7/states/build-states.mjs --question d. Do not edit by hand.',
+      today: TODAY, futures: FUTURES, inputsKeyFrom: keyFrom, answer, patched: made
+    }, null, 2) + '\n');
+  }
+  console.log(`${names.length} states written to ${target}/ (${made.length} with a hand-made result: ${made.join(', ') || 'none'})`);
+  process.exit(0);
+}
+
 if (QUESTION !== 'c') {
   const { states, patched: made, answer } = buildSaverStates(QUESTION, { today: TODAY, futures: FUTURES, inputsKey });
   const { target, whole, names } = writeStates(states, join(here, QUESTION));
@@ -444,8 +563,8 @@ states['answer-apart'] = answered('answer-apart', APART, { open: ['madeOf'] });
   s.answers.c = { ...s.answers.c, status: 'failed', result: null };
   states['answer-failed'] = s;
 }
-// A question that is not in the preview yet (D; before step 4's joining up this was A, which is now built).
-states['soon-d'] = base('#/soon/d');
+// A question that is not in the preview yet (E; before road-to-7.md step 7 this was D, and before step 4's joining up A — both now built).
+states['soon-e'] = base('#/soon/e');
 states['not-built-ways'] = base('#/c/ways', F1);
 states['not-found'] = base('#/plan/abc/c/answer');
 

@@ -413,7 +413,7 @@ describe('12 — "What next?" for someone already drawing their State Pension', 
     const groups1 = [...f1.querySelectorAll('[data-region="next"] .next-group')].map((el) => el.getAttribute('data-testid'));
     expect(groups1).toEqual(['c.next.working', 'c.next.stopped']);
     // Every question is still offered, whichever comes first.
-    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/a/numbers?focus=stop.age', '#/b/numbers?focus=you.payIn.total', '#/soon/d']);
+    for (const root of [f1, f3]) expect([...root.querySelectorAll('[data-region="next"] a')].map((a) => a.getAttribute('href')).sort()).toEqual(['#/a/numbers?focus=stop.age', '#/b/numbers?focus=you.payIn.total', '#/d/numbers']);
   });
   it('reads the answer, never the age alone: a start later than now keeps "Still working?" first', () => {
     const state = load('answer-F3');

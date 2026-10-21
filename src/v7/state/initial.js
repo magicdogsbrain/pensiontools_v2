@@ -16,8 +16,8 @@
  *               (budget/use) ever writes the budget's total into it.
  *   draft.a/b   also `spendHow` (null | 'lines' | 'one') and `skipNoted` (the "you are skipping the budget" note has
  *               been shown) — outside `values`, so never in the checked inputs.
- *   keep        per question: the name box as typed (null = the suggestion), a problem, whether a save is under way,
- *               the last save sent from this tab ({ name, createdAt }), and what was found on coming back to it.
+ *   keep        per question: the name box as typed (null = the suggestion), a problem, whether a keep is under way,
+ *               and the last plan made from this question ({ id, name, where, partnerId, partnerName, separate }).
  */
 import { VERSION } from '../../constants.js';
 import { OPEN } from '../rail/questions.js';
@@ -42,23 +42,37 @@ export const emptyAnswer = () => ({ status: 'idle', inputsKey: null, result: nul
  */
 export const emptySaverDraft = () => ({ ...emptyDraft(), carriedFrom: null, spendHow: null, skipNoted: false });
 
-/** "Save this as a plan", per question (save-as-plan.md Contract C.2). */
-export const emptyKeep = () => ({ name: null, problem: null, saving: false, sent: null, back: null });
+/**
+ * "Keep this as a plan", per question (save-as-plan.md; road-to-7.md step 7): the name box, a problem, a keep under way, the
+ * last plan made from this question, and — a couple whose partner's plan was made but not yours ('partial') — that plan's name.
+ */
+export const emptyKeep = () => ({ name: null, problem: null, saving: false, made: null, partnerKept: null });
+/** Where a plan was made: the account, or this window. */
+export const KEEP_WHERES = Object.freeze(['account', 'window']);
+const PLAN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 const SPEND_HOW = ['lines', 'one'];
-const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 const NAME_MAX = 200;
 
-/** What draftStore kept of one question's "save as a plan": the name as typed, and the last save sent from this tab. */
+/** A plan made from a question, cleaned: its id, its name, where it is, and (a couple) the partner's; or null. */
+export function cleanMade(made) {
+  if (!made || typeof made !== 'object' || typeof made.id !== 'string' || !PLAN_ID.test(made.id)) return null;
+  if (typeof made.name !== 'string' || !made.name || made.name.length > NAME_MAX || !KEEP_WHERES.includes(made.where)) return null;
+  const out = { id: made.id, name: made.name, where: made.where, partnerId: null, partnerName: null, separate: made.separate === true };
+  if (typeof made.partnerId === 'string' && PLAN_ID.test(made.partnerId) && typeof made.partnerName === 'string' && made.partnerName.length <= NAME_MAX) {
+    out.partnerId = made.partnerId;
+    out.partnerName = made.partnerName;
+  }
+  return out;
+}
+
+/** What draftStore kept of one question's "keep as a plan": the name as typed, and the last plan made from this window. */
 export function keptKeep(kept, q) {
   const k = emptyKeep();
   const x = kept && typeof kept === 'object' && kept[q] && typeof kept[q] === 'object' ? kept[q] : null;
   if (!x) return k;
   if (typeof x.name === 'string' && x.name.length <= NAME_MAX) k.name = x.name;
-  const sent = x.sent;
-  if (sent && typeof sent === 'object' && typeof sent.name === 'string' && sent.name.length <= NAME_MAX && typeof sent.createdAt === 'string' && ISO_TIME.test(sent.createdAt)) {
-    k.sent = { name: sent.name, createdAt: sent.createdAt };
-  }
+  k.made = cleanMade(x.made);
   return k;
 }
 
@@ -72,7 +86,7 @@ export const emptySaverAnswer = () => ({ ...emptyAnswer(), detail: null, extendi
 export const emptyDraftFor = (q) => (SAVER.includes(q) ? emptySaverDraft() : emptyDraft());
 export const emptyAnswerFor = (q) => (SAVER.includes(q) ? emptySaverAnswer() : emptyAnswer());
 
-const CARRIED = ['c', 'a', 'b'];
+const CARRIED = ['c', 'a', 'b', 'd'];
 
 /** What draftStore kept for one question, cleaned: only text or yes/no values (and the spending shape's list of steps), string lists, booleans. */
 export function keptDraft(kept, q) {
@@ -122,7 +136,17 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
 }
 
 /** No run of "Does it last?" held: `key` is lasts.js runKeyOf of the plan a result (or a run under way) is for. */
-export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false });
+export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
+/** The three levers of "Does it last?" (road-to-7.md step 7), and what a lever's entry may be. */
+export const LEVER_KINDS = Object.freeze(['spendMore', 'work', 'fall']);
+const LEVER_STATUS = ['open', 'working', 'done', 'failed', 'invalid'];
+/** A lever's entry, cleaned (the draft store never keeps it; state/replace may draw one). */
+export function cleanLever(x) {
+  if (!x || typeof x !== 'object' || !LEVER_STATUS.includes(x.status)) return null;
+  const lever = x.lever && typeof x.lever === 'object' && LEVER_KINDS.includes(x.lever.kind) ? x.lever : null;
+  if (!lever) return null;
+  return { status: x.status, lever, result: x.status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, reason: x.status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
+}
 
 /** An empty plan draft: no plan, nothing typed. */
 export const emptyPlanDraft = () => ({ id: null, values: {}, touched: [], asked: false });

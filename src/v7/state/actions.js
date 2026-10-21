@@ -38,13 +38,11 @@ export const A = Object.freeze({
   BUDGET_USE:      'budget/use',       // { q }                              THE ONLY WAY the budget reaches a figure: its total, to
                                        //                                     the pound, into draft[q] spend.amount (spend.kind 'amount')
 
-  // ---- "Save this as a plan" (save-as-plan.md Contract C.2) --------------------------------------------------------
+  // ---- "Keep this as a plan" (save-as-plan.md; road-to-7.md step 7: the preview makes the plan itself) ------------
   KEEP_NAME:       'keep/name',        // { q, value }                       the name box, as typed
-  KEEP_SAVE:       'keep/save',        // { q }                              checks the answer and the name; saving: true → the effect
-  KEEP_SENT:       'keep/sent',        // { q, name, createdAt }             the effect wrote the seed (then opens ../#new-plan)
-  KEEP_FAILED:     'keep/failed',      // { q, problem: 'storage' | 'notReady' }
-  KEEP_BACK:       'keep/back',        // { q, outcome, name? } on coming back: 'waiting' | 'taken' (made, as `name`) |
-                                       // 'declined' ("Not now") | 'notMade' | 'gone' (too old, deleted) | 'unknown' (no word)
+  KEEP_SAVE:       'keep/save',        // { q }                              checks the answer and the name; saving: true → the one write file makes the plan
+  KEEP_MADE:       'keep/made',        // { q, id, name, where, partnerId?, partnerName?, separate? }   the plan is made (in the account, or this window)
+  KEEP_FAILED:     'keep/failed',      // { q, problem: 'notReady' | 'full' | 'usedUp' | 'unverified' | 'storage' | 'failed' | 'partial', name? }
 
   // ---- the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's "Add more detail" ----------
   // The first amount's own "then" and fall are fields of the input list (draft/set); the later steps are one value, a list,
@@ -95,7 +93,13 @@ export const A = Object.freeze({
   LASTS_DONE:      'lasts/done',       // { key, result }                    the result (lastsRun.js), plain data; ignored if the key is stale
   LASTS_FAILED:    'lasts/failed',     // { key, reason? }                   the run failed; "Try again" offered — or reason 'noWorker': this browser cannot start one
   LASTS_SLOW:      'lasts/slow',       // { key }                            slow: true
-  LASTS_RETRY:     'lasts/retry'       // {}                                 after a failure: idle again, so the runner starts over
+  LASTS_RETRY:     'lasts/retry',      // {}                                 after a failure: idle again, so the runner starts over
+  // ---- the three levers on a saved plan's "Does it last?" (research/v7/answer-D.md 3.9; road-to-7.md step 7) -------------
+  LEVER_TYPE:      'lasts/leverType',  // { field: 'yearly' | 'years', value }   the work lever's two boxes, as typed
+  LEVER_TRY:       'lasts/leverTry',   // { kind }                           try a lever on the plan of the run held (the effect runs it)
+  LEVER_DONE:      'lasts/leverDone',  // { key, kind, result }              the lever's figures (lastsRun.js runLever); dropped if the key is stale
+  LEVER_FAILED:    'lasts/leverFailed', // { key, kind, reason? }            the lever failed ('noWorker': no worker)
+  LEVER_CLOSE:     'lasts/leverClose'  // { kind }                           put the lever away (nothing is kept of it)
 });
 
 /**

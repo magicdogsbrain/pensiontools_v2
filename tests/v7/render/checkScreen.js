@@ -47,6 +47,7 @@ import { App } from '../../../src/v7/App.jsx';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
+import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { parseDraft, applies as appliesTo } from '../../../src/answers/shared/validate.js';
 import { money, ageText, pot, outOfTen, get } from '../../../src/answers/shared/format.js';
 import { parse, format, screenName } from '../../../src/v7/router/routes.js';
@@ -124,8 +125,10 @@ export function bannedHits(text, scopes, { context = text, question = false, ski
 }
 
 /** The input list of each question, and the question a state's route is about ('c' away from a question). */
-export const SCHEMA_OF = { a: SCHEMA_A, b: SCHEMA_B, c: SCHEMA_C };
+export const SCHEMA_OF = { a: SCHEMA_A, b: SCHEMA_B, c: SCHEMA_C, d: SCHEMA_D };
 const SAVER = ['a', 'b'];
+/** D (research/v7/answer-D.md): one form with the spending on it, the answer with its try boxes, the keep step; always the `retired` scope. */
+const isD = (q) => q === 'd';
 export const questionOf = (state) => (state.route.screen === 'step' && SCHEMA_OF[state.route.q] && state.draft[state.route.q] ? state.route.q : 'c');
 
 /**
@@ -217,7 +220,7 @@ function drawnField(state, q, f, live) {
 export function scopesFor(state) {
   const name = screenName(state.route);
   if (name === 'front') return ['all', 'first', 'front'];
-  if (state.route.q === 'c') return ['all', 'first', 'planner', 'retired'];
+  if (state.route.q === 'c' || state.route.q === 'd') return ['all', 'first', 'planner', 'retired'];
   if (state.route.screen === 'step' && SAVER.includes(state.route.q)) {
     return stopsNow(state, state.route.q) ? ['all', 'first', 'planner', 'saver', 'retired'] : ['all', 'first', 'planner', 'saver'];
   }
@@ -249,7 +252,7 @@ export function moreIsOpen(state, q = 'c') {
 }
 
 /** The boxes that are not a field's own: test id → the path they write. */
-export const TRY_BOXES = { 'a.try.partTime.yearly': 'partTime.yearly' };
+export const TRY_BOXES = { 'a.try.partTime.yearly': 'partTime.yearly', 'd.try.work.yearly': 'work.yearly', 'd.try.work.years': 'work.years' };
 
 /** Which of short form / failed / working / answer an A or B step draws (the screen's rule, written again here). */
 export function saverKind(state, q) {
@@ -278,6 +281,7 @@ export function expectedInputs(state) {
   if (name === 'front') return ['front.c.pot'];
   const q = state.route.q;
   if (SAVER.includes(q) && state.draft[q]) return expectedSaverInputs(state, q, name);
+  if (isD(q) && state.draft.d) return expectedDInputs(state, name);
   if (name === 'c.keep') return [...extraBoxes(state).keys()];
   if (name !== 'c.numbers' && name !== 'c.answer') return [];
   const { parsed, shown: typed } = shownValues(state);
@@ -298,6 +302,40 @@ export function expectedInputs(state) {
     } else fields = [];
   }
   return [...idsOf('c', fields, shown), ...extraBoxes(state).keys()].filter((id, i, all) => all.indexOf(id) === i);
+}
+
+/**
+ * D's boxes (answer-D.md 3.2–3.6): the numbers step holds every field that applies but the levers (the spending is on
+ * it); the answer step's short form as A's; the answer itself draws the two boxes of "Would some work help?" (the
+ * lever's pay a year and years, writing work.yearly and work.years) and the name box; the keep step the name box.
+ */
+function expectedDInputs(state, name) {
+  if (name === 'notBuilt') return [];
+  const q = 'd';
+  const schema = SCHEMA_D;
+  const { parsed, shown: typed } = shownValues(state, q);
+  const live = liveValues(schema, typed);
+  const shown = live.values;
+  const applies = (f) => live.paths.has(f.path);
+  const extra = [...extraBoxes(state).keys()];
+  if (name === 'd.numbers') {
+    const open = moreIsOpen(state, q);
+    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'try' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
+  }
+  if (name === 'd.keep') return extra;
+  const kind = saverKind(state, q);
+  if (kind === 'short') {
+    const top = SHORT[q];
+    const inside = (f) => f.group !== 'more' && f.group !== 'try' && Object.keys(f.when || {}).some((p) => top.includes(p));
+    return [...idsOf(q, schema.fields.filter((f) => applies(f) && choiceDrawn(q, f, shown) && (top.includes(f.path) || inside(f) || parsed.errors[f.path])), shown), ...extra];
+  }
+  if (kind === 'answer' && name === 'd.answer') {
+    // the levers are drawn only under a verdict on a pot (an answer of the pensions alone has no "Would some work help?")
+    const r = state.answers.d.result;
+    const verdict = r && r.status === 'ok' && r.sentences && r.sentences.head && r.sentences.line && ['yes', 'close', 'no'].includes(r.verdict);
+    return [...(verdict ? ['d.try.work.yearly', 'd.try.work.years'] : []), ...extra];
+  }
+  return extra;
 }
 
 function expectedSaverInputs(state, q, name) {
@@ -537,8 +575,8 @@ export function checkScreen(root, state) {
       if (sentence && number && !sentence.textContent.includes(number.textContent)) say('R4', `the sentence for ${key} does not hold ${number.textContent}`);
     }
     if (!sentence || !sentence.textContent.trim()) say('R4', `headline ${key} has no sentence`);
-    // C keeps what was assumed inside its one headline; A's and B's answers keep it once, in the answer
-    const assumedIn = saver ? head.closest('[data-region="answer"]') : head;
+    // C keeps what was assumed inside its one headline; A's, B's and D's answers keep it once, in the answer
+    const assumedIn = saver || isD(q) ? head.closest('[data-region="answer"]') : head;
     if (!assumedIn || !all('[data-assumed] [data-assumed-id]', assumedIn).length) say('R4', `headline ${key} has nothing under "what we assumed"`);
     if (!/the worst 1 in 10/.test(visibleText(head))) say('R4', `headline ${key} has no bad-case line`);
     if (!visibleText(head).includes(ADVICE_SHORT)) say('R4', `headline ${key} has no ADVICE_SHORT`);
@@ -627,9 +665,9 @@ export function checkScreen(root, state) {
     const described = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
     for (const d of described) if (!root.querySelector(`[id="${d}"]`)) say('R7', `${id}: aria-describedby names "${d}", which is not on the page`);
   }
-  const formScreen = name === 'c.numbers' || name === 'c.answer' || (saver && onQuestion && name !== 'notBuilt' && !isRetired(state, q));
+  const formScreen = name === 'c.numbers' || name === 'c.answer' || ((saver || isD(q)) && onQuestion && name !== 'notBuilt' && !isRetired(state, q));
   if (formScreen) {
-    const back = saver ? readSaverForm(root, q, SCHEMA_OF[q]) : readForm(root);
+    const back = saver || isD(q) ? readSaverForm(root, q, SCHEMA_OF[q]) : readForm(root);
     for (const [path, v] of Object.entries(back)) {
       if (path === 'household') { if (name === `${fq}.numbers` && v !== (shown.household || 'single')) say('R8', `household reads back as ${v}`); continue; }
       const f = byPath.get(path);
@@ -719,13 +757,14 @@ export function checkScreen(root, state) {
     if (href.startsWith('#')) {
       if (parse(href).screen === 'notFound') say('links', `"${a.textContent}" leads to ${href}, which is no page`);
       else if (format(parse(href)) !== href) say('links', `"${a.textContent}": ${href} is not how that address is written`);
-      if (/\d/.test(href)) say('links', `a figure in an address: ${href}`);
+      // a saved plan's id is the one place a digit may appear in an address (routes.js PLAN_ID; your-plan.md 3.8)
+      if (/\d/.test(href) && parse(href).screen !== 'plan') say('links', `a figure in an address: ${href}`);
     } else if (!href.startsWith('../')) say('links', `"${a.textContent}" leads outside: ${href}`);
   }
   for (const b of all('button')) {
     if (!b.textContent.trim() && !b.getAttribute('aria-label')) say('buttons', 'a button with no words');
     if (b.getAttribute('type') !== 'button' && b.getAttribute('type') !== 'submit') say('buttons', `"${b.textContent}" has no type`);
-    if (b.disabled && /^[abc]\.action\.show$/.test(b.getAttribute('data-testid') || '')) say('buttons', `"${b.textContent}" must never be greyed out`);
+    if (b.disabled && /^[abcd]\.action\.show$/.test(b.getAttribute('data-testid') || '')) say('buttons', `"${b.textContent}" must never be greyed out`);
   }
   for (const attr of ['id', 'data-testid']) {
     const count = new Map();

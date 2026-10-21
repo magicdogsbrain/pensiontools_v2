@@ -35,6 +35,7 @@
 import { toHousehold as toHouseholdC } from '../c/toHousehold.js';
 import { toHousehold as toHouseholdA } from '../a/toHousehold.js';
 import { toHousehold as toHouseholdB } from '../b/toHousehold.js';
+import { toHousehold as toHouseholdD } from '../d/toHousehold.js';
 import { stopsOf } from '../shared/household.js';
 import { firstAccessAge, addYears, verdictOf, RULES } from '../shared/rules.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
@@ -54,7 +55,7 @@ export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  */
 export const RECEIPT_KEY = 'pt_v7_plan_receipt';
 
-const TO_HOUSEHOLD = { c: toHouseholdC, a: toHouseholdA, b: toHouseholdB };
+const TO_HOUSEHOLD = { c: toHouseholdC, a: toHouseholdA, b: toHouseholdB, d: toHouseholdD };
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const pounds = (n) => Math.round(Number(n) || 0);
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
@@ -76,6 +77,9 @@ export function keepable(source, result) {
     if (!result.shown || !isNum(result.shown.age) || !result.spend) return { ok: false, why: 'noAnswer' };
   } else if (source === 'b') {
     if (!result.stop || !isNum(result.stop.age) || !result.spend) return { ok: false, why: 'noAnswer' };
+  } else if (source === 'd') {
+    // D (answer-D.md 10): from today, the spend tried; a "no" is still a try, as A's is
+    if (!result.spend || !isNum(result.spend.perMonth) || !result.monthly || !isNum(result.basis.endAge)) return { ok: false, why: 'noAnswer' };
   } else return { ok: false, why: 'noAnswer' };
   return { ok: true };
 }
@@ -90,6 +94,7 @@ function waitOf(source, result) {
     const whose = result.whose === 'partner' ? 'partner' : 'you';
     return Math.max(0, result.basis.startAge - inputs[whose].age);
   }
+  if (source === 'd') return 0;                                   // D: from today, always
   const asked = askedOf(result);
   if (source === 'a') return Math.max(0, result.shown.age - inputs[asked].age);
   return Math.max(0, result.stop.age - inputs[asked].age);
@@ -245,7 +250,9 @@ function personOf({ source, result, today, who, index, stop, years, household, c
   const fs = raw.finalSalary && raw.finalSalary.has ? raw.finalSalary : null;
   const fsHousehold = Array.isArray(hp.finalSalary) && hp.finalSalary[0];
   const opens = result.pensionOpens && isNum(result.pensionOpens[who]) ? result.pensionOpens[who] : firstAccessAge(ageToday, today);
-  const pt = source === 'a' && who === 'you' && inputs.partTime && inputs.partTime.has ? inputs.partTime : null;
+  // A's part-time work; D's work from today (answer-D.md 10: kept as A's part-time row from year 0; the fall is never saved)
+  const pt = source === 'a' && who === 'you' && inputs.partTime && inputs.partTime.has ? inputs.partTime
+    : source === 'd' && who === 'you' && inputs.work && inputs.work.has ? inputs.work : null;
 
   return {
     who,
@@ -258,8 +265,9 @@ function personOf({ source, result, today, who, index, stop, years, household, c
     alreadyDrawing: raw.alreadyDrawing === true,
     statePension,
     finalSalary: fs ? { yearly: fs.yearly, fromAge: fs.fromAge, increases: (fsHousehold && fsHousehold.increases) || 'pricesCapped5' } : null,
-    // "Already had the tax-free part?" (asked of someone who has stopped): yes → everything taken out is taxed
-    taxFreeQuarter: raw.taxFreeTaken !== true,
+    // "Already had the tax-free part?" (asked of someone who has stopped): yes → everything taken out is taxed. D answers
+    // yes, no or some — some is counted as all taken (answer-D.md 4.3), as its household is.
+    taxFreeQuarter: !(raw.taxFreeTaken === true || raw.taxFreeTaken === 'yes' || raw.taxFreeTaken === 'some'),
     partTime: pt ? { yearly: pt.yearly, years: pt.years } : null,
     // exact to the year when what is spent changes with age (seed version 3); else one row per stretch, as before
     takeHome: byYear ? takeHomeByYear(who, couple, ageAtStop, byYear) : takeHomeOf(who, couple, ageAtStop, perMonth, phasesOf(source, result)),
@@ -280,6 +288,9 @@ function answerOf(source, result) {
     const s = result.shown;
     return { monthly: three(s.monthly), lasted: s.lasted, runOutAge: s.runOutAge, verdict: s.verdict, potAtStop: pots(s.potAtStop), number: null, payInNeeded: null };
   }
+  if (source === 'd') {
+    return { monthly: three(result.monthly), lasted: result.lasted, runOutAge: result.runOutAge, verdict: result.verdict, potAtStop: null, number: null, payInNeeded: null };
+  }
   const chance = result.chance || {};
   return {
     monthly: null,
@@ -295,7 +306,7 @@ function answerOf(source, result) {
 /**
  * The seed for an answer.
  * @param {object} o
- * @param {'c'|'a'|'b'} o.source
+ * @param {'c'|'a'|'b'|'d'} o.source
  * @param {object} o.result          the answer, final, for the inputs as they stand now
  * @param {{ today: string, appVersion: string }} o.env
  * @param {string | { suggested?: string, chosen: string }} o.name   what is in the name box (checked here again)

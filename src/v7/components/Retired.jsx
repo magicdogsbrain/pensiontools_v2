@@ -5,7 +5,7 @@
  * Nothing here is a countdown or a stop-work date: it passes the `retired` scope of the banned list.
  *
  *   isRetired(state, q)          the shell's pure reader (src/v7/state/select.js), for the screens' one import list
- *   <Retired q dispatch state />  the two ways on: "Will it last?" (question D, not in the preview yet) and
+ *   <Retired q dispatch state />  the two ways on: "Will it last?" (question D, road-to-7.md step 7) and
  *                                "That's wrong — I'm working", which empties the age in mind and puts the keyboard in it
  *
  * A couple who have both stopped ("I've already stopped" and "They already have"; couples-different-years.md 2.2) are
@@ -42,7 +42,7 @@ export function Retired({ q, dispatch, state = null }) {
       <div class="actions-row">
         {both
           ? <LinkButton testid={`${q}.action.toC`} kind="primary" href={href.step('c', 'numbers')}>{words.buttons['next.c']}</LinkButton>
-          : <LinkButton testid={`${q}.action.willItLast`} kind="primary" href={href.soon('d')}>{words.buttons.willItLast}</LinkButton>}
+          : <LinkButton testid={`${q}.action.willItLast`} kind="primary" href={href.step('d', 'numbers')}>{words.buttons.willItLast}</LinkButton>}
         <LinkButton testid={`${q}.action.imWorking`} href={href.step(q, 'numbers', 'stop.age')} onClick={working}>{words.buttons.imWorking}</LinkButton>
       </div>
       <p class="note">{both ? words.retired.both.note : words.retired.note}</p>

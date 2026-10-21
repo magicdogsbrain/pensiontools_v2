@@ -43,7 +43,7 @@ import { C } from '../../../src/v7/copy/c.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
   const real = await vi.importActual('../../../src/v7/rail/questions.js');
-  const OPEN = Object.freeze(['a', 'b', 'c']);
+  const OPEN = Object.freeze(['a', 'b', 'c', 'd']);
   return { ...real, OPEN, QUESTIONS: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) })),
     BUILT: Object.fromEntries(OPEN.map((id) => [id, real.STEP_LISTS[id]])) };
 });
@@ -249,7 +249,7 @@ describe('2 — "I\'ve already stopped" (A and B, a couple only)', () => {
     clean(root, state);
     expect(one(root, `${q}.stop.kind.already`).checked).toBe(true);
     const error = root.querySelector(`[data-error-for="${q}.stop.kind"]`).textContent;
-    expect(plain(error)).toBe('If you have stopped, "What is that a month?" is the question for you.');
+    expect(plain(error)).toBe('If you have stopped, "Will it last?" is the question for you.');
   });
 
   it('A: "show me ages" for the partner while you are still working is said in words (and stays ticked)', () => {
@@ -575,7 +575,7 @@ describe('5 — the words', () => {
     expect(C.fields['partner.stop.kind'].options).toEqual({ same: 'When you start taking money', already: 'They already have', age: 'At an age' });
     for (const words of [A, B]) {
       expect(plain(words.fields['partner.stop.kind'].labelAsked)).toBe('When would your partner like to stop work?');
-      expect(plain(words.fields['stop.kind'].errors['already-needs-partner'])).toBe('If you have stopped, "What is that a month?" is the question for you.');
+      expect(plain(words.fields['stop.kind'].errors['already-needs-partner'])).toBe('If you have stopped, "Will it last?" is the question for you.');
       expect(plain(words.retired.both.body)).toBe('You have both stopped. "What is that a month?" answers what your money could pay.');
     }
     expect(plain(A.fields['partner.stop.kind'].errors['partner-stop-fits'])).toBe('Choose when your partner would like to stop, or "show me ages".');
@@ -648,7 +648,13 @@ describe('7 — today, byte for byte', () => {
    * couple's numbers step, which gains the partner's stop question (and A's "I've already stopped"), and C's more detail
    * from now, which gains the tax-free question: taken out, those screens are today's byte for byte too.
    */
-  const TODAY = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/screens/today.hashes.json'), 'utf8'));
+  // …and 6.39.0 (road-to-7.md step 7): "Keep this as a plan" (every "Save" became "Keep": the rail's step, its next sentence,
+  // the panel), D open on the front door and linked from C's "What next?" and the retired view, the keep panel's "Kept as"
+  // — words on every screen, so the pinned drawings were re-pinned once (V7_PIN_TODAY=1) at 6.39.0; the states that moved
+  // with how savings grow keep their 6.19.0 pin here and their 6.22.0+ pin in savingsGrowth.hashes.json.
+  const TODAY_FILE = join(process.cwd(), 'tests/v7/screens/today.hashes.json');
+  const TODAY = JSON.parse(readFileSync(TODAY_FILE, 'utf8'));
+  const PIN_TODAY = process.env.V7_PIN_TODAY === '1';
   // …and the spending shape's block under C's more detail (research/v7/spending-shape.md 4.1), closed: taken out, today's
   // …and the 2028 drawdown note, now for everyone it applies to (owner, 2 Oct 2026): a/answer-A2-couple (you 55, stopping at 56)
   // gains it; taken out, today's (tests/v7/shared/answers.flat.test.js holds who it is said to)
@@ -663,7 +669,7 @@ describe('7 — today, byte for byte', () => {
   const MOVED_FILE = join(process.cwd(), 'tests/v7/screens/savingsGrowth.hashes.json');
   const MOVED = JSON.parse(readFileSync(MOVED_FILE, 'utf8'));
   const PIN = process.env.V7_PIN_SCREENS === '1';
-  afterAll(() => { if (PIN) writeFileSync(MOVED_FILE, JSON.stringify(MOVED, null, 1) + '\n'); });
+  afterAll(() => { if (PIN) writeFileSync(MOVED_FILE, JSON.stringify(MOVED, null, 1) + '\n'); if (PIN_TODAY) writeFileSync(TODAY_FILE, JSON.stringify(TODAY, null, 1) + '\n'); });
 
   it.each(Object.keys(TODAY))('%s', (name) => {
     const [q, file] = name.split('/');
@@ -676,7 +682,10 @@ describe('7 — today, byte for byte', () => {
       if (PIN) MOVED.hashes[name] = got;
       expect(got).toBe(MOVED.hashes[name]);
       expect(got, `${name} draws as 6.19.0 did: take it off savingsGrowth.hashes.json`).not.toBe(TODAY[name]);
-    } else expect(got).toBe(TODAY[name]);
+    } else {
+      if (PIN_TODAY) TODAY[name] = got;
+      expect(got).toBe(TODAY[name]);
+    }
   });
 
   it('the states that moved with how savings grow hold savings, or are B\'s answers that set savings aside for the years before a pension opens', () => {

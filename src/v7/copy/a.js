@@ -21,7 +21,7 @@ export const A = {
       /** "I've already stopped": the answer is about your partner (couples-different-years.md 2.2). */
       labelPartner: 'Could your partner stop at {age}?', labelPartnerAges: 'Which ages could your partner stop at?', labelPartnerNone: 'Could your partner stop?' },
     ages:    { label: 'What about every other age?', short: 'Every age' },
-    keep:    { label: 'Save this as a plan?', short: 'Save as a plan' }
+    keep:    { label: 'Keep this as a plan?', short: 'Keep as a plan' }
   },
 
   rail: {
@@ -44,14 +44,14 @@ export const A = {
     /** The same state while no box is marked yet. */
     'a.fix.unmarked': 'Next: fill in the box that is still empty, then press "Show if it works".',
     'a.ready':      'Next: press "Show if it works".',
-    'a.keep':       'Next: check the name, then press "Save as a plan".',
+    'a.keep':       'Next: check the name, then press "Keep as a plan".',
     /** a.keep when this answer cannot be saved. */
     'a.keep.not':   'Next: back to your answer.',
     'a.no':         'Next: the earliest age that worked is {earliest}. Try it below, or see every age.',
     /** a.no when no age up to 75 worked, so there is no earliest age to name. */
     'a.no.later':   'Next: no age up to 75 worked. Try spending less below, or see every age.',
     'a.close':      'Next: try one more year, or a little less spending, below.',
-    'a.yes':        'Next: see what one more year buys, or save this as a plan so you can come back to it.',
+    'a.yes':        'Next: see what one more year buys, or keep this as a plan so you can come back to it.',
     'a.ages':       'Next: press an age in the table to see it in full.',
     'a.ages.none':  'Next: try spending less below, or see what you could spend a month.',
     /** Drawn in place of the sentence above on a step that is not in the preview yet. */
@@ -62,8 +62,8 @@ export const A = {
   buttons: {
     show: 'Show if it works',
     retry: 'Try again',
-    keep: 'Save this as a plan',
-    keepNotYet: 'Save this as a plan (not in the preview yet)',
+    keep: 'Keep this as a plan',
+    keepNotYet: 'Keep this as a plan (not in the preview yet)',
     /** The numbers step's button: on to the spend step (draft/onward). */
     onward: 'Next: what you would spend',
     /** The rail's button to the spend step. */
@@ -354,7 +354,7 @@ export const A = {
       options: { age: 'An age', ages: 'I have no age in mind — show me ages', already: 'I’ve already stopped' },
       errors: {
         'stop-ages-past-75': 'We show ages up to 75, and you are older than that. To see what your money could pay from now, ask "What is that a month?"',
-        'already-needs-partner': 'If you have stopped, "What is that a month?" is the question for you.'
+        'already-needs-partner': 'If you have stopped, "Will it last?" is the question for you.'
       }
     },
     'stop.age': {

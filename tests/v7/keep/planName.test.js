@@ -190,7 +190,7 @@ describe('rounding, length and what is never suggested', () => {
     expect(suggestedPlanName('b', null, load('b', 'answer-out-of-reach'))).toBe('');       // out of reach
     expect(suggestedPlanName('a', null, { status: 'invalid', problems: [] })).toBe('');
     expect(suggestedPlanName('a', null, null)).toBe('');
-    expect(suggestedPlanName('d', null, load('a', 'answer-A1'))).toBe('');
+    expect(suggestedPlanName('z', null, load('a', 'answer-A1'))).toBe('');      // (D is a source since 6.39.0)
     for (const [q, f] of [['c', 'answer-F1'], ['c', 'answer-F2'], ['a', 'answer-A1'], ['a', 'answer-A2-couple'], ['b', 'answer-B1'], ['b', 'answer-B5-couple']]) {
       const s = name(q, f);
       expect(s.length).toBeGreaterThan(0);

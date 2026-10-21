@@ -24,7 +24,7 @@ import { VERSION } from '../../../src/constants.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
   const real = await vi.importActual('../../../src/v7/rail/questions.js');
-  const OPEN = Object.freeze(['a', 'b', 'c']);
+  const OPEN = Object.freeze(['a', 'b', 'c', 'd']);
   return { ...real, OPEN, QUESTIONS: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, built: OPEN.includes(id) })),
     BUILT: Object.fromEntries(OPEN.map((id) => [id, real.STEP_LISTS[id]])) };
 });
@@ -494,7 +494,7 @@ describe('A, step 2: could I stop at 60?', () => {
     expect(root.querySelector('h1').textContent).toBe(A.retired.title);
     expect(root.querySelector('input')).toBe(null);
     expect(root.querySelector('[data-headline]')).toBe(null);
-    expect(one(root, 'a.action.willItLast').getAttribute('href')).toBe('#/soon/d');
+    expect(one(root, 'a.action.willItLast').getAttribute('href')).toBe('#/d/numbers');
     expect(one(root, 'a.action.imWorking').getAttribute('href')).toBe('#/a/numbers?focus=stop.age');
     one(root, 'a.action.imWorking').click();
     expect(actions).toEqual([set('stop.kind', 'age'), set('stop.age', '')]);

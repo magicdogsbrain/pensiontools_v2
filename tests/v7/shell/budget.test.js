@@ -280,6 +280,6 @@ describe('kept in the tab', () => {
     expect(s.draft.a.skipNoted).toBe(false);
     expect(s.budget).toEqual({ version: 1, lines: [{ id: 'l1', heading: 'other', label: '', amount: '', period: 'mo', essential: false, starter: true }],
       oneOffs: [{ id: 'o1', label: 'Car', amount: '9,000', year: '2030', everyYears: '8' }], touched: ['l1.amount'] });
-    expect(s.keep.a).toEqual({ name: null, problem: null, saving: false, sent: null, back: null });
+    expect(s.keep.a).toEqual({ name: null, problem: null, saving: false, made: null, partnerKept: null });
   });
 });

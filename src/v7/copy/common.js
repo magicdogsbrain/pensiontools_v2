@@ -42,7 +42,7 @@ export const FRONT = {
     { id: 'a', ask: 'When can I afford to stop work?', more: 'See different ages side by side.' },
     { id: 'b', ask: 'Am I saving enough? And what should I pay in?', more: 'The amount to aim for, and the monthly saving that gets there.' },
     { id: 'c', ask: "I've got about", then: 'What is that a month?', button: 'Show me', potHint: 'for example 250,000' },
-    { id: 'd', ask: "I'm retired. Will it last? Could I spend more? Would some work help?", more: '' },
+    { id: 'd', ask: "I'm retired. Will it last? Could I spend more? Would some work help?", more: 'Tested against the bad times, with a plan you can keep.' },
     { id: 'e', ask: 'I have a plan. Test it.', more: 'Try it against the bad times and compare ways to take the money.' },
     { id: 'f', ask: 'I have one decision to make.', more: 'Tax-free cash, the mortgage, a final-salary pension early or late, or buying a guaranteed income for life (an annuity).' }
   ]

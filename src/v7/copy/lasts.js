@@ -120,5 +120,34 @@ export const LASTS = {
     readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.'
   },
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
-  saving: 'Saving…'
+  saving: 'Saving…',
+  /** The three levers of "Will it last?" on a saved plan (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7). */
+  levers: {
+    title: 'Try a change',
+    lead: 'Each is the same one test on a copy of your plan. Nothing here changes the plan: put the lever away and it is gone.',
+    names: { spendMore: 'Could I spend more?', work: 'Would some work help?', fall: 'What if shares fell by a fifth?' },
+    buttons: { spendMore: 'Could I spend more?', work: 'Try it', fall: 'What if shares fell by a fifth?', close: 'Put it away', again: 'Try again' },
+    work: { yearly: 'Pay a year, before tax', years: 'For how many years (1 to 5)', note: 'Pay from the plan’s first year, taxed with the rest.' },
+    working: 'Trying it…',
+    failed: 'Sorry, that could not be tried. Nothing has changed.',
+    noWorker: 'This browser cannot run the test in the background, so the levers cannot be tried here.',
+    invalid: { yearly: 'Type the pay a year before tax, from £1 to £200,000.', years: 'Whole years, from 1 to 5.' },
+    /** On a locked plan with a document, once a lever has been tried: one comparison line, never a suggestion to unlock (3.9). */
+    locked: 'The plan as locked on {date} said {docChance}%. The levers are tried against today’s test ({chance}%): the same plan on a different day.',
+    lines: {
+      'spendMore.more': '{perMonth} a month more would still last in 9 futures out of 10: {chance}% of futures, with typically {typical} left at the end (against {baseChance}% as it is).',
+      'spendMore.none': 'What you take is close to the most that lasts in 9 futures out of 10 as it is ({baseChance}% of futures).',
+      'spendMore.noneShort': 'It does not last in 9 futures out of 10 as it is ({baseChance}% of futures), and no smaller amount tried changed that.',
+      'spendMore.less': 'It does not last in 9 futures out of 10 as it is ({baseChance}% of futures). {perMonth} a month less would: {chance}% of futures.',
+      'spendMore.evenHalf': 'Even half the income did not last in 9 futures out of 10 on these pots ({baseChance}% of futures as it is).',
+      'spendMore.capped': 'Even twice the income lasted in 9 futures out of 10 ({chance}% of futures, typically {typical} left) — the most this lever tries.',
+      'work.line': 'With {yearly} a year from work for {years} year{s}, the plan lasts {words}: {chance}% of futures, typically {typical} left — against {baseChance}% without it.',
+      'work.how': 'Added as a row of money that comes in anyway (the planner’s own extra incomes), from the plan’s first year for {years} year{s}, rising with prices and taxed with the rest. Nothing else changed.',
+      'fall.line': 'If shares fell by a fifth tomorrow (the pots {potBefore} to {potAfter}), the plan lasts {words}: {chance}% of futures, typically {typical} left — against {baseChance}% as it is.',
+      'fall.how': 'The shares part of each pot cut by a fifth — the pension’s, an ISA’s where it is invested like the pension, a taxable account’s held in shares — and the plan run as it is, the mix kept.',
+      unaffordable: 'This way of drawing cannot be bought with the plan’s pots, so there is no figure to move.',
+      leverNo: 'That could not be tried on these figures.',
+      runs: 'Tried in {runs} run{s} of the one test.'
+    }
+  }
 };

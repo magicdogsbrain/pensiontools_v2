@@ -14,9 +14,9 @@
  *     with getItem only, parsed as text, upgraded the same way; whether the free time is used up (pt_guest_minutes, read);
  *   - read again when the page is shown again (coming back from the planner) and on "Read again" (plans/reading);
  *   - the plans leave the page's memory on pagehide, on sign-out, and when the person becomes nobody;
- *   - "Sign out" (session/out) signs out here, as the planner's menu does, and deletes the saved-answer seed and its
- *     receipt, as every sign-out must (GDPR_TODO.md); the idle sign-out does the same after an hour with no activity in
- *     any window (localStorage['pt_lastActivity'], recorded by effects/activity.js).
+ *   - "Sign out" (session/out) signs out here, as the planner's menu does; the idle sign-out does the same after an hour
+ *     with no activity in any window (localStorage['pt_lastActivity'], recorded by effects/activity.js). (The hand-over
+ *     seed a sign-out used to delete is retired: road-to-7.md step 7 — V7 makes the plan itself, through planWrite.js.)
  *
  * Nothing here can write a plan: the names imported from the Firebase packages are read-only ones, and the boundary test
  * (tests/v7/boundaries.test.js) fails on any other.
@@ -32,7 +32,8 @@
  *
  * Editing (research/v7/editing-in-v7.md 1): the ONE file that writes a plan, effects/planWrite.js, is started from here with
  * this file's Firestore handle and signed-in user (no second Firebase app) and a way to read the account's plans again just
- * before a write, so the lock is checked on the plan as stored. The reading for the editing step ("About you and when") is
+ * before a write, so the lock is checked on the plan as stored. "Keep this as a plan" makes a NEW plan through the same file
+ * (road-to-7.md step 7), so this file is loaded on the keep steps and on "Will it last?" as well as on the plan pages. The reading for the editing step ("About you and when") is
  * done here too, with what was typed (state.draft.plan) laid over the saved values.
  */
 import { initializeApp } from 'firebase/app';
@@ -40,7 +41,6 @@ import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, s
 import { getFirestore, collection, getDocs } from 'firebase/firestore/lite';
 import { firebaseConfig, isFirebaseConfigured } from '../../firebase/projectConfig.js';
 import { upgradeScenario } from '../../firebase/scenarioMigration.js';
-import { SEED_KEY, RECEIPT_KEY } from '../../answers/keep/planSeed.js';
 import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
 import { A } from '../state/actions.js';
 import { lastActivity, IDLE_MS } from './activity.js';
@@ -49,7 +49,7 @@ import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
 import { potsOf } from '../../answers/plan/pots.js';
-import { lastsOf, verdictOf } from '../../answers/plan/lasts.js';
+import { lastsOf, verdictOf, leverViews } from '../../answers/plan/lasts.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -104,6 +104,8 @@ export function viewFor(state) {
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
         pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;
+        // the three levers tried on this plan (road-to-7.md step 7), in words — only for the run held for THIS plan's key
+        pl.levers = leverViews(L && L.key === pl.runKey ? L.levers : null, { verdict: pl.verdict, documentVerdict: pl.documentVerdict, lockedOn: pl.lockedOn, workDraft: L ? L.workDraft : null });
       }
     }
   }
@@ -114,8 +116,8 @@ export function viewFor(state) {
  * @param {{ getState, dispatch, subscribe }} store
  * @param {object} o
  * @param {Window} o.win
- * @param {Storage|null} o.local      localStorage (activity, the seed, the free-time count)
- * @param {Storage|null} o.session    sessionStorage (the window's plans, the seed's receipt)
+ * @param {Storage|null} o.local      localStorage (activity, the free-time count)
+ * @param {Storage|null} o.session    sessionStorage (the window's plans)
  * @param {() => Date} [o.now]
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
  * @param {object} [o.client]         the worker client (effects/workerClient.js): the lock runs the plan's own test in it before its one write
@@ -168,13 +170,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
     else if (user.emailVerified) readAccount();
   }
 
-  function clearSeed() {
-    try { if (local) local.removeItem(SEED_KEY); } catch { /* storage refused */ }
-    try { if (session) session.removeItem(RECEIPT_KEY); } catch { /* storage refused */ }
-  }
-
   async function signOutNow() {
-    clearSeed();
     dispatch({ type: A.PLANS_CLEAR });
     try { if (auth) await F.signOut(auth); } catch { /* the session is gone from the page either way */ }
     if (!stopped && user) { user = null; dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } }); readWindow(); }
@@ -187,7 +183,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
       user = u || null;
       if (!u) {
         dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
-        if (was) clearSeed();                                   // a signed-in person becoming nobody is a sign-out
+        void was;                                               // a signed-in person becoming nobody is a sign-out: the plans left already
         readWindow();
       } else if (!u.emailVerified) {
         dispatch({ type: A.SESSION_SET, session: { kind: 'unverified', email: u.email || null } });
@@ -202,7 +198,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

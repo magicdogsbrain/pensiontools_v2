@@ -1,7 +1,7 @@
 {
   "route": {
     "screen": "soon",
-    "q": "d",
+    "q": "e",
     "step": null,
     "planId": null,
     "focus": null
@@ -36,6 +36,18 @@
       "touched": [],
       "asked": false,
       "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": null,
+      "values": {},
+      "touched": [],
+      "asked": false
     }
   },
   "answers": {
@@ -66,11 +78,24 @@
       "before": null,
       "progress": null,
       "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
     }
   },
   "ui": {
     "railOpen": false,
     "open": [],
-    "online": true
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null
   }
 }

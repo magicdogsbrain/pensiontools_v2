@@ -24,15 +24,17 @@
 import { SCHEMA_C, earliestStart as earliestStartC } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
+import { SCHEMA_D } from '../../answers/d/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
 import { parsedDraft, errorsToShow, isSpendPath, offeredOptions, choiceAsked, stopsApart, askedAboutValues, payLineOf, fieldApplies as appliesTo, typedShape } from '../state/select.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
+import { D } from '../copy/d.js';
 
 /** Each question's input list and words. */
-export const SCHEMA_OF = { a: SCHEMA_A, b: SCHEMA_B, c: SCHEMA_C };
-export const COPY_OF = { a: A, b: B, c: C };
+export const SCHEMA_OF = { a: SCHEMA_A, b: SCHEMA_B, c: SCHEMA_C, d: SCHEMA_D };
+export const COPY_OF = { a: A, b: B, c: C, d: D };
 
 export const FIELDS = SCHEMA_C.fields;
 export const byPath = new Map(FIELDS.map((f) => [f.path, f]));

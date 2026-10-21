@@ -15,7 +15,7 @@ export const C = {
     numbers: { label: 'What have you got?', short: 'Your numbers' },
     answer:  { label: 'What does it pay a month?', short: 'What it pays' },
     ways:    { label: 'What are the ways to take it?', short: 'Ways to take it' },
-    keep:    { label: 'Save this as a plan?', short: 'Save as a plan' }
+    keep:    { label: 'Keep this as a plan?', short: 'Keep as a plan' }
   },
 
   rail: {
@@ -36,7 +36,7 @@ export const C = {
     /** The same state while no box is marked yet (a box that has not been left, or one that opened after a first answer). */
     'c.fix.unmarked': 'Next: fill in the box that is still empty, then press "Show what it pays".',
     'c.ready':    'Next: press "Show what it pays".',
-    'c.keep':     'Next: check the name, then press "Save as a plan".',
+    'c.keep':     'Next: check the name, then press "Keep as a plan".',
     /** c.keep when this answer cannot be saved (nothing from a pot, or the years before a pension opens hold it down). */
     'c.keep.not': 'Next: back to what it pays.',
     'c.answered': 'Next: try a change below. To add a partner or more detail, change your numbers on step 1.',
@@ -48,8 +48,8 @@ export const C = {
   buttons: {
     show: 'Show what it pays',
     retry: 'Try again',
-    keep: 'Save this as a plan',
-    keepNotYet: 'Save this as a plan (not in the preview yet)',
+    keep: 'Keep this as a plan',
+    keepNotYet: 'Keep this as a plan (not in the preview yet)',
     back: 'Back to what it pays',
     change: 'Change my numbers',
     addPartner: 'Add a partner',

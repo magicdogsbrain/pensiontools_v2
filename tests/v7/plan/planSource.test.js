@@ -2,8 +2,8 @@
  * T3, T6, T13 (research/v7/your-plan.md 9): the plan source reads and never writes. The Firebase functions are fakes
  * handed in, so every call is seen: no write function is ever called (there is none to call: the fakes hold only the
  * read-only names, and a call to anything else would throw). The upgrade runs in memory; its `write` flag is ignored.
- * Nobody signed in: the window's plans are read with getItem only. Signing out, idle and pagehide clear the plans and
- * the saved-answer seed. The plans never reach the draft store.
+ * Nobody signed in: the window's plans are read with getItem only. Signing out, idle and pagehide clear the plans. The
+ * plans never reach the draft store. (The hand-over seed a sign-out used to delete is retired: road-to-7.md step 7.)
  */
 import { describe, it, expect, vi } from 'vitest';
 import { startPlanSource, upgradedList, windowPlans, GUEST_PLANS_KEY } from '../../../src/v7/effects/planSource.js';
@@ -12,7 +12,6 @@ import { createStore } from '../../../src/v7/effects/store.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
-import { SEED_KEY, RECEIPT_KEY } from '../../../src/answers/keep/planSeed.js';
 import { ACTIVITY_KEY } from '../../../src/v7/effects/activity.js';
 import { corpus, TODAY } from './_plans.js';
 
@@ -163,22 +162,22 @@ describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear t
     expect(store.getState().plans.list.length).toBe(1);
     stop();
   });
-  it('the person becoming nobody (signed out in the planner) clears the plans at once and deletes the saved-answer seed', async () => {
+  it('the person becoming nobody (signed out in the planner) clears the plans at once; nothing in storage is touched', async () => {
     const fb = signedIn();
-    const local = storage({ [SEED_KEY]: '{"createdAt":"2026-10-02T10:00:00.000Z"}' });
-    const session = storage({ [RECEIPT_KEY]: '{}' });
+    const local = storage({ pt_other: '1' });
+    const session = storage({ pt_other: '1' });
     const { store, stop } = page({ fb, local, session });
     await tick(); await tick();
     fb.report(null);
     expect(store.getState().plans.list).toEqual([]);           // the window's (empty) plans now
     expect(store.getState().session.kind).toBe('nobody');
-    expect(local.has(SEED_KEY)).toBe(false);
-    expect(session.has(RECEIPT_KEY)).toBe(false);
+    expect(local.calls.filter(([c]) => c !== 'getItem')).toEqual([]);
+    expect(session.calls.filter(([c]) => c !== 'getItem')).toEqual([]);
     stop();
   });
-  it('"Sign out" signs out here and deletes the seed; the idle sign-out does the same after an hour with no activity anywhere', async () => {
+  it('"Sign out" signs out here; the idle sign-out does the same after an hour with no activity anywhere; neither writes or removes anything in storage', async () => {
     const fb = signedIn();
-    const local = storage({ [SEED_KEY]: '{}', [ACTIVITY_KEY]: String(Date.parse(TODAY + 'T14:03:00') - 61 * 60 * 1000) });
+    const local = storage({ [ACTIVITY_KEY]: String(Date.parse(TODAY + 'T14:03:00') - 61 * 60 * 1000) });
     const { store, listeners, stop } = page({ fb, local });
     await tick(); await tick();
     expect(store.getState().plans.list.length).toBe(1);
@@ -186,10 +185,10 @@ describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear t
     await tick(); await tick();
     expect(fb.calls.some((c) => c[0] === 'signOut')).toBe(true);
     expect(store.getState().session.kind).toBe('nobody');
-    expect(local.has(SEED_KEY)).toBe(false);
+    expect(local.calls.filter(([c]) => c !== 'getItem')).toEqual([]);
     stop();
     const fb2 = signedIn();
-    const local2 = storage({ [SEED_KEY]: '{}', [ACTIVITY_KEY]: String(Date.parse(TODAY + 'T14:02:00')) });
+    const local2 = storage({ [ACTIVITY_KEY]: String(Date.parse(TODAY + 'T14:02:00')) });
     const p2 = page({ fb: fb2, local: local2 });
     await tick(); await tick();
     p2.listeners.interval();                                    // a minute ago: nothing happens
@@ -197,7 +196,7 @@ describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear t
     p2.store.dispatch({ type: A.SESSION_OUT });
     await tick(); await tick();
     expect(fb2.calls.some((c) => c[0] === 'signOut')).toBe(true);
-    expect(local2.has(SEED_KEY)).toBe(false);
+    expect(local2.calls.filter(([c]) => c !== 'getItem')).toEqual([]);
     expect(p2.store.getState().session.kind).toBe('nobody');
     p2.stop();
   });

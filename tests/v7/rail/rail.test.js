@@ -29,9 +29,10 @@ const answered = (s, kind = A.ANSWER_FINAL, r = result()) => {
   return run(s, { type: A.ANSWER_WORKING, q: 'c', inputsKey: key }, { type: kind, q: 'c', inputsKey: key, result: r });
 };
 const STEP_IDS = QUESTION_C.steps.map((s) => s.id);
-const SCREENS = ['front', 'c.numbers', 'c.answer', 'c.keep', 'soon', 'notBuilt', 'a.numbers', 'a.spend', 'a.answer', 'a.ages', 'a.keep', 'b.numbers', 'b.spend', 'b.answer', 'b.choices', 'b.keep'];
-/** Joined up (step 4): A, B and C are open; D, E and F are "not in the preview yet". A's and B's rails are checked in rail.ab.test.js. */
-const SOON = ['d', 'e', 'f'];
+const SCREENS = ['front', 'c.numbers', 'c.answer', 'c.keep', 'soon', 'notBuilt', 'a.numbers', 'a.spend', 'a.answer', 'a.ages', 'a.keep', 'b.numbers', 'b.spend', 'b.answer', 'b.choices', 'b.keep',
+  'd.numbers', 'd.answer', 'd.keep'];
+/** Joined up (step 4): A, B and C are open; D with road-to-7.md step 7; E and F are "not in the preview yet". A's, B's and D's rails are checked in rail.ab.test.js. */
+const SOON = ['e', 'f'];
 const STEPS_OF = (q) => BUILT[q].steps.map((s) => href.step(q, s.id));
 
 /** The declared links out of a place: what the screens draw as ordinary links. */
@@ -52,10 +53,10 @@ describe('the tables', () => {
     expect(QUESTION_C.steps.map((s) => s.optional)).toEqual([false, false, true, true]);
     expect(QUESTION_C.steps.map((s) => s.built)).toEqual([true, true, false, true]);      // keep: "Save this as a plan?" (save-as-plan.md)
   });
-  it('the front door has six questions, and A, B and C are built', () => {
+  it('the front door has six questions, and A, B, C and D are built', () => {
     expect(QUESTIONS.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
-    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['a', 'b', 'c']);
-    expect(Object.keys(BUILT)).toEqual(['a', 'b', 'c']);
+    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(Object.keys(BUILT)).toEqual(['a', 'b', 'c', 'd']);
   });
   it('every "needs" names a field of the input list, or the answer', () => {
     const paths = new Set(SCHEMA_C.fields.map((f) => f.path));
@@ -78,7 +79,7 @@ describe('L1 — every step can be reached from the front door', () => {
       seen.add(address);
       for (const link of linksFrom(goTo(fresh(), address))) queue.push(link);
     }
-    const wanted = [href.front(), ...STEPS_OF('a'), ...STEPS_OF('b'), ...STEPS_OF('c'), ...SOON.map((q) => href.soon(q))];
+    const wanted = [href.front(), ...STEPS_OF('a'), ...STEPS_OF('b'), ...STEPS_OF('c'), ...STEPS_OF('d'), ...SOON.map((q) => href.soon(q))];
     expect([...seen].sort()).toEqual(wanted.sort());
   });
 });
@@ -101,7 +102,7 @@ describe('L3 — links point somewhere', () => {
   it('every link is an address that is understood, and draws a screen that exists', () => {
     const states = [fresh(), typed(), answered(onAnswer(typed()))];
     for (const base of states) {
-      for (const address of [href.front(), ...STEP_IDS.map((s) => href.step('c', s)), href.soon('d')]) {
+      for (const address of [href.front(), ...STEP_IDS.map((s) => href.step('c', s)), href.soon('e')]) {
         for (const link of linksFrom(goTo(base, address))) {
           const r = parse(link);
           expect(r.screen, link).not.toBe('notFound');
@@ -167,7 +168,7 @@ describe('L5 — nothing demands another tool first', () => {
 });
 
 describe('L6 — questions not built yet are honest', () => {
-  it('D, E and F lead to the "not in the preview yet" screen, which has a way on', () => {
+  it('E and F lead to the "not in the preview yet" screen, which has a way on', () => {
     const door = frontDoor();
     expect(door.map((q) => q.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
     for (const q of door.filter((x) => !x.built)) {
@@ -177,7 +178,7 @@ describe('L6 — questions not built yet are honest', () => {
       expect(screenName(s.route)).toBe('soon');
       expect(linksFrom(s)).toContain(href.front());
     }
-    expect(door.filter((x) => !x.built).length).toBe(3);
+    expect(door.filter((x) => !x.built).length).toBe(2);
   });
   it('C leads to its first step', () => {
     expect(frontDoor().find((q) => q.id === 'c')).toEqual({ id: 'c', built: true, href: '#/c/numbers' });

@@ -32,6 +32,7 @@ import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js'
 import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView } from '../services/PlanCommit.js';
+import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario } from '../services/PlanFromSeed.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
@@ -123,19 +124,10 @@ export { getDefaultStressSettings };
 // imports them from the repository.
 export { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView };
 
-/**
- * Default tax years object for a new scenario
- */
-export function getDefaultTaxYears() {
-  return {};
-}
-
-/**
- * Default budget object for a new scenario (net-first budgeting tool, Stage 0)
- */
-export function getDefaultBudget() {
-  return defaultBudget();
-}
+// The defaults of a new plan — the tax years, the budget, the strategy block and the default scenario — live in
+// services/PlanFromSeed.js since 6.39.0 (the preview makes a plan itself: road-to-7.md step 7). The pure module takes the
+// time it stamps; these wrappers read the clock as the originals did, so nothing the planner calls changes.
+export { getDefaultTaxYears, getDefaultBudget };
 
 /**
  * Create a default scenario object
@@ -145,7 +137,7 @@ export function getDefaultBudget() {
  * @returns {object} Default scenario
  */
 export function defaultStrategyBlock(lockedAt = new Date().toISOString()) {
-  return { id: 'pots-and-valves', params: {}, lockedAt, engineVersion: ENGINE_VERSION };
+  return pureDefaultStrategyBlock(lockedAt);
 }
 
 /**
@@ -161,32 +153,7 @@ export function ensureStrategyBlock(scenario) {
 }
 
 export function getDefaultScenario(name = 'My Plan', description = '', enabledTools = ['stress', 'decision']) {
-  return {
-    // The saved-plan schema version (6.15.0, ./schema.js). At the ROOT — never inside a settings map, so it
-    // never enters decisionSettingsChecksum. New plans, duplicates and partner plans are born current.
-    schemaVersion: SCHEMA_VERSION,
-    planDetails: { name, description },
-    enabledTools,
-    isActive: true,
-    // Phase B (strategy brief §3): every plan locks exactly one strategy. New plans start on
-    // the incumbent; changing strategy is an explicit unlock/clone, never a silent edit.
-    strategy: defaultStrategyBlock(),
-    decisionTool: {
-      settings: getDefaultDecisionSettings(),
-      history: [],
-      taxYears: getDefaultTaxYears()
-    },
-    stressTool: {
-      // Fund and platform charges (6.19.0): every new plan — "+ New plan", the setup wizard, a partner plan, a demo or
-      // guest plan, a plan made from a V7 answer — starts at the default, 0.5% a year. A Stress setting only.
-      // How the ISA and savings grow (6.22.0): every new plan starts "Mostly cash". A Stress setting only — never in
-      // getDefaultStressSettings, which is merged under stored plans and would hand it to a locked one.
-      settings: { ...getDefaultStressSettings(), chargesPct: DEFAULT_CHARGES_PCT, isaGrowth: DEFAULT_ISA_GROWTH }
-    },
-    budgetTool: {
-      settings: getDefaultBudget()
-    }
-  };
+  return pureGetDefaultScenario(name, description, enabledTools, new Date().toISOString());
 }
 
 /**

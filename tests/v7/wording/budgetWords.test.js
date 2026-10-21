@@ -55,6 +55,7 @@ describe('the owner\'s rules, in the words', () => {
     expect(KEEP.note).toMatch(/as many as you like/);
     expect(KEEP.note).toMatch(/without one/);
     expect(KEEP.privacy).toMatch(/never go into the address/);
-    expect(KEEP.saved).toBe('Saved as ‘{name}’. Try something else and save that too.');
+    expect(KEEP.made.inAccount).toBe('Kept as ‘{name}’ in your account.');
+    expect(KEEP.tryAnother).toBe('Try something else and keep that too.');
   });
 });

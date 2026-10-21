@@ -20,8 +20,9 @@ import { href } from '../router/routes.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
+import { D } from '../copy/d.js';
 
-const COPY = { a: A, b: B, c: C };
+const COPY = { a: A, b: B, c: C, d: D };
 const MARK = { current: '›', done: '✓', open: '○' };
 
 /** A button's words by its label id: "a.action.show" → buttons.show; "a.next.c" → buttons['next.c']. */
@@ -56,7 +57,7 @@ export function stepLabel(state, q, step) {
 function nextWords(state, q, id, marked) {
   const words = (COPY[q] || C).next;
   if (id === `${q}.fix` && !marked) return words[`${q}.fix.unmarked`] || words[id] || '';
-  // "Save this as a plan?" with an answer that cannot be saved: back to it
+  // "Keep this as a plan?" with an answer that cannot be kept: back to it
   if (id === `${q}.keep` && !keepView(state, q).can) return words[`${q}.keep.not`] || words[id] || '';
   if (id === 'b.choices') {
     const r = state.answers.b && state.answers.b.result;

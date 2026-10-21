@@ -34,7 +34,9 @@ const EMPTY_ANSWER = Object.freeze({ status: 'idle', inputsKey: null, result: nu
 /** What the short form asks for, by question: these top-level fields (with what is drawn inside them). */
 export const SHORT = {
   a: ['you.age', 'you.pot', 'stop.kind', 'spend.kind'],
-  b: ['you.age', 'you.pot', 'you.payIn.kind', 'stop.age', 'spend.kind']
+  b: ['you.age', 'you.pot', 'you.payIn.kind', 'stop.age', 'spend.kind'],
+  // D (answer-D.md 3.2): the four things — stopped, your age, what is left, the tax-free part — and what you take
+  d: ['stopped', 'you.age', 'you.pot', 'you.taxFreeTaken', 'spend.kind']
 };
 
 /** The fields the short form draws: SHORT's, everything that applies inside them, and every field with a problem. */

@@ -6,11 +6,12 @@
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
+import { D } from '../copy/d.js';
 import { money, ageText } from '../../answers/shared/format.js';
 import { href } from '../router/routes.js';
 import { Button, LinkButton } from './Button.jsx';
 
-const COPY = { a: A, b: B, c: C };
+const COPY = { a: A, b: B, c: C, d: D };
 const isNum = (v) => typeof v === 'number';
 
 /** The figures typed, in the words of the question's summary line. */
@@ -22,7 +23,7 @@ function summary(q, v) {
   if (q === 'b' && isNum(v['you.payIn.total'])) bits.push(`${money(v['you.payIn.total'])} ${t.in}`);
   if (q !== 'c') {
     if (v['stop.kind'] === 'ages') bits.push(t.ages);
-    else if (isNum(v['stop.age'])) bits.push(`${t.stop} ${ageText(v['stop.age'])}`);
+    else if (q !== 'd' && isNum(v['stop.age'])) bits.push(`${t.stop} ${ageText(v['stop.age'])}`);
     if (v['spend.kind'] !== 'level' && isNum(v['spend.amount'])) bits.push(`${money(v['spend.amount'])} ${t.aMonth}`);
   }
   if (q === 'a' && isNum(v['you.payIn.total']) && v['you.payIn.total'] > 0) bits.push(`${money(v['you.payIn.total'])} ${t.in}`);

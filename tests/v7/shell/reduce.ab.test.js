@@ -127,6 +127,12 @@ const anyAction = fc.oneof(
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_FAILED, key })),
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_SLOW, key })),
   fc.constant({ type: A.LASTS_RETRY }),
+  // the three levers on "Does it last?" (road-to-7.md step 7): typed, tried, done or failed under a key, put away
+  fc.tuple(fc.constantFrom('yearly', 'years'), fc.constantFrom('', '15,000', '3', '9', 'abc')).map(([field, value]) => ({ type: A.LEVER_TYPE, field, value })),
+  fc.constantFrom('spendMore', 'work', 'fall').map((kind) => ({ type: A.LEVER_TRY, kind })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('spendMore', 'work', 'fall')).map(([key, kind]) => ({ type: A.LEVER_DONE, key, kind, result: { kind, ok: true, runs: 1, at: { share: 0.9, chancePct: 90 } } })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('spendMore', 'work', 'fall'), fc.constantFrom(null, 'noWorker')).map(([key, kind, reason]) => ({ type: A.LEVER_FAILED, key, kind, ...(reason ? { reason } : {}) })),
+  fc.constantFrom('spendMore', 'work', 'fall').map((kind) => ({ type: A.LEVER_CLOSE, kind })),
   // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
   saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
   fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),
@@ -141,10 +147,10 @@ const anyAction = fc.oneof(
   saver.map((q) => ({ type: A.BUDGET_USE, q })),
   fc.tuple(question, fc.constantFrom('', 'Stop at 60', 'x'.repeat(70))).map(([q, value]) => ({ type: A.KEEP_NAME, q, value })),
   question.map((q) => ({ type: A.KEEP_SAVE, q })),
-  question.map((q) => ({ type: A.KEEP_SENT, q, name: 'Stop at 60', createdAt: '2026-09-30T08:00:00.000Z' })),
-  fc.tuple(question, fc.constantFrom('storage', 'notReady')).map(([q, problem]) => ({ type: A.KEEP_FAILED, q, problem })),
-  fc.tuple(question, fc.constantFrom('taken', 'waiting', 'gone', 'declined', 'notMade', 'unknown'), fc.constantFrom(null, 'Stop at 60 (2)'))
-    .map(([q, outcome, name]) => ({ type: A.KEEP_BACK, q, outcome, ...(name ? { name } : {}) })),
+  // the plan made by the preview itself (road-to-7.md step 7): in the account or this window, a couple's partner plan beside it
+  fc.tuple(question, fc.constantFrom('account', 'window'), fc.constantFrom(null, 'guest-k3v9x1qa')).map(([q, where, partnerId]) =>
+    ({ type: A.KEEP_MADE, q, id: where === 'window' ? 'guest-a1b2c3d4' : 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60', where, ...(partnerId ? { partnerId, partnerName: 'Stop at 60 · partner' } : {}) })),
+  fc.tuple(question, fc.constantFrom('storage', 'notReady', 'full', 'usedUp', 'unverified', 'failed', 'partial', 'sideways')).map(([q, problem]) => ({ type: A.KEEP_FAILED, q, problem, ...(problem === 'partial' ? { name: 'Stop at 60 · partner' } : {}) })),
   // the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's more detail; a step index past the
   // end is a press on a step already gone, and changes nothing
   fc.tuple(question, fc.integer({ min: 0, max: 3 }), fc.constantFrom('fromAge', 'amount', 'fallsPct', 'then'), fc.constantFrom('', '75', '85', '2,000', '85', '1', '0.25', 'abc'))
@@ -192,7 +198,7 @@ describe('any sequence of actions over the three questions', () => {
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
       // the questions' drafts, and the one plan draft of the editing step (editing-in-v7.md 4): one plan's id, text by path
-      expect(Object.keys(s.draft).sort()).toEqual([...Q, 'plan'].sort());
+      expect(Object.keys(s.draft).sort()).toEqual([...Q, 'd', 'plan'].sort());
       expect(s.draft.plan.id === null || typeof s.draft.plan.id === 'string').toBe(true);
       for (const v of Object.values(s.draft.plan.values)) expect(typeof v).toBe('string');
       for (const q of Q) {
@@ -205,7 +211,7 @@ describe('any sequence of actions over the three questions', () => {
           expect('extending' in s.answers.c).toBe(false);
           expect('carriedFrom' in s.draft.c).toBe(false);
         }
-        expect(Object.keys(s.keep[q]).sort()).toEqual(['back', 'name', 'problem', 'saving', 'sent']);
+        expect(Object.keys(s.keep[q]).sort()).toEqual(['made', 'name', 'partnerKept', 'problem', 'saving']);
       }
       if (s.budget) expect(Object.keys(s.budget).sort()).toEqual(['lines', 'oneOffs', 'touched', 'version']);
     }), { numRuns: 300 });

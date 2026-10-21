@@ -25,20 +25,23 @@ const ROWS = [
   ['#/b/choices', r('step', 'b', 'choices'), 'b.choices'],
   ['#/b/keep', r('step', 'b', 'keep'), 'b.keep'],
   ['#/c/answer', r('step', 'c', 'answer'), 'c.answer'],
-  ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
+  ['#/d/numbers', r('step', 'd', 'numbers'), 'd.numbers'],
+  ['#/d/answer', r('step', 'd', 'answer'), 'd.answer'],
+  ['#/d/keep', r('step', 'd', 'keep'), 'd.keep'],
+  ...['e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon'])
 ];
 const FOCUSED = [
   ['#/a/numbers?focus=stop.age', r('step', 'a', 'numbers', 'stop.age')],
   ['#/b/numbers?focus=you.payIn.total', r('step', 'b', 'numbers', 'you.payIn.total')],
   ['#/a/numbers?focus=spend.amount', r('step', 'a', 'numbers', 'spend.amount')]
 ];
-const UNKNOWN = ['#/soon/a', '#/soon/b', '#/soon/c', '#/a/ways', '#/b/ages', '#/a/choices', '#/a', '#/b/', '#/a/answer/extra', '#/A/numbers',
+const UNKNOWN = ['#/soon/a', '#/soon/b', '#/soon/c', '#/soon/d', '#/a/ways', '#/b/ages', '#/a/choices', '#/a', '#/b/', '#/a/answer/extra', '#/A/numbers',
   '#/a/numbers?focus=you.pot=250000', '#/b/numbers?payIn=700', '#/plan/abc/a/answer'];
 
 describe('A and B addresses', () => {
   it('the three questions are open; the front door leads to each first step', () => {
-    expect(Object.keys(BUILT)).toEqual(['a', 'b', 'c']);
-    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['a', 'b', 'c']);
+    expect(Object.keys(BUILT)).toEqual(['a', 'b', 'c', 'd']);
+    expect(QUESTIONS.filter((q) => q.built).map((q) => q.id)).toEqual(['a', 'b', 'c', 'd']);
   });
   it.each(ROWS)('%s', (address, wanted, screen) => {
     expect(parse(address)).toEqual(wanted);

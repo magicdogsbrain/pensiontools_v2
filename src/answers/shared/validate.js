@@ -198,6 +198,9 @@ function checkTyped(field, raw) {
  *      retired view, not a problem)
  *   A: partner-ages-one-at-a-time ("show me ages" for the partner while you are still working); partner-stop-ages-past-75
  *   B: partner-stop-after-now (you have stopped: partner.stop.age > partner.age, B's stop-after-now for them)
+ *   D (answer-D.md 4.2): d-still-working ("not yet" stopped: A's question), d-partner-working (the partner still working:
+ *      A's "I've already stopped"), d-end-after-now (endAge > the younger person's age today), d-work-before-end
+ *      (you.age + work.years < endAge)
  */
 function checkRules(schema, values, env, errors, typedSteps = {}) {
   if (schema.rules.some((r) => r.id === 'pay-in-over-limit')) {
@@ -262,6 +265,13 @@ function checkRules(schema, values, env, errors, typedSteps = {}) {
   if (typeof endAge === 'number' && typeof stops.you === 'number' && !('start.kind' in values)) {
     if (endAge <= younger + later || tooFarApart) put('end-after-stop');
   }
+
+  // D (research/v7/answer-D.md 4.2): someone who has not stopped is A's person; a partner still working is A's
+  // "I've already stopped"; the end comes after today; work from today ends before the end.
+  if (values.stopped === 'notYet') put('d-still-working');
+  if (values.household === 'couple' && values['partner.stopped'] === 'notYet') put('d-partner-working');
+  if ('stopped' in values && typeof endAge === 'number' && endAge <= younger) put('d-end-after-now');
+  if ('stopped' in values && typeof values['work.years'] === 'number' && typeof endAge === 'number' && you + values['work.years'] >= endAge) put('d-work-before-end');
 
   // The partner's own stop (A, B and C), and "I've already stopped" (A and B).
   const youStopped = values['stop.kind'] === 'already';

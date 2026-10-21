@@ -42,7 +42,7 @@ describe('the reducer: the one test\'s result in page memory', () => {
   it('starts empty; working, progress, done for one key; a result for another key is dropped; failed; slow; retry', () => {
     expect(s0.lasts).toEqual(emptyLasts());
     let s = reduce(s0, { type: A.LASTS_WORKING, key: 'k1' });
-    expect(s.lasts).toEqual({ key: 'k1', status: 'working', reason: null, result: null, progress: null, slow: false });
+    expect(s.lasts).toEqual({ key: 'k1', status: 'working', reason: null, result: null, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
     s = reduce(s, { type: A.LASTS_PROGRESS, key: 'k1', done: 1, total: 2 });
     expect(s.lasts.progress).toEqual({ done: 1, total: 2 });
     expect(reduce(s, { type: A.LASTS_PROGRESS, key: 'k2', done: 2, total: 2 })).toBe(s);
@@ -50,7 +50,7 @@ describe('the reducer: the one test\'s result in page memory', () => {
     s = reduce(s, { type: A.LASTS_SLOW, key: 'k1' });
     expect(s.lasts.slow).toBe(true);
     s = reduce(s, { type: A.LASTS_DONE, key: 'k1', result: RESULT });
-    expect(s.lasts).toEqual({ key: 'k1', status: 'done', reason: null, result: RESULT, progress: null, slow: false });
+    expect(s.lasts).toEqual({ key: 'k1', status: 'done', reason: null, result: RESULT, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
     expect(reduce(s, { type: A.LASTS_DONE, key: 'k1', result: RESULT })).toBe(s);                 // not working any more
     expect(reduce(s, { type: A.LASTS_FAILED, key: 'k1' })).toBe(s);
     // a new run for another key keeps the old result until the new one comes (greyed on the screen)
@@ -69,7 +69,7 @@ describe('the reducer: the one test\'s result in page memory', () => {
     expect(reduce(s, { type: A.PLANS_CLEAR }).lasts).toEqual(emptyLasts());
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
     const r = reduce(s0, { type: A.STATE_REPLACE, state: { ...s, lasts: { key: 'k9', status: 'done', result: RESULT } } });
-    expect(r.lasts).toEqual({ key: 'k9', status: 'done', reason: null, result: RESULT, progress: null, slow: false });
+    expect(r.lasts).toEqual({ key: 'k9', status: 'done', reason: null, result: RESULT, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
     expect(reduce(s0, { type: A.STATE_REPLACE, state: { ...s, lasts: { key: 3, status: 'done' } } }).lasts).toEqual(emptyLasts());
   });
   it('readyMark: a run under way, or one due for the plan on the step, is not ready; a result for the key is', () => {
@@ -98,7 +98,7 @@ describe('the runner', () => {
     const stop = startLastsRunner({ store, client });
     await tick();
     expect(calls).toEqual([{ id: LUMPY.id, env: { today: TODAY } }]);
-    expect(store.getState().lasts).toEqual({ key, status: 'done', reason: null, result: RESULT, progress: null, slow: false });
+    expect(store.getState().lasts).toEqual({ key, status: 'done', reason: null, result: RESULT, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
     store.dispatch({ type: A.UI_RAIL, open: true });
     await tick();
     expect(calls.length).toBe(1);

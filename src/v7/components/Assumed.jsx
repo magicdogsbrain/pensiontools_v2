@@ -17,8 +17,9 @@ import { href } from '../router/routes.js';
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
+import { D } from '../copy/d.js';
 
-const COPY = { a: A, b: B, c: C };
+const COPY = { a: A, b: B, c: C, d: D };
 
 export function Assumed({ result, open, all, dispatch, q = 'c' }) {
   const t = (COPY[q] || C).answer;

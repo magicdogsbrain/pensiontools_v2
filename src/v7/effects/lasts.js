@@ -12,8 +12,14 @@
  *
  * The result lives in the state only (10.1): nothing is written to the plan after a run.
  *
+ * The three levers (research/v7/answer-D.md 3.9; road-to-7.md step 7): on lasts/leverTry (state.lasts.levers[kind]
+ * 'working') the lever runs in the worker on the plan of the run held (client.lever, the same lazy chunk), and lasts/leverDone
+ * (or leverFailed) files its figures under the run's key. A lever not tried costs nothing; a lever's run is ended when the
+ * plan changes under it (the key moves), and its result is dropped by the reducer. Nothing is written.
+ *
  *   startLastsRunner({ store, client }) → stop()
  *     client.lasts(plan, env, onProgress)   the worker client; rejects with code NO_WORKER when none can start
+ *     client.lever(plan, env, onProgress)   the same, for one lever: env = { today, lever }
  */
 import { A } from '../state/actions.js';
 import { NO_WORKER } from './workerClient.js';
@@ -69,7 +75,39 @@ export function startLastsRunner({ store, client }) {
     start(w.key, w.plan);
   }
 
+  // the levers: each tried on the plan of the run held, in the worker's 'lever' lane; a stale answer is dropped
+  const leversUnderWay = new Map();                          // kind → key
+  async function tryLever(key, kind, lever, plan) {
+    leversUnderWay.set(kind, key);
+    try {
+      if (typeof client.lever !== 'function') throw Object.assign(new Error('no lever'), { code: NO_WORKER });
+      const result = await client.lever(plan, { today: store.getState().env.today, lever });
+      if (stopped || leversUnderWay.get(kind) !== key) return;
+      if (!result || typeof result !== 'object') throw new Error('no result');
+      store.dispatch({ type: A.LEVER_DONE, key, kind, result });
+    } catch (e) {
+      if (!stopped && leversUnderWay.get(kind) === key) store.dispatch({ type: A.LEVER_FAILED, key, kind, reason: e && e.code === NO_WORKER ? 'noWorker' : null });
+    } finally {
+      if (leversUnderWay.get(kind) === key) leversUnderWay.delete(kind);
+    }
+  }
+  function checkLevers(state, action) {
+    if (stopped || !action || action.type !== A.LEVER_TRY) return;
+    const L = state.lasts;
+    const x = L && L.levers && L.levers[action.kind];
+    if (!x || x.status !== 'working') return;
+    const w = wanted(state);
+    if (!w || w.key !== L.key) return;
+    if (leversUnderWay.get(action.kind) === L.key) return;
+    tryLever(L.key, action.kind, x.lever, w.plan);
+  }
+  const offLevers = store.subscribe((state, action) => {
+    checkLevers(state, action);
+    // the plan changed under a lever's run: the old run is ended, its answer dropped
+    if (action && action.type === A.LASTS_WORKING && leversUnderWay.size && [...leversUnderWay.values()].some((k) => k !== action.key)) { client.stop('lever'); leversUnderWay.clear(); }
+  });
+
   const off = store.subscribe(check);
   check(store.getState());
-  return () => { stopped = true; off(); clearSlow(); if (underWay) client.stop('lasts'); underWay = null; };
+  return () => { stopped = true; off(); offLevers(); clearSlow(); if (underWay) client.stop('lasts'); if (leversUnderWay.size) client.stop('lever'); underWay = null; leversUnderWay.clear(); };
 }

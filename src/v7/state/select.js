@@ -24,7 +24,8 @@
  *   skipNoteDue(state, q)   → the "you are skipping the budget" note is due (shown once)
  *   spendDone(state, q)     → the spend step has what it needs
  *   budgetAgainstC(state)   → C's line "your budget adds up to … this gives £X a month less", or null
- *   keepView(state, q)      → the "Save this as a plan" panel: whether the answer can be saved, why not, the name
+ *   keepView(state, q)      → the "Keep this as a plan" panel: whether the answer can be kept, why not, the name, the plan made
+ *   lockedPlanInAccount(state) → a locked plan is among the plans read (D keeps a separate plan then), or null until read
  *
  * Couples who stop work in different years (research/v7/couples-different-years.md 2, 3.1), from what each field shows
  * (flat values: the text typed, else the checked value, else the plain default — formView's `shown`):
@@ -41,6 +42,7 @@
 import { SCHEMA_C } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
+import { SCHEMA_D } from '../../answers/d/schema.js';
 import { parseDraft, fieldsThatApply, nest, applies } from '../../answers/shared/validate.js';
 import { alreadyStopped, askedAbout, payCoversOf, savingsGrowthAsked } from '../../answers/shared/schemaParts.js';
 import { inputsKey } from './inputsKey.js';
@@ -63,7 +65,7 @@ import { money } from '../../answers/shared/format.js';
 export { cAnswerYouStopped } from './carry.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
-export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B };
+export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D };
 
 /**
  * The detail each step of A and B shows (conflict 43). The answer step is worked out at its default detail by C's two
@@ -145,7 +147,7 @@ export function stepStates(state, q) {
     let done = false;
     if (step.id === 'numbers') done = SPEND_STEP[q] ? numbersDone(state, q) : parsedDraft(state, q).ok;
     else if (step.id === 'spend') done = spendDone(state, q);
-    else if (step.id === 'keep') done = !!(state.keep && state.keep[q] && state.keep[q].back === 'taken');
+    else if (step.id === 'keep') done = !!(state.keep && state.keep[q] && state.keep[q].made);
     else if (step.id === 'answer') done = !!answer && answer.status === 'final' && isCurrent(state, q);
     else if (step.built && STEP_DETAIL[q] && STEP_DETAIL[q][step.id]) {
       // An optional step of A or B: done once a final answer for what is typed holds the step's detail.
@@ -498,7 +500,31 @@ function keepBlock(state, q) {
   return k.ok ? null : k.why;
 }
 
-/** The panel: { can, why, suggested, name (the box), check, problem, saving, sent, back }. */
+/**
+ * Whether a locked plan is in the account (or this window), as the plans in page memory say (null when they are not
+ * read). D then keeps a "separate plan" beside the one followed, and offers no lock (answer-D.md 3.8, 10).
+ */
+export function lockedPlanInAccount(state) {
+  const plans = state.plans;
+  if (!plans || plans.status !== 'read') return null;
+  return plans.list.some((e) => e && e.plan && e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked === true);
+}
+
+/**
+ * D's way in (answer-D.md 3.10): the plans in page memory, each a candidate for its own test at "Does it last?" — { id,
+ * name, locked } — once the plans are read (the plan source loads on D's pages); `known` false until then, or away from an
+ * account. The screen links to each (href.plan(id, 'lasts')); it never redirects.
+ */
+export function dWayIn(state) {
+  const plans = state.plans;
+  if (!plans || plans.status !== 'read') return { known: false, plans: [] };
+  const nameOf = (plan) => (plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (typeof plan.name === 'string' && plan.name) || '';
+  const list = plans.list.filter((e) => e && e.plan && e.plan.id != null && !e.failed)
+    .map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan), locked: !!(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked === true) }));
+  return { known: true, plans: list };
+}
+
+/** The panel: { can, why, suggested, name (the box), check, problem, saving, made, separate, partnerKept }. */
 export function keepView(state, q) {
   const keep = (state.keep && state.keep[q]) || emptyKeep();
   const why = keepBlock(state, q);
@@ -506,7 +532,7 @@ export function keepView(state, q) {
   const suggested = why === null ? suggestedPlanName(q, r.inputs, r) : '';
   const name = typeof keep.name === 'string' ? keep.name : suggested;
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
-    sent: keep.sent || null, back: keep.back || null };
+    made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null };
 }
 
 // ---- the spending shape (research/v7/spending-shape.md 3.6, 4.1–4.4) --------------------------------------------------

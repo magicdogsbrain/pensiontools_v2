@@ -29,7 +29,11 @@ const ROWS = [
   ['#/b/answer', r('step', 'b', 'answer'), 'b.answer'],
   ['#/b/choices', r('step', 'b', 'choices'), 'b.choices'],
   ['#/b/keep', r('step', 'b', 'keep'), 'b.keep'],
-  ...['d', 'e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon']),
+  // "Will it last?" (research/v7/answer-D.md; road-to-7.md step 7): three steps
+  ['#/d/numbers', r('step', 'd', 'numbers'), 'd.numbers'],
+  ['#/d/answer', r('step', 'd', 'answer'), 'd.answer'],
+  ['#/d/keep', r('step', 'd', 'keep'), 'd.keep'],
+  ...['e', 'f'].map((q) => [`#/soon/${q}`, r('soon', q), 'soon']),
   // the saved plans, read-only (research/v7/your-plan.md 4.2): the list, and one plan on its first step or a named one
   ['#/plans', { ...r('plans') }, 'plans'],
   ['#/plan/Kq8LwT2mJv5PzYc9BnRd', { ...r('plan'), planId: 'Kq8LwT2mJv5PzYc9BnRd' }, 'plan'],
@@ -41,7 +45,7 @@ const FOCUSED = [
   ['#/c/answer?focus=take', r('step', 'c', 'answer', 'take')],
   ['#/?focus=you.pot', r('front', null, null, 'you.pot')]
 ];
-const UNKNOWN = ['#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense',
+const UNKNOWN = ['#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/d', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense', '#/d/spend', '#/d/ages',
   '#/c/answer/extra', '#/c/numbers?focus=', '#/c/numbers?focus=you.pot=250000', '#/c/numbers?pot=250000', '#/C/numbers', '#/c/numbers?focus=1'];
 
 describe('parse and format', () => {

@@ -136,6 +136,11 @@
     "v6-retired": {
       "title": "Already retired inside today's app: nothing for V7 to carry",
       "source": "today's code"
+    },
+    "s8-way": {
+      "short": "the way of drawing",
+      "title": "Road step 8a (6.40.0): \"How the money is taken\" in V7 — the nine ways on this plan in the one verdict, each way's dials as one set, \"Use this way of drawing\" as the planner's switch (research/v7/way-and-mix.md 2)",
+      "source": "research/v7/road-to-7.md step 8; way-and-mix.md 1, 2, 6, 8"
     }
   },
   "keyNotes": {
@@ -296,9 +301,13 @@
       "keys": [
         "plan.journey"
       ],
-      "status": "planned",
-      "step": "s4-open-plan",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Shown in V7 from s4 (src/answers/plan/read.js: the stage changes with their dates under “Your plan”)."
+      "status": "built",
+      "step": "s5-lock",
+      "note": "Built: the lock in V7 writes the journey since 6.38.0 (road-to-7.md step 6), and \"Your plan\" shows the stage changes with their dates (\"How this plan got here\"); the way step's plan page carries the same line.",
+      "files": [
+        "src/answers/plan/lock.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "ways.phone",
@@ -2038,10 +2047,18 @@
       "keys": [
         "strategies.pots-and-valves"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7's answers draw this way today, with the cuts off."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0, way-and-mix.md 2): a card on \"How the money is taken\" with the one verdict on this plan, its cut dials (cut spending in bad runs, how deep, the months below the path), what can go wrong; the mix names the planner's Settings until \"The mix\" (8b). \"Use this way of drawing\" writes the planner's switch.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.buckets",
@@ -2057,10 +2074,18 @@
         "strategyParams.buckets-in-order.sippTotal",
         "strategyParams.buckets-in-order.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the refill band and the cut dials; the bond tent not used, said on the card; the pension and ISA totals are the plan's pots, never dials.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.ladder-ratchet",
@@ -2079,10 +2104,18 @@
         "strategyParams.ladder-and-ratchet.sippTotal",
         "strategyParams.ladder-and-ratchet.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the years bought up front, the income bolted on, when it buys more years (the band or every five years), the band — every dial the planner shows; the pots are the plan's.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.bridge-engine",
@@ -2099,10 +2132,18 @@
         "strategyParams.bridge-and-engine.sippTotal",
         "strategyParams.bridge-and-engine.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the age the years are bought to and the years paid from cash first; the pots are the plan's.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.floor-flex",
@@ -2122,10 +2163,18 @@
         "strategyParams.floor-and-flex.sippTotal",
         "strategyParams.floor-and-flex.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words. V7 never fills the essentials from the budget (owner, 1 Oct 2026)."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the bills a year, the age they are paid to, what the rest pays out (1–10% in quarter steps — the engine's range, wider than the Settings box), the treats rule and the ratchet (kept with the plan; the one test runs the floor without it, said on the card). The bills are never filled from the budget.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.floor-schedule",
@@ -2140,10 +2189,18 @@
         "strategyParams.floor-the-schedule.sippTotal",
         "strategyParams.floor-the-schedule.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card, no dials of its own (the income comes from the spending shape); the pots are the plan's.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.floor-to-age",
@@ -2160,10 +2217,18 @@
         "strategyParams.floor-to-age.sippTotal",
         "strategyParams.floor-to-age.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the age the income is bought to; the borrowed floor is the rotation's record, written by its switch on the classic page, never a dial.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.full-gilt",
@@ -2181,10 +2246,18 @@
         "strategyParams.full-il-gilt.sippTotal",
         "strategyParams.full-il-gilt.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the years paid from cash first (0–5, default 2 — the engine's; the Settings box agrees), the cash kept to the first April and the money left over (kept or invested).",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.gilt-rotation",
@@ -2205,10 +2278,18 @@
         "strategyParams.gilt-rotation.sippTotal",
         "strategyParams.gilt-rotation.isaTotal"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"compare\" step; E's answer contract is not written yet (square-one-audit.md §5 item 6). Owner's decision pending: all nine answer in V7's words."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the card with the ladder's three dials and the age the rungs are kept to, the escape (% below the all-time high) and the years before it is put away — all three run on the card (the planner's page copied only some of them: corrected through the same lift). The years from cash default to 2, the engine's (the planner's page said 3).",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.choose",
@@ -2229,10 +2310,18 @@
         "strategyState.taggedFunds",
         "strategyState.savedAt"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"mix\" and \"compare\" steps."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): \"Use this way of drawing\" on any card is the planner's switch field for field (services/PlanCommit.js switchPatch: the outgoing way stashed under strategyState, this way's own inputs restored or started clean, the dials typed on top, the pots re-derived from a restored funds list, the root strategy block) in ONE write past the lock guard, with Undo; the Decision copies travel with the lock's seed as before.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.costs",
@@ -2243,10 +2332,18 @@
       "whereV6": "refreshStrategyCosts (index.html:9729-9796)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "Part of each strategy's dials in E's \"compare\" step; no V7 design draws it."
+      "status": "built",
+      "step": "s8-way",
+      "note": "Built (6.40.0): a bought way's card says what it costs of the pot today and what is left to grow, from the same run as its verdict, and re-says it as the dials move (\"Tried in 1 run\"); a way the pot cannot buy says the cost and the shortfall. The illustrative ladder stays on the classic page (the order sheet is step 10's).",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx",
+      "doc": "research/v7/way-and-mix.md §2"
     },
     {
       "id": "strat.compare",
@@ -2257,10 +2354,18 @@
       "whereV6": "Strategies → Overview (index.html:10146-10237)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "Owner's decision pending: one kind of verdict (\"lasts in 9 futures out of 10\") for all nine (square-one-audit.md §6 question 2)."
+      "status": "built",
+      "doc": "research/v7/way-and-mix.md §2",
+      "step": "s8-way",
+      "note": "Built (6.40.0): the nine on this plan through the one test (compareRunner.compareAll, the loop the planner's Overview runs), ranked by futures out of 10 with coverage breaking ties (OneAnswer.rankWays, the planner's own keys); the unaffordable last. \"More columns\" holds the planner's other columns (worst 12 months, years covered, coverage, spent over the plan, bumpiness, the score) and its other orders, never the default.",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx"
     },
     {
       "id": "strat.pages",
@@ -2271,10 +2376,18 @@
       "whereV6": "Strategies → one page per strategy",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "E's outline names \"compare\" but no V7 design draws a page per strategy."
+      "status": "built",
+      "step": "s8-way",
+      "note": "Built (6.40.0) as the card: how it works (the way's promise in V7's words), its dials (every one the planner shows anywhere, one set of defaults — the engine's), what can go wrong. Planned, still: the three real starts in history stay a note on this row until the history view lands (way-and-mix.md 8).",
+      "files": [
+        "src/answers/plan/waysRun.js",
+        "src/answers/plan/way.js",
+        "src/v7/screens/plan/WayScreen.jsx",
+        "src/v7/copy/way.js",
+        "src/services/PlanCommit.js"
+      ],
+      "editV7": "src/v7/screens/plan/WayScreen.jsx",
+      "doc": "research/v7/way-and-mix.md §2"
     },
     {
       "id": "strat.try-in-copy",

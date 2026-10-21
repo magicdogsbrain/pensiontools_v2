@@ -30,6 +30,13 @@ function wanted(state) {
   return entry ? { key: M.runKey, plan: entry.plan } : null;
 }
 
+/** A locked plan's own figure, as the page's reading carries it (answers/plan/mix.js mixBaseOf, read by the plan source): the document's, else null. */
+function documentBaseOf(state, plan) {
+  const view = state.plans && state.plans.view;
+  const pm = view && view.page && view.page.mix;
+  return pm && pm.found && String(pm.id) === String(plan.id) && pm.documentBase ? pm.documentBase : null;
+}
+
 export function startMixRunner({ store, client, now = () => 0 }) {
   let stopped = false;
   const tries = new Map();      // kind → key under way
@@ -43,7 +50,8 @@ export function startMixRunner({ store, client, now = () => 0 }) {
       if (!client || typeof client.mixTry !== 'function') throw Object.assign(new Error('no mix lane'), { code: NO_WORKER });
       const L = store.getState().lasts;
       const base = L && L.key === key && L.status === 'done' && L.result && L.result.a ? { share: L.result.a.share, chancePct: L.result.a.chancePct, typicalLeft: L.result.a.typicalLeft, badCaseLeft: L.result.a.badCaseLeft } : null;
-      const result = await client.mixTry(plan, { today: store.getState().env.today, kind, base });
+      const today = store.getState().env.today;
+      const result = await client.mixTry(plan, { today, kind, base: base || documentBaseOf(store.getState(), plan) });   // a locked plan: the document's figure beside, one run
       if (!mine()) return;
       if (!result || typeof result !== 'object') throw new Error('no result');
       store.dispatch({ type: A.MIX_TRIED, key, kind, result, ms: now() - t0 });

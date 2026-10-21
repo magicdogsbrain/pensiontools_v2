@@ -1,0 +1,2006 @@
+{
+ "01-fresh-default": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "6bfb033849454089"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7c0b92b73db898e8"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 400000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9c6e73879c0b64bf"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 10000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "12cc547c79a32196"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "977840839c841b71"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 27000,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "a4121e1aa88eaba9"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "38104ad9479a747c"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "f5928ac145eb9679"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "fcc5490c7039658a"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "e815c4ba62daf135"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 400000,
+    "isa": 10000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 27000,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "09571eaa45baf028"
+  }
+ },
+ "02-pnv-draft": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9fe2247a41b9be05"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "302a7686e486167d"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 560000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "a92ed8051c250269"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "60843700726209d8"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "2dc135f54c7f6ac0"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 34200,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "97451746a81ccc63"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "2f9bfb60d7301835"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9a09aeb5c3e17c2c"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "86eb6c9922d7aca0"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 700000,
+    "isa": 45000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "5835cd9e786b6359"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 560000,
+    "isa": 55000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 34200,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "d4ac056354df52e0"
+  }
+ },
+ "03-gilt-ladder-runup": {
+  "none": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "cf5c04fc51214493"
+  },
+  "way": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "d1c2760a33c84878"
+  },
+  "pot": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 840000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "1d98de352edbba01"
+  },
+  "isa": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 90000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "b39c2f66d208d325"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "cf5c04fc51214493"
+  },
+  "income": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 46800,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "ed4b3e89d2f984c5"
+  },
+  "years": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "e1495a3709b72b80"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "34df1476b380fb4c"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "8c3811839f94dbaf"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "full-il-gilt",
+    "pot": 1050000,
+    "isa": 80000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 33,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "95af8d2451f9b5fe"
+  },
+  "all": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 840000,
+    "isa": 90000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 46800,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "e3482fbbd39cb594"
+  }
+ },
+ "04-buckets-running": {
+  "none": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7a4ef75dc3236b71"
+  },
+  "way": {
+   "boxes": {
+    "way": "ladder-and-ratchet",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "a9cea1732b268cff"
+  },
+  "pot": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 472000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "e82174924e397af3"
+  },
+  "isa": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 35000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "5ed220743f53c161"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "ceafee4a934e3b40"
+  },
+  "income": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 27000,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "a4ea01abe25b1ea0"
+  },
+  "years": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "bd49bd77d8f63b25"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "3e311ac8555fb202"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "43a79c6b152e4ae6"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 590000,
+    "isa": 25000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "bb115024bd16e261"
+  },
+  "all": {
+   "boxes": {
+    "way": "ladder-and-ratchet",
+    "pot": 472000,
+    "isa": 35000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 27000,
+    "years": 28,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "4d8c4640c1a2a4c2"
+  }
+ },
+ "05-saver-committed": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "ac664becaec8646f"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "1c326a98e3c78955"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 248000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "c663396891c69aa5"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 50000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0577eaf623d4bb5c"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "1c2b074d0a5659bd"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 32400,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "cb0266e105ea8377"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0456a1c0b8e2fb9b"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "aea297449ee8e351"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "2e7e4ab2c437db00"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 310000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "d28882967e14a48d"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 248000,
+    "isa": 50000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 32400,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "b1d4124312ce8036"
+  }
+ },
+ "06-pre-6.4-no-timing": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "84910291a53943ff"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "fad473700fc5c6c0"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 696000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "b64575b085c68d3c"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 40000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "bf2336f43b4f0b57"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "2acba4fd555aa70d"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 37800,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "aa484566ffd7acff"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7fcbd7ee94c9f3a7"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "39c7de6a5f9760d4"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "f42ffef96b729bb7"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 870000,
+    "isa": 30000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 35,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "a5b351665c400487"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 696000,
+    "isa": 40000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 37800,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "9262e1b6071eb083"
+  }
+ },
+ "07-pre-6.13-flat-params": {
+  "none": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "66c41db2cb76cd5d"
+  },
+  "way": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "bf9397a0d23cb9bd"
+  },
+  "pot": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 796000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "305926c507b44c4d"
+  },
+  "isa": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 65000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9f769bc62f9b3e02"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "66c41db2cb76cd5d"
+  },
+  "income": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 41400,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "8ce94245aec5fbb0"
+  },
+  "years": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "ca85f54c904348b6"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "3c72417a5df87d2a"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "944ae823a9037d7d"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "gilt-rotation",
+    "pot": 995000,
+    "isa": 55000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 34,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "0d6963f853ff9b9f"
+  },
+  "all": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 796000,
+    "isa": 65000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 41400,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "faee9d0d0a00441b"
+  }
+ },
+ "08-dotted-keys": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "180a2ee6ee51f0f7"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9503d1263acf11e6"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 400000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "751ee3d8f8a91058"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 28000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "2d2a38e7cb639fb4"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "f0dd90c93bfe3324"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 24750,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "3e2cf6f51eb39a3e"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "26fa1f6e780a5435"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "73678090872fc614"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "3f1c2c6b5865b0a7"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 500000,
+    "isa": 18000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "c8d0a613c35584ec"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 400000,
+    "isa": 28000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 24750,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "63a261745ec4b47d"
+  }
+ },
+ "09-couple-a": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7a22a443fe56837c"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "6d47a9dde2c95f0b"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 280000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "4a81248f92c39c99"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 32000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "d7f1fe4e330c622c"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0ed7d03fc60370cd"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 21600,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "6b67271db64e3117"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 28,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "b7ea2ff93d930f7a"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "f94f4c5b183cda8f"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "27030dd0589e5c12"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 350000,
+    "isa": 22000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "3b3a95b85fb8de41"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 280000,
+    "isa": 32000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 21600,
+    "years": 28,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "116556857607c45d"
+  }
+ },
+ "10-couple-b": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "203a573b34a7e7dd"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "2688bda813c443b6"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 176800,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "f395d746635369f0"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 19000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7c3a23c8a3fc6d1c"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "823bcb10bffe7865"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 16200,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "7329abb9853eadff"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "9882de48c55486f3"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "53a7059cc974a9b5"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "4ab3d1a31984c9b4"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 221000,
+    "isa": 9000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "2c02691bfe1f049f"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 176800,
+    "isa": 19000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 16200,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "a7cc001d2098a298"
+  }
+ },
+ "11-guest-demo": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0959f87c77849e18"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "b2ecba8470312e10"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 800000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "8062abe148e2e630"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 10000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "cc116e7b745b2b2d"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0959f87c77849e18"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 36000,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "94f9080769dedede"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "0ec36a219824db0a"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "66be3a2a50096068"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "7835dbc9cfb16743"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 1000000,
+    "isa": 0,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 39,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "f39c3b556cb6895f"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 800000,
+    "isa": 10000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 36000,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "104fb139a5b3a9ea"
+  }
+ },
+ "12-lumpy-db-gia": {
+  "none": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "54b5af2e3e5e05b0"
+  },
+  "way": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "fa9fdeffcd9be50a"
+  },
+  "pot": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 352000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "5cfb9779ab452c86"
+  },
+  "isa": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 70000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "5a045a487a17c21d"
+  },
+  "isaPolicy": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "hold",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "d3c85107f79856b3"
+  },
+  "income": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "flat",
+    "income": 43200,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "d3b24eed543ae7bb"
+  },
+  "years": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 30,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "96912c17f2f12100"
+  },
+  "cuts": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "off",
+    "cutPct": "",
+    "cutEsc": ""
+   },
+   "copy": "8e9bd4b0dd72b013"
+  },
+  "cutPct": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "30",
+    "cutEsc": ""
+   },
+   "copy": "378019e9e60fd42c"
+  },
+  "cutEsc": {
+   "boxes": {
+    "way": "pots-and-valves",
+    "pot": 440000,
+    "isa": 60000,
+    "isaPolicy": "saved",
+    "incomeMode": "shape",
+    "income": 0,
+    "years": 32,
+    "cuts": "saved",
+    "cutPct": "",
+    "cutEsc": "6"
+   },
+   "copy": "db049d4a29ea7cad"
+  },
+  "all": {
+   "boxes": {
+    "way": "buckets-in-order",
+    "pot": 352000,
+    "isa": 70000,
+    "isaPolicy": "hold",
+    "incomeMode": "flat",
+    "income": 43200,
+    "years": 30,
+    "cuts": "off",
+    "cutPct": "30",
+    "cutEsc": "6"
+   },
+   "copy": "f7194d95bdf18803"
+  }
+ }
+}

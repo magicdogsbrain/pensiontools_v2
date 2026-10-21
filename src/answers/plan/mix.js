@@ -143,6 +143,16 @@ export function savedMix(plan, { today }) {
   };
 }
 
+/**
+ * The plan's own figure a bad-case try is set beside when "Does it last?" is not held for it: on a locked plan with a plan
+ * document, the document's (3.3: "the document's figure beside"); else null, and the try runs the plan as saved too.
+ */
+export function mixBaseOf(plan, { today }) {
+  const d = savedMix(plan, { today }).document;
+  return d ? { share: d.share, chancePct: Math.round(d.share * 1000) / 10, typicalLeft: d.typicalLeft, badCaseLeft: d.badCaseLeft } : null;
+}
+const isDocumentBase = (saved, base) => !!(saved.document && base && r0(base.badCaseLeft) === saved.document.badCaseLeft && r0(base.typicalLeft) === saved.document.typicalLeft);
+
 /** The boxes' starting text: the saved facts as a person would type them, by path (the funds as cards "0", "1", …). */
 export function boxesOf(plan, { today }) {
   const s = savedMix(plan, { today });
@@ -400,7 +410,7 @@ function tryView(kind, t, base, saved) {
   if (!r.affordable || !r.a) lines.push({ id: 'unaffordable', slots: {} });
   else if (!own) lines.push({ id: kind + '.alone', slots: { on: r.on ? 'on' : 'off', bad: pounds(r.a.badCaseLeft), words: futuresOutOfTen(r.a.share).words } });
   else lines.push({ id: kind + (r.on ? '.withTried' : '.withOwn'), slots: { withBad: pounds(r.on ? r.a.badCaseLeft : own.badCaseLeft), withoutBad: pounds(r.on ? own.badCaseLeft : r.a.badCaseLeft), triedWords: futuresOutOfTen(r.a.share).words, ownWords: own.share != null ? futuresOutOfTen(own.share).words : '' } });
-  if (saved.document && r.base == null && !base) lines.push({ id: 'document', slots: { date: saved.document.lockedOn } });
+  if (isDocumentBase(saved, own)) lines.push({ id: 'document', slots: { date: saved.document.lockedOn } });
   return { status: 'done', lines, runs: r.basis && r.basis.runs ? r.basis.runs : 1, ms: t.ms == null ? null : t.ms, reason: null };
 }
 
@@ -471,6 +481,7 @@ export function mixOf(entries, id, { today, typed = null, M = null, base = null 
     categories: CATEGORY_GROUPS, errors: c.errors, ok: c.ok, derived, sleeve, tent, search, example: { rows: example.rows, level: c.values.level || saved.values.level },
     summary, paste: c.paste, compare: cmp, pick: pickWords,
     document: saved.document ? { badCaseLeft: pounds(saved.document.badCaseLeft), words: futuresOutOfTen(saved.document.share).words, lockedOn: saved.document.lockedOn } : null,
+    documentBase: mixBaseOf(plan, { today }),
     base: baseMine ? { badCaseLeft: pounds(baseMine.badCaseLeft), words: futuresOutOfTen(baseMine.share).words, chance: chance({ chancePct: baseMine.share * 100 }) } : null,
     partners,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,

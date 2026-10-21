@@ -141,6 +141,11 @@
       "short": "the way of drawing",
       "title": "Road step 8a (6.40.0): \"How the money is taken\" in V7 — the nine ways on this plan in the one verdict, each way's dials as one set, \"Use this way of drawing\" as the planner's switch (research/v7/way-and-mix.md 2)",
       "source": "research/v7/road-to-7.md step 8; way-and-mix.md 1, 2, 6, 8"
+    },
+    "s8-mix": {
+      "short": "the mix and Try a change",
+      "title": "Road step 8b (6.41.0): \"The mix\" in V7 — a risk level, your own split or the funds to test, the slice of gold and trend funds and the bond tent each with \"What it does in a bad case\", \"Which mix lasts best?\" with \"Use this mix\"; Try a change of your own on \"Does it last?\" with \"What's different\", \"Use this\" and \"Keep as a separate plan\"; the income picture's rows, budget mark and lump-sum marks (research/v7/way-and-mix.md 3, 4, 5)",
+      "source": "research/v7/road-to-7.md step 8; way-and-mix.md 3, 4, 5, 6, 7"
     }
   },
   "keyNotes": {
@@ -1005,10 +1010,15 @@
       "whereV6": "renderIncomeShapePreview → incomeStaircaseSvg sp / other (index.html:8322-8350)",
       "who": "Everyone",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/spending-shape.md §15.1",
-      "step": "shape-next",
-      "note": "Not built: the spend step's picture shows the shape alone (\"Each bar is one year of your life\"); the layers come with the answer. Designed: the spend step reads the year-by-year income you get anyway from the plan the inputs already make (yearsOf, no engine run), once a stop age is known. On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built on a saved plan's \"What you spend\": the rows of money that comes in anyway drawn under the steps while they are set (the plan's own year-by-year reading, no engine run).",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/shape.js"
+      ]
     },
     {
       "id": "income.budget-mark",
@@ -1019,10 +1029,15 @@
       "whereV6": "incomeStaircaseSvg budgetGross (src/ui/incomeShapeGraphic.js)",
       "who": "Everyone",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/spending-shape.md §15.1",
-      "step": "shape-next",
-      "note": "Not built as a mark: V7 says it in words beside each later step (\"85% of the start, 71% of your budget (a guide)\"). Designed: a short dashed mark at the budget's total a month, named in the key, a guide only. On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built on a saved plan's \"What you spend\": a short dashed mark at the budget's total a month, named in the key, a guide only.",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/shape.js"
+      ]
     },
     {
       "id": "income.markers",
@@ -1033,14 +1048,16 @@
       "whereV6": "incomeStaircaseSvg events (src/ui/incomeShapeGraphic.js:74-80)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/spending-shape.md §15.3",
-      "step": "shape-next",
-      "waitsFor": [
-        "inc.extra-spends",
-        "inc.lump-sums"
-      ],
-      "note": "Waits for one-off costs (§16) and lump sums (§17), which V7 does not have yet. Designed: a mark under the bar of that year, its amount in the year's line and in the table."
+      "status": "built",
+      "step": "s8-mix",
+      "waitsFor": null,
+      "note": "Built on a saved plan's \"What you spend\": a mark under the year of each lump sum coming in and each one-off spend going out, named in the key with its amount.",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/shape.js"
+      ]
     },
     {
       "id": "income.essentials-line",
@@ -1090,10 +1107,15 @@
       "whereV6": "incomeShapeNote (index.html:8375)",
       "who": "Everyone",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/spending-shape.md §15.2",
-      "step": "shape-next",
-      "note": "Not built: V7 says it on the answer only. Designed: the same words on the spend step, from the same year-by-year income as the layers (§15.1). On a saved plan's \"What you spend\" step (editing-in-v7.md 8) the picture while the steps are set has the layers, the floor line and the budget's essentials; the questions' spend step still waits."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built on a saved plan's \"What you spend\": \"Below the income you get anyway from age N\" said while the steps are set, from the same rows as the layers.",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/components/ShapeChart.jsx",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/shape.js"
+      ]
     },
     {
       "id": "income.budget-share",
@@ -1467,10 +1489,18 @@
         "taggedFunds[].ocf",
         "taggedFunds[].contribution"
       ],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"mix\" step: a pot and a risk level; a fund list there is the intended retirement portfolio."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built on \"The mix\" (#/plan/<id>/mix): \"As the funds to test\" — typed with the bundled search, or pasted from a platform with \"What is this?\" for each line not recognised and \"Left out, and why\"; each line counted as shares, bonds, gold and trend, or cash; the list becomes the split the plan is tested on (PortfolioTagger.mixFromFunds, the planner's own); one list per way of drawing (the stash). Not a record of what is held.",
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js",
+        "src/services/PortfolioTagger.js",
+        "src/services/FundCatalogue.js"
+      ]
     },
     {
       "id": "pots.example-portfolio",
@@ -1481,9 +1511,17 @@
       "whereV6": "\"See an example ETF portfolio for this level\" (index.html:3398-3401; ModelPortfolios.js)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s8-mix",
+      "gap": false,
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js"
+      ],
+      "note": "Built: \"Show an example list for this level (not advice)\" on \"The mix\" — the planner's model list for the level, filling nothing in."
     },
     {
       "id": "pots.diversifiers",
@@ -1497,9 +1535,18 @@
         "stress.diversifierStart",
         "decision.diversifierStart"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s8-mix",
+      "gap": false,
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js",
+        "src/services/GlidepathService.js"
+      ],
+      "note": "Built: \"Keep a slice in gold and trend funds\" (yes/no) on \"The mix\", with \"What it does in a bad case\" — one run of the one test with the slice the other way, the bad-case figure beside the plan's own."
     },
     {
       "id": "pots.bond-tent",
@@ -1515,9 +1562,18 @@
         "stress.glideEndgame",
         "decision.glideEndgame"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s8-mix",
+      "gap": false,
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js",
+        "src/services/GlidepathService.js"
+      ],
+      "note": "Built: \"Use the bond tent\" (yes/no) on \"The mix\", the sentence with the plan's own years, \"What it does in a bad case\" (one run), the level the tent rises to for a funds list; \"Buckets in order ignores the tent\" said."
     },
     {
       "id": "pots.isa",
@@ -2398,10 +2454,16 @@
       "whereV6": "\"Try this strategy in a COPY of this plan\" (index.html:3216-3217, 9707-9727)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s8-e",
-      "note": "\"Keep a try-a-change result as a separate plan\"."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built: \"Keep as a separate plan\" on a tried change — the copy kept through the one create, named \"{name} · tried\", not active, never locked, no document or record; then \"Open it\" and \"Lock this plan?\".",
+      "files": [
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "strat.gilts-explained",
@@ -2518,10 +2580,16 @@
       "whereV6": "Stress → Monte Carlo → Try a strategy (index.html:2818-2836)",
       "who": "Everyone, locked plans too",
       "keys": [],
-      "status": "designed",
-      "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s8-e",
-      "note": "\"Test the plan: try-only\". V7's answers have Try a change (src/v7/components/TryAChange.jsx), and with a spending shape \"Try it the same every year\" and \"Put back my steps by age\" (today's \"Income: … A flat amount\")."
+      "status": "built",
+      "step": "s8-mix",
+      "note": "Built as \"Try a change of your own\" on a saved plan's \"Does it last?\": every box of the planner's Try a strategy (the way, the pension pot, the ISA and whether it is held back, the income as shaped or a flat figure a month after tax, the years, cuts in a slump, how deep, the months at half) tried in one run on a copy (lastsRun.trySettings, the planner's own function), \"What's different\" line by line, \"Use this\" as one write of exactly the fields that differ with Undo. Gate: tests/v7/plan/tryIdentity.test.js.",
+      "files": [
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "test.explainers",
@@ -2532,10 +2600,22 @@
       "whereV6": "Stress → Monte Carlo, Historical, Scenarios: \"What is this doing?\" (openStressExplainer)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7 says what each answer assumed (src/v7/components/Assumed.jsx); an explanation of each test needs E."
+      "status": "built",
+      "step": "s8-mix",
+      "gap": false,
+      "note": "Built on \"The mix\" and Try a change: what each try does is said beside it in one sentence (the slice, the tent, the eight cells, the copy a change runs on) and the cost in runs under every figure.",
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js",
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "test.optimise",
@@ -2546,9 +2626,18 @@
       "whereV6": "Stress → \"Compare allocations (Pots & Valves)\" (index.html:6683-6834)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s8-mix",
+      "gap": false,
+      "files": [
+        "src/answers/plan/mix.js",
+        "src/answers/plan/mixRun.js",
+        "src/v7/screens/plan/MixScreen.jsx",
+        "src/v7/copy/mix.js",
+        "src/v7/effects/mix.js",
+        "src/strategies/compareRunner.js"
+      ],
+      "note": "Built as \"Which mix lasts best?\" on \"The mix\": the eight cells (your mix and the three levels, tent off and on) each in futures out of 10 with what is typically left and the bad case, the best marked, \"Tried in 8 runs\"; \"Use this mix\" with a confirm writes the cell's split in one write with Undo. The planner's grid keeps its six cells (compareRunner.compareMixes, own: false)."
     },
     {
       "id": "test.schedule",

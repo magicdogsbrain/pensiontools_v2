@@ -98,8 +98,9 @@ describe('the reducer', () => {
     expect(moved.lasts.tried).toBe(null);
     expect(moved.lasts.kept).toEqual(kept.lasts.kept);
     expect(reduce(kept, { type: A.LASTS_WORKING, key: 'k1' }).lasts.tried.status).toBe('done');
-    const saved = reduce(kept, { type: A.PLAN_SAVED, planId: 'p1', previous: { 'stressTool.settings.duration': 33 }, line: { id: 'try', slots: { n: '3' } }, op: 'try' });
+    const saved = reduce(reduce(kept, { type: A.UI_TOGGLE, id: 'tryOpen' }), { type: A.PLAN_SAVED, planId: 'p1', previous: { 'stressTool.settings.duration': 33 }, line: { id: 'try', slots: { n: '3' } }, op: 'try' });
     expect(saved.lasts).toEqual({ ...emptyLasts(), kept: kept.lasts.kept });
+    expect(saved.ui.open, 'the boxes close with the change used').not.toContain('tryOpen');
     expect(saved.ui.toast).toMatchObject({ kind: 'saved', op: 'try' });
     expect(reduce(kept, { type: A.PLANS_CLEAR }).lasts).toEqual(emptyLasts());
     expect(JSON.parse(JSON.stringify(kept))).toEqual(kept);
@@ -107,6 +108,16 @@ describe('the reducer', () => {
     expect(r.lasts.tried).toMatchObject({ status: 'done', boxes: BOXES, ms: null });
     expect(r.lasts.kept).toBe(null);
     expect(['full', 'unverified'].map((p) => reduce(s0, { type: A.PLAN_SAVE_FAILED, planId: 'p1', problem: p }).ui.saveProblem.problem)).toEqual(['full', 'unverified']);
+  });
+  it('the boxes opened on one plan\'s "Does it last?" close when the address leaves it (another plan, another step); they stay across a re-read of the same page', () => {
+    const on = reduce(reduce(s0, { type: A.ROUTE_SET, route: parse('#/plan/p1/lasts') }), { type: A.UI_TOGGLE, id: 'tryOpen' });
+    expect(on.ui.open).toContain('tryOpen');
+    expect(reduce(on, { type: A.ROUTE_SET, route: parse('#/plan/p1/lasts') }).ui.open).toContain('tryOpen');
+    expect(reduce(on, { type: A.ROUTE_SET, route: parse('#/plan/p2/lasts') }).ui.open).not.toContain('tryOpen');
+    expect(reduce(on, { type: A.ROUTE_SET, route: parse('#/plan/p1/plan') }).ui.open).not.toContain('tryOpen');
+    const mix = reduce(reduce(s0, { type: A.ROUTE_SET, route: parse('#/plan/p1/mix') }), { type: A.UI_TOGGLE, id: 'mixPaste' });
+    expect(reduce(mix, { type: A.ROUTE_SET, route: parse('#/plan/p1/mix') }).ui.open).toContain('mixPaste');
+    expect(reduce(mix, { type: A.ROUTE_SET, route: parse('#/plans') }).ui.open).not.toContain('mixPaste');
   });
   it('readyMark: a try under way is not ready', () => {
     const { store, key } = pageOn([ALEX], ALEX.id);

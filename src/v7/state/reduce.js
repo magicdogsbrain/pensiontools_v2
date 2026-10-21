@@ -332,7 +332,13 @@ export function reduce(state, action) {
       // the toast and a save's problem belong to their plan too
       const t = state.ui.toast, sp = state.ui.saveProblem;
       const uiOther = (t && !onPlan(t.planId)) || (sp && sp.planId && !onPlan(sp.planId));
-      const next = { ...state, route, ui: closeRail(state.ui) };
+      // the blocks opened on one plan's step belong to it: Try a change's boxes and confirm to its "Does it last?", the mix's
+      // paste and example to its "The mix" — leaving that page closes them (a locked plan's page starts with no box)
+      const stays = (step) => route.screen === 'plan' && route.step === step && state.route && state.route.screen === 'plan' && state.route.step === step && String(state.route.planId) === String(route.planId);
+      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample'])];
+      const ui0 = closeRail(state.ui);
+      const open = ui0.open.filter((x) => !gone.includes(x));
+      const next = { ...state, route, ui: open.length === ui0.open.length ? ui0 : { ...ui0, open } };
       if (!other && !uiOther) return noteShown(state, next);
       const cleared = { ...next, ui: { ...next.ui, saving: null, saveProblem: null, toast: null } };
       return noteShown(state, other ? withPlanDraft(cleared, emptyPlanDraft()) : cleared);
@@ -590,7 +596,9 @@ export function reduce(state, action) {
       // the way of drawing changed (way-and-mix.md 2.4), a mix used (3.2e) or a tried change used (4): the one test's result was for
       // the old settings — it goes, and runs again on the saved plan (the copy a try was kept as stays said)
       const lasts = op === 'way' || op === 'mix' || op === 'try' ? { ...emptyLasts(), kept: (state.lasts && state.lasts.kept) || null } : state.lasts;
-      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
+      // a tried change used: the boxes and the confirm close with it (the plan is now what was tried)
+      const open = op === 'try' ? state.ui.open.filter((x) => x !== 'tryOpen' && x !== 'tryConfirm') : state.ui.open;
+      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
     }
     case A.PLAN_SAVE_FAILED: {
       const { planId, problem } = action;

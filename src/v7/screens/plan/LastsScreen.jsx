@@ -190,7 +190,8 @@ function TryChange({ L, planId, dispatch, sourceText }) {
   );
   void sourceText;
   const r = t.result;
-  const tryIt = () => { if (t.ok && t.run) dispatch({ type: 'lasts/tryRun', boxes: t.run }); else dispatch({ type: 'plan/save', planId }); };
+  // "Try it" with a box wrong: the boxes marked (touched, so their problems show), nothing run, nothing written
+  const tryIt = () => { if (t.ok && t.run) dispatch({ type: 'lasts/tryRun', boxes: t.run }); else for (const path of Object.keys(t.errors)) dispatch({ type: 'plan/touch', planId, path }); };
   const close = () => { dispatch({ type: 'lasts/tryClose' }); if (t.open) dispatch({ type: 'ui/toggle', id: 'tryOpen' }); };
   const policy = (p) => T.policies[p] || (p == null ? T.policies.saved : p);
   const diffLine = (d) => {

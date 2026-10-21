@@ -257,3 +257,14 @@ own test; one shared budget with "Keeping money separate?" and who-pays. Lifted 
 `splitCopyNames`, `copyUnlockWrite`, `shareBudgetWrite`, `stopSharingWrite`. Gate 9 (`tests/v7/plan/householdIdentity.test.js`)
 holds the pooled verdict, the split and the applied writes to the planner's on the couple fixtures and a derived unequal pair.
 Five ledger rows flipped to built under `s9-household`. Next: 10 — design `research/v7/holdings-and-move.md`, then build (6.43.0).
+
+**Step 10 shipped as 6.43.0 (21 Oct).** Designed first (`research/v7/holdings-and-move.md`), then built: "What you hold"
+(`#/plan/<id>/hold`) is the one record line by line by account, typed through the bundled search or pasted with every line
+counted ("What is this?", "Left out, and why", "not seen this time — sold?" with its own Remove), the mix as held in words;
+"Moving to your plan's mix" (`#/plan/<id>/move`) says on its face that it is optional and what skipping costs (one run on the
+mix as held, or the uncovered years for a ladder), the saver's five-year rule (where new money goes until `approaching`), the
+buy and sell lists with tick-offs, the schedule, the order sheet that waits for the person's own State Pension figure, and the
+rotation watch and ticket (the switch hands over to the planner). Writes: the whole `holdings` and `transition` objects, past the
+guard on a locked plan as the planner allows. Lifted pure: `holdingsWith`, `applyPaste`, `tickMove`, `orderSheetRows`,
+`rotationWatch`. Gate 10 (`tests/v7/plan/holdIdentity.test.js`): the record round-trips byte for byte on the four fixtures
+with one. Six ledger rows flipped under `s10-hold`. Next: 11 — the shell for 7.0 (6.44.0).

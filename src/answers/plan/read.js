@@ -379,7 +379,8 @@ function planStep(C) {
     { id: 'pots', lines: pots, place: 'pots', sub: 'pots', href: '#/plan/' + plan.id + '/pots' },
     // "Money that comes in anyway" is edited inside V7 too (editing-in-v7.md 7)
     { id: 'income', lines: income, place: 'pots', sub: 'income', href: '#/plan/' + plan.id + '/income' },
-    { id: 'way', lines: way, place: 'way' }
+    // "How the money is taken" is in V7 too (way-and-mix.md 2.1): the nine ways on this plan; on a locked plan the link says a try changes nothing
+    { id: 'way', lines: way, place: 'way', sub: 'way', href: '#/plan/' + plan.id + '/way', lockedButton: 'tryWay' }
   ];
   const buttons = [];
   // "Does it last?" is inside V7 (editing-in-v7.md 10): the one test runs there; a locked plan still has the planner's what-ifs

@@ -11,6 +11,7 @@ import { startAddress } from './address.js';
 import { startDraftStore, sessionStore, localStore } from './draftStore.js';
 import { startRunner } from './run.js';
 import { startLastsRunner } from './lasts.js';
+import { startWaysRunner } from './ways.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
 import { startOpenPlace } from './openPlace.js';
@@ -45,6 +46,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // "Does it last?" (research/v7/editing-in-v7.md 10.4): a saved plan's one test, in the worker only, on that step only —
   // no page fallback, so the engine's chunk is the worker's alone and the plan pages' own chunk does not carry it
   stops.push(startLastsRunner({ store, client }));
+  // "How the money is taken" (research/v7/way-and-mix.md 2.2): the nine ways on a saved plan, in the worker only, on that step only
+  stops.push(startWaysRunner({ store, client, now: () => Date.now() }));
 
   // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
   // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where

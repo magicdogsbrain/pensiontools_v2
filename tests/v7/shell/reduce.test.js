@@ -259,7 +259,22 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom({ strategyId: 'pots-and-valves', a: null }, { strategyId: 'buckets-in-order', a: { share: 0.9 } })).map(([key, result]) => ({ type: A.LASTS_DONE, key, result })),
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_FAILED, key })),
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_SLOW, key })),
-  fc.constant({ type: A.LASTS_RETRY })
+  fc.constant({ type: A.LASTS_RETRY }),
+  // "How the money is taken" (way-and-mix.md 2.2): the nine ways for one plan by its run key; a card opened, a dial typed, a way tried
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_WORKING, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 9 })).map(([key, done]) => ({ type: A.WAYS_PROGRESS, key, done, total: 9 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 20000 })).map(([key, ms]) => ({ type: A.WAYS_DONE, key, result: { strategyId: 'pots-and-valves', ways: [{ id: 'pots-and-valves', affordable: true }] }, ms })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_FAILED, key })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_SLOW, key })),
+  fc.constant({ type: A.WAYS_RETRY }),
+  fc.constantFrom(null, 'pots-and-valves', 'floor-to-age', 'gilt-rotation').map((id) => ({ type: A.WAY_OPEN, id })),
+  fc.tuple(fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom('floorToAge', 'cashYears'), fc.constantFrom('', '3', '82')).map(([id, key, value]) => ({ type: A.WAY_DIAL, id, key, value })),
+  fc.tuple(fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([id, values]) => ({ type: A.WAY_TRY, id, values })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([key, id, values]) => ({ type: A.WAY_TRIED, key, id, values, result: { id, affordable: true }, ms: 120 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([key, id, values]) => ({ type: A.WAY_TRY_FAILED, key, id, values })),
+  fc.constantFrom('lasts', 'left', 'score', 'coverage').map((by) => ({ type: A.WAY_RANK, by })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('floor-to-age', 'gilt-rotation')).map(([planId, id]) => ({ type: A.PLAN_WAY, planId, id })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.strategyId': 'pots-and-valves' }, line: { id: 'way', slots: { way: 'floor-to-age' } }, op: 'way' }))
 );
 
 describe('any sequence of actions', () => {
@@ -281,8 +296,9 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'plan', 'plans', 'route', 'session', 'ui']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'draft', 'env', 'keep', 'lasts', 'plan', 'plans', 'route', 'session', 'ui', 'ways']);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.ways.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);
     }), { numRuns: 300 });
   });

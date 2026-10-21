@@ -269,6 +269,8 @@ export const PLAN = {
     /** Into the editing step inside V7 (editing-in-v7.md 2). */
     editAbout: 'Change this here',
     seeAbout: 'See these',
+    /** Into "How the money is taken" on a locked plan (way-and-mix.md 2.1): the nine ways run, nothing is written. */
+    tryWay: 'Try another way (nothing changes)',
     /** Into "Does it last?" inside V7 (editing-in-v7.md 10): the one test runs there, no hand-over. */
     recheck: 'Check it still lasts',
     lasts: 'Does it last?',

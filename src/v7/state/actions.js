@@ -99,7 +99,22 @@ export const A = Object.freeze({
   LEVER_TRY:       'lasts/leverTry',   // { kind }                           try a lever on the plan of the run held (the effect runs it)
   LEVER_DONE:      'lasts/leverDone',  // { key, kind, result }              the lever's figures (lastsRun.js runLever); dropped if the key is stale
   LEVER_FAILED:    'lasts/leverFailed', // { key, kind, reason? }            the lever failed ('noWorker': no worker)
-  LEVER_CLOSE:     'lasts/leverClose'  // { kind }                           put the lever away (nothing is kept of it)
+  LEVER_CLOSE:     'lasts/leverClose', // { kind }                           put the lever away (nothing is kept of it)
+
+  // ---- "How the money is taken": the nine ways on a saved plan, run in the preview (research/v7/way-and-mix.md 2) ----------
+  WAYS_WORKING:    'ways/working',     // { key }                            the nine-way run for this key is under way; the cards, dials and tries of another key go
+  WAYS_PROGRESS:   'ways/progress',    // { key, done, total }               ignored unless the key is the one under way
+  WAYS_DONE:       'ways/done',        // { key, result, ms }                the result (waysRun.js runWays), plain data, and the cost; ignored if the key is stale
+  WAYS_FAILED:     'ways/failed',      // { key, reason? }                   the run failed; "Try again" offered — or reason 'noWorker'
+  WAYS_SLOW:       'ways/slow',        // { key }                            slow: true
+  WAYS_RETRY:      'ways/retry',       // {}                                 after a failure: idle again, so the runner starts over
+  WAY_OPEN:        'ways/open',        // { id }                             open this way's card (one open at a time; the plan's own when null); a closed card's try goes
+  WAY_DIAL:        'ways/dial',        // { id, key, value }                 one dial of a card, as typed (text or a choice); the card's last try is put away
+  WAY_TRY:         'ways/try',         // { id, values }                     try this way on these values (the effect runs it; dispatched by the effect on open and on a dial)
+  WAY_TRIED:       'ways/tried',       // { key, id, values, result, ms }    the way's figures (waysRun.js runWay); dropped if the key or the values are stale
+  WAY_TRY_FAILED:  'ways/tryFailed',   // { key, id, values, reason? }       the try failed ('noWorker': no worker)
+  WAY_RANK:        'ways/rankBy',      // { by }                             the table's order: lasts | left | score | coverage
+  PLAN_WAY:        'plan/useWay'       // { planId, id }                     "Use it" confirmed: saving { kind: 'way', way: id }; the one write file switches the plan
 });
 
 /**
@@ -123,4 +138,6 @@ export const ACTION_TYPES = Object.freeze(Object.values(A));
  */
 export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears', 'allOptions', 'allLines',
   // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog
-  'lockConfirm', 'unlockConfirm', 'documentConfirm']);
+  'lockConfirm', 'unlockConfirm', 'documentConfirm',
+  // "How the money is taken" (way-and-mix.md 2): the confirm of "Use this way of drawing", and "More columns"
+  'wayConfirm', 'waysMore']);

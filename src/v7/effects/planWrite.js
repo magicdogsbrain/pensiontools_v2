@@ -39,6 +39,14 @@
  *   Without a worker (client.document rejects with NO_WORKER) the lock and the new version are refused ('noWorker'): the
  *   document is never built from a lesser run.
  *
+ * "Use this way of drawing" (research/v7/way-and-mix.md 2.4), the same one write, one more kind:
+ *   - `plan/useWay` (kind 'way'): answers/plan/way.js wayPatch — the planner's strategy switch field for field
+ *     (services/PlanCommit.js switchPatch: the stash, the restore, the dials typed on the card, the pots a restored funds
+ *     list gives, the cut dials, and the root strategy block) — goes as ONE write to an unlocked plan, past the guard like
+ *     every write (a locked plan is refused before anything is sent, whatever the screen drew); then plan/saved with op
+ *     'way' (the Undo toast; the reducer clears "Does it last?"'s result, which was the old way's) and the plans read again.
+ *     Undo is an editing step's undo: the previous values back, byte-identical; a locked plan refused.
+ *
  * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
  * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
  *   - the seed is built from the answer on screen (answers/keep/planSeed.js buildPlanSeed), the plan documents from it
@@ -82,6 +90,7 @@ import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
 import { lastsPatch } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
+import { wayPatch } from '../../answers/plan/way.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -297,6 +306,29 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
 
+  /** "Use this way of drawing" (way-and-mix.md 2.4): the switch as one write to an unlocked plan; the dials typed on the card go with it. */
+  async function useWay(planId, id) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
+    const W = state.ways || {};
+    const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.way : null;
+    const typed = (W.dials && W.dials[id]) || {};
+    const run = W.result && Array.isArray(W.result.ways) ? W.result.ways.find((x) => x && x.id === id) : null;
+    if (!page || !page.found || !run || W.key !== page.runKey) { fail(planId, 'noRun'); return; }
+    const at = now();
+    const p = wayPatch(plan, id, typed, { today: state.env.today, at: at.toISOString(), defaults: run.dials ? run.dials.defaults : {} });
+    if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
+    if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'way' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'way' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
   async function undo(planId, previous, op = null, lockedAt = null) {
     const state = store.getState();
     const place = placeOf(state, planId);
@@ -471,6 +503,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));
     else if (action.type === A.PLAN_UNLOCK && s.kind === 'unlock') run(() => unlock(s.planId));
     else if (action.type === A.PLAN_DOCUMENT && s.kind === 'document') run(() => newVersion(s.planId));
+    else if (action.type === A.PLAN_WAY && s.kind === 'way') run(() => useWay(s.planId, s.way));
   });
   return () => { stopped = true; off(); if (timer && win) win.clearTimeout(timer); };
 }

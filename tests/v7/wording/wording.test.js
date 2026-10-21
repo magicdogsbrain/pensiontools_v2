@@ -27,6 +27,10 @@ import { SPEND } from '../../../src/v7/copy/spend.js';
 import { POTS } from '../../../src/v7/copy/pots.js';
 import { LASTS } from '../../../src/v7/copy/lasts.js';
 import { LOCK } from '../../../src/v7/copy/lock.js';
+import { WAY } from '../../../src/v7/copy/way.js';
+import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
+import { listStrategies } from '../../../src/strategies/registry.js';
+import { WAY_IDS, WAY_DIALS } from '../../../src/answers/plan/schema.js';
 import { MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {
@@ -203,6 +207,36 @@ describe('the words in src/v7/copy/', () => {
     expect(LOCK.buttons.lock).toBe('Lock this plan');
     expect(LOCK.unlock.button).toBe('Unlock this plan');
     expect(strings(LOCK).some(([, s]) => /\b(OK|Cancel)\b/.test(s))).toBe(false);
+  });
+  it('"How the money is taken" (way.js): every string passes in every scope a plan page is shown in; the nine names are the planner\'s; every way has its promise, what can go wrong and words for each dial', () => {
+    // the way step is a plan page (way-and-mix.md 2): a retired person's and a saver's plan alike; its cards state the answer
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|docWords)\}/g, 'in 9 futures out of 10').replace(/\{(name|old|docWay|way)\}/g, 'Floor to an age, then decide')
+      .replace(/\{(typical|bad|cost|left|short)\}/g, '£25,000').replace(/\{pct\}/g, '92.7').replace(/\{(futures|histories)\}/g, '1,000').replace(/\{(years|toAge|min|max)\}/g, '12').replace(/\{s\}/g, '4.6');
+    const hits = [];
+    const all = strings(WAY).map(([, s]) => slot(s)).join('\n');
+    // the names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
+    const skipOn = (where) => (where.startsWith('names.') ? ['bridge'] : []);
+    for (const [where, s] of strings(WAY)) for (const h of bannedHits(slot(s), scopes, { context: all, skip: skipOn(where) })) hits.push(`way.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(WAY)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|strategy|allocation|MC|p10|p50|p90|equit(y|ies)|FAILED)\b/);
+    for (const [where, s] of strings(WAY)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    // the nine, as the planner names them (way-and-mix.md: "the nine ways keep the planner's names")
+    expect(WAY.names).toEqual(STRATEGY_NAMES);
+    expect(Object.keys(WAY.names)).toEqual(WAY_IDS);
+    // every way has a promise and what can go wrong — the registry's, in V7's words — and words for each of its dials
+    for (const st of listStrategies()) {
+      expect(WAY.promise[st.id], st.id).toBeTypeOf('string');
+      expect(WAY.wrong[st.id], st.id).toBeTypeOf('string');
+      expect(st.promise.length).toBeGreaterThan(0); expect(st.failure.length).toBeGreaterThan(0);
+    }
+    for (const id of WAY_IDS) for (const d of WAY_DIALS[id]) {
+      expect(WAY.dials.labels[d.key], `${id}.${d.key}`).toBeTypeOf('string');
+      if (d.type === 'choice') for (const o of d.options) expect(WAY.dials.options[d.key] && WAY.dials.options[d.key][o], `${id}.${d.key}.${o}`).toBeTypeOf('string');
+    }
+    // the bad case is said the one way, and the score never decides the cards' order
+    expect(WAY.card.left).toContain('a bad case (the worst 1 in 10)');
+    expect(WAY.table.score).toContain('never decides the order of the cards');
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

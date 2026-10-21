@@ -487,6 +487,27 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 @media (min-width: 744px) {
   .lasts-band .figure { font-size: 2rem; }
 }
+/* "How the money is taken" (way-and-mix.md 2): the nine as cards, one open at a time; the table under "More columns" */
+.way-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: 1fr; gap: 10px; }
+.way-card { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.way-card.is-open { background: var(--surface-card); }
+.way-card .way-name { margin: 0; font-size: 1.1rem; }
+.way-card .way-promise { margin: 0; }
+.way-card .actions-row { margin: 4px 0 0; }
+.way-card h4 { margin: 10px 0 4px; font-size: 1rem; }
+.way-figures.is-stale .plan-line, .way-figures.is-stale .lasts-bar { color: var(--text-muted); }
+.way-dials .field { margin: 0 0 12px; }
+.way-dials .field-count input[type="text"], .way-dials .field-age input[type="text"], .way-dials .field-percent input[type="text"], .way-dials .field-number input[type="text"] { max-width: 6rem; }
+.way-dials .field-money input[type="text"] { max-width: 10rem; }
+.way-rank .option { margin: 0 12px 6px 0; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.way-table { border-collapse: collapse; width: 100%; font-size: var(--size-small); }
+.way-table th, .way-table td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); white-space: nowrap; }
+.way-table th { font-weight: 650; }
+@media (min-width: 744px) {
+  .way-list { grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
+  .way-list li:has(.way-card.is-open) { grid-column: 1 / -1; }
+}
 .undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
   max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text);
   border: 1px solid var(--line); }

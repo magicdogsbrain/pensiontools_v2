@@ -344,6 +344,15 @@ export function readyMark(state) {
     const key = page && page.forId === r.planId && page.lasts && page.lasts.runKey ? page.lasts.runKey : null;
     if (key && !(L && L.key === key && (L.status === 'done' || L.status === 'failed'))) busy = true;
   }
+  // "How the money is taken" (way-and-mix.md 2.2): the nine-way run, or one way being tried, is not ready
+  const W = state.ways;
+  if (W && (W.status === 'working' || Object.values(W.tried || {}).some((t) => t && t.status === 'working'))) busy = true;
+  if (r && r.screen === 'plan' && r.step === 'way') {
+    const page = state.plans && state.plans.view && state.plans.view.page;
+    const key = page && page.forId === r.planId && page.way && page.way.runKey ? page.way.runKey : null;
+    if (key && !(W && W.key === key && (W.status === 'done' || W.status === 'failed'))) busy = true;
+    if (key && page.way.cards && page.way.cards.some((c) => c.needsRun)) busy = true;
+  }
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
 }
 
@@ -755,6 +764,30 @@ export function planLastsView(state) {
   const L = state.lasts || { key: null, status: 'idle', reason: null, result: null, progress: null, slow: false };
   const mine = L.key === v.runKey;
   return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict } };
+}
+/**
+ * "How the money is taken" (way-and-mix.md 2.2): the plan source's reading of the step (page.way: the reading and the cards from
+ * state.ways, worked out there) with the nine-way run's status for THIS plan's key (state.ways: working, done, failed; the
+ * progress and the slow flag), the write's state (ui.saving kind 'way'), the open confirm and "More columns" (ui.open).
+ */
+export function planWayView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  const way = page && page.way && r && r.screen === 'plan' && r.step === 'way' && page.forId === r.planId ? page.way : null;
+  if (!way || !way.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  const W = state.ways || { key: null, status: 'idle', reason: null, progress: null, slow: false };
+  const mine = W.key === way.runKey;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  return {
+    ...way,
+    run: { status: mine ? W.status : 'idle', reason: mine ? W.reason || null : null, progress: mine ? W.progress : null, slow: mine ? W.slow : false },
+    more: open.includes('waysMore'), confirm: open.includes('wayConfirm'),
+    saving: ui.saving && ui.saving.planId === way.id ? ui.saving : null,
+    problem: ui.saveProblem && ui.saveProblem.planId === way.id ? ui.saveProblem.problem : null,
+    toast: ui.toast && ui.toast.planId === way.id ? ui.toast : null
+  };
 }
 function editView(state, step) {
   const plans = state.plans;

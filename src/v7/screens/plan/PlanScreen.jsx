@@ -83,7 +83,7 @@ function Section({ section, view, onChange }) {
         // a section edited inside V7 (research/v7/editing-in-v7.md 2): a link to its step, on a locked plan too (read-only there)
         ? <div class="actions-row">
           {view.lockedOn && <span class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</span>}
-          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
+          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn && section.lockedButton && PLAN.buttons[section.lockedButton] ? PLAN.buttons[section.lockedButton] : view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
         </div>
         : view.lockedOn ? <p class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</p>
           : view.readonly ? null

@@ -1700,6 +1700,7 @@
           },
           "pick": null,
           "document": null,
+          "documentBase": null,
           "base": {
             "badCaseLeft": "£151,745",
             "words": "in more than 9 futures out of 10",

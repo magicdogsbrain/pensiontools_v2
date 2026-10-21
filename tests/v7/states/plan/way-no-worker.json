@@ -3723,7 +3723,10 @@
               "shares": 420000,
               "bonds": 210000,
               "cash": 70000,
-              "spWeekly": 221
+              "spWeekly": 221,
+              "mixShares": 420000,
+              "mixBonds": 210000,
+              "mixCash": 70000
             },
             "lines": [],
             "buttons": [
@@ -4008,14 +4011,81 @@
                       "at": null,
                       "stale": false
                     }
+                  }
+                ],
+                "place": "way",
+                "sub": "way",
+                "href": "#/plan/AlexWay01/way",
+                "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.heldSplit",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.heldSplit",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
                   },
                   {
-                    "id": "way.allocMode",
+                    "id": "mix.amounts",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.amounts",
+                      "parts": [
+                        {
+                          "key": "mixShares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "mixBonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "mixCash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£420,000 shares, £210,000 bonds, £70,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.sleeveOff",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.sleeveOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.tentOff",
                     "slots": {
-                      "mode": "risk"
+                      "years": "13"
                     },
                     "sentence": {
-                      "id": "way.allocMode",
+                      "id": "mix.tentOff",
                       "parts": [],
                       "text": ""
                     },
@@ -4026,10 +4096,10 @@
                     }
                   }
                 ],
-                "place": "way",
-                "sub": "way",
-                "href": "#/plan/AlexWay01/way",
-                "lockedButton": "tryWay"
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexWay01/mix",
+                "lockedButton": "tryMix"
               }
             ],
             "options": [
@@ -4627,6 +4697,10 @@
           },
           {
             "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
             "under": "plan"
           }
         ],
@@ -5389,7 +5463,9 @@
     "workDraft": {
       "yearly": "",
       "years": ""
-    }
+    },
+    "tried": null,
+    "kept": null
   },
   "ways": {
     "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
@@ -5403,6 +5479,18 @@
     "dials": {},
     "tried": {},
     "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
   },
   "ui": {
     "railOpen": false,

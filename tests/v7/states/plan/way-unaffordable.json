@@ -3714,7 +3714,10 @@
               "shares": 250000,
               "bonds": 200000,
               "cash": 50000,
-              "spYearly": 12000
+              "spYearly": 12000,
+              "mixShares": 250000,
+              "mixBonds": 200000,
+              "mixCash": 50000
             },
             "lines": [],
             "buttons": [
@@ -3933,6 +3936,91 @@
                 "sub": "way",
                 "href": "#/plan/AlexFresh03/way",
                 "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.heldLevel",
+                    "slots": {
+                      "level": "balanced"
+                    },
+                    "sentence": {
+                      "id": "mix.heldLevel",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.amounts",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.amounts",
+                      "parts": [
+                        {
+                          "key": "mixShares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "mixBonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "mixCash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£250,000 shares, £200,000 bonds, £50,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.sleeveOff",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.sleeveOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.tentOff",
+                    "slots": {
+                      "years": "15"
+                    },
+                    "sentence": {
+                      "id": "mix.tentOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexFresh03/mix",
+                "lockedButton": "tryMix"
               }
             ],
             "options": [
@@ -4457,6 +4545,10 @@
           },
           {
             "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
             "under": "plan"
           }
         ],
@@ -5491,7 +5583,9 @@
     "workDraft": {
       "yearly": "",
       "years": ""
-    }
+    },
+    "tried": null,
+    "kept": null
   },
   "ways": {
     "key": "AlexFresh03|2026-09-28T18:42:10.000Z|1bod9md|U",
@@ -5959,6 +6053,18 @@
     "dials": {},
     "tried": {},
     "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
   },
   "ui": {
     "railOpen": false,

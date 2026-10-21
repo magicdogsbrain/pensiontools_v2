@@ -283,7 +283,12 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     const ot = script.indexOf('window.runOnTrackCheck');
     expect(script.slice(ot, script.indexOf('\n    };', ot))).toMatch(/requiredPotForStrategy\(stratId, strategyPlanFor\(sSet\), ON_COURSE_SHARE\)/);
     expect(script).toMatch(/runInWorker\('household-ways'/);   // 6.25.0: both ways (as they are / drawing together) through the one test
-    expect(script).toMatch(/Math\.min\(45, \+document\.getElementById\('tryYears'\)\.value/);
+    // 6.41.0: the what-if copy is lifted (src/answers/plan/lastsRun.js trySettingsOf): the planner hands it the boxes, and the
+    // years clamp to the engines' 45 lives there
+    expect(script).toMatch(/function tryStrategySettings\(s\) \{\s*return trySettingsOf\(s, readTryBoxes\(\)\);/);
+    const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
+    expect(lifted).toContain('export const TRY_YEARS = Object.freeze({ min: 5, max: 45 });');
+    expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');
   });
 });
 
